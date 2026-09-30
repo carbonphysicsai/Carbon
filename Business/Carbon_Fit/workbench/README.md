@@ -6,13 +6,53 @@ The public onboarding edition runs in the visitor's browser and exports a draft 
 
 The internal scientific-study host currently depends on the public Burgers challenge. When the registry marks that challenge retired, the host refuses study commands until another admitted challenge can support them. Public scoping and the separate team intake receiver are unaffected. The [runbook](PRIVATE_SERVICE_RUNBOOK.md) records this operating boundary.
 
-Start with `Carbon_Public_Workbench_Onboarding.html` for local scoping, or the [private service runbook](PRIVATE_SERVICE_RUNBOOK.md) for operator setup. GitHub's file view does not host the application. See [Project status](../../../docs/publications/PROJECT_STATUS.md) for the wider development record.
+The client route is the Pilot Designer, `Carbon_Client_Pilot_Designer_Preview.html`, published on the website at `/ask-carbon/pilot-designer`. It combines the guided conversation, the brief form, the system builder from the earlier `/workbench/` page and the encrypted handover, and its download is what the internal Workbench and the private receiver import. Start there for client scoping, or with the [private service runbook](PRIVATE_SERVICE_RUNBOOK.md) for operator setup. GitHub's file view does not host the application. See [Project status](../../../docs/publications/PROJECT_STATUS.md) for the wider development record.
 
 ## Implementation history and operator notes
 
 The notes below retain the scope and evidence of each delivered version. Later code and its deployment records govern current behavior.
 
 ### v0.10 and subsequent work
+
+GOAL-WORKBENCH-16 (slice 1) makes the Pilot Designer the one client route
+(`OWNER-PILOT-DESIGNER-ROUTE-01`). The live `/workbench/` page's problem
+builder moves into it as a third editing mode, **Your system**: physical
+components and couplings, structured inputs and outputs, evidence sources,
+success criteria, practical constraints, the cost calculator, the 64 research
+leads, five illustrative examples and the derived evidence plan. The problem
+model is that page's own engine, copied byte for byte into `src/problem/`
+(provenance in `data/problem_engine_provenance.json`); the builder is
+`src/system_builder.js`. **Continue a saved draft** reopens this page's own
+downloads and all three formats the `/workbench/` page saved, which the
+internal Workbench could never import.
+
+The brief gains an additive version. `carbon.client-intake.draft.v2` is a v1
+brief plus one `system` member, and `carbon.client-intake.reviewed.v2` wraps
+it. The system holds structure only: the decision, requested result and
+baseline stay in the brief's own fields, which is what the guidance edits.
+The canonical digest covers the system, the receiver and the internal import
+accept v2 through the same `src/intake.js` checks, and the import maps the
+system's outputs, input ranges and criteria into the job as unreviewed
+requested targets. v1 briefs and packages validate and digest exactly as
+before. The system is never sent to the guidance provider. See
+`.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
+
+GOAL-WORKBENCH-16 slice 2 adds a fourth mode, **Proposed Challenge**, which
+follows the draft as it is edited. It suggests a launch-portfolio family from
+the client's own words and physics, and the client can choose another. For a
+family with exam-design evidence (battery today) it proposes that family's
+tested settings (training set size, screening batch, rotation, equivalence
+margin, promotion rule, gates, compute cost), each with its reason and the
+measured table that chose it, relayed from
+`docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md`. Conditions the client did
+not give are proposed from the tested design and labelled; a client range is
+compared with the tested range and flagged when outside it; units are never
+converted. A family without evidence proposes no setting and no cost. The
+public record is `data/challenge_families_v1.json`, built by
+`tools/build_challenge_families.py` from the readiness records, the battery
+domain module and verbatim quotes; the engine is `src/challenge_proposal.js`.
+The proposal can be downloaded as Markdown. It registers, runs, prices and
+approves nothing.
 
 GOAL-WORKBENCH-14 adds a public onboarding edition,
 `Carbon_Public_Workbench_Onboarding.html`. It is built from the same sources as

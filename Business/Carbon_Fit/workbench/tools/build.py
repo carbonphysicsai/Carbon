@@ -81,6 +81,10 @@ def build(*, private_science=False, output_directory=None):
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
     intake = (ROOT / "src/intake.js").read_text()
+    # The live Workbench's problem model (GOAL-WORKBENCH-16), which a v2 brief
+    # carries. Both are byte-for-byte copies; see data/problem_engine_provenance.json.
+    problem_legacy = (ROOT / "src/problem/cooling-v02.js").read_text()
+    problem_engine = (ROOT / "src/problem/engine.js").read_text()
     team_review = (ROOT / "src/team_review.js").read_text()
     # Shared with the public onboarding edition. The internal side needs it to
     # import a public artifact, and sharing one module is what makes the two
@@ -108,6 +112,8 @@ def build(*, private_science=False, output_directory=None):
             routing,
             c05_evidence,
             source_assessment,
+            problem_legacy,
+            problem_engine,
             intake,
             team_review,
             public_workbench,
@@ -140,6 +146,8 @@ def build(*, private_science=False, output_directory=None):
         "ROUTING": routing,
         "C05_EVIDENCE": c05_evidence,
         "SOURCE_ASSESSMENT": source_assessment,
+        "PROBLEM_LEGACY": problem_legacy,
+        "PROBLEM_ENGINE": problem_engine,
         "INTAKE": intake,
         "TEAM_REVIEW": team_review,
         "PUBLIC_WORKBENCH": public_workbench,
@@ -154,11 +162,23 @@ def build(*, private_science=False, output_directory=None):
     intake_style = (ROOT / "src/intake_styles.css").read_text()
     intake_app = (ROOT / "src/intake_app.js").read_text()
     intake_seal = (ROOT / "src/intake_seal.js").read_text()
+    system_builder = (ROOT / "src/system_builder.js").read_text()
+    challenge_proposal = (ROOT / "src/challenge_proposal.js").read_text()
+    families = data(ROOT / "data/challenge_families_v1.json")
     intake_key = intake_public_key(ROOT / "data/intake_public_key.json")
     intake_csp = (
         "default-src 'none'; script-src "
         + " ".join(
-            "'" + digest(value) + "'" for value in [intake, intake_seal, intake_app]
+            "'" + digest(value) + "'"
+            for value in [
+                problem_legacy,
+                problem_engine,
+                intake,
+                intake_seal,
+                system_builder,
+                challenge_proposal,
+                intake_app,
+            ]
         )
         + "; style-src '"
         + digest(intake_style)
@@ -171,6 +191,12 @@ def build(*, private_science=False, output_directory=None):
         "INTAKE": intake,
         "INTAKE_SEAL": intake_seal,
         "INTAKE_KEY": intake_key,
+        "ATLAS": atlas,
+        "PROBLEM_LEGACY": problem_legacy,
+        "PROBLEM_ENGINE": problem_engine,
+        "SYSTEM_BUILDER": system_builder,
+        "CHALLENGE_PROPOSAL": challenge_proposal,
+        "FAMILIES": families,
         "APP": intake_app,
     }.items():
         preview = preview.replace("{{" + key + "}}", value)

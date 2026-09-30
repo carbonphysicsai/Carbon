@@ -5,6 +5,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const I = require("../src/intake.js");
+const E = require("../src/problem/engine.js");
 const root = path.resolve(__dirname, "..");
 const output = path.join(root, "intake", "fixtures");
 
@@ -67,6 +68,19 @@ function unsupported() {
   });
   return finish(d);
 }
+// A v2 brief (GOAL-WORKBENCH-16): the live Workbench's illustrative cooling
+// example as its structure, with the words in the brief where they belong.
+function coolingSystem() {
+  const example = E.template("cooling", "synthetic_cooling_example").problem;
+  const d = I.newDraft("synthetic-cooling-system", "rev-001", { ...example, title: "", description: "", decision: "", baseline: "" });
+  Object.assign(d.answers, {
+    intended_decision: answer(example.decision),
+    requested_result: answer([example.title, example.description].filter(Boolean).join(" — ")),
+    current_baseline: answer(example.baseline),
+    exclusions: answer("Illustrative example only: no customer, measurement or qualification claim."),
+  });
+  return finish(d);
+}
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -92,6 +106,11 @@ async function main() {
   fs.writeFileSync(path.join(output, "unsupported_physics_revision_v2.json"), revisedRaw);
   const revisedInspection = await I.inspect(revisedRaw, JSON.parse);
   manifest.fixtures.push({ name: "unsupported_physics_revision_v2.json", draft_id: revised.draft_id, revision_id: revised.revision_id, raw_sha256: revisedInspection.raw_sha256, canonical_digest: revisedInspection.canonical_digest });
+  const system = coolingSystem();
+  const systemRaw = JSON.stringify(system, null, 2) + "\n";
+  fs.writeFileSync(path.join(output, "cooling_system_draft_v2.json"), systemRaw);
+  const systemInspection = await I.inspect(systemRaw, JSON.parse);
+  manifest.fixtures.push({ name: "cooling_system_draft_v2.json", draft_id: system.draft_id, revision_id: system.revision_id, raw_sha256: systemInspection.raw_sha256, canonical_digest: systemInspection.canonical_digest });
   fs.writeFileSync(path.join(output, "fixture_manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 }
 main().catch((error) => { console.error(error); process.exit(1); });

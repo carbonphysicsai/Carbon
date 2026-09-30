@@ -1,0 +1,1214 @@
+{
+  "schema": "carbon.pilot-designer.challenge-families.v1",
+  "purpose": "Public launch-portfolio families and the exam-design evidence behind their proposed settings, for the Pilot Designer's proposed Challenge. Relayed from repository records; nothing here is approved, qualified or a commitment to run.",
+  "matching_rule": "A family is suggested when the client's own words, component names or input and output names contain one of its keywords, or its physical processes overlap the client's. Suggestions are ranked by the number of distinct keywords matched, then by physics overlap. A suggestion is a starting point for Carbon review, not an assessment of fit.",
+  "source": {
+    "path": "Business/Carbon_Fit/workbench/data/challenge_evidence_source_v1.json",
+    "sha256": "sha256:96dc10c6562b13dc622cff55e695f069f18c56a43d42517eb6076eb560c43829"
+  },
+  "families": [
+    {
+      "id": "battery-fastcharge-ageing-development-v1",
+      "title": "Battery fast charging and ageing",
+      "record": {
+        "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+        "sha256": "sha256:72fcc695747096f62dce44031858503aa43eebab008af6a1cfc039346f17a0b4"
+      },
+      "matching": {
+        "keywords": [
+          "battery",
+          "cell",
+          "lithium",
+          "li-ion",
+          "charging",
+          "fast charge",
+          "fast-charge",
+          "charge protocol",
+          "c-rate",
+          "state of charge",
+          "soc",
+          "plating",
+          "capacity fade",
+          "ageing",
+          "aging",
+          "cycle life",
+          "bms",
+          "anode",
+          "cathode",
+          "electrolyte"
+        ],
+        "physics": [
+          "chemical",
+          "thermal",
+          "electromagnetic"
+        ]
+      },
+      "status": "PROPOSED_DEVELOPMENT_DESIGN",
+      "decision": {
+        "buyer": "Battery-management and cell engineers choosing charge protocols (a hypothesis; no customer demand is claimed).",
+        "engineering_decision": "Choose a two-stage constant-current fast-charge protocol, predicting voltage, temperature, lithium-plating margin and capacity fade before committing to it.",
+        "intended_use": "Predict the specified PyBaMM DFN (OKane2022) cell's response to a charge protocol over the declared input box; agreement is with that model, not with real cells."
+      },
+      "design_variables": [
+        {
+          "description": "First-stage charge current, bounds 0.5 to 2.0 (carbon/battery/domain.py INPUT_BOUNDS).",
+          "name": "c1",
+          "unit": "C-rate",
+          "bounds": [
+            0.5,
+            2.0
+          ],
+          "bounds_source": "carbon/battery/domain.py",
+          "aliases": [
+            "first-stage",
+            "first stage",
+            "stage 1",
+            "cc1",
+            "initial charge current",
+            "charge rate",
+            "charge current",
+            "c-rate"
+          ]
+        },
+        {
+          "description": "Second-stage charge current, bounds 0.2 to 1.0.",
+          "name": "c2",
+          "unit": "C-rate",
+          "bounds": [
+            0.2,
+            1.0
+          ],
+          "bounds_source": "carbon/battery/domain.py",
+          "aliases": [
+            "second-stage",
+            "second stage",
+            "stage 2",
+            "cc2",
+            "final charge current"
+          ]
+        },
+        {
+          "description": "Ambient temperature, bounds 5 to 40 (an operating condition, not a design choice).",
+          "name": "t_amb_c",
+          "unit": "degC",
+          "bounds": [
+            5.0,
+            40.0
+          ],
+          "bounds_source": "carbon/battery/domain.py",
+          "aliases": [
+            "ambient",
+            "ambient temperature",
+            "environment temperature",
+            "surrounding temperature"
+          ]
+        },
+        {
+          "description": "Initial state of charge, bounds 0.05 to 0.5 (an operating condition).",
+          "name": "soc0",
+          "unit": "1",
+          "bounds": [
+            0.05,
+            0.5
+          ],
+          "bounds_source": "carbon/battery/domain.py",
+          "aliases": [
+            "state of charge",
+            "initial soc",
+            "starting soc",
+            "soc0",
+            "soc"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "description": "Terminal voltage every 30 s over the first hour (121 points).",
+          "name": "voltage_v",
+          "unit": "V"
+        },
+        {
+          "description": "Cell temperature every 30 s over the first hour.",
+          "name": "temperature_c",
+          "unit": "degC"
+        },
+        {
+          "description": "Minimum plating overpotential during the cycle-1 charge.",
+          "name": "plating_margin_v",
+          "unit": "V"
+        },
+        {
+          "description": "Discharge capacity at cycles 1, 10, 20 and 30.",
+          "name": "capacity_ah",
+          "unit": "A.h"
+        }
+      ],
+      "limits": [
+        {
+          "approved": null,
+          "basis": "OD-2 provisional DEVELOPMENT rule: 2 x the largest seed-to-seed SD from three seeds (RESULT section 5). Not a scientific value.",
+          "name": "equivalence_margin",
+          "proposed": 0.057,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "OD-2 provisional DEVELOPMENT value (carbon/battery/domain.py PLATING_BAND_V).",
+          "name": "important_region_plating_band",
+          "proposed": 0.005,
+          "unit": "V"
+        },
+        {
+          "approved": null,
+          "basis": "OD-2 provisional DEVELOPMENT value (carbon/battery/domain.py T_IMPORTANT_C).",
+          "name": "important_region_temperature",
+          "proposed": 55.0,
+          "unit": "degC"
+        }
+      ],
+      "costs": [
+        {
+          "basis": "measured",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+          "item": "reference",
+          "unit": "USD per 30-cycle case (A40, 7 workers)",
+          "usd": 0.0014
+        },
+        {
+          "basis": "measured",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+          "item": "reconstruction",
+          "unit": "USD per recipe fit, GPU backend",
+          "usd": 0.001
+        },
+        {
+          "basis": "estimated",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+          "item": "inference",
+          "unit": "USD per 200 cases (about 5 ms; negligible)",
+          "usd": 0.0
+        },
+        {
+          "basis": "estimated",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+          "item": "finalist",
+          "unit": "USD per finalist comparison, composed from separately measured reconstruction, reference and inference costs (never measured as one run)",
+          "usd": 0.29
+        },
+        {
+          "basis": "measured",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md bottom line",
+          "item": "discarded",
+          "unit": "USD, three pods discarded without retained evidence",
+          "usd": 0.23
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "startup",
+          "unit": "USD per pod boot (included in, not separated from, the reference figure)",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "cleanup",
+          "unit": "USD per campaign",
+          "usd": null
+        },
+        {
+          "basis": "not_applicable",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD",
+          "usd": null
+        }
+      ],
+      "maturity": {
+        "baseline": "MEASURED",
+        "reference_execution": "CAMPAIGN_COMPLETE"
+      },
+      "recommendation": {
+        "basis": "2,604 main-run references all OK (recounted), all 7 frozen verification criteria passed on 200 private cases, and the fresh finalist comparison stopped every memorizing candidate (RESULT sections 1 to 4).",
+        "decision": "PROCEED"
+      },
+      "reviews": {
+        "customer": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "launch": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "numerical_reference": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "scientific": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "security": {
+          "authority": null,
+          "state": "IN_REVIEW"
+        }
+      },
+      "training_budget_study": {
+        "decision": null,
+        "result": null,
+        "state": "NOT_STARTED"
+      },
+      "unresolved": [
+        "Security: OD-3 approves the reconstruction and truth images for the testnet run only; launch-grade acceptance (validator_launch isolation) is outstanding.",
+        "Scientific: every limit above is a provisional DEVELOPMENT value; none is scientifically approved.",
+        "Adaptive miners are unmeasured; the owner approved a USD 6 model-provider campaign on 2026-09-26.",
+        "The frozen results ran on the CPU backend; the M4 two-host GPU run (USD 14 ceiling, approved 2026-09-26) is outstanding.",
+        "Error-based scores rank a boundary-leaning model highly (EV1 Finding 2); a decision-aware robustness component is unbuilt."
+      ],
+      "next_experiment": "The M4 two-host GPU run and the adaptive-agent campaign (owner-approved 2026-09-26, USD 14 and USD 6 ceilings), then EV2 with a decision-aware robustness component.",
+      "tracking": "carbonphysicsai/Carbon#341",
+      "reference": {
+        "applicability": "The declared input box only; 30 cycles; the specified model, not real cells (RESULT section 11 item 7). Solver licence and redistribution review are not recorded here.",
+        "evidence": [
+          "docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl",
+          "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+          "scripts/dev/exam_design/locks/battery-overlay.lock.json"
+        ],
+        "licence": null,
+        "model": "DFN with OKane2022 parameters, SEI and partially reversible plating, lumped thermal",
+        "solver": "PyBaMM 26.8.0.0 (hash-locked overlay on the digest-pinned study image)"
+      },
+      "population": {
+        "approved": null,
+        "proposed": "Development sampling of (c1, c2, t_amb_c, soc0) over INPUT_BOUNDS through carbon.seeding, under the OD-2 provisional DEVELOPMENT settings. Not a ratified production population."
+      },
+      "evidence": "battery-exam-design-campaign-1"
+    },
+    {
+      "id": "chip-cold-plate",
+      "title": "AI-chip liquid cold plates",
+      "record": {
+        "path": "carbon/challenge_readiness/records/chip-cold-plate.v4.json",
+        "sha256": "sha256:39d8a62882699a99bc9ada3f830233d7acdadae636e00669621f03d39a9d8767"
+      },
+      "matching": {
+        "keywords": [
+          "cold plate",
+          "cold-plate",
+          "liquid cooling",
+          "coolant",
+          "heat sink",
+          "microchannel",
+          "channel layout",
+          "junction temperature",
+          "chip",
+          "die",
+          "gpu",
+          "cpu",
+          "thermal management",
+          "pressure drop",
+          "heat flux"
+        ],
+        "physics": [
+          "thermal",
+          "fluid"
+        ]
+      },
+      "status": "PROPOSED_DEVELOPMENT_DESIGN",
+      "decision": {
+        "buyer": "Cooling and component suppliers (a hypothesis in #342; no customer demand or paid pilot is claimed).",
+        "engineering_decision": "Choose a channel layout for a single-phase liquid cold plate on a defined chip footprint and heat-load family.",
+        "intended_use": "Predict plate temperatures, coolant outlet temperature and pressure drop across a parameterized straight or serpentine channel family."
+      },
+      "design_variables": [
+        {
+          "description": "Parameters of straight or serpentine channels in a fixed external footprint; not arbitrary topology. The parameter list is not yet fixed.",
+          "name": "channel_geometry",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "channel",
+            "geometry",
+            "layout",
+            "fin"
+          ]
+        },
+        {
+          "description": "Coolant volume flow; mass or volume flow must be declared explicitly (#342).",
+          "name": "coolant_flow",
+          "unit": "L/min",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "flow rate",
+            "coolant flow",
+            "mass flow",
+            "flow"
+          ]
+        },
+        {
+          "description": "Coolant inlet temperature.",
+          "name": "inlet_temperature",
+          "unit": "degC",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "inlet temperature",
+            "inlet",
+            "supply temperature"
+          ]
+        },
+        {
+          "description": "Spatial heat flux over the chip footprint.",
+          "name": "heat_load_map",
+          "unit": "W/m^2",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "heat load",
+            "power map",
+            "heat flux",
+            "power"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "description": "Solid temperature at declared query points.",
+          "name": "solid_temperature",
+          "unit": "degC"
+        },
+        {
+          "description": "Peak solid temperature.",
+          "name": "peak_temperature",
+          "unit": "degC"
+        },
+        {
+          "description": "Mean solid temperature.",
+          "name": "mean_temperature",
+          "unit": "degC"
+        },
+        {
+          "description": "Coolant outlet temperature.",
+          "name": "outlet_temperature",
+          "unit": "degC"
+        },
+        {
+          "description": "Pressure drop, with its pressure-reference convention declared.",
+          "name": "pressure_drop",
+          "unit": "Pa"
+        }
+      ],
+      "limits": [],
+      "costs": [
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "startup",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "reference",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "reconstruction",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "inference",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "finalist",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "cleanup",
+          "unit": "USD",
+          "usd": null
+        }
+      ],
+      "maturity": {
+        "baseline": "NOT_STARTED",
+        "reference_execution": "SCOPED"
+      },
+      "recommendation": {
+        "basis": "No reference pilot has run.",
+        "decision": "NONE"
+      },
+      "reviews": {
+        "customer": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "launch": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "numerical_reference": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "scientific": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "security": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        }
+      },
+      "training_budget_study": {
+        "decision": null,
+        "result": null,
+        "state": "NOT_STARTED"
+      },
+      "unresolved": [
+        "Units, coordinate conventions, geometry validity and physical ranges are not yet specified for domain review.",
+        "Whether the proposed envelope supports laminar flow is unconfirmed.",
+        "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs.",
+        "Solver candidate pinned by digest; its conjugate heat-transfer path (chtMultiRegionFoam), the model, material and coolant identity, and redistribution rights are not yet established."
+      ],
+      "next_experiment": "Select a reproducible simple straight-channel baseline and document the geometry-to-mesh-to-solve-to-output commands (#342 first task), then price the first pilot for owner approval.",
+      "tracking": "carbonphysicsai/Carbon#342",
+      "reference": {
+        "applicability": "Candidate only. The pinned image reproduces laminar parallel-plate flow (rung 1) and the uniform-flux fully developed Nusselt number and energy balance (rung 2), both at second order, under scripts/dev/cold_plate/. No conjugate heat-transfer case, cold-plate geometry, material or coolant has been run; whether the envelope is laminar is not yet confirmed.",
+        "evidence": [
+          "scripts/dev/cold_plate/channel_verification/README.md",
+          "scripts/dev/cold_plate/heat_flux_verification/README.md"
+        ],
+        "licence": "GPL-3.0 as published upstream; run on the operator host only, redistribution not reviewed",
+        "model": null,
+        "solver": "OpenFOAM v2512, opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319 (candidate)"
+      },
+      "population": {
+        "approved": null,
+        "proposed": "One single-phase liquid-cooled plate, one material and coolant, fixed external footprint, parameterized straight or serpentine channels (#342). A proposed development design, not a ratified production population."
+      },
+      "evidence": null
+    },
+    {
+      "id": "electric-motor-magnetics",
+      "title": "Electric motor magnetics",
+      "record": {
+        "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v2.json",
+        "sha256": "sha256:a676abb0efed5bad6eadad71ed8ef5aa83939d0df4b4394849b834127157f007"
+      },
+      "matching": {
+        "keywords": [
+          "motor",
+          "electric machine",
+          "stator",
+          "rotor",
+          "permanent magnet",
+          "magnet",
+          "torque",
+          "torque ripple",
+          "back emf",
+          "cogging",
+          "winding",
+          "flux",
+          "e-drive",
+          "traction motor"
+        ],
+        "physics": [
+          "electromagnetic",
+          "solid"
+        ]
+      },
+      "status": "PROPOSED_DEVELOPMENT_DESIGN",
+      "decision": {
+        "buyer": "Motor and actuator suppliers (a hypothesis in #344; a magnetic component, not a qualified robotic joint).",
+        "engineering_decision": "Choose a permanent-magnet cross-section that maximizes useful torque under a prospectively specified ripple constraint, at fixed outer size, current and magnet use.",
+        "intended_use": "A small feasibility assessment (#341): whether a bounded magnetic-design candidate exists that Carbon could evaluate, and what its reference would cost."
+      },
+      "design_variables": [
+        {
+          "description": "Parameters of one permanent-magnet topology's 2D cross-section; the parameter list is not yet fixed.",
+          "name": "cross_section_geometry",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "cross-section",
+            "cross section",
+            "geometry",
+            "slot",
+            "magnet shape"
+          ]
+        },
+        {
+          "description": "Current and phase.",
+          "name": "phase_current",
+          "unit": "A",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "phase current",
+            "current",
+            "excitation"
+          ]
+        },
+        {
+          "description": "Rotor angle.",
+          "name": "rotor_angle",
+          "unit": "rad",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "rotor angle",
+            "rotor position",
+            "angle",
+            "position"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "description": "Torque over rotor angle.",
+          "name": "torque_angle_curve",
+          "unit": "N.m"
+        },
+        {
+          "description": "Mean torque.",
+          "name": "mean_torque",
+          "unit": "N.m"
+        },
+        {
+          "description": "Torque ripple; its resolution must be demonstrated (#344).",
+          "name": "torque_ripple",
+          "unit": "N.m"
+        },
+        {
+          "description": "Selected flux quantities, not yet chosen.",
+          "name": "flux_quantities",
+          "unit": "T"
+        }
+      ],
+      "limits": [],
+      "costs": [
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "startup",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "reference",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "reconstruction",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "inference",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "finalist",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "cleanup",
+          "unit": "USD",
+          "usd": null
+        }
+      ],
+      "maturity": {
+        "baseline": "NOT_STARTED",
+        "reference_execution": "SCOPED"
+      },
+      "recommendation": {
+        "basis": "No reference pilot has run.",
+        "decision": "NONE"
+      },
+      "reviews": {
+        "customer": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "launch": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "numerical_reference": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "scientific": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "security": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        }
+      },
+      "training_budget_study": {
+        "decision": null,
+        "result": null,
+        "state": "NOT_STARTED"
+      },
+      "unresolved": [
+        "Material curves, axial length and the exclusions (end effects, thermal duty, stress, acoustics, drive control) are not yet specified.",
+        "Solver choice, Linux automation and licence are unverified.",
+        "The rotor-angle resolution needed to resolve ripple is not yet demonstrated.",
+        "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs."
+      ],
+      "next_experiment": "Choose one published reproducible motor benchmark and prove a bounded rotor-angle sweep (#344 first task); this is a feasibility assessment, not a dataset.",
+      "tracking": "carbonphysicsai/Carbon#344",
+      "reference": {
+        "applicability": "Candidate: FEMM or a Linux-capable FEM alternative, to be assessed; host automation and licensing must be verified, not assumed (#344). Nothing is pinned or run.",
+        "evidence": [],
+        "licence": null,
+        "model": null,
+        "solver": null
+      },
+      "population": {
+        "approved": null,
+        "proposed": "One permanent-magnet topology with a parameterized 2D cross-section and a stated axial length (#344). A proposed development design, not a ratified production population."
+      },
+      "evidence": null
+    },
+    {
+      "id": "photonic-coupler",
+      "title": "Silicon photonic couplers",
+      "record": {
+        "path": "carbon/challenge_readiness/records/photonic-coupler.v3.json",
+        "sha256": "sha256:62e32b8b77227aea484d958e928680e40fd23d21b9b7848efb1632c66b2e314d"
+      },
+      "matching": {
+        "keywords": [
+          "photonic",
+          "photonics",
+          "waveguide",
+          "coupler",
+          "directional coupler",
+          "splitter",
+          "optical",
+          "silicon photonics",
+          "wavelength",
+          "transmission",
+          "s-parameter",
+          "fdtd"
+        ],
+        "physics": [
+          "electromagnetic"
+        ]
+      },
+      "status": "PROPOSED_DEVELOPMENT_DESIGN",
+      "decision": {
+        "buyer": "Photonic-component designers (a hypothesis in #345).",
+        "engineering_decision": "Choose a coupler geometry for prescribed splitting and transmission over wavelength and fabrication variation.",
+        "intended_use": "Repair first (#345): fix the phase convention and establish coupled-power convergence. No exam design until both are answered."
+      },
+      "design_variables": [
+        {
+          "description": "Parameters of one coupler family in a fixed material stack; not yet fixed.",
+          "name": "coupler_geometry",
+          "unit": "nm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "gap",
+            "coupling length",
+            "geometry",
+            "width"
+          ]
+        },
+        {
+          "description": "Wavelength in a declared band (the diagnostics used 1.50 to 1.60).",
+          "name": "wavelength",
+          "unit": "um",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "wavelength",
+            "band",
+            "frequency"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "description": "Normalized port powers such as |S31|^2 and |S41|^2.",
+          "name": "port_power",
+          "unit": "1"
+        },
+        {
+          "description": "Complex response phase; not well defined until the mode-sign convention is fixed (RESULT section 9).",
+          "name": "relative_phase",
+          "unit": "rad"
+        }
+      ],
+      "limits": [],
+      "costs": [
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "startup",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "estimated",
+          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
+          "item": "reference",
+          "unit": "USD per five-wavelength parent case at 20 nm, extrapolated from a measured single-run time of about 265 s (diagnostic, not qualified-truth cost)",
+          "usd": 0.36
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "reconstruction",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "inference",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "finalist",
+          "unit": "USD",
+          "usd": null
+        },
+        {
+          "basis": "unknown",
+          "evidence": null,
+          "item": "cleanup",
+          "unit": "USD",
+          "usd": null
+        }
+      ],
+      "maturity": {
+        "baseline": "NOT_STARTED",
+        "reference_execution": "PILOTED"
+      },
+      "recommendation": {
+        "basis": "Exam design is deferred until the phase convention and coupled-power convergence are repaired: an exam built on an unresolved convention grades the convention (#345; RESULT section 9).",
+        "decision": "DEFER"
+      },
+      "reviews": {
+        "customer": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "launch": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "numerical_reference": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "scientific": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        },
+        "security": {
+          "authority": null,
+          "state": "NOT_STARTED"
+        }
+      },
+      "training_budget_study": {
+        "decision": null,
+        "result": null,
+        "state": "NOT_STARTED"
+      },
+      "unresolved": [
+        "Mode orientation, port reference planes, power normalization and complex phase convention are undefined (#345 task 1).",
+        "Coupled power does not converge at 40/30/20 nm; a 10-15 nm study or a mode-expansion reference is needed.",
+        "Radiated and absorbed energy are not accounted for, so no passivity tolerance is supportable.",
+        "Whether complex S-parameters are supportable is undecided; a power-only variant needs its own explicit contract.",
+        "The solver's licence and redistribution rights are not recorded."
+      ],
+      "next_experiment": "Define the phase convention and reproduce the mode-sign issue with a small diagnostic, then plan a costed finer-mesh or mode-expansion comparison (#345 tasks 1 to 4).",
+      "tracking": "carbonphysicsai/Carbon#345",
+      "reference": {
+        "applicability": "Diagnostic only: coupled power is unconverged (about 15 % of the coupled fraction at 20 nm) and relative phase flips by about pi across resolutions.",
+        "evidence": [
+          "docs/development/evidence/exam-design-2026-09-24/photonic-diagnostic/out/records.jsonl",
+          "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9"
+        ],
+        "licence": null,
+        "model": "3D FDTD of an asymmetric directional coupler",
+        "solver": "fdtdx (JAX FDTD), as used in scripts/dev/exam_design/photonic_reference.py"
+      },
+      "population": {
+        "approved": null,
+        "proposed": "One coupler family, fixed material stack, declared wavelength band and fabrication variations (#345). A proposed development design, not a ratified production population."
+      },
+      "evidence": null
+    }
+  ],
+  "evidence": {
+    "battery-exam-design-campaign-1": {
+      "id": "battery-exam-design-campaign-1",
+      "title": "Exam-design campaign 1 (battery), 2026-09-24",
+      "summary": "A bounded development campaign that solved 2,604 battery references without a failure, tested the gates against authored faults, replayed the exam loop over nine batch and rotation settings, and verified a frozen comparison rule on 200 private cases. It is public/synthetic DEVELOPMENT research: nothing in it is scientifically, security or production qualified.",
+      "source": {
+        "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+      },
+      "settings": [
+        {
+          "id": "train_cases",
+          "label": "Public training set",
+          "value": "400 cases (TRAIN v1)",
+          "why": "Model error was still falling at 400 cases: the competent recipe improved about a third from 200 to 400, and 400 references cost about USD 0.58 to solve.",
+          "section": "2. How much public training data is a useful starting point?",
+          "table": {
+            "columns": [
+              "TRAIN cases",
+              "kNN",
+              "Competent MLP (2 seeds)",
+              "MLP with PCA heads"
+            ],
+            "rows": [
+              [
+                "50",
+                "0.324",
+                "0.203 / 0.192",
+                "0.241 / 0.224"
+              ],
+              [
+                "100",
+                "0.246",
+                "0.128 / 0.137",
+                "0.187 / 0.188"
+              ],
+              [
+                "200",
+                "0.207",
+                "0.081 / 0.086",
+                "0.151 / 0.145"
+              ],
+              [
+                "400",
+                "0.172",
+                "0.054 / 0.057",
+                "0.088 / 0.090"
+              ]
+            ]
+          },
+          "quotes": [
+            "| 50 | 0.324 | 0.203 / 0.192 | 0.241 / 0.224 |",
+            "| 100 | 0.246 | 0.128 / 0.137 | 0.187 / 0.188 |",
+            "| 200 | 0.207 | 0.081 / 0.086 | 0.151 / 0.145 |",
+            "| 400 | 0.172 | 0.054 / 0.057 | 0.088 / 0.090 |",
+            "**Recommendation: TRAIN v1 = 400.**"
+          ],
+          "limit": null
+        },
+        {
+          "id": "screening_batch",
+          "label": "Screening batch size",
+          "value": "100 parent cases per batch, 3 batches active (a 300-case pool)",
+          "why": "Batch 100 ranked models most like the fresh finalist cases (Kendall tau 0.93), and a 300-case pool separated two equal-quality models beyond the margin only 3.5 % of the time, against 9.6 % for a 150-case pool.",
+          "section": "4. Screening versus fresh finalist outcomes; 5. Reconstruction variability",
+          "table": {
+            "columns": [
+              "Batch size",
+              "Kendall tau with fresh finalist ranking"
+            ],
+            "rows": [
+              [
+                "50",
+                "0.88"
+              ],
+              [
+                "100",
+                "0.93"
+              ],
+              [
+                "200",
+                "0.92"
+              ]
+            ]
+          },
+          "quotes": [
+            "| 50 | 0.88 |",
+            "| 100 | **0.93** |",
+            "| 200 | 0.92 |"
+          ],
+          "limit": null,
+          "supporting_table": {
+            "columns": [
+              "Pool (3 x batch)",
+              "Equal-quality models separated beyond the margin"
+            ],
+            "rows": [
+              [
+                "150",
+                "9.6 %"
+              ],
+              [
+                "300",
+                "3.5 %"
+              ],
+              [
+                "600",
+                "0.5 %"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "rotation",
+          "label": "Rotation",
+          "value": "Retire the oldest batch after 3 admitted submissions",
+          "why": "A scripted attacker that learns only from the aggregate score gained 0.3 % at batch 100 and rotation after 3, far below the 5.7 % margin. Rotation is set conservatively because adaptive agents were not measured.",
+          "section": "6. Rotation behaviour",
+          "table": {
+            "columns": [
+              "Batch",
+              "Rotate after 1",
+              "Rotate after 3",
+              "Rotate after 10"
+            ],
+            "rows": [
+              [
+                "50",
+                "0.3 %",
+                "0.5 %",
+                "1.0 %"
+              ],
+              [
+                "100",
+                "0.1 %",
+                "0.3 %",
+                "0.3 %"
+              ],
+              [
+                "200",
+                "0.0 %",
+                "0.1 %",
+                "0.2 %"
+              ]
+            ]
+          },
+          "quotes": [
+            "| 50 | 0.3 % | 0.5 % | 1.0 % |",
+            "| 100 | 0.1 % | 0.3 % | 0.3 % |",
+            "| 200 | 0.0 % | 0.1 % | 0.2 % |",
+            "**Recommendation: batch 100, rotate after 3.** Rotation is set conservatively for"
+          ],
+          "limit": null
+        },
+        {
+          "id": "equivalence_margin",
+          "label": "Equivalence margin",
+          "value": "5.7 % of the score",
+          "why": "Reseeding the same recipe moved its score by up to 2.8 % (standard deviation), so a smaller margin would promote noise. The price: an improvement near the margin was found about half the time.",
+          "section": "5. Reconstruction variability",
+          "table": {
+            "columns": [
+              "Recipe",
+              "Seed-to-seed relative SD"
+            ],
+            "rows": [
+              [
+                "mlp",
+                "2.2 %"
+              ],
+              [
+                "mlp_localized",
+                "2.8 %"
+              ]
+            ]
+          },
+          "quotes": [
+            "| mlp | 2.2 % |",
+            "| mlp_localized | 2.8 % |",
+            "**The equivalence margin** is 2 × the largest seed SD, which is **5.7 %**."
+          ],
+          "limit": "equivalence_margin"
+        },
+        {
+          "id": "promotion_rule",
+          "label": "What can be promoted",
+          "value": "Only a fresh-case IMPROVEMENT; a regression in the important region blocks promotion",
+          "why": "Screening alone was fooled by every memorizing candidate, but the fresh finalist comparison promoted none of them, promoted the real improvement every time, and made no false promotion.",
+          "section": "4. Screening versus fresh finalist outcomes",
+          "table": {
+            "columns": [
+              "Decision (truth)",
+              "Outcome across the 9 settings"
+            ],
+            "rows": [
+              [
+                "Real improvement mlp over mlp_half (−36.5 %)",
+                "promoted 9 / 9"
+              ],
+              [
+                "Pool-leak memorization (truth: equivalent)",
+                "nominated 27 / 27 (screening is fooled); promoted 0 / 27; the fresh final comparison catches it"
+              ],
+              [
+                "Regional regression mlp_localized (overall +4.4 %, important region worse)",
+                "never nominated"
+              ],
+              [
+                "False promotions",
+                "0"
+              ]
+            ]
+          },
+          "quotes": [
+            "| Real improvement `mlp` over `mlp_half` (−36.5 %) | promoted 9 / 9 |",
+            "| Pool-leak memorization (truth: equivalent) | nominated 27 / 27 (screening is fooled); **promoted 0 / 27**; the fresh final comparison catches it |",
+            "| Regional regression `mlp_localized` (overall +4.4 %, important region worse) | never nominated |",
+            "| **False promotions** | **0** |"
+          ],
+          "limit": "important_region_plating_band"
+        },
+        {
+          "id": "gates",
+          "label": "Physical gates",
+          "value": "Initial voltage, voltage ceiling and floor, initial temperature, capacity bound, paired repeat, finite output",
+          "why": "Each authored fault was rejected by its own gate on all 600 screening cases, while correct predictions of plating and hot operating conditions were never failed.",
+          "section": "3. Gates: behaviour, failures and coverage gaps",
+          "table": {
+            "columns": [
+              "Control",
+              "Expected gate",
+              "Result"
+            ],
+            "rows": [
+              [
+                "+20 mV on the 4.2 V hold",
+                "voltage_ceiling",
+                "600 / 600 fail"
+              ],
+              [
+                "+5 mV at t = 0",
+                "initial_voltage",
+                "600 / 600 fail"
+              ],
+              [
+                "+0.5 °C at t = 0",
+                "initial_temperature",
+                "600 / 600 fail"
+              ],
+              [
+                "capacity above the bound",
+                "capacity_bound",
+                "600 / 600 fail"
+              ]
+            ]
+          },
+          "quotes": [
+            "| +20 mV on the 4.2 V hold | `voltage_ceiling` | 600 / 600 fail |",
+            "| +5 mV at t = 0 | `initial_voltage` | 600 / 600 fail |",
+            "| +0.5 °C at t = 0 | `initial_temperature` | 600 / 600 fail |",
+            "| capacity above the bound | `capacity_bound` | 600 / 600 fail |"
+          ],
+          "limit": null
+        },
+        {
+          "id": "screening_cost",
+          "label": "Compute cost per submission",
+          "value": "About USD 0.001 to screen one submission; about USD 0.29 per finalist comparison",
+          "why": "Measured on one A40 pod. Screening is cheap; the fresh references for a finalist comparison dominate.",
+          "section": "7. Cost",
+          "table": {
+            "columns": [
+              "Item",
+              "Measured",
+              "Cost"
+            ],
+            "rows": [
+              [
+                "Screening one submission (batch 100, pool 300)",
+                "one GPU reconstruction + inference + scoring",
+                "≈ USD 0.001 (USD 0.011 on the CPU backend)"
+              ],
+              [
+                "Batch build",
+                "100 references",
+                "USD 0.14, amortized over 3 submissions = USD 0.047"
+              ],
+              [
+                "Finalist comparison",
+                "2 reconstructions + 200 fresh references + inference",
+                "≈ USD 0.29, dominated by the fresh references"
+              ]
+            ]
+          },
+          "quotes": [
+            "| **Screening one submission** (batch 100, pool 300) | one GPU reconstruction + inference + scoring | **≈ USD 0.001** (USD 0.011 on the CPU backend) |",
+            "| **Batch build** | 100 references | **USD 0.14**, amortized over 3 submissions = USD 0.047 |",
+            "| **Finalist comparison** | 2 reconstructions + 200 fresh references + inference | **≈ USD 0.29**, dominated by the fresh references |"
+          ],
+          "limit": null
+        }
+      ],
+      "limits_of_evidence": [
+        "5. **Adaptive miners** are unmeasured. Rare-event false-promotion rates cannot be",
+        "7. **Real cells.** Agreement is with the specified PyBaMM model, not with",
+        "1. **Owner decisions.** No scientific, security or production qualification"
+      ]
+    }
+  }
+}

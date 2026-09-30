@@ -4,6 +4,19 @@
   const DRAFT_VERSION = "carbon.client-intake.draft.v1";
   const MAPPING_VERSION = "carbon.client-intake.mapping.v1";
   const REVIEW_VERSION = "carbon.client-intake.reviewed.v1";
+  // GOAL-WORKBENCH-16 slice 1. A v2 brief is a v1 brief plus one `system`
+  // member: the physical system, inputs, outputs, evidence, criteria and
+  // constraints, in the live Workbench's own problem model. v1 briefs and
+  // packages keep their meaning and still validate exactly as written.
+  const DRAFT_VERSION_V2 = "carbon.client-intake.draft.v2";
+  const MAPPING_VERSION_V2 = "carbon.client-intake.mapping.v2";
+  const REVIEW_VERSION_V2 = "carbon.client-intake.reviewed.v2";
+  const DRAFT_VERSIONS = Object.freeze([DRAFT_VERSION, DRAFT_VERSION_V2]);
+  const REVIEW_VERSIONS = Object.freeze([REVIEW_VERSION, REVIEW_VERSION_V2]);
+  // The words of the problem belong to the brief, which is what the client
+  // types and the guidance edits. The system carries structure only, so these
+  // members of the problem model stay empty rather than holding a second copy.
+  const SYSTEM_WORDS = Object.freeze(["title", "description", "decision", "baseline"]);
   const GUIDANCE_VERSION = "carbon.client-intake.guidance.v1";
   const GUIDANCE_PROVIDERS = Object.freeze(["OPENAI_API", "CHUTES_API"]);
   const LOCAL_SCOPE = "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED";
@@ -38,6 +51,13 @@
     "next_discussion",
   ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
+  const problemEngine = () => {
+    const engine =
+      root.CarbonWorkbench ||
+      (typeof require !== "undefined" ? require("./problem/engine.js") : null);
+    if (!engine) throw Error("The problem model is unavailable in this page");
+    return engine;
+  };
 
   // What the optional public AI assist never receives (owner-delegated
   // decision, 2026-09-23). In an engineering brief the values are the secret,
@@ -151,31 +171,69 @@
     };
   }
 
-  function newDraft(draftId = "local-inquiry-001", revisionId = "rev-001") {
+  function newDraft(draftId = "local-inquiry-001", revisionId = "rev-001", system = undefined) {
     const answers = {};
     for (const field of TEXT_FIELDS) answers[field] = emptyTextAnswer();
     const quantities = {};
     for (const field of QUANTITY_FIELDS)
       quantities[field] = emptyQuantityAnswer();
+    const v2 = system !== undefined;
+    const mapping = v2 ? MAPPING_VERSION_V2 : MAPPING_VERSION;
     return {
-      schema_version: DRAFT_VERSION,
+      schema_version: v2 ? DRAFT_VERSION_V2 : DRAFT_VERSION,
       draft_id: ident(draftId, "draft ID"),
       revision_id: ident(revisionId, "revision ID"),
       predecessor: null,
       answers,
       quantities,
+      ...(v2 ? { system: validateSystem(system === null ? problemEngine().blankProblem() : system) } : {}),
       summary: {
-        mapping_version: MAPPING_VERSION,
+        mapping_version: mapping,
         text: "",
         unknown_fields: [],
         next_clarification: "",
       },
       source: {
         application: "Carbon Client Intake Preview",
-        mapping_version: MAPPING_VERSION,
+        mapping_version: mapping,
         local_scope: LOCAL_SCOPE,
       },
     };
+  }
+
+  // The problem model validates itself; this adds only what the brief owns.
+  function validateSystem(value) {
+    const engine = problemEngine();
+    engine.validateProblem(value);
+    for (const field of SYSTEM_WORDS)
+      if (value[field] !== "")
+        throw Error("The system's " + field + " belongs to the brief and must be empty");
+    return clone(value);
+  }
+
+  function rangeText(row) {
+    if (row.min === null && row.max === null) return "";
+    const low = row.min === null ? "?" : row.min;
+    const high = row.max === null ? "?" : row.max;
+    return ` ${low} to ${high}`;
+  }
+
+  function systemLines(system) {
+    const E = problemEngine();
+    const names = Object.fromEntries(system.components.map((c) => [c.id, c.name || E.PHYSICS[c.physics]]));
+    const listed = (rows, render) => (rows.length ? rows.map(render).join("; ") : "none listed");
+    return [
+      `Goal: ${E.GOALS[system.goal]}`,
+      `Physical components: ${listed(system.components, (c) => `${c.name || "unnamed"} (${E.PHYSICS[c.physics]})`)}`,
+      `Couplings: ${listed(system.couplings, (c) => `${names[c.from] || "unknown"} ${c.direction === "twoway" ? "<->" : "->"} ${names[c.to] || "unknown"}${c.quantity ? ": " + c.quantity : ""}`)}`,
+      `Inputs: ${listed(system.inputs, (r) => `${r.name || "unnamed"}${r.unit ? " [" + r.unit + "]" : ""}${rangeText(r)}`)}`,
+      `Outputs: ${listed(system.outputs, (r) => `${r.name || "unnamed"}${r.unit ? " [" + r.unit + "]" : ""} (${E.OPTIONS.priority[r.priority]})`)}`,
+      `Evidence sources (client-reported): ${system.sources.length}`,
+      `Success criteria (requested, not accepted): ${system.requirements.length}`,
+      `Geometry: ${E.OPTIONS.geometry[system.geometry]}; time: ${E.OPTIONS.time[system.time]}; model: ${E.OPTIONS.model[system.model]}`,
+      `Intended use: ${E.OPTIONS.deployment[system.deployment]}; consequence: ${E.OPTIONS.safety[system.safety]}`,
+      `Research leads: ${system.sourceRefs.length ? system.sourceRefs.join(", ") : "none"}`,
+    ];
   }
 
   function quantityText(value) {
@@ -210,9 +268,10 @@
       `Reference-query time: ${quantityText(draft.quantities.reference_query_time)}`,
       `Workload frequency: ${quantityText(draft.quantities.workload_frequency)}`,
       `Requested accuracy: ${quantityText(draft.quantities.desired_accuracy)} (unreviewed client intent)`,
+      ...(draft.schema_version === DRAFT_VERSION_V2 ? systemLines(draft.system) : []),
     ];
     return {
-      mapping_version: MAPPING_VERSION,
+      mapping_version: draft.schema_version === DRAFT_VERSION_V2 ? MAPPING_VERSION_V2 : MAPPING_VERSION,
       text: lines.join("\n"),
       unknown_fields: unknown,
       next_clarification: unknown.length
@@ -222,12 +281,14 @@
   }
 
   function validateDraft(value) {
+    const v2 = value?.schema_version === DRAFT_VERSION_V2;
+    const mapping = v2 ? MAPPING_VERSION_V2 : MAPPING_VERSION;
     exact(
       value,
-      ["schema_version", "draft_id", "revision_id", "predecessor", "answers", "quantities", "summary", "source"],
+      ["schema_version", "draft_id", "revision_id", "predecessor", "answers", "quantities", ...(v2 ? ["system"] : []), "summary", "source"],
       "intake draft",
     );
-    if (value.schema_version !== DRAFT_VERSION)
+    if (!DRAFT_VERSIONS.includes(value.schema_version))
       throw Error("Unsupported intake draft version");
     ident(value.draft_id, "draft ID");
     ident(value.revision_id, "revision ID");
@@ -246,8 +307,9 @@
     exact(value.quantities, QUANTITY_FIELDS, "intake quantities");
     for (const field of QUANTITY_FIELDS)
       quantityAnswer(value.quantities[field], field);
+    if (v2) validateSystem(value.system);
     exact(value.summary, ["mapping_version", "text", "unknown_fields", "next_clarification"], "intake summary");
-    if (value.summary.mapping_version !== MAPPING_VERSION)
+    if (value.summary.mapping_version !== mapping)
       throw Error("Unsupported intake mapping version");
     text(value.summary.text, "summary text", 24000);
     if (!Array.isArray(value.summary.unknown_fields) || value.summary.unknown_fields.some((x) => ![...TEXT_FIELDS, ...QUANTITY_FIELDS].includes(x)))
@@ -256,7 +318,7 @@
     exact(value.source, ["application", "mapping_version", "local_scope"], "intake source");
     if (
       value.source.application !== "Carbon Client Intake Preview" ||
-      value.source.mapping_version !== MAPPING_VERSION ||
+      value.source.mapping_version !== mapping ||
       value.source.local_scope !== LOCAL_SCOPE
     )
       throw Error("Invalid intake source boundary");
@@ -273,9 +335,13 @@
 
   function validateReviewedPackage(value) {
     exact(value, ["schema_version", "brief", "pilot", "field_provenance", "accepted_suggestions", "unresolved_assumptions", "ai_guidance", "sharing", "contact", "local_scope"], "reviewed intake package");
-    if (value.schema_version !== REVIEW_VERSION || value.local_scope !== REVIEW_SCOPE)
+    if (!REVIEW_VERSIONS.includes(value.schema_version) || value.local_scope !== REVIEW_SCOPE)
       throw Error("Unsupported reviewed intake package");
     const brief = validateDraft(value.brief);
+    // A v1 package carries a v1 brief and a v2 package a v2 brief, so a
+    // package's version says exactly what its brief contains.
+    if ((value.schema_version === REVIEW_VERSION_V2) !== (brief.schema_version === DRAFT_VERSION_V2))
+      throw Error("The package and brief versions disagree");
     exact(value.pilot, ["label", ...PILOT_FIELDS], "draft pilot");
     if (value.pilot.label !== "Draft pilot for Carbon review")
       throw Error("Invalid draft pilot label");
@@ -363,7 +429,7 @@
   }
 
   function draftFromTransport(value) {
-    if (value?.schema_version === REVIEW_VERSION) return validateReviewedPackage(value).brief;
+    if (REVIEW_VERSIONS.includes(value?.schema_version)) return validateReviewedPackage(value).brief;
     return validateDraft(value);
   }
 
@@ -399,7 +465,7 @@
     if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 120000)
       throw Error("Intake draft exceeds 120 KB");
     const parsed = strictParser(raw, { maxBytes: 120000, maxDepth: 10 });
-    const reviewed = parsed?.schema_version === REVIEW_VERSION ? validateReviewedPackage(parsed) : null;
+    const reviewed = REVIEW_VERSIONS.includes(parsed?.schema_version) ? validateReviewedPackage(parsed) : null;
     const draft = reviewed ? reviewed.brief : validateDraft(parsed);
     return {
       draft,
@@ -438,6 +504,31 @@
         consequence: "Requested target only; not an accepted scientific tolerance.",
         kind: "PREFERENCE",
       });
+    // A v2 brief's structured system fills what the words left open and adds
+    // its criteria as requested targets. Nothing it carries becomes an
+    // accepted tolerance: a physical requirement is a MATERIAL claim for
+    // review, a performance target a PREFERENCE.
+    const system = draft.schema_version === DRAFT_VERSION_V2 ? draft.system : null;
+    let systemOutputs = "";
+    let systemConditions = "";
+    if (system) {
+      const E = problemEngine();
+      systemOutputs = system.outputs.map((r) => `${r.name || "unnamed output"}${r.unit ? " [" + r.unit + "]" : ""}`).join("; ");
+      systemConditions = system.inputs.map((r) => `${r.name || "unnamed input"}${r.unit ? " [" + r.unit + "]" : ""}${rangeText(r)} (${E.OPTIONS.variation[r.variation]})`).join("; ");
+      for (const r of system.requirements) {
+        if (requirements.length >= 16) break;
+        const output = system.outputs.find((o) => o.id === r.output);
+        const target = r.target === null ? "target to agree" : `${r.target} ${r.unit}`.trim();
+        requirements.push({
+          original_words: `${output ? output.name || "unnamed output" : "Output to define"}: ${E.OPTIONS.operator[r.operator]} ${target}${r.measure ? " (" + r.measure + ")" : ""}`.slice(0, 8000),
+          source_reference: `intake:${canonicalDigest}#system.requirements.${r.id}`,
+          consequence: r.kind === "physical"
+            ? "Client-stated mandatory physical requirement; Carbon review required."
+            : "Requested target only; not an accepted scientific tolerance.",
+          kind: r.kind === "physical" ? "MATERIAL" : "PREFERENCE",
+        });
+      }
+    }
     return {
       title: (value("requested_result") || value("intended_decision") || "Unreviewed local inquiry").slice(0, 300),
       assignment: {
@@ -452,8 +543,8 @@
       },
       scope: {
         intended_use: value("intended_decision"),
-        outputs: reviewed?.pilot?.candidate_outputs || value("requested_result"),
-        conditions: reviewed?.pilot?.operating_envelope || value("changing_conditions"),
+        outputs: reviewed?.pilot?.candidate_outputs || systemOutputs || value("requested_result"),
+        conditions: reviewed?.pilot?.operating_envelope || [value("changing_conditions"), systemConditions].filter(Boolean).join(" — "),
         exclusions: value("exclusions"),
         query_workload: timing,
         turnaround: `Recurring prediction latency: ${quantityText(quantities.prediction_latency)}; reference-query time: ${quantityText(quantities.reference_query_time)}`,
@@ -471,6 +562,13 @@
     MAPPING_VERSION,
     LOCAL_SCOPE,
     REVIEW_VERSION,
+    DRAFT_VERSION_V2,
+    MAPPING_VERSION_V2,
+    REVIEW_VERSION_V2,
+    DRAFT_VERSIONS,
+    REVIEW_VERSIONS,
+    SYSTEM_WORDS,
+    validateSystem,
     GUIDANCE_VERSION,
     GUIDANCE_PROVIDERS,
     REVIEW_SCOPE,
