@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "e27a7adb35b118d3fc6ca44b512ac6ca9344d946",
+  "integration_revision_at_packaging": "ac75b4f761245b956fce61857ce5f94274dac5d0",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -179,12 +179,12 @@
   "file_count": 260,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
-      "bytes": 359490,
-      "sha256": "f821e1c44359337009efcdd328dd111abace4695181b2aab9e0ddb1270d5146d"
+      "bytes": 366881,
+      "sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496"
     },
     "Carbon_Client_Pilot_Designer_Preview.html": {
-      "bytes": 359490,
-      "sha256": "f821e1c44359337009efcdd328dd111abace4695181b2aab9e0ddb1270d5146d"
+      "bytes": 366881,
+      "sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496"
     },
     "Carbon_Opportunity_Workbench.html": {
       "bytes": 865034,
@@ -199,8 +199,8 @@
       "sha256": "552e4e66ba3227052bcaa69c182ae163d4c707667e044beb72fedb687c014732"
     },
     "README.md": {
-      "bytes": 32375,
-      "sha256": "6c52a8a83368f78a2055f9b1e30eca2e60d9655d9087cc3d8aa752b91a3aa968"
+      "bytes": 32954,
+      "sha256": "8d3588551b3704f1af997b5b2ecdaca1419ebd195f161ea5cb677cb13c4f5627"
     },
     "SCIENTIFIC_STUDIES_OPERATOR.md": {
       "bytes": 9904,
@@ -235,12 +235,12 @@
       "sha256": "991851eb61f8f0e52669444930af445d301df07efb6d138bd854c700cd9aff35"
     },
     "data/challenge_evidence_source_v1.json": {
-      "bytes": 10758,
-      "sha256": "96dc10c6562b13dc622cff55e695f069f18c56a43d42517eb6076eb560c43829"
+      "bytes": 13770,
+      "sha256": "329d4cd9d9a238a7d380d9829628705e9eed0293b5c0d9d1a54a5183c5baba8e"
     },
     "data/challenge_families_v1.json": {
-      "bytes": 42590,
-      "sha256": "d16262e3f9e0fef7e4fd2a01b05e4ff0ed8d5f5672b4f70184d9948ca0c89222"
+      "bytes": 46273,
+      "sha256": "64f17952a0cc48c7fc461053a2c3b89e155e17ac4388f3c6daec78ef2666593b"
     },
     "data/client_model_provider_schedule.json": {
       "bytes": 2309,
@@ -751,8 +751,8 @@
       "sha256": "52855234445a262a45c24c624ef327ffa90f58ee260e9795727a1a8f67031430"
     },
     "src/challenge_proposal.js": {
-      "bytes": 13150,
-      "sha256": "2b0d0e498d4d059136349aa8ede3c985ca96b52cf3d872332d9917748049803f"
+      "bytes": 15957,
+      "sha256": "7d85887f0508bd08e7dfb173b9e929001fed905ac5f4d0869ab5580780b3551d"
     },
     "src/engine.js": {
       "bytes": 34052,
@@ -771,8 +771,8 @@
       "sha256": "070975c8b53ca6de73b193833834820bd70142b192a3d7d0a5dda3c7919da3ed"
     },
     "src/intake_app.js": {
-      "bytes": 35595,
-      "sha256": "33bbd93b12081f3e932b634e66fd9ce54ff2c6c4bada3cd8b0e1d95c9fdf7ba3"
+      "bytes": 36885,
+      "sha256": "6f55b83ac496e23d09eb421d3dcbeeff5154762de5040338bb8807dc677e58e8"
     },
     "src/intake_seal.js": {
       "bytes": 8052,
@@ -783,8 +783,8 @@
       "sha256": "805b53d18eafb3de265ce36dd8a132ae557046baddf85f8ac01642f29c777466"
     },
     "src/intake_styles.css": {
-      "bytes": 9479,
-      "sha256": "f58f62ff3fbe1523333a622cfb325b9ec0a2566fd27be9d8a86d4097a5f7110c"
+      "bytes": 9723,
+      "sha256": "5d4390658e355fbac93ea3d3387dbae4b4171fa64ad65f76b6a27f25723a4ed4"
     },
     "src/problem/cooling-v02.js": {
       "bytes": 6925,
@@ -851,8 +851,8 @@
       "sha256": "8e8273e84db745198e77eaa6206839d09b583d489a6c17b4fabe2d2b7ab085da"
     },
     "tests/browser_challenge_proposal_smoke.cjs": {
-      "bytes": 6085,
-      "sha256": "2b34711a201b368a75841b213d75d22d67ce2225588898dcbc7cdc023364aa8c"
+      "bytes": 6944,
+      "sha256": "b78f3cad023c128fbe86143bb7a47bcba6dcbaddce377fad329d610179c4c3d5"
     },
     "tests/browser_goal_results.json": {
       "bytes": 2258,
@@ -967,8 +967,8 @@
       "sha256": "9abb6620fb0dcee7a1a6f0a85b92d01978900ce93122c4e1439e1497af8815c1"
     },
     "tests/test_challenge_proposal.cjs": {
-      "bytes": 10246,
-      "sha256": "875243ec08bad843552acf29ab519e1dee4764d4b33219202a90a05e08320908"
+      "bytes": 13523,
+      "sha256": "fc351992ad5fc156acf6bf1f368762e656f6710bd41a824dee58755bbb381ca9"
     },
     "tests/test_engine.cjs": {
       "bytes": 18446,
@@ -1115,8 +1115,8 @@
       "sha256": "968bf352f42df67dd9c8b2645c1378c48c142c651f95a743e1c24e0191694435"
     },
     "tools/build_challenge_families.py": {
-      "bytes": 8428,
-      "sha256": "d854c6f2cc045199139956ec08ada66ae3cb7716b4a805266b4ed38b499909d1"
+      "bytes": 11735,
+      "sha256": "4c26b25d121bb227dab72b5862bb12988d0ee5339e5a22d124176be1b6806193"
     },
     "tools/build_goal_schema.py": {
       "bytes": 53482,

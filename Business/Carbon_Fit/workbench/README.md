@@ -54,6 +54,15 @@ domain module and verbatim quotes; the engine is `src/challenge_proposal.js`.
 The proposal can be downloaded as Markdown. It registers, runs, prices and
 approves nothing.
 
+GOAL-WORKBENCH-16 slice 3 adds, when Carbon's evidence does not cover a
+brief, a section on what a new exam-design study would answer and need: the
+reasons (no evidence for the family, no family, a range outside the tested
+one, or an input the tested design does not vary), the study's questions and
+stages and what it cannot establish, extracted from
+`docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, and the training
+budget study requirement. Where Carbon measured it, the first campaign's billed
+compute is shown for scale as compute only, never as a price or quote.
+
 GOAL-WORKBENCH-14 adds a public onboarding edition,
 `Carbon_Public_Workbench_Onboarding.html`. It is built from the same sources as
 the internal bundle, runs entirely in a visitor's browser with
