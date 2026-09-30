@@ -14,6 +14,10 @@ operator's; none is reachable from a miner surface:
 - `backend`: `"carrier"` (the isolated reconstruction worker; needs
   `image_manifest`) or `"direct"` (in-process, trusted, reported as
   `DIRECT_TRUSTED_PROCESS` in every outcome);
+- `rule` (optional): `"v1"` (the default; OD-2's count-based rotation) or
+  `"v2"` (OWNER-BATTERY-SCORING-WINDOW-01: one scored submission per hotkey
+  per tempo, block-based rotation). The seed root is committed for one rule,
+  so a deployment never changes rule in place;
 - `require_commitment`: whether an on-chain commitment (OD-7) is checked.
   A deployment that requires one but has no chain reader configured refuses
   every submission as `commitment_reader_unavailable`; it never skips the
@@ -37,7 +41,7 @@ from pathlib import Path
 
 SCHEMA = "carbon.battery.validator-deployment.v1"
 REQUIRED = {"schema", "state", "private_root", "journal", "work", "backend"}
-OPTIONAL = {"require_commitment", "service_key", "image_manifest", "seconds"}
+OPTIONAL = {"require_commitment", "service_key", "image_manifest", "seconds", "rule"}
 BACKENDS = ("carrier", "direct")
 
 _VALIDATORS = {}
@@ -65,6 +69,13 @@ def _private(path):
     return path
 
 
+def rule_for(config):
+    """The exam rule a deployment runs: `rule` in its configuration, else v1."""
+    from .exam import RULES
+
+    return RULES[config.get("rule", "v1")]
+
+
 def load_config(path):
     config = json.loads(_private(path).read_bytes())
     if type(config) is not dict or config.get("schema") != SCHEMA:
@@ -75,6 +86,10 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_backend")
     if config["backend"] == "carrier" and not config.get("image_manifest"):
         raise EvaluationUnavailable("evaluation_config_image")
+    from .exam import RULES
+
+    if config.get("rule", "v1") not in RULES:
+        raise EvaluationUnavailable("evaluation_config_rule")
     if type(config.get("require_commitment", True)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
     return config
@@ -123,7 +138,7 @@ def build(config, *, repository, readonly=False):
 
     root = seeds.PrivateRoot.load(_private(config["private_root"]))
     journal = seeds.SeedJournal(config["journal"])
-    store = PoolStore(config["state"])
+    store = PoolStore(config["state"], rule=rule_for(config))
     work = _owner_only_directory(config["work"])
     if config["backend"] == "carrier" and not readonly:
         from carbon.reconstruction.worker.docker_runtime import (
@@ -143,16 +158,19 @@ def build(config, *, repository, readonly=False):
     else:
         backend = DirectBackend(repository)
     key = config.get("service_key")
-    validator = BatteryValidator(
-        store=store,
-        backend=backend,
-        root=root,
-        journal=journal,
-        repository=repository,
-        commitments=None,
-        require_commitment=config.get("require_commitment", True),
-        service_key=None if key is None else ServiceKey.load(key),
-    )
+    try:
+        validator = BatteryValidator(
+            store=store,
+            backend=backend,
+            root=root,
+            journal=journal,
+            repository=repository,
+            commitments=None,
+            require_commitment=config.get("require_commitment", True),
+            service_key=None if key is None else ServiceKey.load(key),
+        )
+    except StateError as mismatch:
+        raise EvaluationUnavailable("evaluation_" + mismatch.code) from None
     validator.lock_path = str(config["state"]) + ".lock"
     validator.readonly = readonly
     if readonly:
@@ -184,12 +202,20 @@ def evaluate(target, submission):
     Runs under the deployment's single-writer lock (`writer`).
     """
     from .daemon import CommitmentRequired
+    from .pool_store import HotkeyWindowUsed
 
     if getattr(target, "readonly", False):
         raise EvaluationUnavailable("evaluation_readonly")
     with writer(target):
         try:
             admitted = target.admit(submission)
+        except HotkeyWindowUsed as used:
+            # Rule v2: not a refusal of the recipe; admissible next window.
+            refused = EvaluationUnavailable(
+                "hotkey_window_used" if used.next_block else "receipt_block_missing"
+            )
+            refused.next_block = used.next_block
+            raise refused from None
         except CommitmentRequired:
             code = (
                 "commitment_reader_unavailable"

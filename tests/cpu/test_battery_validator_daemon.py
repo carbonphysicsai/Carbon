@@ -37,8 +37,10 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 EVIDENCE = REPOSITORY / "docs/development/evidence/exam-design-2026-09-24"
 BATTERY = registry.BATTERY_CHALLENGE
 DIGEST = registry.contract_digest(BATTERY)
-#: Tagged digests standing in for the truth-image and exam identities.
-PIN_G, PIN_S = "sha256:" + "1" * 64, "sha256:" + "2" * 64
+#: A tagged digest standing in for the truth-image identity. The scoring pin
+#: is the real v1 rule digest: a validator refuses a root committed for
+#: another rule (`rule_mismatch`).
+PIN_G, PIN_S = "sha256:" + "1" * 64, rule_digest()
 
 
 @pytest.fixture(scope="module")
@@ -96,11 +98,13 @@ def make(
         if root_path.exists()
         else seeds.PrivateRoot.create(root_path)
     )
+    rule = kwargs.pop("rule", None)
     journal = seeds.SeedJournal(tmp_path / "journal.jsonl")
     if not journal.path.exists():
-        journal.commit_root(root, seeds.seed_pin(PIN_G, PIN_S))
+        pin_rule = PIN_S if rule is None else rule_digest(rule)
+        journal.commit_root(root, seeds.seed_pin(PIN_G, pin_rule))
     validator = BatteryValidator(
-        store=PoolStore(tmp_path / "state.sqlite3"),
+        store=PoolStore(tmp_path / "state.sqlite3", rule=rule),
         backend=backend,
         root=root,
         journal=journal,

@@ -79,6 +79,7 @@ from .challenge import (
 from .pool_store import (
     MAX_INFRA_ATTEMPTS,
     WITHDRAWN,
+    HotkeyWindowUsed,
     PoolStore,
     StateError,
     canonical,
@@ -97,8 +98,8 @@ def _digest(value):
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def rule_digest():
-    return _digest(RULE)
+def rule_digest(rule=RULE):
+    return _digest(rule)
 
 
 def commitment_digest(challenge, contract_digest, strategy_hash):
@@ -140,7 +141,13 @@ class AuthenticatedSubmission:
         receipt = received.receipt
         return AuthenticatedSubmission(
             hotkey=receipt.hotkey,
-            receipt={"sequence": receipt.ref.sequence, "digest": receipt.ref.digest},
+            receipt={
+                "sequence": receipt.ref.sequence,
+                "digest": receipt.ref.digest,
+                # The finalized block of the validator-observed snapshot the
+                # request was authenticated against: rule v2's clock.
+                "block": receipt.finalized_block,
+            },
             challenge_id=gateway.challenge.challenge_id,
             challenge_version=gateway.challenge.version,
             strategy=strategy,
@@ -233,6 +240,11 @@ class BatteryValidator:
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
+        self.rule = store.rule
+        if self.pin.get("scoring_digest") != rule_digest(self.rule):
+            # The root was committed for another rule: its seeds and batches
+            # belong to that rule's pools, never to this one.
+            raise StateError("rule_mismatch", "seed pin names another exam rule")
 
     # --- identities -------------------------------------------------------------
 
@@ -246,8 +258,8 @@ class BatteryValidator:
             "schema": "carbon.battery.validator-identities.v1",
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
             "contract_digest": registered.digest,
-            "rule": RULE,
-            "rule_digest": rule_digest(),
+            "rule": self.rule,
+            "rule_digest": rule_digest(self.rule),
             "calibration_sha256": PREPARE_SHA256,
             "train_v1_sha256": TRAIN_V1_SHA256,
             "ocv_table_sha256": OCV_TABLE_SHA256,
@@ -286,7 +298,7 @@ class BatteryValidator:
         The plaintext is generated from the private root, committed to the
         journal before any use, and kept only in the validator state.
         """
-        count = RULE["screening_batch_size"] if count is None else count
+        count = self.rule["screening_batch_size"] if count is None else count
         batch = make_batch(self.root, self.pin, role, count, duplicates)
         self._refuse_published(batch)
         try:
@@ -449,7 +461,18 @@ class BatteryValidator:
             "receipt": submission.receipt,
             "attempt": 0,
         }
-        row, _new = self.store.admit(submission_id, binding=binding, **base)
+        window = None
+        block = (submission.receipt or {}).get("block")
+        if self.rule.get("per_hotkey") is not None:
+            if type(block) is not int:
+                # Rule v2 counts by block; a receipt without one cannot be
+                # placed in a window, so it is not admitted (and not recorded).
+                raise HotkeyWindowUsed(None)
+            start, end = exam.hotkey_window(self.rule, block)
+            window = (start, end, self.rule["per_hotkey"]["scored_per_window"])
+        row, _new = self.store.admit(
+            submission_id, binding=binding, window=window, **base
+        )
         return self.outcome(row["submission_id"])
 
     # --- screening --------------------------------------------------------------------
@@ -608,7 +631,7 @@ class BatteryValidator:
             "pool_version": pool["version"],
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
-            "rule_digest": rule_digest(),
+            "rule_digest": rule_digest(self.rule),
             **agg,
         }
         if inc_rec is not None and inc_rec["score"] is None:
@@ -617,7 +640,7 @@ class BatteryValidator:
             nominated, why = False, "the incumbent has no scorable result on this pool"
         else:
             nominated, why = exam.nominate(
-                record, inc_rec, RULE["equivalence_margin_rel"]
+                record, inc_rec, self.rule["equivalence_margin_rel"]
             )
         record["nomination"] = {
             "nominated": nominated,
@@ -698,8 +721,8 @@ class BatteryValidator:
     def _frozen(self, final_id, incumbent_id, submission_id, record):
         return {
             "schema": "carbon.battery.final-freeze.v1",
-            "rule": exam.ComparisonRule(RULE["equivalence_margin_rel"]).__dict__,
-            "rule_digest": rule_digest(),
+            "rule": exam.ComparisonRule(self.rule["equivalence_margin_rel"]).__dict__,
+            "rule_digest": rule_digest(self.rule),
             "incumbent": incumbent_id,
             "incumbent_recipe": self.store.model_state(incumbent_id)["recipe_digest"],
             "challenger": submission_id,
@@ -877,7 +900,7 @@ class BatteryValidator:
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
             "state": row["state"],
             "evidence": "DEVELOPMENT_SHADOW",
-            "rule": RULE["status"],
+            "rule": self.rule["status"],
             "qualification": False,
             "reward": False,
         }
