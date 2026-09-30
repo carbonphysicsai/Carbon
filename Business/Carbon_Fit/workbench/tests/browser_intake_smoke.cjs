@@ -47,7 +47,7 @@ async function saveDownload(page, selector, target) {
   const formPath = path.join(tmp, "form-only-intake.json");
   await saveDownload(formOnly, "#export-intake", formPath);
   const formPackage = JSON.parse(fs.readFileSync(formPath, "utf8"));
-  check("form-only export uses the shared reviewed package without AI consent or conversation", formPackage.schema_version === "carbon.client-intake.reviewed.v1" && formPackage.brief.schema_version === "carbon.client-intake.draft.v1" && formPackage.ai_guidance.enabled === false && formPackage.sharing.conversation.length === 0);
+  check("form-only export uses the shared reviewed package without AI consent or conversation", formPackage.schema_version === "carbon.client-intake.reviewed.v2" && formPackage.brief.schema_version === "carbon.client-intake.draft.v2" && formPackage.ai_guidance.enabled === false && formPackage.sharing.conversation.length === 0);
   check("form-only export reports a local download rather than submission", await formOnly.locator("#intake-status").innerText().then((text) => text.includes("Nothing was transmitted")));
   // E6: the encrypted download is sealed to the published key, shows that key's
   // fingerprint, and carries none of the draft's text.

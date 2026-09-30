@@ -1150,6 +1150,202 @@ intake_draft = obj(
         ),
     }
 )
+# GOAL-WORKBENCH-16. The live Workbench's problem model as a v2 brief carries
+# it. The engine (src/problem/engine.js) is the authority; these enumerations
+# restate its keys for the schema, and a Node test fails if they drift.
+PROBLEM_ENUMS = {
+    "physics": [
+        "thermal",
+        "fluid",
+        "solid",
+        "electromagnetic",
+        "acoustic",
+        "chemical",
+        "other",
+        "unknown",
+    ],
+    "goal": ["unknown", "predict", "ranking", "inverse", "optimize", "audit", "custom"],
+    "geometry": ["unknown", "fixed", "family", "unseen"],
+    "time": ["unknown", "steady", "transient", "frequency"],
+    "model": ["unknown", "existing", "develop"],
+    "deployment": ["unknown", "offline", "batch", "online", "control"],
+    "access": ["unknown", "yes", "no"],
+    "independence": ["unknown", "independent", "shared"],
+    "dataType": ["simulation", "experiment", "analytical", "operational", "other"],
+    "dataRole": ["undecided", "learning", "evaluation", "both"],
+    "countUnit": ["unknown", "cases", "designs", "runs", "snapshots"],
+    "variation": [
+        "unknown",
+        "design",
+        "operating",
+        "material",
+        "initial",
+        "boundary",
+        "history",
+        "other",
+    ],
+    "priority": ["primary", "supporting"],
+    "criterion": ["performance", "physical"],
+    "operator": ["unknown", "max", "min", "match", "custom"],
+    "coupling": ["oneway", "twoway"],
+    "safety": ["unknown", "low", "high"],
+}
+row_id = {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,80}$"}
+number_or_null = nullable({"type": "number", "minimum": -1e12, "maximum": 1e12})
+count_or_null = nullable({"type": "integer", "minimum": 0, "maximum": 1e12})
+system_problem = obj(
+    {
+        # The words belong to the brief; a v2 system carries them empty.
+        "title": {"const": ""},
+        "description": {"const": ""},
+        "goal": {"enum": PROBLEM_ENUMS["goal"]},
+        "decision": {"const": ""},
+        "components": array(
+            obj(
+                {
+                    "id": row_id,
+                    "name": string(140),
+                    "physics": {"enum": PROBLEM_ENUMS["physics"]},
+                    "regime": string(600),
+                }
+            ),
+            12,
+        ),
+        "couplings": array(
+            obj(
+                {
+                    "id": row_id,
+                    "from": string(80),
+                    "to": string(80),
+                    "quantity": string(300),
+                    "direction": {"enum": PROBLEM_ENUMS["coupling"]},
+                }
+            ),
+            24,
+        ),
+        "inputs": array(
+            obj(
+                {
+                    "id": row_id,
+                    "name": string(160),
+                    "unit": string(80),
+                    "variation": {"enum": PROBLEM_ENUMS["variation"]},
+                    "min": number_or_null,
+                    "max": number_or_null,
+                    "definition": string(1_200),
+                }
+            ),
+            24,
+        ),
+        "outputs": array(
+            obj(
+                {
+                    "id": row_id,
+                    "name": string(160),
+                    "unit": string(80),
+                    "priority": {"enum": PROBLEM_ENUMS["priority"]},
+                    "purpose": string(700),
+                }
+            ),
+            24,
+        ),
+        "requirements": array(
+            obj(
+                {
+                    "id": row_id,
+                    "output": string(80),
+                    "kind": {"enum": PROBLEM_ENUMS["criterion"]},
+                    "measure": string(600),
+                    "operator": {"enum": PROBLEM_ENUMS["operator"]},
+                    "target": number_or_null,
+                    "unit": string(80),
+                }
+            ),
+            24,
+        ),
+        "sources": array(
+            obj(
+                {
+                    "id": row_id,
+                    "name": string(160),
+                    "type": {"enum": PROBLEM_ENUMS["dataType"]},
+                    "role": {"enum": PROBLEM_ENUMS["dataRole"]},
+                    "access": {"enum": PROBLEM_ENUMS["access"]},
+                    "independence": {"enum": PROBLEM_ENUMS["independence"]},
+                    "count": count_or_null,
+                    "countUnit": {"enum": PROBLEM_ENUMS["countUnit"]},
+                    "coverage": string(1_200),
+                    "uncertainty": string(1_200),
+                }
+            ),
+            12,
+        ),
+        "geometry": {"enum": PROBLEM_ENUMS["geometry"]},
+        "time": {"enum": PROBLEM_ENUMS["time"]},
+        "model": {"enum": PROBLEM_ENUMS["model"]},
+        "baseline": {"const": ""},
+        "deployment": {"enum": PROBLEM_ENUMS["deployment"]},
+        "safety": {"enum": PROBLEM_ENUMS["safety"]},
+        "compute": string(300),
+        "timeline": string(300),
+        "notes": string(3_000),
+        "economics": obj(
+            {
+                **{
+                    key: nullable({"type": "number", "minimum": 0, "maximum": 1e9})
+                    for key in [
+                        "baselineSeconds",
+                        "targetSeconds",
+                        "baselineCost",
+                        "targetCost",
+                        "setupCost",
+                        "monthlyCost",
+                    ]
+                },
+                "queries": nullable({"type": "integer", "minimum": 0, "maximum": 1e9}),
+                "hardware": string(300),
+                "matchedTiming": {"type": "boolean"},
+            }
+        ),
+        "sourceRefs": array({"type": "string", "pattern": "^PHY-[ABCD][0-9]{2}$"}, 20),
+    }
+)
+# Key order follows the engine's own problemKeys and econKeys.
+system_problem["required"] = list(system_problem["properties"])
+system_problem["properties"]["economics"]["required"] = [
+    "queries",
+    "baselineSeconds",
+    "targetSeconds",
+    "baselineCost",
+    "targetCost",
+    "setupCost",
+    "monthlyCost",
+    "hardware",
+    "matchedTiming",
+]
+intake_draft_v2 = obj(
+    {
+        **{
+            key: value
+            for key, value in intake_draft["properties"].items()
+            if key not in ("schema_version", "summary", "source")
+        },
+        "schema_version": {"const": "carbon.client-intake.draft.v2"},
+        "system": system_problem,
+        "summary": obj(
+            {
+                **intake_draft["properties"]["summary"]["properties"],
+                "mapping_version": {"const": "carbon.client-intake.mapping.v2"},
+            }
+        ),
+        "source": obj(
+            {
+                **intake_draft["properties"]["source"]["properties"],
+                "mapping_version": {"const": "carbon.client-intake.mapping.v2"},
+            }
+        ),
+    }
+)
 pilot_fields = [
     "candidate_inputs",
     "candidate_outputs",
@@ -1238,6 +1434,14 @@ reviewed_intake = obj(
         "local_scope": {"const": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"},
     }
 )
+reviewed_intake_v2 = {
+    **reviewed_intake,
+    "properties": {
+        **reviewed_intake["properties"],
+        "schema_version": {"const": "carbon.client-intake.reviewed.v2"},
+        "brief": intake_draft_v2,
+    },
+}
 intake_record = obj(
     {
         "draft_id": string(128),
@@ -1248,7 +1452,12 @@ intake_record = obj(
         "raw_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "canonical_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "raw_json": string(120_000),
-        "validated_draft": {"$ref": "#/$defs/intake_draft"},
+        "validated_draft": {
+            "anyOf": [
+                {"$ref": "#/$defs/intake_draft"},
+                {"$ref": "#/$defs/intake_draft_v2"},
+            ]
+        },
         "mapped_requirement_ids": array(string(128), 16),
         "import_status": {"const": "IMPORTED_LOCAL_ASSERTION"},
     }
@@ -1263,6 +1472,7 @@ schema = {
     "$defs": {
         "opportunity_workspace_v02": component,
         "intake_draft": intake_draft,
+        "intake_draft_v2": intake_draft_v2,
         "intake_record": intake_record,
     },
     **obj(
@@ -1356,5 +1566,34 @@ constants = {
     )
     + "\n",
     encoding="utf-8",
+)
+(ROOT / "data/intake_draft_v2.schema.json").write_text(
+    json.dumps(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Carbon local client intake draft v2",
+            "$comment": "A v1 brief plus the client's physical system in the live Workbench's problem model (GOAL-WORKBENCH-16). Local, untrusted, non-authoritative transport. Nothing is submitted or approved.",
+            **intake_draft_v2,
+        },
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+(ROOT / "data/intake_reviewed_v2.schema.json").write_text(
+    json.dumps(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Carbon reviewed client pilot brief v2",
+            "$comment": "The reviewed package around a v2 brief. AI suggestions are client-reviewed intake, not scientific or commercial authority; the system is never sent to the guidance provider.",
+            **reviewed_intake_v2,
+        },
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+(ROOT / "data/problem_enums.json").write_text(
+    json.dumps(PROBLEM_ENUMS, indent=2) + "\n", encoding="utf-8"
 )
 print("v0.10 goal-workbench and intake schemas generated")

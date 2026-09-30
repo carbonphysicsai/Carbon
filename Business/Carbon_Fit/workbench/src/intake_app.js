@@ -33,7 +33,22 @@
   let guidanceAvailable = false;
   let consentedAt = null;
   let clearedLocally = false;
+  // The consent record of a restored package whose accepted suggestions came
+  // from guidance in an earlier session. Kept so a re-export does not claim
+  // those suggestions arrived without guidance.
+  let priorGuidance = null;
   let sessionId = "pilot-" + crypto.randomUUID();
+  const textValue = (field) => document.querySelector(`[data-text="${field}"]`).value;
+  // The system builder (GOAL-WORKBENCH-16). It edits the same draft, and its
+  // evidence plan reads the brief's own words.
+  const builder = CarbonSystemBuilder.create({
+    engine: CarbonWorkbench,
+    atlas: JSON.parse($("research-leads").textContent),
+    root: $("system-panel"),
+    words: () => ({ intended_decision: textValue("intended_decision"), requested_result: textValue("requested_result"), current_baseline: textValue("current_baseline") }),
+    onChange: () => renderBrief(),
+    status: (message) => { $("intake-status").textContent = message; },
+  });
 
   $("quantity-fields").innerHTML = I.QUANTITY_FIELDS.map(
     (field) => `<div class="quantity-row" data-quantity-row="${field}"><label>${quantityLabels[field]}<select data-quantity-state="${field}"><option value="UNKNOWN">Unknown</option><option value="POINT">Point estimate</option><option value="RANGE">Supplied range</option></select></label><label data-quantity-unit-wrap="${field}" hidden>Unit<input data-quantity-unit="${field}" disabled></label><div class="quantity-values"><label class="point" data-quantity-point-wrap="${field}" hidden>Value<input type="number" step="any" data-quantity-value="${field}" disabled></label><label data-quantity-range-wrap="${field}" hidden>Minimum<input type="number" step="any" data-quantity-min="${field}" disabled></label><label data-quantity-range-wrap="${field}" hidden>Maximum<input type="number" step="any" data-quantity-max="${field}" disabled></label></div></div>`,
@@ -43,7 +58,7 @@
   const numberOrNull = (input) => input.value === "" ? null : Number(input.value);
 
   function currentDraft() {
-    const draft = I.newDraft($("draft-id").value, $("revision-id").value);
+    const draft = I.newDraft($("draft-id").value, $("revision-id").value, builder.system());
     document.querySelectorAll("[data-text]").forEach((node) => { draft.answers[node.dataset.text] = answer(node.value); });
     I.QUANTITY_FIELDS.forEach((field) => {
       const state = document.querySelector(`[data-quantity-state="${field}"]`).value;
@@ -87,14 +102,17 @@
     } catch (error) { $("intake-status").textContent = error.message; }
   }
 
+  const MODES = ["guided", "form", "system"];
   function setMode(mode, focusPanel = true) {
-    const guided = mode === "guided";
-    $("guided-panel").hidden = !guided; $("form-panel").hidden = guided;
-    $("show-guided").setAttribute("aria-selected", String(guided));
-    $("show-form").setAttribute("aria-selected", String(!guided));
-    $("show-guided").tabIndex = guided ? 0 : -1;
-    $("show-form").tabIndex = guided ? -1 : 0;
-    if (!guided && focusPanel) document.querySelector("[data-text='intended_decision']").focus();
+    for (const name of MODES) {
+      const selected = name === mode;
+      $(name + "-panel").hidden = !selected;
+      $("show-" + name).setAttribute("aria-selected", String(selected));
+      $("show-" + name).tabIndex = selected ? 0 : -1;
+    }
+    if (!focusPanel) return;
+    if (mode === "form") document.querySelector("[data-text='intended_decision']").focus();
+    if (mode === "system") $("system-panel").querySelector("[data-step]").focus();
   }
 
   function addMessage(role, text) {
@@ -192,20 +210,22 @@
     });
     const includeConversation = $("include-conversation").checked;
     return I.validateReviewedPackage({
-      schema_version: I.REVIEW_VERSION, brief: draft,
+      schema_version: I.REVIEW_VERSION_V2, brief: draft,
       pilot: { label: "Draft pilot for Carbon review", ...pilot },
       field_provenance: fieldProvenance, accepted_suggestions: acceptedSuggestions,
       unresolved_assumptions: unresolvedAssumptions,
-      ai_guidance: { enabled: guidanceEnabled, provider: guidanceEnabled ? "CHUTES_API" : null, guidance_version: I.GUIDANCE_VERSION, notice_version: guidanceEnabled ? NOTICE_VERSION : null, consented_at: guidanceEnabled ? consentedAt : null, cleared_locally: clearedLocally },
+      ai_guidance: !guidanceEnabled && priorGuidance && acceptedSuggestions.length
+        ? { ...priorGuidance, cleared_locally: priorGuidance.cleared_locally || clearedLocally }
+        : { enabled: guidanceEnabled, provider: guidanceEnabled ? "CHUTES_API" : null, guidance_version: I.GUIDANCE_VERSION, notice_version: guidanceEnabled ? NOTICE_VERSION : null, consented_at: guidanceEnabled ? consentedAt : null, cleared_locally: clearedLocally },
       sharing: { include_conversation: includeConversation, conversation: includeConversation ? conversation : [] },
       contact: { name: $("contact-name").value, email: $("contact-email").value, organization: $("contact-organization").value },
       local_scope: I.REVIEW_SCOPE,
     });
   }
 
-  document.querySelectorAll("[data-text]").forEach((node) => node.addEventListener("input", () => { provenance.set(node.dataset.text, { origin: "CLIENT_TYPED", suggestion_id: null }); renderBrief(); }));
+  document.querySelectorAll("[data-text]").forEach((node) => node.addEventListener("input", () => { provenance.set(node.dataset.text, { origin: "CLIENT_TYPED", suggestion_id: null }); builder.refresh(); renderBrief(); }));
   document.querySelectorAll("[data-pilot]").forEach((node) => node.addEventListener("input", () => { pilot[node.dataset.pilot] = node.value; provenance.set("pilot." + node.dataset.pilot, { origin: "CLIENT_TYPED", suggestion_id: null }); renderBrief(); }));
-  document.querySelectorAll("input,select").forEach((node) => node.addEventListener("input", renderBrief));
+  document.querySelectorAll("#form-panel input,#form-panel select,.brief-panel input").forEach((node) => node.addEventListener("input", renderBrief));
   document.querySelectorAll("[data-quantity-state]").forEach((node) => node.addEventListener("change", () => {
     const field = node.dataset.quantityState, point = node.value === "POINT", range = node.value === "RANGE";
     document.querySelector(`[data-quantity-unit-wrap="${field}"]`).hidden = node.value === "UNKNOWN";
@@ -217,13 +237,23 @@
     document.querySelector(`[data-quantity-max="${field}"]`).disabled = !range;
     provenance.set(field, { origin: node.value === "UNKNOWN" ? "UNKNOWN" : "CLIENT_TYPED", suggestion_id: null }); renderBrief();
   }));
-  $("show-guided").onclick = () => setMode("guided"); $("show-form").onclick = () => setMode("form");
-  for (const tab of [$("show-guided"), $("show-form")]) tab.addEventListener("keydown", (event) => {
+  for (const name of MODES) $("show-" + name).onclick = () => setMode(name);
+  for (const name of MODES) $("show-" + name).addEventListener("keydown", (event) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const target = event.key === "ArrowLeft" || event.key === "Home" ? $("show-guided") : $("show-form");
-    setMode(target === $("show-guided") ? "guided" : "form", false); target.focus();
+    const index = MODES.indexOf(name);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? MODES.length - 1 : (index + (event.key === "ArrowLeft" ? -1 : 1) + MODES.length) % MODES.length;
+    setMode(MODES[next], false); $("show-" + MODES[next]).focus();
   });
+  $("system-panel").querySelectorAll("[data-example]").forEach((button) => button.addEventListener("click", () => {
+    if (!builder.isBlank() && !confirm("Replace the system you have built with this example? Download first if you want to keep it.")) return;
+    builder.example(button.dataset.example);
+    $("intake-status").textContent = "Example loaded into the system builder. Your brief's words are unchanged; edit the starting assumptions to fit your problem.";
+  }));
+  $("system-clear").onclick = () => {
+    if (!builder.isBlank() && !confirm("Clear the system builder? Your brief's words are unchanged.")) return;
+    builder.reset();
+  };
   $("show-consent").onclick = () => { $("consent-panel").hidden = false; renderBrief(); };
   $("consent-check").onchange = () => { $("enable-guidance").disabled = !$("consent-check").checked; };
   $("enable-guidance").onclick = enableGuidance; $("guidance-form").onsubmit = sendGuidance;
@@ -239,13 +269,91 @@
     }
     $("draft-id").value = "local-inquiry-001"; $("revision-id").value = "rev-001"; $("predecessor-revision").value = ""; $("predecessor-digest").value = "";
     $("contact-name").value = ""; $("contact-email").value = ""; $("contact-organization").value = ""; $("include-conversation").checked = false;
-    acceptedSuggestions.length = 0; undoStack.length = 0; provenance.clear(); unresolvedAssumptions = []; pendingProposals = []; conversation = [];
+    acceptedSuggestions.length = 0; undoStack.length = 0; provenance.clear(); unresolvedAssumptions = []; pendingProposals = []; conversation = []; priorGuidance = null;
     guidanceEnabled = false; guidanceAvailable = false; consentedAt = null; clearedLocally = true; sessionId = "pilot-" + crypto.randomUUID();
     $("consent-check").checked = false; $("enable-guidance").disabled = true; $("consent-panel").hidden = true; $("guidance-input").value = ""; $("guidance-input").disabled = true; $("send-guidance").disabled = true; $("undo-suggestion").disabled = true;
     $("guidance-boundary").innerHTML = guidanceBoundaryHtml;
+    builder.reset();
     $("conversation").innerHTML = '<article class="message assistant"><strong>Carbon</strong><p>What engineering decision depends on the prediction or comparison you want to make?</p></article>';
     $("guidance-status").textContent = "Draft reset locally. This does not delete provider records. Continue with the form or review AI data use again.";
     renderProposals(); renderBrief(); setMode("guided"); $("show-guided").focus();
+  };
+  // "Continue a saved draft". Opens, on this device only, a reviewed package
+  // or brief this page downloaded (either version), or a draft saved from the
+  // earlier /workbench/ page. A package is restored as it was recorded,
+  // including its provenance and accepted suggestions; nothing is inferred.
+  function hasWork() {
+    const typed = [...document.querySelectorAll("[data-text],[data-pilot]")].some((node) => node.value.trim());
+    return typed || !builder.isBlank() || acceptedSuggestions.length > 0;
+  }
+  function setQuantity(field, value) {
+    const select = document.querySelector(`[data-quantity-state="${field}"]`);
+    select.value = value.state; select.dispatchEvent(new Event("change"));
+    document.querySelector(`[data-quantity-unit="${field}"]`).value = value.unit;
+    document.querySelector(`[data-quantity-value="${field}"]`).value = value.value ?? "";
+    document.querySelector(`[data-quantity-min="${field}"]`).value = value.minimum ?? "";
+    document.querySelector(`[data-quantity-max="${field}"]`).value = value.maximum ?? "";
+  }
+  function restoreBrief(draft) {
+    $("draft-id").value = draft.draft_id; $("revision-id").value = draft.revision_id;
+    $("predecessor-revision").value = draft.predecessor?.revision_id || "";
+    $("predecessor-digest").value = draft.predecessor?.canonical_digest || "";
+    for (const field of I.TEXT_FIELDS) document.querySelector(`[data-text="${field}"]`).value = draft.answers[field].value;
+    for (const field of I.QUANTITY_FIELDS) setQuantity(field, draft.quantities[field]);
+    if (draft.system) builder.load(draft.system); else builder.reset();
+  }
+  function restorePackage(reviewed) {
+    restoreBrief(reviewed.brief);
+    for (const field of I.PILOT_FIELDS) setValue("pilot." + field, reviewed.pilot[field], false);
+    provenance.clear();
+    for (const item of reviewed.field_provenance) if (item.origin !== "UNKNOWN") provenance.set(item.field, { origin: item.origin, suggestion_id: item.suggestion_id });
+    acceptedSuggestions.length = 0; acceptedSuggestions.push(...reviewed.accepted_suggestions);
+    unresolvedAssumptions = [...reviewed.unresolved_assumptions];
+    priorGuidance = reviewed.ai_guidance.enabled ? { ...reviewed.ai_guidance } : null;
+    clearedLocally = reviewed.ai_guidance.cleared_locally;
+    $("contact-name").value = reviewed.contact.name; $("contact-email").value = reviewed.contact.email; $("contact-organization").value = reviewed.contact.organization;
+  }
+  function restoreWorkbench(text) {
+    const saved = CarbonSystemBuilder.readWorkbenchDraft(CarbonWorkbench, text);
+    const words = builder.load(saved.problem);
+    for (const [field, value] of Object.entries(words)) {
+      if (!value.trim()) continue;
+      document.querySelector(`[data-text="${field}"]`).value = value.slice(0, 8000);
+      provenance.set(field, { origin: "CLIENT_TYPED", suggestion_id: null });
+    }
+    if (saved.email) $("contact-email").value = saved.email;
+  }
+  $("resume-draft").onclick = () => $("resume-file").click();
+  $("resume-file").onchange = async (event) => {
+    const file = event.target.files[0]; event.target.value = "";
+    if (!file) return;
+    try {
+      if (file.size > 2000000) throw Error("The file is larger than a saved draft can be.");
+      const text = await file.text();
+      let parsed;
+      try { parsed = JSON.parse(text); } catch { throw Error("Choose a draft file saved from this page or from Carbon's Workbench."); }
+      if (hasWork() && !confirm("Replace the current draft with the saved one? Download the current draft first if you want to keep it.")) return;
+      const own = parsed && (I.REVIEW_VERSIONS.includes(parsed.schema_version) || I.DRAFT_VERSIONS.includes(parsed.schema_version));
+      if (own && I.REVIEW_VERSIONS.includes(parsed.schema_version)) restorePackage(I.validateReviewedPackage(parsed));
+      else {
+        // A brief or a Workbench draft carries no pilot outline, contact or
+        // provenance, so those start empty rather than keeping the old draft's.
+        for (const field of I.PILOT_FIELDS) setValue("pilot." + field, "", false);
+        provenance.clear(); acceptedSuggestions.length = 0; unresolvedAssumptions = []; priorGuidance = null; clearedLocally = false;
+        if (own) restoreBrief(I.validateDraft(parsed));
+        else { restoreBrief(I.newDraft()); restoreWorkbench(text); }
+      }
+      // A conversation belongs to the draft it was held about, so it never
+      // travels into a different one. A package's conversation is not replayed.
+      conversation = [];
+      $("conversation").innerHTML = '<article class="message assistant"><strong>Carbon</strong><p>Saved draft opened. What would you like to refine?</p></article>';
+      $("include-conversation").checked = false;
+      undoStack.length = 0; pendingProposals = []; renderProposals(); $("undo-suggestion").disabled = true;
+      builder.refresh(); renderBrief();
+      $("intake-status").textContent = own
+        ? "Saved draft restored on this device. Nothing was sent. Change the revision ID before sending an updated version."
+        : "Workbench draft opened. Its words are in the form and its structure is in Your system. Review both; nothing was sent.";
+    } catch (error) { $("intake-status").textContent = "Could not open that file: " + error.message; }
   };
   function download(text, name, type) { const blob = new Blob([text], { type }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
   const packageText = (reviewed) => JSON.stringify(reviewed, null, 2) + "\n";
