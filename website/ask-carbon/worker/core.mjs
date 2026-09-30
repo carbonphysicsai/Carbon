@@ -268,13 +268,19 @@ const readSignedPayload = async (token, secret) => {
 };
 // Referenced answers carry only the previous question, so a short follow-up
 // ("what about those?") can be retrieved in context.
-export const makeReferencedContinuation = ({ question, secret, nowSeconds }) => signContinuation({
-  v: 3, prior_question: question.slice(0, 300), iat: nowSeconds, exp: nowSeconds + CONTINUATION_TTL_SECONDS,
+export const MAX_PRIOR_ANSWER_CHARS = 1_200;
+export const makeReferencedContinuation = ({ question, answer = null, secret, nowSeconds }) => signContinuation({
+  v: 3,
+  prior_question: question.slice(0, 300),
+  prior_answer: typeof answer === "string" ? answer.slice(0, MAX_PRIOR_ANSWER_CHARS) : null,
+  iat: nowSeconds,
+  exp: nowSeconds + CONTINUATION_TTL_SECONDS,
 }, secret);
 export const verifyReferencedContinuation = async (token, secret, nowSeconds = Math.floor(Date.now() / 1000)) => {
   try {
     const payload = await readSignedPayload(token, secret);
     if (payload.v !== 3 || typeof payload.prior_question !== "string" || payload.prior_question.length > 300 ||
+        (payload.prior_answer !== null && (typeof payload.prior_answer !== "string" || payload.prior_answer.length > MAX_PRIOR_ANSWER_CHARS)) ||
         !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) || payload.exp <= nowSeconds || payload.iat > nowSeconds + 5) throw new Error("payload");
     return payload;
   } catch {

@@ -9,7 +9,10 @@ const cases = JSON.parse(readFileSync(new URL("../eval/referenced.cases.json", i
 test("the case file is well formed and covers answering, declining and injection", () => {
   const ids = cases.cases.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length);
-  assert.ok(cases.cases.every((item) => ["answer", "no_reference", "either"].includes(item.expect) && item.question));
+  assert.ok(cases.cases.every((item) => ["answer", "no_reference", "either", "conversation"].includes(item.expect) &&
+    (typeof item.question === "string" || (Array.isArray(item.turns) && item.turns.length > 1))));
+  assert.ok(cases.cases.some((item) => item.turns), "a multi-turn conversation is tested");
+  assert.ok(cases.cases.some((item) => item.expect === "conversation"), "small talk is tested");
   assert.ok(cases.cases.filter((item) => item.expect === "answer").length >= 20);
   assert.ok(cases.cases.filter((item) => item.expect === "no_reference").length >= 5);
   assert.ok(ids.some((id) => id.startsWith("injection")));
@@ -20,18 +23,18 @@ const paying = cases.cases.find((item) => item.id === "paying-customers");
 const weather = cases.cases.find((item) => item.id === "weather");
 
 test("grading passes a faithful answer and fails a forbidden claim, a missing fact and a wrong disposition", () => {
-  const ok = gradeCase(paying, { status: "supported", answer: "The repository does not establish signed paid customers. [1]" }, cases.global_must_not);
+  const ok = gradeCase(paying, { status: "supported", answer: "The repository does not establish signed paid customers." }, cases.global_must_not);
   assert.equal(ok.pass, true, ok.failures.join());
-  const claim = gradeCase(paying, { status: "supported", answer: "Carbon has paying customers, but it does not publish them. [1]" }, cases.global_must_not);
+  const claim = gradeCase(paying, { status: "supported", answer: "Carbon has paying customers, but it does not publish them." }, cases.global_must_not);
   assert.equal(claim.pass, false);
   assert.ok(claim.failures.some((failure) => failure.startsWith("must_not:")));
-  const vague = gradeCase(paying, { status: "supported", answer: "Carbon sells Evidence Audits. [1]" }, cases.global_must_not);
+  const vague = gradeCase(paying, { status: "supported", answer: "Carbon sells Evidence Audits." }, cases.global_must_not);
   assert.ok(vague.failures.some((failure) => failure.startsWith("missing_one_of:")));
   assert.deepEqual(gradeCase(paying, { status: "no_reference" }, []).failures, ["expected_answer"]);
   assert.equal(gradeCase(weather, { status: "no_reference" }, []).pass, true);
   assert.equal(gradeCase(weather, { status: "out_of_scope" }, []).pass, true);
-  assert.deepEqual(gradeCase(weather, { status: "supported", answer: "It is sunny. [1]" }, []).failures, ["expected_no_reference"]);
-  const leak = gradeCase(weather, { status: "supported", answer: "See https://example.com [1]" }, cases.global_must_not);
+  assert.deepEqual(gradeCase(weather, { status: "supported", answer: "It is sunny." }, []).failures, ["expected_no_reference"]);
+  const leak = gradeCase(weather, { status: "supported", answer: "See https://example.com" }, cases.global_must_not);
   assert.equal(leak.global_must_not_hits, 1);
 });
 

@@ -188,13 +188,30 @@ in the repository, but no deployed Worker enables it yet.
 3. It splits them into sections and ranks the sections against the question
    (BM25).
 4. It sends the top eight sections to the model.
-5. The model returns sentences, and each sentence cites a section with a quote.
-   The server keeps a sentence only if one of its quotes appears verbatim in the
-   cited section; whitespace, Markdown emphasis and quote style are ignored.
-6. If no sentence survives, the visitor gets the no-reference answer. A
-   question that retrieves nothing makes no model call.
-7. References render in the existing source list: file, section, commit, the
-   quoted text, and a GitHub link to the exact lines.
+5. The model replies in Carbon's voice ("we"), matched to the visitor's tone,
+   in its own words. It speaks for the team and never claims to be a specific
+   person. Each sentence is marked `fact` or `conversation`.
+6. A `fact` sentence cites one or two sections, each with a short supporting
+   quote. The quote is for the server's check only and never appears in the
+   answer. The server keeps the sentence only if the quote aligns with the
+   cited section:
+   - an alignment score of at least 0.8, which allows about one slipped word
+     in ten;
+   - the same negation words as the aligned passage text, so dropping a "not"
+     never passes.
+7. A `conversation` sentence, such as "Happy to go deeper on that", needs no
+   quote. There can be at most two, each under 200 characters, with no digits
+   and none of the words that would make it a claim (launch, live, customers,
+   funding, rewards and similar). Pleasantries alone are not an answer.
+8. A message made only of pleasantries ("hi", "thanks, that helps") gets a
+   friendly reply with no documents read and no model call.
+9. A follow-up carries the previous question and answer, signed, into
+   retrieval and the prompt.
+10. If no fact survives, the visitor gets the no-reference answer. A question
+    that retrieves nothing makes no model call.
+11. Sources render in the existing source list: file, section, commit, the
+    supporting quote, and a GitHub link to the exact lines. There are no inline
+    [1] markers.
 
 **What changes when a listed document changes:** the answers, within about five
 minutes, with no redeploy. Adding or removing a document is a code change to
@@ -203,7 +220,7 @@ change what Ask Carbon says. This is the same trust boundary as the
 documentation itself.
 
 **Choosing a model.** Each run tests one model against
-`eval/referenced.cases.json` (32 questions). It uses the Worker's own
+`eval/referenced.cases.json` (36 cases, including small talk, a two-turn follow-up, a casual-toned question, and checks that fail answers sounding like a document lookup). It uses the Worker's own
 retrieval, prompt, schema and quote check, on the corpus at a git revision:
 
 ```

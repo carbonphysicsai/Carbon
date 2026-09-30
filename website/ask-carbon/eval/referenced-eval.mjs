@@ -18,7 +18,7 @@ import { dirname, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
-import { detectOutOfScope } from "../worker/core.mjs";
+import { detectOutOfScope, needsTopicContext } from "../worker/core.mjs";
 import { PROVIDERS } from "../worker/providers.mjs";
 import {
   CORPUS_PATHS,
@@ -27,6 +27,7 @@ import {
   referencedInstructions,
   referencedSchema,
   retrieve,
+  smallTalkAnswer,
   splitPassages,
   verifyReferencedAnswer,
 } from "../worker/referenced.mjs";
@@ -69,6 +70,7 @@ export const gradeCase = (testCase, result, globalMustNot = []) => {
   const forbidden = [...globalMustNot, ...(testCase.must_not ?? [])].filter((pattern) => answered && new RegExp(pattern, "i").test(text));
   if (forbidden.length) failures.push(...forbidden.map((pattern) => `must_not:${pattern}`));
   if (testCase.expect === "no_reference" && !declined) failures.push("expected_no_reference");
+  if (testCase.expect === "conversation" && result.status !== "conversation") failures.push("expected_conversation");
   if (testCase.expect === "answer") {
     if (!answered) failures.push("expected_answer");
     else for (const group of testCase.must_include ?? []) if (!patternsMatch(group, text)) failures.push(`missing_one_of:${group.join("|")}`);
@@ -96,6 +98,7 @@ export const summarize = (rows) => {
     answer_case_pass_rate: rate(byExpect("answer")),
     no_reference_case_pass_rate: rate(byExpect("no_reference")),
     either_case_pass_rate: rate(byExpect("either")),
+    conversation_case_pass_rate: rate(byExpect("conversation")),
     global_must_not_hits: rows.reduce((sum, row) => sum + row.grade.global_must_not_hits, 0),
     citation_verification_rate: proposed ? verified / proposed : null,
     errors: rows.filter((row) => row.status === "error").length,
@@ -109,32 +112,35 @@ export const summarize = (rows) => {
   if (summary.answer_case_pass_rate < PASS_BAR.answer_case_pass_rate) shortfalls.push("answer_case_pass_rate");
   if (summary.no_reference_case_pass_rate < PASS_BAR.no_reference_case_pass_rate) shortfalls.push("no_reference_case_pass_rate");
   if (summary.either_case_pass_rate < 1) shortfalls.push("either_case_pass_rate");
+  if (summary.conversation_case_pass_rate < 1) shortfalls.push("conversation_case_pass_rate");
   if (summary.global_must_not_hits > PASS_BAR.global_must_not_hits) shortfalls.push("global_must_not_hits");
   if (summary.citation_verification_rate !== null && summary.citation_verification_rate < PASS_BAR.citation_verification_rate) shortfalls.push("citation_verification_rate");
   if (summary.errors) shortfalls.push("errors");
   return { ...summary, meets_bar: shortfalls.length === 0, shortfalls };
 };
 
-// One case, exactly as the Worker would handle it: boundary check, retrieval,
-// then one model call whose output is kept only where its quotes verify.
-export const runCase = async (testCase, corpus, callModel) => {
+// One turn, exactly as the Worker would handle it: small talk, boundary check,
+// retrieval, then one model call whose facts are kept only where their quotes
+// verify. `prior` is the previous turn, as the signed continuation carries it.
+export const runTurn = async (question, corpus, callModel, prior = null) => {
   const started = performance.now();
-  const base = { id: testCase.id, question: testCase.question, expect: testCase.expect };
-  const boundary = detectOutOfScope(testCase.question);
-  if (boundary) return { ...base, status: "out_of_scope", answer: null, model_called: false, latency_ms: 0, retrieved: [] };
-  const passages = retrieve(corpus.passages, testCase.question);
-  if (!passages.length) return { ...base, status: "no_reference", answer: null, model_called: false, latency_ms: 0, retrieved: [] };
+  const greeting = smallTalkAnswer(question);
+  if (greeting) return { status: "conversation", answer: greeting, model_called: false, latency_ms: 0, retrieved: [] };
+  const boundary = detectOutOfScope(question);
+  if (boundary) return { status: "out_of_scope", answer: null, model_called: false, latency_ms: 0, retrieved: [] };
+  const query = prior && needsTopicContext(question) ? `${prior.question} ${question}` : question;
+  const passages = retrieve(corpus.passages, query);
+  if (!passages.length) return { status: "no_reference", answer: null, model_called: false, latency_ms: 0, retrieved: [] };
   const retrieved = passages.map((passage) => `${passage.path}#L${passage.start_line}-L${passage.end_line}`);
   try {
     const { parsed, usage } = await callModel({
-      instructions: referencedInstructions(passages),
-      userText: testCase.question,
+      instructions: referencedInstructions(passages, prior ? { priorQuestion: prior.question, priorAnswer: prior.answer } : {}),
+      userText: question,
       schema: referencedSchema(passages.length),
       passages,
     });
     const verified = verifyReferencedAnswer(parsed, passages);
     return {
-      ...base,
       status: verified.status,
       answer: verified.status === "supported" ? verified.answer : null,
       references: verified.references.map((reference) => ({ document: retrieved[reference.passage_index], quote: reference.quote })),
@@ -145,8 +151,22 @@ export const runCase = async (testCase, corpus, callModel) => {
       retrieved,
     };
   } catch (error) {
-    return { ...base, status: "error", error: String(error?.code ?? error?.message ?? error).slice(0, 200), model_called: true, latency_ms: Math.round(performance.now() - started), retrieved };
+    return { status: "error", error: String(error?.code ?? error?.message ?? error).slice(0, 200), model_called: true, latency_ms: Math.round(performance.now() - started), retrieved };
   }
+};
+
+export const runCase = async (testCase, corpus, callModel) => {
+  const questions = testCase.turns ?? [testCase.question];
+  const base = { id: testCase.id, question: questions.join(" / "), expect: testCase.expect };
+  let prior = null;
+  const earlier = [];
+  let result;
+  for (const question of questions) {
+    result = await runTurn(question, corpus, callModel, prior);
+    if (question !== questions.at(-1)) earlier.push({ question, status: result.status, answer: result.answer });
+    prior = { question, answer: result.status === "supported" ? result.answer : null };
+  }
+  return { ...base, ...result, ...(earlier.length ? { earlier_turns: earlier } : {}) };
 };
 
 export const runEvaluation = async ({ cases, corpus, callModel, delayMs = 0, onRow = () => {} }) => {
@@ -168,7 +188,7 @@ export const mockModel = async ({ passages }) => {
   const quote = text.slice(0, 120);
   return {
     parsed: quote.length >= 20
-      ? { status: "answered", sentences: [{ text: `According to Carbon's documentation: ${quote}`, citations: [{ passage: "P1", quote }] }] }
+      ? { status: "answered", sentences: [{ kind: "fact", text: `We describe it this way: ${quote}`, citations: [{ passage: "P1", quote }] }] }
       : { status: "no_reference", sentences: [] },
     usage: { input_tokens: 0, output_tokens: 0 },
   };

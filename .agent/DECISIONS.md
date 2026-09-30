@@ -16521,6 +16521,38 @@ cards remain the default, so nothing changes on the live site until a model
 passes and the operator deploys with the new setting. Deployment remains the
 operator's act.
 
+**Amendment, same day: a real conversation.** The owner: "Exact quotes will
+feel unnatural for users when they don't match the questions or tone at all.
+This needs to feel like a real conversation with the founder about the
+Carbon."
+
+The visitor always read the model's own words; the quotes were behind the
+sources list. What made it stiff was the rules around them, which are now
+loosened:
+- **Voice.** The reply speaks for the team in the first person plural, matched
+  to the visitor's tone.
+- **Conversation.** Up to two conversational sentences per answer need no
+  quote. A mechanical guard keeps them free of claims: no digits, and no
+  state words such as launch, live, customers, funding or rewards.
+- **Small talk.** A greeting or a thanks gets a friendly reply without a model
+  call.
+- **Memory.** A follow-up carries the previous answer as well as the previous
+  question.
+- **References.** Inline [n] markers are gone; the sources list shows the
+  references.
+- **Quote matching.** A quote may differ from the passage by about one word in
+  ten (word alignment of at least 0.8). A dropped or added negation always
+  fails.
+
+The owner's rule is unchanged: every statement about Carbon still needs a
+checked reference.
+
+Engineering choice under this decision: Ask Carbon speaks for Carbon and never
+claims to be a specific person. The page keeps its "written by an AI
+assistant" note. Presenting the model as the founder in person would mislead
+visitors about who they are talking to. If the owner wants the replies to
+carry his own name, that is his decision to make.
+
 **Blocked on the owner: a provider API key for the model runs.** This host has
 none that the session may use. A run needs `--api-key-file <path>` from the
 owner.

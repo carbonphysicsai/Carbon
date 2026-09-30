@@ -11,6 +11,7 @@ import {
   referencedSchema,
   resetCorpusMemo,
   retrieve,
+  smallTalkAnswer,
   splitPassages,
   verifyReferencedAnswer,
 } from "../worker/referenced.mjs";
@@ -81,42 +82,49 @@ const passages = splitPassages("docs/publications/PROJECT_STATUS.md", STATUS_DOC
 const commercial = passages.findIndex((passage) => passage.heading === "Commercial position");
 const label = `P${commercial + 1}`;
 
-test("a sentence reaches the visitor only with a quote found verbatim in the passage it cites", () => {
+test("a fact reaches the visitor only with a quote found in the passage it cites", () => {
   const kept = verifyReferencedAnswer({ status: "answered", sentences: [
-    { text: "Carbon has not established paying customers.", citations: [{ passage: label, quote: "does not establish signed paid customers, recurring revenue" }] },
-    { text: "It has ten enterprise contracts.", citations: [{ passage: label, quote: "ten signed enterprise contracts are in place" }] },
+    { kind: "fact", text: "Carbon has not established paying customers.", citations: [{ passage: label, quote: "does not establish signed paid customers, recurring revenue" }] },
+    { kind: "fact", text: "It has ten enterprise contracts.", citations: [{ passage: label, quote: "ten signed enterprise contracts are in place" }] },
   ] }, passages);
   assert.equal(kept.status, "supported");
-  assert.equal(kept.answer, "Carbon has not established paying customers. [1]");
+  assert.equal(kept.answer, "Carbon has not established paying customers.");
   assert.equal(kept.references.length, 1);
   assert.equal(kept.audit.kept_sentences, 1);
   assert.equal(kept.audit.rejected[0].reason, "quote_not_found");
-  assert.equal(kept.audit.rejected[1].reason, "sentence_without_verified_quote");
+  assert.equal(kept.audit.rejected[1].reason, "fact_without_verified_quote");
 });
 
 test("the right quote cited to the wrong passage is rejected, and the same quote on its own passage is the specimen that passes", () => {
   const wrong = commercial === 0 ? "P2" : "P1";
-  const sentence = (passage) => ({ status: "answered", sentences: [{ text: "No paying customers are established.", citations: [{ passage, quote: "does not establish signed paid customers" }] }] });
+  const sentence = (passage) => ({ status: "answered", sentences: [{ kind: "fact", text: "No paying customers are established.", citations: [{ passage, quote: "does not establish signed paid customers" }] }] });
   assert.equal(verifyReferencedAnswer(sentence(wrong), passages).status, "no_reference");
   assert.equal(verifyReferencedAnswer(sentence(label), passages).status, "supported");
 });
 
-test("Markdown, quote style and whitespace do not change a quote; words do", () => {
+test("Markdown, quote style, whitespace and a slip of a word do not change a quote; meaning does", () => {
   const launch = passages.findIndex((passage) => passage.heading === "Launch portfolio");
-  const cite = (quote) => verifyReferencedAnswer({ status: "answered", sentences: [{ text: "Battery is in the launch portfolio.", citations: [{ passage: `P${launch + 1}`, quote }] }] }, passages).status;
+  const cite = (quote) => verifyReferencedAnswer({ status: "answered", sentences: [{ kind: "fact", text: "Battery is in the launch portfolio.", citations: [{ passage: `P${launch + 1}`, quote }] }] }, passages).status;
   assert.equal(normalizeForQuote("**Reviewed:  28 September**"), "reviewed: 28 september");
   assert.equal(cite("The owner selected battery,   AI-chip cold plates"), "supported");
   assert.equal(cite("The owner approved battery, AI-chip cold plates"), "no_reference");
   assert.equal(cite("Selection is not launch approval"), "supported");
   assert.equal(cite("Selection is launch approval"), "no_reference");
+  // One dropped word in ten is a copying slip, not a different statement.
+  assert.equal(cite("The owner selected battery, AI-chip cold plates, electric motors, and photonics"), "supported");
+  // Specimen pairs: fuzziness never drops or adds a negation.
+  assert.equal(cite("electric motors, and silicon photonics. Selection is not launch approval"), "supported");
+  assert.equal(cite("electric motors, and silicon photonics. Selection is launch approval"), "no_reference");
+  // Words scattered across the passage are not a quote.
+  assert.equal(cite("owner battery motors photonics selection approval"), "no_reference");
 });
 
 test("no sentences, a no_reference status, a URL or a short quote all end as no reference", () => {
   const status = (value) => verifyReferencedAnswer(value, passages);
   assert.equal(status({ status: "no_reference", sentences: [] }).answer, NO_REFERENCE_ANSWER);
   assert.equal(status({ status: "answered", sentences: [] }).status, "no_reference");
-  assert.equal(status({ status: "answered", sentences: [{ text: "See https://example.com for customers.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status, "no_reference");
-  assert.equal(status({ status: "answered", sentences: [{ text: "No customers.", citations: [{ passage: label, quote: "customers" }] }] }).status, "no_reference");
+  assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "See https://example.com for customers.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status, "no_reference");
+  assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "No customers.", citations: [{ passage: label, quote: "customers" }] }] }).status, "no_reference");
   assert.throws(() => verifyReferencedAnswer({ status: "maybe", sentences: [] }, passages), (error) => error.code === "invalid_provider_output");
 });
 
@@ -205,7 +213,7 @@ test("the worker answers from the current documents with checked quotes and GitH
   const quote = "does not establish signed paid customers";
   const { result, requests } = await withProvider((sent) => ({
     status: "answered",
-    sentences: [{ text: "Carbon's repository does not establish paying customers.", citations: [{ passage: labelFor(sent, quote), quote }] }],
+    sentences: [{ kind: "fact", text: "Carbon's repository does not establish paying customers.", citations: [{ passage: labelFor(sent, quote), quote }] }],
   }), async () => {
     const response = await ask(worker, env, "Does Carbon have paying customers?");
     return { status: response.status, body: await response.json() };
@@ -215,7 +223,7 @@ test("the worker answers from the current documents with checked quotes and GitH
   assert.equal(body.status, "supported");
   assert.equal(body.answer_contract, "REFERENCED_ANSWER_V1");
   assert.equal(body.documentation_revision, SHA);
-  assert.equal(body.answer, "Carbon's repository does not establish paying customers. [1]");
+  assert.equal(body.answer, "Carbon's repository does not establish paying customers.");
   assert.equal(body.sources.length, 1);
   assert.match(body.sources[0].url, new RegExp(`^https://github.com/carbonphysicsai/Carbon/blob/${SHA}/docs/publications/PROJECT_STATUS.md#L\\d+-L\\d+$`));
   assert.equal(body.sources[0].note, "“does not establish signed paid customers”");
@@ -230,7 +238,7 @@ test("the worker answers from the current documents with checked quotes and GitH
 test("an invented quote reaches the visitor as no reference, not as an answer", async () => {
   resetCorpusMemo();
   const { env } = runtime();
-  const { result } = await withProvider({ status: "answered", sentences: [{ text: "Carbon has three paying customers.", citations: [{ passage: "P1", quote: "Carbon has three paying enterprise customers" }] }] },
+  const { result } = await withProvider({ status: "answered", sentences: [{ kind: "fact", text: "Carbon has three paying customers.", citations: [{ passage: "P1", quote: "Carbon has three paying enterprise customers" }] }] },
     async () => (await ask(createWorker(knowledge, corpusServer()), env, "Does Carbon have paying customers?")).json());
   assert.equal(result.status, "no_reference");
   assert.equal(result.answer, NO_REFERENCE_ANSWER);
@@ -256,4 +264,65 @@ test("health names the Q&A contract and refuses an unknown one or too small an o
   assert.deepEqual(unset.reasons, []);
   assert.ok((await health(runtime({ ASK_CARBON_QA_CONTRACT: "FREEFORM" }).env)).reasons.includes("unsupported_qa_contract"));
   assert.ok((await health(runtime({ ASK_CARBON_MAX_OUTPUT_TOKENS: "700" }).env)).reasons.includes("referenced_output_tokens_too_low"));
+});
+
+test("conversational sentences carry no claims, and pleasantries alone are not an answer", () => {
+  const fact = { kind: "fact", text: "We haven't established paying customers yet.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] };
+  const talk = (text) => ({ kind: "conversation", text, citations: [] });
+  const kept = verifyReferencedAnswer({ status: "answered", sentences: [talk("Good question."), fact, talk("Happy to go deeper on how we'd run an Evidence Audit if that's useful.")] }, passages);
+  assert.equal(kept.status, "supported");
+  assert.equal(kept.answer, "Good question. We haven't established paying customers yet. Happy to go deeper on how we'd run an Evidence Audit if that's useful.");
+  assert.equal(kept.audit.kept_conversation, 2);
+  // A claim dressed as conversation is dropped: numbers and state words.
+  for (const smuggled of ["We have 12 pilots running.", "We're already live with customers.", "Our mainnet is coming soon.", "We raised a big round."]) {
+    const result = verifyReferencedAnswer({ status: "answered", sentences: [fact, talk(smuggled)] }, passages);
+    assert.equal(result.answer, fact.text, smuggled);
+    assert.equal(result.audit.rejected[0].reason, "conversation_carries_a_claim");
+  }
+  assert.equal(verifyReferencedAnswer({ status: "answered", sentences: [talk("Great question!"), talk("Let me explain.")] }, passages).status, "no_reference");
+  // At most two conversational sentences.
+  assert.equal(verifyReferencedAnswer({ status: "answered", sentences: [fact, talk("One."), talk("Two."), talk("Three.")] }, passages).audit.kept_conversation, 2);
+});
+
+test("small talk gets a friendly reply, and a real question inside it does not", () => {
+  assert.match(smallTalkAnswer("Hi!"), /^Hi!/);
+  assert.match(smallTalkAnswer("thanks, that helps"), /^Glad/);
+  assert.equal(smallTalkAnswer("hi, is mainnet live?"), null);
+  assert.equal(smallTalkAnswer("thanks. what about motors"), null);
+});
+
+test("a follow-up carries the previous question and answer into retrieval and the prompt", async () => {
+  resetCorpusMemo();
+  const { env } = runtime();
+  const worker = createWorker(knowledge, corpusServer());
+  const quote = "does not establish signed paid customers";
+  const answer = (sent) => {
+    const list = JSON.parse(sent.messages[0].content.split("Passages: ")[1]);
+    const found = list.find((passage) => passage.text.includes(quote));
+    return found
+      ? { status: "answered", sentences: [{ kind: "fact", text: "We don't have signed paying customers yet.", citations: [{ passage: found.id, quote }] }] }
+      : { status: "no_reference", sentences: [] };
+  };
+  const { result, requests } = await withProvider(answer, async () => {
+    const first = await (await ask(worker, env, "Does Carbon have paying customers?")).json();
+    const second = await (await ask(worker, env, "why is that?", first.continuation)).json();
+    return { first, second };
+  });
+  assert.equal(result.first.status, "supported");
+  assert.equal(requests.length, 2);
+  const prompt = requests[1].body.messages[0].content;
+  assert.ok(prompt.includes("Does Carbon have paying customers?"));
+  assert.ok(prompt.includes("We don't have signed paying customers yet."));
+  assert.ok(prompt.includes("Commercial position"), "the short follow-up retrieved with the earlier question");
+});
+
+test("a greeting is answered without reading documents or calling the model", async () => {
+  resetCorpusMemo();
+  const { env } = runtime();
+  const calls = [];
+  const { result, requests } = await withProvider({ status: "no_reference", sentences: [] },
+    async () => (await ask(createWorker(knowledge, corpusServer(undefined, calls)), env, "Hello there!")).json());
+  assert.equal(result.status, "conversation");
+  assert.equal(requests.length, 0);
+  assert.equal(calls.length, 0);
 });

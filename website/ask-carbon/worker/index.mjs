@@ -33,6 +33,7 @@ import {
   referencedInstructions,
   referencedSchema,
   retrieve,
+  smallTalkAnswer,
   verifyReferencedAnswer,
   workerFetchText,
 } from "./referenced.mjs";
@@ -309,7 +310,7 @@ const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInput
     ? JSON.stringify({ question: input.question, prior_turns: input.turns, draft_context: input.draft_context })
     : input.question;
   const body = providerFor(profile).buildBody(profile, referenced ? {
-    instructions: referencedInstructions(referenced.passages),
+    instructions: referencedInstructions(referenced.passages, referenced.prior),
     userText: content,
     schemaName: "ask_carbon_referenced_answer",
     schema: referencedSchema(referenced.passages.length),
@@ -395,6 +396,11 @@ const handleAsk = async (request, env, knowledgeManifest, fetchText = workerFetc
     }
     let referenced = null;
     if (referencedMode) {
+      const greeting = smallTalkAnswer(input.question);
+      if (greeting) {
+        await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "small_talk" }, "accounting_release_failed");
+        return json({ status: "conversation", answer: greeting, sources: [], follow_up: null, maturity_note: null, answer_contract: REFERENCED_ANSWER_CONTRACT, request_id: attemptId }, 200, headers);
+      }
       const corpus = await loadCorpus(fetchText);
       const query = continuation && needsTopicContext(input.question) ? `${continuation.prior_question} ${input.question}` : input.question;
       const passages = retrieve(corpus.passages, query);
@@ -402,7 +408,7 @@ const handleAsk = async (request, env, knowledgeManifest, fetchText = workerFetc
         await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "no_relevant_reference" }, "accounting_release_failed");
         return json({ status: "no_reference", answer: NO_REFERENCE_ANSWER, sources: [], follow_up: null, maturity_note: null, answer_contract: REFERENCED_ANSWER_CONTRACT, documentation_revision: corpus.revision, request_id: attemptId }, 200, headers);
       }
-      referenced = { passages, revision: corpus.revision };
+      referenced = { passages, revision: corpus.revision, prior: continuation ? { priorQuestion: continuation.prior_question, priorAnswer: continuation.prior_answer } : {} };
     }
     if (mode === "GENERAL_QA" && retrieval.kind === "no_evidence") {
       await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "no_relevant_evidence" }, "accounting_release_failed");
@@ -498,7 +504,7 @@ const handleAsk = async (request, env, knowledgeManifest, fetchText = workerFetc
         sources: publicReferences(verified.references, referenced.passages, referenced.revision),
         follow_up: null,
         maturity_note: verified.status === "supported" ? REFERENCED_MATURITY_NOTE : null,
-        continuation: await makeReferencedContinuation({ question: input.question, secret: env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, nowSeconds }),
+        continuation: await makeReferencedContinuation({ question: input.question, answer: verified.status === "supported" ? verified.answer : null, secret: env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, nowSeconds }),
         answer_contract: REFERENCED_ANSWER_CONTRACT,
         documentation_revision: referenced.revision,
         model_config_id: profile.config_id,
