@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import ExitStack
 
 from bittensor.keyfiles import Keypair
 from test_c07_development_orchestration import _orchestrator, _owners, _signer
 from test_c08_authenticated_miner_mcp import _real_request
 from test_mcp_skeleton import CHALLENGE_KEY, _service, _strategy
+
+from tests.cpu._signer_harness import in_thread_signer
 
 from carbon import audit
 from carbon.chain import ChainContext, MetagraphSnapshot, Participant
@@ -50,83 +53,86 @@ def _body(state, *, request: str, tool: str, fields: dict[str, object]) -> bytes
 
 
 def test_installed_auth_submit_reaches_exact_c07_non_live_path(tmp_path) -> None:
-    sender = Keypair.create_from_uri("//Alice")
-    receiver = Keypair.create_from_uri("//Bob")
-    state = MetagraphSnapshot(
-        CONTEXT,
-        10,
-        "0x" + "2" * 64,
-        NOW // 1_000_000,
-        (
-            Participant(0, receiver.ss58_address, "owner", 1),
-            Participant(1, sender.ss58_address, "cold", 2),
-        ),
-    )
-    transport = ReceiptJournal(tmp_path / "transport.sqlite3", CONTEXT)
-    gateway = AuthenticatedGateway(
-        CONTEXT,
-        CHALLENGE_KEY,
-        receiver.ss58_address,
-        _Adapter(state),
-        BittensorHotkeyVerifier(),
-        transport,
-        clock_ns=lambda: NOW,
-    )
-    mcp, *_ = _service(tmp_path / "mcp")
-    _, _, orchestrator = _orchestrator(tmp_path / "c07", _signer())
-    service = AuthenticatedMinerMcpService(
-        gateway, mcp, orchestrator, MinerMcpJournal(transport)
-    )
-    submit_body = _body(
-        state,
-        request="submit-1",
-        tool="submit",
-        fields={
-            "challenge_id": CHALLENGE_KEY.challenge_id,
-            "challenge_version": CHALLENGE_KEY.version,
-            "strategy": _strategy(),
-        },
-    )
-    submit_headers = BittensorMessageSigner(sender).sign(
-        submit_body, receiver=receiver.ss58_address, nonce_ns=NOW
-    )
-    submitted = asyncio.run(service.call(submit_body, submit_headers))
-    assert type(submitted.mcp_result) is SubmitReceipt
-    receipt = transport.resolve(submitted.transport_receipt)
-    request = _real_request(
-        tmp_path / "request",
-        requester_for_receipt(CONTEXT, receipt),
-        submitted.mcp_result.status.submission_id.value,
-    )
-    handle = service.bind_orchestration(
-        receipt.ref,
-        request,
-        worker_id="c08-linux-worker",
-        claim_id="c08-linux-claim",
-        mode=BindMode.START,
-    )
-    account = orchestrator.conclude_without_receipt(
-        handle,
-        disposition=OperationalDisposition.CANCELLED,
-        failed_stage=ExecutionStage.GENERATOR,
-        failure_evidence_ref="c08-linux-cancelled",
-        failure_evidence_digest=audit.digest_bytes(b"c08-linux-cancelled"),
-        result_owners=_owners(),
-        started_at_micros=2_000,
-        finished_at_micros=2_500,
-    )
-    service.record_outcome(account)
-    poll_body = _body(
-        state,
-        request="poll-1",
-        tool="get_submission_result",
-        fields={"submission_id": account.submission_id},
-    )
-    poll_headers = BittensorMessageSigner(sender).sign(
-        poll_body, receiver=receiver.ss58_address, nonce_ns=NOW + 1
-    )
-    polled = asyncio.run(service.call(poll_body, poll_headers))
-    assert type(polled.mcp_result) is SubmissionResult
-    assert polled.orchestration is not None
-    assert polled.orchestration["disposition"] == "CANCELLED"
-    assert set(polled.orchestration["eligibility"].values()) == {False}
+    with ExitStack() as stack:
+        sender = Keypair.create_from_uri("//Alice")
+        receiver = Keypair.create_from_uri("//Bob")
+        state = MetagraphSnapshot(
+            CONTEXT,
+            10,
+            "0x" + "2" * 64,
+            NOW // 1_000_000,
+            (
+                Participant(0, receiver.ss58_address, "owner", 1),
+                Participant(1, sender.ss58_address, "cold", 2),
+            ),
+        )
+        transport = ReceiptJournal(tmp_path / "transport.sqlite3", CONTEXT)
+        gateway = AuthenticatedGateway(
+            CONTEXT,
+            CHALLENGE_KEY,
+            receiver.ss58_address,
+            _Adapter(state),
+            BittensorHotkeyVerifier(),
+            transport,
+            clock_ns=lambda: NOW,
+        )
+        mcp, *_ = _service(tmp_path / "mcp")
+        _, _, orchestrator = _orchestrator(tmp_path / "c07", _signer())
+        service = AuthenticatedMinerMcpService(
+            gateway, mcp, orchestrator, MinerMcpJournal(transport)
+        )
+        submit_body = _body(
+            state,
+            request="submit-1",
+            tool="submit",
+            fields={
+                "challenge_id": CHALLENGE_KEY.challenge_id,
+                "challenge_version": CHALLENGE_KEY.version,
+                "strategy": _strategy(),
+            },
+        )
+        # The miner signs through their own signer; Carbon never holds `sender`.
+        signer = stack.enter_context(in_thread_signer(sender, clock=lambda: NOW))
+        submit_headers = BittensorMessageSigner(signer).sign(
+            submit_body, receiver=receiver.ss58_address, nonce_ns=NOW
+        )
+        submitted = asyncio.run(service.call(submit_body, submit_headers))
+        assert type(submitted.mcp_result) is SubmitReceipt
+        receipt = transport.resolve(submitted.transport_receipt)
+        request = _real_request(
+            tmp_path / "request",
+            requester_for_receipt(CONTEXT, receipt),
+            submitted.mcp_result.status.submission_id.value,
+        )
+        handle = service.bind_orchestration(
+            receipt.ref,
+            request,
+            worker_id="c08-linux-worker",
+            claim_id="c08-linux-claim",
+            mode=BindMode.START,
+        )
+        account = orchestrator.conclude_without_receipt(
+            handle,
+            disposition=OperationalDisposition.CANCELLED,
+            failed_stage=ExecutionStage.GENERATOR,
+            failure_evidence_ref="c08-linux-cancelled",
+            failure_evidence_digest=audit.digest_bytes(b"c08-linux-cancelled"),
+            result_owners=_owners(),
+            started_at_micros=2_000,
+            finished_at_micros=2_500,
+        )
+        service.record_outcome(account)
+        poll_body = _body(
+            state,
+            request="poll-1",
+            tool="get_submission_result",
+            fields={"submission_id": account.submission_id},
+        )
+        poll_headers = BittensorMessageSigner(signer).sign(
+            poll_body, receiver=receiver.ss58_address, nonce_ns=NOW + 1
+        )
+        polled = asyncio.run(service.call(poll_body, poll_headers))
+        assert type(polled.mcp_result) is SubmissionResult
+        assert polled.orchestration is not None
+        assert polled.orchestration["disposition"] == "CANCELLED"
+        assert set(polled.orchestration["eligibility"].values()) == {False}

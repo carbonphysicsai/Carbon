@@ -82,6 +82,7 @@ def launch(declared):
 def host(tmp_path, monkeypatch):
     """Everything prepare_battery touches outside the campaign, as fixtures."""
     import carbon.chain.auth
+    import carbon.chain.external_signer
     from carbon.development_session import (
         research_campaign,
         research_image,
@@ -123,7 +124,9 @@ def host(tmp_path, monkeypatch):
         "load_config",
         lambda _: SimpleNamespace(netuid=567, context=None, publisher_hotkey="pub"),
     )
-    monkeypatch.setattr(carbon.chain.auth, "open_external_hotkey", lambda *_: None)
+    monkeypatch.setattr(
+        carbon.chain.external_signer, "miner_signer", lambda *_: None
+    )
     monkeypatch.setattr(service, "LocalMinerConnection", lambda *_: None)
     # Verification inspects Docker; the record and scope checks stay real.
     monkeypatch.setattr(julia, "verify_julia_image", lambda image: image)
@@ -145,7 +148,6 @@ def host(tmp_path, monkeypatch):
             analysis_image_manifest=public,
             operator_config=public,
             miner_public=public,
-            miner_password_file=public,
             agent_policy=None,
             **({} if declared is None else {"product": launch(declared)}),
         )

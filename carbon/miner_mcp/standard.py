@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from carbon import research
+from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_tools import (
     FIELDS,
@@ -55,6 +56,14 @@ class AdapterCode(str, Enum):
     # is no campaign, so the miner has nothing to reconcile and should not be
     # sent looking for consumption that cannot exist.
     NO_CAMPAIGN = "NO_CAMPAIGN"
+    # The miner's own signer (`carbon-miner-signer`) could not sign this call:
+    # one code per condition, so the miner is told which. Carbon holds no key.
+    SIGNER_NOT_RUNNING = "SIGNER_NOT_RUNNING"
+    SIGNER_REFUSED = "SIGNER_REFUSED"
+    SIGNER_WRONG_HOTKEY = "SIGNER_WRONG_HOTKEY"
+    SIGNER_TIMEOUT = "SIGNER_TIMEOUT"
+    SIGNER_INVALID_SIGNATURE = "SIGNER_INVALID_SIGNATURE"
+    SIGNER_PROTOCOL = "SIGNER_PROTOCOL"
 
 
 class AdapterFailure(ValueError):
@@ -64,6 +73,20 @@ class AdapterFailure(ValueError):
         super().__init__(code.value)
         self.code = code
         self.dispatch_may_have_occurred = dispatch_may_have_occurred
+
+
+def _signer_failure(failure, issued_before, key):
+    """A signer failure, honest about whether a signed request can exist.
+
+    Each tool call signs once, before its request leaves Carbon, so a failed
+    signature normally means nothing was sent. If this call had already
+    obtained a signature, a signed request may exist and that is reported.
+    """
+    issued = getattr(key, "issued", None)
+    return AdapterFailure(
+        AdapterCode(failure.code.upper()),
+        dispatch_may_have_occurred=issued is None or issued != issued_before,
+    )
 
 
 def _refused_before_dispatch(refusal):
@@ -346,6 +369,8 @@ class ResearchToolAdapter:
         ):
             _invalid()
         args = _arguments(request.operation, request.arguments)
+        key = getattr(getattr(self._sdk, "connection", None), "miner_key", None)
+        issued_before = getattr(key, "issued", None)
         try:
             value = await self._sdk.call(
                 PREFIX + request.operation,
@@ -361,6 +386,8 @@ class ResearchToolAdapter:
             # conservative case would tell a miner their work may have started
             # when nothing could have.
             raise _refused_before_dispatch(refusal) from None
+        except SignerFailure as failure:
+            raise _signer_failure(failure, issued_before, key) from None
         except Exception:  # noqa: BLE001
             # The controller retains ambiguous reservations and dispatch intents.
             # Never label an authentication/execution failure as candidate failure.
@@ -399,12 +426,16 @@ class ResearchToolAdapter:
 
     async def _task_call(self, mode, args, identity):
         self._task_api_used = True
+        key = getattr(getattr(self._sdk, "connection", None), "miner_key", None)
+        issued_before = getattr(key, "issued", None)
         try:
             value = await self._sdk.task_call(mode, args, identity)
         except PreDispatchRefusal as refusal:
             # The same fact as the synchronous path: refused before anything
             # could be reserved, so nothing can have started.
             raise _refused_before_dispatch(refusal) from None
+        except SignerFailure as failure:
+            raise _signer_failure(failure, issued_before, key) from None
         except Exception:  # noqa: BLE001
             raise AdapterFailure(
                 AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True

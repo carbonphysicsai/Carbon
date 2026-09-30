@@ -9632,6 +9632,17 @@ events:
       - "WAVE-C/NET-6"
     supersedes: null
   -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "bug"
+    event_id: "C-MLP-02-EXTERNAL-SIGNER-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The product process no longer holds a miner's hotkey. The function named open_external_hotkey read the miner's key file and a password file, decrypted the key and signed in-process, the opposite of its name and of the standing rule that Carbon never holds or requests a private key. It is removed. The miner now runs carbon-miner-signer (a separate package that imports nothing from Carbon), which holds the key and receives the password in the miner's own terminal. Carbon sends it the exact btauth/1 payload over a user-only Unix socket and verifies the returned signature against the public hotkey. The owner signs the same way; there is no second path. Each failure has its own code: not running, refused with a closed reason, wrong hotkey, timeout, invalid signature, protocol. A failure after an earlier request of the same operation was signed goes to reconciliation, never to 'nothing happened'. An AST scan of the product's transitive import closure proves the absence, with specimens that show it catching each rule. The change is implemented and tested and is NOT security-qualified; it touches hotkey authentication and awaits dedicated review. The in-process evaluation on the validator host (#431) is unchanged and belongs to the OD-7 submission-path decision."
+    primary_detail: "docs/development/MINER_EXTERNAL_SIGNER.md"
+    affects:
+      - "SYSTEM/CI"
+    supersedes: null
+  -
     map_ref: "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     event_type: "evidence"
     event_id: "HUB-LEDGER-PER-EVENT-01"

@@ -17,7 +17,7 @@ from carbon.chain import ChainContext
 from carbon.chain.models import identifier
 from carbon.chain.publication import PublicationFailure
 from carbon.chain.sdk import SDK_VERSION
-from carbon.chain.sdk_weights import BittensorPublicationBackend, open_external_wallet
+from carbon.chain.sdk_weights import BittensorPublicationBackend, open_operator_wallet
 
 from .execution import (
     execute_resume,
@@ -475,7 +475,7 @@ def _wallet(config: OperatorConfig):
     """Open the configured external wallet only after every public preflight gate."""
 
     try:
-        return open_external_wallet(
+        return open_operator_wallet(
             config.wallet_name,
             config.wallet_hotkey_name,
             config.publisher_hotkey,
