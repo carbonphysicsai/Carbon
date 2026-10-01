@@ -130,6 +130,13 @@ A completed campaign is not necessarily an improved model.
 
 ## C-MLP-03: Hermes, Chutes and Lium
 
+> **Superseded (2026-09-30).** This plan was never ticketed. It is replaced by
+> the ticket `.agent/tickets/C-MLP-03_miner_environment.md`
+> (OWNER-MINER-ENVIRONMENT-01): setup after registration, then Chutes and Engy
+> inference, the miner's own GPU, Lium, Targon and RunPod on the miner's
+> account, and the named agents, one slice at a time. The text below is kept
+> as the 2026-09-17 record.
+
 Build separate agent, inference and experiment-worker adapters. Prefer the first
 hosted combination Hermes + Chutes inference + Lium numerical worker, while
 keeping an adapter for personal agents. Version the Carbon research skill and

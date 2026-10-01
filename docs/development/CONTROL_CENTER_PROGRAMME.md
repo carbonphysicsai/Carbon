@@ -14,6 +14,11 @@ Repository code and tests remain the authority for what is implemented.
   cloud-compute path (RunPod), a working autonomous-agent path with the
   miner's chosen provider, manual research, and an external MCP (stdio)
   connection.
+- **Superseded in part (2026-09-30).** OWNER-MINER-ENVIRONMENT-01 and the
+  ticket `.agent/tickets/C-MLP-03_miner_environment.md` replace this
+  release's compute, model and agent scope: after registration, setup
+  connects inference, compute and agent on the miner's own machine and
+  accounts. The other decisions here stand.
 - **Audit basis.** `origin/main` at `a32dcd70a` (26 September 2026), plus the
   Launchpad stack still in review (`agent/miner-no-limits`,
   `agent/challenge-campaign-adapter`).
