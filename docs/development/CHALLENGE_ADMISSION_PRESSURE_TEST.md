@@ -54,6 +54,29 @@ is not a scientific/security result.
 The retained EV1 regression proves the source document stays unchanged after the read-only audit. No historical formula or metric was changed.
 Canonical CI supplies acceptance; native-host pytest results are diagnostics.
 
+## Amendment of 2026-10-01: findings, not per-change review
+
+OWNER-CHALLENGE-ADMISSION-01 as amended moves review from every change to every
+finding (internal development only, never mainnet). The detector
+`carbon.battery.value.divergence` turns the first finding above into an emitted
+condition. On the retained results (`ev1-conditions.json`, `ev2-conditions.json`
+in this evidence folder):
+- **EV2:** the boundary-optimist control fires `SCORE_VALUE_DIVERGENCE` on both
+  splits, scoring at or above all 14 eligible real members. `control-oracle`
+  never fires. Six real members fire on the development split and one on
+  verification. Those are findings to investigate, not verdicts. `mlp_raw-s0`
+  emits `GATE_ANOMALY`.
+- **EV1:** the boundary-optimist control fires on both splits, and
+  `mlp_raw-s0` emits `GATE_ANOMALY`.
+- **Noise bands** (basis: `seed_variation`, and τ over every
+  one-seed-per-recipe panel):
+  - decision loss: EV2 1.694 (development) and 1.675 (verification);
+  - progress τ: EV2 0.260 over 24 panels, EV1 0.365 over 12.
+- **Audit caveat.** EV2's τ figures (0.202 proposed against 0.298 deciding,
+  verification) carry the caveat above: gate-ineligible models in the panel,
+  unequal denominators from unresolved outcomes, and seed repeats that do not
+  establish method diversity.
+
 ## Required next execution
 
 Prepare the battery admission sheet using the real challenge and EV infrastructure.

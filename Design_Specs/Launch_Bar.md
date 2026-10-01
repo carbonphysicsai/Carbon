@@ -1,10 +1,11 @@
 # Launch_Bar.md — Gate & Score Bar Before Landscape Compounds
 
-> **Prospective admission requirement (OWNER-CHALLENGE-ADMISSION-01):**
-> Follow [Challenge Admission](Challenge_Admission.md) before opening a new
-> challenge to rewarded competition or expanding its construction permissions.
-> Both construction integrity and engineering value need accepted evidence for
-> the exact profile. Existing dossier, science/security and launch gates remain.
+> **Internal admission protocol (OWNER-CHALLENGE-ADMISSION-01, amended
+> 2026-10-01):** follow [Challenge Admission](Challenge_Admission.md) during
+> internal development: record every construction expansion, escalate every
+> finding, and lock the final state that miners see. It is not a qualification
+> gate and not mainnet; existing dossier, science/security and launch gates
+> remain.
 
 > **Reconciliation (post-ratification):** **Port B** strengthened — every scored nonzero submission completes the **same mandatory lean pack**. Progressive depth is **scheduling / prefilter / supplemental**, not variable grading of the lean exam identity.
 

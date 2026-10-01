@@ -1,7 +1,10 @@
 # CHALLENGE-ADMISSION-01: two mandatory challenge-admission studies
 
 **Authority:** owner's 2026-09-30 direction to pressure-test and harden construction
-integrity and engineering-value tests as a standard Carbon protocol requirement.
+integrity and engineering-value tests as a standard Carbon protocol requirement,
+**as amended on 2026-10-01** (OWNER-CHALLENGE-ADMISSION-01, `.agent/DECISIONS.md`,
+merged in #467 and #469): an internal development protocol, never mainnet;
+review moves from every change to every finding.
 **Primary map_ref:** SYSTEM/AGENT-EXECUTION; affects WAVE-C/C-09.
 **Scope:** prospective protocol, readiness evidence gate, EV evidence audit and
 adversarial regression tests. No production permission expansion, score change,
@@ -28,6 +31,25 @@ results read-only; EV3 is draft and needs new confirmation conditions for admiss
 No lead message is sent by this task; the user authorised repository work, not
 person-directed messages. This ticket and PR retain the engineering decisions.
 
+CA-D3 (2026-10-01 amendment): the trigger-based model.
+- Track A records `expansions` (sequence, UTC time, profile, version, what
+  widened, permissions digest) and `findings` (an emitted condition with
+  digest-bound evidence). No expansion may follow a finding. Acceptance is one
+  `LOCK` decision bound to the report, both ledgers and a recorded permissions
+  state equal to the scope pin; a later finding voids it. Rejected alternative:
+  per-expansion review records, which the owner removed.
+- Track B acceptance names its trigger: `STUCK`, `WINNING` or `OWNER_REQUEST`.
+- All anti-forgery checks are kept unchanged (digest binding; refusal of empty,
+  failed, inconclusive, stale or tampered evidence; review-digest rewrite
+  attacks).
+- The detector `carbon.battery.value.divergence` emits
+  `SCORE_VALUE_DIVERGENCE` (X scores at or above an eligible Y that decides
+  better by more than the seed loss band) and `GATE_ANOMALY`; no threshold is
+  chosen. The progress noise band is τ's spread over one-seed-per-recipe panels
+  (EV2: 0.260; EV1: 0.365).
+- The design optimizer is scoped in `docs/development/DESIGN_OPTIMIZER_SCOPE.md`,
+  not built.
+
 ## Definition of done
 
 - Prospective two-track protocol linked from challenge creation/validation and
@@ -39,6 +61,11 @@ person-directed messages. This ticket and PR retain the engineering decisions.
 - Positive specimens and deliberate attack mutations exercise the refusals.
 - Pressure-test report records EV1/EV2 limitations without claiming new training.
 - Hub records the new requirement without changing existing qualification states.
+- (Amendment) Expansion proceeds without review; a finding stops widening and a
+  lock is bound to both ledgers; Track B review names its trigger; the
+  divergence detector fires on EV2's boundary-optimist control and stays quiet
+  for a member that decides best; the noise band is derived from retained seed
+  repeats; the optimizer is scoped with its gaps.
 
 ## Engineering verification
 

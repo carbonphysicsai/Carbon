@@ -17,6 +17,30 @@ def artifact(root, name, body):
     return {"path": name, "sha256": "sha256:" + hashlib.sha256(data).hexdigest()}
 
 
+PERMISSIONS = "sha256:" + "1" * 64
+
+
+def expansion(sequence, permissions, at="2026-10-01T00:00:00Z"):
+    return {
+        "sequence": sequence,
+        "recorded_at": at,
+        "profile": "FIXTURE_PROFILE",
+        "version": "FIXTURE_VERSION",
+        "widened": "Fixture widening",
+        "permissions": permissions,
+    }
+
+
+def relock(root, block):
+    """An attacker or a maintainer re-binds the lock to the current ledgers."""
+    study = block["tracks"][a.LEDGER_TRACK]
+    ref = study["acceptance"]["decision"]
+    decision = json.loads((root / ref["path"]).read_bytes())
+    decision["expansions_digest"] = a.ledger_digest(study["expansions"])
+    decision["findings_digest"] = a.ledger_digest(study["findings"])
+    study["acceptance"]["decision"] = artifact(root, ref["path"], decision)
+
+
 def accepted(root, cid):
     """Synthetic completeness specimen. It is never production evidence."""
     block = a.pending()
@@ -52,18 +76,26 @@ def accepted(root, cid):
         }
         study["report"] = artifact(root, track + "-report.json", report)
         study["state"] = "ACCEPTED"
-        decision = artifact(
-            root,
-            track + "-decision.json",
-            {
-                "protocol": a.PROTOCOL,
-                "scope": block["scope"],
-                "track": track,
-                "report_digest": study["report"]["sha256"],
-                "reviewer": "FIXTURE_REVIEWER",
-                "disposition": "ACCEPT",
-            },
-        )
+        body = {
+            "protocol": a.PROTOCOL,
+            "scope": block["scope"],
+            "track": track,
+            "report_digest": study["report"]["sha256"],
+            "reviewer": "FIXTURE_REVIEWER",
+        }
+        if track == a.LEDGER_TRACK:
+            # Track A: expansions recorded without review, then one lock.
+            study["expansions"] = [expansion(1, PERMISSIONS)]
+            body.update(
+                disposition="LOCK",
+                expansions_digest=a.ledger_digest(study["expansions"]),
+                findings_digest=a.ledger_digest(study["findings"]),
+                locked_permissions=PERMISSIONS,
+            )
+        else:
+            # Track B: a full review names one of the owner's three triggers.
+            body.update(disposition="ACCEPT", trigger="WINNING")
+        decision = artifact(root, track + "-decision.json", body)
         study["acceptance"] = {"reviewer": "FIXTURE_REVIEWER", "decision": decision}
     a.validate(block, cid, repository=root)
     return block
@@ -231,3 +263,113 @@ def test_cli_cannot_treat_empty_or_pending_portfolio_as_admitted(tmp_path, capsy
     assert len(out["blockers"]) == 4
     assert main(["validate", "--records", str(tmp_path), "--require-admission"]) == 2
     assert json.loads(capsys.readouterr().out)["records_examined"] == 0
+
+
+# --- OWNER-CHALLENGE-ADMISSION-01 as amended: expand freely, escalate on a finding
+
+
+def test_expansion_needs_no_per_change_review(tmp_path):
+    block = a.pending()
+    block["scope"] = accepted(tmp_path, "fixture")["scope"]
+    study = block["tracks"][a.LEDGER_TRACK]
+    pre = accepted(tmp_path, "fixture")["tracks"][a.LEDGER_TRACK]["preregistration"]
+    study.update(state="IN_PROGRESS", preregistration=pre)
+    study["expansions"] = [
+        expansion(1, "sha256:" + "3" * 64),
+        expansion(2, "sha256:" + "4" * 64, "2026-10-01T01:00:00Z"),
+    ]
+    # No review exists, and none is required while widening.
+    a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_an_unrecorded_or_reordered_expansion_is_refused(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    study = block["tracks"][a.LEDGER_TRACK]
+    study["expansions"].append(expansion(3, PERMISSIONS, "2026-10-02T00:00:00Z"))
+    with pytest.raises(a.AdmissionError, match="sequence_gap"):
+        a.validate(block, "fixture", repository=tmp_path)
+    study["expansions"][-1] = expansion(2, PERMISSIONS, "2026-09-01T00:00:00Z")
+    with pytest.raises(a.AdmissionError, match="out_of_order"):
+        a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_a_finding_stops_widening_even_when_the_lock_is_renewed(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    study = block["tracks"][a.LEDGER_TRACK]
+    evidence = artifact(tmp_path, "finding.json", {"condition": "fixture"})
+    study["findings"] = [
+        {
+            "id": "F1",
+            "condition": "SCORE_VALUE_DIVERGENCE",
+            "after_expansion": 1,
+            "evidence": evidence,
+        }
+    ]
+    relock(tmp_path, block)
+    a.validate(block, "fixture", repository=tmp_path)  # specimen: locked after it
+    study["expansions"].append(expansion(2, PERMISSIONS, "2026-10-02T00:00:00Z"))
+    relock(tmp_path, block)
+    with pytest.raises(a.AdmissionError, match="expansion_after_finding"):
+        a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_a_finding_after_the_lock_voids_it(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    evidence = artifact(tmp_path, "finding.json", {"condition": "fixture"})
+    block["tracks"][a.LEDGER_TRACK]["findings"] = [
+        {
+            "id": "F2",
+            "condition": "GATE_ANOMALY",
+            "after_expansion": 1,
+            "evidence": evidence,
+        }
+    ]
+    with pytest.raises(a.AdmissionError, match="lock_ledger_mismatch"):
+        a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_a_finding_must_name_an_emitted_condition_and_real_evidence(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    study = block["tracks"][a.LEDGER_TRACK]
+    study["findings"] = [
+        {
+            "id": "F3",
+            "condition": "SOMEONE_NOTICED",
+            "after_expansion": 1,
+            "evidence": artifact(tmp_path, "f.json", {}),
+        }
+    ]
+    relock(tmp_path, block)
+    with pytest.raises(a.AdmissionError, match="unknown_condition"):
+        a.validate(block, "fixture", repository=tmp_path)
+    study["findings"][0]["condition"] = "FAILING_TRIGGER"
+    study["findings"][0]["evidence"]["sha256"] = "sha256:" + "0" * 64
+    relock(tmp_path, block)
+    with pytest.raises(a.AdmissionError, match="digest_mismatch"):
+        a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_the_lock_must_lock_a_recorded_state(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    study = block["tracks"][a.LEDGER_TRACK]
+    ref = study["acceptance"]["decision"]
+    decision = json.loads((tmp_path / ref["path"]).read_bytes())
+    decision["locked_permissions"] = "sha256:" + "5" * 64
+    study["acceptance"]["decision"] = artifact(tmp_path, ref["path"], decision)
+    with pytest.raises(a.AdmissionError, match="lock_unrecorded_state"):
+        a.validate(block, "fixture", repository=tmp_path)
+
+
+def test_track_b_review_names_one_of_the_three_triggers(tmp_path):
+    block = accepted(tmp_path, "fixture")
+    study = block["tracks"]["engineering_value"]
+    ref = study["acceptance"]["decision"]
+    for trigger in sorted(a.REVIEW_TRIGGERS):
+        decision = json.loads((tmp_path / ref["path"]).read_bytes())
+        decision["trigger"] = trigger
+        study["acceptance"]["decision"] = artifact(tmp_path, ref["path"], decision)
+        a.validate(block, "fixture", repository=tmp_path)
+    decision["trigger"] = "ROUTINE_CHANGE"
+    study["acceptance"]["decision"] = artifact(tmp_path, ref["path"], decision)
+    with pytest.raises(a.AdmissionError, match="review_without_trigger"):
+        a.validate(block, "fixture", repository=tmp_path)

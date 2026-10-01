@@ -10450,14 +10450,14 @@ events:
     event_id: "CHALLENGE-ADMISSION-01"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "Owner requires construction-integrity and engineering-value studies before new challenge admission or permission expansion. Readiness v3 checks both tracks and digest-bound scoped evidence/review completeness; no challenge is accepted and no new miner-code capability or runtime activation interlock is enabled. Read-only EV1/EV2 audit exposes gate-ineligible ranking, unequal resolved-case masks and seed dependence; retained experiment results stay unchanged. New prospective standard requires real isolated attacks, fresh confirmation, useful-effect and uncertainty evidence, coverage/tail reporting and recipient rebuilds. Real campaigns and human science/security acceptance remain outstanding."
+    summary: "Internal development admission protocol (OWNER-CHALLENGE-ADMISSION-01 as amended 2026-10-01): never mainnet, not miner-facing, not a qualification gate; miners see only the final optimized version. Review moves from every change to every finding. Track A records every construction expansion without per-change review; an emitted finding (score-value divergence, gate anomaly, failing trigger) stops widening, and acceptance is one lock of a recorded state bound to both ledgers. Track B full review only at STUCK, WINNING or OWNER_REQUEST. Readiness v3 keeps digest-bound refusal of empty, failed, inconclusive, stale or tampered evidence. The divergence detector fires on EV2's boundary-optimist control; the progress noise band is derived from retained seed repeats (EV2 tau band 0.260). Read-only EV1/EV2 audit keeps its caveats; the design optimizer is scoped, not built. No challenge is accepted and no miner-code capability or runtime interlock is enabled."
     primary_detail: ".agent/tickets/CHALLENGE-ADMISSION-01.md"
     affects:
       - "WAVE-C/C-09"
       - "SYSTEM/PROTOCOL-AUTHORITY"
       - "SYSTEM/GOVERNANCE"
     supersedes: null
-    recorded_at: "2026-10-01T02:41:30Z"
+    recorded_at: "2026-10-01T11:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

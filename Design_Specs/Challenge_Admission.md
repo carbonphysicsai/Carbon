@@ -2,11 +2,22 @@
 
 **Protocol:** `carbon.challenge-admission.v1`
 
-**Owner direction:** OWNER-CHALLENGE-ADMISSION-01, 2026-09-30.
+**Owner direction:** OWNER-CHALLENGE-ADMISSION-01, as amended on 2026-10-01
+(`.agent/DECISIONS.md`; section numbers below are the owner's).
 
-**Scope:** a standing requirement before opening a new challenge to rewarded
-competition, and before expanding a challenge's construction permissions.
-Research-only development may run to obtain the required evidence.
+**Scope, first (§2).** This is an **internal development protocol**. It is not a
+miner-facing rule, not a public commitment, **not a scientific qualification
+gate**, and **not applicable to mainnet**. Nobody may cite it as evidence that a
+Challenge is qualified. Miners see only the final optimized version;
+intermediate permission states, failed expansions and abandoned scoring rules
+are internal. Results may be archived and keep their meaning under the rule and
+permissions they were produced with (invariant 10). Mainnet iteration is a
+separate, undecided rule; nothing here transfers to it.
+
+**Review moves from every change to every finding.** Permission expansion
+needs no review in advance; every expansion is recorded (§6.1); a finding
+escalates and is never suppressed (§6.2); the review is of the state reached,
+which is then locked.
 
 Carbon tests two propositions for each exact challenge and permission profile:
 1. A participant cannot exploit a known unresolved defect to receive a high
@@ -88,8 +99,37 @@ At each implemented level run the same legitimate panel and attack budget.
 Include single-permission ablations and combined-permission attacks. Passing
 components separately does not establish safe composition. Unsupported levels
 are NOT_RUN, never a pass; do not open them to miners to gather acceptance data.
-A challenge may be admitted at Level 0. Expansion needs a new exact profile,
-new evidence and a useful-benefit justification.
+
+### 3.1 Expand freely, escalate on a finding (amended §3)
+
+- **Expansion needs no per-change review (§3.1).** Each widening is appended to
+  the track's `expansions` ledger: sequence, UTC time, profile, version, what
+  widened and the permissions digest. A gap or reordering is refused. Launchpad
+  keeps the per-Challenge expansion record (#468,
+  `carbon/reconstruction/expansions/<challenge>/NNNN.json`); the newest record
+  per Challenge is the state a finding's review examines.
+- **A finding is an emitted condition, not a conclusion (§3.2).** The
+  conditions are `SCORE_VALUE_DIVERGENCE`, `GATE_ANOMALY`, `FAILING_TRIGGER` and
+  `OTHER_SIGNAL`, each with digest-bound evidence. When in doubt, fire.
+- **Score-value divergence** (`carbon.battery.value.divergence.conditions`)
+  fires for member X when an eligible member Y decides better by more than the
+  loss noise band, yet X scores at or above Y under the deciding rule:
+  `loss(Y) + band < loss(X)` and `score(X) >= score(Y)`. The band is the
+  largest seed-to-seed spread of decision loss within one recipe in the same
+  result, so a gap a seed change alone produces is not counted. No threshold,
+  rank cut or score scale is chosen. A gate failure emits `GATE_ANOMALY`.
+- **On a finding, escalate (§3.3).** No expansion may be recorded after it
+  (`admission_expansion_after_finding`). The review examines the state reached
+  and locks a final state: Track A's acceptance is one `LOCK` decision bound to
+  the report, both ledgers' digests and the permissions it locks, which must be
+  a recorded state equal to the scope's `permissions` pin. A finding added
+  later changes the findings digest and voids the lock.
+- **Worked example (§3.4).** On EV2's retained results the boundary-optimist
+  control fires on both splits, scoring at or above all 14 eligible real
+  members while deciding worse than each by more than the band
+  (`docs/development/evidence/admission-pressure-2026-10-01/ev2-conditions.json`).
+  The detector also fires on several real members on the development split
+  and one on verification; those are findings to investigate, not verdicts.
 
 Required attack families, each with a known-vulnerable specimen demonstrating
 that the detector/test can fire:
@@ -134,6 +174,31 @@ matching pins and a recorded applicability analysis; challenge-specific score
 exploitation and integration tests must still run.
 
 ## 4. Track B: engineering value
+
+### 4.0 Two review levels (amended §4)
+
+- **Executive review, on a standing cadence (§4.1):** human-readable and
+  shareable outside Carbon. Every claim carries its basis, nothing is stated
+  above its maturity, and no number appears without what produced it. Layered:
+  a readable top with the detail reachable beneath.
+- **Full review at three conditions only (§4.2),** named in the review decision
+  (`trigger`): `STUCK` (three consecutive studies with no progress), `WINNING`
+  (approaching 1:1 score:value; a direction, not a threshold; the owner decides
+  arrival) or `OWNER_REQUEST`.
+- **Progress and its noise band, fixed before any study is counted.** Progress
+  is movement of Kendall τ between the deciding rule's ranking and the value
+  ranking toward 1. The noise band (`divergence.tau_noise_band`) is τ's spread
+  over every one-seed-per-recipe panel of eligible real models in the same
+  result: how far τ moves from seed choice alone. A study counts as progress
+  only if its τ improves by more than that band. On EV2 (verification, deciding
+  rule) the band is 0.260 over 24 panels (τ 0.444 to 0.704); on EV1 it is 0.365
+  over 12 panels. A study whose result has no seed repeats cannot measure its
+  own band; it then uses the most recent measured band, stated with its source.
+- **Both rankings (§4.3)** are reported while the decision-aware component is a
+  prospective proposal, with the audit caveat below. The EV2 τ figures 0.202
+  (proposed) and 0.298 (deciding) never appear without it: the EV panels contain
+  gate-ineligible models, unequal denominators from unresolved outcomes, and
+  repeated seeds that do not establish method diversity.
 
 Use the Engineering Value Contract to define the task before selecting models.
 The evaluator computes engineering outcomes from an independently justified
@@ -194,7 +259,9 @@ For each track: NOT_STARTED, IN_PROGRESS, FAILED, INCONCLUSIVE or ACCEPTED.
 FAILED means a registered criterion failed. INCONCLUSIVE means evidence cannot
 resolve it. Both block admission at the tested profile. No unrun check passes.
 
-The scientific and security reviewers examine the methods and retained records;
+Under the amended protocol these reviews happen at findings and triggers, not
+per change: Track A's lock review examines the state reached; Track B's full
+review names its trigger. The reviewers examine the methods and retained records;
 they do not accept a collection of green strings. They check preregistration
 chronology, real execution provenance, completeness, statistical sufficiency,
 control sensitivity, open attacks and applicability to the exact pins. Acceptance
@@ -222,21 +289,30 @@ manifest and training-budget study. This engineering patch adds the readiness
 record gate and protocol requirement; it does not claim a new deployed runtime
 interlock or that a challenge has passed.
 
-## 6. Executable checks and current follow-up
+## 6. The design optimizer (amended §5): scoped, not built
+
+The optimizer is the instrument that produces findings for both tracks. Its
+scope, cost and gaps are in `docs/development/DESIGN_OPTIMIZER_SCOPE.md`. It is
+reported before it is built; no population, threshold or objective is invented
+for it.
+
+## 7. Executable checks and current follow-up
 
 ```
 python -m carbon.challenge_readiness validate
 python -m carbon.challenge_readiness validate --require-admission
 python -m carbon.battery.value.audit --results docs/development/evidence/ev1-2026-09-25/results.json
-python -m pytest tests/cpu/test_challenge_admission.py tests/cpu/test_engineering_value_audit.py tests/cpu/test_challenge_readiness.py
+python -m carbon.battery.value.divergence --results docs/development/evidence/ev2-2026-10-01/results.json
+python -m pytest tests/cpu/test_challenge_admission.py tests/cpu/test_engineering_value_audit.py tests/cpu/test_challenge_readiness.py tests/cpu/test_admission_divergence.py
 ```
 
 The first command validates the records, including any retained evidence files.
 Without `--require-admission`, zero exit means valid records, not accepted
 challenges: inspect `admission_blockers`. The admission flag fails on missing
 acceptance or an empty record set; it is the prospective release-preflight command.
-The EV audit command audits the existing experiment without changing
-its results. It supplies denominators, ineligible exclusions and recipe sensitivity,
+The divergence command emits the conditions a result raises and exits 1 when any
+fire; it never suppresses one. The EV audit command audits the existing experiment
+without changing its results. It supplies denominators, ineligible exclusions and recipe sensitivity,
 not a qualification decision. Canonical CI owns engineering acceptance.
 
 Next execution: prepare the battery study sheet from EV1/EV2 and freeze a revised

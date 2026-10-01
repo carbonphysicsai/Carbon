@@ -133,12 +133,22 @@ No scheduler, scorer, seed service or evidence store was added.
 
 ## Two-track admission (schema v3)
 
-[Challenge Admission](../../Design_Specs/Challenge_Admission.md) is now a standing
-requirement. `admission_tests` binds construction-integrity and engineering-value
-studies to one exact challenge version and capability profile. The validator
-refuses a launch-approved record until both are ACCEPTED with matching frozen
-criteria, reports, retained evidence hashes and scoped review decisions. It
-verifies file completeness and bindings, not human identity or scientific truth.
+[Challenge Admission](../../Design_Specs/Challenge_Admission.md) is an
+**internal development protocol** (OWNER-CHALLENGE-ADMISSION-01 as amended on
+2026-10-01): never mainnet, not miner-facing, not a qualification gate.
+`admission_tests` binds construction-integrity and engineering-value studies to
+one exact challenge version and capability profile. Review moves from every
+change to every finding:
+- **Track A:** records each expansion in a ledger without per-change review.
+  A finding stops widening, and acceptance is one lock of a recorded state,
+  bound to both ledgers.
+- **Track B:** a full review names its trigger (`STUCK`, `WINNING` or
+  `OWNER_REQUEST`).
+
+The validator refuses a launch-approved record until both tracks are ACCEPTED
+with matching frozen criteria, reports, retained evidence hashes and the scoped
+lock or review. It verifies file completeness and bindings, not human identity
+or scientific truth.
 
 Both new tracks start NOT_STARTED in all four catalogue records; prior battery
 EV work remains supporting evidence. Their `admission_blockers` appear in the

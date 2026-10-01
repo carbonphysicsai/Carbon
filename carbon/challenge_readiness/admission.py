@@ -1,8 +1,21 @@
 """Evidence completeness for the two challenge-admission studies.
 
-This reads maintainer-held files; it neither executes submissions nor authenticates
-reviewers. Structural validity is not scientific or security acceptance. Only
-existing human review authority can accept a study; no state activates a challenge.
+OWNER-CHALLENGE-ADMISSION-01 as amended on 2026-10-01: an internal development
+protocol, never mainnet, and not a qualification gate. Miners see only the
+final optimized version. Review moves from every change to every finding:
+
+- **Construction integrity (Track A).** Permission expansion proceeds without
+  per-change review; every expansion is recorded (`expansions`). A finding
+  (`findings`: score-value divergence, a failing trigger, a gate anomaly)
+  escalates: no expansion may be recorded after it. Acceptance is one lock
+  review of the state reached, bound to both ledgers and to the permissions it
+  locks, which must be a recorded state.
+- **Engineering value (Track B).** A full review happens only at one of the
+  owner's three conditions: STUCK, WINNING or OWNER_REQUEST, named in it.
+
+This reads maintainer-held files; it neither executes submissions nor
+authenticates reviewers. Structural validity is not scientific or security
+acceptance, and no state activates a challenge.
 """
 
 from __future__ import annotations
@@ -49,6 +62,17 @@ PIN_NAMES = {
     "population",
     "feedback",
 }
+#: What a finding may record. A run emits these; a person does not conclude
+#: them afterwards (`carbon.battery.value.divergence` emits the first two).
+CONDITIONS = {
+    "SCORE_VALUE_DIVERGENCE",
+    "GATE_ANOMALY",
+    "FAILING_TRIGGER",
+    "OTHER_SIGNAL",
+}
+#: The only conditions under which Track B's full review happens (amended §4.2).
+REVIEW_TRIGGERS = {"STUCK", "WINNING", "OWNER_REQUEST"}
+LEDGER_TRACK = "construction_integrity"
 ROOT = Path(__file__).resolve().parents[2]
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _COMMIT = re.compile(r"[0-9a-f]{40}\Z")
@@ -58,20 +82,30 @@ class AdmissionError(ValueError):
     """The admission record cannot support its claimed state."""
 
 
+def _fields(track):
+    base = {"state", "preregistration", "report", "acceptance"}
+    return base | {"expansions", "findings"} if track == LEDGER_TRACK else base
+
+
 def pending():
-    return {
-        "protocol": PROTOCOL,
-        "scope": None,
-        "tracks": {
-            track: {
-                "state": "NOT_STARTED",
-                "preregistration": None,
-                "report": None,
-                "acceptance": None,
-            }
-            for track in CHECKS
-        },
-    }
+    tracks = {}
+    for track in CHECKS:
+        study = {
+            "state": "NOT_STARTED",
+            "preregistration": None,
+            "report": None,
+            "acceptance": None,
+        }
+        if track == LEDGER_TRACK:
+            study.update(expansions=[], findings=[])
+        tracks[track] = study
+    return {"protocol": PROTOCOL, "scope": None, "tracks": tracks}
+
+
+def ledger_digest(entries):
+    """The digest a lock binds: the canonical bytes of an ordered ledger."""
+    body = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
+    return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
 def _exact(value, keys):
@@ -146,15 +180,139 @@ def _scope(scope, challenge_id):
             raise AdmissionError("admission_unpinned_scope")
 
 
+_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
+
+
+def _expansions(entries):
+    """Every widening, in order: what widened, when, under which profile."""
+    if type(entries) is not list:
+        raise AdmissionError("admission_list_required")
+    previous = None
+    for index, entry in enumerate(entries, start=1):
+        _exact(
+            entry,
+            {"sequence", "recorded_at", "profile", "version", "widened", "permissions"},
+        )
+        if entry["sequence"] != index or type(entry["sequence"]) is not int:
+            raise AdmissionError("admission_expansion_sequence_gap")
+        if type(entry["recorded_at"]) is not str or not _TIME.fullmatch(
+            entry["recorded_at"]
+        ):
+            raise AdmissionError("admission_expansion_time_required")
+        if previous is not None and entry["recorded_at"] < previous:
+            raise AdmissionError("admission_expansion_out_of_order")
+        previous = entry["recorded_at"]
+        for key in ("profile", "version", "widened"):
+            _text(entry[key])
+        if type(entry["permissions"]) is not str or not _DIGEST.fullmatch(
+            entry["permissions"]
+        ):
+            raise AdmissionError("admission_unpinned_expansion")
+
+
+def _findings(entries, expansions, root):
+    """A finding escalates: nothing may widen after it."""
+    if type(entries) is not list:
+        raise AdmissionError("admission_list_required")
+    seen = set()
+    for entry in entries:
+        _exact(entry, {"id", "condition", "after_expansion", "evidence"})
+        _text(entry["id"])
+        if entry["id"] in seen:
+            raise AdmissionError("admission_duplicate_finding")
+        seen.add(entry["id"])
+        if entry["condition"] not in CONDITIONS:
+            raise AdmissionError("admission_unknown_condition")
+        after = entry["after_expansion"]
+        if type(after) is not int or not 0 <= after <= len(expansions):
+            raise AdmissionError("admission_finding_position_invalid")
+        if len(expansions) > after:
+            raise AdmissionError("admission_expansion_after_finding")
+        _artifact(entry["evidence"], root)
+
+
+def _lock(study, scope, root):
+    """Track A's one review: lock a recorded state, bound to both ledgers."""
+    _exact(study["acceptance"], {"reviewer", "decision"})
+    _text(study["acceptance"]["reviewer"])
+    decision = _document(study["acceptance"]["decision"], root)
+    _exact(
+        decision,
+        {
+            "protocol",
+            "scope",
+            "track",
+            "report_digest",
+            "reviewer",
+            "disposition",
+            "expansions_digest",
+            "findings_digest",
+            "locked_permissions",
+        },
+    )
+    recorded = {e["permissions"] for e in study["expansions"]}
+    if (
+        decision["protocol"] != PROTOCOL
+        or decision["scope"] != scope
+        or decision["track"] != LEDGER_TRACK
+        or decision["disposition"] != "LOCK"
+        or decision["reviewer"] != study["acceptance"]["reviewer"]
+        or decision["report_digest"] != study["report"]["sha256"]
+    ):
+        raise AdmissionError("admission_review_scope_mismatch")
+    if decision["expansions_digest"] != ledger_digest(study["expansions"]) or decision[
+        "findings_digest"
+    ] != ledger_digest(study["findings"]):
+        raise AdmissionError("admission_lock_ledger_mismatch")
+    if (
+        decision["locked_permissions"] not in recorded
+        or decision["locked_permissions"] != scope["pins"]["permissions"]
+    ):
+        raise AdmissionError("admission_lock_unrecorded_state")
+
+
+def _review(track, study, scope, root):
+    """Track B's full review: only at STUCK, WINNING or OWNER_REQUEST."""
+    _exact(study["acceptance"], {"reviewer", "decision"})
+    _text(study["acceptance"]["reviewer"])
+    decision = _document(study["acceptance"]["decision"], root)
+    _exact(
+        decision,
+        {
+            "protocol",
+            "scope",
+            "track",
+            "report_digest",
+            "reviewer",
+            "disposition",
+            "trigger",
+        },
+    )
+    if (
+        decision["protocol"] != PROTOCOL
+        or decision["scope"] != scope
+        or decision["track"] != track
+        or decision["disposition"] != "ACCEPT"
+        or decision["reviewer"] != study["acceptance"]["reviewer"]
+        or decision["report_digest"] != study["report"]["sha256"]
+    ):
+        raise AdmissionError("admission_review_scope_mismatch")
+    if decision["trigger"] not in REVIEW_TRIGGERS:
+        raise AdmissionError("admission_review_without_trigger")
+
+
 def _study(track, study, scope, root):
-    _exact(study, {"state", "preregistration", "report", "acceptance"})
+    _exact(study, _fields(track))
+    if track == LEDGER_TRACK:
+        _expansions(study["expansions"])
+        _findings(study["findings"], study["expansions"], root)
     state = study["state"]
     if type(state) is not str or state not in STATES:
         raise AdmissionError("admission_unknown_state")
     if state == "NOT_STARTED":
         if any(
             study[k] is not None for k in ("preregistration", "report", "acceptance")
-        ):
+        ) or (track == LEDGER_TRACK and (study["expansions"] or study["findings"])):
             raise AdmissionError("admission_evidence_before_start")
         return
     if scope is None:
@@ -240,22 +398,10 @@ def _study(track, study, scope, root):
     if state == "ACCEPTED":
         if not all_pass or report["blockers"]:
             raise AdmissionError("admission_accepted_with_gaps")
-        _exact(study["acceptance"], {"reviewer", "decision"})
-        _text(study["acceptance"]["reviewer"])
-        decision = _document(study["acceptance"]["decision"], root)
-        _exact(
-            decision,
-            {"protocol", "scope", "track", "report_digest", "reviewer", "disposition"},
-        )
-        if (
-            decision["protocol"] != PROTOCOL
-            or decision["scope"] != scope
-            or decision["track"] != track
-            or decision["disposition"] != "ACCEPT"
-            or decision["reviewer"] != study["acceptance"]["reviewer"]
-            or decision["report_digest"] != study["report"]["sha256"]
-        ):
-            raise AdmissionError("admission_review_scope_mismatch")
+        if track == LEDGER_TRACK:
+            _lock(study, scope, root)
+        else:
+            _review(track, study, scope, root)
     elif study["acceptance"] is not None:
         raise AdmissionError("admission_acceptance_before_pass")
 

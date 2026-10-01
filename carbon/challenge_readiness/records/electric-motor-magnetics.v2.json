@@ -5,6 +5,8 @@
     "tracks": {
       "construction_integrity": {
         "acceptance": null,
+        "expansions": [],
+        "findings": [],
         "preregistration": null,
         "report": null,
         "state": "NOT_STARTED"

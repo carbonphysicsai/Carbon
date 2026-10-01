@@ -14,11 +14,12 @@
 > rewards. Readiness records enforce it; rules R1-R8 are frozen by digest.
 > Launch path v1.0.8.
 
-> **OWNER-CHALLENGE-ADMISSION-01 (2026-09-30):** new challenges and expanded
-> construction profiles require both construction-integrity and engineering-value
-> admission studies under `Design_Specs/Challenge_Admission.md`. Readiness schema
-> v3 checks their evidence bindings before accepting a launch-approved record.
-> Engineering checks do not grant scientific/security qualification.
+> **OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01):** an internal
+> development protocol, never mainnet; miners see only the final optimized
+> version. Construction permissions expand without per-change review, but every
+> expansion is recorded (§6.1) and every finding (score-value divergence, a
+> failing trigger, a gate anomaly) escalates and is never suppressed (§6.2). See
+> `Design_Specs/Challenge_Admission.md`. Not a qualification gate.
 
 > **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
 > engineering choices only for the separately typed, non-paying C-W1-D3
