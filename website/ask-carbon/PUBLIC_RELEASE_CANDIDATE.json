@@ -184,7 +184,7 @@
     "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
     "staged_file_count": 105,
     "build_certified_utc": "2026-09-30",
-    "build_certification_note": "Built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
+    "build_certification_note": "Re-derived 2026-10-01T03:05Z after merging main af5b8ac0b (#454, which changes no bundle input: the builder reads only the Pilot Designer HTML from Business/, still be64f8b9…): the 100-path baseline was re-fetched from both hostnames, matched manifest v3 100/100 on each after removing the edge-injected challenge script and analytics beacon, and index.html was recovered to 99be1318…; the build reproduced bundle 86f51385…, 105 files, and the five repository-side digests above were re-hashed from the files on disk. First built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
     "knowledge_json_sha256": "fab55d5dca7f547d47899f29c5cf3b1b0b7ab1674e923da945feef02fd0361a0",
     "changes_against_live": {
       "compared_utc": "2026-09-30T18:16:28.552Z",
