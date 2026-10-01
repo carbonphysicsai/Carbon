@@ -16557,3 +16557,42 @@ straight at the Pilot Designer, are follow-ups for the owner.
 `PUBLIC_RELEASE_CANDIDATE.json` `deployment_order.candidate_2026_09_30_1`.
 Deployment is the operator's act; this host has no Cloudflare credential and
 ran no wrangler command.
+
+## 2026-09-30 — OWNER-BATTERY-INTAKE-01: the intake path is chosen; screening batches approved
+
+**Authority.** The owner, in the Testnet session on 2026-09-30, answering the
+submission-paths brief (`docs/development/BATTERY_MINER_SUBMISSION_PATHS.md`)
+and amendment 4's D9: "mainnet intake will be hosted by validator images, but
+we are testing now. confirm that against bittensor docs. explain amendment 4
+at a higher level. You have my approval to build batches. Derive them from
+real engineering evidence or where we should test. intake has to be wherever
+it needs to be for testnet testing. But ensure we have the design right for
+the mainnet switch".
+
+1. **OD-7(b), the intake, is the path.** At mainnet each validator image
+   hosts it. For testnet it runs where testing needs it: on this host, beside
+   the one validator deployment. The design is recorded in the brief.
+2. **Screening batches are approved** (amendment 4 D9 item 2). Prepared on
+   2026-09-30: `pscreen-T03`, `pscreen-T04`, `pscreen-T05`, and finalist set
+   `pfinal-T01`. They are drawn by the frozen OD-2 rule - uniform over the
+   exam-design specification's input box
+   (`docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, "The inputs") -
+   from the operator-held private root. The draw law was not changed:
+   choosing where the exam tests is a change to the approved exam rule and
+   needs its own prospective record (the EV2 proposal is where it belongs).
+3. **Amendment 4 itself is not approved by this reply** (D9 item 1). No 3B
+   provider call is made until it is.
+
+**Scope.**
+- The intake binds loopback. **Exposing it beyond this host is the owner's §4
+  security review decision**, recorded as its own exposure record, which the
+  listener checks for by name. Nothing in this record is that decision.
+- The intake is security-sensitive (AGENTS §13) and NOT SECURITY_QUALIFIED.
+  Merging it authorizes no exposure.
+- **Seam with OD-3.** The OD-7(b) row says the intake is "covered by the OD-3
+  security review", but OD-3 as recorded approves a review of two images (the
+  GPU validator reconstruction image and the PyBaMM truth image), not a public
+  listener. Classified `NEW_OWNER_DECISION_REQUIRED` for exposure only. The
+  intake's own §4 review is still needed, and it is the exposure record above.
+  Building and merging the loopback-only listener can proceed.
+- No chain write, no commitment, no spend, testnet 567 only.
