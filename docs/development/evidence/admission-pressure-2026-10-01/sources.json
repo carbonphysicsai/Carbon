@@ -1,0 +1,14 @@
+{
+  "ev1": {
+    "commit": "af5b8ac0b8848438d86abf2ac07b41d6f7c31ba2",
+    "path": "docs/development/evidence/ev1-2026-09-25/results.json",
+    "sha256": "sha256:f7c29367faae06006cc793d32d68fe2f8bb104c7c8b4901a5939c4288f510791",
+    "url": "https://github.com/carbonphysicsai/Carbon/blob/af5b8ac0b8848438d86abf2ac07b41d6f7c31ba2/docs/development/evidence/ev1-2026-09-25/results.json"
+  },
+  "ev2": {
+    "commit": "571bdf72e8abaaa4d3d7965fcdf31c6d4ae057f2",
+    "path": "docs/development/evidence/ev2-2026-10-01/results.json",
+    "sha256": "sha256:62e6c8bb271f3525af3f30446991c658891a0ab44a039bfdc853fbf6b24994d0",
+    "url": "https://github.com/carbonphysicsai/Carbon/blob/571bdf72e8abaaa4d3d7965fcdf31c6d4ae057f2/docs/development/evidence/ev2-2026-10-01/results.json"
+  }
+}
