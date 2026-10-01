@@ -67,6 +67,85 @@ def two_rankings(results):
     ]
 
 
+def hypotheses(results):
+    """EV4's pre-registered H1-H3, when the result carries them."""
+    h = results.get("hypotheses")
+    if not h:
+        return []
+    h1, h3 = h["H1"], h["H3"]
+    low, high = h1["interval"]
+    lines = [
+        "",
+        "## Pre-registered hypotheses",
+        "",
+        (
+            f"**H1 (primary, paired).** Δτ = τ(`{h1['proposed_rule']}`) − "
+            f"τ(`{h1['deciding_rule']}`) = {_f(h1['delta_tau'])} "
+            f"({_f(h1['tau_proposed'])} − {_f(h1['tau_deciding'])}), "
+            f"{round(h1['level'] * 100)} % paired bootstrap interval "
+            f"[{_f(low)}, {_f(high)}] over {h1['members']} eligible members and "
+            f"{h1['conditions']} verification conditions "
+            f"(B = {h1['replicates']}, seed {h1['rng_seed']}, "
+            f"{h1['replicates_skipped']} replicates undefined). "
+            f"Decision: **{h1['decision']}**."
+        ),
+        "",
+        (
+            "An interval that includes 0 is UNRESOLVED: it does not show that the "
+            "rules rank models equally well."
+        ),
+        "",
+        "**H2 (boundary-optimist control).**",
+        "",
+    ]
+    for rule, row in h["H2"].items():
+        if not row:
+            lines.append(f"- `{rule}`: not measured")
+            continue
+        lines.append(
+            f"- `{rule}`: below every eligible member: "
+            f"{row['below_every_eligible_member']} ({row['members_scored_below_it']} "
+            f"of {row['eligible_members']} at or below it)"
+        )
+    lines += [
+        "",
+        (
+            f"**H3 (real-model blind spot).** {h3['members_with_false_acceptance']} of "
+            f"{h3['eligible_members']} eligible real members select a protocol the "
+            "reference verifies INFEASIBLE on at least one verification condition."
+        ),
+        "",
+    ]
+    if h3["members"]:
+        rules = list(h3["members"][0]["rank"])
+        lines += [
+            "| Member | Conditions | "
+            + " | ".join(f"Rank `{r}`" for r in rules)
+            + " |",
+            "|---|---|" + "---|" * len(rules),
+        ]
+        for row in h3["members"]:
+            ranks = " | ".join(str(row["rank"][r]) for r in rules)
+            conditions = ", ".join(row["false_acceptance_conditions"])
+            lines.append(f"| {row['member']} | {conditions} | {ranks} |")
+    families = results.get("families")
+    if families:
+        lines += [
+            "",
+            "## Panel families",
+            "",
+            "| Family | Members | Eligible | Verification loss range |",
+            "|---|---|---|---|",
+        ]
+        for family, row in sorted(families.items()):
+            lines.append(
+                f"| {family} | {row['members']} | {row['eligible']} "
+                f"| {_f(row['loss_verification_min'])} – "
+                f"{_f(row['loss_verification_max'])} |"
+            )
+    return lines
+
+
 def render(results, experiment="EV1"):
     """`experiment` titles the report: the contract's case prefix, so an EV2
     report is never headed EV1."""
@@ -96,6 +175,7 @@ def render(results, experiment="EV1"):
             f"control {_f(summary['control_tau_verification'])}"
         ),
         *two_rankings(results),
+        *hypotheses(results),
         "",
         "## Reference outcomes per scenario",
         "",
@@ -211,8 +291,15 @@ def render(results, experiment="EV1"):
             "exercised."
         ),
         (
-            "- The model panel is small, and reconstruction seeds are repetitions of a "
-            "recipe, not independent models."
+            (
+                "- The model panel is small, and reconstruction seeds are repetitions "
+                "of a recipe, not independent models."
+            )
+            if "hypotheses" not in results
+            else (
+                "- Reconstruction seeds are repetitions of a recipe, not independent "
+                "models; the bootstrap treats members as exchangeable."
+            )
         ),
         "",
     ]
