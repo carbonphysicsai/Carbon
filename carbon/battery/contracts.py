@@ -29,6 +29,7 @@ from carbon.authoring.refs import ChallengeScope, owner_ref
 from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from carbon.construction.refs import CONSTRUCTION_CANONICALIZATION_PROFILE
 from carbon.reconstruction import profile as jax
+from carbon.reconstruction import torch_profile as torch_env
 from carbon.reconstruction.capability_registry import (
     BATTERY_CHALLENGE,
     catalog_surfaces,
@@ -66,8 +67,48 @@ def digest(value):
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
+#: The environment the battery backbones are pinned to: both reconstruction
+#: backends' pinned environments (OWNER-PYTORCH-BACKEND-01). A recipe's
+#: `backend` setting chooses which one rebuilds it.
+BACKENDS_ENVIRONMENT = (
+    "carbon_battery_backends_linux_x86_64_py311",
+    "1.0",
+    digest(
+        canonical(
+            {
+                "jax": [
+                    jax.ENVIRONMENT_ID,
+                    jax.ENVIRONMENT_VERSION,
+                    jax.ENVIRONMENT_DIGEST,
+                ],
+                "pytorch": [
+                    torch_env.ENVIRONMENT_ID,
+                    torch_env.ENVIRONMENT_VERSION,
+                    torch_env.ENVIRONMENT_DIGEST,
+                ],
+            }
+        )
+    ),
+)
+
+
+def backend_dependency_specs():
+    """Both backends' direct dependency pins, each package named once."""
+    specs = {}
+    for name, version, pin in (*jax.DEPENDENCY_SPECS, *torch_env.DEPENDENCY_SPECS):
+        if specs.setdefault(name, (name, version, pin)) != (name, version, pin):
+            raise ValueError("the backends pin " + name + " differently")
+    return tuple(specs.values())
+
+
 #: Every module whose bytes determine what a battery recipe rebuilds.
-IMPLEMENTATION_MODULES = ("domain.py", "recipes.py", "training.py")
+IMPLEMENTATION_MODULES = (
+    "domain.py",
+    "recipes.py",
+    "training.py",
+    "torch_training.py",
+    "torch_families.py",
+)
 
 
 def implementation_digest():
@@ -107,6 +148,10 @@ def profile_document():
             "compiler": "B-02B",
             "implementation": IMPLEMENTATION_ID,
             "families": [s for s, _ in rebuildable_families(BATTERY_CHALLENGE)],
+            "backends": {
+                "jax": jax.ENVIRONMENT_ID,
+                "pytorch": torch_env.ENVIRONMENT_ID,
+            },
             "randomness": "Carbon-assigned reconstruction seed; never miner-chosen",
             "candidate_code": "none; registered declarative strategies only",
         },
@@ -368,12 +413,12 @@ def battery_contracts():
         (source,),
         (semantic("authoring_origin_evidence", "battery_causal_contracts"),),
     )
-    # The recipes need only JAX and NumPy from the pinned science-jax
-    # environment that also carries the Burgers lab.
-    env = c.EnvironmentPin(
-        jax.ENVIRONMENT_ID, jax.ENVIRONMENT_VERSION, jax.ENVIRONMENT_DIGEST
-    )
-    deps = tuple(c.DependencyPin(*spec) for spec in jax.DEPENDENCY_SPECS)
+    # A recipe names its reconstruction backend (OWNER-PYTORCH-BACKEND-01), so
+    # the backbones are pinned to both backend environments: the science-jax
+    # environment that also carries the Burgers lab, and the PyTorch one. The
+    # recipe's `backend` setting selects which one rebuilds it.
+    env = c.EnvironmentPin(*BACKENDS_ENVIRONMENT)
+    deps = tuple(c.DependencyPin(*spec) for spec in backend_dependency_specs())
     impl = c.ImplementationPin(
         IMPLEMENTATION_ID, IMPLEMENTATION_VERSION, implementation_digest()
     )

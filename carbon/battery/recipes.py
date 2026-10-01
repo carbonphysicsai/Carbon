@@ -200,7 +200,9 @@ class MLP:
         s = dict(settings)
         self.family, self.settings = family, s
         self.width, self.steps = s["width"], s["steps"]
-        self.depth = s["depth"] if family == "mlp" else s["deeponet_depth"]
+        self.depth = s["deeponet_depth"] if family == "deeponet" else s["depth"]
+        # Recipes recorded before the backend existed are JAX recipes.
+        self.backend = s.get("backend", "jax")
         self.lr, self.wd = s["learning_rate"], s["weight_decay"]
         self.rich = s["arrhenius_features"]
         self.pca = s.get("trajectory_components", 0)
@@ -214,6 +216,7 @@ class MLP:
         s = self.settings
         return (
             self.family == "mlp"
+            and self.backend == "jax"
             and all(s[k] == v for k, v in CLASSIC.items())
             and s["batch_size"] >= cases
         )
@@ -274,6 +277,10 @@ class MLP:
             )
             self.zmu, self.zsd = z.mean(0), z.std(0) + 1e-9
         self.classic = self._classic(len(d.case_ids))
+        if self.backend == "pytorch":
+            from . import torch_training
+
+            return torch_training.fit(self, d, y, seed)
         if self.classic:
             return self._fit_classic(d, y, seed)
         return self._fit_general(d, y, seed)
@@ -471,6 +478,13 @@ class MLP:
         }
 
     def predict(self, x):
+        if self.backend == "pytorch":
+            from . import torch_training
+
+            z = torch_training.predict(self, features(x, self.rich))
+            return self.s.apply(
+                x, *self.layout.split(self._decode(z)), predict_v0=self.predict_v0
+            )
         import jax
         import jax.numpy as jnp
 
@@ -562,11 +576,20 @@ def _classic_net(p, xx):
 
 
 def _mlp_arrays(model, prefix, arrays):
-    import jax
-
     names = ["mu", "sd"] + (["vm", "tm", "pv", "pt", "zmu", "zsd"] if model.pca else [])
     for name in names:
         arrays[prefix + name] = np.asarray(getattr(model, name))
+    if model.backend == "pytorch":
+        for i, leaf in enumerate(model.params):
+            arrays[f"{prefix}leaf{i:04d}"] = np.asarray(leaf)
+        return {
+            "backend": "pytorch",
+            "classic": False,
+            "x64": False,
+            "leaves": len(model.params),
+        }
+    import jax
+
     leaves = (
         [a for w, b in model.params for a in (w, b)]
         if model.classic
@@ -613,8 +636,6 @@ def export_state(model):
 
 
 def _restore_mlp(family, settings, header, prefix, arrays, layout, structure):
-    import jax
-
     m = MLP(family, settings)
     m.layout, m.s = layout, structure
     m.classic, m.x64 = header["classic"], header["x64"]
@@ -623,6 +644,16 @@ def _restore_mlp(family, settings, header, prefix, arrays, layout, structure):
     ):
         setattr(m, name, arrays[prefix + name])
     leaves = [arrays[f"{prefix}leaf{i:04d}"] for i in range(header["leaves"])]
+    if header.get("backend", "jax") != m.backend:
+        raise ValueError("model state backend differs from its recipe")
+    if m.backend == "pytorch":
+        from . import torch_training
+
+        n_in = features(np.zeros((1, 4)), m.rich).shape[1]
+        n_out = m.mu.size if not m.pca else m.zmu.size
+        return torch_training.restore(m, leaves, n_in, n_out)
+    import jax
+
     if m.classic:
         m.params = [(leaves[i], leaves[i + 1]) for i in range(0, len(leaves), 2)]
         m._net = _classic_net

@@ -1,6 +1,6 @@
 # RECON-TORCH-01 — PyTorch as a reconstruction backend, miner and validator
 
-**Status:** in progress (slice 1).
+**Status:** in progress (slices 1-3 implemented).
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`, `HUB_UPDATE_REQUIRED`.
 **Authority:** OWNER-PYTORCH-BACKEND-01 (2026-10-01) and OWNER-DX-03.
 **Supersedes, for PyTorch only:** OWNER-BATTERY-TESTNET-02's "Only JAX for
@@ -59,8 +59,10 @@ authority (invariant 7.9).
    - A PyTorch environment pin and dependency pins.
    - Per-backend admission rules. A setting the chosen backend cannot rebuild
      is refused by name.
-   - Recipes and evidence from before this change keep their digests and
-     meaning.
+   - Strategy hashes are unchanged, and JAX recipes rebuild with the same
+     numerics. Plan and recipe digests bind the contract document, so a
+     recompile under expansion `0001` gets new ones, as on every contract
+     revision. Retained evidence keeps the contract digest it recorded.
 3. **The PyTorch battery trainer.**
    - Carbon-owned PyTorch training for the battery families: `mlp`,
      `deeponet` and `knn` (which needs no framework).
@@ -97,6 +99,28 @@ authority (invariant 7.9).
 
 Until those are set, PyTorch recipes run in DEVELOPMENT only, with no LIVE,
 reward or frontier authority.
+
+## Operational note: contract revisions and admitted submissions
+
+The daemon recompiles an admitted recipe and refuses a changed recipe digest
+(`artifact_mismatch`, "never build silently"). Every contract revision,
+including this one, changes those digests. So:
+
+- deploy the revision only when no pool or final is mid-evaluation;
+- an incumbent crowned before the revision cannot be re-rebuilt in a later
+  final. Whether to re-admit it under the new contract is an owner decision.
+  It is not specific to PyTorch, and this ticket does not change it.
+
+## Engineering decisions (recorded under OWNER-DX-03)
+
+- The FNO family is PyTorch-only and float32-only. neuraloperator's spectral
+  weights are complex64, and a float64 cast would drop the imaginary part.
+  Both refusals name the field.
+- Carbon holds each complex FNO weight as its real view, a trailing axis of
+  (real, imaginary). Every optimizer and the stored state then see real
+  tensors only.
+- CI installs `science-torch` in the canonical and dev-image jobs, and
+  `CARBON_REQUIRE_TORCH=1` turns PyTorch skips into failures there.
 
 ## Known environment limit (2026-10-01)
 
