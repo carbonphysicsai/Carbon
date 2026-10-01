@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-16-STUDY-NEED-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Completes the Pilot Designer's route from intake to a proposed Challenge (OWNER-PILOT-DESIGNER-ROUTE-01, slice 3). When Carbon's evidence does not cover a brief (no evidence for the family, no family, a client range outside the tested one, or an input the tested design does not vary) the proposal says why and shows what a new exam-design study would answer and need: its questions, stages and limits, extracted from the campaign specification, and the training budget study requirement. Measured compute is shown for scale only where Carbon measured it, labelled as compute and never as a price or quote; no account balance is relayed.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-30T20:30:00Z"
+}

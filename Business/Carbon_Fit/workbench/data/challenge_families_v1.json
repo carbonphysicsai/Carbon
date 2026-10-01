@@ -4,7 +4,7 @@
   "matching_rule": "A family is suggested when the client's own words, component names or input and output names contain one of its keywords, or its physical processes overlap the client's. Suggestions are ranked by the number of distinct keywords matched, then by physics overlap. A suggestion is a starting point for Carbon review, not an assessment of fit.",
   "source": {
     "path": "Business/Carbon_Fit/workbench/data/challenge_evidence_source_v1.json",
-    "sha256": "sha256:96dc10c6562b13dc622cff55e695f069f18c56a43d42517eb6076eb560c43829"
+    "sha256": "sha256:329d4cd9d9a238a7d380d9829628705e9eed0293b5c0d9d1a54a5183c5baba8e"
   },
   "families": [
     {
@@ -1209,6 +1209,84 @@
         "7. **Real cells.** Agreement is with the specified PyBaMM model, not with",
         "1. **Owner decisions.** No scientific, security or production qualification"
       ]
+    }
+  },
+  "campaign_plan": {
+    "title": "What a new exam-design study would answer and need",
+    "purpose": "Shown when a brief's conditions fall outside Carbon's tested design, or its family has no exam-design evidence. It relays how Carbon ran its first campaign; it is not a plan Carbon has committed to, a price or a quote.",
+    "source": {
+      "path": "docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md",
+      "sha256": "sha256:28a2f9eab62e996cef23701bafd6323345742ef1e025e6d9798834c3561e1a40"
+    },
+    "questions": [
+      "Training data. How many public training cases does a competent model need before more data stops paying for itself?",
+      "Screening cases. How many cases must a screening batch hold for a ranking to be stable enough to act on?",
+      "Rotation. After how many scored submissions should a screening batch be replaced, so that scores cannot be steered by repeated probing?",
+      "Screening validity. Does a model that screens well also do better on fresh cases it has never been scored on?",
+      "Reconstruction variability. How much does retraining the same recipe (other seeds; the same seed again) move scores, and does that flip decisions?",
+      "Cost. What do a reference case, a screening pass and a finalist comparison actually cost on the declared hardware?",
+      "Gates. Do the published gates reject the failures that matter, and only those, without failing correct predictions of unsafe conditions?"
+    ],
+    "stages": {
+      "columns": [
+        "Stage",
+        "Content",
+        "Allocation"
+      ],
+      "rows": [
+        [
+          "1 Pilot",
+          "battery: 12 LHS cases at 40 cycles (per-cycle capacity), 4 refinement comparisons; photonics: up to 12 cases + 4 refinements, or stop at the first infeasibility",
+          "USD 4"
+        ],
+        [
+          "2 References",
+          "TRAIN / PRACTICE / SCREEN / FINAL / VERIFY at the pilot-chosen horizon, plus refinement comparisons on a sample",
+          "pilot-derived"
+        ],
+        [
+          "3 Reconstruction",
+          "learning curve on nested TRAIN subsets; three seeds for each competent recipe; one same-seed repeat; predictions for every role",
+          "pilot-derived"
+        ],
+        [
+          "4 Settings",
+          "batch sizes 50/100/200, rotation after 1/3/10, pool replay, statistical simulations",
+          "CPU only, no rental"
+        ],
+        [
+          "5 Freeze & verify",
+          "record the rule and criteria, then open verify",
+          "CPU only"
+        ]
+      ]
+    },
+    "cannot_establish": [
+      "A rare false-promotion rate.",
+      "A real-world rotation interval.",
+      "Adaptive-agent behaviour.",
+      "Real-cell validity.",
+      "Validator isolation."
+    ],
+    "prior_spend": {
+      "label": "Compute billed for exam-design campaign 1 (battery), all stages",
+      "value": "USD 4.80 billed",
+      "source": {
+        "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+      }
+    },
+    "training_budget": {
+      "summary": "Every Carbon Challenge also completes a training budget study before its training limit is set and before it pays rewards (OWNER-TRAINING-BUDGET-STUDY-01).",
+      "quotes": [
+        "**The requirement.** It is a **standing launch requirement.** Every Carbon",
+        "- before its training limit is set;",
+        "- before it pays rewards."
+      ],
+      "source": {
+        "path": "docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md",
+        "sha256": "sha256:5692d1904cdff9bfb61c957f90eed8c7113329abb5125744defc754fc0cd3ae6"
+      }
     }
   }
 }

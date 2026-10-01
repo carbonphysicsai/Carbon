@@ -41,6 +41,7 @@ const text = async (page, selector) => (await page.locator(selector).textContent
   check("every proposed setting is shown with its reason", ["Public training set", "Screening batch size", "Rotation", "Equivalence margin", "What can be promoted", "Physical gates", "Compute cost per submission"].every((label) => battery.includes(label)));
   check("missing conditions are proposed from the tested design", (await page.locator(".condition.proposed_from_tested_design").count()) === 4);
   check("the margin is shown as proposed and not approved", battery.includes("approved: not yet"));
+  check("a brief the evidence covers asks for no new study", (await page.locator(".campaign").count()) === 0);
   await page.locator("details.setting").nth(1).locator("summary").click();
   check("opening a setting shows its measured table", (await page.locator("details.setting").nth(1).locator("table").first().textContent()).includes("0.93"));
 
@@ -55,12 +56,16 @@ const text = async (page, selector) => (await page.locator(selector).textContent
   await row.locator('[data-field="max"]').fill("3");
   await page.locator("#show-proposal").click();
   check("an out-of-range condition is flagged", (await page.locator(".condition.outside_tested_range").count()) === 1 && (await text(page, "#proposal-view")).includes("Part of your brief is outside the tested range"));
+  const study = await text(page, ".campaign");
+  check("the out-of-range brief says what a new study would need, and why", study.includes("c1 is outside the range Carbon tested") && study.includes("The questions a study answers"));
+  check("measured compute is shown for scale and labelled as no price", study.includes("USD 4.80 billed") && study.includes("Not a price, a quote or a commitment to run"));
 
   // The client can choose another family; one without evidence proposes no setting.
   await page.locator("#proposal-family").selectOption("chip-cold-plate");
   const cold = await text(page, "#proposal-view");
   check("a family without evidence proposes no exam setting", cold.includes("No exam-design evidence yet") && (await page.locator("details.setting").count()) === 0);
   check("unmeasured costs are named, never given a figure", cold.includes("Cost items not yet measured"));
+  check("a family without evidence gets the study plan without a cost", (await text(page, ".campaign")).includes("has no exam-design evidence yet") && !(await text(page, ".campaign")).includes("For scale"));
   await page.locator("#proposal-family").selectOption("battery-fastcharge-ageing-development-v1");
 
   // The proposal downloads as the same text the engine produces.
@@ -70,6 +75,7 @@ const text = async (page, selector) => (await page.locator(selector).textContent
   await (await pending).saveAs(saved);
   const markdown = fs.readFileSync(saved, "utf8");
   check("the downloaded proposal carries the settings, the evidence source and the flag", markdown.includes("## Proposed exam settings and why") && markdown.includes("docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md") && markdown.includes("OUTSIDE_TESTED_RANGE"));
+  check("the downloaded proposal carries the study plan", markdown.includes("## What a new exam-design study would answer and need"));
   check("the download says it approves nothing", markdown.includes("registers, runs, prices and approves nothing"));
 
   // The proposal is not part of what the guidance provider could see.
@@ -82,6 +88,7 @@ const text = async (page, selector) => (await page.locator(selector).textContent
   await page.setViewportSize({ width: 390, height: 844 });
   check("no horizontal page scroll at phone width", await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
 
+  check("no element ID is rendered twice with the proposal shown", (await page.evaluate(() => { const seen = new Set(), dup = []; for (const e of document.querySelectorAll("[id]")) { if (seen.has(e.id)) dup.push(e.id); seen.add(e.id); } return dup; })).length === 0);
   check("no page errors", errors.length === 0);
   check("no request left the page", outbound.length === 0);
   await browser.close();

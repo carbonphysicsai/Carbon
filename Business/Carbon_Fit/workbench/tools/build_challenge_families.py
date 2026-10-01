@@ -148,6 +148,93 @@ def evidence_block(key: str, spec: dict) -> dict:
     }
 
 
+def section(text: str, heading: str, source: str) -> list[str]:
+    """The lines under one ``##`` heading, up to the next ``##`` heading."""
+    lines = text.split("\n")
+    try:
+        start = lines.index(heading) + 1
+    except ValueError:
+        raise ValueError(f"{source} has no section {heading!r}") from None
+    end = next(
+        (i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines)
+    )
+    return lines[start:end]
+
+
+def list_items(lines: list[str], source: str, heading: str) -> list[str]:
+    """The first numbered or bulleted list in ``lines``, wrapped lines joined.
+
+    The list ends at the first line that is neither an item, an indented
+    continuation nor blank, so a section's later paragraphs are never read as
+    items. Only emphasis markers are removed; the words are the source's.
+    """
+    items: list[str] = []
+    for line in lines:
+        if re.match(r"^(\d+\.|-) ", line):
+            items.append(re.sub(r"^(\d+\.|-) ", "", line).strip())
+        elif items and line.startswith("   ") and line.strip():
+            items[-1] += " " + line.strip()
+        elif items and line.strip():
+            break
+    if not items:
+        raise ValueError(f"{source} section {heading!r} has no list")
+    return [item.replace("**", "").replace("`", "") for item in items]
+
+
+def table_after(lines: list[str], header: str, source: str) -> dict:
+    try:
+        start = lines.index(header)
+    except ValueError:
+        raise ValueError(f"{source} has no table {header!r}") from None
+    rows = []
+    for line in lines[start + 2 :]:
+        if not line.startswith("|"):
+            break
+        rows.append(cells(line))
+    return {"columns": cells(header), "rows": rows}
+
+
+def campaign_plan(spec: dict) -> dict:
+    source = REPO / spec["specification"]
+    text = source.read_text(encoding="utf-8")
+    name = spec["specification"]
+    questions = list_items(
+        section(text, spec["questions_section"], name), name, spec["questions_section"]
+    )
+    stages = table_after(
+        section(text, spec["stages_section"], name), spec["stages_table_header"], name
+    )
+    cannot = list_items(
+        section(text, spec["cannot_establish_section"], name),
+        name,
+        spec["cannot_establish_section"],
+    )
+    spend = spec["prior_spend"]
+    spend_path = REPO / spend["source"]
+    checked([spend["quote"]], spend_path.read_text(encoding="utf-8"), spend["source"])
+    budget = spec["training_budget"]
+    budget_path = REPO / budget["source"]
+    checked(budget["quotes"], budget_path.read_text(encoding="utf-8"), budget["source"])
+    return {
+        "title": spec["title"],
+        "purpose": spec["purpose"],
+        "source": {"path": name, "sha256": digest(source)},
+        "questions": questions,
+        "stages": stages,
+        "cannot_establish": cannot,
+        "prior_spend": {
+            "label": spend["label"],
+            "value": spend["quote"],
+            "source": {"path": spend["source"], "sha256": digest(spend_path)},
+        },
+        "training_budget": {
+            "summary": budget["summary"],
+            "quotes": budget["quotes"],
+            "source": {"path": budget["source"], "sha256": digest(budget_path)},
+        },
+    }
+
+
 def build() -> dict:
     source = json.loads(SOURCE.read_text(encoding="utf-8"))
     records = latest_records()
@@ -217,6 +304,7 @@ def build() -> dict:
         "source": {"path": relative(SOURCE), "sha256": digest(SOURCE)},
         "families": families,
         "evidence": evidence,
+        "campaign_plan": campaign_plan(source["campaign_plan"]),
     }
 
 
