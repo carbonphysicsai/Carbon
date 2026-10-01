@@ -997,6 +997,7 @@ def run():
                             "Compute",
                             "Connections",
                             "Wallet & Identity",
+                            "Set up your environment",
                             "Settings",
                             "Development",
                         ], listed
@@ -1251,6 +1252,202 @@ def journey():
     )
 
 
+class SetupChecks:
+    """Fixture live checks for the setup smoke: they contact nothing."""
+
+    def inference(self, provider_id, model_id, credential_file):
+        return {
+            "models_source": "fixture",
+            "models_listed": 1,
+            "completion": "answered",
+        }
+
+    def compute(self, image, analysis):
+        return {
+            "implementation": {
+                "revision": "a" * 40,
+                "tree": "b" * 40,
+                "source_tree_digest": "sha256:" + "c" * 64,
+            },
+            "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
+        }
+
+    def agent(self, hotkey, socket_path=None):
+        return {"signing": "carbon-miner-signer holds the registered hotkey"}
+
+    @staticmethod
+    def operator_config(path):
+        return None
+
+
+def setup_journey():
+    """After registration a person sets up inference, compute and agent in a
+    real browser, and the profile is written and loaded without a restart.
+    Chain, providers and images are fixtures; no key reaches the page again."""
+    from onboarding import BrowserOnboarding
+
+    from carbon.chain.models import Participant
+
+    hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    coldkey = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    key = "sk-browser-smoke-fixture-key-not-real"
+    with tempfile.TemporaryDirectory(prefix="carbon-setup-smoke-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        miner = root / "miner"
+        miner.mkdir(mode=0o700)
+        for name in ("worker.json", "analysis.json", "operator.json"):
+            (miner / name).write_text("{}")
+        onboarding = BrowserOnboarding(
+            reader=StubReader(
+                (Participant(uid=0, hotkey=hotkey, coldkey=coldkey, registered_at=42),)
+            ),
+            context=stub_onboarding().context,
+        )
+        token = "browser-smoke-session-token-not-a-real-credential"
+        server = controller.Server(
+            controller.Controller(root / "runs.sqlite3"),
+            token,
+            0,
+            onboarding=onboarding,
+            state_dir=root / "state",
+            setup_checks=SetupChecks(),
+        )
+        attached = []
+        server.setup.attach = lambda path: attached.append(path) or True
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                load(session, server.origin)
+                connect(session, token)
+                session.evaluate("location.hash = '#wallet'")
+                session.evaluate(
+                    "document.getElementById('onboarding-address').value="
+                    + json.dumps(hotkey)
+                )
+                click(session, "onboarding-confirm")
+                wait(session, "location.hash === '#setup'")
+                wait(session, "Boolean(document.getElementById('setup-inference-key'))")
+                assert session.evaluate(
+                    "document.getElementById('setup-body').textContent.includes('billed by')"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'engy-chat';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-key').value = "
+                    + json.dumps(key)
+                )
+                # The check's maximum cost is quoted before anything is spent,
+                # nothing is agreed by default, and the check cannot run until
+                # the person agrees to that amount.
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-consent').disabled"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')",
+                )
+                assert session.evaluate(
+                    "!document.getElementById('setup-inference-consent').checked"
+                    " && document.querySelector('form[data-step=inference] button').disabled"
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-result').textContent !== 'Checked: inference.'"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-inference-consent').click();"
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: inference.'",
+                )
+                # A missing image is refused by name, with its build step.
+                session.evaluate(
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "absent.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.startsWith('image_manifest: ')"
+                    " && document.getElementById('setup-result').textContent.includes('c03_worker_image.sh')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "worker.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: compute.'",
+                )
+                # External signing: the Agent step asks for no hotkey file
+                # and no password; it only asks the miner's signer.
+                assert (
+                    session.evaluate(
+                        "document.querySelectorAll('form[data-step=agent] input[type=password],"
+                        " #setup-agent-hotkey_file, #setup-agent-password').length"
+                    )
+                    == 0
+                )
+                session.evaluate(
+                    "document.getElementById('setup-agent-operator_config').value = "
+                    + json.dumps(str(miner / "operator.json"))
+                    + ";document.querySelector('form[data-step=agent]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: agent.'",
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=review]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.startsWith('Profile written and loaded')",
+                )
+                assert attached == [server.setup.profile_path]
+                page = session.evaluate("document.documentElement.outerHTML")
+                assert key not in page
+                written = (
+                    server.setup.profile_path.read_text(),
+                    server.setup.record_path.read_text(),
+                )
+                assert not any(key in text for text in written)
+                # Nothing that could open the miner's key reaches the profile.
+                assert not any(
+                    field in text
+                    for text in written
+                    for field in ('"miner_password_file"', '"key_file"')
+                )
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+    print(
+        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers and images were fixtures."
+    )
+
+
 if __name__ == "__main__":
     run()
     journey()
+    setup_journey()

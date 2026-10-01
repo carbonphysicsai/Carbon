@@ -40,10 +40,10 @@ Disposable standard-profile C0/G2 engineering only; no public, settlement, scien
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/805866ee0888232ebef41e99153b429037f0f2fe/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/805866ee0888232ebef41e99153b429037f0f2fe/.agent/evidence/wave_c/net-5r.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/046a71c45dafbc62ea024eebc7b7bc41900887e9/.agent/tickets/NET-5R_shielded_registration_compatibility.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/046a71c45dafbc62ea024eebc7b7bc41900887e9/.agent/evidence/wave_c/net-5r.md)
 - [Runtime integration contract](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/LOCALNET_INTEGRATION.md)
-- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/805866ee0888232ebef41e99153b429037f0f2fe/scripts/dev/localnet-runtime.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/805866ee0888232ebef41e99153b429037f0f2fe/.agent/WAVE_C.md)
+- [Pinned runtime manifest](https://github.com/carbonphysicsai/Carbon/blob/046a71c45dafbc62ea024eebc7b7bc41900887e9/scripts/dev/localnet-runtime.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/046a71c45dafbc62ea024eebc7b7bc41900887e9/.agent/WAVE_C.md)
 
 > D5 remains a failed observer-effect record. D6 avoids stateful account_next_index on the signing transport and infers omitted SDK nonce only from exclusive finalized System.Account increments. Run 34518806217 verified handover and behavior. No timing/keystore claim, retry, nonce injection, unchecked extrinsic or public action occurred.
