@@ -16495,4 +16495,3 @@ their own machine! We aren't hosting anything except for the environment."
 
 **Open input.** "Which Mira?" This ticket assumes Mira Network's Flows.
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
-
