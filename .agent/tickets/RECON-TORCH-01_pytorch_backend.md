@@ -91,26 +91,29 @@ authority (invariant 7.9).
      same seed, N rebuilds, and an exact-difference report.
    - The exam environment discloses both backend profiles.
 
-## Human-reserved (fail closed until set)
+## Owner decisions after delivery (OWNER-BATTERY-CARRYOVER-01, 2026-10-01)
 
-- The PyTorch backend's reproducibility tolerance. The harness produces the
-  evidence; the owner sets the value.
-- The training limit for PyTorch recipes (OWNER-TRAINING-BUDGET-STUDY-01).
-- Security acceptance of the PyTorch worker image.
-
-Until those are set, PyTorch recipes run in DEVELOPMENT only, with no LIVE,
-reward or frontier authority.
+- PyTorch runs with the same standing as JAX. The reproducibility tolerance,
+  the training limit and the image's acceptance are analysed in tandem with
+  testing; they are no longer holds. Battery stays a DEVELOPMENT, non-paying
+  Challenge.
+- The determinism harness (`python -m carbon.battery.torch_determinism`) is
+  the evidence for that analysis.
 
 ## Operational note: contract revisions and admitted submissions
 
-The daemon recompiles an admitted recipe and refuses a changed recipe digest
-(`artifact_mismatch`, "never build silently"). Every contract revision,
-including this one, changes those digests. So:
+The daemon binds the contract and implementation it started with. Under
+OWNER-BATTERY-CARRYOVER-01 an operator carries a deployment over a revision
+with `python -m carbon.battery.operate upgrade --config <deployment>`:
 
-- deploy the revision only when no pool or final is mid-evaluation;
-- an incumbent crowned before the revision cannot be re-rebuilt in a later
-  final. Whether to re-admit it under the new contract is an owner decision.
-  It is not specific to PyTorch, and this ticket does not change it.
+- the incumbent, retained models, scores and pool stay; incumbents stay
+  winners;
+- a recipe admitted under a recorded earlier contract is recompiled under the
+  current one, and each recompile is recorded;
+- one the current contract refuses is closed as `contract_revised`, never
+  scored, and a final whose side the current contract refuses keeps the
+  incumbent;
+- a changed exam rule, public material or seed pin is still refused.
 
 ## Engineering decisions (recorded under OWNER-DX-03)
 
