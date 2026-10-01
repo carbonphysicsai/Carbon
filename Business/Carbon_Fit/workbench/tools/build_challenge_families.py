@@ -9,7 +9,7 @@ Inputs, all public and in this repository:
 
 * ``carbon/challenge_readiness/records/*.json``: one readiness record per
   portfolio Challenge, the latest version of each (schema
-  ``carbon.challenge-readiness.v3``). Status, limits, costs, reviews and the
+  ``carbon.challenge-readiness.v2``). Status, limits, costs, reviews and the
   training budget study are copied as recorded; an approval that is null stays
   null.
 * ``carbon/battery/domain.py``: the battery Challenge's input bounds, read with
@@ -40,7 +40,7 @@ BATTERY_DOMAIN = REPO / "carbon/battery/domain.py"
 SOURCE = ROOT / "data/challenge_evidence_source_v1.json"
 OUTPUT = ROOT / "data/challenge_families_v1.json"
 SCHEMA = "carbon.pilot-designer.challenge-families.v1"
-RECORD_SCHEMA = "carbon.challenge-readiness.v3"
+RECORD_SCHEMA = "carbon.challenge-readiness.v2"
 COPIED = (
     "status",
     "decision",

@@ -1,14 +1,16 @@
-"""Adversarial evidence mutations against the prospective readiness gate."""
+"""Adversarial evidence mutations against the admission evidence validator.
 
-import copy
+The readiness-record wiring (schema v3 records, the `record.py` launch gate and
+`--require-admission`) and its record/CLI tests land with #458; this file keeps
+every test that does not depend on readiness records.
+"""
+
 import hashlib
 import json
 
 import pytest
 
 from carbon.challenge_readiness import admission as a
-from carbon.challenge_readiness import record as r
-from carbon.challenge_readiness.__main__ import main
 
 
 def artifact(root, name, body):
@@ -164,15 +166,13 @@ def test_acceptance_cannot_hide_failed_skipped_empty_or_foreign_evidence(
         a.validate(block, "fixture", repository=tmp_path)
 
 
-def test_missing_track_and_schema_downgrade_cannot_skip_tests(tmp_path):
+def test_missing_track_cannot_skip_tests(tmp_path):
+    # The schema-downgrade half of this test needs readiness v3 records and
+    # moves with that wiring (#458).
     block = accepted(tmp_path, "fixture")
     del block["tracks"]["engineering_value"]
     with pytest.raises(a.AdmissionError):
         a.validate(block, "fixture", repository=tmp_path)
-    doc = copy.deepcopy(r.load_all()[0][0])
-    doc["schema"] = "carbon.challenge-readiness.v2"
-    with pytest.raises(r.ReadinessError, match="unsupported_schema"):
-        r.validate(doc)
 
 
 @pytest.mark.parametrize("pin", sorted(a.PIN_NAMES))
@@ -214,36 +214,6 @@ def test_ambiguous_evidence_json_is_rejected(tmp_path, payload):
         )
 
 
-def test_existing_readiness_launch_path_requires_both_tracks(tmp_path):
-    doc = copy.deepcopy(r.load_all()[0][0])
-    for review in doc["reviews"].values():
-        review.update(state="APPROVED", authority="FIXTURE_REVIEWER")
-    doc["training_budget_study"] = {
-        "state": "COMPLETE",
-        "result": "fixture-report",
-        "decision": "fixture-decision",
-    }
-    with pytest.raises(
-        r.ReadinessError, match="launch_approved_before_admission_tests"
-    ):
-        r.validate(doc)
-    doc["admission_tests"] = accepted(tmp_path, doc["challenge_id"])
-    r.validate(doc, repository=tmp_path)
-    for track in a.CHECKS:
-        broken = copy.deepcopy(doc)
-        broken["admission_tests"]["tracks"][track] = a.pending()["tracks"][track]
-        with pytest.raises(
-            r.ReadinessError, match="launch_approved_before_admission_tests"
-        ):
-            r.validate(broken, repository=tmp_path)
-
-
-def test_existing_challenges_are_not_silently_accepted():
-    for doc, _ in r.load_all():
-        assert set(a.blockers(doc["admission_tests"])) == set(a.CHECKS)
-        assert doc["admission_tests"]["scope"] is None
-
-
 def test_a_rewritten_report_cannot_reuse_an_old_acceptance(tmp_path):
     block = accepted(tmp_path, "fixture")
     alter_report(
@@ -254,15 +224,6 @@ def test_a_rewritten_report_cannot_reuse_an_old_acceptance(tmp_path):
     )
     with pytest.raises(a.AdmissionError, match="review_scope_mismatch"):
         a.validate(block, "fixture", repository=tmp_path)
-
-
-def test_cli_cannot_treat_empty_or_pending_portfolio_as_admitted(tmp_path, capsys):
-    assert main(["validate", "--require-admission"]) == 2
-    out = json.loads(capsys.readouterr().out)
-    assert out["records_examined"] == 4
-    assert len(out["blockers"]) == 4
-    assert main(["validate", "--records", str(tmp_path), "--require-admission"]) == 2
-    assert json.loads(capsys.readouterr().out)["records_examined"] == 0
 
 
 # --- OWNER-CHALLENGE-ADMISSION-01 as amended: expand freely, escalate on a finding
