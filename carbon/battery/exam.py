@@ -72,15 +72,39 @@ DEVELOPMENT_RULE = {
 #:   pool keeps scoring on its current batches and records the overdue
 #:   rotation; v1's `ROTATION_PENDING` stop is not part of v2.
 #:
+#: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01) adds the disclosure term:
+#:
+#: - **sealed hidden batches:** a hidden batch, and everything computed from
+#:   it (eligibility, gate failures, scores, case counts, pool version,
+#:   nomination, finals), is for Carbon and the validators only, before and
+#:   after its seed draw. A miner sees it only after Carbon retires the batch
+#:   and commits it to the training data pool. Retirement by rotation alone
+#:   releases nothing. No release path exists yet, so under v2 nothing
+#:   computed from a hidden batch is ever shown to a miner.
+#:
 #: Everything else is v1's, unchanged. Not production values; nothing here is
 #: scientifically qualified, and v1 results keep their v1 rule.
 DEVELOPMENT_RULE_V2 = {
     **{k: v for k, v in DEVELOPMENT_RULE.items() if k != "rotate_after_admitted"},
-    "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+    "authority": (
+        "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01"
+        " and OWNER-BATTERY-3B-AND-EXPOSURE-01"
+    ),
     "rule_version": 2,
     "per_hotkey": {"scored_per_window": 1, "window_blocks": 360},
     "rotation": {"basis": "finalized_block", "every_blocks": 1080},
+    "miner_disclosure": {
+        "hidden_batch_results": "SEALED",
+        "released_by": "CARBON_COMMIT_TO_TRAINING_POOL",
+    },
 }
+
+
+def sealed(rule):
+    """Whether a rule seals every result computed from a hidden batch."""
+    disclosure = rule.get("miner_disclosure") or {}
+    return disclosure.get("hidden_batch_results") == "SEALED"
+
 
 #: The rules a deployment may run, by the name its configuration gives.
 RULES = {"v1": DEVELOPMENT_RULE, "v2": DEVELOPMENT_RULE_V2}

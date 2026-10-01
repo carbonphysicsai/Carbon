@@ -160,3 +160,36 @@ def test_a_deployment_names_a_known_rule(tmp_path):
     with pytest.raises(deployment.EvaluationUnavailable) as refused:
         deployment.validator(path, repository=REPOSITORY)
     assert refused.value.code == "evaluation_config_rule"
+
+
+# --- OWNER-BATTERY-3B-AND-EXPOSURE-01: sealed hidden batches ---------------------
+
+#: Fields computed from a hidden batch; a sealed outcome carries none of them.
+HIDDEN_DERIVED = {"screening", "nominated", "finals"}
+
+
+def test_v2_seals_results_and_v1_is_unchanged():
+    assert exam.sealed(V2) and not exam.sealed(exam.DEVELOPMENT_RULE)
+    assert V2["miner_disclosure"]["released_by"] == "CARBON_COMMIT_TO_TRAINING_POOL"
+    assert "miner_disclosure" not in exam.DEVELOPMENT_RULE
+
+
+def test_a_scored_v2_outcome_shows_a_miner_nothing_from_the_hidden_batch(
+    tmp_path,
+    refs,  # noqa: F811
+    backend,  # noqa: F811
+):
+    (tmp_path / "v2").mkdir()
+    validator = make(tmp_path / "v2", refs, backend, rule=V2)
+    sid = validator.admit(at(TEMPO + 5))["submission_id"]
+    sealed = validator.process(sid)
+    assert sealed["state"] == "SCORED"
+    assert not HIDDEN_DERIVED & set(sealed)
+    # Carbon still holds the score; only the miner's view is sealed.
+    assert validator.store.score(sid) is not None
+    # The specimen: the same recipe scored under v1 shows its screening, so an
+    # absent field above is the seal, not a submission that was never scored.
+    (tmp_path / "v1").mkdir()
+    v1 = make(tmp_path / "v1", refs, backend)
+    shown = v1.process(v1.admit(submission("hk1"))["submission_id"])
+    assert shown["state"] == "SCORED" and "screening" in shown

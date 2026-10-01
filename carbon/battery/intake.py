@@ -501,6 +501,7 @@ class BatteryIntake:
             "rotation": self.rule.get("rotation"),
             "current_window": {"start_block": start, "end_block": end},
             "block_time_s": BLOCK_S,
+            "results": self.rule.get("miner_disclosure"),
         }
 
     def handle(self, method, path, headers, body, peer):

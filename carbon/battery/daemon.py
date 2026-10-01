@@ -918,16 +918,25 @@ class BatteryValidator:
             }
         score = self.store.score(submission_id)
         pool = self.store.pool()
+        # A sealed rule (v2) shows a miner nothing computed from a hidden
+        # batch: no screening, nomination or finals. No release path exists
+        # yet, so they stay sealed (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+        sealed = exam.sealed(self.rule)
         if score is not None:
-            out["screening"] = score["public"]
-            out["nominated"] = bool(score["record"]["nomination"]["nominated"])
+            if not sealed:
+                out["screening"] = score["public"]
+                out["nominated"] = bool(score["record"]["nomination"]["nominated"])
         elif row["state"] in ("ADMITTED", "RECONSTRUCTED", "FAILED_INFRA"):
             out["waiting"] = (
                 "POOL_NOT_OPEN"
                 if pool is None
                 else ("ROTATION_PENDING" if pool["status"] != "OPEN" else "QUEUED")
             )
-        finals = [self.store.final(f) for (f,) in self._finals_for(submission_id)]
+        finals = (
+            []
+            if sealed
+            else [self.store.final(f) for (f,) in self._finals_for(submission_id)]
+        )
         if finals:
             out["finals"] = [
                 {
