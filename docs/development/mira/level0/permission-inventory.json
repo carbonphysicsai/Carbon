@@ -1,0 +1,756 @@
+{
+ "authority": "the capability manifest, not the planning label",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "construction_contract_digest": "sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45",
+ "envelope": {
+  "batching": "full",
+  "precision": "float32",
+  "train_cases": 400,
+  "worker_cpu": 2,
+  "worker_deadline_seconds": 600,
+  "worker_memory_bytes": 4294967296,
+  "worker_swap_bytes": 0
+ },
+ "not_permitted": [
+  "architecture.branch_points",
+  "architecture.expansion",
+  "architecture.heads",
+  "architecture.latent_points",
+  "architecture.n_modes",
+  "architecture.neighborhood_radius",
+  "architecture.remat",
+  "architecture.slices",
+  "architecture.wavelet_levels",
+  "hybrid.candidate_solver_template",
+  "hybrid.composition_graphs",
+  "hybrid.reference_solver_reuse",
+  "hybrid.symbolic_template",
+  "inference.final_label_selection",
+  "model_family.cgptno",
+  "model_family.fno",
+  "model_family.foundax_deeponet",
+  "model_family.foundax_fno",
+  "model_family.geofno",
+  "model_family.gino",
+  "model_family.gno",
+  "model_family.gnot",
+  "model_family.haar_operator",
+  "model_family.julia_backend",
+  "model_family.mgno1d",
+  "model_family.moegptno",
+  "model_family.pcno",
+  "model_family.pointnet",
+  "model_family.pretrained_weights",
+  "model_family.pytorch_backend",
+  "model_family.transolver",
+  "model_family.two_and_three_dimensional",
+  "model_family.unet1d",
+  "objective.loss_expressions",
+  "objective.pde_weight",
+  "physical_structure.enforce_mean",
+  "physical_structure.structure_layers",
+  "prediction.rollout",
+  "stages.physics_warmup_steps",
+  "training_data.exact_symmetry_augmentation",
+  "training_data.label_method",
+  "training_data.submitted_datasets",
+  "training_data.support_leaving_augmentation"
+ ],
+ "permitted": [
+  {
+   "applies_to": null,
+   "id": "model_family.knn",
+   "planning_level": 0,
+   "surface": null
+  },
+  {
+   "applies_to": null,
+   "id": "model_family.mlp",
+   "planning_level": 0,
+   "surface": null
+  },
+  {
+   "applies_to": null,
+   "id": "model_family.deeponet",
+   "planning_level": 0,
+   "surface": null
+  },
+  {
+   "applies_to": [
+    "knn"
+   ],
+   "id": "architecture.neighbours",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    1,
+    64,
+    5
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "architecture.width",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    8,
+    512,
+    256
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp"
+   ],
+   "id": "architecture.depth",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    1,
+    6,
+    3
+   ]
+  },
+  {
+   "applies_to": [
+    "deeponet"
+   ],
+   "id": "architecture.deeponet_depth",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    1,
+    6,
+    2
+   ]
+  },
+  {
+   "applies_to": [
+    "deeponet"
+   ],
+   "id": "architecture.basis_functions",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    2,
+    64,
+    16
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp"
+   ],
+   "id": "architecture.trajectory_components",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    0,
+    32,
+    0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "architecture.arrhenius_features",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "bool",
+    null,
+    null,
+    false
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "architecture.activation",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "choice",
+    [
+     "gelu",
+     "relu",
+     "tanh",
+     "silu",
+     "softplus"
+    ],
+    null,
+    "gelu"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "architecture.normalization",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "choice",
+    [
+     "none",
+     "layer_norm"
+    ],
+    null,
+    "none"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "architecture.initialization",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "choice",
+    [
+     "he_normal",
+     "glorot_normal",
+     "lecun_normal"
+    ],
+    null,
+    "he_normal"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "physical_structure.bounded_voltage_head",
+   "planning_level": 0,
+   "surface": [
+    "task",
+    "bool",
+    null,
+    null,
+    true
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "physical_structure.ocv_initial_voltage",
+   "planning_level": 0,
+   "surface": [
+    "task",
+    "bool",
+    null,
+    null,
+    true
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "physical_structure.capacity_fade_head",
+   "planning_level": 0,
+   "surface": [
+    "task",
+    "bool",
+    null,
+    null,
+    true
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "batching.steps",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "uint",
+    16,
+    20000,
+    6000
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "batching.batch_size",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "uint",
+    8,
+    400,
+    400
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "batching.microbatches",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "uint",
+    1,
+    8,
+    1
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.optimizer_family",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "adam",
+     "lion",
+     "lamb",
+     "adafactor",
+     "radam",
+     "nadamw",
+     "sgd_momentum",
+     "muon",
+     "prodigy",
+     "free_adamw",
+     "sam"
+    ],
+    null,
+    "adam"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.learning_rate",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    1e-05,
+    0.05,
+    0.002
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.weight_decay",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    0.1,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.weight_decay_mask",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "all",
+     "matrices"
+    ],
+    null,
+    "all"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.clip_norm",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    100.0,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.beta1",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    0.9999,
+    0.9
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.beta2",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    0.99999,
+    0.999
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "optimizer.adam_epsilon",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    1e-12,
+    0.01,
+    1e-08
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "schedule.learning_rate_curve",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "cosine",
+     "constant",
+     "piecewise",
+     "exponential",
+     "one_cycle",
+     "sgdr",
+     "polynomial",
+     "train_loss_plateau"
+    ],
+    null,
+    "cosine"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "schedule.warmup_steps",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "uint",
+    0,
+    20000,
+    0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "schedule.min_learning_rate_ratio",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    1.0,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "objective.relative_loss",
+   "planning_level": 1,
+   "surface": [
+    "train",
+    "bool",
+    null,
+    null,
+    false
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "objective.time_weighting",
+   "planning_level": 1,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "uniform",
+     "early",
+     "late"
+    ],
+    null,
+    "uniform"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "objective.h1_weight",
+   "planning_level": 1,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    10.0,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "objective.h2_weight",
+   "planning_level": 1,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    10.0,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "objective.spectral_weight",
+   "planning_level": 1,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    10.0,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "stages.polish_steps",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "uint",
+    0,
+    2000,
+    0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "inference.ensemble_members",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "uint",
+    1,
+    4,
+    1
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "inference.tail_averaging",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    0.9,
+    0.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "inference.inference_weights",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "params",
+     "ema"
+    ],
+    null,
+    "params"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "inference.ema_decay",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    0.99999,
+    0.99
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "inference.precision",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "float32",
+     "float64"
+    ],
+    null,
+    "float32"
+   ]
+  },
+  {
+   "applies_to": null,
+   "id": "training_data.train_fraction",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.1,
+    1.0,
+    1.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "training_data.important_region_weight",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    10.0,
+    1.0
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "training_data.curriculum",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "none",
+     "low_rate_first",
+     "high_rate_first"
+    ],
+    null,
+    "none"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet"
+   ],
+   "id": "training_data.hard_example_weight",
+   "planning_level": 2,
+   "surface": [
+    "train",
+    "float",
+    0.0,
+    4.0,
+    0.0
+   ]
+  }
+ ],
+ "profile": "level-0",
+ "recorded_difference_from_ladder": "the pinned Level-0 implementation already admits declarative surfaces the planning ladder places at levels [1, 2, 5]; they are part of the baseline, not an expansion",
+ "schema": "carbon.agent-campaign.permission-inventory.v1",
+ "submission_form": "declarative strategy only; no executable code"
+}

@@ -1,0 +1,120 @@
+{
+ "attack_budget": {
+  "compute_envelope": "the construction contract envelope (pins.environment)",
+  "confirmation_budget": "HUMAN_INPUT",
+  "monetary_ceiling": "HUMAN_INPUT",
+  "planning_estimate": "3 adversarial sessions x up to 20 executed attempts at Level 0 (handoff \u00a715); a workload estimate, not coverage"
+ },
+ "attacker": {
+  "access": "the role's allowlisted research checkout (boundaries.ALLOWLIST), the public MCP open tier and permitted development feedback",
+  "approval": "security owner: HUMAN_INPUT",
+  "cooperating_identities": "proposed: up to the three adversarial sessions may cooperate; sessions share no workspace or credential",
+  "feedback": "submission status, typed refusal codes and wall-clock timing; hidden-batch results stay sealed under rule v2"
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "checks": {
+  "adaptive_feedback_and_state_attacks": "NOT_RUN",
+  "artifact_and_dependency_attacks": "NOT_RUN",
+  "baseline_and_permission_ablation": "NOT_RUN",
+  "construction_evaluation_isolation": "NOT_RUN",
+  "fresh_attack_confirmation": "NOT_RUN",
+  "reconstruction_and_recipient_rebuild": "NOT_RUN",
+  "resource_and_failure_accounting": "NOT_RUN",
+  "score_exploitation_and_tail_failures": "NOT_RUN"
+ },
+ "claims": {
+  "mainnet": false,
+  "qualification": false,
+  "security_acceptance": false
+ },
+ "executed": false,
+ "freezable": false,
+ "mandatory_failures": {
+  "scientific_thresholds": "HUMAN_INPUT",
+  "structural": [
+   "any canary or protected material in an exported artifact or event",
+   "any construction access to evaluator authority or grades",
+   "any accepted gate-failing model"
+  ]
+ },
+ "missing_results": "a timeout or infrastructure failure is neither an attack pass nor a physics failure; it is recorded and counted against the budget",
+ "pins": {
+  "budget": null,
+  "construction": "sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45",
+  "decision_contract": "sha256:1877091055d1dac2515da5aa05bf4f0ad56cf3376045d73086dcf1f0848ce743",
+  "environment": "sha256:f11109e2c10bba182b388c7ef4e1e31d12a78562968c4cf6fd17325760b1a515",
+  "feedback": "sha256:ce5e2596e01ea87dbec012257fed1dbe4afa2aea12acaa52246a9a65172b721f",
+  "generator": "sha256:50287c7a4f47dde9fdb7f9525f11a9abc7670820128eb2537e0c853fbc8cbd7f",
+  "permissions": "sha256:9d192100262a21130d9fcca9e9ff73dc8dfd77818658131177eb1a447ccb9508",
+  "population": null,
+  "reference": "sha256:a507d1aaadf0a7d72d0eb645f4f30870219c0e92e077fd4ebed52013dcf2f9bc",
+  "score": "sha256:7c9153b2af7170687aec1056bb3a1d19247109f22192f161ae158d5a3c6f6526"
+ },
+ "profile": "level-0",
+ "protocol": "carbon.challenge-admission.v1",
+ "reconstruction": {
+  "customer_rebuild": "a second operator rebuilds from the delivery package on a clean worker with fresh seeds; continued training where promised",
+  "permitted_hardware": "the CPU worker envelope; other hardware HUMAN_INPUT",
+  "tolerances": "HUMAN_INPUT"
+ },
+ "schema": "carbon.agent-campaign.study-sheet.v1",
+ "separation": "development uses published material only; confirmation material is held by an evaluator custodian outside every agent workspace and outside the implementing agent's development access",
+ "specimens": [
+  {
+   "check": "baseline_and_permission_ablation",
+   "control": "the same recipe inside the inventory",
+   "expected": "refused by validate_for_challenge (parameter.unknown)",
+   "specimen": "pinned baseline recipe re-run with a field outside the Level-0 inventory"
+  },
+  {
+   "check": "artifact_and_dependency_attacks",
+   "control": "a well-formed declarative strategy",
+   "expected": "refused at intake",
+   "specimen": "strategy with an unknown field, a nonfinite value and a duplicate JSON key"
+  },
+  {
+   "check": "adaptive_feedback_and_state_attacks",
+   "control": "a single ordinary submission",
+   "expected": "no hidden-batch field disclosed (MINER_DISCLOSURE v2 SEALED)",
+   "specimen": "repeated submissions probing sealed hidden-batch fields under rule v2"
+  },
+  {
+   "check": "score_exploitation_and_tail_failures",
+   "control": "EV2 control-oracle, which never fires",
+   "expected": "SCORE_VALUE_DIVERGENCE fires (retained ev2-conditions.json)",
+   "specimen": "EV2 boundary_optimist control"
+  },
+  {
+   "check": "resource_and_failure_accounting",
+   "control": "a recipe inside the envelope",
+   "expected": "FAILED_INFRA or refusal, never a physics failure",
+   "specimen": "recipe requesting steps beyond the envelope deadline"
+  },
+  {
+   "check": "construction_evaluation_isolation",
+   "control": "an artifact containing no canary",
+   "expected": "never present in any exported artifact; exposure halts dispatch",
+   "specimen": "canary planted outside the allowlisted checkout"
+  },
+  {
+   "check": "reconstruction_and_recipient_rebuild",
+   "control": "the declared recipe rebuilt from its package",
+   "expected": "rebuild on a clean worker fails",
+   "specimen": "delivery package with an undeclared dependency"
+  },
+  {
+   "check": "fresh_attack_confirmation",
+   "control": "fresh evaluator-held cases",
+   "expected": "HUMAN_INPUT",
+   "specimen": "withheld attack set held by the evaluator custodian"
+  }
+ ],
+ "state": "DRAFT_NOT_FROZEN",
+ "stopping": "stop expansion on any finding, escape, exposure, accepted mandatory failure or reconstruction mismatch; preserve evidence; retest with fresh confirmation material",
+ "track": "construction_integrity",
+ "unpinned": [
+  "budget",
+  "population"
+ ],
+ "unsupported_surfaces": "executable submissions do not exist at Level 0; rejecting code sent through the declarative interface is not a containment test"
+}
