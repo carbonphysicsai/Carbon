@@ -1,5 +1,12 @@
 # Generator Creation — Human Build Guide, Reference Verification, and Incentive Defensibility
 
+> **Internal admission protocol (OWNER-CHALLENGE-ADMISSION-01, amended
+> 2026-10-01):** follow [Challenge Admission](Challenge_Admission.md) during
+> internal development: record every construction expansion, escalate every
+> finding, and lock the final state that miners see. It is not a qualification
+> gate and not mainnet; existing dossier, science/security and launch gates
+> remain.
+
 **Carbon Subnet**  
 **Version:** 5.1 (owner-ratification proposal; v5.0 remains authoritative until accepted)
 **Status:** OWNER-RECOMMENDED architecture; Challenge-specific scientific acceptance remains evidence- and reviewer-owned.  
