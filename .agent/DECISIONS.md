@@ -16715,3 +16715,35 @@ match that? 3. APPROVE".
 **Unchanged:** no chain write, no weights beyond OD-4a's all-burn,
 `transaction_authorization` null, testnet 567 only, OD-5's ceiling, and every
 scientific, security and qualification state.
+
+## 2026-10-01 — OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01: propose the decision-aware component prospectively, and keep both rankings reported
+
+**Authority.** The owner's decisions of 1 October 2026, block B (Testnet),
+on EV2 programme-state item 19, now row 20: "PROPOSE THE DECISION-AWARE
+COMPONENT PROSPECTIVELY, AND KEEP BOTH RANKINGS REPORTED."
+
+1. **B1: implemented as a registered, versioned, prospective rule.**
+   `carbon.battery.exam.decision-aware.proposed` version 1
+   (`carbon/battery/value/proposal.py`) is EV2's profile `dar-p0-r100-a0`,
+   reading the frozen EV2 contract by digest. It is a proposal carried in the
+   record, not a replacement. **The frozen `carbon.battery.exam.v1` (OD-2)
+   remains the deciding rule** until the proposal's own approval changes
+   that. The proposal is not in `exam.RULES`, so no deployment can select
+   it, and a test holds that.
+2. **B2: historical evidence keeps its meaning** (invariant 10). No result is
+   rescored or reinterpreted, and the EV1 and EV2 evidence files are
+   unchanged.
+3. **B3: both rankings are reported from here on,** side by side, with both
+   halves of the evidence on every row (`report.two_rankings`). The proposed
+   rule ranks real models at τ 0.202 against the deciding rule's 0.298
+   (verification), and it catches the boundary-optimist control where the
+   deciding rule ranks it at or above all 14 members. Basis:
+   `docs/development/evidence/ev2-2026-10-01/results.json`.
+4. **B4: what would settle it** is EV4, set out in
+   `docs/development/BATTERY_DECISION_AWARE_PROPOSAL.md`: a panel of about
+   60 deliberately diverse real models, fresh verification conditions near
+   the limits, a paired τ difference with a bootstrap interval, and a count
+   of real-model false acceptances. About 560 to 840 solves on local CPU at
+   USD 0, and several days of host time. **Not run without approval.**
+5. **B5: not exam qualification.** Exploratory engineering evidence. MQ-008 is
+   untouched, and whether the exam is adequate remains open.

@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-10-01, with the owner's answers on 3B and hidden-batch exposure (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+**Last updated:** 2026-10-01, with the decision-aware proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01).
 
 ## Authority in force
 
@@ -43,7 +43,7 @@ All of these are in `.agent/DECISIONS.md`.
 | 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | Claude session | **approved 2026-10-01** (OWNER-BATTERY-3B-AND-EXPOSURE-01); runs on the v1 deployment as pre-registered, no v2 re-registration; `pscreen-T04`/`T05` prepared with complete references | approved, not run |
 | 18 | Battery intake (OD-7(b)): built, loopback only (`carbon/battery/intake.py`, `intake_client.py`); design for the mainnet switch in `BATTERY_MINER_SUBMISSION_PATHS.md` | owner (exposure), Launchpad (campaign seam) | the §4 security review decision, recorded as an `OWNER-…INTAKE-EXPOSURE-NN` record, before any non-loopback bind; Launchpad posts through `intake_client` | built, NOT SECURITY_QUALIFIED, not exposed |
 | 19 | Battery exam rule v2 (`exam.DEVELOPMENT_RULE_V2`): one scored submission per hotkey per tempo, block-based rotation, never stalls; the deployment selects it with `"rule": "v2"` on a fresh root | Claude session; Launchpad for the research disclosure | this PR; a fresh v2 deployment with its own batches; zero hidden-batch exposure to miners (OWNER-BATTERY-3B-AND-EXPOSURE-01 item 2): nothing computed from a hidden batch reaches a miner until Carbon releases it to the training pool | built and tested; deployment held |
-| 20 | Owner decision: whether to propose a decision-aware component for the battery exam, prospectively, on the EV2 evidence (it removes the boundary-optimist blind spot; it did not rank real models better on this panel) | owner | EV2 results | open |
+| 20 | Owner decision: whether to propose a decision-aware component for the battery exam, prospectively, on the EV2 evidence (it removes the boundary-optimist blind spot; it did not rank real models better on this panel) | owner | EV2 results | **decided 2026-10-01** (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01): registered as a prospective proposal (`value/proposal.py`), not deciding; both rankings reported; EV4 would settle it, not run |
 | 21 | EV3 design competition: freeze the pre-registration after the owner ranks its candidate problems (EV3 doc §6) and sets problem D's capacity floor | owner, then Claude session | EV2 results | draft for owner review |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
