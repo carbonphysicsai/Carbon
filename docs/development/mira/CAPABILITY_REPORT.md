@@ -1,7 +1,8 @@
 # Autoscience Mira: integration capability report
 
 **Status (2026-10-01):** integration mode **repository/artifact handoff,
-planned and unverified**. Live Mira execution is **BLOCKED** until Autoscience
+planned**; Autoscience's own site now confirms PR-based delivery, hosted or
+on-prem, but nothing account-level is verified. Live Mira execution is **BLOCKED** until Autoscience
 supplies verified answers to the questions below and the owner completes the
 spending grant. The provider-independent controller, the fake provider and the
 Mira adapter (which refuses every call) are built; see `README.md`.
@@ -12,14 +13,36 @@ installed.
 
 ## How this report was made, and its limits
 
-- `www.autoscience.ai` is blocked by this environment's network egress policy,
-  so the vendor's own pages were **not read**. Everything below comes from web
-  search results (secondary sources) gathered by the implementing agent and the
-  lead on 2026-10-01.
+- **Update 2026-10-01 (owner opened network access):** the lead fetched
+  `www.autoscience.ai` (`/`, `/mira`, `/get-started`, `/carl`) with `curl` and
+  read the text in the site's page scripts (`/components/HeroMorph.js`,
+  `ConceptB.js`, `Outcomes.js`, `Pages.js`). Those **primary public** statements
+  are in the next section. `/pricing`, `/docs`, `/security`, `/terms`, `/privacy`
+  and `/about` return 404.
+- Earlier rows came from web search results (secondary sources), gathered
+  while the site was blocked.
 - No form was submitted, no account was created, no one was contacted and no
   API was called.
-- **Verified** below means only "stated consistently in public secondary
-  sources". It is not vendor documentation and not account-specific evidence.
+- **PUBLIC_PRIMARY** means "stated on Autoscience's own site". It is marketing
+  copy, not vendor documentation and not account-specific evidence, so no §3
+  question below is marked VERIFIED on its strength alone.
+
+## What Autoscience's own site states (primary, public)
+
+| Item | Status | Source (quoted) |
+|---|---|---|
+| Hosted deployment on Autoscience's GPUs, delivering PRs | PUBLIC_PRIMARY | "In the cloud. Your model, your data, and our GPUs. Start receiving PRs the same week." (`/mira`, `ConceptB.js`) |
+| On-premises deployment | PUBLIC_PRIMARY | "On your infra. Full on-prem deployment. Your data never leaves your network. Same agents, same results." (`ConceptB.js`) |
+| Workflow: papers → experiments on the customer's model → verification on the customer's eval → PRs | PUBLIC_PRIMARY | "Sees every paper." "Experiments on your model. Mira spins up isolated training runs, tracks loss curves, compares against your baseline." "Verifies on your eval." "Ships improvements as PRs." (`HeroMorph.js`) |
+| The customer's verifier, not the agent, decides | PUBLIC_PRIMARY | "No agent decides what 'better' means. Your eval set, your metrics, your significance threshold — deterministic pass/fail." "agent proposes, verifier decides" (`HeroMorph.js`, `ConceptB.js`) |
+| What a PR carries | PUBLIC_PRIMARY | "Nothing merges until it beats your baseline on your verifier. Each PR ships with the run logs, ablations, and a writeup your team can audit." (`HeroMorph.js`) |
+| Access route | PUBLIC_PRIMARY | `/get-started` form: name, email, company, role, interest, message; posts to `/api/qualify`, then offers a Calendly booking (`Pages.js`) |
+| No public pricing, documentation, security or terms pages | PUBLIC_PRIMARY (absence) | those paths return 404 |
+
+**Fit with Carbon.** "Agent proposes, verifier decides" is the same authority
+split as Carbon's invariant 7.9 and 7.10: Mira may propose constructions and
+attacks, while Carbon's evaluator and reference decide. The PR-with-logs
+delivery matches the planned repository/artifact handoff mode.
 
 ## What the public material states (secondary sources)
 
@@ -35,16 +58,16 @@ installed.
 
 ## The handoff §3 questions
 
-Every row is **UNVERIFIED**. "Carbon's need" is what the controller requires
+No row is VERIFIED. Four are PARTIAL from Autoscience's own public site (2026-10-01); the rest are **UNVERIFIED**. "Carbon's need" is what the controller requires
 before `MiraProvider` may be replaced by a live adapter.
 
 | Question | Status | Carbon's need |
 |---|---|---|
-| How do we launch Mira? (hosted, local, customer cloud) | UNVERIFIED | A documented deployment we can point at a Carbon-owned disposable workspace |
-| How do we supply tasks? (API/SDK/CLI schema or repository workflow) | UNVERIFIED | A documented task submission with an idempotency key, or a repository workflow we drive |
+| How do we launch Mira? (hosted, local, customer cloud) | PARTIAL (public primary: hosted on Autoscience GPUs, or on-prem; launch mechanics unverified) | A documented deployment we can point at a Carbon-owned disposable workspace |
+| How do we supply tasks? (API/SDK/CLI schema or repository workflow) | PARTIAL (public primary: works on the customer's repository and eval, delivers PRs; task submission and idempotency unverified) | A documented task submission with an idempotency key, or a repository workflow we drive |
 | Can Mira use Carbon tools? (MCP or another mechanism) | UNVERIFIED | MCP stdio client support, or a documented tool mechanism; only campaign-scoped access would be offered |
-| Where do experiments execute? (workers, network, dependencies, compute) | UNVERIFIED | Worker ownership, egress, and whether Mira's own compute can be replaced by Carbon's runner |
-| Can we export its work? (source, recipes, artifacts, logs, dependency versions, usage) | UNVERIFIED | Full export of each run, including logs and dependency versions |
+| Where do experiments execute? (workers, network, dependencies, compute) | PARTIAL (public primary: "isolated training runs" on Autoscience GPUs or on-prem; worker ownership, egress and whether Carbon's runner can replace its compute unverified) | Worker ownership, egress, and whether Mira's own compute can be replaced by Carbon's runner |
+| Can we export its work? (source, recipes, artifacts, logs, dependency versions, usage) | PARTIAL (public primary: each PR ships with run logs, ablations and a writeup; dependency versions and usage export unverified) | Full export of each run, including logs and dependency versions |
 | How do we stop it? (cancellation, outstanding jobs, recovery) | UNVERIFIED | Cancel by run id, confirmation that every worker stopped, recovery after disconnect |
 | Can we limit spending? (billing units, concurrency, quotas, caps, billing delay) | UNVERIFIED | A per-run worst case and usage reporting; the controller enforces caps itself |
 | Can we separate campaigns? (session memory, workspaces, retention, access) | UNVERIFIED | No memory shared across the three research roles; deletion on request |
@@ -58,7 +81,7 @@ before `MiraProvider` may be replaced by a live adapter.
 |---|---|
 | Direct MCP | Not chosen: MCP support is unverified |
 | Documented tool adapter | Not chosen: no documented tool mechanism |
-| **Repository/artifact handoff** | **Working mode (planned, unverified).** Mira proposes code or recipes in an allowlisted research checkout; a Carbon runner imports and executes them; human interventions are recorded |
+| **Repository/artifact handoff** | **Working mode (planned; the PR-based delivery is now stated on Autoscience's own site, but the account-level workflow is still unverified).** Mira proposes code or recipes in an allowlisted research checkout; a Carbon runner imports and executes them; human interventions are recorded |
 | Unavailable | The adapter's behaviour today: `MiraProvider.capabilities()` reports the planned mode with `verified=False`, so the controller refuses to dispatch, and every operation raises `ProviderUnavailable` |
 
 No endpoint has been invented. OpenAI-compatible inference access, if offered,
