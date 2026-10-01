@@ -168,10 +168,19 @@ def test_a_deployment_names_a_known_rule(tmp_path):
 HIDDEN_DERIVED = {"screening", "nominated", "finals"}
 
 
-def test_v2_seals_results_and_v1_is_unchanged():
+def test_v2_seals_results_without_moving_any_scoring_digest():
     assert exam.sealed(V2) and not exam.sealed(exam.DEVELOPMENT_RULE)
-    assert V2["miner_disclosure"]["released_by"] == "CARBON_COMMIT_TO_TRAINING_POOL"
-    assert "miner_disclosure" not in exam.DEVELOPMENT_RULE
+    assert exam.disclosure(V2)["released_by"] == "CARBON_COMMIT_TO_TRAINING_POOL"
+    assert exam.disclosure(exam.DEVELOPMENT_RULE) is None
+    # Disclosure changes what a miner is shown, never a score, so neither
+    # digest moves: the prepared v2 deployment's seed pin and its solved
+    # references stay valid, and v1 is untouched.
+    assert rule_digest(V2) == (
+        "sha256:7c9153b2af7170687aec1056bb3a1d19247109f22192f161ae158d5a3c6f6526"
+    )
+    assert rule_digest(exam.DEVELOPMENT_RULE) == (
+        "sha256:e108df6891aecd7c2111442267b182680cdb5516185bcaf188afead1c9c110c5"
+    )
 
 
 def test_a_scored_v2_outcome_shows_a_miner_nothing_from_the_hidden_batch(
