@@ -10456,6 +10456,19 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-10-01T00:41:10Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "BATTERY-EV4-01"
+    owner_lane: "technical_lead"
+    status: "active"
+    summary: "EV4 and the Problem-C design optimizer are built and pre-registered (DRAFT until the lead freezes the root), off-chain public synthetic DEVELOPMENT evidence under the owner's 2026-10-01 approval of RunPod use (hard cap USD 15, A40 at most USD 0.49/h, up to 3 pods). EV4 keeps EV2's decision rules and asks, on a 100-member panel (80 distinct MLP, DeepONet and kNN recipes) with 12 + 12 fresh conditions, whether the proposed decision-aware rule ranks real models better or worse than the deciding exam rule: a paired Kendall-tau difference with a fixed-seed bootstrap interval, UNRESOLVED unless the interval excludes zero. Problem C asks each of five rule-selected members for one two-step protocol safe across 5-40 C, verifies it at 90 reference conditions against the baseline, and verifies each member's 50 nearest-to-limit predicted-safe points; a verified violation is an admission-condition finding. At most 1630 reference solves; nothing has run, and no testnet rule, reward or chain action changes."
+    primary_detail: "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T21:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
