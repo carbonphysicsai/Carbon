@@ -76,6 +76,57 @@ for _name, _t_c, _rho, _cp, _mu, _pr in (
         "pr_f": _pr,
         "t_in": 273.15 + _t_c,
     }
+#: Rung 6d: PG25 viscosity as a polynomial in T (kelvin), mu = sum c_i T^i
+#: (Pa s), least-squares over CoolProp 6.8.0 INCOMP::MPG[0.25] at 2 bar, 1 K
+#: steps over 30-50 C only (DESIGN_BASIS.md section 1). Maximum relative
+#: residual in 30-50 C: 1.6e-5. Outside that range it is an extrapolation.
+MU_POLYNOMIAL = (
+    2.2138268571145154,
+    -0.026510771069392616,
+    0.0001196248034665941,
+    -2.408213659063999e-07,
+    1.823829766797535e-10,
+)
+#: The fluid template's `const` lines, and their polynomial forms. OpenFOAM
+#: v2512 accepts `polynomial` transport only with `hPolynomial` thermo and a
+#: polynomial equation of state, so c_p and rho become degree-0 polynomials:
+#: the same constants. Only mu varies.
+_POLYNOMIAL_LINES = (
+    ("    transport       const;\n", "    transport       polynomial;\n"),
+    ("    thermo          hConst;\n", "    thermo          hPolynomial;\n"),
+    ("    equationOfState rhoConst;\n", "    equationOfState icoPolynomial;\n"),
+    (
+        "    equationOfState { rho RHO_F; }\n",
+        "    equationOfState { rhoCoeffs<8> ( RHO_F 0 0 0 0 0 0 0 ); }\n",
+    ),
+    (
+        "    thermodynamics  { Cp CP_F; Hf 0; }\n",
+        "    thermodynamics  { Hf 0; Sf 0; CpCoeffs<8> ( CP_F 0 0 0 0 0 0 0 ); }\n",
+    ),
+)
+_CONST_MIXTURE = "    transport       { mu MU_F; Pr PR_F; }\n"
+
+
+def polynomial_transport(text, properties):
+    """The fluid's constant viscosity replaced by a polynomial in T.
+
+    Only viscosity varies. Conductivity is held at the constant-property
+    value of the same set, k = mu c_p / Pr at the inlet temperature, so the
+    rung changes one thing."""
+    for old, new in (*_POLYNOMIAL_LINES, (_CONST_MIXTURE, None)):
+        if old not in text:
+            raise ValueError("fluid thermophysicalProperties is not the const template")
+    for old, new in _POLYNOMIAL_LINES:
+        text = text.replace(old, new)
+    pad = lambda c: " ".join(repr(float(x)) for x in (*c, *[0.0] * (8 - len(c))))
+    kappa = properties["mu_f"] * properties["cp_f"] / properties["pr_f"]
+    return text.replace(
+        _CONST_MIXTURE,
+        f"    transport       {{ muCoeffs<8> ( {pad(MU_POLYNOMIAL)} ); "
+        f"kappaCoeffs<8> ( {pad((kappa,))} ); }}\n",
+    )
+
+
 #: The design point's footprint and heat load (DESIGN_BASIS.md section 2).
 FOOTPRINT_M, HEAT_LOAD_W = 0.03, 1000.0
 
@@ -235,6 +286,13 @@ def main(argv=None):
         help="design set only: coolant flow per kW (design basis range 1.25-2.0); "
         "the inlet velocity is derived from it and the geometry",
     )
+    parser.add_argument(
+        "--viscosity",
+        choices=("constant", "polynomial"),
+        default="constant",
+        help="design sets only: 'polynomial' makes PG25 viscosity vary with "
+        "temperature (rung 6d); conductivity stays constant",
+    )
     for name, value in DEFAULTS.items():
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=value)
     args = parser.parse_args(argv)
@@ -245,6 +303,8 @@ def main(argv=None):
         or args.wall_grading < 1
     ):
         parser.error("every dimension and the resolution must be positive")
+    if args.viscosity == "polynomial" and not args.properties.startswith("design"):
+        parser.error("--viscosity polynomial is a design-set option (PG25)")
     if args.out.exists():
         parser.error(f"{args.out} exists; refusing to overwrite")
     shutil.copytree(TEMPLATE, args.out)
@@ -255,6 +315,11 @@ def main(argv=None):
             parser.error("--flow-lpm-per-kw is a positive design-set option")
         properties["u_in"], channels = design_inlet_velocity(
             geometry, args.flow_lpm_per_kw
+        )
+    fluid_thermo = args.out / "constant" / "fluid" / "thermophysicalProperties"
+    if args.viscosity == "polynomial":
+        fluid_thermo.write_text(
+            polynomial_transport(fluid_thermo.read_text(), properties)
         )
     for path in args.out.rglob("*"):
         if path.is_file():
@@ -282,6 +347,8 @@ def main(argv=None):
         "iterations": args.iterations,
         "mesh": mesh,
     }
+    if args.viscosity == "polynomial":
+        case["viscosity"] = {"model": "polynomial", "mu_coeffs": MU_POLYNOMIAL}
     (args.out / "case.json").write_text(json.dumps(case, indent=2) + "\n")
     print(json.dumps(case))
 
