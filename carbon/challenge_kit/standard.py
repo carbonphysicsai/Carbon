@@ -159,9 +159,11 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
                 "training or test data inside Carbon."
             ),
             next_step=(
-                "Build carbon/challenge_kit/battery.py: the pinned PyBaMM "
-                "overlay and the public population, miner seeds only, "
-                "following the Burgers kit and its no-official-seed tests."
+                "Build carbon/challenge_kit/battery.py as a command on the "
+                "miner's own machine (OWNER-MINER-OWN-MACHINE-01): uniform "
+                "draws over the published input box from the miner's own seed "
+                "roots, labelled by the pinned PyBaMM reference in the pinned "
+                "truth image, with the Burgers kit's no-official-seed tests."
             ),
         ),
         "evaluate": Provided(

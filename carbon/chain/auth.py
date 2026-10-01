@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from enum import Enum
 from importlib.metadata import PackageNotFoundError, version
-from pathlib import Path
 from typing import Protocol
 
 from .sdk import SDK_VERSION
@@ -104,9 +103,17 @@ class BittensorHotkeyVerifier:
 
 
 class BittensorMessageSigner:
-    """The trusted composition root supplies a signer; this opens no key file."""
+    """Signs a Carbon request through the miner's own signer process.
+
+    Accepts only an ``ExternalSigner`` from ``connect_signer``: that type cannot
+    be built from key material, so no private key can reach this class.
+    """
 
     def __init__(self, signer):
+        from .external_signer import ExternalSigner
+
+        if type(signer) is not ExternalSigner:
+            raise TypeError("sign through the miner's external signer (connect_signer)")
         self._signer = signer
 
     def sign(self, body: bytes, *, receiver: str, nonce_ns: int) -> dict[str, str]:
@@ -119,28 +126,3 @@ class BittensorMessageSigner:
             receiver_ss58=receiver,
             nonce_ns=nonce_ns,
         )
-
-
-def open_external_hotkey(key_file: Path, password_file: Path, expected_hotkey: str):
-    """Load one operator-selected encrypted miner key inside the chain boundary.
-
-    The supervised model receives only signed request results. This helper does
-    not authorize a transaction, register a miner or expose a wallet to science.
-    """
-    for path, maximum in ((key_file, 16384), (password_file, 1024)):
-        if not isinstance(path, Path) or not path.is_absolute() or path.is_symlink():
-            raise AuthFailure(AuthCode.UNAVAILABLE)
-        if not path.is_file() or not 0 < path.stat().st_size <= maximum:
-            raise AuthFailure(AuthCode.UNAVAILABLE)
-    try:
-        bt = _sdk()
-        key = bt.keyfiles.Keyfile(str(key_file)).get_keypair(
-            password=password_file.read_text().strip()
-        )
-        if key.ss58_address != expected_hotkey:
-            raise ValueError("identity mismatch")
-        return key
-    except Exception:  # noqa: BLE001, S110
-        # Discard secret-bearing SDK errors; raise outside the handler.
-        pass
-    raise AuthFailure(AuthCode.UNAVAILABLE)

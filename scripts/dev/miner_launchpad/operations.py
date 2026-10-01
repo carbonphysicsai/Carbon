@@ -260,6 +260,25 @@ def _registered(host, profile):
         ) from None
 
 
+def _signer_reachable(host, profile):
+    """Every admitted operation signs; the miner's signer must be there.
+
+    Carbon holds no key. Which of the four conditions it is - not running,
+    refused, a different hotkey, or no answer in time - is the refusal code.
+    """
+    from carbon.chain.external_signer import SignerCode, SignerFailure
+
+    probe = getattr(host, "signer", None)
+    if probe is None:
+        return
+    try:
+        probe(profile)
+    except SignerFailure as failure:
+        raise Rejected(
+            failure.code, 503 if failure.code == SignerCode.TIMEOUT.value else 409
+        ) from None
+
+
 def perform(host, name, request):
     """Run one operation for one principal through its gates, in order.
 
@@ -292,6 +311,7 @@ def perform(host, name, request):
                 return replayed
         elif gate == "registration":
             miner = _registered(host, profile)
+            _signer_reachable(host, profile)
         elif gate == "campaign":
             campaign = host.owned_campaign(request["campaign"])
             # A retired-grant campaign stays observable and can be stopped and

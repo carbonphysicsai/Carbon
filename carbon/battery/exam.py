@@ -85,6 +85,38 @@ DEVELOPMENT_RULE_V2 = {
 #: The rules a deployment may run, by the name its configuration gives.
 RULES = {"v1": DEVELOPMENT_RULE, "v2": DEVELOPMENT_RULE_V2}
 
+#: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01): what a miner may see, by
+#: rule version. A hidden batch, and everything computed from it
+#: (eligibility, gate failures, scores, case counts, pool version, nomination,
+#: finals), is for Carbon and the validators only, before and after its seed
+#: draw. A miner sees it only after Carbon retires the batch and commits it to
+#: the training data pool; retirement by rotation alone releases nothing. No
+#: release path exists yet, so under v2 nothing computed from a hidden batch is
+#: ever shown to a miner.
+#:
+#: Kept outside the rule dict on purpose: it changes what a miner is shown,
+#: never how anything is scored, so it is not part of the scoring digest the
+#: seed pin binds. v2's digest, and every batch and reference prepared under
+#: it, stay valid. v1 (no `rule_version`) has no entry and is unchanged.
+MINER_DISCLOSURE = {
+    2: {
+        "hidden_batch_results": "SEALED",
+        "released_by": "CARBON_COMMIT_TO_TRAINING_POOL",
+        "authority": "OWNER-BATTERY-3B-AND-EXPOSURE-01",
+    },
+}
+
+
+def disclosure(rule):
+    """A rule's miner-disclosure term, or None (v1 discloses as before)."""
+    return MINER_DISCLOSURE.get(rule.get("rule_version"))
+
+
+def sealed(rule):
+    """Whether a rule seals every result computed from a hidden batch."""
+    term = disclosure(rule)
+    return term is not None and term["hidden_batch_results"] == "SEALED"
+
 
 def hotkey_window(rule, block):
     """`(start, end)` of the per-hotkey window holding `block`, or None."""

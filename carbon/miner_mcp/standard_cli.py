@@ -163,7 +163,7 @@ def _runtime(profile):
 
 def _connection(profile, paths):
     """The existing signed session for this campaign's registered miner."""
-    from carbon.chain.auth import open_external_hotkey
+    from carbon.chain.external_signer import miner_signer
     from carbon.development_session.research_campaign import private_file
     from carbon.development_session.service import LocalMinerConnection
     from carbon.development_testnet.operator import load_config
@@ -176,11 +176,8 @@ def _connection(profile, paths):
         or public["hotkey"] != profile.registered_hotkey
     ):
         raise ValueError("existing miner differs from the registered miner")
-    key = open_external_hotkey(
-        Path(public["key_file"]),
-        private_file(paths["miner_password_file"]),
-        public["hotkey"],
-    )
+    # The miner's own signer holds the hotkey; Carbon only reaches it.
+    key = miner_signer(public, paths.get("signer_socket"))
     session = profile.root / "research-auth"
     if not session.is_dir() or session.is_symlink():
         raise ValueError("prepared authenticated session required")

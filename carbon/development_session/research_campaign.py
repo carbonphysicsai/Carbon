@@ -18,7 +18,8 @@ import uuid
 from pathlib import Path
 
 from carbon import research
-from carbon.chain.auth import BittensorMessageSigner, open_external_hotkey
+from carbon.chain.auth import BittensorMessageSigner
+from carbon.chain.external_signer import miner_signer
 from carbon.chain.models import CARBON_NETUID
 from carbon.development_testnet.operator import load_config
 from carbon.miner_mcp.research import AuthenticatedResearchService
@@ -600,11 +601,8 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
     if registered is not None and public["hotkey"] != registered:
         raise ValueError("the registered miner differs from this hotkey")
-    key = open_external_hotkey(
-        Path(public["key_file"]),
-        private_file(args.miner_password_file),
-        public["hotkey"],
-    )
+    # The miner's own signer holds the hotkey; Carbon only reaches it.
+    key = miner_signer(public, getattr(args, "signer_socket", None))
     session = root / "research-auth"
     session.mkdir(mode=0o700, exist_ok=True)
     connection = LocalMinerConnection(
@@ -1174,10 +1172,12 @@ def main():
         "operator-config",
         "api-key-file",
         "miner-public",
-        "miner-password-file",
         "quarantine-journal",
     ):
         parser.add_argument("--" + name, type=Path)
+    # Where the miner's `carbon-miner-signer` listens; omitted, the path it
+    # derives from the public hotkey.
+    parser.add_argument("--signer-socket", type=Path)
     # The miner's model provider and model (`model_provider.select`), as a
     # JSON object; omitted, the pinned default. A frozen campaign keeps its own.
     parser.add_argument("--model-selection", type=Path)
@@ -1201,7 +1201,6 @@ def main():
             "operator_config",
             "api_key_file",
             "miner_public",
-            "miner_password_file",
             "quarantine_journal",
         )
     ):

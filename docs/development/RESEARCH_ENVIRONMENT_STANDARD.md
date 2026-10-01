@@ -88,7 +88,9 @@ declared `Retired(decision, provided)` as a whole, never per provision:
 
 **Battery `generate` gap.** Nothing miner-facing runs the pinned PyBaMM
 reference, so miners get only TRAIN v1 and the 200 PRACTICE cases. Next step:
-`carbon/challenge_kit/battery.py`, following the Burgers kit.
+`carbon/challenge_kit/battery.py`, a command on the miner's own machine
+(OWNER-MINER-OWN-MACHINE-01) that labels draws from the published population
+with the pinned PyBaMM reference, following the Burgers kit's seed rules.
 
 **Battery `compute`, `model` and `agent` gaps.** These are the
 OWNER-MINER-ENVIRONMENT-01 provisions. The ticket

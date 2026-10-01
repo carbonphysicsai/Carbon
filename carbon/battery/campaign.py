@@ -252,7 +252,7 @@ def manifest_document(
 
 
 async def prepare_battery(args, *, ledger=None, campaign):
-    from carbon.chain.auth import open_external_hotkey
+    from carbon.chain.external_signer import miner_signer
     from carbon.chain.models import CARBON_NETUID
     from carbon.development_session.data import write_once
     from carbon.development_session.profile import canonical
@@ -340,11 +340,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
     if public["hotkey"] != registered:
         raise ValueError("the registered miner differs from this hotkey")
-    key = open_external_hotkey(
-        Path(public["key_file"]),
-        private_file(args.miner_password_file),
-        public["hotkey"],
-    )
+    # The miner's own signer holds the hotkey; Carbon only reaches it.
+    key = miner_signer(public, getattr(args, "signer_socket", None))
     session = root / "research-auth"
     session.mkdir(mode=0o700, exist_ok=True)
     connection = LocalMinerConnection(

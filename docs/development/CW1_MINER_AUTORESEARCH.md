@@ -75,13 +75,14 @@ python -m carbon.development_session.research_campaign run \
   --analysis-image-manifest "$ANALYSIS_IMAGE_MANIFEST" \
   --operator-config "$OPERATOR_CONFIG" --api-key-file "$API_KEY_FILE" \
   --miner-public "$MINER_PUBLIC_FILE" \
-  --miner-password-file "$MINER_PASSWORD_FILE" \
   --quarantine-journal "$QUARANTINE_JOURNAL"
 ```
 
 The run requires the exact clean accepted commit, verified as an ancestor of
 fetched main. Paths are private operator inputs, never model arguments. Existing
-credentials must be owner-only, in a private parent directory. The first run
+credentials must be owner-only, in a private parent directory. The miner's
+hotkey is not a Carbon input: `carbon-miner-signer` must be running for it
+([MINER_EXTERNAL_SIGNER.md](MINER_EXTERNAL_SIGNER.md)). The first run
 prints the actual campaign directory and a ready-to-paste status command:
 
 ```bash

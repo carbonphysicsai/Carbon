@@ -379,6 +379,7 @@ def test_the_public_facts_say_when_a_hotkey_may_submit(deployed_v2):
     rule = facts(intake)["submission_rule"]
     assert rule["per_hotkey"] == {"scored_per_window": 1, "window_blocks": 360}
     assert rule["current_window"] == {"start_block": 0, "end_block": 360}
+    assert rule["results"]["hidden_batch_results"] == "SEALED"
 
 
 def test_a_second_submission_in_one_tempo_is_answered_at_once(deployed_v2):
@@ -432,7 +433,11 @@ def test_a_window_refusal_at_admission_can_be_resent_next_tempo(deployed_v2):
     ib.work_once(intake.inbox, target)
     done = post(intake, MINER, ic.status_message(facts(intake), sid, request="t"))
     assert done.body["state"] == "SCORED"
-    assert ic.describe(done.status, done.body).startswith("Scored on pool version")
+    # Rule v2 seals results computed on hidden cases.
+    assert not {"screening", "nominated", "finals"} & set(done.body)
+    assert ic.describe(done.status, done.body).startswith(
+        "Scored. Under this exam rule its results are sealed"
+    )
 
 
 def test_every_refusal_code_has_a_plain_explanation():

@@ -1,24 +1,25 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-30.1",
-  "status": "BUILT_AWAITING_OWNER_APPROVAL_OF_EXACT_BUNDLE",
-  "status_note": "Built and certified on 2026-09-30 (bundle 86f51385…, 105 files). The owner approved the release in principle before its digests existed; approval of this exact bundle identity is still required (WEB-QA-11-D1). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential: static only, carbonwebsite, after re-confirming the live version is dc4469a7.",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
+  "status_note": "Bundle 86f51385… approved for deployment by the owner in session on 2026-10-01 (WEB-QA-11-D2). It supersedes 48fd4680… (WEB-QA-10-D1), which production still serves. NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_01.md; this host has none and ran no wrangler command.",
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
-    "decision": "WEB-QA-11-D1",
-    "recorded_at": "2026-09-30",
+    "decision": "WEB-QA-11-D2 (exact bundle); WEB-QA-11-D1 (in principle)",
+    "recorded_at": "2026-10-01",
     "source": ".agent/DECISIONS.md",
-    "state": "APPROVED_IN_PRINCIPLE_AWAITING_EXACT_BUNDLE",
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "state": "OWNER_APPROVED_EXACT_BUNDLE",
     "approval_in_principle": "The owner, in the Workbench session on 2026-09-30: \"Approve 1, how can I do #2\", where item 1 was the Ask Carbon release carrying the new Pilot Designer and replacing /workbench/ with a redirect page. Relayed to the Ask Carbon lane by that session; given before the bundle existed.",
-    "required": "The owner's approval of bundle identity 86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a. A rebuild with a different identity is not the approved artifact.",
     "attaches_to": {
       "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
       "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
       "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
       "workbench_index_html_sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
-      "rollback_target_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc (captured by the owner with wrangler on 2026-09-30)"
-    }
+      "rollback_target_version_id": "captured by the operator with wrangler at deploy time (DEPLOY_PACKAGE_2026_10_01.md step 0). The repository expects dc4469a7-f4da-4437-aaa1-2789277e57fc (owner capture, 2026-09-30); the owner's 2026-10-01 decision names f7954cb2-b610-40f9-86e6-0a3fe6d04c93, which the repository records as the pre-WEB-QA-10-D1 version. Never b694b20f."
+    },
+    "approval": "The owner, in the Ask Carbon session on 2026-10-01: \"THE REBUILT CANDIDATE IS APPROVED FOR DEPLOYMENT\", for the identity re-derived after #454 (86f51385…, re-derived from disk on main c5f4b16c8 at 2026-10-01T10:05Z)."
   },
   "owner_authorization_superseded_2026_09_24": {
     "decision": "WEB-QA-08-D1",
@@ -343,7 +344,7 @@
     "supersedes": "The handoff brief's step 6 ordering, which listed carbonwebsite first.",
     "candidate_2026_09_24_1": "Static assets only. The ask-carbon-public Worker, its configuration and its activation are unchanged, so only carbonwebsite is deployed (`wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`), after re-capturing the live version. Verify the two changed paths by digest on both hostnames and /health still active afterwards.",
     "candidate_2026_09_26_1": "Worker first, then static. Deploy ask-carbon-public with wrangler.public-release-active.toml (Chutes profile, privacy mode v2, activation enabled) after provisioning ASK_CARBON_CHUTES_API_KEY; confirm /health active:true, model_config_id gemma-4-31b-turbo-tee:v1, no reasons, current-progress eligible, on both hostnames. Then deploy carbonwebsite with the rebuilt bundle; verify all 102 paths by digest on both hostnames. The window between the two deploys serves the Chutes Worker behind the old opt-in client, which is conservative (live stays off until a visitor enables it) but shows the old OpenAI-era disclosure text; keep it short.",
-    "candidate_2026_09_30_1": "Static assets only, like 2026-09-24.1: rebuild from the approved merge commit with --site-replacements website/ask-carbon/site-replacements.json and --require-complete-bundle (identity must equal 86f51385…), then `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`. Verify the two changed paths on both hostnames, /workbench/ redirecting to /ask-carbon/pilot-designer, and /api/ask-carbon/health still active. Roll back with `wrangler rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`."
+    "candidate_2026_09_30_1": "Static publish, then the owner-directed Worker activation, from DEPLOY_PACKAGE_2026_10_01.md: capture both rollback ids; re-derive the baseline with tools/fetch-live-baseline.mjs (100/100 on both hostnames); rebuild (identity must equal 86f51385…); `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`; verify with tools/verify-publication.mjs; then `wrangler deploy --config wrangler.public-release-active.toml` (Worker inputs byte-identical to the live WEB-QA-10-D1 revision 368c713e) and verify again."
   },
   "remaining_execution_inputs": [
     "None beyond the owner's byte approval: no Worker deploy and no new secret."

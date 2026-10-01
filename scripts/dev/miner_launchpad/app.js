@@ -84,6 +84,16 @@
     box.append(head); parent.append(box);
     return box;
   }
+  // Carbon holds no key: the miner's own `carbon-miner-signer` signs. Each
+  // way reaching it can fail is its own code and its own correction.
+  const SIGNER_HELP = {
+    signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY` in a terminal and leave it open",
+    signer_refused: "your signer declined the request; its terminal shows why",
+    signer_wrong_hotkey: "the signer running holds a different hotkey than this profile's registered miner",
+    signer_timeout: "your signer did not answer in time. Check its terminal",
+    signer_invalid_signature: "your signer returned a signature that does not verify for this hotkey",
+    signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
+  };
   async function api(path, body, key, timeout = 5000) {
     const headers = {Authorization: "Bearer " + token};
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -95,7 +105,8 @@
     });
     const result = await response.json();
     if (!response.ok) {
-      const error = new Error(result.error || "request_failed");
+      const code = result.error || "request_failed";
+      const error = new Error(SIGNER_HELP[code] ? code + ": " + SIGNER_HELP[code] : code);
       error.status = response.status;
       // A setup refusal names its field and, when there is one, the next step.
       error.field = result.field || null;

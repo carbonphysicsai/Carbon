@@ -1,0 +1,1270 @@
+{
+ "authority": "OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01) section 6.1",
+ "catalog_version": "carbon.burgers-autoresearch-recipes.v1",
+ "challenge": "burgers-dynamics-v1",
+ "contract_digest": "sha256:2bf309ed9fe84072ba506cc7eda1a2547ab3174ce95af24cb782b5c24f2a9b3f",
+ "contract_document": {
+  "capabilities": [
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.fno",
+    "lab_kind": "fno1d",
+    "realizes": [],
+    "selector": "fno",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.deeponet",
+    "lab_kind": "deeponet1d",
+    "realizes": [],
+    "selector": "deeponet",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.transolver",
+    "lab_kind": "physics_attention1d",
+    "realizes": [],
+    "selector": "transolver",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.haar_operator",
+    "lab_kind": "haar_operator1d",
+    "realizes": [],
+    "selector": "haar_operator",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.gno",
+    "lab_kind": "gno1d",
+    "realizes": [],
+    "selector": "gno",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.gino",
+    "lab_kind": "gino1d",
+    "realizes": [],
+    "selector": "gino",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "batching.steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     2,
+     1000000,
+     512
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "architecture.width",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     2,
+     128,
+     24
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "fno",
+     "transolver",
+     "haar_operator",
+     "gno",
+     "gino"
+    ],
+    "blocker": "none",
+    "id": "architecture.depth",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     8,
+     2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "fno",
+     "gino"
+    ],
+    "blocker": "none",
+    "id": "architecture.n_modes",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     2,
+     64,
+     16
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.branch_points",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     2,
+     64,
+     32
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "transolver"
+    ],
+    "blocker": "none",
+    "id": "architecture.heads",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     16,
+     2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "transolver"
+    ],
+    "blocker": "none",
+    "id": "architecture.slices",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     64,
+     4
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "transolver"
+    ],
+    "blocker": "none",
+    "id": "architecture.expansion",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     8,
+     2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "haar_operator"
+    ],
+    "blocker": "none",
+    "id": "architecture.wavelet_levels",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     6,
+     2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "gno",
+     "gino"
+    ],
+    "blocker": "none",
+    "id": "architecture.neighborhood_radius",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "float",
+     0.015625,
+     0.5,
+     0.2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "gino"
+    ],
+    "blocker": "none",
+    "id": "architecture.latent_points",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     2,
+     64,
+     12
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "fno",
+     "transolver",
+     "haar_operator",
+     "gno",
+     "gino"
+    ],
+    "blocker": "none",
+    "id": "architecture.remat",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "bool",
+     null,
+     null,
+     false
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "physical_structure.hard_initial_condition",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "task",
+     "bool",
+     null,
+     null,
+     true
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "physical_structure.enforce_mean",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "task",
+     "bool",
+     null,
+     null,
+     true
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "batching.batch_size",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     1,
+     64,
+     8
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "batching.microbatches",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     1,
+     8,
+     1
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.learning_rate",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     1e-06,
+     0.05,
+     0.002
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "schedule.min_learning_rate_ratio",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     1.0,
+     0.1
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "schedule.warmup_steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     0,
+     100000,
+     0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.weight_decay",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.1,
+     0.0001
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.clip_norm",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.001,
+     100.0,
+     1.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.beta1",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.9999,
+     0.9
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.beta2",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.99999,
+     0.999
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "optimizer.adam_epsilon",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     1e-12,
+     0.01,
+     1e-08
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "inference.ema_decay",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.99999,
+     0.99
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "objective.relative_loss",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "bool",
+     null,
+     null,
+     false
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "objective.h1_weight",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "objective.pde_weight",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "stages.physics_warmup_steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     0,
+     100000,
+     0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "inference.inference_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "params",
+      "ema"
+     ],
+     null,
+     "params"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.weight_decay_mask",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.lion",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.lamb",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.adafactor",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.radam",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.nadamw",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.sgd_momentum",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.muon",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.prodigy",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.schedule_free",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.sam",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.constant",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.piecewise",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.exponential",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.one_cycle",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.sgdr",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.polynomial",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "schedule.train_loss_plateau",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "inference.weight_averaging",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "inference.ensembles",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "objective.spectral_weighting",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "objective.time_weighting",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "objective.sobolev",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "stages.explicit_stages",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.activation_normalization_init",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.deeponet_depth",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.foundax_deeponet",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.foundax_fno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.unet1d",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.mgno1d",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.pointnet",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.gnot",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.cgptno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.moegptno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.geofno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.pcno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "prediction.rollout",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "training_data.curriculum",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "training_data.hard_example_sampling",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "training_data.exact_symmetry_augmentation",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "physical_structure.structure_layers",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "hybrid.candidate_solver_template",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "hybrid.symbolic_template",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "training_data.case_count_and_resolution",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "new_comparison_or_resource_regime"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "training_data.label_method",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "training_data.support_leaving_augmentation",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "new_comparison_or_resource_regime"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "hybrid.reference_solver_reuse",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "inference.precision",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "new_comparison_or_resource_regime"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "model_family.two_and_three_dimensional",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "authority_boundary_widening"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "model_family.pytorch_backend",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "authority_boundary_widening"
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "model_family.julia_backend",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "authority_boundary_widening"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "model_family.pretrained_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "training_data.submitted_datasets",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "objective.loss_expressions",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "hybrid.composition_graphs",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "inference.final_label_selection",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   }
+  ],
+  "catalog_version": "carbon.burgers-autoresearch-recipes.v1",
+  "challenge": {
+   "id": "burgers-dynamics-v1",
+   "version": "1.0"
+  },
+  "envelope": {
+   "precision": "float32",
+   "worker_cpu": 2,
+   "worker_deadline_seconds": 600,
+   "worker_memory_bytes": 4294967296,
+   "worker_swap_bytes": 0
+  },
+  "identity": "carbon.burgers-autoresearch-development.v1",
+  "lanes": {
+   "gpu_diagnostic": [
+    "fno",
+    "deeponet",
+    "transolver",
+    "haar_operator",
+    "gno",
+    "gino"
+   ],
+   "session": [
+    "fno",
+    "deeponet"
+   ]
+  },
+  "registry_schema": "carbon.construction-capability-registry.v1",
+  "schema": "carbon.challenge-construction-contract.v1"
+ },
+ "contract_identity": "carbon.burgers-autoresearch-development.v1",
+ "contract_version": "1.0",
+ "recorded_on": "2026-10-01",
+ "schema": "carbon.construction-expansion-record.v1",
+ "sequence": 0,
+ "what": "Baseline at the 1 October 2026 amendment: the Burgers construction contract as it stood when expansion stopped needing advance review. Later records are diffed against this."
+}
