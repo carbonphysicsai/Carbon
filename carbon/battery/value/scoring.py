@@ -38,6 +38,7 @@ from carbon.scoring.weight_profile import WeightProfileError, combine, parse
 from .. import exam
 from ..calibration import SHAPES, frozen_calibration
 from ..challenge import PublicMaterial
+from . import decision as d
 
 SCORING_REFERENCES = (
     "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/"
@@ -83,16 +84,64 @@ def batches(case_ids):
     return out
 
 
-def components(predictions, case_ids, store):
-    """A member's exam components on the scoring set."""
+def components(predictions, case_ids, store, contract=None):
+    """A member's exam components on the scoring set; with a contract that
+    declares decision-aware profiles, also its decision agreement."""
     _rows, agg = exam.evaluate(predictions, case_ids, store)
-    return {
+    out = {
         "eligible": bool(agg["eligible"]),
         "gate_failures": sorted(agg["gate_failures"]),
         "E": None if agg["score"] is None else float(agg["score"]),
         "E_important": (
             None if agg["important_score"] is None else float(agg["important_score"])
         ),
+    }
+    if contract is not None and contract["scoring_candidates"].get(
+        "decision_aware_profiles"
+    ):
+        out["decision"] = decision_agreement(contract, predictions, case_ids, store)
+    return out
+
+
+def decision_agreement(contract, predictions, case_ids, store):
+    """Does the model make the contract's constraint calls correctly?
+
+    For every scoring-set case and every contract constraint, the model's
+    call (PASS or FAIL, from its own predictions, no band) is compared with
+    the reference's (with the contract's uncertainty bands; an UNRESOLVED
+    reference call is excluded, never forced). A false acceptance (model
+    PASS, reference FAIL) costs the contract's `false_acceptance`; a false
+    rejection costs its `missed_opportunity`. The component is
+    1/(1 + mean cost per resolved call), in (0, 1]. No new number is chosen
+    here: the constraints, bands and costs are the contract's.
+    """
+    bands = contract["reference"]["uncertainty"]["bands"]
+    costs = contract["mistake_costs"]
+    total = calls = false_acceptances = false_rejections = 0
+    for case_id in case_ids:
+        outputs = predictions.get(case_id)
+        reference = store.refs[case_id].get("outputs")
+        if outputs is None or reference is None:
+            return None
+        said = d.check(contract, d.measure(contract, outputs))
+        truth = d.check(contract, d.measure(contract, reference), bands)
+        for constraint, verdict in truth.items():
+            if verdict == d.UNRESOLVED:
+                continue
+            calls += 1
+            if said[constraint] == d.PASS and verdict == d.FAIL:
+                false_acceptances += 1
+                total += costs["false_acceptance"]
+            elif said[constraint] == d.FAIL and verdict == d.PASS:
+                false_rejections += 1
+                total += costs["missed_opportunity"]
+    if calls == 0:
+        return None
+    return {
+        "score": 1.0 / (1.0 + total / calls),
+        "calls": calls,
+        "false_acceptances": false_acceptances,
+        "false_rejections": false_rejections,
     }
 
 
@@ -112,15 +161,31 @@ def rule_scores(contract, component):
         ),
         "accuracy": None if component["E"] is None else 1.0 / (1.0 + component["E"]),
     }
-    for document in contract["scoring_candidates"]["weight_profiles"]:
-        profile = parse(document)
-        if not component["eligible"]:
-            out[profile.profile_id] = 0.0  # gates are never rescued by weights
-            continue
-        try:
-            out[profile.profile_id] = combine(profile, legs)
-        except WeightProfileError as refused:
-            out[profile.profile_id] = "NOT_MEASURABLE:" + refused.code
+    decision = component.get("decision")
+    decision_legs = {
+        **legs,
+        # Decision-aware profiles: the robustness leg is the decision
+        # agreement instead of the important-region error (a separate
+        # experimental factor; the weights keep their meaning).
+        "robustness": None if decision is None else decision["score"],
+    }
+    families = (
+        (contract["scoring_candidates"]["weight_profiles"], legs),
+        (
+            contract["scoring_candidates"].get("decision_aware_profiles", []),
+            decision_legs,
+        ),
+    )
+    for documents, measured in families:
+        for document in documents:
+            profile = parse(document)
+            if not component["eligible"]:
+                out[profile.profile_id] = 0.0  # gates are never rescued by weights
+                continue
+            try:
+                out[profile.profile_id] = combine(profile, measured)
+            except WeightProfileError as refused:
+                out[profile.profile_id] = "NOT_MEASURABLE:" + refused.code
     return out
 
 

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "BATTERY-EV2-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Second engineering-value experiment (EV2), off-chain public synthetic DEVELOPMENT evidence, pre-registered on 2026-09-29 before any solve (contract sha256:18770910...). It fixes EV1's design problems: a wider frozen design set and fresh grid conditions, so 6 of 8 verification conditions now have a feasible protocol. It also tests a decision-aware robustness component built only from the contract's constraints, bands and costs: cost-weighted PASS/FAIL agreement with the reference, where a false acceptance costs 10 and a false rejection 1. Run of 2026-10-01: 560 pinned-PyBaMM references and 15 reconstructed members plus EV1's five controls. H2 PASS: every decision-aware profile ranks the boundary-optimist control below all 14 eligible members, while the current testnet rule ranks it at or above all 14, as in EV1. H1: every measurable rule has a positive verification Kendall tau (0.20 to 0.32), but the development-chosen decision-aware rule (0.202) does not beat the current rule (0.298); indicative only, and verification losses barely separate members. No testnet rule, reward, chain action or spend changes; adopting the component needs its own prospective owner decision. Evidence is in docs/development/evidence/ev2-2026-10-01.",
+  "primary_detail": "docs/development/BATTERY_ENGINEERING_VALUE_EV2.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-01T00:41:10Z"
+}

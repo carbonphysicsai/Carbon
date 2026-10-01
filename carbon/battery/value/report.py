@@ -1,4 +1,4 @@
-"""A readable owner report of an EV1 results document."""
+"""A readable owner report of an engineering-value results document."""
 
 from __future__ import annotations
 
@@ -11,10 +11,12 @@ def _f(value, digits=3):
     return f"{value:.{digits}f}"
 
 
-def render(results):
+def render(results, experiment="EV1"):
+    """`experiment` titles the report: the contract's case prefix, so an EV2
+    report is never headed EV1."""
     summary = results["summary"]
     lines = [
-        "# EV1: does Carbon's scoring prefer models that make better engineering decisions?",
+        f"# {experiment}: does Carbon's scoring prefer models that make better engineering decisions?",
         "",
         (
             "Public synthetic DEVELOPMENT evidence. It changes no testnet rule and "
@@ -74,6 +76,29 @@ def render(results):
             f"| {_f(row['tau_development'])} | {_f(row['tau_verification'])} "
             f"| {_f(row['tau_development_with_controls'])} | {top} |"
         )
+    check = summary.get("boundary_optimist_check")
+    if check:
+        lines += [
+            "",
+            "## Does each rule rank the boundary-optimist control below every eligible model?",
+            "",
+            (
+                "The control is accurate almost everywhere and optimistic exactly "
+                "near the plating and temperature limits, so it tends to select "
+                "unsafe protocols."
+            ),
+            "",
+            "| Rule | Below every eligible member | Members scored at or below it |",
+            "|---|---|---|",
+        ]
+        for rule, row in check.items():
+            if row is None:
+                lines.append(f"| {rule} | not measurable | — |")
+            else:
+                lines.append(
+                    f"| {rule} | {'yes' if row['below_every_eligible_member'] else 'no'} "
+                    f"| {row['members_scored_below_it']} of {row['eligible_members']} |"
+                )
     lines += [
         "",
         "## Members",

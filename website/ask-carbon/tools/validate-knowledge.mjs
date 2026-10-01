@@ -37,6 +37,17 @@ export const EXPIRY_WARN_DAYS = 30;
 export const EXPIRY_FAIL_DAYS = 7;
 const DAY_MS = 86_400_000;
 
+// Wall-clock findings: they say the committed content has aged, not that a
+// change is wrong. Per-PR CI reports them as warnings unless the PR edits the
+// knowledge; the scheduled freshness check keeps them errors.
+const isTimeFinding = (code, knowledge) => {
+  if (/_expires_within_\d+d(:|$)/.test(code)) return true;
+  if (code === "release_expired_or_invalid") return Number.isFinite(Date.parse(knowledge.release?.expires_at));
+  const [name, id] = code.split(":");
+  if (name !== "card_expired_or_invalid") return false;
+  return Number.isFinite(Date.parse(knowledge.cards?.find((card) => card.id === id)?.expires_at));
+};
+
 // Returns the finding for one expiry, or null when it is outside both windows.
 // An expired or unreadable expiry is not handled here: the release contract
 // already reports it, and a card's is reported by the caller.
@@ -48,7 +59,7 @@ const expiryFinding = (expiresAt, nowMs) => {
   return null;
 };
 
-export const validateKnowledge = async (knowledge, { mode = "staging", now = new Date(), checkSourceBytes = true } = {}) => {
+export const validateKnowledge = async (knowledge, { mode = "staging", now = new Date(), checkSourceBytes = true, timeFindings = "error" } = {}) => {
   const release = evaluateRelease(knowledge, { mode, now });
   const errors = [...release.reasons];
   const warnings = [];
@@ -105,6 +116,13 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
       knowledge.candidate_review?.candidate_cards_received !== 31 || knowledge.candidate_review?.disposition !== "RECONCILED_AS_DRAFT_INPUT_NOT_COUNT_TARGET") {
     errors.push("candidate_review_provenance_invalid");
   }
+  if (timeFindings === "warning") {
+    for (const code of [...errors]) {
+      if (!isTimeFinding(code, knowledge)) continue;
+      errors.splice(errors.indexOf(code), 1);
+      warnings.push(code);
+    }
+  } else if (timeFindings !== "error") errors.push("invalid_time_findings_mode");
   return {
     valid: errors.length === 0,
     mode,
@@ -124,7 +142,8 @@ const main = async () => {
   const mode = args.includes("--production") ? "production" : "staging";
   const pathArgument = args.find((argument) => !argument.startsWith("--"));
   const knowledge = JSON.parse(await readFile(resolve(pathArgument ?? DEFAULT_PATH), "utf8"));
-  const result = await validateKnowledge(knowledge, { mode });
+  const timeFindings = args.includes("--time-findings-as-warnings") ? "warning" : "error";
+  const result = await validateKnowledge(knowledge, { mode, timeFindings });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.valid) process.exitCode = 1;
 };
