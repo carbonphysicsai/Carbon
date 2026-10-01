@@ -1,26 +1,24 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
-  "candidate_id": "ask-carbon-public-release-2026-09-26.1",
-  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
-  "status_note": "Approved under WEB-QA-09-D1 (2026-09-26); NOT deployed. Deployment is the owner's act from a host holding the Cloudflare credential, following OPERATIONS.md (Worker first, then static), after re-capturing both rollback versions.",
+  "candidate_id": "ask-carbon-public-release-2026-09-30.1",
+  "status": "BUILT_AWAITING_OWNER_APPROVAL_OF_EXACT_BUNDLE",
+  "status_note": "Built and certified on 2026-09-30 (bundle 86f51385…, 105 files). The owner approved the release in principle before its digests existed; approval of this exact bundle identity is still required (WEB-QA-11-D1). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential: static only, carbonwebsite, after re-confirming the live version is dc4469a7.",
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
-    "decision": "WEB-QA-09-D1",
-    "recorded_at": "2026-09-26",
+    "decision": "WEB-QA-11-D1",
+    "recorded_at": "2026-09-30",
     "source": ".agent/DECISIONS.md",
-    "approval_basis": "OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1",
-    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
-    "approved_by": "Ryan Bequette (named production incident owner under WEB-QA-05-D2), in session",
-    "scope": "switch the ask-carbon-public Worker's provider from OpenAI (gpt-5.6-luna:low:v1) to Chutes (gemma-4-31b-turbo-tee:v1, google/gemma-4-31B-turbo-TEE); replace the visitor notice with notice version ask-carbon-notice-v2-2026-09-26; make live AI answers default-on in the Q&A panel only (the Pilot Designer's AI guidance stays opt-in); everything else unchanged; inquiry collection disabled; the Pilot Designer disclosure update from client-intake PR #373 ships with it",
+    "state": "APPROVED_IN_PRINCIPLE_AWAITING_EXACT_BUNDLE",
+    "approval_in_principle": "The owner, in the Workbench session on 2026-09-30: \"Approve 1, how can I do #2\", where item 1 was the Ask Carbon release carrying the new Pilot Designer and replacing /workbench/ with a redirect page. Relayed to the Ask Carbon lane by that session; given before the bundle existed.",
+    "required": "The owner's approval of bundle identity 86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a. A rebuild with a different identity is not the approved artifact.",
     "attaches_to": {
-      "bundle_identity_sha256": "2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
+      "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
       "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
-      "worker_source_revision": "178a45f9d25d08a5257e03f6d1cf62ad50a8bd8e",
-      "notice_sha256": "92ee9254b8adc71fb4aff9baef993c2f40336dcb38cc9be0adf3be88daa43c87",
-      "rollback_target_version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc (content-identity inference; re-capture with wrangler before deploying)"
-    },
-    "note": "Approval attaches to the exact digests above. A rebuild producing a different bundle identity is not the accepted artifact and requires a fresh decision. The knowledge record's approval_basis is unchanged: this candidate changes no card, passage or source."
+      "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
+      "workbench_index_html_sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+      "rollback_target_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc (captured by the owner with wrangler on 2026-09-30)"
+    }
   },
   "owner_authorization_superseded_2026_09_24": {
     "decision": "WEB-QA-08-D1",
@@ -94,7 +92,7 @@
     "scope": "the 27 reviewed answer cards and 9 pinned sources in ask-carbon-release-candidate-2026-09-18.2, approved for public display",
     "note": "Content approval is distinct from the activation authorization above. WEB-QA-05-D2 authorized activating the release; this records that the answers themselves are approved to be shown to the public. Both were required because the release contract gates on the knowledge record as well as the Worker flag."
   },
-  "runtime_implementation_revision": "this candidate's PR merge commit (the Worker changes: worker/providers.mjs added; models.mjs, index.mjs, core.mjs changed)",
+  "runtime_implementation_revision": "unchanged: ask-carbon-public is not redeployed in this candidate; the deployed Worker is the WEB-QA-10-D1 one",
   "runtime_implementation_revision_superseded": "dd952529ad2906b8ba0f1dc6ab06d8ae338d66f0",
   "knowledge": {
     "version": "ask-carbon-release-candidate-2026-09-18.2",
@@ -171,7 +169,7 @@
     "approved_under": "WEB-QA-09-D1 (2026-09-26)"
   },
   "static_integration": {
-    "source_authority": "REDESIGNED_SITE_BUILD_DIRECTORY_2026_09_22 (carbon-site-upload-v2.zip); the build directory is the reviewed source and needs no owner-upload reconciliation",
+    "source_authority": "BASELINE_MANIFEST_V3_RE_DERIVED_FROM_LIVE_2026_09_30: all 100 manifest paths fetched from both hostnames matched manifest v3 by SHA-256 after removing the edge-injected challenge script and analytics beacon; index.html recovered from the live integrated homepage by removing the two integration blocks, reproducing the reviewed source 99be1318…",
     "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
     "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
     "reconciliation_id": null,
@@ -180,15 +178,49 @@
     "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4",
     "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
-    "pilot_html_sha256": "4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd",
+    "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
     "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329",
-    "pilot_html_sha256_note": "Client-intake lane PR #373 (merged 2026-09-26T16:48Z) makes the Pilot Designer's AI disclosure name Chutes and google/gemma-4-31B-turbo-TEE, records provider CHUTES_API with notice_version carbon.ask-guidance.notice.v2-2026-09-26, and widens the validator/schema to OPENAI_API | CHUTES_API so earlier packages still validate. Guidance stays opt-in and the sent fields are unchanged. Also carries GOAL-WORKBENCH-15 decisions 1 and 2 (encrypted download fingerprint 5a38 c3ea bbd2 dd56 ce57 d3e1 f2c5 b1f1 6cd5 c1e0 f5bc 62a8 bb62 9699 8eec 5c18). Superseded value 3de37b43… is what live serves.",
-    "bundle_identity_sha256": "2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
-    "staged_file_count": 102,
-    "build_certified_utc": "2026-09-26",
-    "build_certification_note": "Built with Node 24.19.0 (the CI-pinned version, official node:24.19.0-bookworm-slim image; no Node exists on the building host) using --require-complete-bundle. The carbon-site-upload-v2.zip archive was not available on the host, so the 97-path --existing-site baseline was re-derived from live: 96 paths fetched from both hostnames matched production-baseline.manifest.json by SHA-256, and index.html was recovered by removing the two known integration blocks from the live integrated homepage b1e8e7cd…, which reproduced the reviewed source 99be1318… exactly. As a control, rebuilding main (9428c8c2f) against that baseline reproduced the deployed bundle identity c973a2ea… exactly. The tool reported baseline_inventory_complete, baseline_assets_preserved, rollback_target_captured and deployable_to_carbonwebsite true, release_authorized false.",
-    "knowledge_json_sha256": "d937e9cabb1b39003bfd00bc14665ab90c5ba59c2e70729fdd46476e9da30804",
+    "pilot_html_sha256_note": "GOAL-WORKBENCH-16 Pilot Designer (Workbench lane #448, #449, #450; final at main 1e3292a2): four modes, reviewed-package format carbon.client-intake.reviewed.v2 (v1 still validates), CSP connect-src 'self', guidance context to /api/ask-carbon unchanged. Opens all three /workbench/ save formats under Continue a saved draft. Live serves 4c9f3916… (WEB-QA-10-D1).",
+    "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+    "staged_file_count": 105,
+    "build_certified_utc": "2026-09-30",
+    "build_certification_note": "Re-derived 2026-10-01T03:05Z after merging main af5b8ac0b (#454, which changes no bundle input: the builder reads only the Pilot Designer HTML from Business/, still be64f8b9…): the 100-path baseline was re-fetched from both hostnames, matched manifest v3 100/100 on each after removing the edge-injected challenge script and analytics beacon, and index.html was recovered to 99be1318…; the build reproduced bundle 86f51385…, 105 files, and the five repository-side digests above were re-hashed from the files on disk. First built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
+    "knowledge_json_sha256": "fab55d5dca7f547d47899f29c5cf3b1b0b7ab1674e923da945feef02fd0361a0",
     "changes_against_live": {
+      "compared_utc": "2026-09-30T18:16:28.552Z",
+      "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+      "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
+      "method": "every one of the 105 staged paths fetched from both hostnames and compared by SHA-256, HTML after removing the edge-injected challenge script and analytics beacon",
+      "paths_matching": {
+        "carbonphysics.ai": "103/105",
+        "www.carbonphysics.ai": "103/105"
+      },
+      "changed_paths": [
+        "ask-carbon/pilot-designer.html",
+        "workbench/index.html"
+      ],
+      "added_paths": [],
+      "removed_paths": []
+    },
+    "component_js_sha256_superseded": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
+    "bundle_identity_sha256_superseded": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
+    "changes_against_live_2026_09_24": {
+      "compared_utc": "2026-09-24T07:10Z",
+      "live_version_id": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
+      "method": "every one of the 102 staged paths fetched from https://carbonphysics.ai and compared by SHA-256; the nine HTML pages were compared after removing the Cloudflare challenge script the edge injects into HTML responses",
+      "changed_paths": [
+        "ask-carbon/pilot-designer.html",
+        "ask-carbon/public-knowledge.v1.json"
+      ],
+      "identical_paths": 100,
+      "added_paths": [],
+      "removed_paths": []
+    },
+    "pilot_html_sha256_superseded": "3de37b4331234bb77f038ae65196c5c77d89879d183172abcbd0189873ae0650",
+    "bundle_identity_sha256_superseded_2026_09_26": "2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
+    "pilot_html_sha256_superseded_2026_09_29": "4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd",
+    "build_certification_note_superseded_2026_09_26": "Built with Node 24.19.0 (the CI-pinned version, official node:24.19.0-bookworm-slim image; no Node exists on the building host) using --require-complete-bundle. The carbon-site-upload-v2.zip archive was not available on the host, so the 97-path --existing-site baseline was re-derived from live: 96 paths fetched from both hostnames matched production-baseline.manifest.json by SHA-256, and index.html was recovered by removing the two known integration blocks from the live integrated homepage b1e8e7cd…, which reproduced the reviewed source 99be1318… exactly. As a control, rebuilding main (9428c8c2f) against that baseline reproduced the deployed bundle identity c973a2ea… exactly. The tool reported baseline_inventory_complete, baseline_assets_preserved, rollback_target_captured and deployable_to_carbonwebsite true, release_authorized false.",
+    "changes_against_live_superseded_2026_09_26": {
       "compared_utc": "2026-09-26T16:55Z",
       "live_bundle_identity_sha256": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
       "live_version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc (content-identity inference, not read from Cloudflare)",
@@ -211,25 +243,19 @@
       },
       "live_still_serves": "ask-carbon.js 6a098c0a… and pilot-designer.html 3de37b43…, the recorded digests of bundle c973a2ea…"
     },
-    "component_js_sha256_superseded": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
-    "bundle_identity_sha256_superseded": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
-    "changes_against_live_2026_09_24": {
-      "compared_utc": "2026-09-24T07:10Z",
-      "live_version_id": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
-      "method": "every one of the 102 staged paths fetched from https://carbonphysics.ai and compared by SHA-256; the nine HTML pages were compared after removing the Cloudflare challenge script the edge injects into HTML responses",
-      "changed_paths": [
-        "ask-carbon/pilot-designer.html",
-        "ask-carbon/public-knowledge.v1.json"
-      ],
-      "identical_paths": 100,
-      "added_paths": [],
-      "removed_paths": []
-    },
-    "pilot_html_sha256_superseded": "3de37b4331234bb77f038ae65196c5c77d89879d183172abcbd0189873ae0650"
+    "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
+    "site_replacements": [
+      {
+        "path": "workbench/index.html",
+        "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+        "replaces_baseline_sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
+        "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+      }
+    ]
   },
   "worker": {
     "name": "ask-carbon-public",
-    "redeployed_in_this_candidate": true,
+    "redeployed_in_this_candidate": false,
     "config": "wrangler.public-release-active.toml (activation enabled) ; wrangler.public-release-candidate.toml stays the fail-closed disabled config",
     "config_sha256": {
       "wrangler.public-release-active.toml": "afd003e5866bd2734a5917d6ed04bfcce522ecfaa595b60a93fb893d3b90a012",
@@ -254,7 +280,8 @@
       "ASK_CARBON_OPENAI_API_KEY (no longer read by the production config; delete after the switch is confirmed)"
     ],
     "live_state_2026_09_26": "/health on both hostnames at 2026-09-26T16:39Z: active true, reasons [], model_config_id gpt-5.6-luna:low:v1, ineligible_cards {current-progress: [expired_or_invalid]}.",
-    "worker_rollback": "Capture the current ask-carbon-public version with `wrangler deployments status --name ask-carbon-public` immediately before deploying; roll back with `wrangler rollback <that id> --name ask-carbon-public`. That version reads ASK_CARBON_OPENAI_API_KEY, so do not delete that secret until the switch is confirmed. The AskCarbonUsageLedger Durable Object is never rolled back or deleted."
+    "worker_rollback": "Capture the current ask-carbon-public version with `wrangler deployments status --name ask-carbon-public` immediately before deploying; roll back with `wrangler rollback <that id> --name ask-carbon-public`. That version reads ASK_CARBON_OPENAI_API_KEY, so do not delete that secret until the switch is confirmed. The AskCarbonUsageLedger Durable Object is never rolled back or deleted.",
+    "not_redeployed_note": "Candidate 2026-09-30.1 changes static paths only. The new Pilot Designer sends the same guidance context to /api/ask-carbon (GOAL-WORKBENCH-16), so the deployed Worker, its knowledge, activation and secrets are unchanged. worker.source_sha256 above describes the 2026-09-26.1 source."
   },
   "cloudflare": {
     "account_id": "7462053c6992b9c9fd889952a7ae0496",
@@ -296,8 +323,8 @@
   },
   "budget_note_2026_09_26": "Budget snapshot not re-read (the operator ledger endpoint is staging-only and needs an operator secret). Ceilings are unchanged: USD 50/month shared ledger, 100 requests/day, 12/client/hour, concurrency 4. Default-on live answers will raise request volume toward the daily limit; at the Chutes prices the per-request reservation falls from 5,640 to 3,139 micro-USD at the same 24,000/700 token bounds.",
   "required_before_production_mutation": [
-    "ASK_CARBON_CHUTES_API_KEY provisioned on ask-carbon-public through the Cloudflare secret mechanism before the Worker is deployed (otherwise /health fails closed with missing_ask_carbon_chutes_api_key)",
-    "Live carbonwebsite version and live ask-carbon-public version re-captured with wrangler immediately before deploying; carbonwebsite must still serve bundle c973a2ea…, or the candidate is rebuilt against the new live version"
+    "Owner approval of bundle identity 86f51385… (WEB-QA-11-D1)",
+    "Live carbonwebsite version re-confirmed as dc4469a7 with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
   ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
@@ -315,17 +342,18 @@
     "reason": "The integrated homepage fetches ${api-url}/health on load (public/ask-carbon.js). Publishing the static assets first would make every homepage visitor request a route that does not exist yet, producing 404s for the whole gap between the two deployments and making 'not deployed' indistinguishable from 'deployed and inactive' during the window the inactive verification is meant to check. Deploying the inactive Worker first means the health endpoint answers correctly from the moment the homepage ships. The Worker binds only /api/ask-carbon*, which returns 404 today, so adding it early is low-risk and reversible.",
     "supersedes": "The handoff brief's step 6 ordering, which listed carbonwebsite first.",
     "candidate_2026_09_24_1": "Static assets only. The ask-carbon-public Worker, its configuration and its activation are unchanged, so only carbonwebsite is deployed (`wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`), after re-capturing the live version. Verify the two changed paths by digest on both hostnames and /health still active afterwards.",
-    "candidate_2026_09_26_1": "Worker first, then static. Deploy ask-carbon-public with wrangler.public-release-active.toml (Chutes profile, privacy mode v2, activation enabled) after provisioning ASK_CARBON_CHUTES_API_KEY; confirm /health active:true, model_config_id gemma-4-31b-turbo-tee:v1, no reasons, current-progress eligible, on both hostnames. Then deploy carbonwebsite with the rebuilt bundle; verify all 102 paths by digest on both hostnames. The window between the two deploys serves the Chutes Worker behind the old opt-in client, which is conservative (live stays off until a visitor enables it) but shows the old OpenAI-era disclosure text; keep it short."
+    "candidate_2026_09_26_1": "Worker first, then static. Deploy ask-carbon-public with wrangler.public-release-active.toml (Chutes profile, privacy mode v2, activation enabled) after provisioning ASK_CARBON_CHUTES_API_KEY; confirm /health active:true, model_config_id gemma-4-31b-turbo-tee:v1, no reasons, current-progress eligible, on both hostnames. Then deploy carbonwebsite with the rebuilt bundle; verify all 102 paths by digest on both hostnames. The window between the two deploys serves the Chutes Worker behind the old opt-in client, which is conservative (live stays off until a visitor enables it) but shows the old OpenAI-era disclosure text; keep it short.",
+    "candidate_2026_09_30_1": "Static assets only, like 2026-09-24.1: rebuild from the approved merge commit with --site-replacements website/ask-carbon/site-replacements.json and --require-complete-bundle (identity must equal 86f51385…), then `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`. Verify the two changed paths on both hostnames, /workbench/ redirecting to /ask-carbon/pilot-designer, and /api/ask-carbon/health still active. Roll back with `wrangler rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`."
   },
   "remaining_execution_inputs": [
-    "ASK_CARBON_CHUTES_API_KEY as a Cloudflare secret on ask-carbon-public (the local key file is not a deployment mechanism and was never read into any artifact)"
+    "None beyond the owner's byte approval: no Worker deploy and no new secret."
   ],
   "execution_inputs_satisfied": {
     "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",
     "Pinned deployment tool": "Wrangler 4.134.0, installed outside the repository and outside the public asset tree."
   },
-  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-24.1",
-  "change_note": "Candidate 2026-09-26.1 switches the answer provider to Chutes, replaces the visitor notice, and makes live AI answers default-on in the Q&A panel only. Static: exactly two shipped paths change (ask-carbon/ask-carbon.js, and ask-carbon/pilot-designer.html from client-intake PR #373, whose disclosure now names Chutes). Worker: ask-carbon-public is redeployed with the provider adapter, the Chutes profile and privacy mode, and the current knowledge embedded. Knowledge, budget, ceilings, activation, Pilot Designer opt-in and inquiry collection are unchanged.",
+  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-26.1",
+  "change_note": "Candidate 2026-09-30.1 ships the GOAL-WORKBENCH-16 Pilot Designer (main 1e3292a2, #448-#450: guided conversation, form, Your system, Proposed Challenge) and retires /workbench/ with a page that points to the Pilot Designer and redirects there after five seconds. Static only: exactly two paths change against live (ask-carbon/pilot-designer.html, workbench/index.html); the other 103 are byte-identical on both hostnames. The other workbench/ files stay so saved drafts and bookmarks keep working. Worker, knowledge (fab55d5d…), budget, ceilings, activation, Pilot Designer AI opt-in and inquiry collection are unchanged.",
   "superseded_candidate_2026_09_24_1": {
     "candidate_id": "ask-carbon-public-release-2026-09-24.1",
     "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
@@ -351,5 +379,55 @@
       }
     },
     "rebaseline_note_2026_09_22_1": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
-  }
+  },
+  "superseded_candidate_2026_09_26_1": {
+    "candidate_id": "ask-carbon-public-release-2026-09-26.1",
+    "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
+    "status_note": "Approved under WEB-QA-09-D1 (2026-09-26); NOT deployed. Deployment is the owner's act from a host holding the Cloudflare credential, following OPERATIONS.md (Worker first, then static), after re-capturing both rollback versions.",
+    "change_note": "Candidate 2026-09-26.1 switches the answer provider to Chutes, replaces the visitor notice, and makes live AI answers default-on in the Q&A panel only. Static: exactly two shipped paths change (ask-carbon/ask-carbon.js, and ask-carbon/pilot-designer.html from client-intake PR #373, whose disclosure now names Chutes). Worker: ask-carbon-public is redeployed with the provider adapter, the Chutes profile and privacy mode, and the current knowledge embedded. Knowledge, budget, ceilings, activation, Pilot Designer opt-in and inquiry collection are unchanged.",
+    "owner_authorization": {
+      "decision": "WEB-QA-09-D1",
+      "recorded_at": "2026-09-26",
+      "source": ".agent/DECISIONS.md",
+      "approval_basis": "OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1",
+      "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+      "approved_by": "Ryan Bequette (named production incident owner under WEB-QA-05-D2), in session",
+      "scope": "switch the ask-carbon-public Worker's provider from OpenAI (gpt-5.6-luna:low:v1) to Chutes (gemma-4-31b-turbo-tee:v1, google/gemma-4-31B-turbo-TEE); replace the visitor notice with notice version ask-carbon-notice-v2-2026-09-26; make live AI answers default-on in the Q&A panel only (the Pilot Designer's AI guidance stays opt-in); everything else unchanged; inquiry collection disabled; the Pilot Designer disclosure update from client-intake PR #373 ships with it",
+      "attaches_to": {
+        "bundle_identity_sha256": "2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
+        "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+        "worker_source_revision": "178a45f9d25d08a5257e03f6d1cf62ad50a8bd8e",
+        "notice_sha256": "92ee9254b8adc71fb4aff9baef993c2f40336dcb38cc9be0adf3be88daa43c87",
+        "rollback_target_version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc (content-identity inference; re-capture with wrangler before deploying)"
+      },
+      "note": "Approval attaches to the exact digests above. A rebuild producing a different bundle identity is not the accepted artifact and requires a fresh decision. The knowledge record's approval_basis is unchanged: this candidate changes no card, passage or source."
+    },
+    "runtime_implementation_revision": "this candidate's PR merge commit (the Worker changes: worker/providers.mjs added; models.mjs, index.mjs, core.mjs changed)",
+    "deployment": "Deployed 2026-09-29 under WEB-QA-10-D1 as rebuilt bundle 48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085 (knowledge refreshed to fab55d5d…), carbonwebsite version dc4469a7-f4da-4437-aaa1-2789277e57fc, by Nick Fitzpatrick; ask-carbon-public activated. The 2fe8eba2… identity recorded under WEB-QA-09-D1 was superseded by that rebuild and never deployed."
+  },
+  "owner_authorization_superseded_2026_09_26": {
+    "decision": "WEB-QA-09-D1",
+    "recorded_at": "2026-09-26",
+    "source": ".agent/DECISIONS.md",
+    "approval_basis": "OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1",
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "approved_by": "Ryan Bequette (named production incident owner under WEB-QA-05-D2), in session",
+    "scope": "switch the ask-carbon-public Worker's provider from OpenAI (gpt-5.6-luna:low:v1) to Chutes (gemma-4-31b-turbo-tee:v1, google/gemma-4-31B-turbo-TEE); replace the visitor notice with notice version ask-carbon-notice-v2-2026-09-26; make live AI answers default-on in the Q&A panel only (the Pilot Designer's AI guidance stays opt-in); everything else unchanged; inquiry collection disabled; the Pilot Designer disclosure update from client-intake PR #373 ships with it",
+    "attaches_to": {
+      "bundle_identity_sha256": "2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
+      "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+      "worker_source_revision": "178a45f9d25d08a5257e03f6d1cf62ad50a8bd8e",
+      "notice_sha256": "92ee9254b8adc71fb4aff9baef993c2f40336dcb38cc9be0adf3be88daa43c87",
+      "rollback_target_version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc (content-identity inference; re-capture with wrangler before deploying)"
+    },
+    "note": "Approval attaches to the exact digests above. A rebuild producing a different bundle identity is not the accepted artifact and requires a fresh decision. The knowledge record's approval_basis is unchanged: this candidate changes no card, passage or source."
+  },
+  "runtime_implementation_revision_superseded_2026_09_26": "this candidate's PR merge commit (the Worker changes: worker/providers.mjs added; models.mjs, index.mjs, core.mjs changed)",
+  "required_before_production_mutation_superseded_2026_09_26": [
+    "ASK_CARBON_CHUTES_API_KEY provisioned on ask-carbon-public through the Cloudflare secret mechanism before the Worker is deployed (otherwise /health fails closed with missing_ask_carbon_chutes_api_key)",
+    "Live carbonwebsite version and live ask-carbon-public version re-captured with wrangler immediately before deploying; carbonwebsite must still serve bundle c973a2ea…, or the candidate is rebuilt against the new live version"
+  ],
+  "remaining_execution_inputs_superseded_2026_09_26": [
+    "ASK_CARBON_CHUTES_API_KEY as a Cloudflare secret on ask-carbon-public (the local key file is not a deployment mechanism and was never read into any artifact)"
+  ]
 }
