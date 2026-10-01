@@ -221,6 +221,14 @@ def describe(status, answer):
             f"Submitted as {answer['submission_id']}. Ask for its status in a "
             "few minutes; rebuilding and scoring take several."
         )
+    if state == "SCORED" and "screening" not in answer:
+        return (
+            "Scored. Under this exam rule its results are sealed: they are "
+            "computed on hidden cases, and only Carbon and the validators see "
+            "them until Carbon releases those cases to the training data. Your "
+            "practice results on public data are unaffected. Development "
+            "evidence only: no reward, not a qualification."
+        )
     if state == "SCORED":
         s = answer["screening"]
         if not s["eligible"]:

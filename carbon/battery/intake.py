@@ -490,7 +490,7 @@ class BatteryIntake:
 
     def _rule_facts(self, block):
         """What a miner needs to know to submit at the right time."""
-        from .exam import hotkey_window
+        from .exam import disclosure, hotkey_window
 
         per = None if self.rule is None else self.rule.get("per_hotkey")
         if per is None:
@@ -501,6 +501,7 @@ class BatteryIntake:
             "rotation": self.rule.get("rotation"),
             "current_window": {"start_block": start, "end_block": end},
             "block_time_s": BLOCK_S,
+            "results": disclosure(self.rule),
         }
 
     def handle(self, method, path, headers, body, peer):

@@ -16716,6 +16716,120 @@ match that? 3. APPROVE".
 `transaction_authorization` null, testnet 567 only, OD-5's ceiling, and every
 scientific, security and qualification state.
 
+## 2026-10-01 — OWNER-CHALLENGE-ADMISSION-01 (amended): expand freely, escalate on a finding; an internal development protocol, never mainnet
+
+**Authority.** The owner, 1 October 2026, amending the 30 September direction
+carried in #458 (unmerged). This record replaces that wording. The amendment
+is not a relaxation: it **moves review from every change to every finding**,
+and adds an instrument that produces findings. Sections keep the owner's
+numbering (§2 to §7).
+
+**§2. Scope, the most important clause.** In the owner's words: "NONE of this
+happens on mainnet. We are doing this for internal test purposes and we can
+archive results but miners only see the final optimized version. If we
+iterate mainnet that's a different rule we have to decide later but isn't
+relevant to this."
+- **§2.1** It is an **internal development protocol**. It is not a
+  miner-facing rule, not a public commitment and **not a scientific
+  qualification gate**. Nobody may later cite it as evidence that a Challenge
+  is qualified.
+- **§2.2** **Miners see only the final optimized version.** Intermediate
+  permission states, failed expansions and abandoned scoring rules are
+  internal.
+- **§2.3** **Results may be archived** and keep their meaning under the rule
+  and permissions they were produced with (invariant 10).
+- **§2.4** **Mainnet iteration is a separate, undecided rule.** Nothing here
+  anticipates it, and nothing in this protocol transfers to mainnet by
+  default.
+- Because of §2.2 there is no retroactive-scoring problem. Permissions may be
+  widened and later locked without revoking anyone's standing, since no
+  external miner competed under the wider state.
+
+**§3. Track A, construction integrity: expand freely, escalate on a finding.**
+- **§3.1** Permission expansion proceeds **without per-change review**.
+- **§3.2** **An attack vector**, in the owner's words, is "anything that
+  scored high and produced a poorly performing model... also failing triggers
+  and whatnot. Anything like that needs investigated."
+  - The detector is **score-value divergence:** a high score beside a poor
+    model.
+  - It is implemented as a measurable condition a run emits, not as
+    something a person concludes afterwards.
+  - Failing triggers, gate anomalies and equivalent signals are included.
+  - **When in doubt, it fires:** a false escalation costs a review, and a
+    missed one costs the exam's credibility.
+- **§3.3** **On a finding, escalate.** Stop widening, review the state
+  reached, then decide and lock a final state. The review is of where the
+  expansion got to, not of the individual change that triggered it.
+- **§3.4** **EV2 already proved this detector fires.** The boundary-optimist
+  control scored at or above all 14 eligible members while being wrong where
+  safety matters. That is §3.2's condition, and it is the worked example.
+
+**§4. Track B, engineering value: two review levels.**
+- **§4.1** **Executive review, on a standing cadence.** In the owner's
+  words: "a high level review of results that are human readable and
+  sharable with engineering teams and our community with an option to dive
+  into details."
+  - Shareable is a hard requirement. Every claim carries its basis, nothing
+    is stated above its maturity, and no number appears without what
+    produced it.
+  - It is layered: a readable top, with the detail reachable beneath.
+- **§4.2** **Full review at three conditions, and only these:**
+  - **Stuck:** three consecutive studies with no progress. The owner
+    delegated N, and three is the recommendation. Progress is movement of
+    the score-to-value ratio toward 1:1, beyond its own noise. The noise band
+    is defined before the first stale run is counted.
+  - **Winning:** "approaching 1:1 with score:value". The ratio, its
+    measurement and its uncertainty are stated every time it is reported.
+    Approaching is a direction, not a threshold: no cutoff is invented, and
+    the owner decides whether it has arrived.
+  - **The owner asks:** "I can also ask for a review whenever I want." No
+    reason is required.
+- **§4.3** **Both levels report both rankings** while the decision-aware
+  component is a prospective proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01).
+  They carry #458's audit caveat: the EV panels contain gate-ineligible
+  models, unequal denominators from unresolved outcomes, and repeated seeds
+  that do not establish method diversity. The 0.202/0.298 figures do not
+  travel without that caveat.
+
+**§5. The design optimizer: build it, and it serves both tracks.** The owner
+asked for it to be built at this stage and tested on.
+- **§5.1** It is not in the admission plan today, and it is added.
+- **§5.2** It is the detector Track A needs: "Customer inverse design IS an
+  adversary: it searches for in-envelope inputs that break constraints"
+  (`Design_Specs/Specialist_Bank.md`).
+- **§5.3** It is also Track B's instrument: "this regime's winners die on
+  inverse design".
+- **§5.4** **Scope it and report before building:** what it searches, over
+  what, under which constraints, at what cost per search, and what it cannot
+  find. No population, threshold or objective is the executor's to invent.
+
+**§6. For Launchpad: what this changes.** Permission expansion no longer needs
+review in advance. Widen the construction surface as the work requires. Two
+obligations come with that freedom:
+- **§6.1** **Every expansion is recorded:** what widened, when, and under
+  which version or profile, so the state reached can be reviewed when a
+  finding escalates. An unrecorded expansion cannot be locked down
+  coherently.
+- **§6.2** **No trigger is suppressed.** If a run emits score-value
+  divergence, a failing trigger or a gate anomaly, it escalates. Not after it
+  has been explained, and not once there is a fix. The investigation is the
+  point.
+
+Nothing here reaches mainnet, and miners see only the final optimized version.
+
+**§7. What this protocol is not.** Not a scientific qualification gate, not a
+security qualification, not a public commitment, not a miner-facing rule, and
+not applicable to mainnet.
+- It does not alter the existing training-budget requirement, and B-E4 stays
+  optional.
+- Existing challenge qualification states and historical scores stand.
+- No production scientific value, threshold, score formula or deployed
+  interlock is inferred from it, and no arbitrary miner code is enabled by
+  it.
+
+**Implementation:** CHALLENGE-ADMISSION-01 (#458), amended to this
+trigger-based model. Launchpad's §6.1 expansion record is #468.
+
 ## 2026-10-01 — WEB-QA-11-D2: publish Ask Carbon bundle 86f51385 (Pilot Designer be64f8b9, /workbench/ retired)
 
 **Authority.** The repository owner, in the Ask Carbon session on 2026-10-01:
