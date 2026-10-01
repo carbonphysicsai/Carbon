@@ -108,6 +108,9 @@
       const code = result.error || "request_failed";
       const error = new Error(SIGNER_HELP[code] ? code + ": " + SIGNER_HELP[code] : code);
       error.status = response.status;
+      // A setup refusal names its field and, when there is one, the next step.
+      error.field = result.field || null;
+      error.nextStep = result.next_step || null;
       throw error;
     }
     return result;
@@ -327,6 +330,11 @@
             : "Not registered on netuid " + value.netuid + " yet."
         ));
         lines.push(onboardingLine("Research environment: " + value.research_environment));
+        if (action === "confirm" && value.registered && value.confirmed) {
+          // Registered: setup opens next, and reads the chain again itself.
+          await setupCall("begin", {address});
+          location.hash = "#setup";
+        }
       } else {
         lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
         lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your coldkey."));
@@ -337,6 +345,162 @@
       // generic failure, because the reason is what tells a miner what to do.
       showOnboarding([onboardingLine(error.message, "error")]);
     }
+  }
+
+  // ---- Environment setup (C-MLP-03): after registration, on this machine. ----
+  let setupState = null;
+  let setupRead = false;
+  function setupLine(text, kind) { const line = el("p", text, kind === "error" ? "reason" : ""); return line; }
+  async function readSetup() {
+    if (!connected) return;
+    try { setupState = await api("/api/v1/setup"); }
+    catch (_) { setupState = null; }
+    renderSetup();
+  }
+  async function setupCall(step, body) {
+    try {
+      const result = await api("/api/v1/setup/" + step, body, undefined, 60000);
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Launch from Campaigns." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent below." : "Checked: " + step + "."));
+      await readSetup();
+      if (step === "review") refresh();
+      return true;
+    } catch (error) {
+      const text = (error.field ? error.field + ": " : "") + words(error.message) + (error.nextStep ? " · Next: " + error.nextStep : "");
+      $("setup-result").replaceChildren(setupLine(text, "error"));
+      return false;
+    }
+  }
+  function setupField(form, name, labelText, type = "text") {
+    const id = "setup-" + form.dataset.step + "-" + name;
+    const label = el("label", labelText); label.htmlFor = id;
+    const input = document.createElement("input");
+    input.id = id; input.name = name; input.type = type; input.autocomplete = "off"; input.spellcheck = false;
+    form.append(label, input);
+    return input;
+  }
+  function setupSelect(form, name, labelText, options) {
+    const id = "setup-" + form.dataset.step + "-" + name;
+    const label = el("label", labelText); label.htmlFor = id;
+    const select = document.createElement("select"); select.id = id; select.name = name;
+    for (const [value, text] of options) { const option = el("option", text); option.value = value; select.append(option); }
+    form.append(label, select);
+    return select;
+  }
+  function setupStep(parent, step, title, state) {
+    const box = el("section", undefined, "panel setup");
+    const head = el("div", undefined, "panel-heading");
+    head.append(el("h2", title), el("span", state && state.checked ? "Checked" : "Not checked", "small-tag"));
+    box.append(head);
+    const form = document.createElement("form"); form.dataset.step = step;
+    box.append(form); parent.append(box);
+    return form;
+  }
+  function costNote(form, choice) {
+    if (!choice) return;
+    researchNote(form, "Cost: " + choice.cost_basis, "hint");
+    researchNote(form, "Live check: " + choice.live_check, "hint");
+  }
+  function renderSetup() {
+    const body = $("setup-body");
+    if (!setupState || !setupState.registered_hotkey) {
+      body.replaceChildren(el("p", "Confirm your registration under Wallet & Identity to begin.", "hint"));
+      return;
+    }
+    const offered = setupState.choices || {inference: [], compute: [], agent: []};
+    const steps = setupState.steps || {};
+    const parts = [el("p", "Registered hotkey: " + setupState.registered_hotkey, "hint")];
+    body.replaceChildren(...parts);
+
+    const inference = setupStep(body, "inference", "1. Inference", steps.inference);
+    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
+    const model = setupField(inference, "model_id", "Model id");
+    const key = setupField(inference, "key", "API key (entered once; leave empty to keep the stored key)", "password");
+    const inferenceCost = el("div"); inference.append(inferenceCost);
+    const describeProvider = () => {
+      const choice = offered.inference.find(c => c.id === provider.value);
+      inferenceCost.replaceChildren();
+      costNote(inferenceCost, choice);
+      const listed = (choice?.models || []).map(m => m.model_id);
+      if (listed.length) researchNote(inferenceCost, "Models: " + listed.join(", ") + " (" + choice.model_policy + ")", "hint");
+      if (!model.value) model.value = (choice?.models || []).find(m => m.default)?.model_id || listed[0] || "";
+    };
+    // Consent is to a quoted amount: the server states the check's maximum
+    // cost for this model, the miner ticks to agree to that amount, and only
+    // that amount is sent. Nothing is ticked by default, and any change of
+    // provider or model clears the agreement.
+    const agree = document.createElement("input");
+    agree.type = "checkbox"; agree.id = "setup-inference-consent"; agree.checked = false;
+    const agreeLabel = el("label", "Quoting the cost of this check..."); agreeLabel.htmlFor = agree.id;
+    const agreeRow = el("div", undefined, "consent"); agreeRow.append(agree, agreeLabel);
+    inference.append(agreeRow);
+    const check = el("button", "Check with my key (billed to me)"); check.disabled = true;
+    inference.append(check);
+    let quote = null, quoting = 0;
+    const requote = async () => {
+      const mine = ++quoting;
+      quote = null; agree.checked = false; check.disabled = true; agree.disabled = true;
+      const wanted = {provider_id: provider.value, model_id: model.value.trim()};
+      if (!wanted.model_id) { agreeLabel.textContent = "Choose a model to see what this check costs."; return; }
+      try {
+        const answer = await api("/api/v1/setup/quote", wanted, undefined, 15000);
+        if (mine !== quoting) return;
+        quote = answer; agree.disabled = false;
+        agreeLabel.textContent = "I agree to this charge on my own account: " + answer.statement;
+      } catch (error) {
+        if (mine !== quoting) return;
+        agreeLabel.textContent = "No quote: " + (error.field ? error.field + ": " : "") + words(error.message);
+      }
+    };
+    agree.addEventListener("change", () => { check.disabled = !(agree.checked && quote); });
+    provider.addEventListener("change", () => { model.value = ""; describeProvider(); requote(); });
+    model.addEventListener("change", requote);
+    if (steps.inference?.checked) { provider.value = steps.inference.provider_id; model.value = steps.inference.model_id; }
+    describeProvider();
+    requote();
+    inference.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!(agree.checked && quote)) return;
+      const request = {provider_id: quote.provider_id, model_id: quote.model_id, consent: {max_cost_nano: quote.max_cost_nano}};
+      if (key.value) request.key = key.value;
+      key.value = "";
+      await setupCall("inference", request);
+    });
+
+    const compute = setupStep(body, "compute", "2. Compute", steps.compute);
+    const computeChoice = setupSelect(compute, "choice", "Where research runs", offered.compute.map(c => [c.id, c.display_name]));
+    costNote(compute, offered.compute[0]);
+    const image = setupField(compute, "image_manifest", "Worker image manifest (absolute path)");
+    const analysis = setupField(compute, "analysis_image_manifest", "Analysis image manifest (absolute path)");
+    compute.append(el("button", "Verify on this machine"));
+    compute.addEventListener("submit", async event => {
+      event.preventDefault();
+      await setupCall("compute", {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()});
+    });
+
+    const agent = setupStep(body, "agent", "3. Agent", steps.agent);
+    const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
+    costNote(agent, offered.agent[0]);
+    researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
+    const operator = setupField(agent, "operator_config", "Testnet operator config (absolute path)");
+    const socket = setupField(agent, "signer_socket", "Signer socket (optional; leave empty for the default)");
+    agent.append(el("button", "Check my signer"));
+    agent.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {choice: agentChoice.value, operator_config: operator.value.trim()};
+      if (socket.value.trim()) request.signer_socket = socket.value.trim();
+      await setupCall("agent", request);
+    });
+
+    const review = setupStep(body, "review", "4. Review", {checked: steps.review?.profile_written});
+    for (const [name, label] of [["inference", "Inference"], ["compute", "Compute"], ["agent", "Agent"]]) {
+      const state = steps[name] || {};
+      researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice].filter(Boolean).join(" · ") : "not checked yet"));
+    }
+    researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    const write = el("button", "Write my profile");
+    write.disabled = !steps.review?.ready;
+    review.append(write);
+    review.addEventListener("submit", async event => { event.preventDefault(); await setupCall("review", {confirm: true}); });
   }
 
   $("onboarding-status").addEventListener("click", () => onboardingCall("status"));
@@ -382,6 +546,7 @@
       connected = true;
       land();
       render();
+      if (!setupRead) { setupRead = true; readSetup(); }
       $("connection-state").textContent = "Connected";
     } catch (error) {
       connected = false;

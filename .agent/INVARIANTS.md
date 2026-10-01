@@ -38,7 +38,7 @@ Aligned with `CONSTITUTION.md`, `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MAST
 
 ## Research environment invariant
 
-33. **Mining environments are complete.** Every Challenge's research environment gives miners what they need to research, hypothesize, train, generate data and evaluate, including the public generator and reference solver under their own seeds; any missing provision is a named gap in `carbon/challenge_kit/standard.py` (OWNER-RESEARCH-ENVIRONMENT-01). This never admits official seed material to a sandbox (invariants 1, 2 and 12).
+33. **Mining environments are complete.** Every Challenge's research environment gives miners what they need to research, hypothesize, train, generate data and evaluate, including the public generator and reference solver under their own seeds, plus the compute, model and agent they connect in setup on their own machine and accounts (OWNER-MINER-ENVIRONMENT-01); any missing provision is a named gap in `carbon/challenge_kit/standard.py` (OWNER-RESEARCH-ENVIRONMENT-01). This never admits official seed material to a sandbox (invariants 1, 2 and 12).
 
 ## Business / publication invariants
 

@@ -78,6 +78,7 @@ OPTIONAL_PROFILE_FIELDS = {
     "authored_julia_image",
     "gpu_image",
     "provider_credentials",
+    "model_selection",
 }
 
 #: The provider every campaign was pinned to before selection existed. Its key
@@ -257,6 +258,24 @@ def validated_profile(cfg):
             )
         ):
             raise ValueError("provider_credentials maps provider ids to key files")
+    if "model_selection" in cfg:
+        from carbon.development_session.model_provider import ADAPTERS
+
+        # The miner's setup choice (C-MLP-03): what an autonomous launch that
+        # names no provider runs with. It must name a launchable provider whose
+        # key the profile configures, so the choice can never reach the pinned
+        # default's key instead.
+        chosen = cfg["model_selection"]
+        if (
+            type(chosen) is not dict
+            or set(chosen) != {"provider_id", "model_id"}
+            or chosen["provider_id"] not in ADAPTERS
+            or ADAPTERS[chosen["provider_id"]].endpoint is None
+            or chosen["provider_id"] not in (cfg.get("provider_credentials") or {})
+            or type(chosen["model_id"]) is not str
+            or not 1 <= len(chosen["model_id"]) <= 128
+        ):
+            raise ValueError("model_selection names a configured provider and model")
     return cfg
 
 
@@ -267,10 +286,22 @@ def provider_credential(cfg, provider_id):
     profile's `api_key_file` when no entry names another; no other provider
     ever falls back to that key.
     """
-    path = (cfg.get("provider_credentials") or {}).get(provider_id)
+    credentials = cfg.get("provider_credentials") or {}
+    path = credentials.get(provider_id)
     if path is None and provider_id == DEFAULT_PROVIDER:
         path = (cfg.get("paths") or {}).get("api_key_file")
+        if path in credentials.values():
+            # A key file named for another provider is that provider's key.
+            return None
     return path
+
+
+def foreign_default_key(cfg):
+    """Whether `api_key_file` is another provider's key, so the pinned default
+    must not be sent it."""
+    return (cfg.get("paths") or {}).get("api_key_file") in (
+        cfg.get("provider_credentials") or {}
+    ).values() and provider_credential(cfg, DEFAULT_PROVIDER) is None
 
 
 def credential_refusal(path):
@@ -797,6 +828,17 @@ class RunnerAdapter:
                 raise Rejected("feedback_mode_is_battery_only", 409)
         provider, model = request.get("model_provider"), request.get("model")
         settings = request.get("model_settings")
+        if (
+            provider is None
+            and model is None
+            and settings is None
+            and request.get("agent") == "autonomous"
+            and "model_selection" in cfg
+        ):
+            # The miner chose a model in setup; a launch that names none runs
+            # with it, never with the pinned default and another's key.
+            provider = cfg["model_selection"]["provider_id"]
+            model = cfg["model_selection"]["model_id"]
         if settings is not None:
             # Settings modify a selection; without a provider nothing uses them.
             if provider is None:
@@ -1291,6 +1333,8 @@ class RunnerAdapter:
         if provider in (None, DEFAULT_PROVIDER):
             # Every campaign frozen before selection existed, unchanged: the
             # campaign checks this key itself when its agent needs one.
+            if foreign_default_key(cfg):
+                raise Rejected("model_provider_credential_not_configured", 409)
             path = provider_credential(cfg, DEFAULT_PROVIDER)
             return None if path is None else Path(path)
         path = provider_credential(cfg, provider)

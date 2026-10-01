@@ -24,6 +24,14 @@ recorded as a named gap with a next step.
 | `train` | The validator's own construction runtime: the same pinned JAX environment and training code. |
 | `generate` | The Challenge's public generator **and reference solver**, runnable in the sandbox with the miner's own seeds under the published population. Miners can make as much training and test data as they need. |
 | `evaluate` | Practice scoring with the exam's own gates and metrics, on public or miner-generated cases, repeatable. |
+| `compute` | A GPU research path on the miner's own or rented hardware, set up from the Control Center after registration (OWNER-MINER-ENVIRONMENT-01). |
+| `model` | The named inference providers, connectable in setup with the miner's own key. |
+| `agent` | The named agents, connectable in setup, driving the Challenge's research tools. |
+
+**`compute`, `model` and `agent` are facilitated, not hosted.** They were added by OWNER-MINER-ENVIRONMENT-01 (2026-09-30):
+- Carbon sets them up on the miner's own machine and accounts.
+- Every key and bill stays the miner's, and no key reaches Carbon.
+- Carbon hosts nothing new.
 
 ## What the rule does not change
 
@@ -71,18 +79,25 @@ declared `Retired(decision, provided)` as a whole, never per provision:
 - **It matches the registry.** A Challenge is `Retired` here exactly when the
   registry marks it RETIRED; a test fails if the two disagree.
 
-## Current state (2026-09-27)
+## Current state (2026-09-30)
 
-| Challenge | research | hypothesize | train | generate | evaluate |
-|---|---|---|---|---|---|
-| burgers-dynamics-v1 (retired; provided all five while offered) | retired | retired | retired | retired | retired |
-| battery-fastcharge-ageing-development-v1 | provided | provided | provided | **gap** | provided (200 public PRACTICE cases) |
+| Challenge | research | hypothesize | train | generate | evaluate | compute | model | agent |
+|---|---|---|---|---|---|---|---|---|
+| burgers-dynamics-v1 (retired; provided the first five while offered) | retired | retired | retired | retired | retired | retired | retired | retired |
+| battery-fastcharge-ageing-development-v1 | provided | provided | provided | **gap** | provided (200 public PRACTICE cases) | **gap** | **gap** | **gap** |
 
 **Battery `generate` gap.** Nothing miner-facing runs the pinned PyBaMM
 reference, so miners get only TRAIN v1 and the 200 PRACTICE cases. Next step:
 `carbon/challenge_kit/battery.py`, a command on the miner's own machine
 (OWNER-MINER-OWN-MACHINE-01) that labels draws from the published population
 with the pinned PyBaMM reference, following the Burgers kit's seed rules.
+
+**Battery `compute`, `model` and `agent` gaps.** These are the
+OWNER-MINER-ENVIRONMENT-01 provisions. The ticket
+`.agent/tickets/C-MLP-03_miner_environment.md` closes them slice by slice:
+- slice 2: `model`;
+- slices 3 and 4: `compute`;
+- slice 5: `agent`.
 
 **Training data for submissions is fixed per Challenge version.** A
 submission cannot ask Carbon for extra training cases; that would reward
