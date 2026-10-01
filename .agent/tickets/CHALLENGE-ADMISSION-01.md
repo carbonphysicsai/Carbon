@@ -56,7 +56,6 @@ CA-D3 (2026-10-01 amendment): the trigger-based model.
   launch documentation; per-profile permission ladder with combined attacks.
 - Current readiness records require both tracks; absent/failed/inconclusive,
   mismatched/tampered/empty evidence cannot satisfy launch-approved records.
-  (Split 2026-10-01: this item lands with #458; see below.)
 - Diagnostic reports do not count controls or ineligible models as real eligible
   models; show coverage and seed-group dependence, undefined statistics and limits.
 - Positive specimens and deliberate attack mutations exercise the refusals.
@@ -92,19 +91,6 @@ now pinned to this ticket's committed authority, with historical links preserved
 Workbench's real-worker CI passed 47 tests with three skips. Its freshness check
 found the source package needed regeneration after the readiness catalogue update;
 the deterministic package and manifest are now regenerated and pass that check.
-
-## Split delivery (owner decision, 2026-10-01)
-
-On the owner's instruction "split 458 so we can keep moving", the core of this
-ticket ships separately from #458: the protocol specification, the admission
-evidence validator (`carbon/challenge_readiness/admission.py`), the read-only
-EV audit, the pressure-test report and the optimizer scope, with their
-record-independent tests. The readiness-record wiring (schema v3 records, the
-`record.py` launch gate, `--require-admission`, their record/CLI tests) and the
-Workbench regeneration it forces stay in #458, held until a new Ask Carbon
-release candidate pins the regenerated Pilot Designer page. Until then the
-readiness gate is specified, not enforced; no readiness record can be
-launch-approved without the owner (the unchanged human-reserved rule).
 
 ## Remaining scientific execution
 

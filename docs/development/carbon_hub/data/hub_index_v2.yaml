@@ -10470,6 +10470,20 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-01T19:16:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-ADMISSION-02"
+    owner_lane: "technical_lead"
+    status: "active"
+    summary: "Restores the readiness-record half of CHALLENGE-ADMISSION-01 that was split out of #473 and is not on main, because GitHub marked #458 merged when its head became an ancestor of main through the split. This PR moves the four readiness records to schema carbon.challenge-readiness.v3 with admission_tests, adds the record.py launch gate (a launch-approved record with admission blockers is refused) and --require-admission, restores the record and CLI tests, and regenerates the six Workbench files whose catalogue pins those record digests. The files are byte-identical to #458's head 0e1e25c9. It is HELD for the next Ask Carbon release candidate: the regenerated Pilot Designer page (sha256 85a46875) differs from the digest main's release candidate pins, so the bundle-guard test fails until a candidate carries it. No record is launch-approved, launch approval stays human-reserved, and no qualification or LIVE state changes."
+    primary_detail: ".agent/tickets/CHALLENGE-ADMISSION-01.md"
+    affects:
+      - "WAVE-C/C-09"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-01T22:40:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

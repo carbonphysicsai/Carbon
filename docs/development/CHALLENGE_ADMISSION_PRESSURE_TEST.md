@@ -16,7 +16,7 @@ scientific acceptance, security acceptance or score change occurred.
 | EV2's defence addresses one constructed failure | Decision-aware profiles demote the optimist but do not establish improved real-model ranking | Keep controls separate from the primary claim; require fresh hidden attacks and real-model effect/uncertainty evidence. |
 | EV3 draft reuses EV2's now-published conditions | PR #457 EV3 draft section 2 | Do not call those untouched confirmation. Freeze a new confirmation set before claiming admission. EV3 remains draft, not executed or rewritten here. |
 | In-process studies cannot establish hostile-code containment | EV1 run inventory | Require actual isolated construction/inference integration tests for the exact permission/runtime profile. Unsupported levels remain NOT_RUN. |
-| A readiness state could omit both new studies | Existing v2 records have no two-track requirement | v3 requires both tracks (readiness-record wiring lands with #458; until then no record can be launch-approved without the owner). Accepted evidence needs exact scope, preregistration, report, raw-artifact hashes and scoped review binding. Failure/absence blocks a launch-approved readiness record. |
+| A readiness state could omit both new studies | Existing v2 records have no two-track requirement | v3 requires both tracks. Accepted evidence needs exact scope, preregistration, report, raw-artifact hashes and scoped review binding. Failure/absence blocks a launch-approved readiness record. |
 
 ## Audit results
 

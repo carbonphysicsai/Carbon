@@ -4,7 +4,7 @@
 readiness record per launch-portfolio Challenge:
 - `carbon/challenge_readiness/records/<challenge_id>.v<N>.json`;
 - validated by `carbon/challenge_readiness/record.py`;
-- schema `carbon.challenge-readiness.v2` (v3 lands with #458).
+- schema `carbon.challenge-readiness.v3`.
 
 **The training budget study** (OWNER-TRAINING-BUDGET-STUDY-01, schema v2).
 Every record carries a required `training_budget_study` block: its state,
@@ -131,14 +131,7 @@ These properties are enforced when a record is built, not left to convention:
 
 No scheduler, scorer, seed service or evidence store was added.
 
-## Two-track admission (schema v3, wiring pending #458)
-
-> **Split note (2026-10-01):** the readiness-record wiring (schema v3
-> records, the `record.py` launch gate and `--require-admission`) lands with
-> #458, which is held on the Ask Carbon release candidate. Until it merges,
-> the readiness gate described here is specified, not enforced: readiness
-> records stay schema v2, and no readiness record can be launch-approved
-> without the owner (the unchanged human-reserved rule).
+## Two-track admission (schema v3)
 
 [Challenge Admission](../../Design_Specs/Challenge_Admission.md) is an
 **internal development protocol** (OWNER-CHALLENGE-ADMISSION-01 as amended on
@@ -152,15 +145,14 @@ change to every finding:
 - **Track B:** a full review names its trigger (`STUCK`, `WINNING` or
   `OWNER_REQUEST`).
 
-With that wiring, the validator refuses a launch-approved record until both
-tracks are ACCEPTED with matching frozen criteria, reports, retained evidence
-hashes and the scoped lock or review. It verifies file completeness and
-bindings, not human identity or scientific truth.
+The validator refuses a launch-approved record until both tracks are ACCEPTED
+with matching frozen criteria, reports, retained evidence hashes and the scoped
+lock or review. It verifies file completeness and bindings, not human identity
+or scientific truth.
 
-With the #458 wiring, both new tracks start NOT_STARTED in all four catalogue
-records; prior battery EV work remains supporting evidence. Their
-`admission_blockers` will appear in the validate command. A valid record is not
-an accepted challenge. Once v3 lands, schema v2 cannot be used to omit the new
-fields. Catalogue filenames remain stable in that schema migration and previous
-bytes remain in git history. No runtime permission, scoring rule, historical
-result or qualification state changes.
+Both new tracks start NOT_STARTED in all four catalogue records; prior battery
+EV work remains supporting evidence. Their `admission_blockers` appear in the
+validate command. A valid record is not an accepted challenge. Schema v2 cannot
+be used to omit the new fields. Catalogue filenames remain stable in this schema
+migration and previous bytes remain in git history. No runtime permission,
+scoring rule, historical result or qualification state changes.
