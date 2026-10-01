@@ -1256,7 +1256,11 @@ class SetupChecks:
     """Fixture live checks for the setup smoke: they contact nothing."""
 
     def inference(self, provider_id, model_id, key_file):
-        return {"models_source": "fixture", "models_listed": 1, "completion": "answered"}
+        return {
+            "models_source": "fixture",
+            "models_listed": 1,
+            "completion": "answered",
+        }
 
     def compute(self, image, analysis):
         return {

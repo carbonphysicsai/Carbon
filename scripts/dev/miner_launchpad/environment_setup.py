@@ -187,10 +187,15 @@ def check_quote(provider_id, model_id, key_file: Path) -> dict:
     else:
         statement = (
             "One short completion, billed by " + name + " to your account: at "
-            "most $" + format(bound / 1e9, ".6f") + " (up to "
-            + format(CHECK_SETTINGS["max_input_tokens"], ",") + " input and "
-            + format(CHECK_SETTINGS["max_output_tokens"], ",") + " output "
-            "tokens at " + selection.pricing.source.replace("_", " ")
+            "most $"
+            + format(bound / 1e9, ".6f")
+            + " (up to "
+            + format(CHECK_SETTINGS["max_input_tokens"], ",")
+            + " input and "
+            + format(CHECK_SETTINGS["max_output_tokens"], ",")
+            + " output "
+            "tokens at "
+            + selection.pricing.source.replace("_", " ")
             + " pricing). Listing the models is free."
         )
     return {

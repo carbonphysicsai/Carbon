@@ -19,10 +19,10 @@ from scripts.dev.miner_launchpad import controller as launchpad
 from scripts.dev.miner_launchpad import runner
 from scripts.dev.miner_launchpad.environment_setup import (
     AUTONOMOUS,
+    CHECK_SETTINGS,
     LOCAL_CPU,
     EnvironmentSetup,
     LiveChecks,
-    CHECK_SETTINGS,
     SetupRefused,
     check_quote,
     choices,
@@ -223,7 +223,12 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
         ),
         ({"provider_id": "engy-chat", "consent": CONSENT}, "model_id"),
         (
-            {"provider_id": "engy-chat", "model_id": "m", "consent": CONSENT, "extra": 1},
+            {
+                "provider_id": "engy-chat",
+                "model_id": "m",
+                "consent": CONSENT,
+                "extra": 1,
+            },
             "extra",
         ),
     ]
@@ -240,11 +245,17 @@ def test_a_live_check_spends_only_on_consent_to_its_quoted_maximum(state):
     checks = Checks()
     setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
     setup.begin({"address": HOTKEY})
-    quote = setup.quote({"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731"})
+    quote = setup.quote(
+        {"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731"}
+    )
     assert quote["max_cost_nano"] == CONSENT["max_cost_nano"]
     assert type(quote["max_cost_nano"]) is int and quote["max_cost_nano"] > 0
     assert "at most $" in quote["statement"] and "free" in quote["statement"]
-    base = {"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731", "key": KEY}
+    base = {
+        "provider_id": "engy-chat",
+        "model_id": "deepseek-v4-flash-0731",
+        "key": KEY,
+    }
     for consent, code in (
         (None, "field_required"),
         (True, "live_check_needs_consent"),
