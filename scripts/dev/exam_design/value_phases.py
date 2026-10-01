@@ -11,8 +11,9 @@
   typed record in ``records.jsonl`` (OK, REFERENCE_SOLVER_FAILED,
   REFERENCE_TIMEOUT or FAILED_INFRA); its case id and inputs are the job's, so
   `Experiment.import_references` and `optimizer.import_references` accept the
-  file as it is. Admission stops at ``stop_admitting_epoch``; unadmitted jobs
-  get no record and stay for a later pod (``skip_case_keys`` resumes).
+  file as it is (they never import FAILED_INFRA). Admission stops at
+  ``stop_admitting_epoch``: a later job is typed FAILED_INFRA "not_admitted"
+  and left for a later pod (``skip_case_keys`` resumes).
 * ``value_panel`` reconstructs one shard of the contract's panel members with
   `DirectBackend` (JAX on the pod's GPU when JAX_PLATFORMS=cuda,cpu) and writes,
   per member: ``predictions/<member>.json.gz``, the exact bundle
@@ -31,6 +32,7 @@ from __future__ import annotations
 import gzip
 import json
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -63,8 +65,27 @@ def reference_jobs(cfg, repository="."):
     ]
 
 
+def admitted(solver, stop_at):
+    """The solver, closed at `stop_at`: a job that starts after the admission
+    window ends is typed FAILED_INFRA ("not_admitted"), never solved and never
+    a reference. A resume pod solves it (`--skip-from` skips only OK cases).
+    The truth service itself is unchanged."""
+
+    def solve(job):
+        if stop_at is not None and time.time() >= stop_at:
+            return {"status": "FAILED_INFRA", "reason": "not_admitted"}
+        return solver(job)
+
+    return solve
+
+
 def run_value_refs(cfg, out, *, solver=None, host=None):
-    from carbon.battery.truth import TRUTH_IMAGE, TruthService, lock_digest
+    from carbon.battery.truth import (
+        TRUTH_IMAGE,
+        TruthService,
+        lock_digest,
+        reference_solver,
+    )
     from scripts.dev.exam_design.runner import host_info, workers_for_host
 
     info = host() if host else host_info()
@@ -82,33 +103,43 @@ def run_value_refs(cfg, out, *, solver=None, host=None):
     workers = workers_for_host(info, cfg.get("max_workers"))
     stop_at = float(cfg.get("stop_admitting_epoch", 0)) or None
     started = time.time()
-    kwargs = {} if solver is None else {"solver": solver}
+    records = os.path.join(out, "records.jsonl")
     service = TruthService(
-        os.path.join(out, "records.jsonl"),
+        records,
+        solver=admitted(solver or reference_solver, stop_at),
         workers=workers,
         timeout_s=float(cfg.get("timeout_s", 1200)),
-        **kwargs,
     )
+    stop = threading.Event()
 
-    def progress(counts, pending, running):
-        _write_json(
-            os.path.join(out, "progress.json"),
-            {
-                "phase": "value_refs",
-                "workers": workers,
-                "total": len(jobs),
-                "pending": pending,
-                "running": running,
-                "done": counts,
-                "elapsed_s": round(time.time() - started, 1),
-            },
-        )
+    def progress():
+        while True:
+            counts = {}
+            if os.path.exists(records):
+                for line in Path(records).read_text().splitlines():
+                    if line.strip():
+                        status = json.loads(line)["status"]
+                        counts[status] = counts.get(status, 0) + 1
+            _write_json(
+                os.path.join(out, "progress.json"),
+                {
+                    "phase": "value_refs",
+                    "workers": workers,
+                    "total": len(jobs),
+                    "done": counts,
+                    "elapsed_s": round(time.time() - started, 1),
+                },
+            )
+            if stop.wait(10):
+                return
 
-    summary = service.run(
-        jobs,
-        admit=lambda: stop_at is None or time.time() < stop_at,
-        progress=progress,
-    )
+    reporter = threading.Thread(target=progress, daemon=True)
+    reporter.start()
+    try:
+        summary = service.run(jobs)
+    finally:
+        stop.set()
+        reporter.join()
     _write_json(
         os.path.join(out, "DONE.json"),
         {

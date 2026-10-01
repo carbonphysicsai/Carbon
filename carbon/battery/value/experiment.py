@@ -209,10 +209,13 @@ class Experiment:
         return {"status": "SOLVED", **summary}
 
     def import_references(self, records_path):
-        """Ingest records solved elsewhere (the truth container). Only this
-        experiment's case ids are kept; nothing already recorded is replaced."""
+        """Ingest records solved elsewhere (the truth container or a pod).
+        Only this experiment's case ids and terminal records are kept:
+        FAILED_INFRA is never a reference, so it never blocks a later solve
+        of the same case. Nothing already recorded is replaced."""
+        terminal = {"OK", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT"}
         wanted = {job["case_id"]: job for job in self._jobs()}
-        have = {r["case_id"] for r in self._reference_records()}
+        have = set(self.reference_map())
         added = 0
         with self.references_path.open("a") as out:
             for line in Path(records_path).read_text().splitlines():
@@ -220,7 +223,12 @@ class Experiment:
                     continue
                 record = json.loads(line)
                 job = wanted.get(record.get("case_id"))
-                if job is None or record["case_id"] in have or record.get("refined"):
+                if (
+                    job is None
+                    or record["case_id"] in have
+                    or record.get("refined")
+                    or record.get("status") not in terminal
+                ):
                     continue
                 inputs = record.get("inputs") or {}
                 if any(

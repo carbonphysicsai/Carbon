@@ -388,16 +388,29 @@ def test_the_member_rule_is_applied_as_registered():
 # --- pod phases, import and the whole path -------------------------------------------------------
 
 
-def test_truth_service_admission_stops_without_writing_records(tmp_path):
-    jobs = [
-        {"case_id": f"j{i}", "c1": 1.0, "c2": 0.6, "t_amb_c": 20.0, "soc0": 0.2}
-        for i in range(5)
-    ]
-    service = TruthService(tmp_path / "r.jsonl", solver=fixture_solver, workers=1)
-    # The admission window closes once two solves are recorded.
-    summary = service.run(jobs, admit=lambda: len(service.records()) < 2)
-    assert summary["not_admitted"] == 3
-    assert len(service.records()) == 2
+def test_a_closed_admission_window_is_infra_and_never_imported(tmp_path, small_panel):
+    jobs = ev.decision_cases(EV4)[:3]
+    jobs = [{k: j[k] for k in ("case_id", "c1", "c2", "t_amb_c", "soc0")} for j in jobs]
+    closed = TruthService(
+        tmp_path / "pod1.jsonl",
+        solver=value_phases.admitted(fixture_solver, 0.5),  # closed in 1970
+        workers=1,
+    )
+    closed.run(jobs)
+    assert {r["status"] for r in closed.records()} == {"FAILED_INFRA"}
+    assert {r["reason"] for r in closed.records()} == {"not_admitted"}
+    assert closed.completed() == set()  # retried by the truth service on resume
+    experiment = Experiment(tmp_path / "ev4", repository=REPOSITORY)
+    experiment.freeze(EV4_PATH)
+    assert experiment.import_references(tmp_path / "pod1.jsonl") == {"imported": 0}
+    # A later pod's OK solve of the same cases is still accepted.
+    reopened = TruthService(
+        tmp_path / "pod2.jsonl",
+        solver=value_phases.admitted(fixture_solver, None),
+        workers=1,
+    )
+    reopened.run(jobs)
+    assert experiment.import_references(tmp_path / "pod2.jsonl") == {"imported": 3}
 
 
 def test_plans_name_their_jobs_and_shard_deterministically(tmp_path):

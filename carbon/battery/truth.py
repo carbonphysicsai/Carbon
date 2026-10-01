@@ -117,15 +117,8 @@ class TruthService:
         """Case keys with a terminal record. FAILED_INFRA is retried."""
         return {_key(r) for r in self.records() if r.get("status") in TERMINAL}
 
-    def run(self, jobs, *, admit=None, progress=None):
-        """Solve every job without a terminal record. Returns what it did.
-
-        `admit()` (optional) is asked before each new job starts; once it
-        returns False no further job starts, the running ones finish, and the
-        rest stay unsolved for a later resume (they are counted, never given
-        a record). `progress(counts, pending, running)` (optional) is called
-        after every record.
-        """
+    def run(self, jobs):
+        """Solve every job without a terminal record. Returns what it did."""
         done = self.completed()
         pending = [j for j in jobs if _key(j) not in done]
         counts = {s: 0 for s in (*sorted(TERMINAL), FAILED_INFRA)}
@@ -137,17 +130,9 @@ class TruthService:
                 out.write(json.dumps(record, sort_keys=True) + "\n")
                 out.flush()
                 counts[record["status"]] += 1
-                if progress is not None:
-                    progress(dict(counts), len(pending), len(running))
 
             while pending or running:
-                if pending and admit is not None and not running and not admit():
-                    break
-                while (
-                    pending
-                    and len(running) < self.workers
-                    and (admit is None or admit())
-                ):
+                while pending and len(running) < self.workers:
                     job = pending.pop(0)
                     queue = ctx.Queue()
                     process = ctx.Process(
@@ -195,7 +180,6 @@ class TruthService:
             "skipped_completed": len(jobs)
             - len([j for j in jobs if _key(j) not in done]),
             "counts": counts,
-            "not_admitted": len(pending),
         }
 
 
