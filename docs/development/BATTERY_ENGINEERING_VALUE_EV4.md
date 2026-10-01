@@ -374,3 +374,119 @@ the plan and every file the plan names, each pinned by the sha256 of
 `git show REF:<path>`. The pod fetches each file from GitHub at `REF` and
 verifies every hash before writing any file or importing anything. The
 dispatch refuses a `REF` that is on no remote branch.
+
+## 12. Results (run of 2026-10-01, frozen pre-registration unchanged)
+
+Public synthetic DEVELOPMENT evidence. Nothing here changes the exam rule,
+rewards, weights, chain state or any qualification. Evidence is in
+`docs/development/evidence/ev4-2026-10-01/`: `results.json` and `report.md`
+(EV4), `optimizer/` (Problem C), the decision and verification references
+(gzipped), `predictions.sha256`, the ledger, and the freeze manifest, which is
+byte-identical to the root manifest used for evaluation.
+
+**What ran.**
+- 840 decision references: 835 `OK`, 5 `REFERENCE_SOLVER_FAILED` (typed
+  reference failures, never counted against a model), 0 infrastructure
+  failures.
+- 100 members reconstructed on one A40 (JAX GPU backend, deterministic XLA
+  flags), 0 failures, about 404 s of reconstruction in total; 99 eligible.
+  Families: MLP 77 (76 eligible), DeepONet 16, kNN 7.
+- Problem C: 498 verification references, all `OK`.
+- Spend: USD 2.48 on RunPod (balance 17.43 to 14.95), seven pods in total,
+  each terminated and verified; the USD 15 cap was never approached.
+
+### H1 (primary): UNRESOLVED
+
+| | τ, verification (12 conditions, 99 eligible members) |
+|---|---|
+| Deciding rule `control-exam-v1` | 0.403 |
+| Proposed rule `dar-p0-r100-a0` | 0.262 |
+| Δτ (proposed − deciding) | −0.142, 95 % paired bootstrap interval [−0.275, +0.121], B = 10000, seed 20261001, 0 replicates skipped |
+
+The interval includes zero, so H1 is **UNRESOLVED**: EV4 does not show that
+either rule ranks real models by decision quality better than the other. The
+point estimate favours the deciding rule, as EV2's did. This is not evidence
+of "no difference". The development-chosen rule (EV2's procedure, kept for
+continuity) is the control; its verification τ is 0.400. On the development
+conditions every rule's τ is near zero (between −0.09 and 0.10), so the
+development split separated the members poorly; the verification split did
+not.
+
+### H2: confirmed on both rules' sides
+
+`dar-p0-r100-a0` scores the boundary-optimist control below all 99 eligible
+members. The deciding rule scores it at or above all 99. The decision-aware
+component closes this constructed blind spot, as it did in EV2.
+
+### H3: the real-model blind spot exists
+
+**56 of 99 eligible real members commit at least one reference-verified false
+acceptance** on the verification conditions: they predict a protocol meets
+every constraint when the reference says it does not. They span all three
+families (MLP 38, DeepONet 11, kNN 7). Most fall at `V-T9-S0.06` (9 °C,
+nearly empty cell). Several rank highly: under the deciding rule at positions
+3, 4 and 9; under the proposed rule at 2, 3, 9 and 10 (full list in
+`results.json` → `hypotheses.H3`). A high exam score does not establish that
+a model never calls an unsafe protocol safe.
+
+### Problem C: one fast-charge protocol for 15-35 °C
+
+Selection (pre-registered rule, applied once, before any verification solve;
+`optimizer/selection.json`):
+
+| Role | Member | Mode D choice |
+|---|---|---|
+| best under the deciding rule | `mlp_t6000_w256_d3_ens2-s0` | c1 = 1.0 C, c2 = 0.7 C |
+| best under the proposed rule | `mlp_t6000_w256_d3_pca8-s0` | c1 = 1.0 C, c2 = 0.675 C |
+| median under the deciding rule | `mlp_t1500_w128_d3_wd1em4-s0` | ABSTAIN |
+| best kNN | `knn-s0` | ABSTAIN |
+| lowest verification decision loss | `mlp_t6000_w256_d3_irw03-s1` | c1 = 1.0 C, c2 = 0.7 C |
+
+**Primary result, in band (50 reference points over 15-35 °C × soc0
+0.05-0.50):**
+
+| Design | Feasible | Infeasible | Unresolved | Mean time to CV | Worst time to CV |
+|---|---|---|---|---|---|
+| c1 = 1.0, c2 = 0.7 | 46 | 0 | 4 | 2292 s (38 min) | 3365 s |
+| c1 = 1.0, c2 = 0.675 | 48 | 0 | 2 | 2377 s (40 min) | 3459 s |
+| baseline c1 = 0.75, c2 = 0.6 | 35 | 15 (never reaches CV within the hour) | 0 | — | — |
+
+- Both model-chosen protocols showed **no in-band violation** of any
+  constraint (reach, plating, temperature). Their "feasible at every in-band
+  point" is formally false only because 2-4 points are UNRESOLVED (the
+  reference lies inside the contract's uncertainty band); those are reported,
+  never forced to pass.
+- The conservative baseline fails to reach the constant-voltage phase within
+  the one-hour window at 15 of 50 in-band points, so its time-based speed-up
+  comparison is undefined; the honest comparison is "the chosen protocols
+  reach CV at every resolved in-band point; the baseline does not at 15".
+- The two abstentions are correct behaviour under §7, not failures.
+
+**Secondary, out of band (40 points below 15 °C or above 35 °C),
+descriptive:** the chosen protocols are infeasible at 30 of 40 points (plating
+22, temperature 8, reach 1-3), as expected from EV2's evidence that no
+two-step protocol is safe at the extremes. This is where the 15-35 °C claim
+stops, not a failure of it.
+
+**Mode X (adversarial, K = 50 per member, 250 verified points):** 29 in-band
+and 17 out-of-band verified violations across the five members, emitted as
+findings (`optimizer/findings.json`): `SCORE_VALUE_DIVERGENCE` when the
+member is in the top half under the deciding rule, otherwise `OTHER_SIGNAL`.
+In `optimizer/report.md` the third number in each Mode X column ("confirmed")
+counts points where the model's feasible call held up, not violations. Because
+Mode X deliberately picks points right at the limits, most verified points are
+UNRESOLVED (inside the reference's uncertainty band). Even the deciding rule's
+best member (`ens2-s0`, rank 1 of 99) has 2 verified in-band violations among
+its 39 in-band points (35 unresolved, 2 held up). Per the admission
+protocol these findings escalate and are not suppressed. A search that finds
+nothing would not be a safety bound; this one found something.
+
+### What this does and does not show
+
+- It shows Carbon can rank a diverse 100-model panel on a fixed engineering
+  decision, that the exam score and decision quality are only moderately
+  aligned (τ ≈ 0.4), and that a design search over a good model's predictions
+  produces a protocol the reference verifies across a realistic ambient band.
+- It does not show the proposed rule is better or worse (H1 unresolved), does
+  not qualify any model or protocol for a real cell, and makes no claim outside
+  15-35 °C, beyond 30 cycles, or for time to a target state of charge.
