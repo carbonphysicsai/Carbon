@@ -16829,3 +16829,34 @@ not applicable to mainnet.
 
 **Implementation:** CHALLENGE-ADMISSION-01 (#458), amended to this
 trigger-based model. Launchpad's §6.1 expansion record is #468.
+
+## 2026-10-01 — OWNER-MINER-OWN-MACHINE-01: every Launchpad miner defaults to their own machine, sandbox kept
+
+**Authority.** The owner, in session on 2026-10-01: "ALL Miners in launchpad
+should default to their own machines and can set up sandboxes themselves if
+they want." Asked whether this made the Docker sandbox optional, the owner
+chose "own machine, sandbox kept".
+
+**Decision.**
+1. **Own machine by default.** Everything a Launchpad miner runs (the Control
+   Center, the research agent, research workers, the signer and any challenge
+   kit) runs on the miner's own machine unless the miner chooses otherwise.
+   No choice of compute is made for the miner.
+2. **The isolation stays the default.** Research code still runs in the Docker
+   research worker on that machine (no network, pinned image built from the
+   checkout). This decision does not make the sandbox optional, and it adds
+   no opt-out.
+3. **Remote compute is opt-in.** Rented or remote compute (RunPod, Lium,
+   Targon, or a sandbox the miner hosts elsewhere) is something the miner sets
+   up on their own account if they want it. C-MLP-03's compute step offers it
+   as an addition to the own-machine default, never in place of it.
+4. **The battery challenge kit runs on the miner's machine first.** It is a
+   command the miner runs locally: public uniform draws over the published
+   input box (`battery_research_practice`), from the miner's own seed roots,
+   labelled by the pinned PyBaMM reference in the pinned truth image
+   (`carbon.battery.truth.TRUTH_IMAGE`, publicly pullable). Adding it inside
+   the research sandbox is a later, separately reviewed step.
+
+**Unchanged.** OWNER-CHALLENGE-KIT-01's hard line (mock seeding only; no
+official eval or stress realization). Official evaluation stays on the
+validator. External signing (#445). Testnet 567 only.
