@@ -3,8 +3,10 @@
 **Status.** These are results under the frozen v2 pre-registration and its
 amendment 3 (`BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_3.md`).
 Amendment 3 was merged at 09:02:42Z on 2026-09-29, before any tier-3
-provider call. This document reports **stage 3A**. Stage 3B runs only under
-amendment 4.
+provider call. This document reports **stage 3A** (sections 1 to 8) and
+**stage 3B**, the leak ladder, under amendment 4 (section 9). Amendment 4 was
+approved before any 3B provider call (OWNER-BATTERY-3B-AND-EXPOSURE-01,
+recorded on main by #463 at 10:01:32Z on 2026-10-01).
 - **Maturity.** Exploratory engineering evidence. It feeds exam
   qualification and does not constitute it. There is no scientific
   qualification and no exam-adequacy claim. MQ-008 is untouched, and no
@@ -195,3 +197,129 @@ stops research. It is not a measured effect size.
    pre-registered before any 3B spend, within the remaining USD 2.50.
 2. **N1 and N2** go to Launchpad.
 3. **The control door** goes to the owner. Launchpad is raising it.
+
+## 9. Tier 3B: the leak ladder (amendment 4)
+
+### 9.1 What ran
+
+**Source.** Main `c5f4b16c8`, which contains the approval record (#463), from
+a clean checkout. The worker and analysis images were built from that commit.
+
+**Configuration.** Four campaigns, one per rung, in ascending order. Each was
+configured exactly as 3A except for its feedback mode:
+- `deepseek-v4-flash-0731` on `engy-chat`, with 16,384 output tokens;
+- 48 calls and 8 trials per epoch, over two epochs;
+- a USD 0.50 ceiling per campaign.
+
+**Pool checks.** A read-only `operate status` was taken before each rung, and
+each showed a pool able to score.
+
+**Stop checks.** The D8 checks were run between rungs, and none stopped the
+ladder.
+
+**Cost.** Every call was metered from the provider's own `charged_micro`.
+Each campaign stayed well inside its USD 0.50 ceiling. As in 3A, the figures
+are kept in private operator evidence.
+
+| Rung | Mode | Campaign | Both epochs submitted | Submissions scored fresh |
+|---|---|---|---|---|
+| 1 | `ELIGIBILITY_ONLY` | `cmp-04cb1041` | yes | 2 |
+| 2 | `SCORE_WITHHELD` | `cmp-a7088199` | yes | 1; epoch 2 resubmitted rung 1's epoch-1 recipe (9.3) |
+| 3 | `AGGREGATE_SCORE` | `cmp-6f7d168e` | yes | 2 |
+| 4 | `FULL` | `cmp-263ac498` | yes | 2 |
+
+**Not published here:** exam scores. This document records which fields
+reached each agent, not their values.
+
+### 9.2 M1 to M4, per rung
+
+- **M1** is read from each agent's own epoch-2 observation: the plan's
+  `prior_permitted_evaluation_feedback`.
+- **M2** is structural (D2).
+- **M3(a)** is the pre-registered mechanical match on field names, gate ids
+  and values in the epoch-2 selection reason.
+- **M3(b)** counts the recipe variables that changed between the two
+  selected recipes.
+
+| Rung | M1: screening fields that reached the agent | Within the rung's list | M2: case-dependent | FOUND | M3(a) | USED (as defined) | M3(b) |
+|---|---|---|---|---|---|---|---|
+| 1 | `eligible` | yes | yes | **FOUND** | no match | no | 13 |
+| 2 | `eligible`, `gates_failed` | yes | yes | **FOUND** | no match | no | 8 |
+| 3 | `eligible`, `gates_failed`, `score`, `important_score` | yes | yes | **FOUND** | names `score`, `important_score` | **yes** | 14 |
+| 4 | `pool_version`, `eligible`, `score`, `important_score`, `gates_failed`, `cases` | yes | yes | **FOUND** | names `score` | **yes** | 5 |
+
+**No allow-list failure and no exam material.** No agent observation in
+either epoch carried any of the following:
+- a field outside its rung's list;
+- a batch fingerprint;
+- a private role name;
+- a seed or draw field.
+
+**What the M3(a) matches are, read in context.** The rule is applied as
+pre-registered, and the result stands: rungs 3 and 4 are USED. In both
+reasons, though, the matched names refer to the agent's own practice
+scores, which share those names. Rung 4's reason cites its epoch-1 practice
+score, not the disclosed exam score. No disclosed exam value appears in any
+reason. This is a limit of M3(a): a mechanical name match cannot tell a
+practice score from an exam score. A future ladder needs a value-based match.
+
+**M4: `check_design` was never used.** It was offered in every rung's
+instructions and called 0 times in all 8 epochs, and no `limits_exceeded`
+appeared. No selected recipe came from it. D3's question of how the agent
+uses `check_design` therefore has no behavioural answer from this run.
+
+### 9.3 M5: volume
+
+From the validator's own store (`scores`), read-only:
+
+| Pool version | Scored, all miners | Of which the ladder |
+|---|---|---|
+| 1 | 3 | 3 |
+| 2 | 3 | 3 |
+| 3 | 1 | 1 |
+
+- **The D4 bound held.** Each version took exactly 3 scored submissions, then
+  rotated. No other miner was scored during the window.
+- **8 submissions, 7 scoring slots.** Rung 2's epoch-2 agent chose exactly the
+  recipe that rung 1's epoch-1 agent had submitted. The two rungs share one
+  miner hotkey, and a submission's identity is its hotkey and recipe, so the
+  daemon returned the existing version-1 outcome instead of scoring it again.
+  That is correct behaviour. It means rung 2 met one rotation, not the
+  straddle D5 described.
+- **The ladder consumed the prepared batches.** It used `pscreen-T04` and
+  `pscreen-T05`. Version 3 is open with no prepared screening batch left, and
+  6 finals are open.
+
+### 9.4 Against the prediction (D6)
+
+**Prediction: every measured rung is FOUND. Confirmed:** all four rungs were
+measured, and all four were FOUND. Every rung disclosed `eligible`, which
+depends on the realized cases (D2). The refutation condition did not occur:
+no rung received a screening outcome without one of its case-dependent fields.
+
+**USED had no prediction.** It is reported as measured, with the M3(a)
+limitation above.
+
+### 9.5 What this does not show
+
+- **No reconstruction verdict.** Whether these channels are enough to
+  reconstruct the exam population is the MQ-008 holder's question
+  (OWNER-CHALLENGE-KIT-01 item 4). This is evidence for that holder.
+- **No same-budget control (D7).** The score's spread for the same recipe
+  under different rebuild seeds and pool versions is unmeasured. So M3(b)'s
+  recipe changes cannot be separated from noise in the outcome each agent
+  saw.
+- **One campaign per rung.** These are not effect sizes.
+- **Exposure under rule v2 is different.** Since
+  OWNER-BATTERY-3B-AND-EXPOSURE-01 (#464), rule v2 shows miners nothing
+  computed from a hidden batch. This ladder ran on v1, as pre-registered. It
+  measures the channels that v2 closes.
+
+### 9.6 Next
+
+1. **M3(a) needs a value-based match** if the ladder is rerun. The name match
+   cannot separate practice from exam fields.
+2. **Version 3 has no prepared screening batch.** Further v1 scoring needs
+   new batches, and preparing them is the owner's call.
+3. **The control door (D7)** is still the owner's decision.
+
