@@ -65,11 +65,25 @@ RECIPES = (
 )
 
 
-def members():
+#: EV2 adds recipe families that differ in more than their seed (EV1 finding:
+#: seeds are repetitions of one recipe). EV1's panel is unchanged.
+EV2_RECIPES = (
+    (
+        "deeponet",
+        _strategy("deeponet", {"steps": 6000, "width": 256, "deeponet_depth": 3}),
+        (0, 1),
+    ),
+    ("mlp_wide", _strategy("mlp", {"steps": 6000, "width": 512, "depth": 2}), (0,)),
+    ("knn15", _strategy("knn", {"neighbours": 15}), (0,)),
+)
+PANELS = {"ev1": RECIPES, "ev2": RECIPES + EV2_RECIPES}
+
+
+def members(panel="ev1"):
     """Every reconstructed panel member: (member id, family, strategy, seed)."""
     return [
         (f"{family}-s{seed}", family, strategy, seed)
-        for family, strategy, seeds in RECIPES
+        for family, strategy, seeds in PANELS[panel]
         for seed in seeds
     ]
 
