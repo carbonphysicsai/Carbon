@@ -1,4 +1,4 @@
-"""A readable owner report of an EV1 results document."""
+"""A readable owner report of an engineering-value results document."""
 
 from __future__ import annotations
 
@@ -11,10 +11,12 @@ def _f(value, digits=3):
     return f"{value:.{digits}f}"
 
 
-def render(results):
+def render(results, experiment="EV1"):
+    """`experiment` titles the report: the contract's case prefix, so an EV2
+    report is never headed EV1."""
     summary = results["summary"]
     lines = [
-        "# EV1: does Carbon's scoring prefer models that make better engineering decisions?",
+        f"# {experiment}: does Carbon's scoring prefer models that make better engineering decisions?",
         "",
         (
             "Public synthetic DEVELOPMENT evidence. It changes no testnet rule and "

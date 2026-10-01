@@ -1,6 +1,6 @@
 # EV2: pre-registration
 
-**Status.** PRE-REGISTERED, 2026-09-29. This document and the contract
+**Status.** RUN, 2026-10-01. Results are in §6. Pre-registered 2026-09-29. This document and the contract
 `carbon/battery/value/contracts/ev2-charge-protocol-selection.v1.json`
 (digest `sha256:1877091055d1dac2515da5aa05bf4f0ad56cf3376045d73086dcf1f0848ce743`)
 were committed **before any EV2 reference solve or reconstruction**. Results are
@@ -121,3 +121,102 @@ Physics stays NOT_MEASURABLE for battery. Gates stay mandatory under every rule.
 - **Cost:** USD 0. OD-5 is untouched.
 - **Reconstruction:** Carbon rebuilds every member from its recipe on public
   TRAIN v1 with its declared seed. Selection sees predictions only.
+
+## 6. Results (run of 2026-09-30 to 2026-10-01)
+
+**Evidence:** `docs/development/evidence/ev2-2026-10-01/`. It holds the
+manifest, results, report, the 560 decision references (gzipped) and the
+digests of the 15 prediction bundles. The contract digest is unchanged from
+the pre-registration.
+
+**What ran.**
+- **References:** 560 decision-reference solves, all on the conditions fixed
+  in advance.
+- **Members:** 15 reconstructed members plus the five EV1 controls.
+  `mlp_raw-s0` failed a mandatory gate and is ineligible under every rule, as
+  in EV1.
+- **Interruptions:** container restarts and job time limits interrupted the
+  run several times. Each time it resumed from its own records; no reference
+  or prediction was recomputed or reinterpreted.
+
+**What changed after the first solve.** One cosmetic change: the generated
+report was titled "EV1" whatever the contract. It is now titled from the
+contract's `case_prefix`. No number changed.
+
+### 6.1 The EV1 design problems are fixed
+
+The verification conditions are no longer degenerate.
+- **EV1:** no verification condition had a feasible protocol.
+- **EV2:** 6 of the 8 verification conditions have a best feasible protocol
+  in the tested set. The other two (V-T11-S0.18 and V-T40-S0.18) have none,
+  and are reported as such.
+
+### 6.2 H2 (pass/fail): PASS
+
+`dar-p0-r100-a0` scores the `boundary_optimist` control below every one of
+the 14 eligible reconstructed members.
+
+| Rule | Optimist below every eligible member | Members at or below it |
+|---|---|---|
+| control-exam-v1 (current testnet rule) | no | 14 of 14 |
+| p0-r30-a70 | no | 7 of 14 |
+| p0-r20-a80 | no | 13 of 14 |
+| p0-r40-a60 | no | 5 of 14 |
+| dar-p0-r100-a0 | **yes** | 0 of 14 |
+| dar-p0-r30-a70 | **yes** | 0 of 14 |
+| dar-p0-r50-a50 | **yes** | 0 of 14 |
+
+- **The current rule is blind to this failure.** Under the testnet rule, the
+  optimist scores at or above every real member. EV1 found the same thing.
+- **The decision-aware component fixes it,** at every weight tested, even
+  at 30%.
+- **What this does not show** (the interpretation fixed in §4): this is
+  sensitivity to one constructed failure mode. It does not show that the
+  component catches every unsafe model.
+
+### 6.3 H1 (primary): weak and positive, and not better than the current rule
+
+Kendall τ between each rule's ranking and the decision-loss ranking. The
+rule is chosen on development and reported on verification.
+
+| Rule | τ development | τ verification |
+|---|---|---|
+| control-exam-v1 (current) | -0.030 | 0.298 |
+| p0-r30-a70 | -0.050 | 0.317 |
+| p0-r20-a80 | -0.050 | 0.317 |
+| p0-r40-a60 | -0.050 | 0.298 |
+| **dar-p0-r100-a0 (chosen on development)** | **0.188** | **0.202** |
+| dar-p0-r30-a70 | 0.050 | 0.221 |
+| dar-p0-r50-a50 | 0.129 | 0.221 |
+
+- **Every measurable rule has a positive verification τ** (0.20 to 0.32): a
+  higher score went with better decisions on the fresh conditions.
+- **The development-chosen rule did not carry its advantage over.** It was
+  the best rule on development (0.188 against -0.030 for the current rule).
+  On verification it is the lowest (0.202 against 0.298).
+- **Treat these values as indicative.** With 14 members, the differences
+  between rules here are not distinguishable from noise. No significance
+  claim is made (§4).
+- **The verification losses barely separate the members.** Most real members
+  lose almost nothing on verification (9 of 14 lose less than 0.2), so the
+  ranking by decision loss is close to ties. This limits what τ can show.
+- **With the controls included,** the decision-aware rule separates good
+  and bad deciders far better on development (τ 0.466 against -0.071 for the
+  current rule). Most of that comes from the controls themselves.
+
+### 6.4 What this means
+
+- **Recorded:** the current testnet rule ranks a model that is optimistic at
+  the safety limits above every real model. Two independent experiments now
+  show this (EV1 and EV2).
+- **Recorded:** a decision-aware component, built only from the contract's
+  constraints, bands and costs, removes that blind spot without hurting
+  verification τ beyond what this panel can resolve.
+- **Not shown:** that the decision-aware rule ranks real models better than
+  the current rule. On this panel, it did not.
+- **No rule change follows.** As fixed in §4, adopting a decision-aware
+  component on the exam needs its own prospective owner decision. The
+  evidence above is what that decision would rest on.
+- **Next:** EV3 (design competition) tests whether the score predicts which
+  model produces the best design. It is designed and waits on the owner's
+  ranking of its candidate problems.

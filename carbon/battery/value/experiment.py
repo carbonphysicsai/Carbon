@@ -353,7 +353,12 @@ class Experiment:
         (out / "results.json").chmod(0o600)
         from .report import render
 
-        (out / "report.md").write_text(render(results))
+        (out / "report.md").write_text(
+            render(
+                results,
+                experiment=self.contract().get("case_prefix", "ev1").upper(),
+            )
+        )
         (out / "report.md").chmod(0o600)
         return results
 
