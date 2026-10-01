@@ -256,6 +256,16 @@ def test_the_optimizer_grids_are_as_registered():
         250,
         1630,
     )
+    # The 15-35 °C band: Mode D's 20 conditions; Mode X keeps all 32.
+    assert op.BAND == (15.0, 35.0)
+    in_band = [op.MODEL_CONDITIONS[ci] for ci in op.MODE_D_CONDITIONS]
+    assert set(in_band) == {
+        (float(t), s) for t in (15, 20, 25, 30, 35) for s in (0.05, 0.20, 0.35, 0.50)
+    }
+    assert len(in_band) == 20
+    assert len(op.IN_BAND_VERIFY) + len(op.OUT_OF_BAND_VERIFY) == 90
+    assert all(15.0 <= t <= 35.0 for t, _ in op.IN_BAND_VERIFY)
+    assert all(t < 15.0 or t > 35.0 for t, _ in op.OUT_OF_BAND_VERIFY)
     envelope = EV4["operating_conditions"]["envelope"]
     for t, s in op.MODEL_CONDITIONS + op.VERIFY_CONDITIONS:
         assert envelope["t_amb_c"][0] <= t <= envelope["t_amb_c"][1]
@@ -280,14 +290,16 @@ def _world(c1, c2, t, s):
     return time, margin, peak
 
 
-def test_mode_d_takes_the_lowest_worst_case_design_feasible_everywhere():
+def test_mode_d_takes_the_lowest_worst_case_design_feasible_in_band():
     grid = synthetic_grid(_world)
     result = op.mode_d(EV4, grid)
     assert result["status"] == "DESIGN"
-    # Brute force over the same rule.
+    # Brute force over the same rule, on the 20 in-band conditions only.
     best = None
     for c1, c2 in op.DESIGNS:
-        rows = [_world(c1, c2, t, s) for t, s in op.MODEL_CONDITIONS]
+        rows = [
+            _world(c1, c2, t, s) for t, s in op.MODEL_CONDITIONS if 15.0 <= t <= 35.0
+        ]
         if all(r[0] <= 3480.0 and r[1] >= 0.0 and r[2] <= 45.0 for r in rows):
             key = (max(r[0] for r in rows), c1, c2)
             best = key if best is None or key < best else best
@@ -299,11 +311,16 @@ def test_mode_d_ties_go_to_lower_c1_then_c2_and_it_abstains_when_nothing_fits():
     flat = synthetic_grid(lambda c1, c2, t, s: (1000.0, 0.01, 30.0))
     tie = op.mode_d(EV4, flat)
     assert (tie["c1"], tie["c2"]) == (0.5, 0.2)
-    # Feasible everywhere except one model condition: never chosen.
+    # Feasible everywhere except one in-band model condition: never chosen.
     partly = synthetic_grid(
-        lambda c1, c2, t, s: (1000.0, -0.001 if (t, s) == (5.0, 0.05) else 0.01, 30.0)
+        lambda c1, c2, t, s: (1000.0, -0.001 if (t, s) == (15.0, 0.05) else 0.01, 30.0)
     )
     assert op.mode_d(EV4, partly) == {"status": "ABSTAIN", "feasible_designs": 0}
+    # Predicted failures out of band (5, 10, 40 °C) play no part in Mode D.
+    outside = synthetic_grid(
+        lambda c1, c2, t, s: (1000.0, -0.001 if t in (5.0, 10.0, 40.0) else 0.01, 30.0)
+    )
+    assert op.mode_d(EV4, outside)["feasible_designs"] == 1023
     unreached = synthetic_grid(lambda c1, c2, t, s: (None, 0.01, 30.0))
     assert op.mode_d(EV4, unreached)["status"] == "ABSTAIN"
 
@@ -315,6 +332,13 @@ def test_mode_x_ranks_by_band_normalised_margin_and_caps_at_k():
     margins = [p["predicted_margin_bands"] for p in points]
     assert margins == sorted(margins)
     assert len({p["case_id"] for p in points}) == op.K
+    assert all(p["in_band"] == (15.0 <= p["t_amb_c"] <= 35.0) for p in points)
+    # Mode X searches all 32 conditions, out-of-band ones included.
+    cold = synthetic_grid(
+        lambda c1, c2, t, s: (1000.0, 0.0001 if t == 5.0 else 0.01, 30.0)
+    )
+    first = op.mode_x(EV4, cold)
+    assert first[0]["t_amb_c"] == 5.0 and first[0]["in_band"] is False
     bands = EV4["reference"]["uncertainty"]["bands"]
     first = points[0]
     expected = op.margins(EV4, first["predicted"])
@@ -512,8 +536,11 @@ def test_the_ev4_path_runs_end_to_end_through_pod_outputs(
     summary = op.run_report(experiment)
     assert summary["missing_references"] == 0
     result = json.loads((tmp_path / "ev4" / "optimizer" / "results.json").read_text())
-    assert result["baseline"]["points"] == 90
-    for finding in result["findings"]:
+    baseline = result["baseline"]
+    assert baseline["primary_in_band"]["points"] == len(op.IN_BAND_VERIFY)
+    assert baseline["secondary_out_of_band"]["points"] == len(op.OUT_OF_BAND_VERIFY)
+    assert set(result["findings"]) == {"in_band", "out_of_band"}
+    for finding in result["findings"]["in_band"] + result["findings"]["out_of_band"]:
         assert finding["condition"] in ("SCORE_VALUE_DIVERGENCE", "OTHER_SIGNAL")
         assert finding["schema"] == "carbon.admission-condition.v1"
     assert (
@@ -564,9 +591,16 @@ def test_report_outcomes_on_synthetic_references():
                 "outputs": outputs_for(c1, c2, t, s),
             }
     outcome = op.design_outcome(EV4, 1.0, 0.6, references)
-    assert sum(outcome["verdicts"].values()) == 90
-    missing = op.design_outcome(EV4, 1.5, 0.6, references)
-    assert missing["verdicts"][d.UNAVAILABLE] == 90
+    primary, secondary = outcome["primary_in_band"], outcome["secondary_out_of_band"]
+    assert sum(primary["verdicts"].values()) + sum(secondary["verdicts"].values()) == 90
+    base = op.design_outcome(EV4, 0.75, 0.6, references)["primary_in_band"]
+    saved = op._speed_up(primary, base)
+    if primary["worst_time_to_cv_s"] is not None and base["worst_time_to_cv_s"]:
+        assert saved["worst_seconds_saved"] == pytest.approx(
+            base["worst_time_to_cv_s"] - primary["worst_time_to_cv_s"]
+        )
+    missing = op.design_outcome(EV4, 1.5, 0.6, references)["primary_in_band"]
+    assert missing["verdicts"][d.UNAVAILABLE] == len(op.IN_BAND_VERIFY)
     assert missing["feasible_at_every_point"] is False
     assert missing["worst_time_to_cv_s"] is None
 

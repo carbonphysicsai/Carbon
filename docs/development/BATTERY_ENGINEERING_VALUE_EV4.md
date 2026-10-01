@@ -40,8 +40,9 @@ built to separate decision quality, does the proposed rule rank real models by
 reference-verified decision quality better or worse than the deciding rule?**
 
 Problem C asks the question an engineer would ask: **when each model picks
-one two-step fast-charge protocol for the whole 5-40 °C range, is that
-protocol actually safe, and how fast is it?**
+one two-step fast-charge protocol for the realistic indoor range, 15-35 °C,
+is that protocol actually safe there, how fast is it, and where does it break
+outside that range?**
 
 ## 2. What changes from EV2, and what does not
 
@@ -142,46 +143,64 @@ replaced.
 The code is `carbon/battery/value/hypotheses.py`; `Experiment.evaluate` adds
 its output to `results.json` and the report.
 
-## 6. Problem C: one protocol for 5-40 °C
+## 6. Problem C: one protocol for 15-35 °C
 
-**Use case.** "One two-step fast-charge protocol that is safe across 5-40 °C
-ambient": EV3's problem C, the most tangible customer demonstration, needing
-no new build. The optimizer is `carbon/battery/value/optimizer.py`; its modes
-are those of `DESIGN_OPTIMIZER_SCOPE.md` §1, and the decisions below fill that
-document's §4 gaps for this study only.
+**Use case.** "One two-step fast-charge protocol that is safe across 15-35 °C
+ambient (the realistic indoor product range), soc0 0.05-0.50": EV3's problem
+C, the most tangible customer demonstration, needing no new build. The
+optimizer is `carbon/battery/value/optimizer.py`; its modes are those of
+`DESIGN_OPTIMIZER_SCOPE.md` §1, and the decisions below fill that document's
+§4 gaps for this study only.
+
+**Why 15-35 °C, not 5-40 °C.** EV2's public references show no feasible
+protocol at 7 °C (soc0 0.08 and 0.28) or at 40 °C (soc0 0.18): fast
+protocols plate or overheat, and slow ones do not reach CV within the window.
+A 5-40 °C requirement would therefore make accurate members abstain and only
+optimistic members commit a design. The band was chosen from that EV2
+evidence by the lead session, on 2026-10-01, before any EV4 solve and
+without any EV4 data (see "Pre-freeze disclosures").
 
 **Grids.**
 - **Designs:** c1 0.50-2.00 C in steps of 0.05 (31) × c2 0.200-1.000 C in
   steps of 0.025 (33) = 1023.
-- **Model conditions** (where a model searches): t_amb {5, 10, 15, 20, 25, 30,
-  35, 40} °C × soc0 {0.05, 0.20, 0.35, 0.50} = 32.
+- **Model conditions** (each member predicts all of them): t_amb {5, 10, 15,
+  20, 25, 30, 35, 40} °C × soc0 {0.05, 0.20, 0.35, 0.50} = 32. The **20 in
+  band** are t_amb {15, 20, 25, 30, 35} × the 4 soc0 values; the 12 **out of
+  band** are t_amb {5, 10, 40} × the 4 soc0 values.
 - **Verification conditions** (reference truth): t_amb = linspace(5, 40, 18)
-  × soc0 = linspace(0.05, 0.50, 5) = 90.
+  × soc0 = linspace(0.05, 0.50, 5) = 90. A point is in band when
+  15 ≤ t_amb ≤ 35 °C.
 
 **Mode D (robust design).** For each selected member, from its own
-predictions only: the design predicted feasible at **all 32** model
+predictions only: the design predicted feasible at **all 20 in-band** model
 conditions (all three constraints, point predictions, no band) with the lowest
-worst-case predicted time to CV. Ties go to lower c1, then lower c2. If no
-design qualifies, the member ABSTAINS.
+worst-case predicted time to CV over them. Ties go to lower c1, then lower
+c2. If no design qualifies, the member ABSTAINS. Out-of-band predictions play
+no part in Mode D.
 
-**Verification of Mode D.** Every committed design, and the contract baseline,
-is solved at all 90 verification conditions. Reported per design:
-- verified feasible at every point (with the contract's bands);
-- the number of violating points per constraint;
-- worst-case and mean verified time to CV;
-- the speed-up against the baseline verified on the same 90 points (seconds
-  saved and ratio, worst case and mean).
+**Verification of Mode D.** Every committed design, and the contract baseline
+(c1 0.75, c2 0.6), is solved at all 90 verification conditions.
+- **PRIMARY, in band** (the points with 15 ≤ t_amb ≤ 35): verified feasible at
+  every in-band point (with the contract's bands); the number of violating
+  in-band points per constraint; worst-case and mean in-band time to CV; the
+  speed-up against the baseline on the same in-band points (seconds saved and
+  ratio, worst case and mean). This is the claim.
+- **SECONDARY, out of band** (below 15 °C, above 35 °C): the same quantities,
+  reported descriptively to show where the protocol breaks. Out-of-band
+  results never count as a failure of the in-band claim.
 
 **Mode X (adversarial).** For each selected member, over all 1023 designs ×
-32 model conditions: the points the member predicts feasible, ranked by the
-smallest constraint margin, each margin divided by that constraint's
-uncertainty band. The top **K = 50** distinct points are verified. A verified
-constraint FAIL at such a point is a **finding** with the divergence
-detector's schema (`carbon.admission-condition.v1`):
-`SCORE_VALUE_DIVERGENCE` if the member is in the top half of the eligible
-members under the deciding rule (2 × rank ≤ eligible), otherwise
-`OTHER_SIGNAL`. UNRESOLVED and unavailable references are reported, never
-counted as violations.
+the 32 model conditions (the 20 in band and the 12 out of band): the points
+the member predicts feasible, ranked by the smallest constraint margin, each
+margin divided by that constraint's uncertainty band. The top **K = 50**
+distinct points are verified. A verified constraint FAIL at such a point is a
+**finding** with the divergence detector's schema
+(`carbon.admission-condition.v1`): `SCORE_VALUE_DIVERGENCE` if the member is
+in the top half of the eligible members under the deciding rule (2 × rank ≤
+eligible), otherwise `OTHER_SIGNAL`. Each point and finding is labelled in
+band or out of band, and the two are counted and reported separately.
+UNRESOLVED and unavailable references are reported, never counted as
+violations.
 
 **Members, chosen by rule.** Applied to EV4's evaluated results, after the
 evaluation and **before any verification solve**; the selection is written
@@ -204,14 +223,13 @@ chooses which members' predictions are searched.
 
 ## 7. What it cannot show
 
-- **A single safe protocol may not exist.** EV2's references found no feasible
-  protocol in its grid at 7 °C (soc0 0.08 and 0.28) or at 40 °C with soc0
-  0.18: fast protocols plate or overheat, and slow ones do not reach CV
-  within the window. The 5-40 °C × soc0 0.05-0.50 envelope contains those
-  conditions. An accurate model may therefore ABSTAIN in Mode D, and only an
-  optimistic one commits a design. That outcome is reported as it is: a
-  correct abstention is a result, and an unsafe committed design is a
-  finding. No condition or threshold is relaxed to produce a design.
+- **A single safe protocol may still not exist in band.** The 15-35 °C band
+  avoids the EV2 conditions with no feasible protocol (§6), but EV2 never
+  tested 15 °C at soc0 0.05, so an accurate model may still ABSTAIN in Mode D.
+  That outcome is reported as it is: a correct abstention is a result, and an
+  unsafe committed design is a finding. No condition or threshold is relaxed
+  after any EV4 data is seen.
+- **No claim outside 15-35 °C.** Out-of-band verification is descriptive.
 - **Not a global optimum.** Mode D searches 1023 grid designs; a better design
   between grid points is not found. Mode X misses violations between its
   model conditions or beyond its top 50.
@@ -234,6 +252,9 @@ chooses which members' predictions are searched.
   at most 5 × 50 = 250; **at most 1630**. The job builders refuse to exceed
   each maximum (`test_verification_plans_refuse_to_exceed_the_maxima`).
 - **Reconstructions:** 100.
+- **Separate from OD-5.** EV4's USD 15 cap is the owner's separate 2026-10-01
+  approval for EV4 and the optimizer; the OD-5 budget table in
+  `BATTERY_TESTNET_PROGRAMME_STATE.md` is unchanged.
 - **Money:** hard cap USD 15 for EV4 and the optimizer together, recorded in
   the campaign ledger (`docs/development/evidence/ev4-2026-10-01/accounting/ledger.jsonl`)
   at `start`. Every dispatch refuses if the committed spend (every live pod to
@@ -249,7 +270,48 @@ chooses which members' predictions are searched.
   - about 7 pod-hours, **about USD 3.5**. The dispatch deadlines below commit
     at most about USD 5 against the cap.
 
-## 9. How it runs
+## 9. Rules fixed by the lead session
+
+These engineering rules were chosen while building, under the owner's
+delegation, before any EV4 solve:
+- **Panel recipes.** The exact 70 added recipes and the 15 that get a second
+  seed are those in `carbon/battery/value/panel.py` (§3).
+- **Median member.** Position ⌊(n − 1)/2⌋ in the deciding rule's descending
+  order of the n eligible members.
+- **Duplicate picks.** A member-selection role whose pick is already selected
+  takes the next member in its own order (for the median, the next
+  lower-ranked member).
+- **Top half.** A Mode X finding is `SCORE_VALUE_DIVERGENCE` when
+  2 × rank ≤ the number of eligible members (rank 1 = best under the deciding
+  rule), otherwise `OTHER_SIGNAL`.
+- **Bootstrap undefined values.** A member with no defined loss in a
+  replicate is dropped from that replicate for both rules; a replicate in
+  which either τ is undefined is skipped and counted.
+- **Admission window on a pod.** A reference job that would start after a
+  pod's admission window is typed `FAILED_INFRA` ("not_admitted"), never
+  imported, and solved by a resume pod.
+
+## 10. Pre-freeze disclosures
+
+- **Four EV4 development cases were solved locally before the freeze**
+  (2026-10-01). While checking that the shipped file set is sufficient, a
+  local smoke test of the `value_refs` phase ran with the real pinned PyBaMM
+  (26.8.0.0, present in the local venv) on CPU at USD 0. It solved four
+  development cases in the first reference shard:
+  `ev4:D-T5-S0.12:c1=0.5,c2=0.2:0`, `ev4:D-T5-S0.12:c1=0.5,c2=0.6:0`,
+  `ev4:D-T5-S0.12:c1=0.5,c2=1:0` and `ev4:D-T5-S0.12:c1=0.75,c2=0.4:0`.
+  The run was killed and the records deleted. No decision outcome was
+  computed; one record's diagnostics header was seen. No verification case
+  was solved.
+- **Band amendment** (2026-10-01, lead session, before the freeze and before
+  any EV4 result was used). Problem C's use case changed from 5-40 °C to
+  15-35 °C (Mode D on the 20 in-band model conditions; in-band verification
+  is primary, out-of-band secondary; Mode X searches the same 32 conditions
+  and reports in-band and out-of-band findings separately; K, grids of
+  designs and verification, and the solve maxima unchanged). Basis: EV2's
+  public references only (§6). The EV4 contract is unchanged by it.
+
+## 11. How it runs
 
 `ROOT` is the experiment root (outside the repository). `REF` is a pushed
 commit that holds the plans.

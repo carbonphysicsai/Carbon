@@ -1,4 +1,10 @@
-"""Problem C: one two-step fast-charge protocol that is safe across 5-40 °C.
+"""Problem C: one two-step fast-charge protocol that is safe across 15-35 °C.
+
+Use case (lead amendment 2026-10-01, before any EV4 solve, from EV2's public
+references only): one protocol safe across 15-35 °C ambient, the realistic
+indoor product range, at soc0 0.05-0.50. EV2 found no feasible protocol at
+7 °C or at 40 °C (soc0 0.18), so a 5-40 °C requirement would make accurate
+models abstain.
 
 The design optimizer of `DESIGN_OPTIMIZER_SCOPE.md`, run on EV4's panel with
 the EV4 contract's objective, constraints, uncertainty bands and baseline.
@@ -8,21 +14,25 @@ verification solve.
 
 - **Design grid.** c1 0.50-2.00 C in steps of 0.05 (31) × c2 0.200-1.000 C in
   steps of 0.025 (33): 1023 designs.
-- **Model condition grid** (where a model searches): t_amb {5, 10, …, 40} °C ×
-  soc0 {0.05, 0.20, 0.35, 0.50}: 32 conditions.
+- **Model condition grid** (the pod predicts all of it): t_amb {5, 10, …, 40}
+  °C × soc0 {0.05, 0.20, 0.35, 0.50}: 32 conditions. The 20 with
+  15 ≤ t_amb ≤ 35 are in band; {5, 10, 40} °C are out of band.
 - **Mode D (robust design, PB-INV).** Per member, from its predictions only:
   the design predicted feasible (all three constraints, point predictions, no
-  band) at all 32 conditions with the lowest worst-case predicted time to CV
-  onset; ties by lower c1, then c2 (the contract's tie rule); otherwise
+  band) at all 20 in-band conditions with the lowest worst-case predicted time
+  to CV onset; ties by lower c1, then c2 (the contract's tie rule); otherwise
   ABSTAIN.
 - **Verification grid** (reference truth): t_amb = linspace(5, 40, 18) ×
   soc0 = linspace(0.05, 0.50, 5): 90 conditions. Every committed design and
-  the contract baseline are solved at all 90.
-- **Mode X (adversarial, PB-ADV).** Per member, over all 1023 designs × 32
-  model conditions: the points it predicts feasible, ranked by the smallest
-  constraint margin normalised by the contract's uncertainty bands; the top
-  K = 50 distinct points are verified. A verified violation is a finding
-  (`divergence.verified_violation`).
+  the contract baseline are solved at all 90. PRIMARY: the in-band points
+  (15 ≤ t_amb ≤ 35). SECONDARY: the out-of-band points, reported
+  descriptively, never counted against the in-band claim.
+- **Mode X (adversarial, PB-ADV).** Per member, over all 1023 designs × the
+  32 model conditions: the points it predicts feasible, ranked by the
+  smallest constraint margin normalised by the contract's uncertainty bands;
+  the top K = 50 distinct points are verified. A verified violation is a
+  finding (`divergence.verified_violation`), labelled in band or out of band
+  and counted separately.
 - **Members** (pre-registered, applied after EV4's evaluation and before any
   verification solve): the best eligible member under the deciding rule; the
   best under the proposed rule; the median under the deciding rule; the best
@@ -61,6 +71,18 @@ MODEL_CONDITIONS = tuple(
     (float(t), float(s))
     for t in (5, 10, 15, 20, 25, 30, 35, 40)
     for s in (0.05, 0.20, 0.35, 0.50)
+)
+#: The in-band ambient range of the use case, inclusive (°C).
+BAND = (15.0, 35.0)
+
+
+def in_band(t_amb):
+    return BAND[0] <= t_amb <= BAND[1]
+
+
+#: Mode D's conditions: the in-band model conditions (20), as grid indices.
+MODE_D_CONDITIONS = tuple(
+    ci for ci, (t_amb, _soc0) in enumerate(MODEL_CONDITIONS) if in_band(t_amb)
 )
 VERIFY_CONDITIONS = tuple(
     (float(t), float(s))
@@ -186,13 +208,14 @@ def _predicted_pass(contract, quantities):
 
 
 def mode_d(contract, grid):
-    """The design predicted feasible at all 32 conditions with the lowest
-    worst-case predicted time to CV; ties by lower c1 then c2; else ABSTAIN."""
+    """The design predicted feasible at all 20 in-band conditions with the
+    lowest worst-case predicted time to CV there; ties by lower c1 then c2;
+    else ABSTAIN. Out-of-band predictions play no part."""
     best = None
     feasible = 0
     for di, (c1, c2) in enumerate(DESIGNS):
         worst = -math.inf
-        for ci in range(len(MODEL_CONDITIONS)):
+        for ci in MODE_D_CONDITIONS:
             q = _point(grid, di, ci)
             if not _predicted_pass(contract, q):
                 break
@@ -261,6 +284,7 @@ def mode_x(contract, grid, k=K):
             "t_amb_c": t_amb,
             "soc0": soc0,
             "case_id": case_id(c1, c2, t_amb, soc0),
+            "in_band": in_band(t_amb),
             "predicted_margin_bands": margin,
             "binding_constraint": binding,
             "predicted": q,
@@ -414,12 +438,12 @@ def _verify(contract, record):
     return verdict, checks, quantities
 
 
-def design_outcome(contract, c1, c2, references):
-    """One design verified at the 90 verification conditions."""
+def _summary(contract, c1, c2, references, conditions):
+    """Verification of one design on a set of conditions."""
     counts = {s: 0 for s in (d.FEASIBLE, d.INFEASIBLE, d.UNRESOLVED, d.UNAVAILABLE)}
     violations = {c["id"]: 0 for c in contract["constraints"]}
     times, unreached = [], 0
-    for t_amb, soc0 in VERIFY_CONDITIONS:
+    for t_amb, soc0 in conditions:
         verdict, checks, q = _verify(
             contract, references.get(case_id(c1, c2, t_amb, soc0))
         )
@@ -433,28 +457,39 @@ def design_outcome(contract, c1, c2, references):
         else:
             times.append(q["time_to_cv_onset_s"])
     complete = counts[d.UNAVAILABLE] == 0
+    timed = not (unreached or not complete or not times)
     return {
-        "design": design_id(c1, c2),
-        "c1": c1,
-        "c2": c2,
-        "points": len(VERIFY_CONDITIONS),
+        "points": len(conditions),
         "verdicts": counts,
-        "feasible_at_every_point": complete
-        and counts[d.FEASIBLE] == len(VERIFY_CONDITIONS),
+        "feasible_at_every_point": complete and counts[d.FEASIBLE] == len(conditions),
         "violating_points_by_constraint": violations,
-        "worst_time_to_cv_s": (
-            None if (unreached or not complete or not times) else max(times)
-        ),
-        "mean_time_to_cv_s": (
-            None
-            if (unreached or not complete or not times)
-            else sum(times) / len(times)
-        ),
+        "worst_time_to_cv_s": max(times) if timed else None,
+        "mean_time_to_cv_s": sum(times) / len(times) if timed else None,
         "points_not_reaching_cv": unreached,
     }
 
 
+IN_BAND_VERIFY = tuple(c for c in VERIFY_CONDITIONS if in_band(c[0]))
+OUT_OF_BAND_VERIFY = tuple(c for c in VERIFY_CONDITIONS if not in_band(c[0]))
+
+
+def design_outcome(contract, c1, c2, references):
+    """One design verified at the 90 verification conditions. PRIMARY is the
+    in-band claim (15 ≤ t_amb ≤ 35); SECONDARY describes where the design
+    breaks outside the band and never counts against the in-band claim."""
+    return {
+        "design": design_id(c1, c2),
+        "c1": c1,
+        "c2": c2,
+        "primary_in_band": _summary(contract, c1, c2, references, IN_BAND_VERIFY),
+        "secondary_out_of_band": _summary(
+            contract, c1, c2, references, OUT_OF_BAND_VERIFY
+        ),
+    }
+
+
 def _speed_up(design, baseline):
+    """Seconds saved and ratio against the baseline, on the same points."""
     out = {}
     for key in ("worst_time_to_cv_s", "mean_time_to_cv_s"):
         a, b = design[key], baseline[key]
@@ -492,7 +527,9 @@ def report(contract, results, selection, references):
             entry["mode_d"] = {
                 **outcome,
                 "predicted_worst_time_to_cv_s": decided["predicted_worst_time_to_cv_s"],
-                "versus_baseline": _speed_up(outcome, baseline),
+                "in_band_versus_baseline": _speed_up(
+                    outcome["primary_in_band"], baseline["primary_in_band"]
+                ),
             }
         designs.append(entry)
     eligible = sorted(
@@ -522,6 +559,7 @@ def report(contract, results, selection, references):
                         eligible_members=len(scores),
                         detail={
                             "mode": "X",
+                            "in_band": point["in_band"],
                             "design": point["design"],
                             "operating_condition": {
                                 "t_amb_c": point["t_amb_c"],
@@ -536,9 +574,10 @@ def report(contract, results, selection, references):
                         },
                     )
                 )
-        counts = {}
+        counts = {"in_band": {}, "out_of_band": {}}
         for r in rows:
-            counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+            side = counts["in_band" if r["in_band"] else "out_of_band"]
+            side[r["verdict"]] = side.get(r["verdict"], 0) + 1
         adversarial[member] = {
             "rank_under_deciding_rule": rank,
             "eligible_members": len(scores),
@@ -548,14 +587,22 @@ def report(contract, results, selection, references):
     return {
         "schema": RESULT_SCHEMA,
         "contract_digest": selection["contract_digest"],
-        "use_case": "one two-step fast-charge protocol safe across 5-40 °C ambient",
+        "use_case": (
+            "one two-step fast-charge protocol safe across 15-35 °C ambient "
+            "(the realistic indoor product range), soc0 0.05-0.50"
+        ),
+        "band_t_amb_c": list(BAND),
         "baseline": baseline,
         "designs": designs,
         "adversarial": adversarial,
-        "findings": findings,
+        "findings": {
+            "in_band": [f for f in findings if f["in_band"]],
+            "out_of_band": [f for f in findings if not f["in_band"]],
+        },
         "claims": {
             "best_design_is_global_optimum": False,
             "search_finding_nothing_proves_safety": False,
+            "out_of_band_counts_against_in_band_claim": False,
             "qualification": False,
             "evidence_class": "PUBLIC_SYNTHETIC_DEVELOPMENT",
         },
@@ -568,24 +615,35 @@ def render(result):
     def f(value, digits=1):
         return "—" if value is None else f"{value:.{digits}f}"
 
+    def cells(s):
+        v = s["violating_points_by_constraint"]
+        return (
+            f"{s['feasible_at_every_point']} "
+            f"| {v['reach_cv_in_window']} / {v['no_plating_onset']} / "
+            f"{v['peak_temperature']} "
+            f"| {f(s['worst_time_to_cv_s'])} | {f(s['mean_time_to_cv_s'])}"
+        )
+
     lines = [
-        "# Problem C: one fast-charge protocol for 5-40 °C",
+        "# Problem C: one fast-charge protocol for 15-35 °C",
         "",
         (
             "Public synthetic DEVELOPMENT evidence. Each model chose one two-step "
-            "protocol from its own predictions; the reference verified it at 90 "
-            "conditions. Not a global optimum, not a qualification."
+            "protocol from its own predictions at the 20 in-band conditions; the "
+            "reference verified it at 90 conditions over 5-40 °C. The claim is the "
+            "in-band result (15-35 °C); out-of-band points describe where the "
+            "design breaks and never count against it. Not a global optimum, not "
+            "a qualification."
         ),
         "",
-        "| Role | Member | Design | Feasible at all 90 | Violations (reach / plating / temp) | Worst t_CV (s) | Mean t_CV (s) | Worst saved vs baseline (s) |",
+        "## Primary: in band (15-35 °C)",
+        "",
+        "| Role | Member | Design | Feasible at every in-band point | Violations (reach / plating / temp) | Worst t_CV (s) | Mean t_CV (s) | Worst saved vs baseline (s) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     b = result["baseline"]
-    v = b["violating_points_by_constraint"]
     lines.append(
-        f"| baseline | — | {b['design']} | {b['feasible_at_every_point']} "
-        f"| {v['reach_cv_in_window']} / {v['no_plating_onset']} / {v['peak_temperature']} "
-        f"| {f(b['worst_time_to_cv_s'])} | {f(b['mean_time_to_cv_s'])} | — |"
+        f"| baseline | — | {b['design']} | {cells(b['primary_in_band'])} | — |"
     )
     for row in result["designs"]:
         m = row["mode_d"]
@@ -594,32 +652,53 @@ def render(result):
                 f"| {row['role']} | {row['member'] or '—'} | {m or '—'} | — | — | — | — | — |"
             )
             continue
-        v = m["violating_points_by_constraint"]
         lines.append(
             f"| {row['role']} | {row['member']} | {m['design']} "
-            f"| {m['feasible_at_every_point']} "
-            f"| {v['reach_cv_in_window']} / {v['no_plating_onset']} / {v['peak_temperature']} "
-            f"| {f(m['worst_time_to_cv_s'])} | {f(m['mean_time_to_cv_s'])} "
-            f"| {f(m['versus_baseline']['worst_seconds_saved'])} |"
+            f"| {cells(m['primary_in_band'])} "
+            f"| {f(m['in_band_versus_baseline']['worst_seconds_saved'])} |"
         )
+    lines += [
+        "",
+        "## Secondary: out of band (below 15 °C, above 35 °C), descriptive",
+        "",
+        "| Role | Member | Design | Feasible at every out-of-band point | Violations (reach / plating / temp) | Worst t_CV (s) | Mean t_CV (s) |",
+        "|---|---|---|---|---|---|---|",
+        f"| baseline | — | {b['design']} | {cells(b['secondary_out_of_band'])} |",
+    ]
+    for row in result["designs"]:
+        m = row["mode_d"]
+        if isinstance(m, dict):
+            lines.append(
+                f"| {row['role']} | {row['member']} | {m['design']} "
+                f"| {cells(m['secondary_out_of_band'])} |"
+            )
     lines += [
         "",
         "## Adversarial search (Mode X)",
         "",
-        "| Member | Rank (deciding rule) | Points verified | Violations | Unresolved | Confirmed |",
-        "|---|---|---|---|---|---|",
+        "| Member | Rank (deciding rule) | Points verified | In-band violations / unresolved / confirmed | Out-of-band violations / unresolved / confirmed |",
+        "|---|---|---|---|---|",
     ]
     for member, row in result["adversarial"].items():
-        c = row["verdicts"]
+        i, o = row["verdicts"]["in_band"], row["verdicts"]["out_of_band"]
+
+        def trio(c):
+            return (
+                f"{c.get(d.INFEASIBLE, 0)} / {c.get(d.UNRESOLVED, 0)} / "
+                f"{c.get(d.FEASIBLE, 0)}"
+            )
+
         lines.append(
-            f"| {member} | {row['rank_under_deciding_rule']} of {row['eligible_members']} "
-            f"| {len(row['points'])} | {c.get(d.INFEASIBLE, 0)} | {c.get(d.UNRESOLVED, 0)} "
-            f"| {c.get(d.FEASIBLE, 0)} |"
+            f"| {member} | {row['rank_under_deciding_rule']} of "
+            f"{row['eligible_members']} | {len(row['points'])} | {trio(i)} "
+            f"| {trio(o)} |"
         )
+    findings = result["findings"]
     lines += [
         "",
         (
-            f"Findings: {len(result['findings'])} "
+            f"Findings: {len(findings['in_band'])} in band, "
+            f"{len(findings['out_of_band'])} out of band "
             "(SCORE_VALUE_DIVERGENCE when the member is in the top half under the "
             "deciding rule, otherwise OTHER_SIGNAL). A search that finds nothing is "
             "not a safety bound."
@@ -809,6 +888,6 @@ def run_report(experiment):
             }
             for r in result["designs"]
         ],
-        "findings": len(result["findings"]),
+        "findings": {k: len(v) for k, v in result["findings"].items()},
         "missing_references": len(missing),
     }
