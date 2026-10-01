@@ -16652,6 +16652,73 @@ rotation, scoring that never stalls).
   Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
   v1 until it is updated there.
 
+## 2026-10-01 — WEB-QA-11-D2: publish Ask Carbon bundle 86f51385 (Pilot Designer be64f8b9, /workbench/ retired)
+
+**Authority.** The repository owner, in the Ask Carbon session on 2026-10-01:
+"THE REBUILT CANDIDATE IS APPROVED FOR DEPLOYMENT." This is the exact-bundle
+approval that WEB-QA-11-D1 required. Approval basis:
+`OWNER_PUBLICATION_APPROVAL_2026_10_01_WEB_QA_11_D2`.
+
+**What it publishes.** Two paths change against production. Production serves
+bundle `48fd4680…` (WEB-QA-10-D1). The measurement covered all 105 staged paths
+on both hostnames at 2026-10-01T10:05Z, with HTML compared after removing the
+edge-injected scripts.
+
+| Path | Production | Published |
+| --- | --- | --- |
+| `ask-carbon/pilot-designer.html` | `4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd` | `be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496`, the GOAL-WORKBENCH-16 Pilot Designer (#448–#450) |
+| `workbench/index.html` | `05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d` | `9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b`, the "Workbench is now part of the Pilot Designer" page, which redirects after 5 seconds |
+
+The other 103 paths are byte-identical to production. They include the
+homepage `b1e8e7cd…`, the Q&A component `62ba26ce…` and knowledge
+`fab55d5d…`.
+
+**Two paths, not three.** The owner's instruction asked for "the three changed
+paths". The measurement finds two.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a` (105 files). Supersedes `48fd4680…`, which production still serves |
+| How it was derived | From disk on main `c5f4b16c8`. The baseline was re-fetched from both hostnames (100/100 against manifest v3 on each), and `integrate-static.mjs --site-replacements … --require-complete-bundle` built the bundle, reporting `deployable_to_carbonwebsite: true`. The identity is unchanged from #453 because #454 and #460 change no bundle input |
+| Worker | `ask-carbon-public` source, knowledge and `wrangler.public-release-active.toml` are byte-identical to the live WEB-QA-10-D1 revision `368c713e` |
+| Static rollback target | Captured by the operator at deploy time. The repository expects `dc4469a7-f4da-4437-aaa1-2789277e57fc` (the owner's 2026-09-30 capture of the WEB-QA-10-D1 deploy) |
+| Worker rollback target | Captured by the operator at deploy time |
+
+**Rollback target conflict, carried to the owner.** The owner's 2026-10-01
+instruction names `f7954cb2-b610-40f9-86e6-0a3fe6d04c93`. This file's
+WEB-QA-10-D1 deployment event and `production-baseline.manifest.json` record
+`f7954cb2` as the version captured *before* WEB-QA-10-D1. Rolling back to it
+would withdraw the live Pilot Designer and knowledge. The deploy package
+therefore tells the operator to use the id captured at deploy time, and to stop
+if that is not `dc4469a7`. `b694b20f` stays withdrawn: it serves the v2 site.
+
+**Deploy package.** `website/ask-carbon/DEPLOY_PACKAGE_2026_10_01.md`. It is
+written for the operator (Nick Fitzpatrick) on his own machine, and needs only
+a public clone. Two scripts are added, so the operator re-derives nothing:
+- `tools/fetch-live-baseline.mjs` rebuilds the `--existing-site` baseline from
+  the live site. Any mismatch with the manifest fails the run, which doubles as
+  the "live has moved" stop.
+- `tools/verify-publication.mjs` checks `/`, `/workbench/`, the four
+  `/assets/*.png`, `/workbench/atlas-source.json` and the Pilot Designer on
+  both hostnames against the staged bundle, then reads health.
+
+Run before deploying, the verifier fails on exactly the two changed paths on
+each hostname and passes everything else, including health (`active:true`,
+`reasons:[]`, `gemma-4-31b-turbo-tee:v1`).
+
+**Not authorized by this decision.**
+- Deployment is the operator's act from a host holding the Cloudflare
+  credential. This session has none and ran no wrangler command.
+- No change to budget or ceilings.
+- No change to the `AskCarbonUsageLedger` Durable Object, which is never rolled
+  back or deleted.
+- No change to Cloudflare Email Routing, which is never enabled.
+- The six cards expiring 2026-10-16 are not refreshed here.
+- The next candidate is not built while this one is undeployed. It will carry
+  #455 and #458, both of which change the Pilot Designer page.
+
 ## 2026-10-01 — OWNER-BATTERY-3B-AND-EXPOSURE-01: amendment 4 approved; miners never see a hidden batch or anything computed from it
 
 **Authority.** The owner, in the Testnet session on 2026-10-01, in two
