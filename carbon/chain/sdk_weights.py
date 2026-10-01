@@ -18,8 +18,10 @@ def require_sdk():
         raise PublicationFailure("UNSUPPORTED_SDK_VERSION")
 
 
-def open_external_wallet(name, hotkey_name, expected_hotkey, expected_coldkey):
-    """Open and identity-check an operator wallet inside the SDK boundary."""
+def open_operator_wallet(name, hotkey_name, expected_hotkey, expected_coldkey):
+    """Open the OPERATOR's own validator wallet (weight publication) and
+    identity-check it. Never a miner's key: miners sign through their own
+    `carbon-miner-signer` (`carbon.chain.external_signer`)."""
 
     require_sdk()
     try:

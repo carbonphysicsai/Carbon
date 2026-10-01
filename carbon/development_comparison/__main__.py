@@ -31,7 +31,7 @@ def main():
         "model-authority",
         "api-key-file",
         "miner-public",
-        "miner-password-file",
+        "signer-socket",
     ):
         parser.add_argument("--" + name, type=Path)
     args = parser.parse_args()
@@ -117,7 +117,6 @@ def main():
                 args.model_authority,
                 args.api_key_file,
                 args.miner_public,
-                args.miner_password_file,
             )
         ):
             parser.error(
@@ -128,15 +127,13 @@ def main():
                 "controller code changed after prospective experiment freeze"
             )
         check_authority(args.model_authority, now=time.time(), run_proposal=plan)
-        from carbon.chain.auth import open_external_hotkey
+        from carbon.chain.external_signer import miner_signer
         from carbon.development_session.service import LocalMinerConnection
         from carbon.development_testnet.operator import load_config
 
         config = load_config(args.operator_config)
         public = json.loads(args.miner_public.read_bytes())
-        key = open_external_hotkey(
-            Path(public["key_file"]), args.miner_password_file, public["hotkey"]
-        )
+        key = miner_signer(public, args.signer_socket)
         connection = LocalMinerConnection(
             root,
             args.image_manifest,

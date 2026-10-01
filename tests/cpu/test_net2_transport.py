@@ -322,9 +322,13 @@ def test_installed_sdk_signatures_and_domains(tmp_path, mutation):
     receiver = keypair.create_from_uri("//Bob")
     state = snapshot(sender.ss58_address, receiver.ss58_address)
     body = wire(state)
-    signed = BittensorMessageSigner(sender).sign(
-        body, receiver=receiver.ss58_address, nonce_ns=NOW
-    )
+    # Signed through the miner's own signer, as the product always signs.
+    from tests.cpu._signer_harness import in_thread_signer
+
+    with in_thread_signer(sender, clock=lambda: NOW) as external:
+        signed = BittensorMessageSigner(external).sign(
+            body, receiver=receiver.ss58_address, nonce_ns=NOW
+        )
     args = {
         "method": "POST",
         "path": "/carbon/v1/mcp",

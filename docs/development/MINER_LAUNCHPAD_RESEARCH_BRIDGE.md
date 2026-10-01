@@ -91,10 +91,12 @@ and browser readback fixtures do not satisfy that predicate.
 disabled. The record has exactly `schema`, `profile_id`, `principal`, `grant_file`,
 `account_ref`, `enabled`, `paths` and `accepted_revision`. `paths` contains the
 existing runner's seven file inputs: image_manifest, analysis_image_manifest,
-operator_config, api_key_file, miner_public, miner_password_file and
-quarantine_journal. Files must be absolute private operator inputs; browser
+operator_config, api_key_file, miner_public and quarantine_journal (a
+`miner_password_file` is refused as `miner_password_file_retired_start_signer`:
+see [MINER_EXTERNAL_SIGNER.md](MINER_EXTERNAL_SIGNER.md)). Files must be absolute private operator inputs; browser
 requests cannot install or replace them. The existing registered subnet-567 miner
-is verified through the original trusted signing boundary before research.
+is verified on chain, and the miner's own `carbon-miner-signer` must answer for
+its hotkey, before research.
 
 New Launchpad campaigns select the accepted C-W1-D5 v2 continuation policy. The
 runner freezes its prompt/tool identity; this does not transfer D5's separate
