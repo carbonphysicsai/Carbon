@@ -36,7 +36,13 @@ import os
 import sys
 from pathlib import Path
 
-from .deployment import EvaluationUnavailable, load_config, validator, writer
+from .deployment import (
+    EvaluationUnavailable,
+    load_config,
+    rule_for,
+    validator,
+    writer,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -152,7 +158,9 @@ def init(config_path, *, repository=REPOSITORY):
     except ValueError:
         if bound:
             raise EvaluationUnavailable("evaluation_journal_other_root") from None
-        pin = seeds.seed_pin(seeds.generator_digest(repository), rule_digest())
+        pin = seeds.seed_pin(
+            seeds.generator_digest(repository), rule_digest(rule_for(config))
+        )
         journal.commit_root(root, pin)
         committed = True
     return {

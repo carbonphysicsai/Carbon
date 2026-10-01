@@ -16596,3 +16596,58 @@ the mainnet switch".
   intake's own §4 review is still needed, and it is the exposure record above.
   Building and merging the loopback-only listener can proceed.
 - No chain write, no commitment, no spend, testnet 567 only.
+
+## 2026-09-30 — OWNER-BATTERY-SCORING-WINDOW-01: battery exam rule v2 removes the 3-submission scoring cap
+
+**Authority.** The owner, in the Testnet session on 2026-09-30: "Remove the 3
+scoring slot limit and handle that whatever way is optimal on bittensor. We
+need easy to submit, clearn submission feedback", then "approved" to the
+proposed design (one scored submission per hotkey per tempo, block-based
+rotation, scoring that never stalls).
+
+1. **Rule v2** (`exam.DEVELOPMENT_RULE_V2`) replaces OD-2's "rotate after 3
+   admitted" and nothing else:
+   - **Per hotkey:** one scored submission per hotkey per 360-block window
+     (one Bittensor tempo), aligned to multiples of 360. The block is the
+     finalized block of the validator-observed snapshot the request was
+     authenticated against. An invalid construction does not use the window.
+     The cap is per hotkey, not per party (below).
+   - **Rotation by block height:** a fresh screening batch every 1080 blocks
+     (3 tempos). A batch is active about 9 tempos, so one hotkey can see it
+     scored about 9 times. v1 placed that bound on all miners together; v2
+     places it on each hotkey (below).
+   - **Never stall:** a due rotation with no prepared batch keeps scoring on
+     the current batches and records `rotation_overdue`.
+2. **The values 360, 1080 and 1 are the executor's provisional development
+   choices** under the owner's "whatever way is optimal" delegation. They are
+   not production values and nothing here is scientifically qualified.
+3. **Historical results keep v1 (invariant 10).** The change is prospective.
+   Every result scored under v1 keeps the meaning of the rule it was scored
+   with, and none is rescored or reinterpreted under v2. A seed root is
+   committed for one rule, so v2 runs on a fresh deployment state and root,
+   and a validator refuses a root committed for another rule
+   (`rule_mismatch`). v1's state is archived, not rewritten.
+
+**What v2 does not fix.**
+- **One party, many hotkeys.** The cap is per hotkey, not per party. One
+  party can register several hotkeys and take one scored slot per hotkey per
+  tempo. A registration burn makes each extra hotkey cost something; it does
+  not prevent one. The cap implies no fairness between parties, and nothing
+  here should be read as if it did.
+- **Aggregate exposure of a hidden batch.** v1 bounded every miner together
+  at about 9 scored observations of one screening batch. v2 bounds each
+  hotkey at about 9, so the batch's total grows with the number of active
+  hotkeys. How many scored observations of a hidden batch the exam can
+  tolerate is an exam-integrity (scientific) judgement, not an engineering
+  value. **That part is not decided here:** v2 is merged as code and is not
+  deployed as the exam for an evidence-bearing campaign until the owner
+  records an acceptable aggregate exposure, or accepts it as unbounded for
+  DEVELOPMENT.
+
+**Consequences recorded, not decided here.**
+- The volume channel amendment 4 measures (D3/D4) was bounded globally under
+  v1 and is bounded per hotkey under v2. Amendment 4 must be re-registered
+  against v2 before any 3B provider call.
+- The research agent's disclosed rule (`carbon/battery/research.py`) is the
+  Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
+  v1 until it is updated there.
