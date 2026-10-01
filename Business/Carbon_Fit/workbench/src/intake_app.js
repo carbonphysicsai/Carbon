@@ -79,6 +79,72 @@
     return I.validateDraft(draft);
   }
 
+  // The proposed Challenge (GOAL-WORKBENCH-16 slice 2) follows the draft.
+  const P = CarbonChallengeProposal;
+  const FAMILIES = JSON.parse($("challenge-families").textContent);
+  let proposalFamily = null;
+  let lastProposal = null;
+  const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const STATUS_TEXT = {
+    INSIDE_TESTED_RANGE: "inside the tested range",
+    OUTSIDE_TESTED_RANGE: "outside the tested range",
+    PROPOSED_FROM_TESTED_DESIGN: "proposed from the tested design",
+    SUPPLIED_RANGE_MISSING: "range needed",
+    UNITS_TO_CONFIRM: "units to confirm",
+    SUPPLIED_NO_TESTED_RANGE: "supplied; no tested range yet",
+    NEEDED_NO_TESTED_RANGE: "needed; no tested range yet",
+  };
+  const table = (columns, rows) => `<div class="table-wrap"><table><thead><tr>${columns.map((c) => `<th scope="col">${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  function campaignHtml(c) {
+    if (!c) return "";
+    let html = `<section class="campaign" aria-labelledby="campaign-title"><h3 id="campaign-title">${esc(c.title)}</h3><ul>${c.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul><p class="field-note">${esc(c.purpose)}</p>`;
+    html += `<details class="method"><summary>The questions a study answers (${c.questions.length})</summary><ol>${c.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></details>`;
+    html += `<details class="method"><summary>How Carbon ran its first campaign, stage by stage</summary>${table(c.stages.columns, c.stages.rows)}<p class="field-note">Source: ${esc(c.source.path)}.</p></details>`;
+    if (c.measured) html += `<p><strong>For scale, measured compute.</strong> ${esc(c.measured.prior_spend.label)}: ${esc(c.measured.prior_spend.value)}.</p><ul>${c.measured.per_item.map((i) => `<li>${esc(i.item)}: ${esc(P.costText(i))}</li>`).join("")}</ul><p class="field-note">Compute only. Not a price, a quote or a commitment to run.</p>`;
+    html += `<p class="field-note">A study of this kind cannot establish: ${esc(c.cannot_establish.join(" "))}</p><p class="field-note">${esc(c.training_budget)}</p></section>`;
+    return html;
+  }
+
+  function renderProposal(draft) {
+    let proposal;
+    try { proposal = P.propose(draft, FAMILIES, proposalFamily); } catch (error) { proposalFamily = null; proposal = P.propose(draft, FAMILIES); }
+    lastProposal = proposal;
+    // The client can always choose; the first option follows the best match.
+    const best = proposal.matches[0];
+    $("proposal-family").innerHTML = `<option value=""${proposalFamily ? "" : " selected"}>Best match${best ? ": " + esc(best.title) : " (none yet)"}</option>` +
+      FAMILIES.families.map((f) => {
+        const m = proposal.matches.find((x) => x.family_id === f.id);
+        return `<option value="${esc(f.id)}"${proposalFamily === f.id ? " selected" : ""}>${esc(f.title)}${m ? "" : " (not matched)"}${f.evidence ? "" : " · no evidence yet"}</option>`;
+      }).join("");
+    const view = $("proposal-view");
+    if (proposal.kind === P.KIND.NONE) {
+      const blank = !P.clientText(draft).trim();
+      view.innerHTML = `<div class="boundary"><strong>No launch-portfolio family matches this brief yet.</strong> Describe the system and what you need to predict, in the form or in Your system, and the proposal will follow. A problem outside Carbon's current families is still welcome: Carbon would scope it from the start.</div><p class="field-note">Families Carbon has records for: ${esc(FAMILIES.families.map((f) => f.title).join(", "))}.</p>${blank ? "" : campaignHtml(proposal.campaign)}`;
+      return;
+    }
+    const f = proposal.family;
+    const matchedOn = proposal.matched ? [...proposal.matched.keywords, ...proposal.matched.physics.map((x) => x + " physics")].join(", ") : "";
+    let html = `<article class="plan-route"><p class="eyebrow">${proposal.kind === P.KIND.EVIDENCE ? "Evidence-backed family" : "Scoped family, no evidence yet"}</p><h3>${esc(f.title)}</h3><p>${esc(f.engineering_decision)}</p><p class="field-note">${matchedOn ? "Matched on your words: " + esc(matchedOn) + ". " : "Chosen by you. "}Status ${esc(f.status)}; training budget study ${esc(f.training_budget_study)}. A suggestion for Carbon review, not an assessment of fit.</p></article>`;
+    html += `<div class="boundary"><strong>Where the evidence applies.</strong> ${esc(f.reference_applicability)}</div>`;
+    html += `<h3>Conditions</h3><p class="field-note">Each condition the family varies, against your inputs. Where you gave none, Carbon proposes the range it tested; confirm or change it.</p>`;
+    html += `<ul class="condition-list">${proposal.conditions.map((c) => `<li class="condition ${c.status.toLowerCase()}"><div><strong>${esc(c.variable)}</strong> <span class="field-note">(${esc(c.unit)})</span> <span class="chip">${esc(STATUS_TEXT[c.status] || c.status)}</span></div><p>${esc(c.description)}</p><p>${esc(c.note)}</p>${c.client_inputs.length ? `<p class="field-note">Your input: ${esc(c.client_inputs.join(", "))}</p>` : ""}</li>`).join("")}</ul>`;
+    if (proposal.extra_client_inputs.length) html += `<p class="field-note">Inputs you gave that this family's design does not vary: ${esc(proposal.extra_client_inputs.join(", "))}. They would need a new design study.</p>`;
+    html += `<h3>What the model would predict</h3>${table(["Output", "Unit", "What it is", "Your matching output"], proposal.outputs.map((o) => [o.output, o.unit, o.description, o.client_outputs.join(", ") || "—"]))}`;
+    if (proposal.kind === P.KIND.EVIDENCE) {
+      const outside = proposal.conditions.some((c) => c.status === "OUTSIDE_TESTED_RANGE");
+      html += `<h3>Proposed exam settings, and why</h3><p class="field-note">From ${esc(proposal.evidence.title)}: ${esc(proposal.evidence.summary)}</p>`;
+      if (outside) html += `<div class="boundary"><strong>Part of your brief is outside the tested range.</strong> These settings were measured on Carbon's tested design; they are a starting point, and your range would need its own study before they could be relied on.</div>`;
+      html += proposal.settings.map((st) => `<details class="method setting"><summary><span>${esc(st.label)}</span> <strong>${esc(st.value)}</strong></summary><p>${esc(st.why)}</p>${table(st.table.columns, st.table.rows)}${st.supporting_table ? table(st.supporting_table.columns, st.supporting_table.rows) : ""}<p class="field-note">Source: ${esc(proposal.evidence.source.path)} (section: ${esc(st.section)})${st.limit ? ` Limit <code>${esc(st.limit.name)}</code>: proposed ${esc(st.limit.proposed)} ${esc(st.limit.unit)}; approved: ${st.limit.approved === null ? "not yet" : esc(st.limit.approved)}.` : "."}</p></details>`).join("");
+      html += `<h3>Limits of this evidence</h3><ul>${proposal.evidence.limits_of_evidence.map((l) => `<li>${esc(l.replace(/^\d+\.\s*/, "").replaceAll("**", ""))}…</li>`).join("")}</ul>`;
+    } else {
+      const unknown = proposal.costs.filter((c) => c.basis === "unknown").map((c) => c.item);
+      html += `<h3>No exam-design evidence yet</h3><p>Carbon has scoped this family but has not run its exam-design campaign, so no exam setting is proposed. The first step on record:</p><p class="clarification">${esc(f.next_experiment)}</p>${unknown.length ? `<p class="field-note">Cost items not yet measured: ${esc(unknown.join(", "))}. No figure is shown until it is measured.</p>` : ""}`;
+    }
+    html += campaignHtml(proposal.campaign);
+    html += `<details class="method"><summary>Open items Carbon still has to resolve (${f.unresolved.length})</summary><ul>${f.unresolved.map((u) => `<li>${esc(u)}</li>`).join("")}</ul></details>`;
+    view.innerHTML = html;
+  }
+
   function guidanceContext() {
     return I.guidanceContextFrom(currentDraft(), pilot, unresolvedAssumptions);
   }
@@ -98,11 +164,12 @@
       }
       $("brief-mode").textContent = acceptedSuggestions.length ? `${acceptedSuggestions.length} accepted suggestion${acceptedSuggestions.length === 1 ? "" : "s"}` : "client draft";
       $("context-preview").textContent = JSON.stringify(guidanceContext(), null, 2);
+      renderProposal(draft);
       $("intake-status").textContent = "Ready for local review. Nothing has been submitted.";
     } catch (error) { $("intake-status").textContent = error.message; }
   }
 
-  const MODES = ["guided", "form", "system"];
+  const MODES = ["guided", "form", "system", "proposal"];
   function setMode(mode, focusPanel = true) {
     for (const name of MODES) {
       const selected = name === mode;
@@ -113,6 +180,7 @@
     if (!focusPanel) return;
     if (mode === "form") document.querySelector("[data-text='intended_decision']").focus();
     if (mode === "system") $("system-panel").querySelector("[data-step]").focus();
+    if (mode === "proposal") $("proposal-panel").querySelector("h2").focus();
   }
 
   function addMessage(role, text) {
@@ -250,6 +318,12 @@
     builder.example(button.dataset.example);
     $("intake-status").textContent = "Example loaded into the system builder. Your brief's words are unchanged; edit the starting assumptions to fit your problem.";
   }));
+  $("proposal-family").onchange = () => { proposalFamily = $("proposal-family").value || null; renderBrief(); };
+  $("export-proposal").onclick = () => {
+    if (!lastProposal) return;
+    download(P.markdown(lastProposal), `${lastProposal.draft.draft_id}_${lastProposal.draft.revision_id}.proposed-challenge.md`, "text/markdown");
+    $("intake-status").textContent = "Proposal downloaded locally. Nothing was transmitted to Carbon.";
+  };
   $("system-clear").onclick = () => {
     if (!builder.isBlank() && !confirm("Clear the system builder? Your brief's words are unchanged.")) return;
     builder.reset();
@@ -269,7 +343,7 @@
     }
     $("draft-id").value = "local-inquiry-001"; $("revision-id").value = "rev-001"; $("predecessor-revision").value = ""; $("predecessor-digest").value = "";
     $("contact-name").value = ""; $("contact-email").value = ""; $("contact-organization").value = ""; $("include-conversation").checked = false;
-    acceptedSuggestions.length = 0; undoStack.length = 0; provenance.clear(); unresolvedAssumptions = []; pendingProposals = []; conversation = []; priorGuidance = null;
+    acceptedSuggestions.length = 0; undoStack.length = 0; provenance.clear(); unresolvedAssumptions = []; pendingProposals = []; conversation = []; priorGuidance = null; proposalFamily = null;
     guidanceEnabled = false; guidanceAvailable = false; consentedAt = null; clearedLocally = true; sessionId = "pilot-" + crypto.randomUUID();
     $("consent-check").checked = false; $("enable-guidance").disabled = true; $("consent-panel").hidden = true; $("guidance-input").value = ""; $("guidance-input").disabled = true; $("send-guidance").disabled = true; $("undo-suggestion").disabled = true;
     $("guidance-boundary").innerHTML = guidanceBoundaryHtml;

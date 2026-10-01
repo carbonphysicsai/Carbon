@@ -16,7 +16,7 @@ Recorded as `OWNER-PILOT-DESIGNER-ROUTE-01` in `.agent/DECISIONS.md`.
 Primary Development Hub map_ref: `SYSTEM/BUSINESS-AUTHORITY`; impact
 `mapped_detail`.
 
-Status: slice 1 in progress. One pull request per slice, each based on main.
+Status: slice 1 merged (#448, e27a7adb3); slice 2 merged (#449, ac75b4f76). Slice 3 in progress. One pull request per slice, each based on main.
 
 ## Why
 
@@ -88,3 +88,54 @@ guided AI conversation and the encrypted handover.
   meaning and still import. Nothing already written is rewritten.
 - **D4. The AI context is unchanged.** The system builder's values are not sent
   to the provider in this slice.
+
+## Slice 2 decisions
+
+- **D5. The proposal is computed, not authored per client.** `src/challenge_proposal.js`
+  is pure and deterministic over the brief and one public record,
+  `data/challenge_families_v1.json`. The same brief always gives the same
+  proposal, in the browser and in a test.
+- **D6. The record relays, it does not restate.** `tools/build_challenge_families.py`
+  copies each launch-portfolio readiness record's status, limits, costs,
+  reviews, training budget study, reference applicability and open items as
+  recorded, reads the battery bounds from `carbon/battery/domain.py`, and takes
+  each setting's evidence as verbatim quotes from
+  `docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md`. A quote that no longer
+  appears stops the build. The only authored content is each setting's
+  one-sentence reason and the matching vocabulary, in
+  `data/challenge_evidence_source_v1.json`.
+- **D7. Matching is a suggestion.** A family is suggested by whole-word matches
+  of its vocabulary in the client's own words and by physics overlap. The client
+  can always choose another family. Matching is a starting point for Carbon
+  review, not an assessment of fit.
+- **D8. Conditions are relayed or flagged, never invented.** A condition the
+  client did not give is proposed from the tested design's range and labelled
+  so. A client range is compared with the tested range only when the units are
+  spelled the same; a different or ambiguous unit asks for confirmation and is
+  never converted. A range outside the tested one is reported as outside the
+  evidence, and every setting is then marked as not covering it.
+- **D9. No evidence, no setting.** A family without an exam-design campaign
+  proposes no exam setting and shows no cost figure it does not have; it shows
+  its recorded next experiment and names the unmeasured cost items.
+- **D10. The proposal stays out of the brief format.** It is recomputable from
+  the brief, so the reviewed package is unchanged; the client can download it
+  as Markdown. It is not sent to the guidance provider.
+
+## Slice 3 decisions
+
+- **D11. Say why the evidence does not cover a brief, and only then.** A
+  proposal carries a "what a new study would need" section when its family has
+  no evidence, when no family matches, when a client range is outside the
+  tested range, or when the client varies an input the tested design does not.
+  A unit to confirm is a question for the client, not a reason for a study.
+- **D12. The plan is Carbon's own, relayed.** The questions a study answers,
+  its stages and what it cannot establish are extracted from the named sections
+  of `docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, and the build
+  stops if a section disappears. The training budget study requirement is
+  quoted from its specification.
+- **D13. Measured compute, for scale, and only where measured.** For a family
+  with evidence, the section shows the first campaign's billed compute (quoted
+  as `USD 4.80 billed`, without the account balance on the same source line)
+  and the record's measured per-item costs, labelled as compute only and not a
+  price, a quote or a commitment to run. A family without evidence shows no
+  figure.

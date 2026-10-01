@@ -34,9 +34,34 @@ The canonical digest covers the system, the receiver and the internal import
 accept v2 through the same `src/intake.js` checks, and the import maps the
 system's outputs, input ranges and criteria into the job as unreviewed
 requested targets. v1 briefs and packages validate and digest exactly as
-before. The system is never sent to the guidance provider. Later slices add a
-proposed Challenge with the evidence behind each setting; see
+before. The system is never sent to the guidance provider. See
 `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
+
+GOAL-WORKBENCH-16 slice 2 adds a fourth mode, **Proposed Challenge**, which
+follows the draft as it is edited. It suggests a launch-portfolio family from
+the client's own words and physics, and the client can choose another. For a
+family with exam-design evidence (battery today) it proposes that family's
+tested settings (training set size, screening batch, rotation, equivalence
+margin, promotion rule, gates, compute cost), each with its reason and the
+measured table that chose it, relayed from
+`docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md`. Conditions the client did
+not give are proposed from the tested design and labelled; a client range is
+compared with the tested range and flagged when outside it; units are never
+converted. A family without evidence proposes no setting and no cost. The
+public record is `data/challenge_families_v1.json`, built by
+`tools/build_challenge_families.py` from the readiness records, the battery
+domain module and verbatim quotes; the engine is `src/challenge_proposal.js`.
+The proposal can be downloaded as Markdown. It registers, runs, prices and
+approves nothing.
+
+GOAL-WORKBENCH-16 slice 3 adds, when Carbon's evidence does not cover a
+brief, a section on what a new exam-design study would answer and need: the
+reasons (no evidence for the family, no family, a range outside the tested
+one, or an input the tested design does not vary), the study's questions and
+stages and what it cannot establish, extracted from
+`docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, and the training
+budget study requirement. Where Carbon measured it, the first campaign's billed
+compute is shown for scale as compute only, never as a price or quote.
 
 GOAL-WORKBENCH-14 adds a public onboarding edition,
 `Carbon_Public_Workbench_Onboarding.html`. It is built from the same sources as

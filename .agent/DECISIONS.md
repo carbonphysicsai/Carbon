@@ -16501,3 +16501,59 @@ stay unchanged until then:
 **Not decided:** whether the Worker should load its knowledge at runtime
 rather than embed it. That would remove the redeploy from refreshes. It is a
 security and integrity decision for the owner.
+
+## 2026-09-30 — WEB-QA-11-D1: Ask Carbon candidate 2026-09-30.1 carries the new Pilot Designer and retires /workbench/ (approved in principle; exact bundle awaits the owner)
+
+**Authority.**
+- The owner approved the release in principle in the Workbench session on
+  2026-09-30: "Approve 1, how can I do #2". Item 1 was the Ask Carbon release
+  carrying the rebuilt Pilot Designer and replacing `/workbench/` with a
+  redirect page (`OWNER-PILOT-DESIGNER-ROUTE-01`).
+- That session relayed the approval to the Ask Carbon lane. It was given
+  before the bundle existed.
+- Every earlier Ask Carbon publication decision attached to an exact bundle
+  identity, so **this one does not authorize deployment until the owner
+  approves bundle `86f51385…`**.
+
+**Exact artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a` (105 files) |
+| Pilot Designer | `be64f8b9…` (Workbench lane #448–#450, final at main `1e3292a2`) |
+| `/workbench/` page | `9a44f683…` from `website/ask-carbon/site/workbench/index.html`, declared in `site-replacements.json` |
+| Unchanged | homepage `b1e8e7cd…`, Q&A component `62ba26ce…`, knowledge `fab55d5d…`, the other 103 paths |
+| Rollback target | `carbonwebsite` `dc4469a7-f4da-4437-aaa1-2789277e57fc` (the WEB-QA-10-D1 deploy) |
+
+**How the rollback target was captured.** The owner ran
+`wrangler deployments status --name carbonwebsite` on their own machine on
+2026-09-30. The id was relayed by the Workbench session and then confirmed
+first-hand by the owner in the Ask Carbon session. It is now
+`deployment_target_observed.live_version_id`, and `f7954cb2` has moved to
+`superseded_rollback_targets`.
+
+**Measured.**
+- The baseline was re-derived from live, 100/100 manifest paths on both
+  hostnames.
+- The build was certified with `--require-complete-bundle`.
+- All 105 staged paths were compared against live on both hostnames at
+  2026-09-30T18:16Z: exactly `ask-carbon/pilot-designer.html` and
+  `workbench/index.html` differ, and 103 are identical.
+
+**Engineering choice (delegated): declared site replacements.** The baseline
+manifest must keep describing live, so the retired page is not written into
+it. Instead, `integrate-static.mjs --site-replacements` publishes a reviewed
+repository file in place of one path that the manifest already verifies:
+- it is pinned by its own digest and verified again after staging;
+- it cannot add a path;
+- it cannot touch the integrated homepage or the Ask Carbon assets.
+
+The remaining `workbench/*.js` and atlas files stay published so saved drafts
+and bookmarks keep working. Removing them, and pointing the site navigation
+straight at the Pilot Designer, are follow-ups for the owner.
+
+**Deployment, once the exact bundle is approved.** Static only; the
+`ask-carbon-public` Worker is not redeployed. The steps are in
+`PUBLIC_RELEASE_CANDIDATE.json` `deployment_order.candidate_2026_09_30_1`.
+Deployment is the operator's act; this host has no Cloudflare credential and
+ran no wrangler command.

@@ -1,0 +1,369 @@
+{
+  "schema": "carbon.pilot-designer.challenge-evidence-source.v1",
+  "purpose": "Hand-authored input to tools/build_challenge_families.py (GOAL-WORKBENCH-16 slice 2). It names which repository evidence supports each proposed exam setting and how a client's words are matched to a launch-portfolio family. Every quote must appear verbatim in its source file; the generator refuses one that does not. Nothing here is a scientific value: settings are relayed from the exam-design campaign's own recommendations, and their status stays the readiness record's.",
+  "matching_rule": "A family is suggested when the client's own words, component names or input and output names contain one of its keywords, or its physical processes overlap the client's. Suggestions are ranked by the number of distinct keywords matched, then by physics overlap. A suggestion is a starting point for Carbon review, not an assessment of fit.",
+  "families": {
+    "battery-fastcharge-ageing-development-v1": {
+      "title": "Battery fast charging and ageing",
+      "keywords": [
+        "battery",
+        "cell",
+        "lithium",
+        "li-ion",
+        "charging",
+        "fast charge",
+        "fast-charge",
+        "charge protocol",
+        "c-rate",
+        "state of charge",
+        "soc",
+        "plating",
+        "capacity fade",
+        "ageing",
+        "aging",
+        "cycle life",
+        "bms",
+        "anode",
+        "cathode",
+        "electrolyte"
+      ],
+      "physics": [
+        "chemical",
+        "thermal",
+        "electromagnetic"
+      ],
+      "variable_aliases": {
+        "c1": [
+          "first-stage",
+          "first stage",
+          "stage 1",
+          "cc1",
+          "initial charge current",
+          "charge rate",
+          "charge current",
+          "c-rate"
+        ],
+        "c2": [
+          "second-stage",
+          "second stage",
+          "stage 2",
+          "cc2",
+          "final charge current"
+        ],
+        "t_amb_c": [
+          "ambient",
+          "ambient temperature",
+          "environment temperature",
+          "surrounding temperature"
+        ],
+        "soc0": [
+          "state of charge",
+          "initial soc",
+          "starting soc",
+          "soc0",
+          "soc"
+        ]
+      },
+      "evidence": "battery-exam-design-campaign-1"
+    },
+    "chip-cold-plate": {
+      "title": "AI-chip liquid cold plates",
+      "keywords": [
+        "cold plate",
+        "cold-plate",
+        "liquid cooling",
+        "coolant",
+        "heat sink",
+        "microchannel",
+        "channel layout",
+        "junction temperature",
+        "chip",
+        "die",
+        "gpu",
+        "cpu",
+        "thermal management",
+        "pressure drop",
+        "heat flux"
+      ],
+      "physics": [
+        "thermal",
+        "fluid"
+      ],
+      "variable_aliases": {
+        "channel_geometry": [
+          "channel",
+          "geometry",
+          "layout",
+          "fin"
+        ],
+        "coolant_flow": [
+          "flow rate",
+          "coolant flow",
+          "mass flow",
+          "flow"
+        ],
+        "inlet_temperature": [
+          "inlet temperature",
+          "inlet",
+          "supply temperature"
+        ],
+        "heat_load_map": [
+          "heat load",
+          "power map",
+          "heat flux",
+          "power"
+        ]
+      },
+      "evidence": null
+    },
+    "electric-motor-magnetics": {
+      "title": "Electric motor magnetics",
+      "keywords": [
+        "motor",
+        "electric machine",
+        "stator",
+        "rotor",
+        "permanent magnet",
+        "magnet",
+        "torque",
+        "torque ripple",
+        "back emf",
+        "cogging",
+        "winding",
+        "flux",
+        "e-drive",
+        "traction motor"
+      ],
+      "physics": [
+        "electromagnetic",
+        "solid"
+      ],
+      "variable_aliases": {
+        "cross_section_geometry": [
+          "cross-section",
+          "cross section",
+          "geometry",
+          "slot",
+          "magnet shape"
+        ],
+        "phase_current": [
+          "phase current",
+          "current",
+          "excitation"
+        ],
+        "rotor_angle": [
+          "rotor angle",
+          "rotor position",
+          "angle",
+          "position"
+        ]
+      },
+      "evidence": null
+    },
+    "photonic-coupler": {
+      "title": "Silicon photonic couplers",
+      "keywords": [
+        "photonic",
+        "photonics",
+        "waveguide",
+        "coupler",
+        "directional coupler",
+        "splitter",
+        "optical",
+        "silicon photonics",
+        "wavelength",
+        "transmission",
+        "s-parameter",
+        "fdtd"
+      ],
+      "physics": [
+        "electromagnetic"
+      ],
+      "variable_aliases": {
+        "coupler_geometry": [
+          "gap",
+          "coupling length",
+          "geometry",
+          "width"
+        ],
+        "wavelength": [
+          "wavelength",
+          "band",
+          "frequency"
+        ]
+      },
+      "evidence": null
+    }
+  },
+  "evidence": {
+    "battery-exam-design-campaign-1": {
+      "title": "Exam-design campaign 1 (battery), 2026-09-24",
+      "source": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+      "summary": "A bounded development campaign that solved 2,604 battery references without a failure, tested the gates against authored faults, replayed the exam loop over nine batch and rotation settings, and verified a frozen comparison rule on 200 private cases. It is public/synthetic DEVELOPMENT research: nothing in it is scientifically, security or production qualified.",
+      "settings": [
+        {
+          "id": "train_cases",
+          "label": "Public training set",
+          "value": "400 cases (TRAIN v1)",
+          "why": "Model error was still falling at 400 cases: the competent recipe improved about a third from 200 to 400, and 400 references cost about USD 0.58 to solve.",
+          "section": "2. How much public training data is a useful starting point?",
+          "table_columns": [
+            "TRAIN cases",
+            "kNN",
+            "Competent MLP (2 seeds)",
+            "MLP with PCA heads"
+          ],
+          "quotes": [
+            "| 50 | 0.324 | 0.203 / 0.192 | 0.241 / 0.224 |",
+            "| 100 | 0.246 | 0.128 / 0.137 | 0.187 / 0.188 |",
+            "| 200 | 0.207 | 0.081 / 0.086 | 0.151 / 0.145 |",
+            "| 400 | 0.172 | 0.054 / 0.057 | 0.088 / 0.090 |",
+            "**Recommendation: TRAIN v1 = 400.**"
+          ]
+        },
+        {
+          "id": "screening_batch",
+          "label": "Screening batch size",
+          "value": "100 parent cases per batch, 3 batches active (a 300-case pool)",
+          "why": "Batch 100 ranked models most like the fresh finalist cases (Kendall tau 0.93), and a 300-case pool separated two equal-quality models beyond the margin only 3.5 % of the time, against 9.6 % for a 150-case pool.",
+          "section": "4. Screening versus fresh finalist outcomes; 5. Reconstruction variability",
+          "table_columns": [
+            "Batch size",
+            "Kendall tau with fresh finalist ranking"
+          ],
+          "quotes": [
+            "| 50 | 0.88 |",
+            "| 100 | **0.93** |",
+            "| 200 | 0.92 |"
+          ],
+          "supporting_quotes": [
+            "| 150 | 9.6 % |",
+            "| 300 | 3.5 % |",
+            "| 600 | 0.5 % |"
+          ],
+          "supporting_columns": [
+            "Pool (3 x batch)",
+            "Equal-quality models separated beyond the margin"
+          ]
+        },
+        {
+          "id": "rotation",
+          "label": "Rotation",
+          "value": "Retire the oldest batch after 3 admitted submissions",
+          "why": "A scripted attacker that learns only from the aggregate score gained 0.3 % at batch 100 and rotation after 3, far below the 5.7 % margin. Rotation is set conservatively because adaptive agents were not measured.",
+          "section": "6. Rotation behaviour",
+          "table_columns": [
+            "Batch",
+            "Rotate after 1",
+            "Rotate after 3",
+            "Rotate after 10"
+          ],
+          "quotes": [
+            "| 50 | 0.3 % | 0.5 % | 1.0 % |",
+            "| 100 | 0.1 % | 0.3 % | 0.3 % |",
+            "| 200 | 0.0 % | 0.1 % | 0.2 % |",
+            "**Recommendation: batch 100, rotate after 3.** Rotation is set conservatively for"
+          ]
+        },
+        {
+          "id": "equivalence_margin",
+          "label": "Equivalence margin",
+          "value": "5.7 % of the score",
+          "why": "Reseeding the same recipe moved its score by up to 2.8 % (standard deviation), so a smaller margin would promote noise. The price: an improvement near the margin was found about half the time.",
+          "section": "5. Reconstruction variability",
+          "table_columns": [
+            "Recipe",
+            "Seed-to-seed relative SD"
+          ],
+          "quotes": [
+            "| mlp | 2.2 % |",
+            "| mlp_localized | 2.8 % |",
+            "**The equivalence margin** is 2 × the largest seed SD, which is **5.7 %**."
+          ],
+          "limit": "equivalence_margin"
+        },
+        {
+          "id": "promotion_rule",
+          "label": "What can be promoted",
+          "value": "Only a fresh-case IMPROVEMENT; a regression in the important region blocks promotion",
+          "why": "Screening alone was fooled by every memorizing candidate, but the fresh finalist comparison promoted none of them, promoted the real improvement every time, and made no false promotion.",
+          "section": "4. Screening versus fresh finalist outcomes",
+          "table_columns": [
+            "Decision (truth)",
+            "Outcome across the 9 settings"
+          ],
+          "quotes": [
+            "| Real improvement `mlp` over `mlp_half` (−36.5 %) | promoted 9 / 9 |",
+            "| Pool-leak memorization (truth: equivalent) | nominated 27 / 27 (screening is fooled); **promoted 0 / 27**; the fresh final comparison catches it |",
+            "| Regional regression `mlp_localized` (overall +4.4 %, important region worse) | never nominated |",
+            "| **False promotions** | **0** |"
+          ],
+          "limit": "important_region_plating_band"
+        },
+        {
+          "id": "gates",
+          "label": "Physical gates",
+          "value": "Initial voltage, voltage ceiling and floor, initial temperature, capacity bound, paired repeat, finite output",
+          "why": "Each authored fault was rejected by its own gate on all 600 screening cases, while correct predictions of plating and hot operating conditions were never failed.",
+          "section": "3. Gates: behaviour, failures and coverage gaps",
+          "table_columns": [
+            "Control",
+            "Expected gate",
+            "Result"
+          ],
+          "quotes": [
+            "| +20 mV on the 4.2 V hold | `voltage_ceiling` | 600 / 600 fail |",
+            "| +5 mV at t = 0 | `initial_voltage` | 600 / 600 fail |",
+            "| +0.5 °C at t = 0 | `initial_temperature` | 600 / 600 fail |",
+            "| capacity above the bound | `capacity_bound` | 600 / 600 fail |"
+          ]
+        },
+        {
+          "id": "screening_cost",
+          "label": "Compute cost per submission",
+          "value": "About USD 0.001 to screen one submission; about USD 0.29 per finalist comparison",
+          "why": "Measured on one A40 pod. Screening is cheap; the fresh references for a finalist comparison dominate.",
+          "section": "7. Cost",
+          "table_columns": [
+            "Item",
+            "Measured",
+            "Cost"
+          ],
+          "quotes": [
+            "| **Screening one submission** (batch 100, pool 300) | one GPU reconstruction + inference + scoring | **≈ USD 0.001** (USD 0.011 on the CPU backend) |",
+            "| **Batch build** | 100 references | **USD 0.14**, amortized over 3 submissions = USD 0.047 |",
+            "| **Finalist comparison** | 2 reconstructions + 200 fresh references + inference | **≈ USD 0.29**, dominated by the fresh references |"
+          ]
+        }
+      ],
+      "limits_of_evidence": [
+        "5. **Adaptive miners** are unmeasured. Rare-event false-promotion rates cannot be",
+        "7. **Real cells.** Agreement is with the specified PyBaMM model, not with",
+        "1. **Owner decisions.** No scientific, security or production qualification"
+      ]
+    }
+  },
+  "campaign_plan": {
+    "title": "What a new exam-design study would answer and need",
+    "purpose": "Shown when a brief's conditions fall outside Carbon's tested design, or its family has no exam-design evidence. It relays how Carbon ran its first campaign; it is not a plan Carbon has committed to, a price or a quote.",
+    "specification": "docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md",
+    "questions_section": "## The questions, in plain English",
+    "stages_section": "## Run matrix and accounting",
+    "stages_table_header": "| Stage | Content | Allocation |",
+    "cannot_establish_section": "## What this campaign cannot establish",
+    "prior_spend": {
+      "source": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+      "quote": "USD 4.80 billed",
+      "label": "Compute billed for exam-design campaign 1 (battery), all stages"
+    },
+    "training_budget": {
+      "source": "docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md",
+      "quotes": [
+        "**The requirement.** It is a **standing launch requirement.** Every Carbon",
+        "- before its training limit is set;",
+        "- before it pays rewards."
+      ],
+      "summary": "Every Carbon Challenge also completes a training budget study before its training limit is set and before it pays rewards (OWNER-TRAINING-BUDGET-STUDY-01)."
+    }
+  }
+}

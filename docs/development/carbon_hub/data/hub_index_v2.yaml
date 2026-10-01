@@ -10407,6 +10407,30 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-30T13:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-16-PROPOSED-CHALLENGE-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Adds a proposed Challenge to the Pilot Designer (OWNER-PILOT-DESIGNER-ROUTE-01, slice 2). It follows the client's draft, suggests a launch-portfolio family from the client's own words and physics, and for a family with exam-design evidence (battery) proposes that family's tested settings, each with its reason and the measured table behind it, relayed verbatim from the exam-design campaign result. Conditions the client omitted are proposed from the tested design and labelled; ranges outside the tested design are flagged; units are never converted. A family without evidence proposes no setting and no cost. Deterministic, in the browser, not sent to the guidance provider; it registers, qualifies, prices and approves nothing."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-30T19:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-16-STUDY-NEED-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Completes the Pilot Designer's route from intake to a proposed Challenge (OWNER-PILOT-DESIGNER-ROUTE-01, slice 3). When Carbon's evidence does not cover a brief (no evidence for the family, no family, a client range outside the tested one, or an input the tested design does not vary) the proposal says why and shows what a new exam-design study would answer and need: its questions, stages and limits, extracted from the campaign specification, and the training budget study requirement. Measured compute is shown for scale only where Carbon measured it, labelled as compute and never as a price or quote; no account balance is relayed."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-30T20:30:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
