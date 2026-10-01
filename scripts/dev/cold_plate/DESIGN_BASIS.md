@@ -53,6 +53,58 @@ data, at mass fraction 0.25, evaluated at 2 bar:
   so whether a production reference needs temperature-dependent viscosity is
   a reference-qualification question for later. It is not settled here.
 
+**Temperature-dependent viscosity (rung 6d).** For runs that let viscosity
+vary, μ(T) is a degree-4 polynomial in T (kelvin), μ = Σ cᵢ Tⁱ in Pa·s,
+fitted by least squares to the same pinned model at 1 K steps over **30-50 °C
+only**:
+
+| i | cᵢ |
+|---|---|
+| 0 | 2.2138268571145154 |
+| 1 | −0.026510771069392616 |
+| 2 | 1.196248034665941e-04 |
+| 3 | −2.408213659063999e-07 |
+| 4 | 1.823829766797535e-10 |
+
+- **Fit residual:** at most **1.6 × 10⁻⁵ relative** anywhere in 30-50 °C
+  (checked on a 0.05 K grid; largest at 50 °C).
+- **Degree:** of degrees 2, 3 and 4, degree 4 has the smallest residual in
+  range (3.7e-3, 2.7e-4, 1.6e-5) and the smallest extrapolation error above
+  it. It stays positive to at least 227 °C (500 K, the end of the check),
+  where degree 3 reaches zero at 88 °C.
+- **Outside 30-50 °C it is an extrapolation.** Against the same model it
+  reads +0.1 % at 55 °C, +0.5 % at 60 °C, +5 % at 70 °C and +25 % at 80 °C:
+  it overstates viscosity there. Fluid near a heated wall can be hotter than
+  50 °C, so every run reports how much of its fluid is above the fitted range.
+- **Only viscosity varies.** Conductivity is held at its value at the inlet
+  temperature, and ρ and c_p stay constant, so the rung changes one thing.
+
+The fitted points (μ in mPa·s):
+
+| T (°C) | CoolProp μ | polynomial μ | relative residual |
+|---|---|---|---|
+| 30 | 1.77611 | 1.77610 | -1.1e-05 |
+| 31 | 1.72496 | 1.72497 | +5.9e-06 |
+| 32 | 1.67606 | 1.67608 | +1.0e-05 |
+| 33 | 1.62930 | 1.62932 | +7.6e-06 |
+| 34 | 1.58457 | 1.58457 | +1.9e-06 |
+| 35 | 1.54174 | 1.54174 | -3.8e-06 |
+| 36 | 1.50073 | 1.50072 | -7.8e-06 |
+| 37 | 1.46144 | 1.46143 | -9.2e-06 |
+| 38 | 1.42378 | 1.42377 | -7.8e-06 |
+| 39 | 1.38766 | 1.38766 | -4.2e-06 |
+| 40 | 1.35301 | 1.35301 | +6.0e-07 |
+| 41 | 1.31975 | 1.31976 | +5.4e-06 |
+| 42 | 1.28781 | 1.28782 | +9.0e-06 |
+| 43 | 1.25713 | 1.25714 | +1.0e-05 |
+| 44 | 1.22763 | 1.22764 | +8.4e-06 |
+| 45 | 1.19927 | 1.19928 | +3.5e-06 |
+| 46 | 1.17199 | 1.17198 | -3.6e-06 |
+| 47 | 1.14573 | 1.14572 | -1.1e-05 |
+| 48 | 1.12044 | 1.12043 | -1.4e-05 |
+| 49 | 1.09608 | 1.09607 | -7.4e-06 |
+| 50 | 1.07260 | 1.07262 | +1.6e-05 |
+
 The command that produced the table:
 
 ```bash
