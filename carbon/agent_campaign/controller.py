@@ -864,6 +864,8 @@ class CampaignController:
         """Record the request, ask the provider, then verify the workers."""
         with self._db() as db:
             row = self._rows(db, "WHERE key=?", (key,))[0]
+            if Phase(row["phase"]) not in OPEN:
+                return row["phase"]  # already closed; nothing to stop
             if row["run_id"] is None:
                 raise ControllerError("reconcile_before_cancel")
             db.execute(

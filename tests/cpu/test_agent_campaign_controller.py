@@ -581,3 +581,14 @@ def test_ledger_tampering_is_detected(tmp_path):
         "entries": 3,
         "first_bad": 2,
     }
+
+
+def test_cancelling_a_closed_run_changes_nothing(tmp_path):
+    provider = FakeProvider()
+    controller = make(tmp_path, provider)
+    register(controller)
+    controller.launch(spec(), "k1")
+    provider.finish("fake-run-0001")
+    assert controller.poll("k1") == "completed"
+    assert controller.cancel("k1") == "completed"
+    assert ("cancel", "fake-run-0001") not in provider.calls
