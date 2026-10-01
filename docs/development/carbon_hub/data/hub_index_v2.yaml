@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-01T19:16:42Z"
+  captured_at_utc: "2026-10-01T20:41:29Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5fcdc172549a8f2bf310a3bbff543cef6d1a55d3"
+  authority_snapshot_commit: "805866ee0888232ebef41e99153b429037f0f2fe"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10470,6 +10470,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-01T19:16:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "MIRA-ADMISSION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Provider-independent supervision of an external research agent (first: Autoscience Mira) for internal admission testing under OWNER-CHALLENGE-ADMISSION-01 as amended; internal development only, never mainnet, not a qualification gate. A durable campaign controller persists intent and reserves worst-case spend before dispatch, reconciles ambiguous dispatch instead of retrying, enforces owner-supplied grant and per-campaign ceilings and limits outside the agent, halts on unknown state or usage, verifies cancellation, records findings that stop expansion, and keeps a hash-chained attempt ledger; tested against a fake provider with crash recovery and mutation checks. Separate roles, workspaces and credentials with an allowlisted research checkout and canaries. A versioned design-search commitment layer serves a separate development experiment and refuses EV4 material. The Mira adapter refuses every call because its integration contract is unverified (capability report and owner inquiry), so live Mira execution is BLOCKED; the Level-0 study sheet is prepared, not frozen or executed; no campaign has run and no evidence is accepted."
+    primary_detail: ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T20:41:29Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
