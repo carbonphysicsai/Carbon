@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "ac75b4f761245b956fce61857ce5f94274dac5d0",
+  "integration_revision_at_packaging": "b4871ebcc5816d74863bf057b45069092f901099",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -851,8 +851,8 @@
       "sha256": "8e8273e84db745198e77eaa6206839d09b583d489a6c17b4fabe2d2b7ab085da"
     },
     "tests/browser_challenge_proposal_smoke.cjs": {
-      "bytes": 6944,
-      "sha256": "b78f3cad023c128fbe86143bb7a47bcba6dcbaddce377fad329d610179c4c3d5"
+      "bytes": 7212,
+      "sha256": "d796eda832d37aab157e3ff94eea1c8639908ded78d7525f06694950e30d546a"
     },
     "tests/browser_goal_results.json": {
       "bytes": 2258,
@@ -871,8 +871,8 @@
       "sha256": "cda7a5a96f304fc1aa1cdb4b746b4c5c24c02e5d2c6e98457a775e59586f568f"
     },
     "tests/browser_pilot_designer_system_smoke.cjs": {
-      "bytes": 10702,
-      "sha256": "5f65524db4b7c3a8aa0df460d229bf601a4e240d1849bf2047b6d98a7cb358c6"
+      "bytes": 11012,
+      "sha256": "6f6bc8e13c36a4e5acf77f115a74bbf3d25b2037bbe63d9fc852a14bba6dd093"
     },
     "tests/browser_public_workbench_smoke.cjs": {
       "bytes": 13856,
@@ -983,8 +983,8 @@
       "sha256": "550b62a76d459f523ab1f465e426ae02ab029f6beece77b075d4012aa4f7101c"
     },
     "tests/test_pilot_designer_system.cjs": {
-      "bytes": 14442,
-      "sha256": "9ab43b8bd3d2d0c58b1b61ba4a72f0a50c6534b8753e91d8400cd361f706df56"
+      "bytes": 15418,
+      "sha256": "a57468d2b952d5d7f595c01dbc2558dfa4ef1684d5e65d91118881b327a53cf4"
     },
     "tests/test_public_workbench.cjs": {
       "bytes": 19961,
