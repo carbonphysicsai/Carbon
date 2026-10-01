@@ -16715,20 +16715,3 @@ match that? 3. APPROVE".
 **Unchanged:** no chain write, no weights beyond OD-4a's all-burn,
 `transaction_authorization` null, testnet 567 only, OD-5's ceiling, and every
 scientific, security and qualification state.
-
-## OWNER-CHALLENGE-ADMISSION-01 (2026-09-30)
-
-Owner direction in this session: generalise construction-freedom/adversarial
-experiments and engineering-value alignment into testing before each challenge;
-pressure-test and harden both tracks as a standing Carbon protocol requirement.
-
-- Adopt `Design_Specs/Challenge_Admission.md` for new challenge admission and
-  prospective permission expansion. Reuse existing challenge infrastructure and
-  EV1/EV2/EV3; do not create an unrelated Poisson challenge.
-- Both tracks require evidence and human review for the exact version/profile.
-  No compensating aggregate or absent-evidence pass. Research to obtain the
-  evidence remains possible; no new rewarded challenge bypasses the requirement.
-- Engineering implementation: CHALLENGE-ADMISSION-01 / CA-D1 and CA-D2. No
-  challenge is accepted, no arbitrary miner code is enabled, and no production
-  scientific value, threshold, score formula or deployed interlock is inferred.
-- The existing training-budget requirement remains. B-E4 remains optional.
