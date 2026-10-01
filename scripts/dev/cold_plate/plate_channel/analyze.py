@@ -172,6 +172,23 @@ def at_time(case, t, geometry, props):
         if abs(z - z_first) < 1e-12
     ]
     peak_x, peak, _ = max(face, key=lambda item: item[1])
+    extra = {}
+    if "viscosity" in spec_of(case):
+        # Rung 6d: mu varies with T, so the constant-mu duct series no longer
+        # describes the developed gradient; report it, do not judge it. Also
+        # report how much of the fluid lies outside the fit's 30-50 C range.
+        expected = None
+        fit_top = 273.15 + 50.0
+        volume = sum(fluid_w)
+        extra = {
+            "dp_dx_check": "NOT_APPLICABLE: viscosity varies with temperature",
+            "fluid_T_min_K": min(fluid_t),
+            "fluid_T_max_K": max(fluid_t),
+            "fluid_volume_fraction_above_50C": sum(
+                w for tt, w in zip(fluid_t, fluid_w) if tt > fit_top
+            )
+            / volume,
+        }
     return {
         "mass_flow_kg_s": m_out,
         "mass_imbalance_rel": m_out / m_in - 1,
@@ -186,14 +203,19 @@ def at_time(case, t, geometry, props):
         "bulk_outlet_K": t_out,
         "dp_dx_developed_Pa_m": gradient,
         "dp_dx_expected_Pa_m": expected,
-        "dp_dx_rel_error": gradient / expected - 1,
+        "dp_dx_rel_error": None if expected is None else gradient / expected - 1,
         "pressure_drop_Pa": surface_value(case, "pressIn", t)
         - surface_value(case, "pressOut", t),
         "heated_face_peak_K": peak,
         "heated_face_peak_x_mm": peak_x * 1e3,
         "heated_face_mean_K": sum(v * w for _, v, w in face)
         / sum(w for _, _, w in face),
+        **extra,
     }
+
+
+def spec_of(case):
+    return json.loads((case / "case.json").read_text())
 
 
 def main(case):
