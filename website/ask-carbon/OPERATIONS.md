@@ -167,6 +167,17 @@ expiry fails the check. The windows are reviewed constants in
 set an expiry more than seven days out. The check makes the review happen; it
 never extends an expiry, which stays a content decision.
 
+Where the check fails: ageing is not a defect in an unrelated change, so per-PR
+CI (`tools/ci-knowledge-check.mjs`) validates with `--time-findings-as-warnings`
+unless the PR edits `knowledge/`. A PR that edits it gets the strict check, and
+so does any run where git cannot compare against `origin/main`; the tool prints
+which mode ran and why. The flag demotes only expiry findings with a readable
+date; a malformed expiry, a changed source and every structural error still
+fail. The strict check runs daily on `main` in the `Ask Carbon freshness`
+workflow, which is where an approaching expiry goes red, and a failure there
+opens a GitHub issue titled "Ask Carbon knowledge freshness check failing" (or
+comments on the open one) listing the findings and the run.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
@@ -324,6 +335,27 @@ Production needs a separate exact owner authorization after the staging report:
 > two integration blocks from the live homepage (must hash to `99be1318…`).
 > Rebuilding the currently deployed revision against that baseline must
 > reproduce the live bundle identity before it is trusted.
+
+> **Candidate 2026-09-30.1: static only, with one declared replacement.**
+> Ships the GOAL-WORKBENCH-16 Pilot Designer and retires `/workbench/` (the
+> reviewed page `site/workbench/index.html`, declared in
+> `site-replacements.json`). Bundle `86f51385…` (WEB-QA-11-D1, awaiting the
+> owner's approval of the exact bundle). The Worker is not redeployed. From the
+> approved merge commit, with the live baseline re-derived as above:
+>
+> ```sh
+> "$WRANGLER" deployments status --name carbonwebsite   # must still be dc4469a7
+> node website/ask-carbon/tools/integrate-static.mjs \
+>   --input <baseline>/index.html --output "$OUT/index.html" --asset-prefix ./ask-carbon \
+>   --existing-site <baseline> --site-replacements website/ask-carbon/site-replacements.json \
+>   --require-complete-bundle              # bundle_identity_sha256 must be 86f51385…
+> "$WRANGLER" deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12
+> ```
+>
+> Then confirm `ask-carbon/pilot-designer.html` and `workbench/index.html` by
+> digest on both hostnames, `/workbench/` showing the moved page and redirecting
+> to `/ask-carbon/pilot-designer`, and `/api/ask-carbon/health` still active.
+> Rollback: `"$WRANGLER" rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`.
 
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and

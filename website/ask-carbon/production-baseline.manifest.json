@@ -123,19 +123,13 @@
   },
   "deployment_target_observed": {
     "worker": "carbonwebsite",
-    "live_version_id": "f7954cb2-b610-40f9-86e6-0a3fe6d04c93",
-    "live_version_note": "NOT b694b20f-a4d4-4f59-8f08-12629591a2dc. b694b20f served bundle c973a2ea… (the v2 site), which live matched 102/102 at 2026-09-26T16:38Z; live then served the v3 papers site from a later version. f7954cb2 is that later version, and the rollback target of the WEB-QA-10-D1 build.",
+    "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+    "live_version_note": "dc4469a7 is the WEB-QA-10-D1 deployment (bundle 48fd4680…), still live when captured on 2026-09-30, and the rollback target for candidate ask-carbon-public-release-2026-09-30.1. Not b694b20f (v2 site) and not f7954cb2 (the pre-WEB-QA-10-D1 version).",
     "live_version_capture": {
-      "captured_by": "the deploying operator, from a host holding the Cloudflare credential, before building WEB-QA-10-D1 bundle 48fd4680…",
-      "recorded_in_repository": "2026-09-30, from the owner's session report of 2026-09-29. The value was written into this file on the operator's machine for the build and not committed at the time; this commit lands it. The capture time and the wrangler output were not supplied to the repository.",
+      "captured_by": "the owner, running `wrangler deployments status --name carbonwebsite` on their own machine (not this host), 2026-09-30",
+      "recorded_in_repository": "2026-09-30. First relayed by the Workbench session, then confirmed first-hand by the owner in the Ask Carbon session. The wrangler output itself was not supplied to the repository.",
+      "equals_previous_deployed_after_capture": true,
       "building_host_can_read": false
-    },
-    "deployed_after_capture": {
-      "version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
-      "decision": "WEB-QA-10-D1",
-      "bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
-      "deployed": "2026-09-29, by Nick Fitzpatrick",
-      "note": "live_version_id above is the version captured BEFORE this deployment, i.e. the rollback target for 48fd4680. It is not the current live version. The next deployable build must capture the then-live version id with `wrangler deployments status --name carbonwebsite` and replace live_version_id before building."
     },
     "compatibility_date": "2026-09-12",
     "bindings": [],
@@ -169,6 +163,11 @@
         "version_id": "b99c37f0-c2d2-432b-842a-00b9fb518d96",
         "was_live_until": "2026-09-12T04:05Z",
         "description": "named in an earlier runbook revision as the rollback target; already stale when written"
+      },
+      {
+        "version_id": "f7954cb2-b610-40f9-86e6-0a3fe6d04c93",
+        "superseded": "2026-09-30",
+        "why": "captured before the WEB-QA-10-D1 deployment dc4469a7; it was that deployment's rollback target, and rolling back to it now would withdraw WEB-QA-10-D1."
       }
     ]
   },

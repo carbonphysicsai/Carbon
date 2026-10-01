@@ -26,6 +26,9 @@ cp -a "${repo_root}/Business/Carbon_Fit/workbench" "${scratch}/Business/Carbon_F
 cp "${repo_root}/.agent/WAVE_C.md" "${scratch}/.agent/WAVE_C.md"
 # The existing operational rehearsal resolves Carbon from its own source root.
 ln -s "${repo_root}/carbon" "${scratch}/carbon"
+# The Challenge-proposal tests check quotes against the exam-design and training
+# budget documents they relay (GOAL-WORKBENCH-16 slices 2 and 3).
+ln -s "${repo_root}/docs" "${scratch}/docs"
 workbench="${scratch}/Business/Carbon_Fit/workbench"
 
 node --test "${workbench}"/tests/test_*.cjs

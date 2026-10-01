@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.ask-carbon.site-replacements.v1",
+  "note": "Reviewed repository files that replace one verified baseline path each in the published carbonwebsite bundle. production-baseline.manifest.json still describes live; integrate-static.mjs --site-replacements applies these and verifies them after staging.",
+  "replacements": [
+    {
+      "path": "workbench/index.html",
+      "source": "site/workbench/index.html",
+      "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+      "decision": "OWNER-PILOT-DESIGNER-ROUTE-01 (2026-09-30); candidate ask-carbon-public-release-2026-09-30.1",
+      "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+    }
+  ]
+}
