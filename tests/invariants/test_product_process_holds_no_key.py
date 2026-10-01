@@ -60,6 +60,8 @@ KEY_NAMES = frozenset(
         "create_from_private_key",
         "create_from_encrypted_json",
         "open_external_hotkey",
+        # Prompting for the key's password is the signer's job, in its terminal.
+        "getpass",
     }
 )
 #: Identifiers that carry a key file's path or the password that decrypts it.
@@ -68,8 +70,8 @@ KEY_PATH_NAMES = frozenset({"key_file", "miner_password_file", "password_file"})
 PERMITTED = {("carbon/chain/sdk_weights.py", "open_operator_wallet", "Wallet")}
 
 
-def _module_path(name):
-    base = ROOT.joinpath(*name.split("."))
+def _module_path(name, root=ROOT):
+    base = root.joinpath(*name.split("."))
     if base.with_suffix(".py").is_file():
         return base.with_suffix(".py")
     if (base / "__init__.py").is_file():
@@ -77,16 +79,16 @@ def _module_path(name):
     return None
 
 
-def _module_name(path):
-    parts = list(path.relative_to(ROOT).with_suffix("").parts)
+def _module_name(path, root=ROOT):
+    parts = list(path.relative_to(root).with_suffix("").parts)
     if parts[-1] == "__init__":
         parts.pop()
     return ".".join(parts)
 
 
-def imported_names(path):
+def imported_names(path, root=ROOT):
     """Every module name a file imports, anywhere in it, resolved absolutely."""
-    name = _module_name(path)
+    name = _module_name(path, root)
     package = name if path.name == "__init__.py" else name.rpartition(".")[0]
     found = set()
     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
@@ -103,21 +105,21 @@ def imported_names(path):
     return found
 
 
-def product_closure():
+def product_closure(root=ROOT, entries=PRODUCT_ENTRIES):
     """The files the product process can import from this repository."""
-    todo = [path for entry in PRODUCT_ENTRIES for path in sorted(entry.glob("*.py"))]
+    todo = [path for entry in entries for path in sorted(entry.glob("*.py"))]
     seen = set()
     while todo:
         path = todo.pop()
         if path in seen:
             continue
         seen.add(path)
-        for module in imported_names(path):
+        for module in imported_names(path, root):
             parts = module.split(".")
             if parts[0] not in {"carbon", "scripts", SIGNER_PACKAGE}:
                 continue
             for depth in range(1, len(parts) + 1):
-                found = _module_path(".".join(parts[:depth]))
+                found = _module_path(".".join(parts[:depth]), root)
                 if found is not None:
                     todo.append(found)
     return seen
@@ -180,10 +182,10 @@ def violations(source, label):
     return found
 
 
-def scan(paths):
+def scan(paths, root=ROOT):
     found = set()
     for path in paths:
-        label = path.relative_to(ROOT).as_posix()
+        label = path.relative_to(root).as_posix()
         found |= violations(path.read_text(encoding="utf-8"), label)
     return found
 
@@ -191,6 +193,35 @@ def scan(paths):
 def test_the_product_process_contains_no_key_material_construct():
     found = scan(product_closure())
     assert found <= PERMITTED, sorted(found - PERMITTED)
+
+
+def test_the_product_assertion_fails_on_a_planted_violation(tmp_path):
+    """Specimen for the whole check, not only the scanner: a key open planted
+    two lazy imports deep behind a product entry point is reached by the
+    closure walk and fails the same assertion the product test makes."""
+    entry = tmp_path / "scripts" / "dev" / "miner_launchpad"
+    entry.mkdir(parents=True)
+    (entry / "app.py").write_text("from carbon import door\n", encoding="utf-8")
+    (tmp_path / "carbon").mkdir()
+    (tmp_path / "carbon" / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "carbon" / "door.py").write_text(
+        "def submit():\n    from .deep import sign\n    return sign\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "carbon" / "deep.py").write_text(
+        "import getpass\n"
+        "def sign(profile):\n"
+        "    from bittensor.keyfiles import Keyfile\n"
+        "    password = getpass.getpass()\n"
+        "    return Keyfile(profile['key_file']).get_keypair(password=password)\n",
+        encoding="utf-8",
+    )
+    found = scan(product_closure(tmp_path, (entry,)), tmp_path)
+    assert ("carbon/deep.py", "sign", "Keyfile") in found
+    assert ("carbon/deep.py", "sign", "getpass") in found
+    assert ("carbon/deep.py", "<module>", "import getpass") in found
+    with pytest.raises(AssertionError):
+        assert found <= PERMITTED, sorted(found - PERMITTED)
 
 
 def test_the_scan_reaches_the_modules_that_used_to_open_the_key():
@@ -228,6 +259,10 @@ import carbon_miner_signer
 def open_external_hotkey(key_file, password_file, expected):
     return Keyfile(str(key_file)).get_keypair(password=password_file.read_text())
 
+def prompt():
+    import getpass
+    return getpass.getpass("hotkey password: ")
+
 def prepare(args, public):
     key = open_external_hotkey(
         Path(public["key_file"]), args.miner_password_file, public["hotkey"]
@@ -253,6 +288,8 @@ def prepare(args, public):
         "Wallet",
         "Keypair",
         "create_from_mnemonic",
+        "import getpass",
+        "getpass",
     } <= constructs, sorted(constructs)
     assert ("specimen.py", "prepare", "['key_file']") in found
 
