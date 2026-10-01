@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-29T02:19:48Z"
+  captured_at_utc: "2026-10-01T03:11:20Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "1a1f106f4782d1288e1322d5d346007557192f2a"
+  authority_snapshot_commit: "62bd50e2392b7eb9b22346f6c642e5b076887cf7"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10444,6 +10444,20 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-10-01T00:41:10Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-ADMISSION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Owner requires construction-integrity and engineering-value studies before new challenge admission or permission expansion. Readiness v3 checks both tracks and digest-bound scoped evidence/review completeness; no challenge is accepted and no new miner-code capability or runtime activation interlock is enabled. Read-only EV1/EV2 audit exposes gate-ineligible ranking, unequal resolved-case masks and seed dependence; retained experiment results stay unchanged. New prospective standard requires real isolated attacks, fresh confirmation, useful-effect and uncertainty evidence, coverage/tail reporting and recipient rebuilds. Real campaigns and human science/security acceptance remain outstanding."
+    primary_detail: ".agent/tickets/CHALLENGE-ADMISSION-01.md"
+    affects:
+      - "WAVE-C/C-09"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-01T02:41:30Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
