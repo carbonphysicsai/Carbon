@@ -392,12 +392,11 @@ class CarrierBackend:
         return out
 
     def _image(self, backend):
-        image = self.images.get(backend)
-        if image is None:
+        if backend not in self.backends:
             # Admission refuses a backend this validator does not serve, so
             # this is Carbon's own state, never the candidate's.
             raise WorkerFailure("backend_not_served:" + str(backend), candidate=False)
-        return image
+        return self.images[backend]
 
     def _call(self, identity, source, files, names, backend):
         try:
