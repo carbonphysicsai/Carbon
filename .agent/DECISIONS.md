@@ -16473,10 +16473,28 @@ rotation, scoring that never stalls).
 2. **The values 360, 1080 and 1 are the executor's provisional development
    choices** under the owner's "whatever way is optimal" delegation. They are
    not production values and nothing here is scientifically qualified.
-3. **Historical results keep v1.** A seed root is committed for one rule, so
-   v2 runs on a fresh deployment state and root; a validator refuses a root
-   committed for another rule (`rule_mismatch`). v1's state is archived, not
-   rewritten.
+3. **Historical results keep v1 (invariant 10).** The change is prospective.
+   Every result scored under v1 keeps the meaning of the rule it was scored
+   with, and none is rescored or reinterpreted under v2. A seed root is
+   committed for one rule, so v2 runs on a fresh deployment state and root,
+   and a validator refuses a root committed for another rule
+   (`rule_mismatch`). v1's state is archived, not rewritten.
+
+**What v2 does not fix.**
+- **One party, many hotkeys.** The cap is per hotkey, not per party. One
+  party can register several hotkeys and take one scored slot per hotkey per
+  tempo. A registration burn makes each extra hotkey cost something; it does
+  not prevent one. The cap implies no fairness between parties, and nothing
+  here should be read as if it did.
+- **Aggregate exposure of a hidden batch.** v1 bounded every miner together
+  at about 9 scored observations of one screening batch. v2 bounds each
+  hotkey at about 9, so the batch's total grows with the number of active
+  hotkeys. How many scored observations of a hidden batch the exam can
+  tolerate is an exam-integrity (scientific) judgement, not an engineering
+  value. **That part is not decided here:** v2 is merged as code and is not
+  deployed as the exam for an evidence-bearing campaign until the owner
+  records an acceptable aggregate exposure, or accepts it as unbounded for
+  DEVELOPMENT.
 
 **Consequences recorded, not decided here.**
 - The volume channel amendment 4 measures (D3/D4) was bounded globally under

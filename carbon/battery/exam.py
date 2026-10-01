@@ -58,11 +58,16 @@ DEVELOPMENT_RULE = {
 #: are the executor's provisional development choices under that delegation:
 #:
 #: - **per hotkey, per tempo:** one scored submission per hotkey per 360-block
-#:   window (one Bittensor tempo), aligned to multiples of 360. Many hotkeys
-#:   cost registration burns: that is Bittensor's own sybil price.
+#:   window (one Bittensor tempo), aligned to multiples of 360. The cap is per
+#:   hotkey, not per party: it does not stop one party registering several
+#:   hotkeys, and it implies no fairness between parties. Registration burns
+#:   price extra hotkeys; they do not prevent them.
 #: - **rotation by block height:** a fresh screening batch every 3 tempos, so
 #:   one batch is active for about 9 tempos and one hotkey can see it scored
-#:   at most about 9 times, the same bound v1 placed on all miners together.
+#:   at most about 9 times. v1 bounded *all miners together* at that number;
+#:   v2 bounds each hotkey, so a batch's total scored observations grow with
+#:   the number of active hotkeys. Whether that aggregate exposure is
+#:   acceptable for the exam is not an engineering value (see the record).
 #: - **never stall miners:** when rotation is due and no batch is ready the
 #:   pool keeps scoring on its current batches and records the overdue
 #:   rotation; v1's `ROTATION_PENDING` stop is not part of v2.
