@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-10-01, with the EV2 results PR.
+**Last updated:** 2026-10-01, with the EV2 results PR (after the battery intake PR, OWNER-BATTERY-INTAKE-01).
 
 ## Authority in force
 
@@ -35,14 +35,15 @@ All of these are in `.agent/DECISIONS.md`.
 | 6 | M4: GPU backend for the daemon (device-attached carrier, host admission, device lease) | Claude session | #351 (merged) | not started |
 | 7 | M4: two-host RunPod reproducibility run (handoff §4 R2, R3) | host session | 6; fresh balance and active-pod check | not started |
 | 8 | M3 gaps: two-instance commit-reveal cross-check; chain `CommitmentReader`; retired-case release policy | Claude session | — | not started |
-| 9 | OD-7 commitment posting (count per day, window, fee cap and expiry need owner values) | Claude session + owner | 8 | not implemented |
+| 9 | OD-7 commitment posting (needed at the mainnet switch, where several validators must agree on one recipe) (count per day, window, fee cap and expiry need owner values) | Claude session + owner | 8 | not implemented |
 | 10 | M5b Launchpad battery UI; M6 control center | Claude session | #351 (merged) | not started |
 | 11 | M7 testnet window (handoff §4 R4), validators and approved all-burn publication | host session | 2 to 7 | not started |
 | 12 | A real model-driven battery agent campaign (paid, within the OD-5 provider ceiling) | host session | provider key; run plan in the handoff | not run |
 | 16 | Battery challenge kit (`carbon/challenge_kit/battery.py`): the pinned PyBaMM overlay and the public population in the miner research image, with miner seeds only; closes the battery `generate` gap (OWNER-RESEARCH-ENVIRONMENT-01) | Claude session | — | open gap, declared in `challenge_kit/standard.py` |
-| 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | owner, then Claude session | owner approval of amendment 4; 3 prepared screening batches (the pool is `ROTATION_PENDING` after H) | pre-registered, not run |
-| 19 | Owner decision: whether to propose a decision-aware component for the battery exam, prospectively, on the EV2 evidence (it removes the boundary-optimist blind spot; it did not rank real models better on this panel) | owner | EV2 results | open |
-| 20 | EV3 design competition: freeze the pre-registration after the owner ranks its candidate problems (EV3 doc §6) and sets problem D's capacity floor | owner, then Claude session | EV2 results | draft for owner review |
+| 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | owner, then Claude session | owner approval of amendment 4 (D9 item 1). Batches (D9 item 2) approved 2026-09-30: `pscreen-T03`-`T05` and `pfinal-T01` prepared, references solving | pre-registered, not run |
+| 18 | Battery intake (OD-7(b)): built, loopback only (`carbon/battery/intake.py`, `intake_client.py`); design for the mainnet switch in `BATTERY_MINER_SUBMISSION_PATHS.md` | owner (exposure), Launchpad (campaign seam) | the §4 security review decision, recorded as an `OWNER-…INTAKE-EXPOSURE-NN` record, before any non-loopback bind; Launchpad posts through `intake_client` | built, NOT SECURITY_QUALIFIED, not exposed |
+| 20 | Owner decision: whether to propose a decision-aware component for the battery exam, prospectively, on the EV2 evidence (it removes the boundary-optimist blind spot; it did not rank real models better on this panel) | owner | EV2 results | open |
+| 21 | EV3 design competition: freeze the pre-registration after the owner ranks its candidate problems (EV3 doc §6) and sets problem D's capacity floor | owner, then Claude session | EV2 results | draft for owner review |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
 ## Budget (OD-5)
