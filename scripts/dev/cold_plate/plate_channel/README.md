@@ -519,3 +519,88 @@ the walls, where the fluid is hottest.
 - The next step is temperature-dependent viscosity, which OpenFOAM supports
   with a polynomial transport model.
 - Its effect on the peak and on Δp is not measured here.
+
+
+---
+
+# Rung 6d: temperature-dependent viscosity
+
+**What changed.**
+- `generate.py --viscosity polynomial` (design sets only) lets PG25 viscosity
+  vary with temperature.
+  - μ(T) is a degree-4 polynomial fitted to the same pinned CoolProp 6.8.0
+    model over 30-50 °C, with a maximum relative residual of 1.6e-5. The
+    coefficients and the fitted points are in `../DESIGN_BASIS.md`.
+  - Only viscosity varies. ρ, c_p and the conductivity keep their
+    constant-property values at the inlet temperature.
+- **An OpenFOAM detail.** v2512 accepts `polynomial` transport only with
+  `hPolynomial` thermo and a polynomial equation of state. So c_p and ρ
+  become degree-0 polynomials, with the same constants as before.
+- The default, `--viscosity constant`, writes byte-identical cases to
+  before.
+- `analyze.py` additionally reports the fluid temperature range and the
+  fluid volume above 50 °C for a variable-viscosity case.
+
+**How it ran.**
+- The nominal geometry at 30, 40 and 45 °C inlet: r = 2,
+  `--wall-grading 4`, 1.5 L/min per kW, 4,000 iterations.
+- **A control isolates the thermo change from the viscosity change.** It is
+  the 40 °C case written through the polynomial path with μ held at the
+  constant 1.3530 mPa·s. It reproduces rung 6c's 40 °C row exactly: 38.14 K,
+  30.83 K, 9.98 K, 5,243 Pa. So every difference below is viscosity.
+
+## Result (2026-10-01, this host)
+
+**All four cases ran.**
+- Mass is conserved to about 1e-10 and energy to about 2e-8.
+- Every tabulated quantity is identical at iterations 2,000 and 4,000, to
+  the precision shown.
+- Each case took about 6 minutes on local CPU.
+
+| Inlet | | Peak − inlet | Mean base − inlet | Coolant rise | Δp |
+|---|---|---|---|---|---|
+| 30 °C | constant μ (6c) | 38.51 K | 31.15 K | 9.99 K | 6,788 Pa |
+| | **variable μ** | **37.37 K** | **30.11 K** | 9.99 K | **4,798 Pa** (−29.3 %) |
+| 40 °C | constant μ (6c) | 38.14 K | 30.83 K | 9.98 K | 5,243 Pa |
+| | **variable μ** | **37.28 K** | **30.00 K** | 9.98 K | **3,927 Pa** (−25.1 %) |
+| 45 °C | constant μ (6c) | 37.98 K | 30.69 K | 9.98 K | 4,681 Pa |
+| | **variable μ** | **37.33 K** | **30.00 K** | 9.98 K | **3,623 Pa** (−22.6 %) |
+
+**The pressure drop is what changes.** It falls by 23-29 %. Most of the
+fluid is warmer than the inlet, and the warmest fluid sits at the walls,
+where the shear is.
+
+**The peak falls by 0.65-1.14 K.** Thinner fluid near the hot base carries
+heat slightly better. The coolant rise is set by the energy balance and does
+not change.
+
+**The developed-gradient check does not apply.** The exact duct series
+assumes one viscosity across the section. Here viscosity varies across and
+along the channel, so `analyze.py` reports the check `NOT_APPLICABLE` rather
+than as an error. Mass and energy conservation remain the exact checks.
+
+**The fit is extrapolated in the hottest fluid.**
+- The fluid next to the heated base reaches 64 °C (30 °C inlet), 74 °C
+  (40 °C) and 79 °C (45 °C).
+- Of the fluid volume, 12 %, 35 % and 52 % respectively lies above the 30-50 °C
+  fitted range.
+- There the polynomial overstates viscosity against the same model: +0.5 %
+  at 60 °C, +5 % at 70 °C and +25 % at 80 °C.
+- **So these runs understate the effect of variable viscosity,** most at
+  45 °C inlet. The direction is known; the size is not measured here.
+
+**What this rung does not cover.**
+- A viscosity fit over the fluid's actual range (about 30-80 °C).
+- Temperature-dependent conductivity, density and heat capacity.
+- Mesh refinement with variable viscosity.
+- The rung 6 exclusions: headers, manifolds, serpentines, plate-edge
+  spreading, non-uniform heat maps and the TIM.
+
+## Next
+
+1. **Refit μ(T) over 30-80 °C** from the same pinned model, so no fluid is
+   extrapolated. Rerun these three cases and report the change.
+2. **Serpentine channels and a whole plate with headers.**
+3. **The #342 pilot proposal,** priced for owner approval before it runs.
+   Whether a production reference needs variable viscosity is now measured
+   at the nominal point: about 25 % on Δp and under 1.2 K on the peak.
