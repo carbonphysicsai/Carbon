@@ -3615,6 +3615,13 @@
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
+        "id": "recon-torch-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/RECON-TORCH",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "ticket-record",
         "match_type": "ticket_record",
         "path": ".agent/tickets/",
@@ -3857,13 +3864,6 @@
         "id": "miner-launchpad-ticket",
         "match_type": "exact",
         "path": ".agent/tickets/C-MLP-01_development_launchpad.md",
-        "impact_class": "map_structural",
-        "map_ref": "SYSTEM/AGENT-EXECUTION"
-      },
-      {
-        "id": "recon-torch-tickets",
-        "match_type": "prefix",
-        "path": ".agent/tickets/RECON-TORCH",
         "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
