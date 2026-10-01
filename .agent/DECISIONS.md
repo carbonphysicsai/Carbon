@@ -16450,6 +16450,58 @@ from this host, no Cloudflare access, no spend. The client security review
 (OWNER-CLIENT-SECURITY-REVIEW-01) still arms on the first real client
 engagement. Ticket: `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
 
+## 2026-09-30 — OWNER-ASK-CARBON-FRESHNESS-01: Ask Carbon cards stay current by source, not by calendar
+
+**Authority.** The owner, in the Ask Carbon session on 2026-09-30, replying
+"approved" to two proposals:
+
+1. **Source-bound cards.** A card that paraphrases a pinned source expires when
+   that source changes. It has no calendar expiry of its own. The release
+   expiry stays as a backstop, because a source can stay byte-identical while
+   the facts move.
+2. **Standing approval for date-only refreshes.** A refresh qualifies only when
+   all pinned sources are byte-identical and the only fields that change are the
+   expiry and the date in the maturity label and answer. It needs no further
+   owner approval.
+
+The owner also approved the engineering to support these. An agent drafts
+content refreshes for owner approval, and per-PR CI stops failing unrelated
+changes on the calendar.
+
+**Finding recorded with the approval: proposal 2 is not safe for
+`current-progress`.** That card's only source, `.agent/WAVE.md`, is still
+byte-identical to its pin. However, it has not changed since 2026-09-17. The
+owner decisions since then, including the four-Challenge launch portfolio
+(`OWNER-LAUNCH-PORTFOLIO-01`), have not reached it. The card tells visitors
+that a closed three-campaign programme with no successor is Carbon's latest
+status. `docs/publications/PROJECT_STATUS.md`, reviewed 2026-09-28, describes a
+four-Challenge launch plan led by battery. A date-only refresh would restate the
+stale status under a newer date. So the card is not refreshed under proposal 2.
+Its redraft goes to the owner.
+
+**Delivered in this change.**
+- `validate-knowledge.mjs --time-findings-as-warnings` demotes expiry findings
+  that have a readable date, and only those.
+- Per-PR CI uses that flag unless the PR edits `website/ask-carbon/knowledge/`.
+- The strict check runs daily on `main` in the new `Ask Carbon freshness`
+  workflow.
+
+**Not delivered: the knowledge change.** The edit to
+`knowledge/public-knowledge.v1.json` was blocked by the session's permission
+check. That edit sets four cards (`bittensor`, `incentives`,
+`customer-product`, `contact`) to the release backstop, and records each card's
+freshness basis. It needs the owner to apply it or to permit it. The following
+stay unchanged until then:
+- All six cards still expire 2026-10-16.
+- The live `assistant-scope` card still shows
+  `STAGING_CANDIDATE_PUBLIC_ACTIVATION_DISABLED`.
+- Any knowledge change takes effect on the site only through a new bundle and
+  redeploys of `carbonwebsite` and `ask-carbon-public`.
+
+**Not decided:** whether the Worker should load its knowledge at runtime
+rather than embed it. That would remove the redeploy from refreshes. It is a
+security and integrity decision for the owner.
+
 ## 2026-09-30 — OWNER-MINER-ENVIRONMENT-01: a registered miner's environment comes with GPU, model and agent connected
 
 **Authority.** The owner, in chat on 2026-09-30: "This environment is supposed
@@ -16495,7 +16547,6 @@ their own machine! We aren't hosting anything except for the environment."
 
 **Open input.** "Which Mira?" This ticket assumes Mira Network's Flows.
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
-
 ## 2026-09-30 — WEB-QA-11-D1: Ask Carbon candidate 2026-09-30.1 carries the new Pilot Designer and retires /workbench/ (approved in principle; exact bundle awaits the owner)
 
 **Authority.**
@@ -16551,3 +16602,161 @@ straight at the Pilot Designer, are follow-ups for the owner.
 `PUBLIC_RELEASE_CANDIDATE.json` `deployment_order.candidate_2026_09_30_1`.
 Deployment is the operator's act; this host has no Cloudflare credential and
 ran no wrangler command.
+
+## 2026-09-30 — OWNER-BATTERY-INTAKE-01: the intake path is chosen; screening batches approved
+
+**Authority.** The owner, in the Testnet session on 2026-09-30, answering the
+submission-paths brief (`docs/development/BATTERY_MINER_SUBMISSION_PATHS.md`)
+and amendment 4's D9: "mainnet intake will be hosted by validator images, but
+we are testing now. confirm that against bittensor docs. explain amendment 4
+at a higher level. You have my approval to build batches. Derive them from
+real engineering evidence or where we should test. intake has to be wherever
+it needs to be for testnet testing. But ensure we have the design right for
+the mainnet switch".
+
+1. **OD-7(b), the intake, is the path.** At mainnet each validator image
+   hosts it. For testnet it runs where testing needs it: on this host, beside
+   the one validator deployment. The design is recorded in the brief.
+2. **Screening batches are approved** (amendment 4 D9 item 2). Prepared on
+   2026-09-30: `pscreen-T03`, `pscreen-T04`, `pscreen-T05`, and finalist set
+   `pfinal-T01`. They are drawn by the frozen OD-2 rule - uniform over the
+   exam-design specification's input box
+   (`docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, "The inputs") -
+   from the operator-held private root. The draw law was not changed:
+   choosing where the exam tests is a change to the approved exam rule and
+   needs its own prospective record (the EV2 proposal is where it belongs).
+3. **Amendment 4 itself is not approved by this reply** (D9 item 1). No 3B
+   provider call is made until it is.
+
+**Scope.**
+- The intake binds loopback. **Exposing it beyond this host is the owner's §4
+  security review decision**, recorded as its own exposure record, which the
+  listener checks for by name. Nothing in this record is that decision.
+- The intake is security-sensitive (AGENTS §13) and NOT SECURITY_QUALIFIED.
+  Merging it authorizes no exposure.
+- **Seam with OD-3.** The OD-7(b) row says the intake is "covered by the OD-3
+  security review", but OD-3 as recorded approves a review of two images (the
+  GPU validator reconstruction image and the PyBaMM truth image), not a public
+  listener. Classified `NEW_OWNER_DECISION_REQUIRED` for exposure only. The
+  intake's own §4 review is still needed, and it is the exposure record above.
+  Building and merging the loopback-only listener can proceed.
+- No chain write, no commitment, no spend, testnet 567 only.
+
+## 2026-09-30 — OWNER-BATTERY-SCORING-WINDOW-01: battery exam rule v2 removes the 3-submission scoring cap
+
+**Authority.** The owner, in the Testnet session on 2026-09-30: "Remove the 3
+scoring slot limit and handle that whatever way is optimal on bittensor. We
+need easy to submit, clearn submission feedback", then "approved" to the
+proposed design (one scored submission per hotkey per tempo, block-based
+rotation, scoring that never stalls).
+
+1. **Rule v2** (`exam.DEVELOPMENT_RULE_V2`) replaces OD-2's "rotate after 3
+   admitted" and nothing else:
+   - **Per hotkey:** one scored submission per hotkey per 360-block window
+     (one Bittensor tempo), aligned to multiples of 360. The block is the
+     finalized block of the validator-observed snapshot the request was
+     authenticated against. An invalid construction does not use the window.
+     The cap is per hotkey, not per party (below).
+   - **Rotation by block height:** a fresh screening batch every 1080 blocks
+     (3 tempos). A batch is active about 9 tempos, so one hotkey can see it
+     scored about 9 times. v1 placed that bound on all miners together; v2
+     places it on each hotkey (below).
+   - **Never stall:** a due rotation with no prepared batch keeps scoring on
+     the current batches and records `rotation_overdue`.
+2. **The values 360, 1080 and 1 are the executor's provisional development
+   choices** under the owner's "whatever way is optimal" delegation. They are
+   not production values and nothing here is scientifically qualified.
+3. **Historical results keep v1 (invariant 10).** The change is prospective.
+   Every result scored under v1 keeps the meaning of the rule it was scored
+   with, and none is rescored or reinterpreted under v2. A seed root is
+   committed for one rule, so v2 runs on a fresh deployment state and root,
+   and a validator refuses a root committed for another rule
+   (`rule_mismatch`). v1's state is archived, not rewritten.
+
+**What v2 does not fix.**
+- **One party, many hotkeys.** The cap is per hotkey, not per party. One
+  party can register several hotkeys and take one scored slot per hotkey per
+  tempo. A registration burn makes each extra hotkey cost something; it does
+  not prevent one. The cap implies no fairness between parties, and nothing
+  here should be read as if it did.
+- **Aggregate exposure of a hidden batch.** v1 bounded every miner together
+  at about 9 scored observations of one screening batch. v2 bounds each
+  hotkey at about 9, so the batch's total grows with the number of active
+  hotkeys. How many scored observations of a hidden batch the exam can
+  tolerate is an exam-integrity (scientific) judgement, not an engineering
+  value. **That part is not decided here:** v2 is merged as code and is not
+  deployed as the exam for an evidence-bearing campaign until the owner
+  records an acceptable aggregate exposure, or accepts it as unbounded for
+  DEVELOPMENT.
+
+**Consequences recorded, not decided here.**
+- The volume channel amendment 4 measures (D3/D4) was bounded globally under
+  v1 and is bounded per hotkey under v2. Amendment 4 must be re-registered
+  against v2 before any 3B provider call.
+- The research agent's disclosed rule (`carbon/battery/research.py`) is the
+  Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
+  v1 until it is updated there.
+
+## 2026-10-01 — OWNER-BATTERY-3B-AND-EXPOSURE-01: amendment 4 approved; miners never see a hidden batch or anything computed from it
+
+**Authority.** The owner, in the Testnet session on 2026-10-01, in two
+replies. First, to the three open decisions after #447, #452, #457 and #461:
+"1 what are the expsoure options and whats sota for bittesnor 2. why do the
+miners get to see it at all? it should be 0 3. approved". Second, to the
+follow-up questions (1: record the approval; 2: confirm the zero-exposure
+design; 3: whether v1 keeps scoring testnet miners meanwhile): "1. allow you
+to make the edit. 2. even post seed draw only carbon and validators should
+have access. never miners until carbon chooses to retire a batch and committ
+it to the training data pool. accepting zero + that. Can we update v2 to
+match that? 3. APPROVE".
+
+1. **Amendment 4 (tier 3B) is approved** (D9 item 1). This is the
+   pre-registration gate for 3B's USD 2.00, within the USD 2.50 held from
+   OWNER-BATTERY-V2-DISCLOSURE-01 item 9.
+   - **It runs as pre-registered, on the v1 deployment.** Amendment 4's
+     volume bounds (D3/D4) are v1's, and the deployment it names runs v1.
+     OWNER-BATTERY-SCORING-WINDOW-01's line that amendment 4 "must be
+     re-registered against v2 before any 3B provider call" applies only to a
+     3B run on a v2 deployment. None is made, so no re-registration is
+     needed.
+   - **The precondition (D9 item 2) holds at the read of 2026-10-01**
+     (read-only `operate status` and `operate batches`): pool version 1,
+     `OPEN`, admitted 0. `pscreen-T01`, `T02` and `T03` are active, and
+     `pscreen-T04` and `T05` are prepared with complete references. That
+     covers the two rotations the ladder's 8 submissions need. The launch
+     takes its own `operate status` first (D9).
+   - **3B is consistent with item 2.** Its agent is Carbon's own research
+     agent, deliberately exposed rung by rung to measure the channel that
+     item 2 closes. Its evidence goes to the MQ-008 holder, and no
+     reconstruction verdict is written.
+2. **Hidden batches: zero exposure to miners (the owner's rule).**
+   - **Access.** A hidden screening or finalist batch is accessible only to
+     Carbon and the validators, before and after its seed draw. Nothing
+     computed from it reaches a miner, including eligibility, gate
+     failures, scores, case counts, nomination, finals and pool version.
+   - **Release is Carbon's act.** A miner may see a batch, or anything
+     computed from it, only after Carbon chooses to retire that batch and
+     commit it to the training data pool. Retirement by rotation alone
+     releases nothing.
+   - **What a miner may still be told** is what does not depend on the
+     hidden cases: receipt and submission id, its submission's state,
+     whether its construction is valid, typed infrastructure or
+     reconstruction failures, the timing rule (rule v2's window), and
+     practice results on public data.
+   - **v2 is updated to match** (the owner's request). The change is
+     prospective. Evidence already scored keeps the meaning of its rule
+     (invariant 10).
+   - **Winner weights would be a channel.** Testnet weights are all-burn
+     (OD-4a, `signing.py`), so they carry nothing about any batch today.
+     Choosing winner weights (OD-4b) has to account for this rule.
+   - **The intake exposure options** were answered in the session report.
+     No exposure record exists, and the intake stays bound to loopback.
+3. **v1 keeps scoring testnet miners in the meantime** (the second reply's
+   item 3, answering whether v1 keeps scoring testnet miners while v2 is
+   updated). v1 returns outcomes at once, so it does not meet item 2. It
+   stays a non-paying DEVELOPMENT exam until a v2 deployment that meets
+   item 2 replaces it.
+
+**Unchanged:** no chain write, no weights beyond OD-4a's all-burn,
+`transaction_authorization` null, testnet 567 only, OD-5's ceiling, and every
+scientific, security and qualification state.
