@@ -178,6 +178,18 @@ class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
 
 
+class BackendNotServed(PermissionError):
+    """This validator has no worker image for the recipe's backend.
+
+    Not a refusal of the recipe: nothing is recorded, and the miner may
+    submit it to a validator that serves the backend (OWNER-PYTORCH-BACKEND-01).
+    """
+
+    def __init__(self, backend):
+        super().__init__(backend)
+        self.backend = backend
+
+
 class PublishedCaseRefused(ValueError):
     """A batch that repeats a published campaign case cannot be hidden."""
 
@@ -421,6 +433,9 @@ class BatteryValidator:
                 [{"code": i.code, "path": list(i.path)} for i in issues],
             )
         recipe = admitted.construction
+        backend = recipe.settings.get("backend", "jax")
+        if backend not in getattr(self.backend, "backends", ("jax",)):
+            raise BackendNotServed(backend)
         commitment = None
         expected = commitment_digest(
             submission.strategy["challenge_id"],

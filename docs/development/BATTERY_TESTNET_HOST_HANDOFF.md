@@ -174,7 +174,7 @@ Recompute every identity on the host at the exact commit you run
 | Identity | Value |
 |---|---|
 | Source | the M3 PR's merge commit on `main` (record the SHA you check out) |
-| Battery contract digest | `sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45` |
+| Battery contract digest | `sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e` since expansion record `0001` (RECON-TORCH-01, the PyTorch backend). It was `sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45` (record `0000`) for the M3 handoff. Deploy a contract revision only when no pool or final is mid-evaluation: the daemon refuses a changed recipe digest (`artifact_mismatch`). |
 | OD-2 rule digest | `sha256:e108df6891aecd7c2111442267b182680cdb5516185bcaf188afead1c9c110c5` |
 | TRAIN v1 | `3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3` |
 | OCV table | `847cb3e92acaca7340072ca5c5bea8e4e6273b3bffea09378ba672e5f93372d7` |
@@ -182,6 +182,7 @@ Recompute every identity on the host at the exact commit you run
 | Battery implementation digest | printed by `operate status` (changes with battery code) |
 | Truth image (CPU, PyBaMM) | `ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940` plus overlay lock `scripts/dev/exam_design/locks/battery-overlay.lock.json` (`pybamm==26.8.0.0`) |
 | Validator reconstruction image (CPU) | the accepted C-03 worker image named by the runner profile's `image_manifest`. It is checked by `verify_current_worker` and the host `doctor`. |
+| Validator reconstruction image (PyTorch, CPU, optional) | built by `scripts/dev/torch_worker_image.sh` on the C-03 worker image above, from `.devcontainer/torch/Dockerfile` and the exact-hashed `.devcontainer/torch/torch-cpu-py311.txt`. It needs `download.pytorch.org` at build time. Name its manifest as `torch_image_manifest` in §3. The deployment refuses it unless its base is the `image_manifest` image and its lock digest is that export's. Without it, PyTorch recipes are answered `backend_not_served`, which is never recorded against the miner. Its security acceptance is the owner's (RECON-TORCH-01). |
 | Validator reconstruction image (GPU) | `carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794`, reused per OWNER-BATTERY-TESTNET-04. Its lock pins jax/jaxlib 0.10.2, optax 0.2.8 and numpy 2.4.6, the battery runtime's versions. OD-3 is recorded as approved for it; any derived layer is shown to the owner first. |
 
 ## 2. Host checks (stop on any failure)
@@ -222,12 +223,14 @@ Recompute every identity on the host at the exact commit you run
   "work": "/srv/carbon/battery/validator/work",
   "backend": "carrier",
   "image_manifest": "/srv/carbon/images/worker-image.json",
+  "torch_image_manifest": "/srv/carbon/images/torch-worker-image.json",
   "seconds": 600,
   "require_commitment": false,
   "service_key": "/srv/carbon/keys/battery-validator.key"
 }
 ```
 
+- `torch_image_manifest` is optional. Omit it to serve JAX recipes only.
 - `require_commitment`: set it to `true` only once a chain commitment reader
   exists. Until then a `true` deployment refuses every submission as
   `commitment_reader_unavailable`, by design. `false` is recorded in every

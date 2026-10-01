@@ -239,3 +239,24 @@ def test_a_jax_rebuild_never_imports_torch():
         cwd=ROOT,
     )
     assert json.loads(out.stdout.strip().splitlines()[-1]) is False
+
+
+@needs_torch
+def test_the_determinism_harness_reports_exact_differences_and_no_verdict():
+    from carbon.battery.torch_determinism import SCHEMA, study
+
+    report = study(
+        strategy(BATTERY, "mlp", **{**SMALL["mlp"], "backend": "pytorch"}),
+        repeats=2,
+        seed=3,
+        root=ROOT,
+    )
+    assert report["schema"] == SCHEMA and report["backend"] == "pytorch"
+    assert "sets no tolerance" in report["authority"]
+    # Two fresh interpreters on one host, one seed: the same weights.
+    assert report["all_weights_identical"] is True
+    (row,) = report["comparisons"]
+    assert all(
+        d["identical"] and d["max_abs"] == 0.0 for d in row["predictions"].values()
+    )
+    assert not {"pass", "fail", "tolerance"} & set(report)

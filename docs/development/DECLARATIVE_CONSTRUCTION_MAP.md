@@ -86,8 +86,9 @@ A family rebuildable for one Challenge is not thereby rebuildable for another.
 
 | Group | Battery surfaces |
 |---|---|
-| Families | `knn`, `mlp`, `deeponet` (branch over the four inputs, trunk over the 30 s grid) |
-| Architecture | `neighbours`, `width`, `depth`, `deeponet_depth`, `basis_functions`, `trajectory_components`, `arrhenius_features`, `activation`, `normalization`, `initialization` |
+| Families | `knn`, `mlp`, `deeponet` (branch over the four inputs, trunk over the 30 s grid), `fno` (neuraloperator 2.0 Fourier neural operator over the 30 s grid; PyTorch backend only, float32 only) |
+| Backend | `backend`: `jax` (the default) or `pytorch` (OWNER-PYTORCH-BACKEND-01) |
+| Architecture | `neighbours`, `width`, `depth` (MLP hidden layers or FNO Fourier layers), `n_modes` (FNO), `deeponet_depth`, `basis_functions`, `trajectory_components`, `arrhenius_features`, `activation`, `normalization`, `initialization` |
 | Declared construction choices | `bounded_voltage_head`, `ocv_initial_voltage`, `capacity_fade_head` |
 | Optimizer | `optimizer_family` (adam, lion, lamb, adafactor, radam, nadamw, sgd_momentum, muon, prodigy, free_adamw, sam), `learning_rate`, `weight_decay`, `weight_decay_mask`, `clip_norm`, `beta1`, `beta2`, `adam_epsilon` |
 | Learning-rate curve | `learning_rate_curve` (cosine, constant, piecewise, exponential, one_cycle, sgdr, polynomial, train_loss_plateau), `warmup_steps`, `min_learning_rate_ratio` |
@@ -97,11 +98,18 @@ A family rebuildable for one Challenge is not thereby rebuildable for another.
 | Training data (TRAIN v1 only) | `train_fraction`, `important_region_weight`, `curriculum`, `hard_example_weight` |
 
 The campaign's recipes are bit-identical to the research recipes. Every other
-setting trains through `carbon/battery/training.py`. It uses JAX and the
-pinned optax: validation is JAX-only.
+setting trains through `carbon/battery/training.py` (JAX and the pinned optax)
+or, when the recipe names `backend: pytorch`, through
+`carbon/battery/torch_training.py` (PyTorch, Carbon's own ports of the same
+optimizers, curves, losses and stages). Each recipe is rebuilt in its own
+backend's pinned worker image and scored the same way, in one ranking. The two
+backends are not bit-identical to each other, and nothing requires that; each
+must reproduce itself, and its tolerance is the owner's to set
+(RECON-TORCH-01). Recording expansion `0001` widened the contract.
 
 **Research-only for battery, with reasons:**
-- the grid operators (FNO, Transolver, Haar, GNO, GINO) and their fields;
+- the grid operators other than the FNO (Transolver, Haar, GNO, GINO) and
+  their fields;
 - the foundax field and point models;
 - remat;
 - the PDE residual and its warmup;
@@ -113,8 +121,8 @@ pinned optax: validation is JAX-only.
 **Owner-gated:** support-leaving augmentation and 2D/3D.
 
 **Excluded:**
-- PyTorch and Julia backends, per-submission labels and PyBaMM reuse, because
-  validation is JAX-only;
+- the Julia backend, per-submission labels and PyBaMM reuse: validator
+  reconstruction is JAX or PyTorch (OWNER-PYTORCH-BACKEND-01);
 - the five items the declarative rule excludes.
 
 Admission for every Challenge runs through `challenge_contracts.py`:
@@ -330,8 +338,9 @@ loaders.
 - **Ensembles:** these need a resource envelope.
 - **Precision beyond float32:** this sets the reproducibility tolerance.
 - **2D and 3D families:** these need a new Challenge.
-- **PyTorch and Julia reconstruction backends:** these need image and security
-  review.
+- **Julia reconstruction backend:** this needs image and security review.
+  PyTorch is implemented for battery (RECON-TORCH-01); its worker image's
+  security acceptance remains the owner's.
 - **Pretrained weights:** these raise provenance and licensing questions and are
   currently forbidden.
 

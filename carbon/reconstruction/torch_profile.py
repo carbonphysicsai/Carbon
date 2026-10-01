@@ -42,6 +42,20 @@ ENVIRONMENT_DIGEST = _tagged(
     + b"\0linux-x86_64-cpu"
 )
 
+#: The exact-hashed export of the `science-torch` group from `uv.lock`
+#: (`uv export --frozen --no-dev --group science-torch --no-emit-project`),
+#: which the PyTorch worker image installs. Its sha256 is the image's
+#: `lock_digest`, and a deployment checks that binding.
+REQUIREMENTS_PATH = ".devcontainer/torch/torch-cpu-py311.txt"
+
+
+def requirements_digest(root) -> str:
+    """The digest a PyTorch worker image built from `root` records."""
+    from pathlib import Path
+
+    return _tagged((Path(root) / REQUIREMENTS_PATH).read_bytes())
+
+
 DEPENDENCY_SPECS = tuple(
     (name, version, _tagged(source.encode())) for name, version, source in PINS
 )

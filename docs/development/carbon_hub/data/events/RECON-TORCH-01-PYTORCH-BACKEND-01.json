@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "RECON-TORCH-01-PYTORCH-BACKEND-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented RECON-TORCH-01 under OWNER-PYTORCH-BACKEND-01: a battery recipe names its reconstruction backend, jax (the default) or pytorch, and Carbon rebuilds it with its own trainer for that backend, in that backend's pinned worker image, and scores it the same way in one ranking. The battery construction contract gains inference.backend, which realizes model_family.pytorch_backend (moved from excluded to supported), and a PyTorch-only fno family (neuraloperator 2.0 Fourier neural operator over the time grid, float32 only) with an n_modes surface; expansion record 0001 records the widening. carbon/battery/torch_training.py ports every registered optimizer, learning-rate curve, loss, stage and averaging to PyTorch, with deterministic algorithms, explicit generators and fixed threads, and the same prediction format and a pickle-free state. On the validator end the carrier holds one image per backend; the PyTorch worker image is layered on the C-03 image from an exact-hashed science-torch export, and a deployment binds it to its JAX parent and that export. A validator without it answers backend_not_served, which records nothing against the miner, and a worker image that lacks a backend is infrastructure. On the miner end practice runs each recipe in its own backend and the PyTorch worker image is the miner's worker image. CI installs science-torch and requires the PyTorch lane. A determinism harness produces repeat-and-compare evidence. The reproducibility tolerance, the training limit and the image's security acceptance remain the owner's; PyTorch recipes are DEVELOPMENT only, with no reward, frontier or qualification authority.",
+  "primary_detail": ".agent/tickets/RECON-TORCH-01_pytorch_backend.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-01T19:00:07Z"
+}
