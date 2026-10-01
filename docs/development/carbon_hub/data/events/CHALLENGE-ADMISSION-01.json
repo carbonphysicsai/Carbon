@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "CHALLENGE-ADMISSION-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Owner requires construction-integrity and engineering-value studies before new challenge admission or permission expansion. Readiness v3 checks both tracks and digest-bound scoped evidence/review completeness; no challenge is accepted and no new miner-code capability or runtime activation interlock is enabled. Read-only EV1/EV2 audit exposes gate-ineligible ranking, unequal resolved-case masks and seed dependence; retained experiment results stay unchanged. New prospective standard requires real isolated attacks, fresh confirmation, useful-effect and uncertainty evidence, coverage/tail reporting and recipient rebuilds. Real campaigns and human science/security acceptance remain outstanding.",
+  "primary_detail": ".agent/tickets/CHALLENGE-ADMISSION-01.md",
+  "affects": [
+    "WAVE-C/C-09",
+    "SYSTEM/PROTOCOL-AUTHORITY",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-01T02:41:30Z"
+}

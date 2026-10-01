@@ -4,12 +4,13 @@
 readiness record per launch-portfolio Challenge:
 - `carbon/challenge_readiness/records/<challenge_id>.v<N>.json`;
 - validated by `carbon/challenge_readiness/record.py`;
-- schema `carbon.challenge-readiness.v2`.
+- schema `carbon.challenge-readiness.v3`.
 
 **The training budget study** (OWNER-TRAINING-BUDGET-STUDY-01, schema v2).
 Every record carries a required `training_budget_study` block: its state,
 result report and owner decision. The validator refuses a launch approval
-unless the study is `COMPLETE`, so no Challenge can go live without it.
+unless the study is `COMPLETE`. This checks the readiness record; the LIVE
+qualification/activation path remains separate.
 Every record starts `NOT_STARTED`. The spec is
 `docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`.
 
@@ -129,3 +130,19 @@ These properties are enforced when a record is built, not left to convention:
 | Workbench | REPAIR later | A read-only readiness view is the next slice. Nothing consumes these records yet. |
 
 No scheduler, scorer, seed service or evidence store was added.
+
+## Two-track admission (schema v3)
+
+[Challenge Admission](../../Design_Specs/Challenge_Admission.md) is now a standing
+requirement. `admission_tests` binds construction-integrity and engineering-value
+studies to one exact challenge version and capability profile. The validator
+refuses a launch-approved record until both are ACCEPTED with matching frozen
+criteria, reports, retained evidence hashes and scoped review decisions. It
+verifies file completeness and bindings, not human identity or scientific truth.
+
+Both new tracks start NOT_STARTED in all four catalogue records; prior battery
+EV work remains supporting evidence. Their `admission_blockers` appear in the
+validate command. A valid record is not an accepted challenge. Schema v2 cannot
+be used to omit the new fields. Catalogue filenames remain stable in this schema
+migration and previous bytes remain in git history. No runtime permission,
+scoring rule, historical result or qualification state changes.

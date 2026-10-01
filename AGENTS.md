@@ -14,6 +14,12 @@
 > rewards. Readiness records enforce it; rules R1-R8 are frozen by digest.
 > Launch path v1.0.8.
 
+> **OWNER-CHALLENGE-ADMISSION-01 (2026-09-30):** new challenges and expanded
+> construction profiles require both construction-integrity and engineering-value
+> admission studies under `Design_Specs/Challenge_Admission.md`. Readiness schema
+> v3 checks their evidence bindings before accepting a launch-approved record.
+> Engineering checks do not grant scientific/security qualification.
+
 > **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
 > engineering choices only for the separately typed, non-paying C-W1-D3
 > DEVELOPMENT rule. See `.agent/DECISIONS.md` and

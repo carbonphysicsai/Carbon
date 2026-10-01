@@ -1,5 +1,11 @@
 # Carbon Validation Dossier — Challenge Distribution, Generator, Truth, and Measurement Qualification
 
+> **Prospective admission requirement (OWNER-CHALLENGE-ADMISSION-01):**
+> Follow [Challenge Admission](Challenge_Admission.md) before opening a new
+> challenge to rewarded competition or expanding its construction permissions.
+> Both construction integrity and engineering value need accepted evidence for
+> the exact profile. Existing dossier, science/security and launch gates remain.
+
 **Version:** 2.1 candidate amendment
 **Status:** OWNER-RATIFICATION PROPOSAL — v2.0 remains the locked architecture ratified on 2026-08-21 until this dependence amendment receives explicit Physics/SciML, statistics, and protocol-owner acceptance. Challenge-specific criteria, exact schemas, and implementation details remain subject to tech/science review.
 **Purpose:** Define the evidence package required before Carbon may treat a registered Challenge exam as scientifically fit to judge candidates.  

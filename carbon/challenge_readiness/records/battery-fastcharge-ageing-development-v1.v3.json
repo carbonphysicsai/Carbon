@@ -1,4 +1,22 @@
 {
+  "admission_tests": {
+    "protocol": "carbon.challenge-admission.v1",
+    "scope": null,
+    "tracks": {
+      "construction_integrity": {
+        "acceptance": null,
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      },
+      "engineering_value": {
+        "acceptance": null,
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      }
+    }
+  },
   "challenge_id": "battery-fastcharge-ageing-development-v1",
   "costs": [
     {
@@ -234,7 +252,7 @@
       "state": "IN_REVIEW"
     }
   },
-  "schema": "carbon.challenge-readiness.v2",
+  "schema": "carbon.challenge-readiness.v3",
   "sources": [
     "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
     "docs/development/BATTERY_EXAM_METHOD_RECORD.md",

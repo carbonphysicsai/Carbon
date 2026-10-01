@@ -2269,6 +2269,13 @@
     ],
     "rules": [
       {
+        "id": "challenge-admission-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/CHALLENGE-ADMISSION-01.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-gpu-lane-plans",
         "match_type": "prefix",
         "path": ".agent/plans/C-CORE-19_",

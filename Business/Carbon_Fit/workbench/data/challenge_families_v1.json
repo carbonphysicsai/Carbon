@@ -12,7 +12,7 @@
       "title": "Battery fast charging and ageing",
       "record": {
         "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
-        "sha256": "sha256:72fcc695747096f62dce44031858503aa43eebab008af6a1cfc039346f17a0b4"
+        "sha256": "sha256:68ecce6db3f944b8270a92d83655a06e646fc082846f868bf9dcb5711046d1a7"
       },
       "matching": {
         "keywords": [
@@ -290,7 +290,7 @@
       "title": "AI-chip liquid cold plates",
       "record": {
         "path": "carbon/challenge_readiness/records/chip-cold-plate.v4.json",
-        "sha256": "sha256:39d8a62882699a99bc9ada3f830233d7acdadae636e00669621f03d39a9d8767"
+        "sha256": "sha256:2cf280e27e91db14e3f6960c0065f8e1e7a16448813aec17ba37f8874eca5c64"
       },
       "matching": {
         "keywords": [
@@ -517,7 +517,7 @@
       "title": "Electric motor magnetics",
       "record": {
         "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v2.json",
-        "sha256": "sha256:a676abb0efed5bad6eadad71ed8ef5aa83939d0df4b4394849b834127157f007"
+        "sha256": "sha256:be29fb9f1f8d9a28a38ed8caed410488170b31afc4bef7a3dcb8fed6f5b6c608"
       },
       "matching": {
         "keywords": [
@@ -723,7 +723,7 @@
       "title": "Silicon photonic couplers",
       "record": {
         "path": "carbon/challenge_readiness/records/photonic-coupler.v3.json",
-        "sha256": "sha256:62e32b8b77227aea484d958e928680e40fd23d21b9b7848efb1632c66b2e314d"
+        "sha256": "sha256:f4521a902e3cb878fa0197159bcbbea18b84d17ef1f1ba6b27c34564a8b28556"
       },
       "matching": {
         "keywords": [

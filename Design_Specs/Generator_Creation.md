@@ -1,5 +1,11 @@
 # Generator Creation — Human Build Guide, Reference Verification, and Incentive Defensibility
 
+> **Prospective admission requirement (OWNER-CHALLENGE-ADMISSION-01):**
+> Follow [Challenge Admission](Challenge_Admission.md) before opening a new
+> challenge to rewarded competition or expanding its construction permissions.
+> Both construction integrity and engineering value need accepted evidence for
+> the exact profile. Existing dossier, science/security and launch gates remain.
+
 **Carbon Subnet**  
 **Version:** 5.1 (owner-ratification proposal; v5.0 remains authoritative until accepted)
 **Status:** OWNER-RECOMMENDED architecture; Challenge-specific scientific acceptance remains evidence- and reviewer-owned.  

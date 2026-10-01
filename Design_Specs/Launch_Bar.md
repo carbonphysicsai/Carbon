@@ -1,5 +1,11 @@
 # Launch_Bar.md — Gate & Score Bar Before Landscape Compounds
 
+> **Prospective admission requirement (OWNER-CHALLENGE-ADMISSION-01):**
+> Follow [Challenge Admission](Challenge_Admission.md) before opening a new
+> challenge to rewarded competition or expanding its construction permissions.
+> Both construction integrity and engineering value need accepted evidence for
+> the exact profile. Existing dossier, science/security and launch gates remain.
+
 > **Reconciliation (post-ratification):** **Port B** strengthened — every scored nonzero submission completes the **same mandatory lean pack**. Progressive depth is **scheduling / prefilter / supplemental**, not variable grading of the lean exam identity.
 
 
