@@ -1,9 +1,14 @@
 # EV4 and Problem C: pre-registration
 
-**Status.** DRAFT. The lead sets FROZEN when it freezes the experiment root
-with the contract below, before any EV4 reference solve or reconstruction.
-Nothing here has run. Anything changed after the first solve is reported as a
-change, never silently applied.
+**Status.** FROZEN at 2026-10-01T20:09:26Z, before any EV4 reference solve or
+reconstruction (apart from the pre-freeze disclosure in §10). The frozen root's
+manifest is committed as
+`docs/development/evidence/ev4-2026-10-01/freeze-manifest.json`
+(sha256 `ff35fa6f959656c55ad657bee4af622a71984f34081628c4cd3b7dbd8e42253d`;
+contract digest `sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1`;
+implementation digest `sha256:fb9353a00426296dcbba3af5977e3094fd330236ca12d34aa4980c35fe0a5b7d`;
+100 members, 840 decision cases). Anything changed after the first solve is
+reported as a change, never silently applied.
 
 - **Contract:** `carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json`,
   digest `sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1`
