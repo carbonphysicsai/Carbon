@@ -41,9 +41,22 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
     and it contradicts the external signing this ticket's decision keeps. The
     step is rebuilt on #445's signer: it checks the registered hotkey through
     `connect_signer`, takes no key file and no password, and the profile names
-    neither. Main's runner still requires `miner_password_file` until #445
-    merges, so this PR merges after #445, never before it. The MCP handshake
-    for an external agent is slice 5.
+    neither. #445 merged on 2026-10-01 and this branch merged main after it.
+    The Agent step now asks the miner's running `carbon-miner-signer` which
+    hotkey it holds (an optional `signer_socket` names a non-default socket).
+    A refusal names the field `signer`, carries the signer's closed code, and
+    gives the next step "start `carbon-miner-signer` for your registered
+    hotkey". `miner-public.json` holds only the netuid and hotkey. A password
+    stored by the earlier version of the page is deleted. Provider API key
+    paths are named `credential_file`, so the product's no-key invariant
+    (`tests/invariants/test_product_process_holds_no_key.py`) passes with no
+    exception. The MCP handshake for an external agent is slice 5.
+  - *Own machine is every miner's default (owner, 2026-10-01).* "ALL Miners
+    in launchpad should default to their own machines and can set up
+    sandboxes themselves if they want." Setup offers the miner's own machine
+    as the compute default. A sandbox or rented GPU is something a miner may
+    set up for themselves; Carbon never chooses one for them, and slices 3
+    and 4 keep that default.
   - *The key belongs to one provider.* The profile records the setup's
     `model_selection`. An autonomous launch that names no model runs with
     it. A key file named in `provider_credentials` is never used for the
