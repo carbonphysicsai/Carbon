@@ -729,7 +729,7 @@ class Handler(BaseHTTPRequestHandler):
             value = parse_json(body)
             if self.path.startswith("/api/v1/setup/"):
                 action = self.path.removeprefix("/api/v1/setup/")
-                if action not in {"begin", "inference", "compute", "agent", "review"}:
+                if action not in {"begin", "quote", "inference", "compute", "agent", "review"}:
                     raise Rejected("unknown_setup_step", 404)
                 if self.server.setup is None:
                     raise Rejected("setup_unavailable", 409)

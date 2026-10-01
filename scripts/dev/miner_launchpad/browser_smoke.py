@@ -1337,7 +1337,29 @@ def setup_journey():
                     "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
                     "document.getElementById('setup-inference-key').value = "
                     + json.dumps(key)
-                    + ";document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                # The check's maximum cost is quoted before anything is spent,
+                # nothing is agreed by default, and the check cannot run until
+                # the person agrees to that amount.
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-consent').disabled"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')",
+                )
+                assert session.evaluate(
+                    "!document.getElementById('setup-inference-consent').checked"
+                    " && document.querySelector('form[data-step=inference] button').disabled"
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-result').textContent !== 'Checked: inference.'"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-inference-consent').click();"
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
                 )
                 wait(
                     session,

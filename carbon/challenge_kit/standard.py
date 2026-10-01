@@ -193,13 +193,15 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         ),
         "agent": Gap(
             reason=(
-                "Only Carbon's own research agent and a miner-supplied MCP "
-                "client exist; none of the agents named in "
-                "OWNER-MINER-ENVIRONMENT-01 is connectable in setup."
+                "Setup offers only Carbon's own autonomous agent. Hermes, the "
+                "other agent OWNER-MINER-ENVIRONMENT-01 names, is not "
+                "connectable in setup."
             ),
             next_step=(
-                "C-MLP-03 slice 5: connect the named local agent to the "
-                "Challenge's research tools; verify the hosted one first."
+                "C-MLP-03 slice 5: connect Hermes to the Challenge's research "
+                "tools through carbon-mcp. Closing this does not wait on Mira, "
+                "which the decision adds only once verified (which Mira is "
+                "open owner input)."
             ),
         ),
     },

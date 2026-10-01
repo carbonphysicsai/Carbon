@@ -22,7 +22,9 @@ from scripts.dev.miner_launchpad.environment_setup import (
     LOCAL_CPU,
     EnvironmentSetup,
     LiveChecks,
+    CHECK_SETTINGS,
     SetupRefused,
+    check_quote,
     choices,
 )
 
@@ -39,6 +41,15 @@ RUNTIME = {
     },
     "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
 }
+
+
+def agreed(provider_id, model_id):
+    """Consent to the quoted maximum, as the page sends it after the tick."""
+    quote = check_quote(provider_id, model_id, Path("/never/read"))
+    return {"max_cost_nano": quote["max_cost_nano"]}
+
+
+CONSENT = agreed("engy-chat", "deepseek-v4-flash-0731")
 
 
 class Onboarding:
@@ -98,7 +109,7 @@ def completed(tmp_path, setup):
             "provider_id": "engy-chat",
             "model_id": "deepseek-v4-flash-0731",
             "key": KEY,
-            "consent": True,
+            "consent": CONSENT,
         }
     )
     setup.compute(
@@ -155,7 +166,7 @@ def test_setup_begins_only_for_a_registered_hotkey(state):
                 "provider_id": "engy-chat",
                 "model_id": "deepseek-v4-flash-0731",
                 "key": KEY,
-                "consent": True,
+                "consent": CONSENT,
             }
         )
     assert refused.value.field == "address"
@@ -180,7 +191,7 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
                 "provider_id": "openai-compatible-chat",
                 "model_id": "m",
                 "key": KEY,
-                "consent": True,
+                "consent": CONSENT,
             },
             "provider_id",
         ),
@@ -189,7 +200,7 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
                 "provider_id": "engy-chat",
                 "model_id": "not-on-the-ladder",
                 "key": KEY,
-                "consent": True,
+                "consent": CONSENT,
             },
             "model_id",
         ),
@@ -197,7 +208,7 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
             {
                 "provider_id": "engy-chat",
                 "model_id": "deepseek-v4-flash-0731",
-                "consent": True,
+                "consent": CONSENT,
             },
             "key",
         ),
@@ -206,13 +217,13 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
                 "provider_id": "engy-chat",
                 "model_id": "deepseek-v4-flash-0731",
                 "key": "two\nlines",
-                "consent": True,
+                "consent": CONSENT,
             },
             "key",
         ),
-        ({"provider_id": "engy-chat", "consent": True}, "model_id"),
+        ({"provider_id": "engy-chat", "consent": CONSENT}, "model_id"),
         (
-            {"provider_id": "engy-chat", "model_id": "m", "consent": True, "extra": 1},
+            {"provider_id": "engy-chat", "model_id": "m", "consent": CONSENT, "extra": 1},
             "extra",
         ),
     ]
@@ -220,6 +231,63 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
         with pytest.raises(SetupRefused) as refused:
             setup.inference(value)
         assert refused.value.field == field, value
+
+
+def test_a_live_check_spends_only_on_consent_to_its_quoted_maximum(state):
+    """2.2: consent is to an amount the miner was shown. A bare `true` - what a
+    client that defaults consent on would send - says nothing about what was
+    agreed to, and is refused before any key is written or any check runs."""
+    checks = Checks()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    setup.begin({"address": HOTKEY})
+    quote = setup.quote({"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731"})
+    assert quote["max_cost_nano"] == CONSENT["max_cost_nano"]
+    assert type(quote["max_cost_nano"]) is int and quote["max_cost_nano"] > 0
+    assert "at most $" in quote["statement"] and "free" in quote["statement"]
+    base = {"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731", "key": KEY}
+    for consent, code in (
+        (None, "field_required"),
+        (True, "live_check_needs_consent"),
+        (1, "live_check_needs_consent"),
+        ({}, "live_check_needs_consent"),
+        ({"max_cost_nano": True}, "consent_does_not_match_quoted_cost"),
+        (
+            {"max_cost_nano": quote["max_cost_nano"] - 1},
+            "consent_does_not_match_quoted_cost",
+        ),
+        ({"max_cost_nano": None}, "consent_does_not_match_quoted_cost"),
+        (
+            {"max_cost_nano": quote["max_cost_nano"], "also": 1},
+            "live_check_needs_consent",
+        ),
+    ):
+        value = dict(base) if consent is None else {**base, "consent": consent}
+        with pytest.raises(SetupRefused) as refused:
+            setup.inference(value)
+        assert (refused.value.field, refused.value.code) == ("consent", code), consent
+    # Nothing ran and nothing was stored on any refusal.
+    assert checks.calls == []
+    assert not (state / "environment" / "keys").exists()
+    # Specimen: the same request with the quoted amount runs the check.
+    setup.inference({**base, "consent": CONSENT})
+    assert [call[0] for call in checks.calls] == ["inference"]
+
+
+def test_the_quote_is_the_reservation_bound_of_the_check_that_runs():
+    """The quoted maximum is computed from the provider's listed price and the
+    settings the check actually sends, not stated loosely."""
+    from carbon.development_session.model_provider import ADAPTERS, UNKNOWN_SPEND
+
+    pricing = ADAPTERS["engy-chat"].priced_models["deepseek-v4-flash-0731"]
+    assert CONSENT["max_cost_nano"] == (
+        CHECK_SETTINGS["max_input_tokens"] * pricing.input_nano
+        + CHECK_SETTINGS["max_output_tokens"] * pricing.output_nano
+    )
+    # A model with no known price has no calculable maximum, and says so; the
+    # miner may still agree, but only to that statement.
+    unpriced = check_quote("anthropic", "a-model-with-no-listed-price", Path("/x"))
+    assert unpriced["max_cost_nano"] is None
+    assert UNKNOWN_SPEND in unpriced["statement"]
 
 
 def test_a_missing_image_names_its_field_and_build_step(tmp_path, state):
@@ -318,7 +386,11 @@ def test_a_changed_step_needs_a_new_review(tmp_path, state):
     completed(tmp_path, setup)
     setup.review({"confirm": True})
     setup.inference(
-        {"provider_id": "engy-chat", "model_id": "qwen3.8-27b", "consent": True}
+        {
+            "provider_id": "engy-chat",
+            "model_id": "qwen3.8-27b",
+            "consent": agreed("engy-chat", "qwen3.8-27b"),
+        }
     )
     assert setup.state()["steps"]["review"]["profile_written"] is False
 
@@ -356,10 +428,11 @@ class Opener:
     """A fixture urllib opener: answers by URL and records what was sent."""
 
     def __init__(self, answers):
-        self.answers, self.sent = answers, []
+        self.answers, self.sent, self.bodies = answers, [], []
 
     def open(self, request, timeout=None):
         self.sent.append((request.full_url, dict(request.header_items())))
+        self.bodies.append(json.loads(request.data) if request.data else None)
         status, body = self.answers[request.full_url]
         if status != 200:
             raise urllib.error.HTTPError(
@@ -404,6 +477,8 @@ def test_inference_check_lists_models_and_completes_with_its_own_provider(tmp_pa
     assert completion[0] == "https://api.engy.ai/v1/chat/completions"
     assert completion[1]["Authorization"] == "Bearer " + KEY
     assert KEY not in json.dumps(check)
+    # The check sends the quoted output ceiling, so the quote bounds it.
+    assert opener.bodies[-1]["max_tokens"] == CHECK_SETTINGS["max_output_tokens"]
 
 
 def test_inference_check_refusals_name_key_or_model(tmp_path):
@@ -473,7 +548,7 @@ def test_setup_over_the_loopback_server(tmp_path, server):
             "provider_id": "engy-chat",
             "model_id": "deepseek-v4-flash-0731",
             "key": KEY,
-            "consent": True,
+            "consent": CONSENT,
         },
     )
     assert status == 409 and body == {
@@ -503,7 +578,7 @@ def test_setup_over_the_loopback_server(tmp_path, server):
             "provider_id": "engy-chat",
             "model_id": "deepseek-v4-flash-0731",
             "key": KEY,
-            "consent": True,
+            "consent": CONSENT,
         },
     )
     assert status == 200 and KEY not in json.dumps(body)

@@ -11,8 +11,11 @@ directory. The profile references it by path. It is never logged, never
 returned, and sent only to its own provider.
 
 **Every connection is checked live, at the miner's cost, with consent.** A
-step that would contact a provider refuses without `consent: true`, and the
-choice catalog says what each check costs before it runs.
+check that spends runs only on consent to a stated amount: `quote` gives the
+check's maximum cost for the chosen model, and the check refuses unless its
+`consent` names that same maximum. A bare `true` is not consent - it says
+nothing about what was agreed to - so a client that defaults it on spends
+nothing.
 
 **Refusals name the field** they are about, so the page can point at it.
 
@@ -65,6 +68,15 @@ BUILD_STEPS = {
         "carbon.development_session.research_image --parent-manifest "
         "<worker manifest> --root <directory>"
     ),
+}
+
+#: The inference check: one short completion. Its quoted maximum is Carbon's
+#: own reservation bound for one request at these settings (the provider's
+#: price times the whole input and output ceiling), never a guess.
+CHECK_SETTINGS = {
+    "max_input_tokens": 16384,
+    "max_output_tokens": 256,
+    "reasoning_effort": None,
 }
 
 _SECRET = re.compile(r"[\x21-\x7e]{1,1024}")
@@ -132,9 +144,61 @@ def _absolute(value, field):
     return path
 
 
-def _consented(value):
-    if value.get("consent") is not True:
+def _consented(value, quote):
+    """Consent is to the quoted maximum, and only to it."""
+    consent = value.get("consent")
+    if type(consent) is not dict or set(consent) != {"max_cost_nano"}:
         raise SetupRefused("consent", "live_check_needs_consent")
+    agreed = consent["max_cost_nano"]
+    if (agreed is not None and type(agreed) is not int) or (
+        agreed != quote["max_cost_nano"]
+    ):
+        raise SetupRefused("consent", "consent_does_not_match_quoted_cost")
+
+
+def check_quote(provider_id, model_id, key_file: Path) -> dict:
+    """What the inference check can cost at most, before it runs.
+
+    Reads no key: the selection only records where the key file is.
+    """
+    from carbon.development_session.model_provider import (
+        ADAPTERS,
+        UNKNOWN_SPEND,
+        ModelSelectionRefused,
+        select,
+    )
+
+    try:
+        selection = select(
+            provider_id=provider_id,
+            model_id=model_id,
+            credential={"kind": "file", "reference": str(key_file)},
+            settings=CHECK_SETTINGS,
+        )
+    except ModelSelectionRefused:
+        raise SetupRefused("model_id", "model_selection_refused") from None
+    bound = selection.reservation_nano
+    name = ADAPTERS[provider_id].display_name
+    if bound is None:
+        statement = (
+            "One short completion, billed by " + name + " to your account. "
+            "Maximum " + UNKNOWN_SPEND
+        )
+    else:
+        statement = (
+            "One short completion, billed by " + name + " to your account: at "
+            "most $" + format(bound / 1e9, ".6f") + " (up to "
+            + format(CHECK_SETTINGS["max_input_tokens"], ",") + " input and "
+            + format(CHECK_SETTINGS["max_output_tokens"], ",") + " output "
+            "tokens at " + selection.pricing.source.replace("_", " ")
+            + " pricing). Listing the models is free."
+        )
+    return {
+        "provider_id": provider_id,
+        "model_id": model_id,
+        "max_cost_nano": bound,
+        "statement": statement,
+    }
 
 
 def _closed(value, required, optional=frozenset()):
@@ -174,8 +238,10 @@ def choices() -> dict:
                     + ". Carbon bills nothing."
                 ),
                 "live_check": (
-                    "Lists the models and runs one short completion with your "
-                    "key: a few tokens, billed to you."
+                    "Lists the models (free) and runs one short completion "
+                    "with your key, billed to you. Its maximum cost for your "
+                    "model is quoted before you agree, and it runs only on "
+                    "that agreement."
                 ),
             }
         )
@@ -259,7 +325,7 @@ class LiveChecks:
                 provider_id=provider_id,
                 model_id=model_id,
                 credential={"kind": "file", "reference": str(key_file)},
-                settings={"max_output_tokens": 256, "reasoning_effort": None},
+                settings=CHECK_SETTINGS,
             )
             reply = SelectionTransport(selection, opener=self.opener)(
                 {
@@ -269,7 +335,7 @@ class LiveChecks:
                     "tools": [],
                     "parallel_tool_calls": False,
                     "store": False,
-                    "max_output_tokens": 256,
+                    "max_output_tokens": CHECK_SETTINGS["max_output_tokens"],
                     "reasoning": None,
                 }
             )
@@ -492,10 +558,9 @@ class EnvironmentSetup:
             self._save(record)
         return self.state()
 
-    def inference(self, value) -> dict:
+    def _inference_choice(self, value) -> str:
         from carbon.development_session.model_provider import ADAPTERS
 
-        _closed(value, {"provider_id", "model_id", "consent"}, {"key"})
         provider = value["provider_id"]
         if provider not in {c["id"] for c in choices()["inference"]}:
             raise SetupRefused("provider_id", "provider_not_offered")
@@ -507,11 +572,23 @@ class EnvironmentSetup:
             and value["model_id"] not in adapter.allowed_models
         ):
             raise SetupRefused("model_id", "model_not_offered_for_provider")
-        _consented(value)
+        return provider
+
+    def quote(self, value) -> dict:
+        """The inference check's maximum cost for this provider and model."""
+        _closed(value, {"provider_id", "model_id"})
+        provider = self._inference_choice(value)
+        key_file = self.root / "keys" / (provider + ".key")
+        return check_quote(provider, value["model_id"], key_file)
+
+    def inference(self, value) -> dict:
+        _closed(value, {"provider_id", "model_id", "consent"}, {"key"})
+        provider = self._inference_choice(value)
+        key_file = self.root / "keys" / (provider + ".key")
+        _consented(value, check_quote(provider, value["model_id"], key_file))
         with self.lock:
             if "hotkey" not in self._record():
                 raise SetupRefused("address", "registration_not_confirmed")
-            key_file = self.root / "keys" / (provider + ".key")
             if "key" in value:
                 write_private(key_file, _secret(value["key"], "key"))
             elif not key_file.exists():

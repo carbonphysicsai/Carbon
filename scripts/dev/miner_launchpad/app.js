@@ -413,13 +413,43 @@
       if (listed.length) researchNote(inferenceCost, "Models: " + listed.join(", ") + " (" + choice.model_policy + ")", "hint");
       if (!model.value) model.value = (choice?.models || []).find(m => m.default)?.model_id || listed[0] || "";
     };
-    provider.addEventListener("change", () => { model.value = ""; describeProvider(); });
+    // Consent is to a quoted amount: the server states the check's maximum
+    // cost for this model, the miner ticks to agree to that amount, and only
+    // that amount is sent. Nothing is ticked by default, and any change of
+    // provider or model clears the agreement.
+    const agree = document.createElement("input");
+    agree.type = "checkbox"; agree.id = "setup-inference-consent"; agree.checked = false;
+    const agreeLabel = el("label", "Quoting the cost of this check..."); agreeLabel.htmlFor = agree.id;
+    const agreeRow = el("div", undefined, "consent"); agreeRow.append(agree, agreeLabel);
+    inference.append(agreeRow);
+    const check = el("button", "Check with my key (billed to me)"); check.disabled = true;
+    inference.append(check);
+    let quote = null, quoting = 0;
+    const requote = async () => {
+      const mine = ++quoting;
+      quote = null; agree.checked = false; check.disabled = true; agree.disabled = true;
+      const wanted = {provider_id: provider.value, model_id: model.value.trim()};
+      if (!wanted.model_id) { agreeLabel.textContent = "Choose a model to see what this check costs."; return; }
+      try {
+        const answer = await api("/api/v1/setup/quote", wanted, undefined, 15000);
+        if (mine !== quoting) return;
+        quote = answer; agree.disabled = false;
+        agreeLabel.textContent = "I agree to this charge on my own account: " + answer.statement;
+      } catch (error) {
+        if (mine !== quoting) return;
+        agreeLabel.textContent = "No quote: " + (error.field ? error.field + ": " : "") + words(error.message);
+      }
+    };
+    agree.addEventListener("change", () => { check.disabled = !(agree.checked && quote); });
+    provider.addEventListener("change", () => { model.value = ""; describeProvider(); requote(); });
+    model.addEventListener("change", requote);
     if (steps.inference?.checked) { provider.value = steps.inference.provider_id; model.value = steps.inference.model_id; }
     describeProvider();
-    inference.append(el("button", "Check with my key (billed to me)"));
+    requote();
     inference.addEventListener("submit", async event => {
       event.preventDefault();
-      const request = {provider_id: provider.value, model_id: model.value.trim(), consent: true};
+      if (!(agree.checked && quote)) return;
+      const request = {provider_id: quote.provider_id, model_id: quote.model_id, consent: {max_cost_nano: quote.max_cost_nano}};
       if (key.value) request.key = key.value;
       key.value = "";
       await setupCall("inference", request);

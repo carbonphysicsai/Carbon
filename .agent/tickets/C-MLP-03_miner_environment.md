@@ -27,9 +27,23 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
     verifies the locally built worker and analysis images against that
     revision. A missing one is refused by field with its build command.
     Pulling a pinned image stays open until a registry exists.
-  - *The agent step's live check is local.* For Carbon's autonomous agent, it
-    opens the miner's hotkey with their password and checks that it is the
-    registered one. The MCP handshake for an external agent is slice 5.
+  - *Consent is to a quoted amount (2026-10-01).* A check that spends runs
+    only when its `consent` names the maximum cost the controller quoted for
+    that provider and model (`/api/v1/setup/quote`): Carbon's reservation
+    bound for the check's own settings, or the stated absence of one when no
+    price is known. A bare `true` is refused, so a client that defaults
+    consent on spends nothing. The page's agreement box is unticked by
+    default and clears on any change of provider or model.
+  - *The agent step must not take the miner's password (2026-10-01).* As
+    first written, it opened the hotkey with the miner's password through
+    `open_external_hotkey`, stored the password owner-only and wrote
+    `miner_password_file` into the profile. That is the defect #445 removes,
+    and it contradicts the external signing this ticket's decision keeps. The
+    step is rebuilt on #445's signer: it checks the registered hotkey through
+    `connect_signer`, takes no key file and no password, and the profile names
+    neither. Main's runner still requires `miner_password_file` until #445
+    merges, so this PR merges after #445, never before it. The MCP handshake
+    for an external agent is slice 5.
   - *The key belongs to one provider.* The profile records the setup's
     `model_selection`. An autonomous launch that names no model runs with
     it. A key file named in `provider_credentials` is never used for the
@@ -94,8 +108,10 @@ journey from a different machine.
 - **Record the decision.** Record `OWNER-MINER-ENVIRONMENT-01`.
 - **Gate first.** Add the `compute`, `model` and `agent` provisions to the
   research environment standard (`carbon/challenge_kit/standard.py`).
-  - Battery starts with three named Gaps. Each later slice replaces one with
-    `Provided` evidence.
+  - Battery starts with three named Gaps, each naming the slice that closes
+    it: `model` slice 2, `compute` slices 3 and 4, `agent` slice 5 (Hermes;
+    Mira joins once verified and does not hold the Gap open). Each closing
+    slice replaces its Gap with `Provided` evidence.
   - The standard's test already fails on a silent gap.
 - **The setup view.** When `confirm` reports the hotkey registered, the
   Control Center opens "Set up your environment". Its steps are Inference,
@@ -179,7 +195,8 @@ journey from a different machine.
 ### 6. The fresh-miner journey
 
 On a clean machine: register, set up, launch battery, practice on GPU, freeze
-and submit, then verify teardown and cost. Then close the three Gaps.
+and submit, then verify teardown and cost. This confirms, from a different
+machine, the three provisions slices 2 to 5 closed; it closes no Gap itself.
 
 **Dependency.** A submission from a machine other than the validator's host
 needs the battery intake (OD-7(b)) merged and exposed under its own record.
