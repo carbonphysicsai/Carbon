@@ -1,0 +1,102 @@
+{
+  "conditions": [
+    {
+      "basis": "summary.members.<member>.eligible is false",
+      "condition": "GATE_ANOMALY",
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_raw-s0",
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "rule_scores.<member>.control-exam-v1 and summary.members.<member>.loss_development; band from seed_variation",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "kind": "SYNTHETIC_CONTROL",
+      "loss": 10.0,
+      "loss_noise_band": 0.0,
+      "member": "control-boundary_optimist",
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "scored_at_or_above": [
+        "control-conservative",
+        "knn-s0",
+        "mlp-s0",
+        "mlp-s1",
+        "mlp-s2",
+        "mlp_ens3-s0",
+        "mlp_half-s0",
+        "mlp_half-s1",
+        "mlp_localized-s0",
+        "mlp_localized-s1",
+        "mlp_plus-s0"
+      ],
+      "split": "development"
+    },
+    {
+      "basis": "rule_scores.<member>.control-exam-v1 and summary.members.<member>.loss_development; band from seed_variation",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "kind": "SYNTHETIC_CONTROL",
+      "loss": 2.8351319887128983,
+      "loss_noise_band": 0.0,
+      "member": "control-localized_sign_error",
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "scored_at_or_above": [
+        "control-conservative",
+        "control-rank_preserving_delay",
+        "knn-s0",
+        "mlp-s0",
+        "mlp-s1",
+        "mlp-s2",
+        "mlp_ens3-s0",
+        "mlp_half-s0",
+        "mlp_half-s1",
+        "mlp_localized-s0",
+        "mlp_localized-s1",
+        "mlp_plus-s0"
+      ],
+      "split": "development"
+    },
+    {
+      "basis": "rule_scores.<member>.control-exam-v1 and summary.members.<member>.loss_verification; band from seed_variation",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "kind": "SYNTHETIC_CONTROL",
+      "loss": 10.0,
+      "loss_noise_band": 3.3333333333333335,
+      "member": "control-boundary_optimist",
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "scored_at_or_above": [
+        "control-conservative",
+        "knn-s0",
+        "mlp-s0",
+        "mlp-s1",
+        "mlp-s2",
+        "mlp_ens3-s0",
+        "mlp_half-s0",
+        "mlp_half-s1",
+        "mlp_localized-s0",
+        "mlp_localized-s1",
+        "mlp_plus-s0"
+      ],
+      "split": "verification"
+    }
+  ],
+  "deciding_rule": "control-exam-v1",
+  "loss_noise_band": {
+    "development": 0.0,
+    "verification": 3.3333333333333335
+  },
+  "results": "docs/development/evidence/ev1-2026-09-25/results.json",
+  "schema": "carbon.admission-conditions.v1",
+  "scope": "internal development evidence; not a qualification gate; not mainnet",
+  "tau_noise_band": {
+    "band": 0.3651483716701107,
+    "panels": 12,
+    "tau_max": 0.3651483716701107,
+    "tau_min": 0.0
+  }
+}
