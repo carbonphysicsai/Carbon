@@ -278,7 +278,8 @@ class Inbox:
                   received_ns INTEGER NOT NULL,
                   state TEXT NOT NULL
                     CHECK(state IN ('RECEIVED','ADMITTED','REFUSED')),
-                  failure TEXT
+                  failure TEXT,
+                  block INTEGER
                 );
                 """)
         self.path.chmod(0o600)
@@ -293,7 +294,11 @@ class Inbox:
             db.close()
 
     def receive(self, submission_id, submission, now_ns):
-        """Record one submission once; a resend is the same submission."""
+        """Record one submission once; a resend is the same submission.
+
+        A submission refused only for timing (`hotkey_window_used`) is
+        received again on resend, so the miner simply sends it next window.
+        """
         document = json.dumps(
             {
                 "hotkey": submission.hotkey,
@@ -311,15 +316,23 @@ class Inbox:
                 "SELECT COUNT(*) FROM inbox WHERE state='RECEIVED'"
             ).fetchone()[0]
             known = db.execute(
-                "SELECT 1 FROM inbox WHERE submission_id=?", (submission_id,)
+                "SELECT state, failure FROM inbox WHERE submission_id=?",
+                (submission_id,),
             ).fetchone()
             if known is None and waiting >= INBOX_DEPTH:
                 db.execute("ROLLBACK")
                 return False
+            block = (submission.receipt or {}).get("block")
             if known is None:
                 db.execute(
-                    "INSERT INTO inbox VALUES(?,?,?,?,'RECEIVED',NULL)",
-                    (submission_id, submission.hotkey, document, now_ns),
+                    "INSERT INTO inbox VALUES(?,?,?,?,'RECEIVED',NULL,?)",
+                    (submission_id, submission.hotkey, document, now_ns, block),
+                )
+            elif known[0] == "REFUSED" and _timing_only(known[1]):
+                db.execute(
+                    "UPDATE inbox SET state='RECEIVED', failure=NULL, document=?, "
+                    "received_ns=?, block=? WHERE submission_id=?",
+                    (document, now_ns, block, submission_id),
                 )
             db.execute("COMMIT")
         return True
@@ -337,6 +350,18 @@ class Inbox:
             "state": found[1],
             "failure": None if found[2] is None else json.loads(found[2]),
         }
+
+    def window_used(self, hotkey, start, end, *, other_than):
+        """This hotkey's live submissions received in blocks `[start, end)`,
+        other than `other_than`. Refused ones and invalid constructions (which
+        the daemon does not count either) are not live."""
+        with self._db() as db:
+            return db.execute(
+                "SELECT COUNT(*) FROM inbox WHERE hotkey=? AND submission_id!=? "
+                "AND state IN ('RECEIVED','ADMITTED') AND failure IS NULL "
+                "AND block>=? AND block<?",
+                (hotkey, other_than, start, end),
+            ).fetchone()[0]
 
     def received(self):
         from .daemon import AuthenticatedSubmission
@@ -370,6 +395,28 @@ class Inbox:
             )
 
 
+def _timing_only(failure):
+    return failure is not None and json.loads(failure).get("failure", {}).get(
+        "code"
+    ) in ("hotkey_window_used",)
+
+
+#: Bittensor's target block time, for a human "about N minutes" only; every
+#: decision is made in blocks.
+BLOCK_S = 12
+
+
+def _window_answer(next_block, block):
+    return Answer(
+        429,
+        {
+            "refused": "hotkey_window_used",
+            "next_block": next_block,
+            "retry_after_s": max(0, next_block - block) * BLOCK_S,
+        },
+    )
+
+
 # --- the intake -----------------------------------------------------------------
 
 
@@ -386,6 +433,7 @@ class BatteryIntake:
         inbox,
         window,
         status_reader,
+        rule=None,
         limits=None,
         clock_ns=time.time_ns,
     ):
@@ -399,6 +447,8 @@ class BatteryIntake:
         self.inbox = inbox
         self.window = window
         self.status_reader = status_reader
+        #: The deployment's exam rule; rule v2 adds the per-hotkey window.
+        self.rule = rule
         self.limits = PeerLimits() if limits is None else limits
         self.clock_ns = clock_ns
         self.wake = threading.Event()
@@ -431,11 +481,27 @@ class BatteryIntake:
                     "snapshot_max_age_s": SNAPSHOT_MAX_AGE_S,
                     "signature_max_age_s": 10.0,
                 },
+                "submission_rule": self._rule_facts(snapshot.finalized_block),
                 "commitment": "not_checked: no chain commitment reader exists (OD-7(a))",
                 "qualification": False,
                 "reward": False,
             },
         )
+
+    def _rule_facts(self, block):
+        """What a miner needs to know to submit at the right time."""
+        from .exam import hotkey_window
+
+        per = None if self.rule is None else self.rule.get("per_hotkey")
+        if per is None:
+            return {"per_hotkey": None}
+        start, end = hotkey_window(self.rule, block)
+        return {
+            "per_hotkey": per,
+            "rotation": self.rule.get("rotation"),
+            "current_window": {"start_block": start, "end_block": end},
+            "block_time_s": BLOCK_S,
+        }
 
     def handle(self, method, path, headers, body, peer):
         """One request in, one `Answer` out. Never raises for a miner input."""
@@ -499,6 +565,9 @@ class BatteryIntake:
             except (ValueError, TypeError):
                 return _refused(400, "submission_fields")
             _, submission_id = submission_identity(submission)
+            refused = self._window_check(hotkey, submission_id, submission)
+            if refused is not None:
+                return refused
             if not self.inbox.receive(submission_id, submission, self.clock_ns()):
                 return _refused(503, "inbox_full")
             self.wake.set()
@@ -512,6 +581,30 @@ class BatteryIntake:
                 return _refused(400, "status_fields")
             return self.status(hotkey, fields["submission_id"])
         return _refused(400, "tool")
+
+    def _window_check(self, hotkey, submission_id, submission):
+        """Answer at once when this hotkey's window is already used (v2).
+
+        The daemon enforces the same rule authoritatively at admission; this
+        only spares the miner a wait for a refusal that is already certain.
+        A resend of a submission already in the inbox is never refused here.
+        """
+        from .exam import hotkey_window
+
+        if self.rule is None or self.rule.get("per_hotkey") is None:
+            return None
+        known = self.inbox.row(submission_id)
+        if known is not None and known["state"] != "REFUSED":
+            return None
+        block = submission.receipt["block"]
+        start, end = hotkey_window(self.rule, block)
+        limit = self.rule["per_hotkey"]["scored_per_window"]
+        if (
+            self.inbox.window_used(hotkey, start, end, other_than=submission_id)
+            >= limit
+        ):
+            return _window_answer(end, block)
+        return None
 
     def status(self, hotkey, submission_id):
         """The caller's own submission only; anyone else's does not exist."""
@@ -540,11 +633,20 @@ def work_once(inbox, target):
     """
     from .daemon import CommitmentRequired
     from .deployment import writer
+    from .pool_store import HotkeyWindowUsed
 
     for submission_id, submission in inbox.received():
         try:
             with writer(target):
-                target.admit(submission)
+                admitted = target.admit(submission)
+        except HotkeyWindowUsed as used:
+            failure = (
+                {"code": "hotkey_window_used", "next_block": used.next_block}
+                if used.next_block is not None
+                else {"code": "receipt_block_missing"}
+            )
+            inbox.mark(submission_id, "REFUSED", {"failure": failure})
+            continue
         except CommitmentRequired:
             code = (
                 "commitment_reader_unavailable"
@@ -553,7 +655,17 @@ def work_once(inbox, target):
             )
             inbox.mark(submission_id, "REFUSED", {"failure": {"code": code}})
             continue
-        inbox.mark(submission_id, "ADMITTED")
+        # An invalid construction is admitted and settled at once; it does
+        # not use the hotkey's window (the daemon does not count it either).
+        inbox.mark(
+            submission_id,
+            "ADMITTED",
+            (
+                {"code": "INVALID_CONSTRUCTION"}
+                if admitted["state"] == "INVALID_CONSTRUCTION"
+                else None
+            ),
+        )
     for submission_id in inbox.admitted():
         with writer(target):
             if target.outcome(submission_id)["state"] not in _TERMINAL:
@@ -652,6 +764,7 @@ def serve(config_path, *, repository, stop=None):
         inbox=inbox,
         window=window,
         status_reader=reader.outcome,
+        rule=target.rule,
     )
     stop = threading.Event() if stop is None else stop
     threads = [
