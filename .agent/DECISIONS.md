@@ -16652,6 +16652,184 @@ rotation, scoring that never stalls).
   Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
   v1 until it is updated there.
 
+## 2026-10-01 — OWNER-BATTERY-3B-AND-EXPOSURE-01: amendment 4 approved; miners never see a hidden batch or anything computed from it
+
+**Authority.** The owner, in the Testnet session on 2026-10-01, in two
+replies. First, to the three open decisions after #447, #452, #457 and #461:
+"1 what are the expsoure options and whats sota for bittesnor 2. why do the
+miners get to see it at all? it should be 0 3. approved". Second, to the
+follow-up questions (1: record the approval; 2: confirm the zero-exposure
+design; 3: whether v1 keeps scoring testnet miners meanwhile): "1. allow you
+to make the edit. 2. even post seed draw only carbon and validators should
+have access. never miners until carbon chooses to retire a batch and committ
+it to the training data pool. accepting zero + that. Can we update v2 to
+match that? 3. APPROVE".
+
+1. **Amendment 4 (tier 3B) is approved** (D9 item 1). This is the
+   pre-registration gate for 3B's USD 2.00, within the USD 2.50 held from
+   OWNER-BATTERY-V2-DISCLOSURE-01 item 9.
+   - **It runs as pre-registered, on the v1 deployment.** Amendment 4's
+     volume bounds (D3/D4) are v1's, and the deployment it names runs v1.
+     OWNER-BATTERY-SCORING-WINDOW-01's line that amendment 4 "must be
+     re-registered against v2 before any 3B provider call" applies only to a
+     3B run on a v2 deployment. None is made, so no re-registration is
+     needed.
+   - **The precondition (D9 item 2) holds at the read of 2026-10-01**
+     (read-only `operate status` and `operate batches`): pool version 1,
+     `OPEN`, admitted 0. `pscreen-T01`, `T02` and `T03` are active, and
+     `pscreen-T04` and `T05` are prepared with complete references. That
+     covers the two rotations the ladder's 8 submissions need. The launch
+     takes its own `operate status` first (D9).
+   - **3B is consistent with item 2.** Its agent is Carbon's own research
+     agent, deliberately exposed rung by rung to measure the channel that
+     item 2 closes. Its evidence goes to the MQ-008 holder, and no
+     reconstruction verdict is written.
+2. **Hidden batches: zero exposure to miners (the owner's rule).**
+   - **Access.** A hidden screening or finalist batch is accessible only to
+     Carbon and the validators, before and after its seed draw. Nothing
+     computed from it reaches a miner, including eligibility, gate
+     failures, scores, case counts, nomination, finals and pool version.
+   - **Release is Carbon's act.** A miner may see a batch, or anything
+     computed from it, only after Carbon chooses to retire that batch and
+     commit it to the training data pool. Retirement by rotation alone
+     releases nothing.
+   - **What a miner may still be told** is what does not depend on the
+     hidden cases: receipt and submission id, its submission's state,
+     whether its construction is valid, typed infrastructure or
+     reconstruction failures, the timing rule (rule v2's window), and
+     practice results on public data.
+   - **v2 is updated to match** (the owner's request). The change is
+     prospective. Evidence already scored keeps the meaning of its rule
+     (invariant 10).
+   - **Winner weights would be a channel.** Testnet weights are all-burn
+     (OD-4a, `signing.py`), so they carry nothing about any batch today.
+     Choosing winner weights (OD-4b) has to account for this rule.
+   - **The intake exposure options** were answered in the session report.
+     No exposure record exists, and the intake stays bound to loopback.
+3. **v1 keeps scoring testnet miners in the meantime** (the second reply's
+   item 3, answering whether v1 keeps scoring testnet miners while v2 is
+   updated). v1 returns outcomes at once, so it does not meet item 2. It
+   stays a non-paying DEVELOPMENT exam until a v2 deployment that meets
+   item 2 replaces it.
+
+**Unchanged:** no chain write, no weights beyond OD-4a's all-burn,
+`transaction_authorization` null, testnet 567 only, OD-5's ceiling, and every
+scientific, security and qualification state.
+
+## 2026-10-01 — OWNER-CHALLENGE-ADMISSION-01 (amended): expand freely, escalate on a finding; an internal development protocol, never mainnet
+
+**Authority.** The owner, 1 October 2026, amending the 30 September direction
+carried in #458 (unmerged). This record replaces that wording. The amendment
+is not a relaxation: it **moves review from every change to every finding**,
+and adds an instrument that produces findings. Sections keep the owner's
+numbering (§2 to §7).
+
+**§2. Scope, the most important clause.** In the owner's words: "NONE of this
+happens on mainnet. We are doing this for internal test purposes and we can
+archive results but miners only see the final optimized version. If we
+iterate mainnet that's a different rule we have to decide later but isn't
+relevant to this."
+- **§2.1** It is an **internal development protocol**. It is not a
+  miner-facing rule, not a public commitment and **not a scientific
+  qualification gate**. Nobody may later cite it as evidence that a Challenge
+  is qualified.
+- **§2.2** **Miners see only the final optimized version.** Intermediate
+  permission states, failed expansions and abandoned scoring rules are
+  internal.
+- **§2.3** **Results may be archived** and keep their meaning under the rule
+  and permissions they were produced with (invariant 10).
+- **§2.4** **Mainnet iteration is a separate, undecided rule.** Nothing here
+  anticipates it, and nothing in this protocol transfers to mainnet by
+  default.
+- Because of §2.2 there is no retroactive-scoring problem. Permissions may be
+  widened and later locked without revoking anyone's standing, since no
+  external miner competed under the wider state.
+
+**§3. Track A, construction integrity: expand freely, escalate on a finding.**
+- **§3.1** Permission expansion proceeds **without per-change review**.
+- **§3.2** **An attack vector**, in the owner's words, is "anything that
+  scored high and produced a poorly performing model... also failing triggers
+  and whatnot. Anything like that needs investigated."
+  - The detector is **score-value divergence:** a high score beside a poor
+    model.
+  - It is implemented as a measurable condition a run emits, not as
+    something a person concludes afterwards.
+  - Failing triggers, gate anomalies and equivalent signals are included.
+  - **When in doubt, it fires:** a false escalation costs a review, and a
+    missed one costs the exam's credibility.
+- **§3.3** **On a finding, escalate.** Stop widening, review the state
+  reached, then decide and lock a final state. The review is of where the
+  expansion got to, not of the individual change that triggered it.
+- **§3.4** **EV2 already proved this detector fires.** The boundary-optimist
+  control scored at or above all 14 eligible members while being wrong where
+  safety matters. That is §3.2's condition, and it is the worked example.
+
+**§4. Track B, engineering value: two review levels.**
+- **§4.1** **Executive review, on a standing cadence.** In the owner's
+  words: "a high level review of results that are human readable and
+  sharable with engineering teams and our community with an option to dive
+  into details."
+  - Shareable is a hard requirement. Every claim carries its basis, nothing
+    is stated above its maturity, and no number appears without what
+    produced it.
+  - It is layered: a readable top, with the detail reachable beneath.
+- **§4.2** **Full review at three conditions, and only these:**
+  - **Stuck:** three consecutive studies with no progress. The owner
+    delegated N, and three is the recommendation. Progress is movement of
+    the score-to-value ratio toward 1:1, beyond its own noise. The noise band
+    is defined before the first stale run is counted.
+  - **Winning:** "approaching 1:1 with score:value". The ratio, its
+    measurement and its uncertainty are stated every time it is reported.
+    Approaching is a direction, not a threshold: no cutoff is invented, and
+    the owner decides whether it has arrived.
+  - **The owner asks:** "I can also ask for a review whenever I want." No
+    reason is required.
+- **§4.3** **Both levels report both rankings** while the decision-aware
+  component is a prospective proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01).
+  They carry #458's audit caveat: the EV panels contain gate-ineligible
+  models, unequal denominators from unresolved outcomes, and repeated seeds
+  that do not establish method diversity. The 0.202/0.298 figures do not
+  travel without that caveat.
+
+**§5. The design optimizer: build it, and it serves both tracks.** The owner
+asked for it to be built at this stage and tested on.
+- **§5.1** It is not in the admission plan today, and it is added.
+- **§5.2** It is the detector Track A needs: "Customer inverse design IS an
+  adversary: it searches for in-envelope inputs that break constraints"
+  (`Design_Specs/Specialist_Bank.md`).
+- **§5.3** It is also Track B's instrument: "this regime's winners die on
+  inverse design".
+- **§5.4** **Scope it and report before building:** what it searches, over
+  what, under which constraints, at what cost per search, and what it cannot
+  find. No population, threshold or objective is the executor's to invent.
+
+**§6. For Launchpad: what this changes.** Permission expansion no longer needs
+review in advance. Widen the construction surface as the work requires. Two
+obligations come with that freedom:
+- **§6.1** **Every expansion is recorded:** what widened, when, and under
+  which version or profile, so the state reached can be reviewed when a
+  finding escalates. An unrecorded expansion cannot be locked down
+  coherently.
+- **§6.2** **No trigger is suppressed.** If a run emits score-value
+  divergence, a failing trigger or a gate anomaly, it escalates. Not after it
+  has been explained, and not once there is a fix. The investigation is the
+  point.
+
+Nothing here reaches mainnet, and miners see only the final optimized version.
+
+**§7. What this protocol is not.** Not a scientific qualification gate, not a
+security qualification, not a public commitment, not a miner-facing rule, and
+not applicable to mainnet.
+- It does not alter the existing training-budget requirement, and B-E4 stays
+  optional.
+- Existing challenge qualification states and historical scores stand.
+- No production scientific value, threshold, score formula or deployed
+  interlock is inferred from it, and no arbitrary miner code is enabled by
+  it.
+
+**Implementation:** CHALLENGE-ADMISSION-01 (#458), amended to this
+trigger-based model. Launchpad's §6.1 expansion record is #468.
+
 ## 2026-10-01 — OWNER-MINER-OWN-MACHINE-01: every Launchpad miner defaults to their own machine, sandbox kept
 
 **Authority.** The owner, in session on 2026-10-01: "ALL Miners in launchpad
