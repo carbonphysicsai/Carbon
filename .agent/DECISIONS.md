@@ -16959,3 +16959,54 @@ COMPONENT PROSPECTIVELY, AND KEEP BOTH RANKINGS REPORTED."
    USD 0, and several days of host time. **Not run without approval.**
 5. **B5: not exam qualification.** Exploratory engineering evidence. MQ-008 is
    untouched, and whether the exam is adequate remains open.
+
+## 2026-10-01 — OWNER-PYTORCH-BACKEND-01: PyTorch is a reconstruction backend on both the miner and validator ends
+
+**Authority.** The owner, in session on 2026-10-01, after a request from
+Harshdeep to build PyTorch capabilities into the validator image:
+
+- "I guess we can let the reconstruction environment be an option in the
+  construction contract right? Then we rebuild in that because they chose it
+  and its predictions are still scorable against something trained in JAX."
+- "We need to add it in its full capacity to both the miner and validator end.
+  Let's start that now."
+
+**Decision.**
+1. **The construction contract names its reconstruction backend.** A recipe
+   may choose `jax` (the default, and the meaning of every recipe written
+   before this decision) or `pytorch`. The validator rebuilds the recipe in
+   the backend it names, with Carbon's own trainer for that backend. Miners
+   still submit recipes, never code.
+2. **Scoring is unchanged and backend-blind.** The exam scores predictions
+   against the reference. A PyTorch-built model and a JAX-built model are
+   scored by the same rule, on the same cases, in the same ranking.
+3. **Full capacity, both ends.** PyTorch is provided in the validator's
+   reconstruction image and in the miner's research environment
+   (OWNER-RESEARCH-ENVIRONMENT-01), including PyTorch-only families such as
+   neuraloperator and PhysicsNeMo.
+
+**Supersedes.**
+- OWNER-BATTERY-TESTNET-02 (2026-09-25), "Only JAX for validation", for the
+  PyTorch backend only. Julia backends, per-submission labels and PyBaMM
+  reference reuse stay excluded.
+- The `pytorch_backend` exclusion in `carbon/reconstruction/capability_registry.py`
+  and the PyTorch clause of battery's published exclusion scope. Both change
+  prospectively, under a new contract version.
+
+**Unchanged.**
+- The exam, scoring rule, references, thresholds and qualification.
+- Historical evidence keeps its meaning (invariant 10). Recipes and results
+  recorded before this decision are JAX results and are never reinterpreted.
+- Invariants 6 and 7.9: miner-controlled workloads stay isolated, and a backend
+  choice grants no evaluator authority.
+
+**Human-reserved, and fail closed until set** (AGENTS.md §3, §13):
+- the PyTorch backend's reproducibility tolerance, from its own determinism
+  study;
+- the training limit for PyTorch recipes, from the training budget study
+  (OWNER-TRAINING-BUDGET-STUDY-01);
+- security acceptance of the PyTorch worker image.
+Until those are set, a PyTorch recipe is admitted and rebuilt in DEVELOPMENT
+only; it carries no LIVE, reward or frontier authority.
+
+Ticket: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`.
