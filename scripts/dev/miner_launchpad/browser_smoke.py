@@ -1255,7 +1255,7 @@ def journey():
 class SetupChecks:
     """Fixture live checks for the setup smoke: they contact nothing."""
 
-    def inference(self, provider_id, model_id, key_file):
+    def inference(self, provider_id, model_id, credential_file):
         return {
             "models_source": "fixture",
             "models_listed": 1,
@@ -1272,8 +1272,8 @@ class SetupChecks:
             "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
         }
 
-    def agent(self, key_file, password_file, hotkey):
-        return {"signing": "opened as the registered hotkey"}
+    def agent(self, hotkey, socket_path=None):
+        return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
     @staticmethod
     def operator_config(path):
@@ -1291,13 +1291,12 @@ def setup_journey():
     hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
     coldkey = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
     key = "sk-browser-smoke-fixture-key-not-real"
-    password = "browser-smoke-fixture-password"
     with tempfile.TemporaryDirectory(prefix="carbon-setup-smoke-") as temporary:
         root = Path(temporary)
         root.chmod(0o700)
         miner = root / "miner"
         miner.mkdir(mode=0o700)
-        for name in ("worker.json", "analysis.json", "hotkey", "operator.json"):
+        for name in ("worker.json", "analysis.json", "operator.json"):
             (miner / name).write_text("{}")
         onboarding = BrowserOnboarding(
             reader=StubReader(
@@ -1393,13 +1392,18 @@ def setup_journey():
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: compute.'",
                 )
+                # External signing: the Agent step asks for no hotkey file
+                # and no password; it only asks the miner's signer.
+                assert (
+                    session.evaluate(
+                        "document.querySelectorAll('form[data-step=agent] input[type=password],"
+                        " #setup-agent-hotkey_file, #setup-agent-password').length"
+                    )
+                    == 0
+                )
                 session.evaluate(
-                    "document.getElementById('setup-agent-hotkey_file').value = "
-                    + json.dumps(str(miner / "hotkey"))
-                    + ";document.getElementById('setup-agent-operator_config').value = "
+                    "document.getElementById('setup-agent-operator_config').value = "
                     + json.dumps(str(miner / "operator.json"))
-                    + ";document.getElementById('setup-agent-password').value = "
-                    + json.dumps(password)
                     + ";document.querySelector('form[data-step=agent]').requestSubmit()"
                 )
                 wait(
@@ -1415,13 +1419,17 @@ def setup_journey():
                 )
                 assert attached == [server.setup.profile_path]
                 page = session.evaluate("document.documentElement.outerHTML")
-                assert key not in page and password not in page
+                assert key not in page
+                written = (
+                    server.setup.profile_path.read_text(),
+                    server.setup.record_path.read_text(),
+                )
+                assert not any(key in text for text in written)
+                # Nothing that could open the miner's key reaches the profile.
                 assert not any(
-                    key in text or password in text
-                    for text in (
-                        server.setup.profile_path.read_text(),
-                        server.setup.record_path.read_text(),
-                    )
+                    field in text
+                    for text in written
+                    for field in ('"miner_password_file"', '"key_file"')
                 )
                 exceptions = [
                     event
@@ -1435,7 +1443,7 @@ def setup_journey():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no key or password reached the page or the profile. Chain, providers and images were fixtures."
+        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers and images were fixtures."
     )
 
 

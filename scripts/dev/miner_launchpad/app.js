@@ -480,15 +480,14 @@
     const agent = setupStep(body, "agent", "3. Agent", steps.agent);
     const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
     costNote(agent, offered.agent[0]);
-    const hotkey = setupField(agent, "hotkey_file", "Your encrypted hotkey file (absolute path)");
-    const password = setupField(agent, "password", "Hotkey password (entered once; leave empty to keep the stored one)", "password");
+    researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
     const operator = setupField(agent, "operator_config", "Testnet operator config (absolute path)");
-    agent.append(el("button", "Check on this machine"));
+    const socket = setupField(agent, "signer_socket", "Signer socket (optional; leave empty for the default)");
+    agent.append(el("button", "Check my signer"));
     agent.addEventListener("submit", async event => {
       event.preventDefault();
-      const request = {choice: agentChoice.value, hotkey_file: hotkey.value.trim(), operator_config: operator.value.trim()};
-      if (password.value) request.password = password.value;
-      password.value = "";
+      const request = {choice: agentChoice.value, operator_config: operator.value.trim()};
+      if (socket.value.trim()) request.signer_socket = socket.value.trim();
       await setupCall("agent", request);
     });
 

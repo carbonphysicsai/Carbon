@@ -21,6 +21,7 @@ from scripts.dev.miner_launchpad.environment_setup import (
     AUTONOMOUS,
     CHECK_SETTINGS,
     LOCAL_CPU,
+    SIGNER_STEP,
     EnvironmentSetup,
     LiveChecks,
     SetupRefused,
@@ -31,7 +32,6 @@ from scripts.dev.miner_launchpad.environment_setup import (
 TOKEN = "x" * 40
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 KEY = "sk-fixture-never-echoed-0123456789"
-PASSWORD = "fixture-password-never-echoed"
 REVISION = "a" * 40
 RUNTIME = {
     "implementation": {
@@ -69,8 +69,8 @@ class Checks:
     def __init__(self):
         self.calls = []
 
-    def inference(self, provider_id, model_id, key_file):
-        self.calls.append(("inference", provider_id, key_file))
+    def inference(self, provider_id, model_id, credential_file):
+        self.calls.append(("inference", provider_id, credential_file))
         return {
             "models_source": "fixture",
             "models_listed": 1,
@@ -81,9 +81,9 @@ class Checks:
         self.calls.append(("compute", image, analysis))
         return RUNTIME
 
-    def agent(self, key_file, password_file, hotkey):
-        self.calls.append(("agent", key_file, password_file, hotkey))
-        return {"signing": "opened as the registered hotkey"}
+    def agent(self, hotkey, socket_path=None):
+        self.calls.append(("agent", hotkey, socket_path))
+        return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
     @staticmethod
     def operator_config(path):
@@ -95,7 +95,7 @@ def files(tmp_path):
     home = tmp_path / "miner"
     home.mkdir(mode=0o700)
     made = {}
-    for name in ("worker.json", "analysis.json", "hotkey", "operator.json"):
+    for name in ("worker.json", "analysis.json", "operator.json"):
         (home / name).write_text("{}")
         made[name] = str(home / name)
     return made
@@ -119,14 +119,7 @@ def completed(tmp_path, setup):
             "analysis_image_manifest": made["analysis.json"],
         }
     )
-    setup.agent(
-        {
-            "choice": AUTONOMOUS,
-            "hotkey_file": made["hotkey"],
-            "operator_config": made["operator.json"],
-            "password": PASSWORD,
-        }
-    )
+    setup.agent({"choice": AUTONOMOUS, "operator_config": made["operator.json"]})
     return made
 
 
@@ -346,7 +339,6 @@ def test_keys_are_owner_only_never_returned_and_the_profile_validates(tmp_path, 
         root,
         root / "keys",
         key_file,
-        root / "miner-password",
         root / "miner-public.json",
         setup.profile_path,
         setup.record_path,
@@ -356,14 +348,18 @@ def test_keys_are_owner_only_never_returned_and_the_profile_validates(tmp_path, 
     # The check is given the key's file, never the key.
     assert checks.calls[0] == ("inference", "engy-chat", key_file)
 
-    # No key or password anywhere the page or the profile can read.
+    # No key anywhere the page or the profile can read.
     for text in (
         json.dumps(result),
         json.dumps(setup.state()),
         setup.profile_path.read_text(),
         setup.record_path.read_text(),
     ):
-        assert KEY not in text and PASSWORD not in text
+        assert KEY not in text
+    # External signing: the Agent step asked the signer for the registered
+    # hotkey, and nothing that could open the miner's key was stored.
+    assert checks.calls[-1] == ("agent", HOTKEY, None)
+    assert not (root / "miner-password").exists()
 
     cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
     assert cfg["principal"] == HOTKEY
@@ -372,11 +368,9 @@ def test_keys_are_owner_only_never_returned_and_the_profile_validates(tmp_path, 
         "model_id": "deepseek-v4-flash-0731",
     }
     public = json.loads((root / "miner-public.json").read_bytes())
-    assert public == {
-        "netuid": 567,
-        "hotkey": HOTKEY,
-        "key_file": str(tmp_path / "miner" / "hotkey"),
-    }
+    assert public == {"netuid": 567, "hotkey": HOTKEY}
+    assert "miner_password_file" not in cfg["paths"]
+    assert "signer_socket" not in cfg["paths"]
     # The key is the chosen provider's alone: the pinned default never gets it.
     assert runner.provider_credential(cfg, "engy-chat") == str(key_file)
     assert runner.provider_credential(cfg, "openai-responses") is None
@@ -617,3 +611,78 @@ def test_attach_loads_into_an_empty_seat_only(tmp_path, state, monkeypatch):
         assert server.research_profile == Path(profile)
     finally:
         server.server_close()
+
+
+# --- The Agent step asks the miner's own signer (external signing, #445). ---
+
+
+def test_the_agent_step_takes_no_hotkey_file_or_password(tmp_path, state):
+    made = files(tmp_path)
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    setup.begin({"address": HOTKEY})
+    for field, extra in (
+        ("hotkey_file", made["operator.json"]),
+        ("password", "fixture-password-never-accepted"),
+    ):
+        with pytest.raises(SetupRefused) as refused:
+            setup.agent(
+                {
+                    "choice": AUTONOMOUS,
+                    "operator_config": made["operator.json"],
+                    field: extra,
+                }
+            )
+        assert refused.value.field == field
+
+
+def test_a_password_left_by_an_earlier_page_is_removed(tmp_path, state):
+    made = files(tmp_path)
+    checks = Checks()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    setup.begin({"address": HOTKEY})
+    stale = state / "environment" / "miner-password"
+    stale.write_text("an old password")
+    socket = str(tmp_path / "signer.sock")
+    setup.agent(
+        {
+            "choice": AUTONOMOUS,
+            "operator_config": made["operator.json"],
+            "signer_socket": socket,
+        }
+    )
+    assert not stale.exists()
+    assert checks.calls[-1] == ("agent", HOTKEY, Path(socket))
+    agent = setup._record()["agent"]
+    assert agent["paths"]["signer_socket"] == socket
+
+
+def _signer_keys():
+    pytest.importorskip("bittensor")
+    from bittensor.keyfiles import Keypair
+
+    return Keypair.create_from_uri("//Alice"), Keypair.create_from_uri("//Bob")
+
+
+def test_the_live_agent_check_reaches_a_real_signer_for_the_hotkey():
+    from tests.cpu._signer_harness import in_thread_signer
+
+    alice, _ = _signer_keys()
+    with in_thread_signer(alice) as signer:
+        check = LiveChecks().agent(alice.ss58_address, signer._path)
+    assert check == {"signing": "carbon-miner-signer holds the registered hotkey"}
+
+
+def test_a_signer_refusal_names_the_signer_and_how_to_start_it(tmp_path):
+    from tests.cpu._signer_harness import in_thread_signer
+
+    alice, bob = _signer_keys()
+    with in_thread_signer(alice) as signer, pytest.raises(SetupRefused) as wrong:
+        LiveChecks().agent(bob.ss58_address, signer._path)
+    assert wrong.value.field == "signer"
+    assert wrong.value.code == "signer_wrong_hotkey"
+    assert wrong.value.next_step == SIGNER_STEP
+    with pytest.raises(SetupRefused) as absent:
+        LiveChecks().agent(alice.ss58_address, tmp_path / "nobody.sock")
+    assert absent.value.field == "signer"
+    assert absent.value.code == "signer_not_running"
+    assert "carbon-miner-signer" in absent.value.next_step

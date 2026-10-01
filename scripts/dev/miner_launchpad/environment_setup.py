@@ -5,10 +5,16 @@ registered, the Control Center takes the miner through one setup - inference,
 compute, agent, review - and writes their runner profile itself. Carbon hosts
 nothing: every account, key and bill is the miner's.
 
-**Keys stay on this machine.** A key or password is entered once on the
+**Keys stay on this machine.** An inference API key is entered once on the
 loopback page and written here to an owner-only file in an owner-only
 directory. The profile references it by path. It is never logged, never
 returned, and sent only to its own provider.
+
+**Carbon never holds the miner's hotkey** (external signing, #445). The miner
+runs `carbon-miner-signer` for their registered hotkey in their own terminal;
+the Agent step only asks it, through `carbon.chain.external_signer`, which
+hotkey it holds. No hotkey file path and no password is asked for, stored or
+written into the profile.
 
 **Every connection is checked live, at the miner's cost, with consent.** A
 check that spends runs only on consent to a stated amount: `quote` gives the
@@ -81,6 +87,10 @@ CHECK_SETTINGS = {
 
 _SECRET = re.compile(r"[\x21-\x7e]{1,1024}")
 _ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
+
+
+#: What a miner does when the Agent step cannot reach their signer.
+SIGNER_STEP = "start `carbon-miner-signer` for your registered hotkey"
 
 
 class SetupRefused(Rejected):
@@ -156,7 +166,7 @@ def _consented(value, quote):
         raise SetupRefused("consent", "consent_does_not_match_quoted_cost")
 
 
-def check_quote(provider_id, model_id, key_file: Path) -> dict:
+def check_quote(provider_id, model_id, credential_file: Path) -> dict:
     """What the inference check can cost at most, before it runs.
 
     Reads no key: the selection only records where the key file is.
@@ -172,7 +182,7 @@ def check_quote(provider_id, model_id, key_file: Path) -> dict:
         selection = select(
             provider_id=provider_id,
             model_id=model_id,
-            credential={"kind": "file", "reference": str(key_file)},
+            credential={"kind": "file", "reference": str(credential_file)},
             settings=CHECK_SETTINGS,
         )
     except ModelSelectionRefused:
@@ -274,8 +284,9 @@ def choices() -> dict:
                     "launch."
                 ),
                 "live_check": (
-                    "Opens your hotkey with your password on this machine and "
-                    "checks it is the registered one. No network, no cost."
+                    "Asks your running carbon-miner-signer which hotkey it "
+                    "holds and checks it is the registered one. Carbon never "
+                    "sees your key or password. No network, no cost."
                 ),
             }
         ],
@@ -298,7 +309,7 @@ class LiveChecks:
         self.opener = opener
         self.repo = repo
 
-    def inference(self, provider_id, model_id, key_file: Path) -> dict:
+    def inference(self, provider_id, model_id, credential_file: Path) -> dict:
         from carbon.development_session.model_provider import (
             ADAPTERS,
             ModelSelectionRefused,
@@ -315,7 +326,7 @@ class LiveChecks:
                 source, models = listed["source"], listed["models"]
             else:
                 source = KEYED_MODEL_LISTS[provider_id]
-                models = self._keyed_models(adapter, source, key_file)
+                models = self._keyed_models(adapter, source, credential_file)
         except ProviderHTTPError as refused:
             field = "key" if refused.status in (401, 403) else "provider_id"
             raise SetupRefused(field, "provider_refused_model_list") from None
@@ -329,7 +340,7 @@ class LiveChecks:
             selection = select(
                 provider_id=provider_id,
                 model_id=model_id,
-                credential={"kind": "file", "reference": str(key_file)},
+                credential={"kind": "file", "reference": str(credential_file)},
                 settings=CHECK_SETTINGS,
             )
             reply = SelectionTransport(selection, opener=self.opener)(
@@ -360,7 +371,7 @@ class LiveChecks:
             "usage": reply.get("usage") if type(reply.get("usage")) is dict else None,
         }
 
-    def _keyed_models(self, adapter, url, key_file: Path):
+    def _keyed_models(self, adapter, url, credential_file: Path):
         import urllib.request
 
         from carbon.development_session.model_provider import (
@@ -374,7 +385,7 @@ class LiveChecks:
         )
 
         headers = {}
-        key = read_credential(Reference("file", str(key_file)))
+        key = read_credential(Reference("file", str(credential_file)))
         if adapter.auth == "x-api-key":
             headers["x-api-key"] = key
             headers["anthropic-version"] = ANTHROPIC_VERSION
@@ -451,16 +462,14 @@ class LiveChecks:
             "images": [image.image_id, analysis.image_id],
         }
 
-    def agent(self, key_file: Path, password_file: Path, hotkey: str) -> dict:
-        from carbon.chain.auth import open_external_hotkey
+    def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
+        from carbon.chain.external_signer import SignerFailure, connect_signer
 
         try:
-            open_external_hotkey(key_file, password_file, hotkey)
-        except Exception:  # noqa: BLE001 - secret-bearing errors stay here.
-            raise SetupRefused(
-                "hotkey_file", "hotkey_did_not_open_as_registered"
-            ) from None
-        return {"signing": "opened as the registered hotkey"}
+            connect_signer(hotkey, socket_path=socket_path)
+        except SignerFailure as failure:
+            raise SetupRefused("signer", failure.code, next_step=SIGNER_STEP) from None
+        return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
     @staticmethod
     def operator_config(path: Path) -> None:
@@ -583,22 +592,22 @@ class EnvironmentSetup:
         """The inference check's maximum cost for this provider and model."""
         _closed(value, {"provider_id", "model_id"})
         provider = self._inference_choice(value)
-        key_file = self.root / "keys" / (provider + ".key")
-        return check_quote(provider, value["model_id"], key_file)
+        credential_file = self.root / "keys" / (provider + ".key")
+        return check_quote(provider, value["model_id"], credential_file)
 
     def inference(self, value) -> dict:
         _closed(value, {"provider_id", "model_id", "consent"}, {"key"})
         provider = self._inference_choice(value)
-        key_file = self.root / "keys" / (provider + ".key")
-        _consented(value, check_quote(provider, value["model_id"], key_file))
+        credential_file = self.root / "keys" / (provider + ".key")
+        _consented(value, check_quote(provider, value["model_id"], credential_file))
         with self.lock:
             if "hotkey" not in self._record():
                 raise SetupRefused("address", "registration_not_confirmed")
             if "key" in value:
-                write_private(key_file, _secret(value["key"], "key"))
-            elif not key_file.exists():
+                write_private(credential_file, _secret(value["key"], "key"))
+            elif not credential_file.exists():
                 raise SetupRefused("key", "field_required")
-            check = self.checks.inference(provider, value["model_id"], key_file)
+            check = self.checks.inference(provider, value["model_id"], credential_file)
             return self._step(
                 "inference",
                 {
@@ -641,49 +650,34 @@ class EnvironmentSetup:
     def agent(self, value) -> dict:
         from carbon.chain.models import CARBON_NETUID
 
-        _closed(
-            value,
-            {"choice", "hotkey_file", "operator_config"},
-            {"password"},
-        )
+        _closed(value, {"choice", "operator_config"}, {"signer_socket"})
         if value["choice"] != AUTONOMOUS:
             raise SetupRefused("choice", "agent_not_offered")
-        hotkey_file = _absolute(value["hotkey_file"], "hotkey_file")
-        if not hotkey_file.is_file() or hotkey_file.is_symlink():
-            raise SetupRefused("hotkey_file", "hotkey_file_not_found")
         operator = _absolute(value["operator_config"], "operator_config")
         self.checks.operator_config(operator)
+        socket_path = (
+            _absolute(value["signer_socket"], "signer_socket")
+            if value.get("signer_socket")
+            else None
+        )
         with self.lock:
             record = self._record()
             if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
-            password = self.root / "miner-password"
-            if "password" in value:
-                write_private(password, _secret(value["password"], "password"))
-            elif not password.exists():
-                raise SetupRefused("password", "field_required")
-            check = self.checks.agent(hotkey_file, password, record["hotkey"])
+            check = self.checks.agent(record["hotkey"], socket_path)
+            # A password stored by an earlier version of this page is no
+            # longer needed by anything: remove it rather than keep a secret.
+            (self.root / "miner-password").unlink(missing_ok=True)
             public = write_private(
                 self.root / "miner-public.json",
-                canonical(
-                    {
-                        "netuid": CARBON_NETUID,
-                        "hotkey": record["hotkey"],
-                        "key_file": str(hotkey_file),
-                    }
-                ),
+                canonical({"netuid": CARBON_NETUID, "hotkey": record["hotkey"]}),
             )
+            paths = {"miner_public": str(public), "operator_config": str(operator)}
+            if socket_path is not None:
+                paths["signer_socket"] = str(socket_path)
             return self._step(
                 "agent",
-                {
-                    "choice": AUTONOMOUS,
-                    "paths": {
-                        "miner_public": str(public),
-                        "miner_password_file": str(password),
-                        "operator_config": str(operator),
-                    },
-                    "check": check,
-                },
+                {"choice": AUTONOMOUS, "paths": paths, "check": check},
             )
 
     def profile(self) -> dict:
