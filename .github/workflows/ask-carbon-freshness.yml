@@ -1,0 +1,52 @@
+name: Ask Carbon freshness
+
+# Per-PR CI reports ageing Ask Carbon knowledge as a warning unless the PR edits
+# it. This is where that ageing is still an error: it fails once a card or the
+# release is within seven days of expiry, or a pinned source has changed, so
+# the refresh starts before the live cards stop answering.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ask-carbon-freshness
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: Ask Carbon knowledge freshness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate committed knowledge against today's date
+        id: validate
+        run: |
+          set -o pipefail
+          npm run --silent validate --prefix website/ask-carbon | tee "$RUNNER_TEMP/freshness.json"
+      # A red scheduled run is easy to miss, so a failure opens one tracking
+      # issue (or comments on the open one) naming the findings and the run.
+      - name: Raise the failure where it will be seen
+        if: failure() && steps.validate.conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Ask Carbon knowledge freshness check failing"
+          findings=$(node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log(r.errors.map((e)=>"- `"+e+"`").join("\n"))' "$RUNNER_TEMP/freshness.json" || echo "- findings unreadable; see the run log")
+          body=$(printf '%s\n\n%s\n\nRun: %s\n\nRefreshing cards is a knowledge change: owner approval, a new knowledge digest and bundle identity, then a deployment (website/ask-carbon/OPERATIONS.md).' \
+            "The daily strict check of website/ask-carbon/knowledge failed on main:" "$findings" "$RUN_URL")
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

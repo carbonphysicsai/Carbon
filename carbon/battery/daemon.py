@@ -155,6 +155,25 @@ class AuthenticatedSubmission:
         )
 
 
+def submission_identity(submission):
+    """`(request_digest, submission_id)` for an authenticated submission.
+
+    The same hotkey, recipe and contract always name the same submission, so
+    an intake can tell a miner its submission id before admission runs.
+    """
+    if type(submission) is not AuthenticatedSubmission:
+        raise TypeError("an AuthenticatedSubmission is required")
+    request_digest = _digest(
+        {
+            "hotkey": submission.hotkey,
+            "challenge": [submission.challenge_id, submission.challenge_version],
+            "strategy": submission.strategy,
+            "contract_digest": submission.contract_digest,
+        }
+    )
+    return request_digest, "bsub-" + request_digest[7:39]
+
+
 class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
 
@@ -356,16 +375,7 @@ class BatteryValidator:
         Idempotent: the same hotkey resubmitting the same recipe under the same
         contract is the same submission, whatever its transport receipt.
         """
-        if type(submission) is not AuthenticatedSubmission:
-            raise TypeError("an AuthenticatedSubmission is required")
-        request = {
-            "hotkey": submission.hotkey,
-            "challenge": [submission.challenge_id, submission.challenge_version],
-            "strategy": submission.strategy,
-            "contract_digest": submission.contract_digest,
-        }
-        request_digest = _digest(request)
-        submission_id = "bsub-" + request_digest[7:39]
+        request_digest, submission_id = submission_identity(submission)
         base = {
             "request_digest": request_digest,
             "hotkey": submission.hotkey,
