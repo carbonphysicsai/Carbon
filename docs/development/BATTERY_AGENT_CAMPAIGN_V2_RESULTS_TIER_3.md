@@ -322,4 +322,3 @@ limitation above.
 2. **Version 3 has no prepared screening batch.** Further v1 scoring needs
    new batches, and preparing them is the owner's call.
 3. **The control door (D7)** is still the owner's decision.
-
