@@ -204,14 +204,38 @@ rule is chosen on development and reported on verification.
   and bad deciders far better on development (τ 0.466 against -0.071 for the
   current rule). Most of that comes from the controls themselves.
 
-### 6.4 What this means
+### 6.4 Against the pre-registered statements
+
+| | Stated at `5f0756ad` | Observed | Verdict |
+|---|---|---|---|
+| H2 | `dar-p0-r100-a0` scores `boundary_optimist` below every eligible member | below all 14 (`summary.boundary_optimist_check`) | **CONFIRMED** |
+| H1 | Kendall τ of the development-chosen rule against decision loss on verification, every other rule beside it; no predicted value, no significance claim | 0.202 for the chosen rule, 0.298 for the current rule, lowest of the measurable rules (`comparison.*.tau_verification`) | **No prediction to confirm or refute.** The pre-registration fixed a measurement, not an expected value. The natural reading, that a rule chosen for decision quality on development would rank verification decisions better than the current rule, **did not hold** on this panel. That is a result, and it is not rescued by the panel's low resolution. |
+
+**Score or panel?** EV2 tests the asymmetric cost in the contract's
+`mistake_costs`: a false acceptance costs 10 and a missed opportunity costs 1,
+in multiples of the minimum useful improvement (`PROVISIONAL_DEVELOPMENT`).
+- **H2 implicates the score.** The current testnet rule
+  (`control-exam-v1`) ranks the optimist above all 14 real members. That
+  happens on the same panel, predictions and references where every
+  decision-aware rule ranks it below all 14. The panel exposes the optimism.
+  The current score does not price it.
+- **H1's weakness implicates the panel.** 9 of 14 real members lose less
+  than 0.2 on verification, so the decision-loss ranking is close to ties
+  and τ has little to resolve. This limits what H1 can show about any rule.
+  It is not evidence that the decision-aware component is wrong.
+
+**Maturity.** Exploratory engineering evidence. It does not qualify the exam
+or any rule. MQ-008 is untouched, and no testnet rule changes.
+
+### 6.5 What this means
 
 - **Recorded:** the current testnet rule ranks a model that is optimistic at
   the safety limits above every real model. Two independent experiments now
   show this (EV1 and EV2).
 - **Recorded:** a decision-aware component, built only from the contract's
-  constraints, bands and costs, removes that blind spot without hurting
-  verification τ beyond what this panel can resolve.
+  constraints, bands and costs, removes that blind spot. On verification its
+  τ was the lowest of the measurable rules (0.202 against 0.298). The panel
+  cannot resolve that difference, so it is reported, not dismissed.
 - **Not shown:** that the decision-aware rule ranks real models better than
   the current rule. On this panel, it did not.
 - **No rule change follows.** As fixed in §4, adopting a decision-aware
