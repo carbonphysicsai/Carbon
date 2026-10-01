@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: ask-carbon-freshness
@@ -27,4 +28,25 @@ jobs:
           ref: main
           persist-credentials: false
       - name: Validate committed knowledge against today's date
-        run: npm run validate --prefix website/ask-carbon
+        id: validate
+        run: |
+          set -o pipefail
+          npm run --silent validate --prefix website/ask-carbon | tee "$RUNNER_TEMP/freshness.json"
+      # A red scheduled run is easy to miss, so a failure opens one tracking
+      # issue (or comments on the open one) naming the findings and the run.
+      - name: Raise the failure where it will be seen
+        if: failure() && steps.validate.conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Ask Carbon knowledge freshness check failing"
+          findings=$(node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log(r.errors.map((e)=>"- `"+e+"`").join("\n"))' "$RUNNER_TEMP/freshness.json" || echo "- findings unreadable; see the run log")
+          body=$(printf '%s\n\n%s\n\nRun: %s\n\nRefreshing cards is a knowledge change: owner approval, a new knowledge digest and bundle identity, then a deployment (website/ask-carbon/OPERATIONS.md).' \
+            "The daily strict check of website/ask-carbon/knowledge failed on main:" "$findings" "$RUN_URL")
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
