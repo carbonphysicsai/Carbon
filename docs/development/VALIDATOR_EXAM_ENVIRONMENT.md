@@ -48,11 +48,11 @@ plus the exact-hashed `science-torch` export
 lists it under `additional_backend_profiles`.
 
 It runs with `torch.use_deterministic_algorithms(True)`, one explicit generator
-per rebuild and two CPU threads. It is declared, not qualified. Its
-reproducibility tolerance, its training limit and the security acceptance of
-its image are the owner's (RECON-TORCH-01). Until they are set, PyTorch recipes
-are DEVELOPMENT only. `python -m carbon.battery.torch_determinism` produces the
-repeat-and-compare evidence for that decision; it sets no value.
+per rebuild and two CPU threads. It is declared, not qualified, and runs with
+the same standing as the JAX profile (OWNER-BATTERY-CARRYOVER-01): its
+reproducibility tolerance and training limit are analysed in tandem with
+testing, not set in advance. `python -m carbon.battery.torch_determinism`
+produces the repeat-and-compare evidence for that analysis; it sets no value.
 
 Miners get the same environment. A miner names the PyTorch worker image's
 manifest as their worker `image_manifest` (it keeps the C-03 image's source

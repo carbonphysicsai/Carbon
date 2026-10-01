@@ -17055,3 +17055,49 @@ Until those are set, a PyTorch recipe is admitted and rebuilt in DEVELOPMENT
 only; it carries no LIVE, reward or frontier authority.
 
 Ticket: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`.
+
+## 2026-10-01 — OWNER-BATTERY-CARRYOVER-01: testing revises recipes in place; PyTorch runs like JAX; Mira is autoscience.io/Mira
+
+**Authority.** The owner, in session on 2026-10-01, answering the open items of
+RECON-TORCH-01 and C-MLP-03:
+
+1. "we are modifying the recipes during testing. so incumbents can stay winners
+   because it doesn't matter that isn't the point of the testing right now."
+2. "No. Run PyTorch full up like JAX and we will analyze the results as we
+   test. We will do that work in tandem."
+3. "Approve that download.pytorch.org now. ALLOW ALL DOMAINS. No more
+   restrictions." (The session environment's network access, set by the
+   owner.)
+4. "Autoscience.io/Mira is the MIRA I want."
+
+**Decision.**
+1. **Carry-over across recipe and contract revisions.** A battery deployment
+   is carried over in place to a revised construction contract, recipe
+   implementation, backend images or envelope (`operate upgrade`,
+   `PoolStore.rebind`). The incumbent, retained models, scores and pool stay;
+   incumbents stay winners. A recipe admitted under a recorded earlier
+   contract is recompiled under the current one and each recompile is
+   recorded (`recompiled` events); one the current contract refuses is closed
+   as `contract_revised` and never scored, and a final whose side the current
+   contract refuses keeps the incumbent. A changed exam rule, public material
+   or seed pin is still refused and still needs a new deployment.
+2. **PyTorch runs with the same standing as JAX.** OWNER-PYTORCH-BACKEND-01's
+   "human-reserved, fail closed until set" holds are withdrawn: the PyTorch
+   reproducibility tolerance, its training limit and its image's acceptance
+   are analysed in tandem with testing, not set in advance. PyTorch recipes
+   carry exactly the authority JAX recipes carry on the same Challenge,
+   nothing more: battery remains a DEVELOPMENT, non-paying Challenge, and
+   nothing here flips LIVE (invariant 5).
+3. **Network.** The session environment has full outbound access. Building an
+   image inside this session still must not bake the session proxy's
+   credentials into an image; canonical images are built in CI or on the
+   owner's host.
+4. **Mira.** C-MLP-03 slice 5's Mira is Mira at autoscience.io
+   (autoscience.io/Mira). This answers the ticket's "Which Mira?".
+
+**Unchanged.** The exam, scoring rule, references, thresholds and
+qualification; historical evidence keeps its meaning (a recompile is recorded,
+never silent); isolation and evaluator authority (invariants 6 and 7.9).
+
+Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
+`.agent/tickets/C-MLP-03_miner_environment.md`.

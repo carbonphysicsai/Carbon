@@ -14,6 +14,12 @@ Commands:
 - ``ingest``: ingest the truth container's records file for a batch;
 - ``open``: open the pool once three screening batches are complete;
 - ``run``: advance every queued submission and open finalist comparison;
+- ``upgrade``: carry the deployment over to this checkout's contract,
+  recipe implementation and images in place (OWNER-BATTERY-CARRYOVER-01).
+  The incumbent, retained models, scores and pool stay; a recipe admitted
+  under an earlier contract is recompiled under the current one, and each
+  recompile is recorded. A changed exam rule, public material or seed pin is
+  refused: those still need a new deployment;
 - ``truth-materialize`` / ``truth-verify``: build the PyBaMM overlay from its
   hash-locked wheels and verify the pinned version inside the pinned image,
   with no network (`truth_env`). The solve itself runs in that image
@@ -171,10 +177,29 @@ def init(config_path, *, repository=REPOSITORY):
     }
 
 
+CARRY_OVER_DECISION = "OWNER-BATTERY-CARRYOVER-01"
+
+
+def upgrade(config_path):
+    """Rebind a deployment to this checkout's identities, in place."""
+    from .pool_store import StateError
+
+    load_config(config_path)
+    target = validator(config_path, repository=REPOSITORY, readonly=True)
+    with writer(target):
+        try:
+            result = target.store.rebind(
+                target.identities(), decision=CARRY_OVER_DECISION
+            )
+        except StateError as refused:
+            raise EvaluationUnavailable("upgrade_" + refused.code) from None
+    return {**result, "decision": CARRY_OVER_DECISION}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.operate")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "status", "batches", "recover", "open", "run"):
+    for name in ("init", "status", "batches", "recover", "open", "run", "upgrade"):
         sub.add_parser(name).add_argument("--config", required=True)
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--config", required=True)
@@ -214,6 +239,14 @@ def main(argv=None):
         print(json.dumps(result, sort_keys=True, indent=2))
         return 0
 
+    if args.command == "upgrade":
+        try:
+            result = upgrade(args.config)
+        except EvaluationUnavailable as unavailable:
+            print(json.dumps({"unavailable": unavailable.code}))
+            return 2
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return 0
     if args.command == "init":
         try:
             result = init(args.config)
