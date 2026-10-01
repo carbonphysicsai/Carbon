@@ -16652,6 +16652,73 @@ rotation, scoring that never stalls).
   Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
   v1 until it is updated there.
 
+## 2026-10-01 — WEB-QA-11-D2: publish Ask Carbon bundle 86f51385 (Pilot Designer be64f8b9, /workbench/ retired)
+
+**Authority.** The repository owner, in the Ask Carbon session on 2026-10-01:
+"THE REBUILT CANDIDATE IS APPROVED FOR DEPLOYMENT." This is the exact-bundle
+approval that WEB-QA-11-D1 required. Approval basis:
+`OWNER_PUBLICATION_APPROVAL_2026_10_01_WEB_QA_11_D2`.
+
+**What it publishes.** Two paths change against production. Production serves
+bundle `48fd4680…` (WEB-QA-10-D1). The measurement covered all 105 staged paths
+on both hostnames at 2026-10-01T10:05Z, with HTML compared after removing the
+edge-injected scripts.
+
+| Path | Production | Published |
+| --- | --- | --- |
+| `ask-carbon/pilot-designer.html` | `4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd` | `be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496`, the GOAL-WORKBENCH-16 Pilot Designer (#448–#450) |
+| `workbench/index.html` | `05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d` | `9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b`, the "Workbench is now part of the Pilot Designer" page, which redirects after 5 seconds |
+
+The other 103 paths are byte-identical to production. They include the
+homepage `b1e8e7cd…`, the Q&A component `62ba26ce…` and knowledge
+`fab55d5d…`.
+
+**Two paths, not three.** The owner's instruction asked for "the three changed
+paths". The measurement finds two.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a` (105 files). Supersedes `48fd4680…`, which production still serves |
+| How it was derived | From disk on main `c5f4b16c8`. The baseline was re-fetched from both hostnames (100/100 against manifest v3 on each), and `integrate-static.mjs --site-replacements … --require-complete-bundle` built the bundle, reporting `deployable_to_carbonwebsite: true`. The identity is unchanged from #453 because #454 and #460 change no bundle input |
+| Worker | `ask-carbon-public` source, knowledge and `wrangler.public-release-active.toml` are byte-identical to the live WEB-QA-10-D1 revision `368c713e` |
+| Static rollback target | Captured by the operator at deploy time. The repository expects `dc4469a7-f4da-4437-aaa1-2789277e57fc` (the owner's 2026-09-30 capture of the WEB-QA-10-D1 deploy) |
+| Worker rollback target | Captured by the operator at deploy time |
+
+**Rollback target conflict, carried to the owner.** The owner's 2026-10-01
+instruction names `f7954cb2-b610-40f9-86e6-0a3fe6d04c93`. This file's
+WEB-QA-10-D1 deployment event and `production-baseline.manifest.json` record
+`f7954cb2` as the version captured *before* WEB-QA-10-D1. Rolling back to it
+would withdraw the live Pilot Designer and knowledge. The deploy package
+therefore tells the operator to use the id captured at deploy time, and to stop
+if that is not `dc4469a7`. `b694b20f` stays withdrawn: it serves the v2 site.
+
+**Deploy package.** `website/ask-carbon/DEPLOY_PACKAGE_2026_10_01.md`. It is
+written for the operator (Nick Fitzpatrick) on his own machine, and needs only
+a public clone. Two scripts are added, so the operator re-derives nothing:
+- `tools/fetch-live-baseline.mjs` rebuilds the `--existing-site` baseline from
+  the live site. Any mismatch with the manifest fails the run, which doubles as
+  the "live has moved" stop.
+- `tools/verify-publication.mjs` checks `/`, `/workbench/`, the four
+  `/assets/*.png`, `/workbench/atlas-source.json` and the Pilot Designer on
+  both hostnames against the staged bundle, then reads health.
+
+Run before deploying, the verifier fails on exactly the two changed paths on
+each hostname and passes everything else, including health (`active:true`,
+`reasons:[]`, `gemma-4-31b-turbo-tee:v1`).
+
+**Not authorized by this decision.**
+- Deployment is the operator's act from a host holding the Cloudflare
+  credential. This session has none and ran no wrangler command.
+- No change to budget or ceilings.
+- No change to the `AskCarbonUsageLedger` Durable Object, which is never rolled
+  back or deleted.
+- No change to Cloudflare Email Routing, which is never enabled.
+- The six cards expiring 2026-10-16 are not refreshed here.
+- The next candidate is not built while this one is undeployed. It will carry
+  #455 and #458, both of which change the Pilot Designer page.
+
 ## 2026-10-01 — OWNER-BATTERY-3B-AND-EXPOSURE-01: amendment 4 approved; miners never see a hidden batch or anything computed from it
 
 **Authority.** The owner, in the Testnet session on 2026-10-01, in two
@@ -16721,53 +16788,59 @@ scientific, security and qualification state.
 **Authority.** The owner, 1 October 2026, amending the 30 September direction
 carried in #458 (unmerged). This record replaces that wording. The amendment
 is not a relaxation: it **moves review from every change to every finding**,
-and adds an instrument that produces findings.
+and adds an instrument that produces findings. Sections keep the owner's
+numbering (§2 to §7).
 
-**1. Scope, stated first (owner's section 2).** In the owner's words: "NONE of
-this happens on mainnet. We are doing this for internal test purposes and we
-can archive results but miners only see the final optimized version. If we
+**§2. Scope, the most important clause.** In the owner's words: "NONE of this
+happens on mainnet. We are doing this for internal test purposes and we can
+archive results but miners only see the final optimized version. If we
 iterate mainnet that's a different rule we have to decide later but isn't
 relevant to this."
-- It is an **internal development protocol**. It is not a miner-facing rule,
-  not a public commitment and **not a scientific qualification gate**. Nobody
-  may later cite it as evidence that a Challenge is qualified.
-- **Miners see only the final optimized version.** Intermediate permission
-  states, failed expansions and abandoned scoring rules are internal.
-- **Results may be archived** and keep their meaning under the rule and
-  permissions they were produced with (invariant 10).
-- **Mainnet iteration is a separate, undecided rule.** Nothing here
+- **§2.1** It is an **internal development protocol**. It is not a
+  miner-facing rule, not a public commitment and **not a scientific
+  qualification gate**. Nobody may later cite it as evidence that a Challenge
+  is qualified.
+- **§2.2** **Miners see only the final optimized version.** Intermediate
+  permission states, failed expansions and abandoned scoring rules are
+  internal.
+- **§2.3** **Results may be archived** and keep their meaning under the rule
+  and permissions they were produced with (invariant 10).
+- **§2.4** **Mainnet iteration is a separate, undecided rule.** Nothing here
   anticipates it, and nothing in this protocol transfers to mainnet by
   default.
-- Because miners see only the final version, there is no retroactive-scoring
-  problem. Permissions may be widened and later locked without revoking
-  anyone's standing, since no external miner competed under the wider state.
+- Because of §2.2 there is no retroactive-scoring problem. Permissions may be
+  widened and later locked without revoking anyone's standing, since no
+  external miner competed under the wider state.
 
-**2. Track A, construction integrity: expand freely, escalate on a finding
-(owner's section 3).**
-- Permission expansion proceeds **without per-change review**.
-- **An attack vector**, in the owner's words, is "anything that scored high
-  and produced a poorly performing model... also failing triggers and
-  whatnot. Anything like that needs investigated."
-- **The detector is score-value divergence:** a high score beside a poor
-  model. It is implemented as a measurable condition a run emits, not as
-  something a person concludes afterwards. Failing triggers, gate anomalies
-  and equivalent signals are included. When in doubt, it fires: a false
-  escalation costs a review, and a missed one costs the exam's credibility.
-- **On a finding, escalate.** Stop widening, review the state reached, then
-  decide and lock a final state. The review is of where the expansion got
-  to, not of the individual change that triggered it.
-- **EV2 is the worked example.** The boundary-optimist control scored at or
-  above all 14 eligible members while being wrong where safety matters. That
-  is exactly the detector's condition, found by exactly this kind of study.
+**§3. Track A, construction integrity: expand freely, escalate on a finding.**
+- **§3.1** Permission expansion proceeds **without per-change review**.
+- **§3.2** **An attack vector**, in the owner's words, is "anything that
+  scored high and produced a poorly performing model... also failing triggers
+  and whatnot. Anything like that needs investigated."
+  - The detector is **score-value divergence:** a high score beside a poor
+    model.
+  - It is implemented as a measurable condition a run emits, not as
+    something a person concludes afterwards.
+  - Failing triggers, gate anomalies and equivalent signals are included.
+  - **When in doubt, it fires:** a false escalation costs a review, and a
+    missed one costs the exam's credibility.
+- **§3.3** **On a finding, escalate.** Stop widening, review the state
+  reached, then decide and lock a final state. The review is of where the
+  expansion got to, not of the individual change that triggered it.
+- **§3.4** **EV2 already proved this detector fires.** The boundary-optimist
+  control scored at or above all 14 eligible members while being wrong where
+  safety matters. That is §3.2's condition, and it is the worked example.
 
-**3. Track B, engineering value: two review levels (owner's section 4).**
-- **Executive review, on a standing cadence.** In the owner's words: "a high
-  level review of results that are human readable and sharable with
-  engineering teams and our community with an option to dive into details."
-  Shareable is a hard requirement. Every claim carries its basis, nothing is
-  stated above its maturity, and no number appears without what produced it.
-  It is layered: a readable top, with the detail reachable beneath.
-- **Full review at three conditions, and only these:**
+**§4. Track B, engineering value: two review levels.**
+- **§4.1** **Executive review, on a standing cadence.** In the owner's
+  words: "a high level review of results that are human readable and
+  sharable with engineering teams and our community with an option to dive
+  into details."
+  - Shareable is a hard requirement. Every claim carries its basis, nothing
+    is stated above its maturity, and no number appears without what
+    produced it.
+  - It is layered: a readable top, with the detail reachable beneath.
+- **§4.2** **Full review at three conditions, and only these:**
   - **Stuck:** three consecutive studies with no progress. The owner
     delegated N, and three is the recommendation. Progress is movement of
     the score-to-value ratio toward 1:1, beyond its own noise. The noise band
@@ -16778,28 +16851,42 @@ relevant to this."
     the owner decides whether it has arrived.
   - **The owner asks:** "I can also ask for a review whenever I want." No
     reason is required.
-- **Both levels report both rankings** while the decision-aware component is
-  a prospective proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01). They
-  carry #458's audit caveat: the EV panels contain gate-ineligible models,
-  unequal denominators from unresolved outcomes, and repeated seeds that do
-  not establish method diversity. The 0.202/0.298 figures do not travel
-  without that caveat.
+- **§4.3** **Both levels report both rankings** while the decision-aware
+  component is a prospective proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01).
+  They carry #458's audit caveat: the EV panels contain gate-ineligible
+  models, unequal denominators from unresolved outcomes, and repeated seeds
+  that do not establish method diversity. The 0.202/0.298 figures do not
+  travel without that caveat.
 
-**4. The design optimizer serves both tracks (owner's section 5).** The owner
+**§5. The design optimizer: build it, and it serves both tracks.** The owner
 asked for it to be built at this stage and tested on.
-- It is added to the protocol as the instrument that produces findings.
-  `Design_Specs/Specialist_Bank.md` puts it this way: "Customer inverse
-  design IS an adversary: it searches for in-envelope inputs that break
-  constraints". So it finds score-value divergence before a miner monetises
-  it, and "this regime's winners die on inverse design" makes it Track B's
-  test too.
-- **It is scoped and reported before it is built:** what it searches, over
+- **§5.1** It is not in the admission plan today, and it is added.
+- **§5.2** It is the detector Track A needs: "Customer inverse design IS an
+  adversary: it searches for in-envelope inputs that break constraints"
+  (`Design_Specs/Specialist_Bank.md`).
+- **§5.3** It is also Track B's instrument: "this regime's winners die on
+  inverse design".
+- **§5.4** **Scope it and report before building:** what it searches, over
   what, under which constraints, at what cost per search, and what it cannot
   find. No population, threshold or objective is the executor's to invent.
 
-**5. What this protocol is not (owner's section 7).** Not a scientific
-qualification gate, not a security qualification, not a public commitment,
-not a miner-facing rule, and not applicable to mainnet.
+**§6. For Launchpad: what this changes.** Permission expansion no longer needs
+review in advance. Widen the construction surface as the work requires. Two
+obligations come with that freedom:
+- **§6.1** **Every expansion is recorded:** what widened, when, and under
+  which version or profile, so the state reached can be reviewed when a
+  finding escalates. An unrecorded expansion cannot be locked down
+  coherently.
+- **§6.2** **No trigger is suppressed.** If a run emits score-value
+  divergence, a failing trigger or a gate anomaly, it escalates. Not after it
+  has been explained, and not once there is a fix. The investigation is the
+  point.
+
+Nothing here reaches mainnet, and miners see only the final optimized version.
+
+**§7. What this protocol is not.** Not a scientific qualification gate, not a
+security qualification, not a public commitment, not a miner-facing rule, and
+not applicable to mainnet.
 - It does not alter the existing training-budget requirement, and B-E4 stays
   optional.
 - Existing challenge qualification states and historical scores stand.
@@ -16808,5 +16895,67 @@ not a miner-facing rule, and not applicable to mainnet.
   it.
 
 **Implementation:** CHALLENGE-ADMISSION-01 (#458), amended to this
-trigger-based model. Launchpad receives the owner's section 6: every
-expansion is recorded, and no trigger is suppressed.
+trigger-based model. Launchpad's §6.1 expansion record is #468.
+
+## 2026-10-01 — OWNER-MINER-OWN-MACHINE-01: every Launchpad miner defaults to their own machine, sandbox kept
+
+**Authority.** The owner, in session on 2026-10-01: "ALL Miners in launchpad
+should default to their own machines and can set up sandboxes themselves if
+they want." Asked whether this made the Docker sandbox optional, the owner
+chose "own machine, sandbox kept".
+
+**Decision.**
+1. **Own machine by default.** Everything a Launchpad miner runs (the Control
+   Center, the research agent, research workers, the signer and any challenge
+   kit) runs on the miner's own machine unless the miner chooses otherwise.
+   No choice of compute is made for the miner.
+2. **The isolation stays the default.** Research code still runs in the Docker
+   research worker on that machine (no network, pinned image built from the
+   checkout). This decision does not make the sandbox optional, and it adds
+   no opt-out.
+3. **Remote compute is opt-in.** Rented or remote compute (RunPod, Lium,
+   Targon, or a sandbox the miner hosts elsewhere) is something the miner sets
+   up on their own account if they want it. C-MLP-03's compute step offers it
+   as an addition to the own-machine default, never in place of it.
+4. **The battery challenge kit runs on the miner's machine first.** It is a
+   command the miner runs locally: public uniform draws over the published
+   input box (`battery_research_practice`), from the miner's own seed roots,
+   labelled by the pinned PyBaMM reference in the pinned truth image
+   (`carbon.battery.truth.TRUTH_IMAGE`, publicly pullable). Adding it inside
+   the research sandbox is a later, separately reviewed step.
+
+**Unchanged.** OWNER-CHALLENGE-KIT-01's hard line (mock seeding only; no
+official eval or stress realization). Official evaluation stays on the
+validator. External signing (#445). Testnet 567 only.
+
+## 2026-10-01 — OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01: propose the decision-aware component prospectively, and keep both rankings reported
+
+**Authority.** The owner's decisions of 1 October 2026, block B (Testnet),
+on EV2 programme-state item 19, now row 20: "PROPOSE THE DECISION-AWARE
+COMPONENT PROSPECTIVELY, AND KEEP BOTH RANKINGS REPORTED."
+
+1. **B1: implemented as a registered, versioned, prospective rule.**
+   `carbon.battery.exam.decision-aware.proposed` version 1
+   (`carbon/battery/value/proposal.py`) is EV2's profile `dar-p0-r100-a0`,
+   reading the frozen EV2 contract by digest. It is a proposal carried in the
+   record, not a replacement. **The frozen `carbon.battery.exam.v1` (OD-2)
+   remains the deciding rule** until the proposal's own approval changes
+   that. The proposal is not in `exam.RULES`, so no deployment can select
+   it, and a test holds that.
+2. **B2: historical evidence keeps its meaning** (invariant 10). No result is
+   rescored or reinterpreted, and the EV1 and EV2 evidence files are
+   unchanged.
+3. **B3: both rankings are reported from here on,** side by side, with both
+   halves of the evidence on every row (`report.two_rankings`). The proposed
+   rule ranks real models at τ 0.202 against the deciding rule's 0.298
+   (verification), and it catches the boundary-optimist control where the
+   deciding rule ranks it at or above all 14 members. Basis:
+   `docs/development/evidence/ev2-2026-10-01/results.json`.
+4. **B4: what would settle it** is EV4, set out in
+   `docs/development/BATTERY_DECISION_AWARE_PROPOSAL.md`: a panel of about
+   60 deliberately diverse real models, fresh verification conditions near
+   the limits, a paired τ difference with a bootstrap interval, and a count
+   of real-model false acceptances. About 560 to 840 solves on local CPU at
+   USD 0, and several days of host time. **Not run without approval.**
+5. **B5: not exam qualification.** Exploratory engineering evidence. MQ-008 is
+   untouched, and whether the exam is adequate remains open.

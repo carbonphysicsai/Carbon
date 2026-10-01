@@ -11,6 +11,62 @@ def _f(value, digits=3):
     return f"{value:.{digits}f}"
 
 
+def two_rankings(results):
+    """The deciding rule and the proposed rule, side by side.
+
+    OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01: every report from here on shows
+    both rankings with both halves of the evidence on the same row, and
+    neither leads. Empty when a result does not carry both rules.
+    """
+    from .proposal import DECIDING_RULE, PROFILE_ID
+
+    deciding, proposed = DECIDING_RULE["value_rule_id"], PROFILE_ID
+    comparison = results.get("comparison", {})
+    if deciding not in comparison or proposed not in comparison:
+        return []
+    check = results["summary"].get("boundary_optimist_check") or {}
+
+    def optimist(rule):
+        row = check.get(rule)
+        if not row:
+            return "not measured"
+        return (
+            f"{row['members_scored_below_it']} of {row['eligible_members']} members "
+            f"at or below it ({'caught' if row['below_every_eligible_member'] else 'not caught'})"
+        )
+
+    def row(label, rule):
+        c = comparison[rule]
+        return (
+            f"| {label} `{rule}` | {_f(c['tau_verification'])} "
+            f"| {_f(c['tau_development'])} | {optimist(rule)} |"
+        )
+
+    return [
+        "",
+        "## The deciding rule and the proposed rule, side by side",
+        "",
+        (
+            "The deciding rule is the frozen exam rule. The proposed rule is a "
+            "prospective proposal and decides nothing until its own approval. "
+            "Read both columns: ranking real models and catching optimism at the "
+            "safety limits are separate questions, and a rule can win one and "
+            "lose the other."
+        ),
+        "",
+        "| Rule | τ verification (ranking real models) | τ development | Boundary-optimist control |",
+        "|---|---|---|---|",
+        row("deciding", deciding),
+        row("proposed", proposed),
+        "",
+        (
+            "Basis: `comparison.<rule>.tau_verification` and "
+            "`summary.boundary_optimist_check` in this run's results. With a small "
+            "panel, τ differences are indicative only."
+        ),
+    ]
+
+
 def render(results, experiment="EV1"):
     """`experiment` titles the report: the contract's case prefix, so an EV2
     report is never headed EV1."""
@@ -39,6 +95,7 @@ def render(results, experiment="EV1"):
             f"scenarios: chosen rule {_f(summary['chosen_rule_tau_verification'])}, "
             f"control {_f(summary['control_tau_verification'])}"
         ),
+        *two_rankings(results),
         "",
         "## Reference outcomes per scenario",
         "",

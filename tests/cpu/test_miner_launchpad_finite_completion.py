@@ -55,11 +55,7 @@ def setup_campaign(tmp_path, monkeypatch, epochs):
     if admission is not None:
         meter.generation = CampaignControl(meter).acquire()
     private = tmp_path / "private-fixture"
-    private.write_bytes(
-        canonical(
-            {"netuid": 567, "hotkey": "fixture-miner", "key_file": "unused-fixture"}
-        )
-    )
+    private.write_bytes(canonical({"netuid": 567, "hotkey": "fixture-miner"}))
     private.chmod(0o600)
     args = SimpleNamespace(
         root=root,
@@ -71,7 +67,6 @@ def setup_campaign(tmp_path, monkeypatch, epochs):
         api_key_file=private,
         operator_config=private,
         miner_public=private,
-        miner_password_file=private,
     )
     closed = []
     monkeypatch.setattr(campaign, "accepted_implementation", lambda _: "fixture")
@@ -98,7 +93,7 @@ def setup_campaign(tmp_path, monkeypatch, epochs):
             netuid=567, context=None, publisher_hotkey="fixture-publisher"
         ),
     )
-    monkeypatch.setattr(campaign, "open_external_hotkey", lambda *_: None)
+    monkeypatch.setattr(campaign, "miner_signer", lambda *_: None)
     monkeypatch.setattr(
         campaign,
         "LocalMinerConnection",
