@@ -93,6 +93,66 @@ hash on chain, validators fetch the artifact from a store".
   proxied deployment terminates TLS in the intake (`tls_cert`/`tls_key`) or
   needs a trusted-proxy header rule first.
 
+## Security status: implemented, NOT SECURITY_QUALIFIED
+
+The intake is implemented and tested. It is **not SECURITY_QUALIFIED**, and
+merging it authorizes no exposure. A public listener is AGENTS §13 work:
+untrusted input, authentication and reachability. OD-3 as recorded approves
+a security review of two images, the GPU validator reconstruction image and
+the PyBaMM truth image. It does not cover a listener. The OD-7(b) row's
+phrase "covered by the OD-3 security review" is therefore not read as
+covering this intake. Exposure needs its own record, which the listener
+checks for by name.
+
+**Limits before authentication, held by tests.** Every request goes through
+the peer's token bucket, then the global in-flight cap. Only then is a body
+read, a message parsed or a signature checked.
+`test_limits_apply_before_authentication` sends a validly signed submission
+over each limit and asserts that the real verifier, wrapped in a counter, was
+never called. Its specimen is the same signed request from a fresh peer,
+which is verified and received.
+`test_over_http_a_limited_request_has_no_body_read` holds the same ordering
+over a real socket. Both tests fail when the limits are moved after the route.
+
+**For the security review to examine** (known, not fixed here):
+- `ThreadingHTTPServer` starts one thread per accepted connection before any
+  limit applies. A slow client holds its thread for up to the 10 s socket
+  timeout, so the number of connections is bounded by the operating system,
+  not by the intake.
+- The bucket table is cleared when it exceeds 4,096 peers. A party with many
+  source addresses can reset every peer's bucket.
+- Behind a proxy every request has one peer (above).
+- The listener runs on the host that holds the validator's private root, seed
+  journal, pool state and service key (next section).
+
+## What the intake changes for a remote miner, and what it does not
+
+**Today.** A battery submission is signed and evaluated in-process on the
+host that holds the validator's private root, the seed journal, the pool
+state and the service key (`campaign.py` through `deployment`). A miner on
+another machine has no way to submit.
+
+**What the intake changes.** The signature moves to the miner. A miner's own
+tooling signs a `btauth/1` request bound to this validator's hotkey, and the
+intake authenticates it against an observed metagraph snapshot, journals it
+against replay, and answers with a submission id. The private root, seed
+journal, pool state and service key never leave the host, and nothing in an
+answer carries them. Status is allow-listed and readable only by the
+submitting hotkey.
+
+**What it does not change.**
+- **Evaluation still runs on the same host**, under the same single daemon
+  and lock. The intake carries submissions to it and adds no isolation
+  between the listener and that private state. Exposing it puts an
+  internet-reachable parser on that host, which is why the exposure is a
+  security decision.
+- **A listener without a client transport still leaves a miner unable to
+  submit.** `intake_client` builds the bytes, but nothing a miner runs uses
+  it yet. The Launchpad seam is still open (above). Until it lands, and until
+  the exposure is recorded, a remote miner cannot submit.
+- It binds no submission across validators. That is OD-7(a)'s commitment, at
+  mainnet.
+
 **The problem.** The owner's goal is: "I want to go to launchpad from the
 website and set up an agent to run on testnet in the control center. I want
 this experience for all future miners." Today that journey works **only on

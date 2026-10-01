@@ -16480,4 +16480,11 @@ the mainnet switch".
   security review decision**, recorded as its own exposure record, which the
   listener checks for by name. Nothing in this record is that decision.
 - The intake is security-sensitive (AGENTS §13) and NOT SECURITY_QUALIFIED.
+  Merging it authorizes no exposure.
+- **Seam with OD-3.** The OD-7(b) row says the intake is "covered by the OD-3
+  security review", but OD-3 as recorded approves a review of two images (the
+  GPU validator reconstruction image and the PyBaMM truth image), not a public
+  listener. Classified `NEW_OWNER_DECISION_REQUIRED` for exposure only. The
+  intake's own §4 review is still needed, and it is the exposure record above.
+  Building and merging the loopback-only listener can proceed.
 - No chain write, no commitment, no spend, testnet 567 only.

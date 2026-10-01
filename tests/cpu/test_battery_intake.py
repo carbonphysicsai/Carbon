@@ -223,15 +223,77 @@ def test_the_refresher_is_the_only_chain_reader():
     assert window.latest().finalized_block == 200
 
 
+class Counting:
+    """The real verifier, counting every signature it is asked to check."""
+
+    def __init__(self):
+        self.real, self.calls = BittensorHotkeyVerifier(), 0
+
+    def verify(self, *args, **kwargs):
+        self.calls += 1
+        return self.real.verify(*args, **kwargs)
+
+
 def test_limits_apply_before_authentication(deployed):
+    """A validly signed request over a limit never reaches the verifier.
+
+    The specimen is the same signed request on a fresh peer: it does reach
+    the verifier and is received, so a zero count over the limit is the limit
+    acting, not a request that could never have been verified.
+    """
     intake, _ = deployed
-    answers = [
-        intake.handle("POST", "/carbon/v1/mcp", {}, b"not a message", "203.0.113.9")
-        for _ in range(ib.PEER_BURST + 1)
-    ]
-    assert [a.status for a in answers[:-1]] == [400] * ib.PEER_BURST
-    assert answers[-1].body == {"refused": "rate"}
+    intake.verifier = Counting()
+    peer = "203.0.113.9"
+    for _ in range(ib.PEER_BURST):
+        assert intake.handle("POST", ib.PATH, {}, b"junk", peer).status == 400
+    assert intake.verifier.calls == 0
+    body = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="lim")
+    headers = signed(MINER, body)
+    over = intake.handle("POST", ib.PATH, headers, body, peer)
+    assert over.body == {"refused": "rate"}
+    assert intake.verifier.calls == 0
+    # The in-flight cap, also before the verifier: hold every slot.
+    held = [intake.limits._flight.acquire(blocking=False) for _ in range(ib.IN_FLIGHT)]
+    assert all(held)
+    try:
+        busy = intake.handle("POST", ib.PATH, headers, body, "203.0.113.11")
+        assert busy.body == {"refused": "capacity"}
+        assert intake.verifier.calls == 0
+    finally:
+        for _ in held:
+            intake.limits._flight.release()
+    # The specimen: the same signed request on a fresh peer is verified.
+    fresh = intake.handle("POST", ib.PATH, headers, body, "203.0.113.12")
+    assert (fresh.status, fresh.body["state"]) == (202, "RECEIVED")
+    assert intake.verifier.calls == 1
     assert intake.handle("GET", "/other", {}, b"", "203.0.113.10").status == 404
+
+
+def test_over_http_a_limited_request_has_no_body_read(deployed):
+    """Over the socket, the bucket refuses before the body is read."""
+    intake, _ = deployed
+    reads = []
+    real = ib.BatteryIntake.route
+
+    def route(self, *args):
+        reads.append(args)
+        return real(self, *args)
+
+    intake.route = route.__get__(intake)
+    intake.limits.burst = 0
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), ib._handler(intake))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{httpd.server_address[1]}"
+    try:
+        status, answer = ic.post(url, b"{}", {})
+        assert (status, answer) == (429, {"refused": "rate"})
+        assert reads == []
+        intake.limits = ib.PeerLimits()
+        status, _ = ic.post(url, b"{}", {})
+        assert status == 400 and len(reads) == 1  # the specimen
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
 
 
 def test_a_stale_window_answers_unavailable_not_a_refusal(deployed):

@@ -439,16 +439,27 @@ class BatteryIntake:
 
     def handle(self, method, path, headers, body, peer):
         """One request in, one `Answer` out. Never raises for a miner input."""
+        return self.limited(peer, lambda: self.route(method, path, headers, body))
+
+    def limited(self, peer, then):
+        """The peer's bucket, then the in-flight cap, then `then()`.
+
+        Nothing reads a body, parses a message or checks a signature before
+        both limits have admitted the request.
+        """
         if not self.limits.allow(peer):
             return _refused(429, "rate")
         with self.limits.in_flight() as admitted:
             if not admitted:
                 return _refused(503, "capacity")
-            if method == "GET" and path == INFO_PATH:
-                return self.public()
-            if method != "POST" or path != PATH:
-                return _refused(404, "not_found")
-            return asyncio.run(self._post(headers, body))
+            return then()
+
+    def route(self, method, path, headers, body):
+        if method == "GET" and path == INFO_PATH:
+            return self.public()
+        if method != "POST" or path != PATH:
+            return _refused(404, "not_found")
+        return asyncio.run(self._post(headers, body))
 
     async def _post(self, headers, body):
         from carbon.chain.auth import AuthFailure
@@ -584,18 +595,25 @@ def _handler(intake):
             self.wfile.write(payload)
 
         def _dispatch(self, method):
-            body = b""
+            # The declared length is checked and the limits applied before a
+            # single body byte is read.
+            length = "0"
             if method == "POST":
                 length = self.headers.get("Content-Length")
                 if length is None or not length.isdigit() or int(length) > MAX_BODY:
                     return self._answer(_refused(413, "body"))
-                body = self.rfile.read(int(length))
+            self._answer(
+                intake.limited(
+                    self.client_address[0], lambda: self._route(method, length)
+                )
+            )
+
+        def _route(self, method, length):
+            body = self.rfile.read(int(length)) if method == "POST" else b""
             headers = {k: v for k, v in self.headers.items()}
             if len(headers) != len(self.headers.items()):
-                return self._answer(_refused(400, "headers"))
-            self._answer(
-                intake.handle(method, self.path, headers, body, self.client_address[0])
-            )
+                return _refused(400, "headers")
+            return intake.route(method, self.path, headers, body)
 
         def do_GET(self):
             self._dispatch("GET")
