@@ -422,3 +422,59 @@ test("the release candidate's recorded asset digests match the files actually sh
   assert.match(recorded.integrated_index_sha256, /^[0-9a-f]{64}$/);
   assert.match(recorded.bundle_identity_sha256, /^[0-9a-f]{64}$/);
 });
+
+// --- declared site replacements ---------------------------------------------
+
+const withReplacement = async (fixture, { path = "workbench/index.html", contents = "<html><body>moved</body></html>", declaredSha = null, source = "site/replacement.html" } = {}) => {
+  await writeFixture(fixture.root, "site/replacement.html", contents);
+  const file = join(fixture.root, "site-replacements.json");
+  await writeFile(file, JSON.stringify({ replacements: [{ path, source, sha256: declaredSha ?? sha256(Buffer.from(contents)), reason: "fixture: retired page" }] }));
+  return file;
+};
+
+test("a declared replacement is published in place of its baseline path, and everything else is preserved", async () => {
+  const fixture = await buildBaseline();
+  const replacements = await withReplacement(fixture);
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--site-replacements", replacements, "--require-complete-bundle"]));
+  assert.equal(result.code, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.deployable_to_carbonwebsite, true);
+  assert.deepEqual(report.site_replacements.map((item) => item.path), ["workbench/index.html"]);
+  assert.equal(await readFile(join(fixture.root, "fresh", "workbench/index.html"), "utf8"), "<html><body>moved</body></html>");
+  for (const asset of fixture.assets.filter((item) => !["index.html", "workbench/index.html"].includes(item.path))) {
+    assert.equal(sha256(await readFile(join(fixture.root, "fresh", asset.path))), asset.sha256, asset.path);
+  }
+  // Specimen: without the declaration the same build publishes the baseline page.
+  const plainOutput = join(fixture.root, "plain", "index.html");
+  const plain = await runCli(productionArgs(fixture, plainOutput, ["--require-complete-bundle"]));
+  assert.equal(plain.code, 0, plain.stderr);
+  assert.equal(await readFile(join(fixture.root, "plain", "workbench/index.html"), "utf8"), "<html><head></head><body>workbench</body></html>");
+});
+
+test("a replacement whose bytes differ from its declared digest refuses and writes nothing", async () => {
+  const fixture = await buildBaseline();
+  const replacements = await withReplacement(fixture, { declaredSha: "0".repeat(64) });
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--site-replacements", replacements, "--require-complete-bundle"]));
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /not the declared 0{64}/);
+  await assert.rejects(readFile(output), /ENOENT/);
+});
+
+test("a replacement cannot add a path, touch the homepage or the Ask Carbon assets, or read outside its directory", async () => {
+  for (const [options, message] of [
+    [{ path: "workbench/new-page.html" }, /cannot add a path/],
+    [{ path: "index.html" }, /integrated homepage or the Ask Carbon assets/],
+    [{ source: "../outside.html" }, /must be inside/],
+  ]) {
+    const fixture = await buildBaseline();
+    await writeFixture(fixture.root, "../outside.html", "x");
+    const replacements = await withReplacement(fixture, options);
+    const output = join(fixture.root, "fresh", "index.html");
+    const result = await runCli(productionArgs(fixture, output, ["--site-replacements", replacements, "--require-complete-bundle"]));
+    assert.notEqual(result.code, 0, JSON.stringify(options));
+    assert.match(result.stderr, message);
+    await assert.rejects(readFile(output), /ENOENT/);
+  }
+});

@@ -54,6 +54,11 @@ GENERATOR_OUTPUTS: tuple[tuple[str, tuple[str, ...]], ...] = (
         (
             "data/goal_workspace.schema.json",
             "data/goal_constants.json",
+            "data/intake_draft.schema.json",
+            "data/intake_reviewed.schema.json",
+            "data/intake_draft_v2.schema.json",
+            "data/intake_reviewed_v2.schema.json",
+            "data/problem_enums.json",
         ),
     ),
     (
