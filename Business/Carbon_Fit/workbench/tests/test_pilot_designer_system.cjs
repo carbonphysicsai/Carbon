@@ -263,3 +263,54 @@ test("every element ID in the built Pilot Designer is unique", () => {
   assert.ok(found.length > 50);
   assert.deepEqual(duplicates(found), []);
 });
+
+// The test above reads the built page, which holds only the markup the template
+// ships. The live /workbench/ defect was made at run time: assist-ui.js created
+// `#assistant`, `#send-brief`, `#ai-notice`, `#intake-notice` and `#ai-review`,
+// which its index.html already held. So the template (src/intake_shell.html)
+// owns every ID it declares, and no script the page runs may emit one of them,
+// whether as a literal ID or as the prefix of a computed one.
+test("no script the Pilot Designer runs emits an ID the template owns", () => {
+  const SCRIPTS = {
+    PROBLEM_LEGACY: "src/problem/cooling-v02.js",
+    PROBLEM_ENGINE: "src/problem/engine.js",
+    INTAKE: "src/intake.js",
+    INTAKE_SEAL: "src/intake_seal.js",
+    SYSTEM_BUILDER: "src/system_builder.js",
+    CHALLENGE_PROPOSAL: "src/challenge_proposal.js",
+    APP: "src/intake_app.js",
+  };
+  // An ID a script writes: id="x" or id='x' in markup it builds (a ${...} ends
+  // a prefix), `.id = "x"` (a following + makes it a prefix), and
+  // setAttribute("id", "x").
+  const emitted = (source) => {
+    const out = [];
+    for (const m of source.matchAll(/\bid=\\?["']([^"'\\$]*)(\$\{)?[^"'\\]*\\?["']/g)) out.push({ id: m[1], prefix: Boolean(m[2]) });
+    for (const m of source.matchAll(/\.id\s*=\s*(["'`])([^"'`$]*)(\$\{)?[^"'`]*\1\s*(\+)?/g)) out.push({ id: m[2], prefix: Boolean(m[3] || m[4]) });
+    for (const m of source.matchAll(/setAttribute\(\s*["']id["']\s*,\s*(["'`])([^"'`$]*)(\$\{)?[^"'`]*\1\s*(\+)?/g)) out.push({ id: m[2], prefix: Boolean(m[3] || m[4]) });
+    return out;
+  };
+  const owned = (shell) => [...shell.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, (s) => s.replace(/>[\s\S]*<\/script>/, "></script>")).matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const collisions = (shell, sources) => {
+    const ids = owned(shell);
+    return [...new Set(sources.flatMap(emitted).flatMap(({ id, prefix }) =>
+      ids.filter((own) => (prefix ? id !== "" && own.startsWith(id) : own === id))))].sort();
+  };
+  // Specimen: the live /workbench/ pattern, its template holding the panel and
+  // its script creating the panel again (assist-ui.js lines 11-16), is caught.
+  assert.deepEqual(
+    collisions('<section id="assistant"><p id="ai-notice"></p></section><div id="ai-limit-1"></div>', [
+      "const shell=document.createElement('section');shell.id='assistant';shell.innerHTML=`<p id=\"ai-notice\" class=\"note\"></p>`;",
+      'note.id = "ai-limit-" + type;',
+    ]),
+    ["ai-limit-1", "ai-notice", "assistant"],
+  );
+  const shell = fs.readFileSync(path.join(ROOT, "src/intake_shell.html"), "utf8");
+  // Every script the template loads is one this test reads.
+  const loaded = [...shell.matchAll(/<script>\{\{([A-Z_]+)\}\}<\/script>/g)].map((m) => m[1]).sort();
+  assert.deepEqual(loaded, Object.keys(SCRIPTS).sort());
+  assert.ok(owned(shell).length > 50);
+  const sources = Object.values(SCRIPTS).map((file) => fs.readFileSync(path.join(ROOT, file), "utf8"));
+  assert.ok(sources.flatMap(emitted).length > 5);
+  assert.deepEqual(collisions(shell, sources), []);
+});
