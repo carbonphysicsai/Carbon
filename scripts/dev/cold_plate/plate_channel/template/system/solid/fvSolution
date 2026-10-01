@@ -8,10 +8,10 @@ FoamFile
 
 solvers
 {
-    h { solver PCG; preconditioner DIC; tolerance 1e-11; relTol 0.01; }
+    h { solver PCG; preconditioner DIC; tolerance 1e-11; relTol 0; }
 }
 SIMPLE
 {
     nNonOrthogonalCorrectors 0;
 }
-relaxationFactors { equations { h 0.9; } }
+relaxationFactors { equations { h 1.0; } }

@@ -22,6 +22,7 @@ docker run --rm --network none --cpus 2 --user "$(id -u):$(id -g)" \
     for r in fluid solid; do changeDictionary -region $r > log.changeDictionary.$r 2>&1; done
     chtMultiRegionSimpleFoam > log.chtMultiRegionSimpleFoam 2>&1
     for r in fluid solid; do postProcess -region $r -func writeCellCentres > log.cellCentres.$r 2>&1; done
+    for r in fluid solid; do postProcess -region $r -func writeCellVolumes > log.cellVolumes.$r 2>&1; done
     foamListTimes > times
   '
 echo "{\"wall_s\": $(( $(date +%s) - start )), \"image\": \"$IMAGE\"}" > "$out/run.json"

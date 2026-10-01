@@ -141,3 +141,381 @@ Under refinement, where there is no closed form:
    Rung 5 uses these instead of the verification properties.
 4. **Then the #342 pilot:** 8 ordinary and 4 difficult cases with paired
    refinement, priced for owner approval before it runs.
+
+---
+
+# Rung 5: the same cell at the design point
+
+**What changed from rung 4.**
+
+1. **Named property sets.** `generate.py --properties design` uses the
+   provisional design basis (`../DESIGN_BASIS.md`):
+   - PG25 at 40 °C (CoolProp 6.8.0, `INCOMP::MPG[0.25]`) on copper C11000;
+   - 1 kW over a 30 × 30 mm footprint;
+   - 1.5 L/min per kW through 50 channels of 0.3 × 2 mm;
+   - so U = 0.833 m/s, q = 1.11 MW/m², Re ≈ 325 and Pr = 11.05.
+
+   `--properties verification` (the default) is rung 4's set. Its generated
+   dictionaries differ from rung 4's only in number formatting (for example
+   `1000` against `1000.0`).
+2. **Energy converges in far fewer iterations.** Two solver settings
+   changed:
+   - the solid enthalpy solve runs to its absolute tolerance (`relTol 0`);
+   - enthalpy is not under-relaxed (`h 1.0`, in both regions).
+
+   With rung 4's settings, copper's high conductivity left the energy balance
+   95 % open after 400 iterations. With these, it closes within 200.
+   - **Checked on rung 4's own case:** rung 4's coarse case, rerun under the
+     new settings, reproduces every reported quantity to the printed digit.
+   - Its complete energy balance tightens from −4.5e-10 to +1.4e-9.
+3. **The analyzer reads its properties from `case.json`.** A rung-4 case
+   directory has no property set recorded, and is read as `verification`.
+
+**The case.** The geometry is `--length 30 --channel-width 0.3 --fin-width
+0.3 --channel-height 2 --base-thickness 1 --lid-thickness 0.5`. The runs
+were 2,000 iterations at resolution 1 and 4,000 at resolution 2.
+
+## Result (2026-09-29, this host)
+
+Both runs are iteration-converged: the half-way and final writes agree to
+the printed digit.
+
+| Resolution (cells) | Wall | Mass imbalance | Energy balance, complete | dp/dx (exact 166,029 Pa/m) | dp/dx error |
+|---|---|---|---|---|---|
+| 1 (9,000) | 21 s | −9e-10 | −1.1e-7 | 157,713 Pa/m | −5.01 % |
+| 2 (72,000) | 442 s | +1e-10 | −1.6e-8 | 163,272 Pa/m | −1.66 % |
+| 3 (243,000) | 2,757 s | +5e-11 | −1.3e-9 | 164,716 Pa/m | −0.79 % |
+
+| Quantity, no closed form | r = 1 | r = 2 | r = 3 |
+|---|---|---|---|
+| Peak heated-face temperature, last cell column | 350.801 K | 350.871 K | 351.063 K |
+| Mean heated-face temperature | 344.188 K | 343.865 K | 343.895 K |
+| Outlet bulk temperature | 323.1299 K | 323.1297 K | 323.1295 K |
+| Pressure drop, 30 mm | 4,972 Pa | 5,188 Pa | 5,249 Pa |
+
+**Conservation.**
+- **Mass and energy are conserved to round-off** on both meshes.
+- **The coolant rise is 9.98 K,** which is exactly Q/(ṁ·c_p) for 10 W per
+  half-cell. This matches OCP's 10 °C design rule at 1.5 L/min per kW.
+
+**The pressure gradient converges toward second order; the coarse mesh is
+pre-asymptotic.** Each error is measured against the exact duct series, so
+every pair of meshes gives an order directly.
+- Error: −5.01 %, then −1.66 %, then −0.79 %.
+- Observed order: **1.59** from r = 1 to 2, and **1.83** from r = 2 to 3.
+- The order is approaching the scheme's second order. The coarse mesh has 5
+  cells across a 0.15 mm half-channel.
+
+**Temperatures.** The mean and the outlet converge. The local base
+temperatures do not.
+- **The mean** base temperature changes by −0.32 K from r = 1 to 2, then by
+  +0.03 K from r = 2 to 3. **It converges.**
+- **The outlet bulk temperature is converged** to 0.4 mK.
+- **The local base temperatures are not mesh-converged.**
+  - The peak rises by +0.07 K from r = 1 to 2, then by +0.19 K from r = 2
+    to 3.
+  - Measured on the heated patch's own face temperatures, the maximum
+    restricted to x ≤ 0.9 L goes 350.312 → 350.399 → 350.599 K (+0.09, then
+    +0.20). The increment does not shrink.
+    *(Corrected: an earlier version quoted 0.2-0.25 K from raw cell-centre
+    values. Those omit the half-cell flux correction, which shrinks with
+    refinement.)*
+  - **This is not a measurement artefact.** The heated patch's own face
+    temperatures, written by the solver, agree with the analyzer's
+    extrapolated values to 0.1 mK.
+  - **Not the plate-end corner** either: the non-convergence appears away
+    from the end.
+  - **Hypothesis, untested:** at Pr = 11, the thermal boundary layer is thin
+    and still developing over the whole 30 mm plate, since the thermal entry
+    length is about 90 mm. Uniform meshes of 5-15 cells across the 0.15 mm
+    half-channel may not resolve it.
+  - **No local or peak temperature here is claimed as converged.**
+
+**The die temperature, under the design basis's interface assumption.** The
+nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. **This offset is exact.** A
+die temperature built on the peak inherits the lack of convergence in the local
+base temperatures: it is about 83 °C at a 40 °C inlet on these meshes.
+- This is a derived number, not a design verdict.
+- No temperature limit is set here.
+
+**Cost.** 21 s, 442 s and 2,757 s of wall time on local CPU, capped at two
+CPUs. No pod was used.
+
+## Next
+
+1. **Resolve the thermal boundary layer.** Done in rung 5b (below): with
+   wall grading, the local base temperatures converge.
+2. **The straight-channel family sweep,** within the design basis's ranges:
+   - channel width, fin width and depth;
+   - flow, from 1.25 to 2.0 L/min per kW;
+   - inlet temperature, from 30 to 45 °C;
+   - preserving every failed geometry.
+3. **Temperature-dependent viscosity.** It falls about 40 % between 30 and
+   50 °C, so whether the reference needs it is a reference-qualification
+   question. The sweep can measure its effect.
+4. **Serpentine channels and a whole plate with headers.**
+
+
+---
+
+# Rung 5b: wall-graded meshes at the design point
+
+**The change.** `generate.py --wall-grading G` makes cells shrink by up to a
+factor G toward every solid-fluid wall:
+- in y, toward the channel wall, per column;
+- in z, toward the channel floor and ceiling, per row.
+
+Blocks that share edges get the same grading. `G = 1`, the default, is the
+uniform mesh of rungs 4 and 5.
+
+**The analyzer now weights each cell by its volume** when the case writes
+`V`. `run_case.sh` now does. Axial spacing is uniform, so a cell's volume is
+proportional to its cross-section face. This applies to:
+- the section-averaged pressure;
+- the inlet conduction;
+- the outlet kinetic-energy flux;
+- the mean heated-face temperature.
+
+A uniform r = 1 case that writes `V` reproduces rung 5's unweighted r = 1
+values to round-off.
+
+**The run.** It is the design point of rung 5, with `--wall-grading 4`.
+`checkMesh` reports every mesh OK, fully orthogonal, maximum aspect ratio
+45.
+
+## Result (2026-09-29, this host)
+
+All three meshes are iteration-converged.
+
+| Resolution (cells) | Wall | Mass imbalance | Energy balance, complete | dp/dx error | Peak heated face | Mean heated face | Pressure drop |
+|---|---|---|---|---|---|---|---|
+| 1 (9,000) | 17 s | +1.2e-8 | +7.2e-8 | −4.25 % | 351.572 K | 344.304 K | 5,068 Pa |
+| 2 (72,000) | 315 s | +5e-10 | −1.1e-8 | −1.09 % | 351.295 K | 343.983 K | 5,243 Pa |
+| 3 (243,000) | 2,031 s | −2e-10 | −1.1e-9 | −0.48 % | 351.263 K | 343.940 K | 5,280 Pa |
+
+**The pressure gradient converges at second order:** an observed order of
+1.96, then 2.03. The uniform meshes gave 1.59 and 1.83.
+
+**The local base temperatures now converge,** measured on the solver's face
+temperatures:
+
+| Heated-face maximum | Uniform, r = 1 → 2 → 3 | Graded G = 4, r = 1 → 2 → 3 |
+|---|---|---|
+| x ≤ 0.5 L | 344.867 → 344.729 → 344.839 | 345.176 → 344.974 → 344.963 |
+| x ≤ 0.9 L | 350.312 → 350.399 → 350.599 | 351.048 → 350.814 → 350.796 |
+| whole face | 350.801 → 350.871 → 351.063 | 351.572 → 351.295 → 351.263 |
+
+**What this shows.**
+- **On graded meshes, every local maximum converges monotonically,** and
+  the step shrinks, from about 0.2-0.3 K to about 0.01-0.03 K.
+- **The finest uniform mesh underestimates the peak by about 0.2 K.**
+- **This supports the hypothesis:** the uniform meshes under-resolved the
+  thermal boundary layer at Pr 11. It does not prove it.
+
+**The design-point peak.**
+- **Measured: 351.26 K (78.1 °C)** on the finest graded mesh. The last
+  refinement step changed it by 0.03 K.
+- **Extrapolated: about 351.24 K,** assuming p = 2 from the pressure order.
+  This is an estimate, not a bound.
+- **The die temperature**, with the design basis's R″ = 0.05 cm²·K/W
+  (+5.56 K, exact), is **about 356.8 K (83.6 °C) at a 40 °C inlet.** That is
+  a derived number, not a design verdict. No temperature limit is set.
+
+**Cost:** 17 s, 315 s and 2,031 s on local CPU, capped at two CPUs.
+
+## Next
+
+1. **Use graded meshes (G = 4, r ≥ 2) for the straight-channel family
+   sweep** within the design basis's ranges. Preserve every failed geometry.
+2. **Temperature-dependent viscosity.** Measure its effect on the converged
+   peak.
+3. **Serpentine channels and a whole plate with headers.**
+
+
+---
+
+# Rung 6: the straight-channel family, one factor at a time
+
+**What it is.** A first look at how the design basis's straight-channel
+parameters move the answers. It varies one factor at a time around the
+nominal design point.
+- It is **not** a design optimization, a population or a dataset.
+- It sets no threshold, and ranks nothing as acceptable.
+
+**The change.** `generate.py --flow-lpm-per-kw F` (design set only) derives
+the inlet velocity:
+- the plate's flow (1 kW × F) is shared equally by the ⌊30 mm / (channel +
+  fin)⌋ channel periods that fit across the footprint;
+- the nominal geometry reproduces the fixed design-set velocity (0.833 m/s,
+  50 channels);
+- `case.json` records the flow and the channel count.
+
+**How every case ran:**
+- resolution 2, `--wall-grading 4`, 4,000 iterations;
+- 30 mm plate, 1 mm base, 0.5 mm lid;
+- PG25 at 40 °C on copper C11000.
+
+**Why resolution 2 is enough here.** Rung 5b measured the nominal case from
+r = 2 to r = 3: the peak changed by 0.03 K and the pressure-gradient error
+by 0.6 points (−1.09 % to −0.48 %).
+
+## Result (2026-09-29, this host)
+
+**All nine cases ran; none failed.**
+- Mass and energy are conserved to about 1e-8 or better.
+- The peak is iteration-converged to about 1e-7 K.
+- Each case took 294-354 s on local CPU, capped at two CPUs.
+
+**The columns.**
+- **Peak and mean** are measured on the heated face.
+- **The rise** is outlet bulk minus inlet.
+- **Δp** is over the 30 mm of channel, with no headers.
+- **Hydraulic power** is Δp × the plate's total flow.
+
+| Case | Channels | U (m/s) | Re | Peak base (K) | Mean base (K) | Coolant rise (K) | Δp (Pa) | Hydraulic power (W) |
+|---|---|---|---|---|---|---|---|---|
+{table}
+
+**What the sweep shows,** within this model, one factor at a time:
+- **Narrower channels** (0.2 mm): **9.7 K cooler** peak than nominal, at
+  **2.7×** the pressure drop.
+- **Wider channels** (0.5 mm): **18.6 K hotter**, at about a third of the
+  pressure drop.
+- **Thinner fins** (0.2 mm) are cooler *and* lower in pressure drop than
+  nominal. More channels fit, so each carries less flow.
+- **Thicker fins** (0.5 mm) are hotter *and* higher in pressure drop.
+- **Deeper channels** (3 mm) are cooler at lower pressure drop.
+- **Shallower channels** (1 mm) are hotter at 2.4× the pressure drop.
+- **More flow** lowers the peak and the rise, and raises Δp roughly in
+  proportion to the flow.
+- **Every case is laminar:** Re 226-574. The design basis's laminar check is
+  borne out at these points.
+
+**The coolant rise.** It is exactly Q/(ṁ·c_p) when the channel period
+divides 30 mm (9.98 K at 1.5 L/min per kW).
+- It is 9.81-9.85 K where it does not: for example, 59 × 0.5 mm covers
+  29.5 mm, and 9.98 × 29.5/30 = 9.81 K.
+- This is the periodic-cell model: the heated area it represents is the
+  channels' span. It is not a numerical error.
+
+**What this rung does not cover:**
+- **Interactions between factors.** Each case changes one.
+- **Inlet temperature.** The design basis tabulates properties at 30, 40 and
+  50 °C only; the 45 °C end is not evaluated here.
+- **Headers, manifolds, serpentines, spreading at the plate edges, and
+  non-uniform heat maps.**
+- **Temperature-dependent viscosity.**
+- **The TIM,** which adds a uniform 5.56 K at the nominal R″.
+
+## Next
+
+1. **Two-factor interactions** where the one-factor results trade against
+   each other: channel width against depth, and fin width against flow.
+2. **Temperature-dependent viscosity,** and the inlet-temperature axis, once
+   properties at 45 °C are recorded in the design basis.
+3. **Serpentine channels and a whole plate with headers.**
+4. **The #342 pilot proposal,** priced for owner approval before it runs.
+
+
+---
+
+# Rung 6b: two-factor interactions
+
+**What it is.** Rung 6 found trade-offs between factors, so this rung asks
+whether pairs of them interact. Each pair is run at the corners of a 2 × 2
+grid, with the nominal case (rung 6) at its centre:
+- channel width {0.2, 0.5} mm × depth {1, 3} mm, with 0.3 mm fins and
+  1.5 L/min per kW;
+- fin width {0.2, 0.5} mm × flow {1.25, 2.0} L/min per kW, with 0.3 × 2 mm
+  channels.
+
+Everything else is as in rung 6: r = 2, `--wall-grading 4`, 4,000
+iterations, the design set.
+
+## Result (2026-09-29, this host)
+
+**All eight cases ran; none failed.**
+- Mass and energy are conserved to about 5e-8 or better.
+- Each case took 170-339 s on local CPU.
+
+| Case | Channels | Re | Peak base (K) | Mean base (K) | Δp (Pa) | dp/dx against the exact duct |
+|---|---|---|---|---|---|---|
+| nominal (0.3 / 0.3 / 2 mm, 1.5 L/min/kW) | 50 | 325 | 351.29 (78.1 °C) | 343.98 | 5,243 | -1.09 % |
+| width 0.2 mm, depth 1 mm | 59 | 527 | 350.63 (77.5 °C) | 342.77 | 31,404 | -1.01 % |
+| width 0.2 mm, depth 3 mm | 59 | 198 | 338.85 (65.7 °C) | 334.02 | 9,056 | -1.32 % |
+| width 0.5 mm, depth 1 mm | 37 | 672 | 383.82 (110.7 °C) | 369.10 | 4,984 | +2.35 % |
+| width 0.5 mm, depth 3 mm | 37 | 288 | 362.83 (89.7 °C) | 354.10 | 1,066 | -0.98 % |
+| fin 0.2 mm, 1.25 L/min/kW | 59 | 229 | 351.12 (78.0 °C) | 343.79 | 3,639 | -1.10 % |
+| fin 0.2 mm, 2.0 L/min/kW | 59 | 367 | 345.94 (72.8 °C) | 339.87 | 5,969 | -1.08 % |
+| fin 0.5 mm, 1.25 L/min/kW | 37 | 365 | 358.70 (85.5 °C) | 349.99 | 5,948 | -1.08 % |
+| fin 0.5 mm, 2.0 L/min/kW | 37 | 585 | 352.34 (79.2 °C) | 344.92 | 9,886 | -0.96 % |
+
+**The interactions,** measured on the peak base temperature:
+- **Channel width and depth interact strongly.** Widening the channel from
+  0.2 to 0.5 mm raises the peak by **33.2 K at 1 mm depth** but by **24.0 K
+  at 3 mm depth**. Depth moderates the penalty for wide channels.
+- **Fin width and flow interact weakly.** Thickening the fin from 0.2 to
+  0.5 mm raises the peak by **7.6 K at 1.25** and **6.4 K at 2.0 L/min per
+  kW**.
+
+**The pressure drop spans 1.1 kPa to 31.4 kPa** across the width × depth
+grid. The narrow, shallow corner (0.2 × 1 mm) is 6× nominal.
+
+**Where the pressure check does not apply: width 0.5 mm, depth 1 mm.**
+- Its developed-gradient error is **+2.35 %**, where every other case reads
+  about −1 %.
+- **The reason:** at Re 672 and D_h 0.67 mm, the hydrodynamic entrance
+  length is about 0.05 · Re · D_h ≈ 22 mm. That reaches into the 18-28.5 mm
+  window where "fully developed" is measured.
+- **So the exact duct comparison is not applicable to this case,** and its
+  error is not reported as a discretization error.
+- Its conservation checks hold, and it is kept, not dropped.
+
+**What this rung does not cover:** the same exclusions as rung 6.
+
+## Next
+
+1. **Temperature-dependent viscosity,** and the inlet-temperature axis, once
+   properties at 45 °C are recorded in the design basis.
+2. **Serpentine channels and a whole plate with headers.**
+3. **The #342 pilot proposal,** priced for owner approval before it runs.
+
+
+---
+
+# Rung 6c: the inlet-temperature axis
+
+**What changed.**
+- The design basis now tabulates PG25 at 35 and 45 °C. The source is the
+  same pinned CoolProp 6.8.0 model, whose 30, 40 and 50 °C rows reproduce
+  the existing table exactly.
+- `generate.py` gains `--properties design-30C` and `design-45C`.
+  - Each is the design set with the fluid and the inlet temperature at that
+    temperature.
+  - Properties are constant at the inlet temperature, as in the 40 °C set.
+- The nominal geometry is rerun at the ends of the design basis's 30-45 °C
+  range: r = 2, `--wall-grading 4`, 1.5 L/min per kW.
+
+## Result (2026-09-29, this host)
+
+**Both cases ran.** Mass and energy are conserved to about 1e-8. The
+dp/dx error is −1.1 %, as at 40 °C.
+
+| Inlet | Re | Peak − inlet | Mean base − inlet | Coolant rise | Δp |
+|---|---|---|---|---|---|
+| 30 °C | 248 | 38.51 K | 31.15 K | 9.99 K | 6,788 Pa |
+| 40 °C (rung 6 nominal) | 325 | 38.14 K | 30.83 K | 9.98 K | 5,243 Pa |
+| 45 °C | 365 | 37.98 K | 30.69 K | 9.98 K | 4,681 Pa |
+
+**The peak moves almost one-for-one with the inlet temperature.** The peak
+rise above inlet changes by only 0.5 K across 15 °C.
+
+**The pressure drop follows viscosity, as laminar flow should.** It falls by
+1.29× from 30 to 40 °C, against a viscosity ratio of 1.31.
+
+**Still constant-property.** Within one case, viscosity is held at the inlet
+value. Over the 10 K rise it would fall by about 15-25 %, most of it near
+the walls, where the fluid is hottest.
+- The next step is temperature-dependent viscosity, which OpenFOAM supports
+  with a polynomial transport model.
+- Its effect on the peak and on Δp is not measured here.

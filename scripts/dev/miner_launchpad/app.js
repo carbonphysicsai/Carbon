@@ -768,7 +768,14 @@
     const controls = document.createElement("div"); controls.className = "controls sticky-controls";
     for (const action of ["pause", "resume", "stop", "reconcile", "export"]) {
       const button = document.createElement("button"); button.type = "button"; button.textContent = action; button.dataset.action = action;
-      button.disabled = !connected || busy || (action === "resume" && !research.preflight.available) || (action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state));
+      // A disabled control says why, rather than leaving the miner to guess.
+      const reason = !connected ? "Reconnect this browser first."
+        : busy ? "Another request is in progress."
+        : action === "resume" && !research.preflight.available ? "Resume needs a configured runner profile."
+        : action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state) ? "This campaign is " + run.state + "; there is nothing left to " + action + ". Export still gives its full record."
+        : "";
+      button.disabled = Boolean(reason);
+      if (reason) button.title = reason;
       button.addEventListener("click", () => researchAction(run.id, action)); controls.append(button);
     }
     const tabs = el("nav", undefined, "tabs"); tabs.setAttribute("aria-label", "Campaign sections");
@@ -835,7 +842,7 @@
       table.append(row);
     }
     const wrap = el("div", undefined, "table-wrap"); wrap.append(table); panel.append(wrap);
-    const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? "unavailable"));
+    const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable"));
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
   }
   function tabJournal(panel, run) {
@@ -856,10 +863,25 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
+  function renderValidatorOutcome(panel, result) {
+    const o = result.result;
+    const s = o.screening;
+    const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
+    const lines = [
+      "Validator outcome, epoch " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
+      "Submission: " + (o.submission_id || "unavailable"),
+      s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
+      s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : "Score: not shown in this feedback mode.",
+      "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
+    ];
+    for (const line of lines) researchNote(panel, line, "development-result");
+  }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);
     else if (run.selects === "agent") researchNote(panel, "Carbon's agent freezes and submits in this campaign.", "hint");
     for (const result of run.final_results || []) {
+      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
     }
@@ -890,9 +912,28 @@
     record.textContent = JSON.stringify({challenge: run.challenge, runtime_revision: run.runtime_revision, agent_policy: run.agent_policy, research_guidance: run.research_guidance, effective_research_inputs: run.effective_research_inputs, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests, refusals: run.refusals}, null, 2);
     details.append(summary, record); panel.append(details);
   }
+  // A Challenge's own practice feedback (battery's summary, fit and backend),
+  // as recorded; a field it does not report is shown as unavailable.
+  // One Challenge's own model families (its construction contract), or the
+  // historical list when the controller predates the per-Challenge field.
+  function familiesFor(challengeId) {
+    const by = launchOptions && launchOptions.families_by_challenge;
+    return (by && challengeId && by[challengeId]) || (launchOptions ? launchOptions.families : []);
+  }
+  function renderChallengePractice(section, experiment) {
+    const s = experiment.summary, fit = experiment.fit || {}, backend = experiment.backend || {};
+    const num = v => typeof v === "number" && Number.isFinite(v) ? String(v) : "unavailable";
+    researchNote(section, "Recipe: " + (experiment.backbone || experiment.recipe?.backbone || "unavailable") + (experiment.recipe?.parameters ? " · " + JSON.stringify(experiment.recipe.parameters) : ""), "code");
+    researchNote(section, "Descriptive practice score: " + num(s.score) + " · important region: " + num(s.important_score) + " · lower is better · Not an accepted improvement.");
+    const failures = s.gate_failures && typeof s.gate_failures === "object" ? Object.entries(s.gate_failures).filter(([, v]) => v).map(([k, v]) => k + " " + v) : [];
+    researchNote(section, "Practice gates: " + (s.eligible === true ? "all passed" : s.eligible === false ? "failed · " + (failures.join(", ") || "gate counts unavailable") : "unavailable") + " · final admissibility is separate.");
+    researchNote(section, "Cases: " + num(s.n_scored) + " scored of " + num(s.n_cases) + " · " + num(s.n_reference_invalid) + " reference invalid · " + num(s.n_failed_infra) + " infrastructure failed");
+    researchNote(section, "Training: final loss " + num(fit.final_loss) + " · " + num(fit.n_params) + " parameters · " + num(fit.train_s) + " s training · backend " + (backend.kind || "unavailable"));
+  }
   function renderPractice(parent, experiment, index) {
     const section = document.createElement("section"); section.className = "practice-result";
     const heading = document.createElement("h4"); heading.textContent = "Practice experiment " + (index + 1); section.append(heading);
+    if (experiment.summary && typeof experiment.summary === "object") { renderChallengePractice(section, experiment); parent.append(section); return; }
     researchNote(section, "Completed updates: " + experiment.completed_steps + " · Worker seconds: " + experiment.worker_seconds);
     const diagnostics = experiment.diagnostics || {};
     researchNote(section, "Descriptive practice score: " + (diagnostics.descriptive_score ?? "unavailable") + " · Not an accepted improvement.");
@@ -990,7 +1031,7 @@
     if (launchOptions) {
       // Each family's true availability now, by its registry verdict.
       const byVerdict = {};
-      for (const family of launchOptions.families) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      for (const family of familiesFor(run.challenge && run.challenge.id)) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
       const labels = {supported: "Families you can freeze and submit now", not_yet_rebuildable: "Not yet rebuildable (research only)", needs_owner_decision: "Waiting on an owner decision", excluded: "Excluded"};
       for (const [verdict, label] of Object.entries(labels)) if (byVerdict[verdict]) researchNote(box, label + ": " + byVerdict[verdict].join(", "));
     }
@@ -1341,12 +1382,14 @@
     $("path-advanced").setAttribute("aria-pressed", String(launchPath === "advanced"));
     $("launch-advanced").hidden = launchPath !== "advanced";
     const availability = $("launch-availability");
-    if (launchOptions && !availability.dataset.built) {
+    const chosen = wizard.challenge ? wizard.challenge.id : "";
+    if (launchOptions && availability.dataset.built !== chosen) {
+      availability.replaceChildren();
       const families = {};
-      for (const family of launchOptions.families) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      for (const family of familiesFor(chosen)) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
       for (const [verdict, names] of Object.entries(families)) researchNote(availability, "Model families · " + words(verdict) + ": " + names.join(", "));
       for (const [lane, state] of Object.entries(launchOptions.research_lanes)) researchNote(availability, "Research lane " + lane + " · " + state.availability + (state.reason ? ": " + words(state.reason) : ""));
-      availability.dataset.built = "1";
+      availability.dataset.built = chosen;
     }
     const problem = compositionProblem(composition);
     $("composition-summary").textContent = describeComposition(composition) + (problem ? " · cannot launch: " + problem : "");

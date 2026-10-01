@@ -1,6 +1,6 @@
 # Ask Carbon concrete public-release decision packet
 
-## WEB-QA-09-D1, candidate 2026-09-26.1: APPROVED 2026-09-26 (not yet deployed)
+## WEB-QA-09-D1, candidate 2026-09-26.1: APPROVED 2026-09-26; deployed 2026-09-29 inside WEB-QA-10-D1 bundle `48fd4680…` (see `.agent/DECISIONS.md`)
 
 **Approved by:** Ryan Bequette, a named production incident owner under
 `WEB-QA-05-D2`, on 2026-09-26, basis

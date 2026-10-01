@@ -1,11 +1,11 @@
 FoamFile { version 2.0; format ascii; class dictionary; object changeDictionaryDict; }
-// Verification choices, as rung 3: U = 0.1 m/s uniform at the inlet, 300 K.
+// Inlet velocity and temperature come from the property set in generate.py.
 U
 {
-    internalField   uniform (0.1 0 0);
+    internalField   uniform (U_IN 0 0);
     boundaryField
     {
-        inlet         { type fixedValue; value uniform (0.1 0 0); }
+        inlet         { type fixedValue; value uniform (U_IN 0 0); }
         outlet        { type zeroGradient; }
         "fluid_to_.*" { type noSlip; }
         "sym.*"       { type symmetry; }
@@ -13,17 +13,17 @@ U
 }
 T
 {
-    internalField   uniform 300;
+    internalField   uniform T_IN;
     boundaryField
     {
-        inlet         { type fixedValue; value uniform 300; }
-        outlet        { type zeroGradient; value uniform 300; }
+        inlet         { type fixedValue; value uniform T_IN; }
+        outlet        { type zeroGradient; value uniform T_IN; }
         "fluid_to_.*"
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;
             Tnbr            T;
             kappaMethod     fluidThermo;
-            value           uniform 300;
+            value           uniform T_IN;
         }
         "sym.*"       { type symmetry; }
     }
