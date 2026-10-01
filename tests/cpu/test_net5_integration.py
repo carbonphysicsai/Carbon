@@ -3,6 +3,7 @@
 import asyncio
 import os
 import subprocess
+from contextlib import ExitStack
 from dataclasses import asdict, replace
 from pathlib import Path
 
@@ -27,6 +28,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
     from carbon.rewards.intents import LocalnetIntentIssuer
     from carbon.rewards.ledger import FixtureRewardLedger
     from carbon.transport.store import ReceiptJournal
+    from tests.cpu._signer_harness import in_thread_signer
 
     mode = os.environ.get("CARBON_LOCALNET_MODE", "full")
     assert mode in ("full", "operator")
@@ -62,6 +64,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
 
         session = LocalnetSession(os.environ["CARBON_LOCALNET_CONTAINER"], directory)
         backend = None
+        signers = ExitStack()
         try:
             await session.start()
             block_time = float(session.profile["nominal_block_seconds"])
@@ -97,11 +100,26 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 receipts, reader, tuple(e.journal for e in exams)
             )
 
+            # Each role signs through its own signer process boundary, as a
+            # miner's does; Carbon's side never holds the keypair. The signer's
+            # freshness rule reads the exam's clock, not the wall clock.
+            clock = [0]
+            externals = {}
+
             def signer(role):
-                bound = BittensorMessageSigner(roles[role])
-                return lambda body, now, _: bound.sign(
-                    body, receiver=roles["publisher"].ss58_address, nonce_ns=now
-                )
+                if role not in externals:
+                    externals[role] = signers.enter_context(
+                        in_thread_signer(roles[role], clock=lambda: clock[0])
+                    )
+                bound = BittensorMessageSigner(externals[role])
+
+                def sign(body, now, _):
+                    clock[0] = now
+                    return bound.sign(
+                        body, receiver=roles["publisher"].ss58_address, nonce_ns=now
+                    )
+
+                return sign
 
             baselines = []
             for exam in exams:
@@ -466,6 +484,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
             write_evidence(directory / "integration.json", report)
             raise
         finally:
+            signers.close()
             if backend is not None:
                 await backend.close()
             await session.close()

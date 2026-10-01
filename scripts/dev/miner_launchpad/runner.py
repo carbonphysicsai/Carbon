@@ -46,14 +46,21 @@ PATH_FIELDS = {
     "operator_config",
     "api_key_file",
     "miner_public",
-    "miner_password_file",
     "quarantine_journal",
+}
+#: Retired with external signing: Carbon no longer reads a password to decrypt
+#: the miner's key. A profile naming it is refused with this code, so the
+#: miner learns to start `carbon-miner-signer` instead of it being ignored.
+RETIRED_PATH_FIELDS = {
+    "miner_password_file": "miner_password_file_retired_start_signer"
 }
 #: Paths a profile may add. `battery_validator` is the operator's battery
 #: validator deployment (`carbon.battery.deployment`, the M3 daemon); without
 #: it a battery submission is refused as evaluation_unavailable, never scored
 #: another way.
-OPTIONAL_PATH_FIELDS = {"battery_validator"}
+#: `signer_socket` is where the miner's `carbon-miner-signer` listens, when
+#: not at the path derived from their public hotkey.
+OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket"}
 
 PROFILE_FIELDS = {
     "schema",
@@ -138,6 +145,24 @@ def chain_registration(cfg):
     )
 
 
+def signer_ready(cfg):
+    """Reach the miner's `carbon-miner-signer` for the configured hotkey.
+
+    Carbon holds no key; every request a campaign sends is signed by the
+    miner's own signer process. Asked before work is admitted so a miner who
+    has not started it is told so at once, with `SignerFailure`'s closed code,
+    rather than finding the campaign interrupted later.
+    """
+    from carbon.chain.external_signer import connect_signer
+
+    public = json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())
+    socket_path = cfg["paths"].get("signer_socket")
+    return connect_signer(
+        public["hotkey"],
+        socket_path=Path(socket_path) if socket_path is not None else None,
+    )
+
+
 def runner_database(cfg):
     """Where both doors record this profile's campaigns: beside them, so a
     campaign launched from a browser and one launched from a miner's own MCP
@@ -178,6 +203,10 @@ def validated_profile(cfg):
         and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
     ):
         raise ValueError("invalid disabled profile explanation")
+    if type(cfg["paths"]) is dict:
+        for field, code in RETIRED_PATH_FIELDS.items():
+            if field in cfg["paths"]:
+                raise Rejected(code, 409)
     if (
         type(cfg["paths"]) is not dict
         or set(cfg["paths"]) - OPTIONAL_PATH_FIELDS != PATH_FIELDS
@@ -364,7 +393,7 @@ def _operation_digest(operation, request):
     return digest(canonical([operation, fields]))
 
 
-_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
+_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}|[a-z][a-z0-9_]{0,63}")
 
 
 def record_interruption(root, stage, exc):
@@ -395,7 +424,13 @@ def record_interruption(root, stage, exc):
 
 class RunnerAdapter:
     def __init__(
-        self, database, *, configuration=None, principal=None, registration=None
+        self,
+        database,
+        *,
+        configuration=None,
+        principal=None,
+        registration=None,
+        signer=None,
     ):
         self.database = database
         self.configuration = configuration
@@ -407,6 +442,10 @@ class RunnerAdapter:
         # Injectable so a test reads a device-free stub chain; the default is
         # the real read against the operator's configured context.
         self.registration = registration or chain_registration
+        # The early signer answer, beside the real registration read. A test
+        # that stubs the chain stubs this too; the signing itself still needs
+        # a real `ExternalSigner`, which nothing here can construct.
+        self.signer = signer or (signer_ready if registration is None else None)
         self.threads = {}
         self.lock = threading.RLock()
         with self.db() as db:
@@ -1166,6 +1205,7 @@ class RunnerAdapter:
         A refusal changes nothing, so the campaign settles READY again; only
         an unexpected failure leaves it for reconciliation.
         """
+        from carbon.chain.external_signer import SignerFailure, signatures_obtained
         from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import (
             OperationRefused,
@@ -1213,9 +1253,19 @@ class RunnerAdapter:
                     prepared.close()
 
             refused = None
+            signed_before = signatures_obtained()
             try:
                 result = asyncio.run(run())
             except OperationRefused as exc:
+                refused = exc.code
+            except SignerFailure as exc:
+                # A signer that is not running, refuses, holds another hotkey
+                # or times out sent nothing - but only if no earlier request of
+                # this operation was signed. One that was may have been
+                # delivered, so that is left for reconciliation, not refused.
+                if signatures_obtained() != signed_before:
+                    control.settled(generation, cleanup_verified=self._cleanup(ledger))
+                    raise
                 refused = exc.code
             except BaseException:
                 control.settled(generation, cleanup_verified=self._cleanup(ledger))

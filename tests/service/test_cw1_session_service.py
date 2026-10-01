@@ -18,6 +18,7 @@ from carbon.chain import ChainContext, MetagraphSnapshot, Participant
 from carbon.chain.sdk import BittensorReader
 from carbon.development_session.data import prepare
 from carbon.development_session.service import LocalMinerConnection, scaffold
+from tests.cpu._signer_harness import in_thread_signer
 
 
 def test_authenticated_session_under_private_umask_reaches_signed_feedback(
@@ -49,11 +50,14 @@ def test_authenticated_session_under_private_umask_reaches_signed_feedback(
         )
 
     monkeypatch.setattr(BittensorReader, "capture", capture)
+    # Carbon holds no key: the miner's own signer signs each request.
+    signing = in_thread_signer(miner)
+    signer = signing.__enter__()
     previous = os.umask(0o077)
     try:
         prepare(root, image)
         connection = LocalMinerConnection(
-            root, image, context, publisher.ss58_address, miner
+            root, image, context, publisher.ss58_address, signer
         )
         base = {"challenge_id": "burgers-dynamics-v1", "challenge_version": "1.0"}
         strategy = scaffold()
@@ -116,3 +120,4 @@ def test_authenticated_session_under_private_umask_reaches_signed_feedback(
             assert private not in rendered
     finally:
         os.umask(previous)
+        signing.__exit__(None, None, None)

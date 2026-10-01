@@ -84,6 +84,31 @@ NEXT_ACTION = {
         "retry with the same operation_id. Nothing was dispatched, so there is "
         "nothing to reconcile, and a budget is never what is missing here."
     ),
+    AdapterCode.SIGNER_NOT_RUNNING.value: (
+        "Your signer is not running. Start `carbon-miner-signer --wallet NAME "
+        "--hotkey HOTKEY` in a terminal, leave it open, and retry the same "
+        "operation_id. Carbon holds no key; your signer signs each request."
+    ),
+    AdapterCode.SIGNER_REFUSED.value: (
+        "Your signer declined to sign; its terminal shows the reason. Correct "
+        "that, then retry the same operation_id."
+    ),
+    AdapterCode.SIGNER_WRONG_HOTKEY.value: (
+        "The signer running holds a different hotkey than this campaign's "
+        "registered miner. Start the signer for the registered hotkey."
+    ),
+    AdapterCode.SIGNER_TIMEOUT.value: (
+        "Your signer did not answer in time. Check its terminal, then retry "
+        "the same operation_id."
+    ),
+    AdapterCode.SIGNER_INVALID_SIGNATURE.value: (
+        "Your signer returned a signature that does not verify for the "
+        "registered hotkey. Nothing signed by it was used. Restart the signer."
+    ),
+    AdapterCode.SIGNER_PROTOCOL.value: (
+        "Something other than carbon-miner-signer answered on the signer "
+        "socket. Stop it and start carbon-miner-signer."
+    ),
     "CAPACITY_UNAVAILABLE": (
         "This server is at its concurrent-call bound. Nothing was dispatched. "
         "Retry the same operation_id shortly."

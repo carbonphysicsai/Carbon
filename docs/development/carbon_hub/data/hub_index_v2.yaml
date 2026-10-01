@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-29T02:19:48Z"
+  captured_at_utc: "2026-09-30T16:30:00Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "1a1f106f4782d1288e1322d5d346007557192f2a"
+  authority_snapshot_commit: "0bdd0a4ce4cef93b14d85b43610cd516aa3a3d00"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10395,6 +10395,18 @@ events:
       - "SYSTEM/PROTOCOL-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-29T03:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "bug"
+    event_id: "C-MLP-02-EXTERNAL-SIGNER-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The product process no longer holds a miner's hotkey. The function named open_external_hotkey read the miner's key file and a password file, decrypted the key and signed in-process, the opposite of its name and of the standing rule that Carbon never holds or requests a private key. It is removed. The miner now runs carbon-miner-signer (a separate package that imports nothing from Carbon), which holds the key and receives the password in the miner's own terminal. Carbon sends it the exact btauth/1 payload over a user-only Unix socket and verifies the returned signature against the public hotkey. The owner signs the same way; there is no second path. Each failure has its own code: not running, refused with a closed reason, wrong hotkey, timeout, invalid signature, protocol. A failure after an earlier request of the same operation was signed goes to reconciliation, never to 'nothing happened'. An AST scan of the product's transitive import closure proves the absence, with specimens that show it catching each rule. The change is implemented and tested and is NOT security-qualified; it touches hotkey authentication and awaits dedicated review. The in-process evaluation on the validator host (#431) is unchanged and belongs to the OD-7 submission-path decision."
+    primary_detail: "docs/development/MINER_EXTERNAL_SIGNER.md"
+    affects:
+      - "SYSTEM/CI"
+    supersedes: null
+    recorded_at: "2026-09-30T06:13:21Z"
   -
     map_ref: "SYSTEM/BUSINESS-AUTHORITY"
     event_type: "evidence"
