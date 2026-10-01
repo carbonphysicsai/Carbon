@@ -52,6 +52,19 @@ cannot run without Docker; GitHub's required checks own canonical acceptance.
 The adversarial report tests also rewrite the simulated review digest, so a stale
 review cannot mask a missing check, empty observation, failed result or open blocker.
 
+PR #458 canonical CI stops before Python acceptance on Ask Carbon's existing
+`pilot_html_sha256` release-candidate mismatch. The same mismatch is independently
+present at base `af5b8ac0`: recorded `4c9f3916...`, actual `be64f8b9...`.
+This change regenerates the catalogue preview, so its new bytes also need a real
+release-candidate reconciliation. PR #453 addresses the earlier candidate but does
+not certify these later bytes. Do not edit a digest alone or waive the failing
+check. Full canonical acceptance and merge remain blocked on that reconciliation.
+The first Hub run also exposed the missing authority repin; current-role links are
+now pinned to this ticket's committed authority, with historical links preserved.
+Workbench's real-worker CI passed 47 tests with three skips. Its freshness check
+found the source package needed regeneration after the readiness catalogue update;
+the deterministic package and manifest are now regenerated and pass that check.
+
 ## Remaining scientific execution
 
 No challenge has passed this protocol. The new schema enforces completeness of
