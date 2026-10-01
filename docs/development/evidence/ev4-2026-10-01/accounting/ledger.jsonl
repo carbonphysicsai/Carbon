@@ -8,3 +8,9 @@
 {"utc": "2026-10-01T20:45:45Z", "event": "exported", "pod_id": "2cmdod45v4l27s", "dest": "../../../root/ev4-pods/panel", "files": 206, "bytes_written": 578103564, "listing_sha256": "89596e5163e712132c519653c81788edb55c8905f9cc65b535c688e5b8bf4ad3"}
 {"utc": "2026-10-01T20:45:49Z", "event": "terminate_requested", "pod_id": "2cmdod45v4l27s"}
 {"utc": "2026-10-01T20:45:51Z", "event": "terminated_verified", "pod_id": "2cmdod45v4l27s", "verified_epoch": 1790887551.1686268}
+{"utc": "2026-10-01T21:31:02Z", "event": "exported", "pod_id": "vwb7r3vr3nfeva", "dest": "../../../../../../root/ev4-pods/refs0", "files": 7, "bytes_written": 2268281, "listing_sha256": "bedf7dd9b41d4498160012edfaf6d8fc14c3a563354bcec6032b99451344e1eb"}
+{"utc": "2026-10-01T21:31:02Z", "event": "terminate_requested", "pod_id": "vwb7r3vr3nfeva"}
+{"utc": "2026-10-01T21:31:04Z", "event": "terminated_verified", "pod_id": "vwb7r3vr3nfeva", "verified_epoch": 1790890264.0882668}
+{"utc": "2026-10-01T21:31:10Z", "event": "exported", "pod_id": "aos49xwsxktv21", "dest": "../../../../../../root/ev4-pods/refs1", "files": 7, "bytes_written": 2272571, "listing_sha256": "1cda419eff1ff2f5e835380d28beeb17d417504f3eda8f4485d31d23f1963eee"}
+{"utc": "2026-10-01T21:31:10Z", "event": "terminate_requested", "pod_id": "aos49xwsxktv21"}
+{"utc": "2026-10-01T21:31:11Z", "event": "terminated_verified", "pod_id": "aos49xwsxktv21", "verified_epoch": 1790890271.8264291}
