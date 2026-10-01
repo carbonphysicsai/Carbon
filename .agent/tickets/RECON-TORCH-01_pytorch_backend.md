@@ -1,6 +1,7 @@
 # RECON-TORCH-01 — PyTorch as a reconstruction backend, miner and validator
 
-**Status:** in progress (slices 1-3 implemented).
+**Status:** implemented in bounded DEVELOPMENT scope (slices 1-6); closes on
+merge. The human-reserved values below stay open and fail closed.
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`, `HUB_UPDATE_REQUIRED`.
 **Authority:** OWNER-PYTORCH-BACKEND-01 (2026-10-01) and OWNER-DX-03.
 **Supersedes, for PyTorch only:** OWNER-BATTERY-TESTNET-02's "Only JAX for
@@ -121,6 +122,19 @@ including this one, changes those digests. So:
   tensors only.
 - CI installs `science-torch` in the canonical and dev-image jobs, and
   `CARBON_REQUIRE_TORCH=1` turns PyTorch skips into failures there.
+- The PyTorch worker image follows the accelerator image's pattern: layered on
+  the exact C-03 image, installing the checked-in exact-hashed export
+  `.devcontainer/torch/torch-cpu-py311.txt`. A deployment refuses a PyTorch
+  manifest whose base is not its JAX image or whose lock digest is not that
+  export's.
+- A validator without a PyTorch image raises `BackendNotServed` at admission.
+  It is answered `backend_not_served` and records nothing, so the miner is
+  never charged with it. A worker image that lacks the recipe's backend reports
+  the `environment` stage, which is infrastructure.
+- Miners use the PyTorch worker image as their worker `image_manifest`. It
+  keeps the C-03 source identity, and the analysis image is built on it.
+- The public execution-profile id `jax-cpu/isolated-carrier` is unchanged
+  (AGENTS section 12); only its description names both backends.
 
 ## Known environment limit (2026-10-01)
 
