@@ -17483,6 +17483,23 @@ session builds it, and the phase 2 grant's account and expiry are reused.
 6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
    rebuilds a declarative recipe. Executable participant code starts at
    Level 4.
+7. **Graphite proposes every level's capabilities** (owner, same day: "I want
+   graphite to propose capabilities for every construction level").
+   - For every Challenge and every level 0-5, Graphite writes a level proposal
+     (`carbon/challenge_pipeline/proposals/<challenge>/level-<n>.json`,
+     validated by `proposals.py`) stating:
+     - each capability, what it adds and its bounds;
+     - its research basis;
+     - the reconstruction work it needs;
+     - its attack surface;
+     - what the level leaves out.
+   - The construction contract owner accepts or declines each proposal. A
+     level above 0 is reached only with an accepted one, which is the climb
+     procedure's first step.
+   - Graphite never writes the contract or an expansion record.
+   - Battery's Level 0 predates proposals and names none.
+   - This adopts the lessons log's first proposed revision
+     (`2026-10-02-level-proposal-step`), broadened by the owner to every level.
 
 **Unchanged.**
 - Scientific, security and launch qualification stay human-reserved.
