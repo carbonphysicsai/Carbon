@@ -178,6 +178,24 @@ workflow, which is where an approaching expiry goes red, and a failure there
 opens a GitHub issue titled "Ask Carbon knowledge freshness check failing" (or
 comments on the open one) listing the findings and the run.
 
+### Shipping a newer Pilot Designer
+
+The release ships `release/pilot-designer.html`, a committed snapshot, and never
+the Workbench's working copy (ASK-CARBON-PILOT-SNAPSHOT-01). So a Workbench
+rebuild cannot change a certified bundle. That includes a relayed readiness
+record.
+
+To ship a newer Pilot Designer, treat it as a release:
+1. Copy `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`
+   over `release/pilot-designer.html`.
+2. Re-derive the candidate. That means re-fetching the baseline, rebuilding
+   with `--require-complete-bundle`, and recording `pilot_html_sha256`, the
+   bundle identity and the change against live.
+3. Seek the owner's approval of the exact bundle identity.
+
+`tests/bundle-guard.test.mjs` holds the candidate's `pilot_html_sha256` to the
+snapshot, so step 1 cannot land without step 2.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because

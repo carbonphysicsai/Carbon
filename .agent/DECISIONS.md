@@ -17189,3 +17189,49 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
+
+## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
+
+**Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
+blocker". This is an engineering change under that direction. It is not a
+release decision.
+
+**The blocker.**
+- `tools/integrate-static.mjs` read the Pilot Designer from the Workbench's
+  working copy, `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`.
+- `tests/bundle-guard.test.mjs` held the candidate's `pilot_html_sha256` to
+  that file.
+- So any Workbench rebuild failed canonical until a new candidate was
+  re-derived and approved. A rebuild happens for every relayed readiness
+  record (CHALLENGE-READINESS-RELAY-01), not only for Pilot Designer work.
+
+**The change.**
+- The release ships `website/ask-carbon/release/pilot-designer.html`, a
+  committed snapshot. The guard holds `pilot_html_sha256` to the snapshot.
+- A new guard test fails if the integrator reads a Pilot Designer from outside
+  the Ask Carbon tree.
+- Shipping a newer Pilot Designer is now an explicit release step: copy the
+  preview over the snapshot, then re-derive the candidate (`OPERATIONS.md`).
+
+**What does not change.**
+- The snapshot is byte-identical to the approved and live Pilot Designer
+  (`be64f8b9…`).
+- Rebuilt with the snapshot against a baseline re-fetched from both hostnames
+  (100/100), the integrator reproduces the approved bundle
+  `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a`, 105
+  files, exactly.
+- So the candidate record, its approval (WEB-QA-11-D2) and production are
+  untouched, and nothing is deployed.
+
+**Observed while verifying.**
+- Production serves bundle `86f51385` on both hostnames: the Pilot Designer
+  `be64f8b9…`, `/workbench/` `9a44f683…`, and every Ask Carbon asset at its
+  pinned digest.
+- The WEB-QA-11-D2 deployment is therefore live, but its version ids are not
+  yet in the repository. The baseline manifest still names `dc4469a7` as the
+  rollback target.
+- The operator's step-8 report (`DEPLOY_PACKAGE_2026_10_01.md`) is still needed
+  before the next certification. Until it arrives, `integrate-static` cannot
+  be told that live has moved.
+
+**Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
