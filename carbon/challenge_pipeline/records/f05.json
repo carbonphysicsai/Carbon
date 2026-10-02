@@ -15,7 +15,7 @@
  "regret": null,
  "n": null,
  "k": null,
- "notes": "Defines the protocol (Phase 1). Status reconciled 2026-10-02 (step 1): EV1, EV2 and EV4 complete; EV3 a draft; #458's readiness gate open in #477/#488; exam rule v1 deciding.",
+ "notes": "Defines the protocol (Phase 1). Status reconciled 2026-10-02 (step 1): EV1, EV2 and EV4 complete; EV3 a draft; #458's readiness gate open in #477/#488; exam rule v1 deciding. Construction is at Level 0 (expansion 0001); step 4 climbs to Level 1.",
  "at": "2026-10-02",
  "gates": {
   "scope": null,
@@ -52,5 +52,18 @@
    "what": "Challenge admission protocol, Tracks A and B (OWNER-CHALLENGE-ADMISSION-01)",
    "ref": ".agent/tickets/CHALLENGE-ADMISSION-01.md"
   }
- ]
+ ],
+ "construction": {
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "level": 0,
+  "levels": [
+   {
+    "level": 0,
+    "state": "OPEN",
+    "expansion_record": "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json",
+    "reconstruction": "tests/cpu/test_battery_construction_contract.py",
+    "evidence": null
+   }
+  ]
+ }
 }

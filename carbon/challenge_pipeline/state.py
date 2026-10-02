@@ -17,6 +17,10 @@ copy is the versioned one. Each file is validated against the roadmap's rules
 - **The rubric is unset until it is approved.** Thresholds need the process
   owner's approval; the open critical and high limits start at the roadmap's
   zero.
+- **Construction climbs the ladder** (`ladder.py`, rev 2.2). A family in
+  Test/iterate or later has a construction contract at Level 0 or above, each
+  level reached with its expansion record and Carbon's reconstruction, and
+  frozen results come from a FROZEN level.
 
 A sign-off is written only from the named owner's recorded act: a decision
 record or a review on the pull request. These checks keep a record coherent;
@@ -29,6 +33,7 @@ import json
 import re
 from pathlib import Path
 
+from carbon.challenge_pipeline import ladder
 from carbon.challenge_pipeline.roadmap import load_families
 
 HERE = Path(__file__).parent
@@ -73,6 +78,7 @@ RECORD_KEYS = {
     "gates",
     "evidence",
     "prior_work",
+    "construction",
 }
 RUBRIC_THRESHOLDS = ("minRho", "maxFF", "minN", "maxReg")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -119,6 +125,9 @@ def validate_protocol(protocol):
         )
     elif protocol.get("reference_hardware_approval") is not None:
         raise PipelineError("protocol: an approval needs the hardware it approves")
+    for key in ("construction_ladder", "lessons"):
+        if not (isinstance(protocol.get(key), str) and protocol[key].strip()):
+            raise PipelineError(f"protocol: names its {key} (rev 2.2)")
     if locked:
         _sign_off(protocol["lock"], "process", owners, "protocol lock")
         for key in ("version", "suite_version", "reference_hardware"):
@@ -226,6 +235,22 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
         or len(record["suite"]) > 60
     ):
         raise PipelineError(f"{where}: a text field is longer than the page allows")
+    try:
+        construction = ladder.validate(record["construction"], where, root)
+    except ladder.LadderError as error:
+        raise PipelineError(str(error)) from error
+    if stage in ("test", "ready", "deployed") and construction["level"] is None:
+        raise PipelineError(
+            f"{where}: stage {stage} needs a construction contract on the ladder; "
+            "Design exits with Level 0 that Carbon rebuilds"
+        )
+    if evidence["frozen"] is not None and (
+        construction["level"] is None
+        or ladder.state_of(construction, construction["level"]) != "FROZEN"
+    ):
+        raise PipelineError(
+            f"{where}: a frozen run is taken at a FROZEN construction level"
+        )
     for item in record["prior_work"]:
         if set(item) != {"what", "ref"} or not _exists(item["ref"], root):
             raise PipelineError(

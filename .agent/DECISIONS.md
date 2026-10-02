@@ -17471,6 +17471,89 @@ Item 3 for the constructor campaign is an open question to the owner: #504
 registers its campaign at GRAPHITE-GRANT-PHASE3's ceiling less cleanup
 (ticket, Human-reserved).
 
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-03: the construction ladder is the spine; one generalizable protocol; lessons after every execution; Graphite, not Mira
+
+**Owner, verbatim, in session on 2026-10-02:**
+- "I'm nervous about this. The goal is to start with where we are and slowly
+  add more construction capabilities. At one point we had 5 well defined and
+  generalizable stages for increasing construction freedom and it sounds like
+  none of that made it here. Not happy."
+- To the proposed fix: "Yes. Fix this."
+- "The plan is to use GRAPHITE not Mira for this testing. Ignore all
+  autoscience and Mira talk and replace it with our graphite agent."
+- "Make sure everything we have is a generalizable test and design protocol
+  that can be adapted to any challenge and improved as we go. Note lessons
+  learned after every execution."
+
+**What went wrong (classified IMPLEMENTATION_LAG).**
+- Roadmap rev 2.0/2.1 and its pipeline package (PR 498) carried no
+  construction ladder. It is defined in `Design_Specs/Challenge_Admission.md`
+  §3 (Levels 0-5), and expansion records (#468) and Graphite's plan rely on
+  it. Stage 3 said only "tune construction rules".
+- Rev 2.1's backend wording ("executables outside the construction contract's
+  backends") read as executable submissions, which is Level 4-5 freedom.
+- The executor built the roadmap without reconciling it against Admission §3.
+  The owner caught it before merge, and PR 498's auto-merge was stopped.
+
+**Decision (roadmap rev 2.2, PR 498).**
+1. **The construction ladder is the spine of construction iteration.**
+   - Every Challenge enters Test/iterate at Level 0 and climbs one level at a
+     time by the climb procedure. That procedure requires:
+     - an expansion record;
+     - Carbon's reconstruction for the level, with tests (OWNER-GRAPHITE-02);
+     - valid constructions under the previous and expanded profiles;
+     - matched adversarial budgets;
+     - ablation and interaction tests;
+     - clean-worker rebuilds.
+   - A level opens to miners only after a person locks it and validators serve
+     its contract.
+   - Levels not reached are NOT_RUN, never a pass. A level opened for
+     Graphite's development campaigns is never opened to miners to gather
+     acceptance data. A finding stops further climbing.
+   - Design exits with a Level 0 contract Carbon rebuilds.
+   - Frozen evidence and leaderboard entries name their level, and a climb is
+     a new frozen run.
+   - Machinery: `carbon/challenge_pipeline/ladder.py`, and each record's
+     `construction` block.
+2. **Battery's Phase 1 includes its first climb.** Step 4 tests Level 0 and
+   then climbs to Level 1 as the climb procedure's worked example.
+   - This is the executor's recommended scope, presented with the fix that the
+     owner approved with "Yes. Fix this."
+   - The record states battery's actual difference from the ladder. Its Level 0
+     already admits registered menus the ladder labels 1, 2 and 5. Custom loss
+     expressions (Level 1 proper) are excluded, and nothing exists at Level 3.
+3. **How a validator knows how to build a construction** (the owner's question
+   of the same day, recorded in the roadmap).
+   - A miner sends a declarative recipe and the contract digest it was written
+     against.
+   - The validator rebuilds with the contract and reconstruction pinned in its
+     own Carbon version, and refuses a digest it does not serve.
+   - So a climb is a Carbon release: a new contract version, the
+     reconstruction code and a validator update.
+4. **One generalizable protocol, improved as we go.**
+   - The protocol is Challenge-neutral. Each Challenge supplies its own
+     records and the shared machinery reads them; battery is the first
+     instance, not the design.
+   - After every execution, a lessons entry is written
+     (`carbon/challenge_pipeline/lessons/`, one file per entry).
+   - A lesson that should change the protocol is a proposed revision until a
+     named owner adopts or declines it: before lock, any of the three owners;
+     after lock, the process owner. Nothing changes silently.
+   - The lessons log and revision procedure are lock items.
+5. **Graphite, not Mira, is the testing agent.**
+   - The roadmap says no external research agent takes Graphite's role.
+   - The Mira handoff is re-issued as a Graphite handoff and implemented under
+     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-04).
+6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
+   rebuilds a declarative recipe. Executable participant code starts at
+   Level 4.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No spend.
+
 ## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
 
 **Authority.** The owner, 2026-10-02: "I want to remove the ask carbon

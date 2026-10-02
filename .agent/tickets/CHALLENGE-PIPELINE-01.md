@@ -78,6 +78,44 @@ python docs/development/carbon_hub/tools/validate_hub.py
 python docs/development/carbon_hub/tools/render_hub.py --check
 ```
 
+## Rev 2.2: the construction ladder, one generalizable protocol, lessons (OWNER-CHALLENGE-ROADMAP-03)
+
+Before merge, the owner found that the pipeline had dropped Challenge
+Admission §3's construction ladder. The fix:
+- **Ladder machinery: `ladder.py`.**
+  - Levels 0-5 word for word from Admission §3, and the climb procedure.
+  - Each record's `construction` block, checked as follows:
+    - levels are contiguous from 0, and a level not listed is NOT_RUN;
+    - each level names its expansion record and Carbon's reconstruction test;
+    - every level below the current one is TESTED or FROZEN with evidence;
+    - the current level names the newest expansion record, so a contract
+      change the pipeline has not seen is stale;
+    - Test/iterate needs a contract on the ladder;
+    - a frozen run is taken at a FROZEN level.
+  - Battery's record is at Level 0, OPEN, on expansion 0001. It states
+    battery's recorded difference from the ladder.
+- **Lessons: `lessons.py` and `lessons/`.**
+  - One file per execution: what ran, expected against observed, what to keep,
+    what to change, and the protocol elements it bears on.
+  - A proposed revision waits for a named owner: before lock, any of the
+    three; after lock, the process owner.
+  - The first seven entries record today's executions, including the dropped
+    ladder (ADOPTED under OWNER-CHALLENGE-ROADMAP-03).
+- **The view** gains the ladder, the climb procedure, each Challenge's level
+  states, and the lessons awaiting a decision.
+  `python -m carbon.challenge_pipeline lessons` prints the log.
+- **Generalizable.** Nothing in `ladder.py` or `lessons.py` is battery-specific.
+  The tests climb a synthetic second Challenge with its own expansion records.
+- **Roadmap rev 2.2:**
+  - the ladder in §00 and §02, with Stage 2's exit and Stage 3's work;
+  - the climb procedure;
+  - how a validator knows how to build a construction;
+  - Track A at every implemented level;
+  - leaderboard entries by level;
+  - the corrected backend wording;
+  - Graphite as the testing agent;
+  - Phase 1 step 4 including battery's first climb.
+
 ## Maturity ceiling
 
 IMPLEMENTED and TESTED as engineering machinery. The pipeline grades

@@ -40,5 +40,10 @@
    "what": "Supermode tables, bitwise reproducible",
    "ref": "docs/development/evidence/photonic-tables-v1"
   }
- ]
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "levels": []
+ }
 }
