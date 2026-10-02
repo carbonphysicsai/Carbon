@@ -109,6 +109,56 @@ class Checks:
         if not path.is_file():
             raise SetupRefused("operator_config", "operator_config_invalid")
 
+    def network(self):
+        """The chain read a miner's setup makes instead of an operator file."""
+        from carbon.development_session import miner_network
+        from carbon.development_session.chain_onboarding import (
+            carbon_testnet_context,
+        )
+
+        self.calls.append(("network",))
+        context = carbon_testnet_context()
+        bound = miner_network.NetworkBinding(context, PUBLISHER, context.netuid)
+        return miner_network.document(bound, 4242), 4242
+
+
+PUBLISHER = "5" + "P" * 47
+
+
+def test_a_miner_sets_up_without_an_operator_file(tmp_path, state):
+    """C-MLP-04: a miner names no operator configuration. Setup reads Carbon's
+    testnet and its publisher (UID 0) and writes the miner's network file."""
+    from carbon.development_session import miner_network
+
+    made = files(tmp_path)
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Checks())
+    setup.begin({"address": HOTKEY})
+    setup.inference(
+        {
+            "provider_id": "engy-chat",
+            "model_id": "deepseek-v4-flash-0731",
+            "key": KEY,
+            "consent": CONSENT,
+        }
+    )
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": made["worker.json"],
+            "analysis_image_manifest": made["analysis.json"],
+        }
+    )
+    state = setup.agent({"choice": AUTONOMOUS})
+    check = state["steps"]["agent"]["check"]
+    assert (check["publisher"], check["network_block"]) == (PUBLISHER, 4242)
+    setup.review({"confirm": True})
+    cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
+    assert "operator_config" not in cfg["paths"]
+    network = Path(cfg["paths"]["miner_network"])
+    assert network.stat().st_mode & 0o777 == 0o600
+    bound = miner_network.binding(miner_network=network)
+    assert (bound.publisher_hotkey, bound.netuid) == (PUBLISHER, 567)
+
 
 def files(tmp_path):
     home = tmp_path / "miner"

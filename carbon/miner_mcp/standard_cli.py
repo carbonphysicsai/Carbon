@@ -166,11 +166,16 @@ def _runtime(profile):
 def _connection(profile, paths):
     """The existing signed session for this campaign's registered miner."""
     from carbon.chain.external_signer import miner_signer
+    from carbon.development_session.miner_network import binding
     from carbon.development_session.research_campaign import private_file
     from carbon.development_session.service import LocalMinerConnection
-    from carbon.development_testnet.operator import load_config
 
-    config = load_config(paths["operator_config"])
+    # The operator configuration where an operator runs one, otherwise the
+    # miner's own network file (C-MLP-04).
+    config = binding(
+        operator_config=paths.get("operator_config"),
+        miner_network=paths.get("miner_network"),
+    )
     public = json.loads(private_file(paths["miner_public"]).read_bytes())
     if (
         public["netuid"] != CARBON_NETUID

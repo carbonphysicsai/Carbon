@@ -409,16 +409,14 @@ def test_rented_practice_needs_the_pinned_gpu_worker(tmp_path):
 def rented_setup(tmp_path):
     from test_battery_gpu_practice import GpuChecks, gpu_setup
 
-    from carbon.development_session import battery_gpu as gpu
-
     class Checks(GpuChecks):
-        def rented(self, rented, credential, manifest):
+        def rented(self, rented, credential, manifest, campaign=None):
             self.calls.append(("rented", rented["provider"], credential.name))
             assert credential.read_text() == "rk-fixture-compute-key"
             image = gpu_worker()
             return {
-                "scope": gpu.rented_scope(COMPUTE, image),
-                "gpu_scope": gpu.gpu_scope(image),
+                "scope": campaign.rented_scope(COMPUTE, image),
+                "gpu_scope": campaign.gpu_scope(image),
                 "balance_usd": 12.5,
                 "balance_source": "fixture.balance",
                 "offer_usd_per_hr": 0.44,
@@ -430,6 +428,8 @@ def rented_setup(tmp_path):
     setup.checks = Checks(gpu_worker())
     return setup, home, paths
 
+
+BATTERY_REF = {"id": "battery-fastcharge-ageing-development-v1", "version": "1.0"}
 
 RENTED_CHOICE = {
     "provider": "runpod",
@@ -451,6 +451,7 @@ def test_setup_with_a_rented_gpu_writes_a_launchable_profile(tmp_path):
             "choice": RENTED_GPU,
             **paths,
             "gpu_image_manifest": str(home / "gpu.json"),
+            "challenge": BATTERY_REF,
             "rented": RENTED_CHOICE,
             "key": "rk-fixture-compute-key",
         }
@@ -480,7 +481,12 @@ def test_the_rented_choice_is_closed_and_needs_its_key(tmp_path):
     )
 
     setup, home, paths = rented_setup(tmp_path)
-    base = {"choice": RENTED_GPU, **paths, "gpu_image_manifest": str(home / "gpu.json")}
+    base = {
+        "choice": RENTED_GPU,
+        **paths,
+        "gpu_image_manifest": str(home / "gpu.json"),
+        "challenge": BATTERY_REF,
+    }
     for value, field in (
         (base, "rented"),
         ({**base, "rented": {**RENTED_CHOICE, "extra": 1}}, "rented"),

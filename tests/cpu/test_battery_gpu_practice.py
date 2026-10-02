@@ -445,15 +445,24 @@ def test_without_a_device_record_the_gpu_run_fails_closed(monkeypatch, tmp_path)
 # --- setup --------------------------------------------------------------------
 
 
+BATTERY_REF = {"id": "battery-fastcharge-ageing-development-v1", "version": "1.0"}
+
+
+def battery_campaign():
+    from carbon.challenge_registry.campaigns import campaign_for
+
+    return campaign_for(BATTERY_REF)
+
+
 class GpuChecks(Checks):
     def __init__(self, image):
         super().__init__()
         self.image = image
 
-    def gpu(self, manifest):
+    def gpu(self, manifest, campaign=None):
         self.calls.append(("gpu", str(manifest)))
         return {
-            "scope": gpu.gpu_scope(self.image),
+            "scope": campaign.gpu_scope(self.image),
             "device_kind": "NVIDIA GeForce RTX 4090",
             "record_digest": device().digest,
         }
@@ -488,7 +497,12 @@ def gpu_setup(tmp_path):
 def test_setup_on_this_machine_s_gpu_carries_the_scope_to_the_profile(tmp_path):
     setup, _, home, paths = gpu_setup(tmp_path)
     state = setup.compute(
-        {"choice": LOCAL_GPU, **paths, "gpu_image_manifest": str(home / "gpu.json")}
+        {
+            "choice": LOCAL_GPU,
+            **paths,
+            "gpu_image_manifest": str(home / "gpu.json"),
+            "challenge": BATTERY_REF,
+        }
     )
     check = state["steps"]["compute"]["check"]
     assert check["gpu"] == "NVIDIA GeForce RTX 4090"
@@ -502,6 +516,40 @@ def test_setup_on_this_machine_s_gpu_carries_the_scope_to_the_profile(tmp_path):
     from scripts.dev.miner_launchpad.prelaunch import review
 
     assert review(cfg)["execution"]["backend"] == "cuda"
+
+
+@pytest.mark.parametrize(
+    "challenge,code",
+    [
+        (None, "field_required"),
+        (
+            {"id": "battery-fastcharge-ageing-development-v1"},
+            "challenge_id_and_version_required",
+        ),
+        ({"id": "chip-cold-plate", "version": "1.0"}, "challenge_not_implemented"),
+        ({"id": "nowhere", "version": "1.0"}, "challenge_unknown"),
+    ],
+)
+def test_gpu_practice_is_set_up_for_a_challenge_the_miner_names(
+    tmp_path, challenge, code
+):
+    """C-MLP-04: GPU practice binds one Challenge, named by the miner, that
+    the registry has implemented with GPU practice; nothing defaults."""
+    setup, _, home, paths = gpu_setup(tmp_path)
+    value = {"choice": LOCAL_GPU, **paths, "gpu_image_manifest": str(home / "gpu.json")}
+    if challenge is not None:
+        value["challenge"] = challenge
+    with pytest.raises(SetupRefused) as refused:
+        setup.compute(value)
+    assert refused.value.field == "challenge"
+    if code is not None:
+        assert refused.value.code == code
+    with pytest.raises(SetupRefused) as refused:
+        setup.compute({"choice": LOCAL_CPU, **paths, "challenge": BATTERY_REF})
+    assert (refused.value.field, refused.value.code) == (
+        "challenge",
+        "challenge_is_for_the_gpu_choice",
+    )
 
 
 def test_the_gpu_choice_needs_its_image_and_the_cpu_choice_takes_none(tmp_path):
@@ -523,6 +571,7 @@ def test_the_gpu_choice_needs_its_image_and_the_cpu_choice_takes_none(tmp_path):
                 "choice": LOCAL_GPU,
                 **paths,
                 "gpu_image_manifest": str(home / "absent.json"),
+                "challenge": BATTERY_REF,
             }
         )
     assert (
@@ -567,7 +616,7 @@ def live(tmp_path, monkeypatch):
 
 
 def test_the_live_gpu_check_detects_installs_the_record_and_verifies(live):
-    found = live.checks.gpu(live.manifest)
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
     assert found["device_kind"] == "NVIDIA GeForce RTX 4090"
     assert found["scope"] == gpu.gpu_scope(gpu_image())
     installed = HostDeviceRecord.load(live.root)
@@ -577,7 +626,7 @@ def test_the_live_gpu_check_detects_installs_the_record_and_verifies(live):
     assert live.toolkit == [gpu_image().image_id]
     # A second check keeps the installed record of the same device.
     before = (live.root / "host-device.json").read_bytes()
-    live.checks.gpu(live.manifest)
+    live.checks.gpu(live.manifest, campaign=battery_campaign())
     assert (live.root / "host-device.json").read_bytes() == before
 
 
@@ -596,7 +645,7 @@ def test_the_live_gpu_check_refuses_by_field(live, monkeypatch, tmp_path):
 
     monkeypatch.setattr(onboarding, "observe_local_device", no_gpu)
     with pytest.raises(SetupRefused) as refused:
-        live.checks.gpu(live.manifest)
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
     assert (refused.value.field, refused.value.code) == ("gpu", "gpu_not_detected")
 
 
@@ -624,6 +673,6 @@ def test_a_host_the_miner_lane_cannot_use_is_refused_with_its_blockers(
         },
     )
     with pytest.raises(SetupRefused) as refused:
-        live.checks.gpu(live.manifest)
+        live.checks.gpu(live.manifest, campaign=battery_campaign())
     # Only what the miner lane requires blocks; a display on the GPU does not.
     assert refused.value.code == "gpu_host_not_ready:container_device_runtime"

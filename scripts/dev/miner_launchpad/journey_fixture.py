@@ -158,7 +158,10 @@ def _journey_host(root, patch):
         "campaigns_root": str(campaigns),
         "runtime": runtime,
         "accepted_revision": "a" * 40,
-        "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
+        "paths": {
+            name: str(root / (name + ".json"))
+            for name in PATH_FIELDS | {"operator_config"}
+        },
     }
 
     def registration(_cfg):
