@@ -1,0 +1,271 @@
+{
+  "batch": "pilot-v1",
+  "population": "carbon.cold-plate.development-population.v1",
+  "screen": {
+    "max_wall_c": 95.0,
+    "re_max": 2000.0
+  },
+  "label": "carbon.cold-plate.pilot-v1",
+  "draws": {
+    "ordinary": 10,
+    "difficult": 4747
+  },
+  "cases": [
+    {
+      "case_id": "ordinary-1",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.22746375296883714,
+        "fin_width_mm": 0.24566524798620729,
+        "channel_depth_mm": 1.7158667464394517,
+        "flow_lpm_per_kw": 1.9604925943283475,
+        "inlet_c": 41.04396970542689,
+        "heat_load_w": 1045.536329341644,
+        "hotspot_ratio": 2.646620489026496,
+        "hotspot_center_mm": 6.284917458999258,
+        "hotspot_width_mm": 3.144661273509532
+      }
+    },
+    {
+      "case_id": "ordinary-2",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.452587859869203,
+        "fin_width_mm": 0.46744272240430595,
+        "channel_depth_mm": 2.852219549093752,
+        "flow_lpm_per_kw": 1.3031135437508934,
+        "inlet_c": 42.13204505091753,
+        "heat_load_w": 802.6128545544915,
+        "hotspot_ratio": 1.4815370894787987,
+        "hotspot_center_mm": 19.88549114139584,
+        "hotspot_width_mm": 3.257171984688018
+      }
+    },
+    {
+      "case_id": "ordinary-3",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.31586677794696044,
+        "fin_width_mm": 0.2842687736808857,
+        "channel_depth_mm": 1.5336715397485279,
+        "flow_lpm_per_kw": 1.5750038684312353,
+        "inlet_c": 35.52720810432488,
+        "heat_load_w": 1417.2976174342466,
+        "hotspot_ratio": 1.9653280439387861,
+        "hotspot_center_mm": 22.526470272469226,
+        "hotspot_width_mm": 2.297756838806937
+      }
+    },
+    {
+      "case_id": "ordinary-4",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.38858090418782065,
+        "fin_width_mm": 0.3863375403686271,
+        "channel_depth_mm": 1.6429200532365795,
+        "flow_lpm_per_kw": 1.407531914099781,
+        "inlet_c": 32.153427264936134,
+        "heat_load_w": 1129.9614791628874,
+        "hotspot_ratio": 1.88170911619556,
+        "hotspot_center_mm": 18.70820557186268,
+        "hotspot_width_mm": 3.04063146691361
+      }
+    },
+    {
+      "case_id": "ordinary-5",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.36103825355276464,
+        "fin_width_mm": 0.30677125066890204,
+        "channel_depth_mm": 2.8005761111350447,
+        "flow_lpm_per_kw": 1.808820895216821,
+        "inlet_c": 38.4375672113038,
+        "heat_load_w": 1144.5805007011409,
+        "hotspot_ratio": 1.3896037767000358,
+        "hotspot_center_mm": 14.89044405601115,
+        "hotspot_width_mm": 2.750261356762814
+      }
+    },
+    {
+      "case_id": "ordinary-6",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.26160720055835585,
+        "fin_width_mm": 0.4249712590937923,
+        "channel_depth_mm": 2.893262373295123,
+        "flow_lpm_per_kw": 1.7446115880118938,
+        "inlet_c": 36.149622871642634,
+        "heat_load_w": 1399.1511328769393,
+        "hotspot_ratio": 1.0537031215041999,
+        "hotspot_center_mm": 4.254330404227418,
+        "hotspot_width_mm": 1.7789303370864025
+      }
+    },
+    {
+      "case_id": "ordinary-7",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.31558228794169674,
+        "fin_width_mm": 0.48397308779341414,
+        "channel_depth_mm": 2.106519455642041,
+        "flow_lpm_per_kw": 1.9096756092520655,
+        "inlet_c": 35.333011749265914,
+        "heat_load_w": 565.4684545862069,
+        "hotspot_ratio": 2.520638208723185,
+        "hotspot_center_mm": 26.62707304771272,
+        "hotspot_width_mm": 2.28999076527165
+      }
+    },
+    {
+      "case_id": "ordinary-8",
+      "kind": "ordinary",
+      "inputs": {
+        "channel_width_mm": 0.4061074751942737,
+        "fin_width_mm": 0.35080345761011084,
+        "channel_depth_mm": 1.842621685397708,
+        "flow_lpm_per_kw": 1.6649940991029015,
+        "inlet_c": 36.38651605031814,
+        "heat_load_w": 908.1831247011164,
+        "hotspot_ratio": 2.5503420896076507,
+        "hotspot_center_mm": 18.677240840704393,
+        "hotspot_width_mm": 1.8972260989305687
+      }
+    },
+    {
+      "case_id": "difficult-1-screen-edge",
+      "kind": "corner",
+      "inputs": {
+        "channel_width_mm": 0.482215515877007,
+        "fin_width_mm": 0.47205905707575585,
+        "channel_depth_mm": 1.0647745818235321,
+        "flow_lpm_per_kw": 1.5179338254210726,
+        "inlet_c": 42.02652615071519,
+        "heat_load_w": 912.1621603304557,
+        "hotspot_ratio": 2.0012610099168473,
+        "hotspot_center_mm": 6.523827002046398,
+        "hotspot_width_mm": 3.4197605320558715
+      }
+    },
+    {
+      "case_id": "difficult-2-sharpest-spot",
+      "kind": "corner",
+      "inputs": {
+        "channel_width_mm": 0.2408572848327392,
+        "fin_width_mm": 0.20814708237365073,
+        "channel_depth_mm": 1.712245868898463,
+        "flow_lpm_per_kw": 1.4738783198241077,
+        "inlet_c": 36.940523474785785,
+        "heat_load_w": 1447.6947694150367,
+        "hotspot_ratio": 2.9793175133671435,
+        "hotspot_center_mm": 21.26936179043595,
+        "hotspot_width_mm": 1.636635438950016
+      }
+    },
+    {
+      "case_id": "difficult-3-highest-pressure",
+      "kind": "corner",
+      "inputs": {
+        "channel_width_mm": 0.20494048983410815,
+        "fin_width_mm": 0.4630288618864253,
+        "channel_depth_mm": 1.0854391183486827,
+        "flow_lpm_per_kw": 1.840520832494258,
+        "inlet_c": 30.747313454792344,
+        "heat_load_w": 1492.2651951505889,
+        "hotspot_ratio": 1.1865467292772311,
+        "hotspot_center_mm": 13.754406202366177,
+        "hotspot_width_mm": 3.3614520228261293
+      }
+    },
+    {
+      "case_id": "difficult-4-highest-re",
+      "kind": "corner",
+      "inputs": {
+        "channel_width_mm": 0.21426698112307582,
+        "fin_width_mm": 0.4381366455003638,
+        "channel_depth_mm": 1.0120294942158343,
+        "flow_lpm_per_kw": 1.6686216389334545,
+        "inlet_c": 39.89369306352886,
+        "heat_load_w": 1454.5564678599715,
+        "hotspot_ratio": 1.7910430954160128,
+        "hotspot_center_mm": 13.75706574757984,
+        "hotspot_width_mm": 3.2692518883298383
+      }
+    },
+    {
+      "case_id": "ordinary-1-r3",
+      "kind": "refinement",
+      "inputs": {
+        "channel_width_mm": 0.22746375296883714,
+        "fin_width_mm": 0.24566524798620729,
+        "channel_depth_mm": 1.7158667464394517,
+        "flow_lpm_per_kw": 1.9604925943283475,
+        "inlet_c": 41.04396970542689,
+        "heat_load_w": 1045.536329341644,
+        "hotspot_ratio": 2.646620489026496,
+        "hotspot_center_mm": 6.284917458999258,
+        "hotspot_width_mm": 3.144661273509532
+      },
+      "options": {
+        "resolution": 3
+      },
+      "pairs_with": "ordinary-1"
+    },
+    {
+      "case_id": "ordinary-2-r3",
+      "kind": "refinement",
+      "inputs": {
+        "channel_width_mm": 0.452587859869203,
+        "fin_width_mm": 0.46744272240430595,
+        "channel_depth_mm": 2.852219549093752,
+        "flow_lpm_per_kw": 1.3031135437508934,
+        "inlet_c": 42.13204505091753,
+        "heat_load_w": 802.6128545544915,
+        "hotspot_ratio": 1.4815370894787987,
+        "hotspot_center_mm": 19.88549114139584,
+        "hotspot_width_mm": 3.257171984688018
+      },
+      "options": {
+        "resolution": 3
+      },
+      "pairs_with": "ordinary-2"
+    },
+    {
+      "case_id": "difficult-1-screen-edge-r3",
+      "kind": "refinement",
+      "inputs": {
+        "channel_width_mm": 0.482215515877007,
+        "fin_width_mm": 0.47205905707575585,
+        "channel_depth_mm": 1.0647745818235321,
+        "flow_lpm_per_kw": 1.5179338254210726,
+        "inlet_c": 42.02652615071519,
+        "heat_load_w": 912.1621603304557,
+        "hotspot_ratio": 2.0012610099168473,
+        "hotspot_center_mm": 6.523827002046398,
+        "hotspot_width_mm": 3.4197605320558715
+      },
+      "options": {
+        "resolution": 3
+      },
+      "pairs_with": "difficult-1-screen-edge"
+    },
+    {
+      "case_id": "difficult-2-sharpest-spot-r3",
+      "kind": "refinement",
+      "inputs": {
+        "channel_width_mm": 0.2408572848327392,
+        "fin_width_mm": 0.20814708237365073,
+        "channel_depth_mm": 1.712245868898463,
+        "flow_lpm_per_kw": 1.4738783198241077,
+        "inlet_c": 36.940523474785785,
+        "heat_load_w": 1447.6947694150367,
+        "hotspot_ratio": 2.9793175133671435,
+        "hotspot_center_mm": 21.26936179043595,
+        "hotspot_width_mm": 1.636635438950016
+      },
+      "options": {
+        "resolution": 3
+      },
+      "pairs_with": "difficult-2-sharpest-spot"
+    }
+  ]
+}

@@ -76,6 +76,7 @@ UNITS = frozenset(
         "kg",
         "kg/s",
         "L/min",
+        "L/min/kW",
         "m^3/s",
         "Pa",
         "W",

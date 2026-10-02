@@ -31,7 +31,7 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
 | Challenge | Reference execution | Baseline | Cases OK | Reference / infra failures | Unknown cost items | Limits awaiting approval / declared | Reviews approved | Recommendation |
 |---|---|---|---|---|---|---|---|---|
 | battery-fastcharge-ageing-development-v1 | CAMPAIGN_COMPLETE | MEASURED | 2631 | 0 / 4 | startup, cleanup | 3 / 3 | 0 of 5 | PROCEED |
-| chip-cold-plate | SCOPED | NOT_STARTED | 0 | 0 / 0 | startup, mesh, reference, reconstruction, inference, finalist, cleanup | 0 / 0 | 0 of 5 | NONE |
+| chip-cold-plate | PILOTED | SELECTED | 20 | 2 / 0 | startup, reconstruction, inference, finalist, cleanup | 7 / 7 | 0 of 5 | PROCEED |
 | electric-motor-magnetics | SCOPED | NOT_STARTED | 0 | 0 / 0 | startup, mesh, reference, reconstruction, inference, finalist, cleanup | 0 / 0 | 0 of 5 | NONE |
 | photonic-coupler | PILOTED | NOT_STARTED | 6 | 13 / 16 | startup, mesh, reconstruction, inference, finalist, cleanup | 0 / 0 | 0 of 5 | DEFER |
 
@@ -44,8 +44,8 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
   `REFERENCE_SOLVER_FAILED` whose cause was configuration (the ptxas
   `TMPDIR`, and the mode solver's CPU device). Their pilot notes say so; the
   counts are kept as recorded.
-- **An unknown cost stays unknown.** Cold plate and motor have no measured
-  cost at all.
+- **An unknown cost stays unknown.** The motor has no measured cost at all;
+  the cold plate's one measured cost is its reference on the owner's host.
 
 ## Provenance: what in each record is evidence, and what is a placeholder
 
@@ -60,17 +60,17 @@ Kinds of field:
 | Field | Battery | Cold plate | Motor | Photonics |
 |---|---|---|---|---|
 | Identity and tracking | verified against the registry | verified | verified | verified |
-| Decision, intended use | from code and campaign docs | proposal (#342) | proposal (#344) | proposal (#345) |
+| Decision, intended use | from code and campaign docs | from the package and ticket (CHALLENGE-COLD-PLATE-01) | proposal (#344) | proposal (#345) |
 | Buyer | hypothesis | hypothesis | hypothesis | hypothesis |
-| Design variables, outputs, units | from `carbon/battery/domain.py` | proposal; the parameter list is not fixed | proposal; not fixed | proposal; not fixed |
-| Reference solver | PyBaMM 26.8.0.0 overlay, verified (truth-verify) | OpenFOAM v2512 candidate, verified on channel flow and uniform-flux heat transfer only (rungs 1 and 2) | placeholder (none) | fdtdx, relayed; diagnostic only |
+| Design variables, outputs, units | from `carbon/battery/domain.py` | from `carbon/cold_plate/domain.py`: nine inputs, three predicted outputs | proposal; not fixed | proposal; not fixed |
+| Reference solver | PyBaMM 26.8.0.0 overlay, verified (truth-verify) | OpenFOAM v2512, pinned; verified rung by rung (`scripts/dev/cold_plate/`), the package reference against rung 6e (rung 7) | placeholder (none) | fdtdx, relayed; diagnostic only |
 | Licence | placeholder (not recorded) | GPL-3.0 as published; redistribution not reviewed | placeholder | placeholder |
-| Pilot outcomes | verified (recounted from `records.jsonl`) | none | none | verified (recounted) |
-| Costs | measured and relayed (reference, reconstruction, discarded); **estimated** (finalist, inference); unknown (startup, cleanup) | all unknown | all unknown | **estimated** (reference); the rest unknown |
-| Limits | proposed OD-2 DEVELOPMENT values; none approved | none declared | none declared | none declared |
+| Pilot outcomes | verified (recounted from `records.jsonl`) | verified (recounted): rung 7 and the 16-case pilot | none | verified (recounted) |
+| Costs | measured and relayed (reference, reconstruction, discarded); **estimated** (finalist, inference); unknown (startup, cleanup) | **measured** (reference: local host, no marginal spend); the rest unknown | all unknown | **estimated** (reference); the rest unknown |
+| Limits | proposed OD-2 DEVELOPMENT values; none approved | seven proposed DEVELOPMENT values; none approved | none declared | none declared |
 | Population | proposed; none approved | proposed | proposed | proposed |
 | Reviews | none approved; security IN_REVIEW, where OD-3 covers the testnet images only | none started | none started | none started |
-| Recommendation | PROCEED, on verified counts | none: no pilot has run | none | DEFER, relayed from RESULT section 9 and #345 |
+| Recommendation | PROCEED, on verified counts | PROCEED, on the pilot's verified counts | none | DEFER, relayed from RESULT section 9 and #345 |
 
 **Corrections made by this audit** (v1 to v2; v1 remains in git history):
 - **Battery finalist cost (USD 0.29).** `measured` → `estimated`. It is
@@ -91,7 +91,9 @@ Owner decision, 2026-09-26:
    (#345). There is no photonic exam design before that repair.
 
 Each cold-plate, motor or photonic reference pilot is priced and approved
-individually before it runs.
+individually before it runs. Under OWNER-CHALLENGE-DESIGN-01 (2026-10-01),
+pilots on the owner's local host, at no marginal spend, run under the
+design delegation; paid compute still needs its own grant.
 
 ## What the record enforces
 

@@ -10545,6 +10545,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T00:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-COLD-PLATE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Under OWNER-CHALLENGE-DESIGN-01 (the owner delegated the challenge design flow on 2026-10-01), the AI-chip cold plate (#342) gains a DEVELOPMENT reference service and a pilot. carbon/cold_plate/ writes every OpenFOAM file itself (the verification rungs' mesh, unchanged), reads the solve back into nine-input, three-output cases with exact mass, energy and iteration checks, and types every outcome (OK, REFERENCE_INVALID, REFERENCE_SOLVER_FAILED, REFERENCE_TIMEOUT, FAILED_INFRA), never charging one to a candidate. Rung 7 shows the package reproduces rung 6e (+0.003 K), that density and conductivity varying moves the peak 0.49 K, and that holding heat capacity costs about 0.1 K while keeping energy conservation exact. An axial hot spot, written as an OpenFOAM expression, gives the Challenge its value: without base spreading the textbook closed-form model reads a 3x spot 27.6 K too hot; the conventional baseline now models spreading (2.4 K). A DEVELOPMENT population (uniform over the box, screened by that baseline's hottest wall at 95 C) and an exam with physical-law gates, a TRAIN-normalized soft score and feasibility kept outside it are implemented and tested. The pilot, in #342's shape (8 ordinary, 4 difficult, 4 refined), ran 16 of 16 OK on the owner's host; r = 2 discretization is about a tenth of the baseline's error. The readiness record moves to v5: PILOTED, PROCEED. Every value is a provisional DEVELOPMENT value; the registry entry stays RESERVED until the miner path (CHALLENGE-COLD-PLATE-02); no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T04:40:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
