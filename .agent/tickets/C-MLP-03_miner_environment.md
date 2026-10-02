@@ -209,6 +209,11 @@ pending Hermes and the miner's keys.
     otherwise. Per this ticket the slice records that and stops: a network
     door into a miner's machine is an owner decision. Mira stays an
     unavailable integration, and the agent provision closes without it.
+    MIRA-ADMISSION-01 (#475) holds the same finding:
+    `docs/development/mira/CAPABILITY_REPORT.md` plans an artifact handoff and
+    keeps live Mira BLOCKED. OWNER-GRAPHITE-01 (2026-10-02) then chose to
+    build Carbon's own agent (Graphite) instead; the Mira adapter keeps
+    refusing every call until a vendor contract exists.
 - **Slice 6 (the fresh-miner journey):** `carbon/battery/remote_submission.py`,
   the campaign's intake path, the profile's `battery_intake`, setup's
   intake check, and the runbook `docs/development/FRESH_MINER_JOURNEY.md`;
@@ -394,12 +399,15 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 ## Owner input
 
-- **Targon:** build a VM-and-SSH route (the pinned worker run with Docker
-  inside a Targon VM, reached over SSH), or leave Targon out until its API
-  runs container images again?
+- **Targon:** answered 2026-10-02 (OWNER-C-MLP-03-ANSWERS-01): build the
+  VM-and-SSH route, the pinned worker run with Docker inside a Targon VM on
+  the miner's own account, reached over SSH (slice 4b, below).
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).
-- **Mira's connection:** it documents none publicly (2026-10-02). Ask
-  Autoscience how Mira reaches a tool server; if only over the network, decide
-  whether a door into the miner's machine is acceptable.
+- **Mira's connection:** answered 2026-10-02 (OWNER-GRAPHITE-01, recorded
+  for this ticket by OWNER-C-MLP-03-ANSWERS-01). Carbon builds Graphite
+  instead of buying Mira, and the Mira adapter refuses every call until a
+  vendor contract exists (`docs/development/mira/CAPABILITY_REPORT.md`,
+  MIRA-ADMISSION-01, #475). A paid Mira comparison needs its own owner
+  decision.

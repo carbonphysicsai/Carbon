@@ -17189,3 +17189,33 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
+
+## 2026-10-02 — OWNER-C-MLP-03-ANSWERS-01: the Mira note stands; build Targon's VM-and-SSH route
+
+**Owner, verbatim, in session on 2026-10-02:** "Approve, Build Targon VM
+route, Security approved". The three answers are, in order:
+1. the slice-5 ticket edit that records the Mira question as answered by
+   OWNER-GRAPHITE-01;
+2. the C-MLP-03 Targon question;
+3. the battery intake's exposure. That needs its own record of the form
+   `OWNER-…INTAKE-EXPOSURE-NN`, made with the listener change it gates; it is
+   not made here.
+
+**Decision.**
+1. **Mira.** The C-MLP-03 ticket records "Mira's connection" as answered.
+   - OWNER-GRAPHITE-01 builds Graphite instead of buying Mira.
+   - The Mira adapter refuses every call until a vendor contract exists
+     (`docs/development/mira/CAPABILITY_REPORT.md`, MIRA-ADMISSION-01, #475).
+2. **Targon.** C-MLP-03 builds a Targon route on the miner's own account:
+   - rent a Targon GPU VM;
+   - reach it over SSH;
+   - run the pinned GPU worker there with Docker.
+
+   Like RunPod and Lium, the route is for research practice only. It has:
+   - the miner's own key;
+   - finite ceilings;
+   - teardown verified;
+   - charges reconciled against the provider.
+
+**Unchanged.** Practice on rented compute is speed only and never evidence.
+No key reaches Carbon. The exam is unchanged.
