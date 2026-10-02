@@ -17359,6 +17359,54 @@ challenge develop pipeline and roadmap we need to build out and execute."
 
 Ticket: `.agent/tickets/CHALLENGE-PIPELINE-01.md`.
 
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-02: both backends, the step 4 grant, the reference hardware, and who builds Graphite phases 3-4
+
+**Owner, in session on 2026-10-02**, answering OWNER-CHALLENGE-ROADMAP-01's
+open questions: "1. Both 2. $5 Engy 3. Approved and it needs my approval
+only". Then, asked who builds step 4 and which grant account to use: this
+session builds it, and the phase 2 grant's account and expiry are reused.
+
+**Decision.**
+1. **Both backends.**
+   - Pipeline challenges admit recipes in any backend the construction
+     contract supports: JAX and PyTorch (OWNER-PYTORCH-BACKEND-01).
+   - This resolves ROADMAP-01's `NEW_OWNER_DECISION_REQUIRED`.
+   - Track A vector 1 still rejects executables outside the contract's
+     backends, and disguised executable content.
+   - Roadmap rev 2.1 amends §03 and §06.
+   - PyTorch stays DEVELOPMENT-only until OWNER-PYTORCH-BACKEND-01's reserved
+     values are set.
+2. **Step 4 grant.** For Phase 1 step 4 (Graphite through Test/iterate on
+   battery):
+   - USD 5.00, Engy inference only;
+   - account `Carbon-Account`, expiring 2026-12-31;
+   - no pods: reconstructions run on the owner's host at no marginal spend.
+
+   The grant file is completed in step 4's ticket, from these values.
+3. **Reference timing hardware: approved by the technical owner alone.** It
+   is a RunPod CPU pod:
+   - flavor `cpu5c`, with no fallback flavor;
+   - 16 vCPU;
+   - each challenge's pinned image.
+
+   The label is `runpod-cpu5c-16vcpu`. Each timing study records the CPU model
+   it ran on, because the earlier pool pods fell back to other flavors and
+   other processors (EPYC 9655P and 4564P). This value leaves the
+   lock-approved list. Roadmap rev 2.1 moves it, and the protocol records the
+   technical owner's approval.
+4. **Graphite phases 3-4 are Phase 1 step 4.**
+   - This session builds Graphite's Level 0 constructor loop on battery
+     (phase 3) and the attacker for Track A's eight vectors (phase 4).
+   - They are built under the challenge roadmap and GRAPHITE-01's plan
+     together, including OWNER-GRAPHITE-02's reconstruction rule.
+   - The GRAPHITE-01 lane continues from phase 5.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No pod or other spend beyond this grant.
+
 ## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
 
 **Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
