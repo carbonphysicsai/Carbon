@@ -1,8 +1,20 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-30.1",
-  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
-  "status_note": "Bundle 86f51385… approved for deployment by the owner in session on 2026-10-01 (WEB-QA-11-D2). It supersedes 48fd4680… (WEB-QA-10-D1), which production still serves. NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_01.md; this host has none and ran no wrangler command.",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
+  "status_note": "Bundle 86f51385… approved by the owner on 2026-10-01 (WEB-QA-11-D2) and deployed by the operator on 2026-10-02 as carbonwebsite c12d547a (01:52:41Z, 100 % of traffic), replacing dc4469a7. Verified by content from the building host on both hostnames (tools/verify-publication.mjs: VERIFIED). The ask-carbon-public version ids were not supplied to the repository.",
+  "status_note_before_deployment": "Bundle 86f51385… approved for deployment by the owner in session on 2026-10-01 (WEB-QA-11-D2). It supersedes 48fd4680… (WEB-QA-10-D1), which production still serves. NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_01.md; this host has none and ran no wrangler command.",
+  "deployment": {
+    "decision": "WEB-QA-11-D2",
+    "carbonwebsite_version_id": "c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4",
+    "created_utc": "2026-10-02T01:52:41.964Z",
+    "traffic": "100%",
+    "replaced_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+    "capture": "the operator's wrangler deploy output (01:52Z), re-read with `wrangler deployments status --name carbonwebsite` at 02:56Z; relayed by the owner in session on 2026-10-02",
+    "ask_carbon_public_version_ids": "not supplied",
+    "verification": "tools/verify-publication.mjs against the reproduced bundle 86f51385 (built from release/pilot-designer.html and a baseline re-fetched from both hostnames): VERIFIED on both hostnames, health active:true, reasons [], gemma-4-31b-turbo-tee:v1",
+    "recorded_by": "ASK-CARBON-PILOT-SNAPSHOT-01 change, 2026-10-02"
+  },
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {

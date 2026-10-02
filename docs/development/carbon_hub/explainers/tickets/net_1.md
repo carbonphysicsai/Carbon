@@ -40,12 +40,12 @@ Read-only SPECIFIED/IMPLEMENTED/TESTED only; no localnet or scientific/security/
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/323819bce5c5e9119e7fd10173df93e922b1b351/.agent/tickets/NET-1_chain_adapter.md)
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/323819bce5c5e9119e7fd10173df93e922b1b351/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/bb43f1e86618584e176e599a6b012ee548476f14/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/bb43f1e86618584e176e599a6b012ee548476f14/.agent/WAVE_C.md)
 - [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/plans/NET-1_chain_adapter.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/323819bce5c5e9119e7fd10173df93e922b1b351/.agent/evidence/wave_c/net-1.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/bb43f1e86618584e176e599a6b012ee548476f14/.agent/evidence/wave_c/net-1.md)
 - [Current launch roadmap](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
-- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/323819bce5c5e9119e7fd10173df93e922b1b351/.agent/plans/C0_score_reward_program.md)
+- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/bb43f1e86618584e176e599a6b012ee548476f14/.agent/plans/C0_score_reward_program.md)
 - [SDK adapter and upgrades](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CHAIN_ADAPTER.md)
 
 > Read-only local adapter work proceeds without keys or live-chain access. UID meaning is snapshot- and network-bound; missing or malformed provider state fails closed rather than fabricating identity.

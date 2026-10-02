@@ -94,6 +94,11 @@ core in conversation and form mode, exports a closed
 `carbon.client-intake.reviewed.v1` package, and never submits it. Conversation
 inclusion is off by default.
 
+The release does not read that preview. It ships the committed snapshot
+`release/pilot-designer.html` (ASK-CARBON-PILOT-SNAPSHOT-01). Refreshing the
+snapshot is a release step: see "Shipping a newer Pilot Designer" in
+`OPERATIONS.md`.
+
 ## Local preview integration
 
 To make a private local staging artifact from the reviewed homepage bytes:

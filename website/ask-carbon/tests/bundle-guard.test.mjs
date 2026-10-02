@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  PILOT_DESIGNER,
   REQUIRED_PRODUCTION_PATHS,
   bundleIdentity,
   inventoryDirectory,
@@ -412,7 +413,7 @@ test("the release candidate's recorded asset digests match the files actually sh
     ["component_css_sha256", new URL("../public/ask-carbon.css", import.meta.url)],
     ["component_js_sha256", new URL("../public/ask-carbon.js", import.meta.url)],
     ["release_contract_sha256", new URL("../public/release-contract.js", import.meta.url)],
-    ["pilot_html_sha256", new URL("../../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html", import.meta.url)],
+    ["pilot_html_sha256", new URL("../release/pilot-designer.html", import.meta.url)],
   ];
   for (const [key, url] of sources) {
     const actual = sha256(await readFile(url));
@@ -421,6 +422,15 @@ test("the release candidate's recorded asset digests match the files actually sh
   // The reviewed homepage pin must be the source the bundle is actually built from.
   assert.match(recorded.integrated_index_sha256, /^[0-9a-f]{64}$/);
   assert.match(recorded.bundle_identity_sha256, /^[0-9a-f]{64}$/);
+});
+
+test("the shipped Pilot Designer is the release's own snapshot, never the Workbench's working copy", () => {
+  // ASK-CARBON-PILOT-SNAPSHOT-01: a Workbench rebuild (for example a relayed
+  // readiness record) must not change a certified bundle. The integrator reads
+  // the committed snapshot inside this tree; refreshing it is a release step.
+  const tree = fileURLToPath(new URL("..", import.meta.url));
+  assert.equal(PILOT_DESIGNER, join(tree, "release", "pilot-designer.html"));
+  assert.ok(!PILOT_DESIGNER.includes(`${"Business"}/`), PILOT_DESIGNER);
 });
 
 // --- declared site replacements ---------------------------------------------
