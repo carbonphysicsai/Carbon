@@ -136,7 +136,9 @@ def prepared(tmp_path):
         sdk=SimpleNamespace(connection=SimpleNamespace(miner_key="miner-signer")),
         ledger=SimpleNamespace(root=tmp_path),
         manifest={"contract_digest": "sha256:" + "c" * 64},
-        args=SimpleNamespace(battery_intake=URL, battery_validator=None),
+        args=SimpleNamespace(
+            intakes={"battery-fastcharge-ageing-development-v1": URL}, validators={}
+        ),
     )
 
 
@@ -214,7 +216,13 @@ def test_setup_checks_the_intake_and_writes_it_to_the_profile(tmp_path):
     from scripts.dev.miner_launchpad.environment_setup import SetupRefused
 
     calls = []
-    Checks.intake = lambda self, url: calls.append(url) or {"receiver": "5V"}
+
+    def intake(self, url, campaign=None):
+        assert campaign.intake_check is not None  # the Challenge's own check
+        calls.append(url)
+        return {"receiver": "5V"}
+
+    Checks.intake = intake
     try:
         setup, _, _ = setup_with(
             tmp_path,
@@ -226,10 +234,15 @@ def test_setup_checks_the_intake_and_writes_it_to_the_profile(tmp_path):
         )
         with pytest.raises(SetupRefused) as refused:
             setup.review({"confirm": True, "battery_intake": "http://example.org"})
-        assert refused.value.field == "battery_intake"
+        assert refused.value.field == "intakes"
+        with pytest.raises(SetupRefused) as refused:
+            setup.review({"confirm": True, "intakes": {"nowhere": URL}})
+        assert refused.value.field == "intakes"
+        # A legacy `battery_intake` is read as the battery Challenge's intake.
         setup.review({"confirm": True, "battery_intake": URL})
     finally:
         del Checks.intake
     assert calls == [URL]
     cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
-    assert cfg["battery_intake"] == URL
+    assert cfg["intakes"] == {"battery-fastcharge-ageing-development-v1": URL}
+    assert runner.intakes(cfg) == cfg["intakes"]

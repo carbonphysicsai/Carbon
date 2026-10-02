@@ -1284,10 +1284,10 @@ class SetupChecks:
             "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
         }
 
-    def gpu(self, manifest):
+    def gpu(self, manifest, campaign=None):
         raise AssertionError("the smoke's miner checks the CPU, not a GPU")
 
-    def rented(self, rented, credential, manifest):
+    def rented(self, rented, credential, manifest, campaign=None):
         raise AssertionError("the smoke's miner rents no GPU")
 
     @staticmethod
@@ -1300,7 +1300,7 @@ class SetupChecks:
     def hermes(self, document, key):
         raise AssertionError("the smoke's miner uses Carbon's agent")
 
-    def intake(self, url):
+    def intake(self, url, campaign=None):
         raise AssertionError("the smoke's validator runs beside the campaign")
 
     def agent(self, hotkey, socket_path=None):
@@ -1308,7 +1308,20 @@ class SetupChecks:
 
     @staticmethod
     def operator_config(path):
-        return None
+        raise AssertionError("the smoke's miner names no operator configuration")
+
+    @staticmethod
+    def network():
+        """A miner's network read (C-MLP-04): Carbon's testnet constants and a
+        fixture publisher; no chain is reached."""
+        from carbon.development_session import miner_network
+        from carbon.development_session.chain_onboarding import (
+            carbon_testnet_context,
+        )
+
+        context = carbon_testnet_context()
+        bound = miner_network.NetworkBinding(context, "5" + "P" * 47, context.netuid)
+        return miner_network.document(bound, 7), 7
 
 
 def setup_journey():
@@ -1449,7 +1462,10 @@ def setup_journey():
                 wait(
                     session,
                     "!document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
-                    " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')",
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')"
+                    # GPU practice is set up for a Challenge the miner chooses.
+                    " && [...document.getElementById('setup-compute-challenge').options]"
+                    ".some(o => JSON.parse(o.value).id === 'battery-fastcharge-ageing-development-v1')",
                 )
                 # A GPU rented on the miner's own account asks for the
                 # provider, its key, the pushed image and the ceilings.
@@ -1461,7 +1477,18 @@ def setup_journey():
                     session,
                     "!document.getElementById('setup-compute-image_ref').parentElement.hidden"
                     " && [...document.getElementById('setup-compute-provider').options]"
-                    ".map(o => o.value).join() === 'lium,runpod'",
+                    ".map(o => o.value).join() === 'lium,runpod,targon'"
+                    " && document.getElementById('setup-compute-vm_image').parentElement.hidden",
+                )
+                # Targon is a VM over SSH (slice 4b): it asks for a VM image.
+                session.evaluate(
+                    "document.getElementById('setup-compute-provider').value = 'targon';"
+                    "document.getElementById('setup-compute-provider').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-vm_image').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('over SSH')",
                 )
                 session.evaluate(
                     "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
@@ -1522,10 +1549,13 @@ def setup_journey():
                     )
                     == 0
                 )
+                # A miner names no operator file: setup reads the network.
+                assert session.evaluate(
+                    "document.querySelector('label[for=setup-agent-operator_config]')"
+                    ".textContent.includes('operators only')"
+                )
                 session.evaluate(
-                    "document.getElementById('setup-agent-operator_config').value = "
-                    + json.dumps(str(miner / "operator.json"))
-                    + ";document.querySelector('form[data-step=agent]').requestSubmit()"
+                    "document.querySelector('form[data-step=agent]').requestSubmit()"
                 )
                 wait(
                     session,

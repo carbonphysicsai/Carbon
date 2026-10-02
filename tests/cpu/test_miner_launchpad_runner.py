@@ -297,7 +297,9 @@ def test_adapter_dispatches_the_product_launch_with_no_grant(tmp_path, monkeypat
     monkeypatch.setattr(bridge, "_cleanup", lambda ledger: True)
     cfg = {
         **configured(tmp_path),
-        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+        "paths": {
+            key: str(tmp_path / key) for key in PATH_FIELDS | {"operator_config"}
+        },
     }
     product = object()
     bridge._run(identity, cfg, value.root, product)
@@ -603,7 +605,9 @@ def julia_profile(tmp_path, *, declare=True, name=True):
         "accepted_revision": REVISION,
         "campaigns_root": str(tmp_path / "campaigns"),
         "runtime": runtime,
-        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+        "paths": {
+            key: str(tmp_path / key) for key in PATH_FIELDS | {"operator_config"}
+        },
     }
     if name:
         cfg["authored_julia_image"] = str(record)

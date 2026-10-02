@@ -214,6 +214,20 @@ def test_a_rented_trial_provisions_runs_and_tears_down_one_tagged_pod(tmp_path):
     assert result["official_eligible"] is False
 
 
+def test_the_record_names_how_the_job_was_reached(tmp_path):
+    """https through a provider proxy by default; an adapter that states its
+    route (Lium's node IP, Targon's SSH forward) has it recorded as stated."""
+    runner, ledger, _, _ = setup(tmp_path)
+    assert call(runner, ledger)["rented"]["job_transport"] == "https"
+    tunnelled = Cloud()
+    tunnelled.job_transport = "ssh-tunnel"
+    (tmp_path / "tunnel").mkdir()
+    # The fixture job takes no `plain_http`: a tunnel is reached on loopback,
+    # so it is never sent as plain HTTP.
+    runner, ledger, _, _ = setup(tmp_path / "tunnel", cloud=tunnelled)
+    assert call(runner, ledger)["rented"]["job_transport"] == "ssh-tunnel"
+
+
 def test_the_job_record_is_owner_only_and_fixed_before_provisioning(tmp_path):
     runner, ledger, cloud, _ = setup(tmp_path)
     result = call(runner, ledger)
@@ -265,6 +279,31 @@ def test_an_unpinned_or_unbounded_rented_choice_is_refused():
         RentedCompute("x", "docker.io/miner/worker:latest", "A40", 0.5, 0.1)
     with pytest.raises(ValueError, match="rate ceiling"):
         RentedCompute("x", IMAGE, "A40", float("inf"), 0.1)
+
+
+def test_a_vm_provider_and_only_one_names_a_vm_image():
+    """Targon (slice 4b) boots a VM image; a container provider's identity is
+    unchanged, because its document carries no `vm_image` key."""
+    vm = RentedCompute("targon", IMAGE, "h100-small", 3.5, 0.1, vm_image="ubuntu")
+    assert vm.document()["vm_image"] == "ubuntu"
+    assert "vm_image" not in RentedCompute("runpod", IMAGE, "A40", 0.5, 0.1).document()
+    for provider, vm_image in (("targon", None), ("runpod", "ubuntu")):
+        with pytest.raises(ValueError, match="VM image"):
+            RentedCompute(provider, IMAGE, "A40", 0.5, 0.1, vm_image=vm_image)
+    with pytest.raises(ValueError, match="invalid VM image"):
+        RentedCompute("targon", IMAGE, "h100-small", 3.5, 0.1, vm_image="a b")
+
+
+def test_a_vm_choice_round_trips_through_the_rented_scope():
+    from carbon.development_session import battery_gpu as gpu
+
+    image = gpu_worker()
+    vm = RentedCompute("targon", IMAGE, "h100-small", 3.5, 0.1, vm_image="ubuntu")
+    runtime = {
+        "gpu_research": [gpu.gpu_scope(image)],
+        "rented_gpu": [gpu.rented_scope(vm, image)],
+    }
+    assert gpu.declared_rented(runtime) == vm
 
 
 # --- the battery scope, practice and setup ---------------------------------------
@@ -370,16 +409,14 @@ def test_rented_practice_needs_the_pinned_gpu_worker(tmp_path):
 def rented_setup(tmp_path):
     from test_battery_gpu_practice import GpuChecks, gpu_setup
 
-    from carbon.development_session import battery_gpu as gpu
-
     class Checks(GpuChecks):
-        def rented(self, rented, credential, manifest):
+        def rented(self, rented, credential, manifest, campaign=None):
             self.calls.append(("rented", rented["provider"], credential.name))
             assert credential.read_text() == "rk-fixture-compute-key"
             image = gpu_worker()
             return {
-                "scope": gpu.rented_scope(COMPUTE, image),
-                "gpu_scope": gpu.gpu_scope(image),
+                "scope": campaign.rented_scope(COMPUTE, image),
+                "gpu_scope": campaign.gpu_scope(image),
                 "balance_usd": 12.5,
                 "balance_source": "fixture.balance",
                 "offer_usd_per_hr": 0.44,
@@ -391,6 +428,8 @@ def rented_setup(tmp_path):
     setup.checks = Checks(gpu_worker())
     return setup, home, paths
 
+
+BATTERY_REF = {"id": "battery-fastcharge-ageing-development-v1", "version": "1.0"}
 
 RENTED_CHOICE = {
     "provider": "runpod",
@@ -412,6 +451,7 @@ def test_setup_with_a_rented_gpu_writes_a_launchable_profile(tmp_path):
             "choice": RENTED_GPU,
             **paths,
             "gpu_image_manifest": str(home / "gpu.json"),
+            "challenge": BATTERY_REF,
             "rented": RENTED_CHOICE,
             "key": "rk-fixture-compute-key",
         }
@@ -441,11 +481,19 @@ def test_the_rented_choice_is_closed_and_needs_its_key(tmp_path):
     )
 
     setup, home, paths = rented_setup(tmp_path)
-    base = {"choice": RENTED_GPU, **paths, "gpu_image_manifest": str(home / "gpu.json")}
+    base = {
+        "choice": RENTED_GPU,
+        **paths,
+        "gpu_image_manifest": str(home / "gpu.json"),
+        "challenge": BATTERY_REF,
+    }
     for value, field in (
         (base, "rented"),
         ({**base, "rented": {**RENTED_CHOICE, "extra": 1}}, "rented"),
         ({**base, "rented": {**RENTED_CHOICE, "provider": "elsewhere"}}, "provider"),
+        # Slice 4b: a VM provider names its VM image, and only a VM provider.
+        ({**base, "rented": {**RENTED_CHOICE, "provider": "targon"}}, "vm_image"),
+        ({**base, "rented": {**RENTED_CHOICE, "vm_image": "ubuntu"}}, "vm_image"),
         ({**base, "rented": RENTED_CHOICE}, "key"),
         ({"choice": LOCAL_CPU, **paths, "rented": RENTED_CHOICE}, "rented"),
     ):
