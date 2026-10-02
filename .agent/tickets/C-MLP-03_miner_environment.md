@@ -177,11 +177,55 @@ pending Hermes and the miner's keys.
     job is reached on the node's IP. The token and public inputs cross
     unencrypted, and the backend record states `job_transport: http-direct`.
     Nothing secret is on the pod, and nothing measured there is evidence.
-  - *Targon is not built.* Its current API runs no container image (the
-    rental type answers 410; VM, bare metal and sandbox take no OCI image),
-    and it reports no per-workload charge. A VM-and-SSH design would be
-    needed; that is an owner decision. Targon stays an unavailable
-    integration with that cause.
+  - *Targon was not built in slice 4.* Its current API runs no container
+    image (the rental type answers 410; VM, bare metal and sandbox take no
+    OCI image), and it reports no per-workload charge. The owner chose the
+    VM-and-SSH route on 2026-10-02 (OWNER-C-MLP-03-ANSWERS-01); slice 4b
+    builds it.
+- **Slice 4b (Targon, a VM over SSH):** `carbon/compute/targon.py`, the
+  `targon` provider with `vm_image` in the rented choice, and setup's VM
+  image field and check; `tests/cpu/test_targon_adapter.py`, the rented
+  runner and setup tests, and the setup browser smoke cover it.
+- **Recorded engineering decisions (slice 4b, 2026-10-02):**
+  - *Provider facts, read 2026-10-02.* Targon Hub API v3.7.0
+    (`https://api.targon.com/tha/v3`, `Authorization: Bearer`), from
+    docs.targon.com and the API's own version endpoint:
+    - org-scoped paths;
+    - VM types and prices from the public inventory (`name`,
+      `cost_per_hour`, `available`);
+    - credits for the balance;
+    - an SSH key registered first, then a VM workload registered with it, a
+      VM image and a sudo password, then deployed;
+    - `public_ip` and `ssh_port` from the workload's state; the user is
+      always `ubuntu`;
+    - deletion by `DELETE`.
+
+    None was run live. Unverified: whether any VM image ships Docker and the
+    NVIDIA Container Toolkit, and the exact JSON on a real account.
+  - *One SSH key per VM, made on the miner's machine.* The private key and
+    the sudo password are written owner-only under the campaign root
+    (`compute/vm-keys/<ownership name>/`) and removed at teardown. The key is
+    deleted at Targon too. Host keys are accepted on first use into a
+    per-VM known-hosts file.
+  - *The worker runs on the VM's loopback and is reached through SSH.* Over
+    SSH, a fixed script starts the pinned worker once with Docker
+    (`--gpus all`, `-p 127.0.0.1:8000:8000`, the job's environment in an
+    owner-only file). The controller reaches it through an SSH local port
+    forward, so the token and public inputs travel inside SSH, and no port is
+    opened on the VM. The backend record says `job_transport: ssh-tunnel`.
+  - *A VM image without Docker or the NVIDIA Container Toolkit is refused
+    by name.* The script exits 90 or 91, the trial fails as infrastructure,
+    and the VM is deleted. Nothing is installed on the miner's behalf; the
+    miner chooses an image that has both, and setup checks the name is one
+    their account may start.
+  - *No idempotency key, no end time, no charge.* Targon documents none for
+    a VM, so:
+    - a lost register answer is ambiguous, and is reconciled by the
+      workload's name, the ownership tag;
+    - a refused deploy deletes the registration;
+    - the trial's teardown is the VM's only end;
+    - the charge stays unresolved, never rate x time. The miner's Targon
+      console is the record.
 - **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
   setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
   browser smoke cover it.
@@ -209,6 +253,11 @@ pending Hermes and the miner's keys.
     otherwise. Per this ticket the slice records that and stops: a network
     door into a miner's machine is an owner decision. Mira stays an
     unavailable integration, and the agent provision closes without it.
+    MIRA-ADMISSION-01 (#475) holds the same finding:
+    `docs/development/mira/CAPABILITY_REPORT.md` plans an artifact handoff and
+    keeps live Mira BLOCKED. OWNER-GRAPHITE-01 (2026-10-02) then chose to
+    build Carbon's own agent (Graphite) instead; the Mira adapter keeps
+    refusing every call until a vendor contract exists.
 - **Slice 6 (the fresh-miner journey):** `carbon/battery/remote_submission.py`,
   the campaign's intake path, the profile's `battery_intake`, setup's
   intake check, and the runbook `docs/development/FRESH_MINER_JOURNEY.md`;
@@ -394,12 +443,15 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 ## Owner input
 
-- **Targon:** build a VM-and-SSH route (the pinned worker run with Docker
-  inside a Targon VM, reached over SSH), or leave Targon out until its API
-  runs container images again?
+- **Targon:** answered 2026-10-02 (OWNER-C-MLP-03-ANSWERS-01): build the
+  VM-and-SSH route, the pinned worker run with Docker inside a Targon VM on
+  the miner's own account, reached over SSH (slice 4b, below).
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).
-- **Mira's connection:** it documents none publicly (2026-10-02). Ask
-  Autoscience how Mira reaches a tool server; if only over the network, decide
-  whether a door into the miner's machine is acceptable.
+- **Mira's connection:** answered 2026-10-02 (OWNER-GRAPHITE-01, recorded
+  for this ticket by OWNER-C-MLP-03-ANSWERS-01). Carbon builds Graphite
+  instead of buying Mira, and the Mira adapter refuses every call until a
+  vendor contract exists (`docs/development/mira/CAPABILITY_REPORT.md`,
+  MIRA-ADMISSION-01, #475). A paid Mira comparison needs its own owner
+  decision.

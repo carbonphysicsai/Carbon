@@ -226,4 +226,5 @@ def compute_from_scope(scope):
         max_rate_usd_per_hr=scope["max_rate_usd_per_hr"],
         storage_usd_per_gb_month=scope["storage_usd_per_gb_month"],
         cloud_type=scope["cloud_type"],
+        vm_image=scope.get("vm_image"),
     )
