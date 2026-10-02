@@ -1,0 +1,213 @@
+{
+  "batch": "motor-pilot-v1",
+  "planned": 17,
+  "recorded": 17,
+  "missing": [],
+  "outcomes": {
+    "OK": 17
+  },
+  "failures": {},
+  "worst_periodicity_rel": 6.310751639867571e-05,
+  "wall_s": {
+    "corner": [
+      1072.3,
+      3416.5
+    ],
+    "diagnostic": [
+      5983.0,
+      5983.0
+    ],
+    "ordinary": [
+      1108.6,
+      2454.5
+    ],
+    "refinement": [
+      1534.5,
+      4549.5
+    ]
+  },
+  "mean_torque_nm": [
+    0.32107151893025865,
+    11.543225231414926
+  ],
+  "ripple_pk_pk_nm": [
+    0.286980568709005,
+    2.3772011477541097
+  ],
+  "mesh_pairs": [
+    {
+      "case_id": "ordinary-1",
+      "max_abs_nm": 0.009692340423459012,
+      "max_rel_to_peak": 0.0025225211205925392,
+      "mean_rel": -0.000379443879124866,
+      "ripple_fine_nm": 1.0544083879540502,
+      "ripple_base_nm": 1.060137068017808
+    },
+    {
+      "case_id": "ordinary-2",
+      "max_abs_nm": 0.002620108651460562,
+      "max_rel_to_peak": 0.00044984449305653654,
+      "mean_rel": -0.00013380241199072496,
+      "ripple_fine_nm": 0.6509073713407334,
+      "ripple_base_nm": 0.6547472195751238
+    },
+    {
+      "case_id": "difficult-1-deep-saturation",
+      "max_abs_nm": 0.006090145321019591,
+      "max_rel_to_peak": 0.0004919417482036136,
+      "mean_rel": -5.81271779478104e-05,
+      "ripple_fine_nm": 1.675189661473011,
+      "ripple_base_nm": 1.6813375706269902
+    },
+    {
+      "case_id": "difficult-2-sharpest-cogging",
+      "max_abs_nm": 0.0171578428026935,
+      "max_rel_to_peak": 0.0025770815711595157,
+      "mean_rel": -0.000966780102302925,
+      "ripple_fine_nm": 2.3334618886921312,
+      "ripple_base_nm": 2.353823066455255
+    }
+  ],
+  "angle_resolution": {
+    "case_id": "ordinary-2-n2880-a120",
+    "positions": 31,
+    "midpoint_max_abs_nm": 0.0004619124817439868,
+    "midpoint_max_rel_to_peak": 8.183169334119454e-05,
+    "window_pk_pk_full_nm": 0.30517120134029163,
+    "window_pk_pk_even_nm": 0.30517120134029163,
+    "determinism_max_abs_nm": 0.0
+  },
+  "baseline": [
+    {
+      "case_id": "ordinary-4",
+      "j_a_mm2": 13.969178348678119,
+      "mean_nm": 9.760649560298253,
+      "ripple_pk_pk_nm": 1.685707702723887,
+      "baseline_mean_nm": 12.120623116057306,
+      "mean_error_nm": 2.359973555759053,
+      "mean_error_rel": 0.24178447768049366,
+      "omitted_ripple_rms_nm": 0.512311171508937
+    },
+    {
+      "case_id": "ordinary-3",
+      "j_a_mm2": 8.855366774376577,
+      "mean_nm": 2.9800013459499137,
+      "ripple_pk_pk_nm": 1.3041645894652731,
+      "baseline_mean_nm": 3.2736914098297087,
+      "mean_error_nm": 0.293690063879795,
+      "mean_error_rel": 0.09855366819848785,
+      "omitted_ripple_rms_nm": 0.4936982110109532
+    },
+    {
+      "case_id": "ordinary-6",
+      "j_a_mm2": 9.87552718876722,
+      "mean_nm": 3.856887596242475,
+      "ripple_pk_pk_nm": 1.9925312856913724,
+      "baseline_mean_nm": 4.239734570850453,
+      "mean_error_nm": 0.3828469746079777,
+      "mean_error_rel": 0.09926319216068459,
+      "omitted_ripple_rms_nm": 0.6846315033259985
+    },
+    {
+      "case_id": "ordinary-5",
+      "j_a_mm2": 5.457214685293841,
+      "mean_nm": 3.1693990106620453,
+      "ripple_pk_pk_nm": 0.671891361555446,
+      "baseline_mean_nm": 3.4510657034420253,
+      "mean_error_nm": 0.28166669277998,
+      "mean_error_rel": 0.08887069499057602,
+      "omitted_ripple_rms_nm": 0.21538164902491752
+    },
+    {
+      "case_id": "ordinary-7",
+      "j_a_mm2": 0.4596586777273237,
+      "mean_nm": 0.3210715189302588,
+      "ripple_pk_pk_nm": 1.8565776374999863,
+      "baseline_mean_nm": 0.4057536256515925,
+      "mean_error_nm": 0.0846821067213337,
+      "mean_error_rel": 0.2637484227921438,
+      "omitted_ripple_rms_nm": 0.5297986480472622
+    },
+    {
+      "case_id": "ordinary-2",
+      "j_a_mm2": 9.03292063935259,
+      "mean_nm": 5.454089865125147,
+      "ripple_pk_pk_nm": 0.6548297318890182,
+      "baseline_mean_nm": 5.949266126820894,
+      "mean_error_nm": 0.4951762616957467,
+      "mean_error_rel": 0.09078989784565726,
+      "omitted_ripple_rms_nm": 0.19900609535855449
+    },
+    {
+      "case_id": "ordinary-1",
+      "j_a_mm2": 7.325044936403965,
+      "mean_nm": 3.2056271287973437,
+      "ripple_pk_pk_nm": 1.070774719567488,
+      "baseline_mean_nm": 3.4423652646609355,
+      "mean_error_nm": 0.23673813586359183,
+      "mean_error_rel": 0.07385080246448031,
+      "omitted_ripple_rms_nm": 0.3696922280982218
+    },
+    {
+      "case_id": "ordinary-8",
+      "j_a_mm2": 1.0839978412633111,
+      "mean_nm": 0.6358418235977823,
+      "ripple_pk_pk_nm": 1.9397524276183526,
+      "baseline_mean_nm": 0.723591042860959,
+      "mean_error_nm": 0.08774921926317669,
+      "mean_error_rel": 0.13800479302645663,
+      "omitted_ripple_rms_nm": 0.6070880005332485
+    },
+    {
+      "case_id": "difficult-2-sharpest-cogging",
+      "j_a_mm2": 12.956183919804728,
+      "mean_nm": 5.687118056033335,
+      "ripple_pk_pk_nm": 2.3772011477541097,
+      "baseline_mean_nm": 6.254250239466781,
+      "mean_error_nm": 0.5671321834334462,
+      "mean_error_rel": 0.09972224558127266,
+      "omitted_ripple_rms_nm": 0.8172671035786415
+    },
+    {
+      "case_id": "difficult-1-deep-saturation",
+      "j_a_mm2": 14.827924880811919,
+      "mean_nm": 11.542547729646087,
+      "ripple_pk_pk_nm": 1.70981631406244,
+      "baseline_mean_nm": 14.505912772201334,
+      "mean_error_nm": 2.963365042555248,
+      "mean_error_rel": 0.25673405143858213,
+      "omitted_ripple_rms_nm": 0.5888730844376113
+    },
+    {
+      "case_id": "difficult-4-field-weakening",
+      "j_a_mm2": 14.737286897061988,
+      "mean_nm": 5.138300740133222,
+      "ripple_pk_pk_nm": 2.072413968592823,
+      "baseline_mean_nm": 5.759523712349696,
+      "mean_error_nm": 0.6212229722164739,
+      "mean_error_rel": 0.12090046955880736,
+      "omitted_ripple_rms_nm": 0.761442799653082
+    },
+    {
+      "case_id": "difficult-3-weakest-field",
+      "j_a_mm2": 6.240023197355317,
+      "mean_nm": 1.7657587857280304,
+      "ripple_pk_pk_nm": 0.286980568709005,
+      "baseline_mean_nm": 1.8621605986889296,
+      "mean_error_nm": 0.09640181296089922,
+      "mean_error_rel": 0.05459512009232468,
+      "omitted_ripple_rms_nm": 0.10058403900044109
+    }
+  ],
+  "baseline_summary": {
+    "mean_error_nm": [
+      0.0846821067213337,
+      2.963365042555248
+    ],
+    "mean_error_rel_abs_max": 0.2637484227921438,
+    "omitted_ripple_rms_nm": [
+      0.10058403900044109,
+      0.8172671035786415
+    ]
+  }
+}
