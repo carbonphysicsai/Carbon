@@ -1293,8 +1293,8 @@ class SetupChecks:
     @staticmethod
     def hermes_files():
         return [
-            "/home/miner/.hermes/profiles/carbon/config.yaml",
-            "/home/miner/.hermes/profiles/carbon/.env",
+            "/hermes-fixture/profiles/carbon/config.yaml",
+            "/hermes-fixture/profiles/carbon/.env",
         ]
 
     def hermes(self, document, key):
