@@ -34,10 +34,11 @@ Carbon** other than SSH itself.
 
 1. **Build the pinned GPU worker on your controller machine.** No GPU is needed
    to build it.
-   - Run `scripts/install_miner.sh --gpu`, or
-     `./scripts/dev/accelerator_worker_image.sh` from a clean checkout.
-   - It writes `.carbon-artifacts/accelerator-worker-image.json`, the manifest
-     setup asks for.
+   - Run `./scripts/dev/accelerator_worker_image.sh` from a clean checkout.
+     `scripts/install_miner.sh --gpu` also builds and records it, but checks
+     for the NVIDIA driver on this machine first.
+   - It writes `.carbon-artifacts/accelerator-worker-image.json`. Setup finds
+     it there and fills it in.
 2. **For `ssh-container`, put the worker where your provider can pull it.**
    - Log in to a registry you control with `docker login`, yourself.
    - Run `scripts/dev/push_worker_image.sh --manifest .carbon-artifacts/accelerator-worker-image.json <registry>/<you>/carbon-gpu-worker`.
@@ -57,11 +58,12 @@ Carbon** other than SSH itself.
    - Carbon passes `BatchMode=yes`, so anything that would prompt fails
      instead.
 5. **Run setup.** In the Control Center, open Set up your environment, then
-   Compute, then "Your own remote machine or container".
-   - Choose the transport.
+   Compute, and pick your setup under "Where's your GPU?".
+   - The card sets the transport. Change it under Advanced if your setup
+     differs, for example a Vast.ai VM instance.
    - Give the destination (`user@host` or your alias) and, if not in your
      alias, the port.
-   - Give the GPU worker manifest and the Challenge.
+   - Choose the Challenge. Setup fills in the GPU worker it found.
    - The check uses only your SSH, starts nothing and installs nothing:
      - `ssh-docker`: reach, Docker, the toolkit, Docker without sudo, and the
        image by ID;
@@ -234,6 +236,6 @@ LINKONLY-D7 records why `endpoint` is designed and not built.
   long-lived job server holding a standing secret, accepting programs from
   whoever presents it, and reachable from the internet through your
   provider's proxy.
-- **It is the owner's call.** That is a security acceptance, so it waits for
-  one. Until then setup refuses `endpoint` by name, and `ssh-container`
-  covers the same rentals over SSH.
+- **The owner decided: not for now** (2026-10-02, the second amendment to
+  OWNER-MINER-COMPUTE-LINK-ONLY-01). Setup refuses `endpoint` by name, and
+  `ssh-container` covers the same rentals over SSH.

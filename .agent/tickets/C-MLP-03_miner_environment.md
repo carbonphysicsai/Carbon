@@ -336,6 +336,34 @@ pending Hermes and the miner's keys.
   - *The image push is the miner's.* `push_worker_image.sh` uses the miner's
     own `docker login`, pushes only the pinned worker it built (or a manifest
     the miner names), and prints `repository@sha256` (LINKONLY-D8).
+- **Recorded engineering decisions (easy mode, 2026-10-02, LINKONLY-D10):**
+  - *One path, one step at a time.* Overview leads with a "Get started" list
+    of six steps: start your signer, register, inference, compute, agent,
+    then review and launch. Setup is the same six steps as a wizard, with
+    progress, Back and Next. A step is done only when the controller has
+    confirmed it: registration by the chain read, each check by its live
+    check, the signer by the Agent step's handshake, the last step by a
+    campaign on record.
+  - *Where's your GPU?* Setup's Compute step offers this machine (CPU or GPU)
+    and one card per setup the wiring guide covers: RunPod, Lium, Targon,
+    Vast.ai, Lambda and your own server. A card sets the remote choice and
+    its transport (a machine or VM with Docker is `ssh-docker`; a container
+    rental is `ssh-container`). It shows the guide's own section, with its
+    UNVERIFIED marks, and the commands the miner runs, with copy buttons.
+    `environment_setup.REMOTE_GUIDES` holds the map, and a test holds it to
+    the guide's "Transport" lines.
+  - *The guide is served locally.* `scripts/dev/miner_launchpad/guide.py`
+    parses `MINER_REMOTE_SETUP.md` into text data (no HTML); the controller
+    serves it behind the session token, and links never leave the machine.
+  - *No typed paths.* Setup fills in the images the installer recorded, and
+    the GPU worker where `accelerator_worker_image.sh` writes it; the paths
+    sit under Advanced. When none is found, setup names the one command.
+  - *Plain statuses.* Each blocking reason has one short sentence and one link
+    to the fix (`capabilities.PLAIN`); its code and full next action stay
+    behind Details.
+  - *Carbon's brand.* The page uses the public website's design system and
+    serves the Carbon wordmark and the Montreal font itself. It loads nothing
+    from the internet.
 - **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
   setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
   browser smoke cover it.
@@ -583,11 +611,25 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
   amendment): "miners should be able to use whatever they want to run their
   setup. We are just facilitating and providing wiring and tooling." Built
   as the `ssh-container` transport.
-- **A job endpoint reached through a provider's public proxy (open):**
-  whether Carbon may run a long-lived job server the miner starts once,
-  holding a standing secret and reachable from the internet (LINKONLY-D7).
-  That is a security acceptance; `endpoint` stays refused by name until the
-  owner decides.
+- **A job endpoint reached through a provider's public proxy:** answered
+  2026-10-02 (OWNER-MINER-COMPUTE-LINK-ONLY-01, second amendment): not for
+  now. The owner approved the executor's recommendation not to build a
+  long-lived, internet-facing job server holding a standing secret: "I agree
+  and approve your decision, we just need to help miners figure out what to do
+  easily." `endpoint` stays designed, not built and refused by name;
+  `ssh-container` covers SSH-capable container rentals. The priority is an
+  easy miner path (LINKONLY-D10).
+- **The Control Center's ease and look:** answered 2026-10-02: "yeah we need
+  to make this way more intuitive and to match our brand. show me the new
+  control center when it's ready". Built as the easy mode below, in the public
+  website's design system.
+- **The website font in Carbon's apps:** answered 2026-10-02: "Our license
+  covers it, bundle the font". The Montreal licence covers bundling the font
+  in Carbon's apps. The Control Center serves `neue-0.otf` (400) and
+  `neue-1.otf` (600) itself, copied from the website's asset set; their
+  SHA-256 digests equal the website baseline manifest's entries
+  (`website/ask-carbon/production-baseline.manifest.json`, `assets/neue-0.otf`
+  and `assets/neue-1.otf`), and a test holds that.
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).

@@ -17558,3 +17558,41 @@ authority).**
 and never evidence; the exam is unchanged. No key reaches Carbon, and the
 miner's SSH key never leaves their machine. Testnet 567; DEVELOPMENT; nothing
 is qualified.
+
+**Second amendment, same day (owner, 2026-10-02): no endpoint transport for
+now, and an easy path for miners.**
+
+**Question,** as LINKONLY-D7 and the C-MLP-03 ticket's owner input recorded
+it: whether Carbon may run a long-lived, internet-facing job server that the
+miner starts once and that holds a standing secret (the `endpoint`
+transport). The executor recommended not building it for now.
+
+**Owner, verbatim:** "I agree and approve your decision, we just need to help
+miners figure out what to do easily."
+
+**Resolved.**
+- The `endpoint` transport stays designed and not built (LINKONLY-D7). Setup
+  keeps refusing it by name (`endpoint_transport_not_built`), and nothing
+  starts a standing job door.
+- `ssh-container` covers SSH-capable container rentals; `ssh-docker` covers
+  machines and VMs with Docker.
+- The priority is the miner's path: a miner can see what to do next, in plain
+  words, without losing any safety statement.
+
+**Recorded engineering decision (executor, same day, within delegated
+authority).**
+- **LINKONLY-D10, the Control Center shows the way.**
+  - One ordered "Get started" list: start your signer, register, inference,
+    compute, agent, then choose a Challenge and launch. A step shows done only
+    when the controller has confirmed it.
+  - Setup is a guided wizard, one step at a time.
+  - A "Where's your GPU?" chooser offers this machine and one card per setup
+    the wiring guide covers. A card sets the transport and shows that setup's
+    notes from the guide, with their UNVERIFIED marks; the controller serves
+    the guide itself.
+  - A blocking status is one sentence and one link to the fix; machine codes
+    stay behind Details.
+  - The provider cards are notes for the miner's own accounts. Carbon calls no
+    provider API and starts, stops or bills nothing.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
