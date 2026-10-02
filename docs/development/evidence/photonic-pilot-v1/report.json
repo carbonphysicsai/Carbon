@@ -1,0 +1,124 @@
+{
+  "batch": "photonic-pilot-v1",
+  "counts": {
+    "OK": 12
+  },
+  "worst_refinement": {
+    "z": {
+      "cross_max": 7.218457165336645e-09,
+      "phase_max_rad": 3.549399707480916e-08,
+      "dphi_rel_max": 1.7171690513961835e-08
+    },
+    "ladder": {
+      "cross_max": 0.0004810787551086104,
+      "phase_max_rad": 0.005577208505471276,
+      "dphi_rel_max": 0.003988948042936702
+    },
+    "mesh_5nm": {
+      "cross_max": 0.0010605810771738833,
+      "phase_max_rad": 0.02448105146288526,
+      "dphi_rel_max": 0.0025099188680814954
+    },
+    "mesh_20nm": {
+      "cross_max": 0.005890630400251062,
+      "phase_max_rad": 0.2143962885453874,
+      "dphi_rel_max": 0.02736206659679874
+    }
+  },
+  "mesh_order": {
+    "phase_max_rad": {
+      "observed_order": 3.130542502918156,
+      "estimated_10nm_error": 0.027636784988721748
+    },
+    "dphi_rel_max": {
+      "observed_order": 3.4464645623069,
+      "estimated_10nm_error": 0.0027634057213353114
+    }
+  },
+  "baseline_closed_form": {
+    "s_rms": {
+      "min": 1.0763143653718361,
+      "max": 1.7347156206739591
+    },
+    "cross_rms": {
+      "min": 0.002209152423316508,
+      "max": 0.19541444216193113
+    },
+    "phase_rms_rad": {
+      "min": 1.138005769213046,
+      "max": 2.1293995916737796
+    },
+    "cross_signed_centre": {
+      "min": 0.0019950441090980636,
+      "max": 0.19316221480659224
+    }
+  },
+  "cross_power_range": [
+    0.0007466771150663318,
+    0.26987031222277924
+  ],
+  "tables": {
+    "reference": {
+      "sources": {
+        "carbon/photonic/domain.py": "sha256:a52029036e7d1207c7e6becf603f9977a1361f65b859f92a8f3e5419e4a137b8",
+        "carbon/photonic/modes.py": "sha256:d7ea118974530b351d5ca4278044cb22047ccdae689f952bb486a9f112699db0",
+        "carbon/photonic/coupler.py": "sha256:ffcb145d3b0d4712ff14de1b7ec6f687503a92467cf2892409be61c125cf361b",
+        "scripts/dev/photonic/build_tables.py": "sha256:00621fc712c564f9752c46bd557ca2bb2e01b47d31d330a4da94cb541277265f"
+      },
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "solve_wall_s": 5432.9,
+      "wall_s": 2725.6,
+      "shapes": [
+        [
+          410,
+          182
+        ]
+      ]
+    },
+    "mesh_5nm": {
+      "sources": {
+        "carbon/photonic/domain.py": "sha256:a52029036e7d1207c7e6becf603f9977a1361f65b859f92a8f3e5419e4a137b8",
+        "carbon/photonic/modes.py": "sha256:d7ea118974530b351d5ca4278044cb22047ccdae689f952bb486a9f112699db0",
+        "carbon/photonic/coupler.py": "sha256:ffcb145d3b0d4712ff14de1b7ec6f687503a92467cf2892409be61c125cf361b",
+        "scripts/dev/photonic/build_tables.py": "sha256:00621fc712c564f9752c46bd557ca2bb2e01b47d31d330a4da94cb541277265f"
+      },
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "solve_wall_s": 8311.7,
+      "wall_s": 4197.5,
+      "shapes": [
+        [
+          820,
+          364
+        ]
+      ]
+    },
+    "mesh_20nm": {
+      "sources": {
+        "carbon/photonic/domain.py": "sha256:a52029036e7d1207c7e6becf603f9977a1361f65b859f92a8f3e5419e4a137b8",
+        "carbon/photonic/modes.py": "sha256:d7ea118974530b351d5ca4278044cb22047ccdae689f952bb486a9f112699db0",
+        "carbon/photonic/coupler.py": "sha256:ffcb145d3b0d4712ff14de1b7ec6f687503a92467cf2892409be61c125cf361b",
+        "scripts/dev/photonic/build_tables.py": "sha256:00621fc712c564f9752c46bd557ca2bb2e01b47d31d330a4da94cb541277265f"
+      },
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "solve_wall_s": 1105.3,
+      "wall_s": 555.4,
+      "shapes": [
+        [
+          206,
+          92
+        ]
+      ]
+    }
+  },
+  "tables_sha256": {
+    "reference": "ef8ebc8be6f5593b4d64ce211fb47f3eda6137eb21b86088b1f7346116ac12b1",
+    "mesh_5nm": "55553c46dc9f3b7ad0c1f81f9229b96dde493e3e383bb9eebe415088749a1bf5",
+    "mesh_20nm": "f6e1874ec3fc83cd5590d9b410259dbbc154057501ae5ab82dbe80035657ac71"
+  }
+}
