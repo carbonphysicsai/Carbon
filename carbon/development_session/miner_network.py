@@ -1,7 +1,7 @@
 """The network a miner's campaign talks to, without an operator file (C-MLP-04).
 
 A campaign needs two public facts about the network: the chain context
-(Carbon's testnet, subnet 567) and the publisher hotkey its signed requests
+(Carbon's testnet and its subnet, `CARBON_NETUID`) and the publisher hotkey its signed requests
 are bound to. Until C-MLP-04 both came from the operator configuration
 (`carbon.development_testnet.operator`), a document only Carbon's operator can
 write: it also names the publisher's coldkey, wallet, execution digests and
@@ -12,9 +12,8 @@ This module gives a miner the two facts on their own:
 - the chain context is `carbon_testnet_context()`, the settled constants the
   onboarding doors already read;
 - the publisher is the hotkey at UID 0 of the subnet in a finalized metagraph
-  snapshot. UID 0 is the subnet owner's, the publisher's (the testnet runbook:
-  "Subnet 567 and publisher UID 0"), and the burn UID weights go to under
-  OD-4a.
+  snapshot. UID 0 is the subnet owner's, the publisher's (the testnet runbook
+  names the publisher UID 0), and the burn UID weights go to under OD-4a.
 
 Setup reads them once, after the miner's registration is confirmed, and
 writes `miner-network.json` (owner-only) beside the profile. A campaign then

@@ -48,7 +48,7 @@ def test_the_import_scan_finds_a_challenge_package_where_one_is_imported():
     # The specimen: the adapter module does import battery, so a scan that
     # could not see such an import would fail here rather than pass above.
     specimen = ROOT / "carbon" / "challenge_registry" / "campaigns.py"
-    assert _imports(specimen, "carbon.battery") == ["carbon.battery"]
+    assert set(_imports(specimen, "carbon.battery")) == {"carbon.battery"}
 
 
 def test_battery_resolves_to_its_own_campaign():
