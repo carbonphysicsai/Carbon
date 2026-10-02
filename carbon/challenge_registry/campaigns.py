@@ -61,6 +61,25 @@ class ChallengeCampaign:
     #: (root, manifest, credential file) -> the campaign's rented-GPU practice
     #: runner on the miner's own provider account, or None.
     rented: Callable = lambda root, manifest, credential: None
+    # What the Control Center reads, so it never names a Challenge itself
+    # (C-MLP-04). Each defaults to "not offered".
+    #: The practice feedback modes this Challenge applies; FULL is every
+    #: Challenge's default.
+    feedback_modes: tuple = ("FULL",)
+    #: The schema of the permitted feedback its validator returns, or None.
+    feedback_schema: str | None = None
+    #: (url) -> the validator intake's public facts, checked to serve this
+    #: chain and Challenge; raises ValueError or OSError. None: no intake.
+    intake_check: Callable | None = None
+    #: (image) -> the GPU practice scope for the pinned GPU worker; None when
+    #: the Challenge offers no GPU practice.
+    gpu_scope: Callable | None = None
+    #: (runtime) -> the declared GPU practice scope, checked for shape.
+    declared_gpu: Callable | None = None
+    #: (compute, image) -> the rented-GPU scope; None when not offered.
+    rented_scope: Callable | None = None
+    #: (runtime) -> the declared rented choice, checked for shape.
+    declared_rented: Callable | None = None
 
 
 def _manifest_challenge(manifest):
@@ -85,8 +104,25 @@ def campaign_challenge(args):
     return challenge
 
 
+class IntakeMismatch(ValueError):
+    """An intake that answers, but for another chain or Challenge."""
+
+
+def _battery_intake(url):
+    from carbon.battery import intake_client
+
+    facts = intake_client.read_intake(url)
+    try:
+        intake_client._context(facts)
+        intake_client._challenge(facts)
+    except intake_client.IntakeMismatch:
+        raise IntakeMismatch("the intake serves another chain or Challenge") from None
+    return facts
+
+
 def _battery():
     from carbon.battery import campaign as battery
+    from carbon.development_session import battery_gpu
 
     return ChallengeCampaign(
         key=battery.CHALLENGE,
@@ -98,6 +134,14 @@ def _battery():
         compose=battery.compose,
         gpu_image=battery.host_gpu_image,
         rented=battery.host_rented_runner,
+        # Fail closed: a campaign that declares no modes knows only FULL.
+        feedback_modes=tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",))),
+        feedback_schema="carbon.battery.permitted-feedback.v1",
+        intake_check=_battery_intake,
+        gpu_scope=battery_gpu.gpu_scope,
+        declared_gpu=battery_gpu.declared_scope,
+        rented_scope=battery_gpu.rented_scope,
+        declared_rented=battery_gpu.declared_rented,
     )
 
 
@@ -125,3 +169,56 @@ def campaign_for(challenge):
 
 def campaign_for_manifest(manifest):
     return campaign_for(_manifest_challenge(manifest))
+
+
+def challenge_ref(challenge_id):
+    """`{id, version}` for a registered Challenge id, at its registered
+    version; the registry refuses an unknown id."""
+    from .registry import entries
+
+    for entry in entries():
+        if entry.challenge_id == challenge_id:
+            return {"id": challenge_id, "version": entry.version}
+    return {"id": challenge_id, "version": None}
+
+
+def campaign_for_id(challenge_id):
+    return campaign_for(challenge_ref(challenge_id))
+
+
+def implemented_campaigns():
+    """`(entry, campaign)` for every IMPLEMENTED Challenge with a campaign."""
+    from .registry import IMPLEMENTED, entries
+
+    found = []
+    for entry in entries():
+        if entry.status == IMPLEMENTED and entry.challenge_id in _campaigns():
+            found.append((entry, _campaigns()[entry.challenge_id]()))
+    return found
+
+
+def runtime_challenge(runtime):
+    """The Challenge a runtime's GPU practice scope is bound to, or None for a
+    runtime that declares no GPU practice."""
+    scopes = (runtime or {}).get("gpu_research")
+    if not scopes:
+        return None
+    if type(scopes) is not list or type(scopes[0]) is not dict:
+        raise ValueError("exact GPU practice scope required")
+    return scopes[0].get("challenge")
+
+
+def declared_gpu(runtime):
+    """The declared GPU scope, checked by the Challenge it names."""
+    campaign = campaign_for_id(runtime_challenge(runtime))
+    if campaign.declared_gpu is None:
+        raise ValueError("this Challenge offers no GPU practice")
+    return campaign.declared_gpu(runtime)
+
+
+def declared_rented(runtime):
+    """The declared rented-GPU choice, checked by the Challenge it names."""
+    campaign = campaign_for_id(runtime_challenge(runtime))
+    if campaign.declared_rented is None:
+        raise ValueError("this Challenge offers no rented GPU practice")
+    return campaign.declared_rented(runtime)

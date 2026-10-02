@@ -504,10 +504,17 @@
     const computeCost = el("div"); compute.append(computeCost);
     const image = setupField(compute, "image_manifest", "Worker image manifest (absolute path)");
     const analysis = setupField(compute, "analysis_image_manifest", "Analysis image manifest (absolute path)");
+    // Filled in from what scripts/install_miner.sh built here (C-MLP-04).
+    const installed = setupState.installed || {};
+    image.value = installed.image_manifest || "";
+    analysis.value = installed.analysis_image_manifest || "";
     // This machine's GPU (C-MLP-03 slice 3): its GPU worker image, and the
     // plain statement that GPU practice is for speed only.
     const gpuBox = el("div"); gpuBox.dataset.step = "compute"; compute.append(gpuBox);
     const gpuImage = setupField(gpuBox, "gpu_image_manifest", "GPU worker image manifest (absolute path)");
+    gpuImage.value = installed.gpu_image_manifest || "";
+    // GPU practice is set up for one Challenge you choose (C-MLP-04).
+    const gpuChallenge = setupSelect(gpuBox, "challenge", "Challenge to practise on the GPU", []);
     // A GPU rented on the miner's own account (C-MLP-03 slice 4): the
     // provider, its key (entered once), the pushed image by digest, the GPU
     // and the hourly ceilings. Nothing is rented by the check.
@@ -537,6 +544,10 @@
       if (choice?.note) researchNote(computeCost, choice.note, "hint");
       gpuBox.hidden = !choice?.needs_gpu_image;
       rentedBox.hidden = choice?.id !== "rented-gpu";
+      const forChallenges = choice?.for_challenges || [];
+      const previous = gpuChallenge.value;
+      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
+      if ([...gpuChallenge.options].some(option => option.value === previous)) gpuChallenge.value = previous;
     };
     computeChoice.addEventListener("change", describeCompute);
     if (steps.compute?.checked && steps.compute.choice) computeChoice.value = steps.compute.choice;
@@ -545,7 +556,10 @@
     compute.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
-      if (!gpuBox.hidden) request.gpu_image_manifest = gpuImage.value.trim();
+      if (!gpuBox.hidden) {
+        request.gpu_image_manifest = gpuImage.value.trim();
+        if (gpuChallenge.value) request.challenge = JSON.parse(gpuChallenge.value);
+      }
       if (!rentedBox.hidden) {
         request.rented = {
           provider: rentedProvider.value,
@@ -566,7 +580,9 @@
     const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
     const agentCost = el("div"); agent.append(agentCost);
     researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
-    const operator = setupField(agent, "operator_config", "Testnet operator config (absolute path)");
+    // Miners leave this empty: setup reads Carbon's testnet and its publisher
+    // from the chain. Only an operator running Carbon's deployment names one.
+    const operator = setupField(agent, "operator_config", "Operator config (operators only; leave empty)");
     const socket = setupField(agent, "signer_socket", "Signer socket (optional; leave empty for the default)");
     // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
     // without their consent to the exact files, unticked by default.
@@ -592,7 +608,8 @@
     agent.append(el("button", "Check my signer"));
     agent.addEventListener("submit", async event => {
       event.preventDefault();
-      const request = {choice: agentChoice.value, operator_config: operator.value.trim()};
+      const request = {choice: agentChoice.value};
+      if (operator.value.trim()) request.operator_config = operator.value.trim();
       if (socket.value.trim()) request.signer_socket = socket.value.trim();
       const choice = offered.agent.find(c => c.id === agentChoice.value);
       if (choice?.needs_consent_to_write) {
@@ -608,16 +625,20 @@
       researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice].filter(Boolean).join(" · ") : "not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
-    // The validator's intake, when the validator runs elsewhere (C-MLP-03
-    // slice 6). Its public facts are read and checked; nothing is signed.
-    const intake = setupField(review, "battery_intake", "Validator intake URL (optional; https, or loopback)");
+    // A validator's intake, when a Challenge's validator runs elsewhere
+    // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
+    // read and checked by that Challenge; nothing is signed.
+    const intakeChallenges = offered.intake_challenges || [];
+    const intakeChallenge = setupSelect(review, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
+    const intake = setupField(review, "intake_url", "Validator intake URL (optional; https, or loopback)");
+    intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
     const write = el("button", "Write my profile");
     write.disabled = !steps.review?.ready;
     review.append(write);
     review.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {confirm: true};
-      if (intake.value.trim()) request.battery_intake = intake.value.trim();
+      if (intake.value.trim() && intakeChallenge.value) request.intakes = {[intakeChallenge.value]: intake.value.trim()};
       await setupCall("review", request);
     });
   }
@@ -967,6 +988,13 @@
     row("Exam version", "version " + entry.version + (d.contract_digest ? " · contract " + d.contract_digest : "") + (d.exam?.rule?.status ? " · " + words(d.exam.rule.status) : ""));
     row("Limits", Object.entries(entry.tools?.limits || {}).map(([name, detail]) => name + ": " + (typeof detail === "object" ? JSON.stringify(detail) : detail)).join(" · "));
     row("Authority", d.authority);
+    // What the Challenge gives a miner to research with, and what setup can
+    // prepare for it (C-MLP-04): every Challenge reports the same way.
+    if (entry.provisions && !entry.provisions.retired) {
+      row("Research environment", Object.entries(entry.provisions).map(([name, state]) => name + (state.status === "gap" ? ": gap (" + state.reason + ")" : ": provided")).join(" · "));
+    }
+    const offers = entry.setup_offers || {};
+    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.rented_gpu ? "a rented GPU on your account" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
     parent.append(grid);
   }
   function renderAgentCatalog() {
@@ -1566,6 +1594,17 @@
     if (entry.tools?.public_material?.length) grid.append(el("dt", "public material"), el("dd", entry.tools.public_material.join(", ")));
     if (entry.tools?.rebuildable_models?.length) grid.append(el("dt", "rebuildable models"), el("dd", entry.tools.rebuildable_models.join(", ")));
     target.append(grid);
+    // The Challenge's own feedback modes; FULL is every Challenge's default.
+    const modes = entry.setup_offers?.feedback_modes || [];
+    if (modes.length > 1) {
+      const id = "wizard-feedback-mode";
+      const label = el("label", "Practice feedback"); label.htmlFor = id;
+      const select = document.createElement("select"); select.id = id;
+      for (const mode of modes) { const option = el("option", words(mode)); option.value = mode; select.append(option); }
+      select.value = modes.includes(wizard.feedbackMode) ? wizard.feedbackMode : "FULL";
+      select.addEventListener("change", () => { wizard.feedbackMode = select.value; saveWizard(); });
+      target.append(label, select);
+    }
     if (entry.tools?.how_to_request_unsupported) researchNote(target, entry.tools.how_to_request_unsupported, "hint");
   }
   function renderResearchPreflight() {
@@ -1796,6 +1835,8 @@
       // The Challenge is always sent, exactly: there is no default Challenge.
       pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
       if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
+      // A feedback mode only when the Challenge offers it and it is not FULL.
+      if (wizard.feedbackMode && wizard.feedbackMode !== "FULL" && (entry.setup_offers?.feedback_modes || []).includes(wizard.feedbackMode)) pendingResearch.body.feedback_mode = wizard.feedbackMode;
       // The chosen provider and model, when the agent calls one and the launch
       // carries them; the key file stays in the runner profile.
       const provider = selectedProvider();

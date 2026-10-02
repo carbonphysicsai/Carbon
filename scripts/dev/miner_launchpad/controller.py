@@ -889,6 +889,12 @@ def main() -> None:
             except Exception:  # noqa: BLE001 - do not print private source errors.
                 parser.error("DEVELOPMENT source attachment failed verification")
         runner = None
+        if args.research_profile is None:
+            # The profile "Set up your environment" wrote here, so a restart
+            # opens the miner's own setup without a flag (C-MLP-04).
+            written = args.state_dir / "environment" / "runner-profile.json"
+            if written.is_file() and not written.is_symlink():
+                args.research_profile = written
         if args.research_profile is not None:
             from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
@@ -929,7 +935,7 @@ def main() -> None:
         )
         print(f"Local session token (paste into page; do not share): {token}")
         print(
-            "Research requires a separate approved operator profile and accepted runtime."
+            "Set up your environment, then choose a Challenge and launch."
             if runner
             else "No agents, paid compute, training, registration, or submissions."
         )

@@ -17271,6 +17271,32 @@ route, Security approved". The three answers are, in order:
 **Unchanged.** Practice on rented compute is speed only and never evidence.
 No key reaches Carbon. The exam is unchanged.
 
+## 2026-10-02 — OWNER-CONTROL-CENTER-NEUTRAL-01: miners reach the Control Center and choose what to mine; nothing is battery-only
+
+**Owner, verbatim, in session on 2026-10-02**, after the survey of the website
+to Control Center path: "Yeah lets close this gap. we need miners to be able
+to get to the control center and then decide what challenge to mine. Nothing
+should be battery only or batter specific. Lets finish this buildout today".
+
+**Decision.**
+1. **A path from the website to the Control Center.** It is one command on a
+   clean Linux machine (`scripts/install_miner.sh`), and the website has a
+   "Get started" page for it.
+2. **A miner needs nothing an operator holds.** Setup reads the network (the
+   testnet context and its publisher) from the chain, so no operator
+   configuration is required.
+3. **The miner chooses the Challenge in the Control Center.** Everything that
+   differs by Challenge comes from that Challenge's registered campaign, so
+   the Control Center itself is battery-free.
+
+**Unchanged.**
+- Only an IMPLEMENTED Challenge launches. The others are shown with their
+  status and refused with the registry's code.
+- Testnet 567; DEVELOPMENT; no key reaches Carbon.
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/C-MLP-04_challenge_neutral_control_center.md`.
+
 ## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-01: the Challenge Roadmap rev 2.0 is Carbon's standing challenge development pipeline
 
 **Owner, verbatim, in session on 2026-10-02**, attaching the Challenge

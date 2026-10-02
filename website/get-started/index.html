@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mine Carbon · Get started</title>
+<meta name="description" content="From a clean Linux machine to the Carbon Control Center, then choose a Challenge to mine.">
+<style>
+  :root { --ink: #16181d; --muted: #5b616e; --line: #e3e5ea; --bg: #ffffff; --panel: #f6f7f9; --accent: #1b5e4a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #eceef2; --muted: #a3a9b6; --line: #2c313b; --bg: #111317; --panel: #1a1d23; --accent: #6fcfac; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 1.15rem; margin: 36px 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 24px; }
+  pre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  ol { padding-left: 1.25rem; }
+  li { margin: 6px 0; }
+  .status { border-left: 3px solid var(--accent); background: var(--panel); padding: 10px 14px; border-radius: 0 8px 8px 0; color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mine Carbon</h1>
+  <p class="lead">From a clean Linux machine to your own Carbon Control Center, then choose the Challenge you want to mine.</p>
+
+  <p class="status">Testnet (subnet 567), DEVELOPMENT. Nothing here is qualified, paid or on chain. Your keys never leave your own wallet.</p>
+
+  <h2>What you need</h2>
+  <ol>
+    <li>A Linux x86-64 machine (Windows: WSL2) with git, curl and Docker. For GPU practice, an NVIDIA GPU with the NVIDIA Container Toolkit.</li>
+    <li>A hotkey in your own Bittensor wallet. The Control Center prepares the registration call; you sign it in your own wallet.</li>
+    <li>An inference key of your own (Engy or Chutes) for an autonomous agent, if you use one.</li>
+  </ol>
+
+  <h2>1. Install and open the Control Center</h2>
+<pre>git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
+~/carbon/scripts/install_miner.sh        # add --gpu for GPU practice</pre>
+  <p>The script checks your machine, installs Carbon's locked environment, builds the pinned images locally and starts the Control Center on <code>127.0.0.1</code>. It prints the address and a session token.</p>
+
+  <h2>2. Start your signer</h2>
+<pre>~/carbon/.venv/bin/carbon-miner-signer --wallet &lt;wallet&gt; --hotkey &lt;hotkey&gt;</pre>
+  <p>Carbon never holds or asks for your key. Every request is signed by this process, on your machine.</p>
+
+  <h2>3. In the Control Center</h2>
+  <ol>
+    <li><strong>Wallet &amp; Identity:</strong> confirm your hotkey is registered on subnet 567.</li>
+    <li><strong>Set up your environment:</strong> inference, compute (this machine's CPU or GPU, or a GPU rented on your own RunPod, Lium or Targon account) and agent (Carbon's or Hermes).</li>
+    <li><strong>Challenges:</strong> read each Challenge's description and research environment, choose one and launch.</li>
+  </ol>
+</main>
+</body>
+</html>

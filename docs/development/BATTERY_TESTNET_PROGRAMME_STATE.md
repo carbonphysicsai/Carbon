@@ -36,7 +36,7 @@ All of these are in `.agent/DECISIONS.md`.
 | 7 | M4: two-host RunPod reproducibility run (handoff §4 R2, R3) | host session | 6; fresh balance and active-pod check | not started |
 | 8 | M3 gaps: two-instance commit-reveal cross-check; chain `CommitmentReader`; retired-case release policy | Claude session | — | not started |
 | 9 | OD-7 commitment posting (needed at the mainnet switch, where several validators must agree on one recipe) (count per day, window, fee cap and expiry need owner values) | Claude session + owner | 8 | not implemented |
-| 10 | M5b Launchpad battery UI; M6 control center | Claude session | #351 (merged) | not started |
+| 10 | M5b Launchpad battery UI; M6 control center | Claude session | #351 (merged) | built as the Challenge-neutral Control Center: C-MLP-03 setup and C-MLP-04 (install, no operator file, Challenge choice); live fresh-machine run pending |
 | 11 | M7 testnet window (handoff §4 R4), validators and approved all-burn publication | host session | 2 to 7 | not started |
 | 12 | A real model-driven battery agent campaign (paid, within the OD-5 provider ceiling) | host session | provider key; run plan in the handoff | not run |
 | 16 | Battery challenge kit (`carbon/challenge_kit/battery.py`): the pinned PyBaMM overlay and the public population in the miner research image, with miner seeds only; closes the battery `generate` gap (OWNER-RESEARCH-ENVIRONMENT-01) | Claude session | — | open gap, declared in `challenge_kit/standard.py` |
