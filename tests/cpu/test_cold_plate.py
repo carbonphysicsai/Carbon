@@ -526,3 +526,104 @@ def test_feasibility_is_a_decision_property_not_a_gate():
     assert tight["die_peak_c"] == pytest.approx(89.0 + 1000 / 0.03**2 * 5e-6)
     assert tight["hydraulic_w"] == pytest.approx(4000.0 * 1.5e-3 / 60)
     assert exam.evaluate_case(_prediction(ref), ref)["state"] == exam.SCORABLE
+
+
+# ------------------------------------------------------------------ pools
+
+POOLS = REPOSITORY / "docs/development/evidence/cold-plate-pools-v1"
+
+
+def _pool(name):
+    return [
+        json.loads(line) for line in (POOLS / f"{name}.jsonl").read_text().splitlines()
+    ]
+
+
+def test_pool_plans_are_public_draws_and_a_private_root_outside_the_repository(
+    tmp_path,
+):
+    plan = _load(
+        "cold_plate_pool_plan", "scripts/dev/cold_plate/reference/pool_plan.py"
+    )
+    root = tmp_path / "keys" / "root"
+    plan.main(
+        [
+            str(tmp_path / "a"),
+            "--root",
+            str(root),
+            "--train",
+            "3",
+            "--practice",
+            "2",
+            "--private",
+            "2",
+        ]
+    )
+    plan.main(
+        [
+            str(tmp_path / "b"),
+            "--root",
+            str(root),
+            "--train",
+            "3",
+            "--practice",
+            "2",
+            "--private",
+            "2",
+        ]
+    )
+    for name in ("train", "practice", "private"):
+        a = (tmp_path / "a" / f"{name}.plan.json").read_text()
+        assert a == (tmp_path / "b" / f"{name}.plan.json").read_text(), name
+    private = json.loads((tmp_path / "a" / "private.plan.json").read_text())
+    assert private["root_commitment"].startswith("sha256:")
+    assert (tmp_path / "a" / "private.plan.json").stat().st_mode & 0o077 == 0
+    assert root.stat().st_mode & 0o077 == 0 and len(root.read_bytes()) == 32
+    with pytest.raises(SystemExit):
+        plan.main([str(REPOSITORY / "tmp-plans"), "--root", str(root)])
+    root.chmod(0o644)
+    with pytest.raises(SystemExit, match="owner only"):
+        plan.load_or_create_root(root)
+
+
+def test_the_committed_public_pools_are_the_public_draws(tmp_path):
+    plan = _load(
+        "cold_plate_pool_plan2", "scripts/dev/cold_plate/reference/pool_plan.py"
+    )
+    plan.main([str(tmp_path), "--root", str(tmp_path / "root"), "--private", "1"])
+    for name, count in (("train", 400), ("practice", 100)):
+        drawn = json.loads((tmp_path / f"{name}.plan.json").read_text())["cases"]
+        pool = _pool(name)
+        assert len(pool) == count and all(r["status"] == "OK" for r in pool)
+        assert [r["case_id"] for r in pool] == [c["case_id"] for c in drawn[:count]]
+        assert all(r["inputs"] == c["inputs"] for r, c in zip(pool, drawn)), name
+        assert not any("/home/" in json.dumps(r) for r in pool)
+
+
+def test_the_committed_baseline_report_is_reproduced_on_the_public_pools():
+    pytest.importorskip("numpy")
+    from carbon import learned_baseline
+
+    baselines = _load(
+        "cold_plate_baselines", "scripts/dev/cold_plate/reference/baselines.py"
+    )
+    report = json.loads((POOLS / "baselines.json").read_text())
+    pools = {name: _pool(name) for name in ("train", "practice")}
+    scales = exam.scales_from_train(pools["train"])
+    assert scales == pytest.approx(report["scales"])
+    practice = report["scores"]["practice"]
+    closed = baselines.score(baselines.closed_form, pools["practice"], scales)
+    assert closed["score"] == pytest.approx(practice["closed_form"]["score"], rel=1e-9)
+    train = [r for r in pools["train"] if r["status"] == "OK"]
+    model = learned_baseline.KernelRidge(
+        baselines._x([r["inputs"] for r in train]),
+        baselines._y(train),
+        report["learned"]["length"],
+        report["learned"]["ridge"],
+    )
+    learned = baselines.score(
+        baselines.learned_predictor(model), pools["practice"], scales
+    )
+    assert learned["score"] == pytest.approx(practice["learned"]["score"], rel=1e-6)
+    assert report["learned"]["at_edge"] == []
+    assert set(report["calibration"]["private"]) == {"n_references", "gates_hold"}

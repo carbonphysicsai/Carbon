@@ -54,3 +54,22 @@ def test_selection_keeps_the_best_eligible_hyperparameters():
     assert min(g["score"] for g in eligible) == score(model)
     with pytest.raises(ValueError, match="eligible"):
         learned_baseline.select(x, y, lambda model: None)
+
+
+def test_a_choice_on_the_grid_edge_is_reported():
+    x, y = _data(60, 5)
+    test_x, test_y = _data(20, 6)
+
+    def score(model):
+        return float(np.abs(model.predict(test_x) - test_y).mean())
+
+    # On a one-point grid nothing is an edge; on a grid that stops short of
+    # the best length, the length is reported at its edge.
+    _, chosen = learned_baseline.select(x, y, score, lengths=(1.0,), ridges=(1e-8,))
+    assert chosen["at_edge"] == []
+    _, chosen = learned_baseline.select(
+        x, y, lambda m: score(m) if m.length > 0.5 else 1e9, lengths=(0.25, 0.5, 1.0)
+    )
+    assert chosen["length"] == 1.0 and "length" in chosen["at_edge"]
+    assert set(learned_baseline.LENGTHS) >= {0.25, 16.0}
+    assert set(learned_baseline.RIDGES) >= {1e-8, 1.0}
