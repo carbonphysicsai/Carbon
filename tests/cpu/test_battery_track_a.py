@@ -171,7 +171,9 @@ def test_the_command_writes_the_ledger_and_exits_one_when_anything_fires(
     assert {r["schema"] for r in attempts} == {track_a.ATTEMPT_SCHEMA}
     report = json.loads((tmp_path / "coverage.json").read_text())
     assert report["claims"] == {"security_acceptance": False, "qualification": False}
-    assert set(report["reserved"].values()) == {"HUMAN_INPUT"}
+    assert report["values"]["authority"] == "OWNER-TRACK-A-L0-02"
+    assert report["values"]["state"] == "INCONCLUSIVE"
+    assert (REPO / report["values"]["study_sheet"]).is_file()
     assert report["findings"] == []
     assert report["divergence"]["ev4-2026-10-01"]["conditions"] > 0
     assert json.loads((tmp_path / "conditions.json").read_text())

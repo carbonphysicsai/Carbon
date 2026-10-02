@@ -20,10 +20,12 @@ Every finding is emitted and none is suppressed (§3.2).
 What it is not. In-process checks prove the boundary they call, nothing more
 (§3: "in-process fixture tests prove the fixture boundary only"). Worker
 isolation is evidence from the pinned C-03 worker service lane, reused here
-only through the applicability analysis in `COVERAGE`. No study sheet is
-frozen, and no threshold, tolerance, budget or acceptance is chosen. Those
-stay HUMAN_INPUT. GRAPHITE-01 phase 4 (the attacker agent) drives
-agent-generated attempts through these same detectors.
+only through the applicability analysis in `COVERAGE`. No value is chosen
+here: the owner's values (OWNER-TRACK-A-L0-02) are frozen in `STUDY_SHEET`,
+and no family state is an acceptance. GRAPHITE-01 phase 4 (the attacker
+agent) drives agent-generated attempts through these same detectors. Under
+OWNER-ADMISSION-COMBINED-01 this harness is the attack side of the one
+combined admission test.
 
     python -m carbon.battery.track_a run --out DIR
 """
@@ -43,6 +45,7 @@ PROFILE = "level-0"
 ATTEMPT_SCHEMA = "carbon.battery.track-a.attempt.v1"
 REPORT_SCHEMA = "carbon.battery.track-a.coverage.v1"
 CHALLENGE_ID = "battery-fastcharge-ageing-development-v1"
+STUDY_SHEET = "docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json"
 
 HELD, BREACHED = "HELD", "BREACHED"
 FIRED, SILENT = "FIRED", "SILENT"
@@ -685,12 +688,14 @@ def run(root="."):
         },
         "coverage": COVERAGE,
         "not_run_at_level_0": NOT_RUN_AT_LEVEL_0,
-        "reserved": {
-            "attack_budget": "HUMAN_INPUT",
-            "study_population": "HUMAN_INPUT",
-            "reconstruction_tolerances": "HUMAN_INPUT",
-            "threat_model_approval": "HUMAN_INPUT",
-            "track_a_lock_reviewer": "HUMAN_INPUT",
+        "values": {
+            "authority": "OWNER-TRACK-A-L0-02",
+            "study_sheet": STUDY_SHEET,
+            "state": "INCONCLUSIVE",
+            "lock_precondition": (
+                "the deciding rule must stop scoring the boundary-optimist "
+                "control at or above eligible real models (route a)"
+            ),
         },
         "claims": {"security_acceptance": False, "qualification": False},
     }
