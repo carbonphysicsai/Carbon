@@ -493,7 +493,7 @@ def compose(
 
 
 #: A battery runtime may name these keys and no others. `gpu_research` is
-#: battery's own GPU practice scope (`carbon.battery.gpu`, C-MLP-03 slice 3);
+#: battery's own GPU practice scope (`carbon.development_session.battery_gpu`, C-MLP-03 slice 3);
 #: Burgers' GPU scope binds Burgers material and is refused by its schema.
 RUNTIME_KEYS = frozenset(
     {"implementation", "images", "authored_research", "gpu_research", "rented_gpu"}
@@ -503,7 +503,7 @@ RUNTIME_KEYS = frozenset(
 def host_gpu_image(root, declared):
     """The GPU worker image this campaign's runtime declares, verified against
     the record installed in the campaign root; None without GPU practice."""
-    from .gpu import registered_gpu_image
+    from carbon.development_session.battery_gpu import registered_gpu_image
 
     return registered_gpu_image(root, declared)
 
@@ -515,7 +515,7 @@ def host_rented_runner(root, manifest, credential):
     `credential` is the miner's provider key file. It stays on this machine:
     the adapter reads it per request and only into its own request header.
     """
-    from .gpu import declared_rented
+    from carbon.development_session.battery_gpu import declared_rented
 
     compute = declared_rented(manifest["runtime"])
     if compute is None:
@@ -580,13 +580,13 @@ def research_runtime(declared, *, implementation, images, julia_image, gpu_image
 
         runtime["authored_research"] = [authored_julia_scope(julia_image)]
     if "gpu_research" in declared:
-        from .gpu import gpu_scope
+        from carbon.development_session.battery_gpu import gpu_scope
 
         if gpu_image is None:
             raise ValueError("a GPU practice runtime needs its installed GPU image")
         runtime["gpu_research"] = [gpu_scope(gpu_image)]
     if "rented_gpu" in declared:
-        from .gpu import declared_rented, rented_scope
+        from carbon.development_session.battery_gpu import declared_rented, rented_scope
 
         # The miner's provider choice, recomposed against this host's GPU
         # worker: the frozen choice must name the image it actually runs.

@@ -182,7 +182,7 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         ),
         "compute": Provided(
             (
-                "carbon.battery.gpu:gpu_scope",
+                "carbon.development_session.battery_gpu:gpu_scope",
                 "carbon.battery.research:BatteryPractice",
                 "carbon.compute.rented_runner:RentedRunner",
             ),

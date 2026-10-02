@@ -277,7 +277,7 @@ def gpu_worker(tag="9"):
 
 
 def test_the_rented_scope_binds_the_choice_to_the_pinned_gpu_worker():
-    from carbon.battery import gpu
+    from carbon.development_session import battery_gpu as gpu
 
     image = gpu_worker()
     runtime = {
@@ -370,7 +370,7 @@ def test_rented_practice_needs_the_pinned_gpu_worker(tmp_path):
 def rented_setup(tmp_path):
     from test_battery_gpu_practice import GpuChecks, gpu_setup
 
-    from carbon.battery import gpu
+    from carbon.development_session import battery_gpu as gpu
 
     class Checks(GpuChecks):
         def rented(self, rented, credential, manifest):
