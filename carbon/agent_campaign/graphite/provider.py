@@ -179,8 +179,10 @@ class GraphiteLedger(CampaignLedger):
             raise
 
 
-def _verify(opened, role, selection_record, literature_digest, brief_digest):
-    """The session record still describes what would resume it."""
+def _verify(opened, role, selection_record, literature_digest, brief_digest, limits):
+    """The session record still describes what would resume it: the role's
+    prompt and manifest, the model selection, the literature snapshot, the
+    brief, and the grant and caps the run is held to."""
     recorded = opened["role"]
     if (
         recorded["prompt_digest"] != role.prompt_digest
@@ -195,6 +197,8 @@ def _verify(opened, role, selection_record, literature_digest, brief_digest):
         raise SessionMismatch("literature_snapshot_changed")
     if opened["brief"]["digest"] != brief_digest:
         raise SessionMismatch("brief_changed")
+    if {"grant": opened["grant"], "caps": opened["caps"]} != limits:
+        raise SessionMismatch("grant_or_caps_changed")
 
 
 def _check_role(role, spec):
@@ -312,6 +316,13 @@ class GraphiteProvider:
             "retained_bytes": None,
         }
 
+    def _grant_record(self):
+        return {
+            "grant_id": self.grant.grant_id,
+            "currency": self.grant.currency,
+            "per_run_ceiling_nanodollars": self.per_run_ceiling_nano(),
+        }
+
     def register_brief(self, brief):
         if type(brief) is not SessionBrief:
             raise TypeError("exact SessionBrief required")
@@ -425,6 +436,12 @@ class GraphiteProvider:
             raise ProviderUnavailable("unknown_brief")
         role = ROLES[RoleName(brief["role"])]
         _check_role(role, spec)
+        if (
+            brief["role_prompt_digest"] != role.prompt_digest
+            or brief["tool_manifest_digest"] != role.tool_manifest_digest
+        ):
+            # The brief was registered against another prompt or manifest.
+            raise ProviderUnavailable("brief_role_changed")
         rung = self.ladder.rung(role.name)
         model_id = self.ladder.model(role.name)
         selection = self._selection(model_id)
@@ -448,11 +465,7 @@ class GraphiteProvider:
                 "label": self.literature.label,
             },
             "checkout": brief["checkout"],
-            "grant": {
-                "grant_id": self.grant.grant_id,
-                "currency": self.grant.currency,
-                "per_run_ceiling_nanodollars": self.per_run_ceiling_nano(),
-            },
+            "grant": self._grant_record(),
             "caps": self.caps(),
             "live_inference": bool(self.model.live),
             "authority": {
@@ -582,8 +595,8 @@ class GraphiteProvider:
             return self._finish(run_id, "cancelled", None, None)
         opened = self._opened(run_id)
         role = ROLES[RoleName(opened["role"]["name"])]
-        brief = self._brief(opened["brief"]["digest"])
         try:
+            brief = self._brief(opened["brief"]["digest"])
             if brief is None:
                 raise SessionMismatch("brief_missing")
             selection = selection_from_record(
@@ -595,6 +608,7 @@ class GraphiteProvider:
                 selection.record(),
                 self.literature.snapshot_digest,
                 digest(canonical(brief)),
+                {"grant": self._grant_record(), "caps": self.caps()},
             )
         except (SessionMismatch, ValueError) as error:
             code = (
@@ -660,6 +674,22 @@ class GraphiteProvider:
             )
         except Exception as error:  # noqa: BLE001 - typed below, never echoed
             unresolved = any(c["settlement"] is None for c in self._calls(run_id))
+            if (
+                not unresolved
+                and type(error) is ValueError
+                and str(error) in _LIMIT_MESSAGES
+            ):
+                # The research layer refused the next call before reserving
+                # it because the run's elapsed limit cannot hold it.
+                return self._finish(
+                    run_id,
+                    "failed",
+                    {
+                        "code": "run_cap_reached",
+                        "dimension": _LIMIT_MESSAGES[str(error)],
+                    },
+                    None,
+                )
             return self._finish(
                 run_id,
                 "failed",

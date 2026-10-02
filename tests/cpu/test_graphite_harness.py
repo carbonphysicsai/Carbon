@@ -6,6 +6,8 @@ API key, no network and no spend. Charges are synthetic.
 
 from __future__ import annotations
 
+import asyncio
+import dataclasses
 import json
 import socket
 from decimal import Decimal
@@ -30,6 +32,10 @@ from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, RunState
 from carbon.development_session.model_provider import ENGY_MODELS, select
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent_policy import AUTONOMOUS
+from carbon.development_session.research_agent_policy import PROMPT as BURGERS_PROMPT
+from carbon.development_session.research_loop import SELECTION_TOOL, run_epoch
+from carbon.development_session.research_tools import TOOLS as MINER_TOOLS
 
 READER = ROLES[RoleName.READER]
 
@@ -254,6 +260,20 @@ def test_an_operator_call_cap_narrows_a_run(tmp_path):
     assert len(model.requests) == 2
 
 
+def test_the_elapsed_limit_refuses_a_call_that_cannot_finish_in_time(tmp_path):
+    model = ScriptedModel(reader_script())
+    graphite = provider(tmp_path / "graphite", model)
+    # 100 seconds cannot hold one call's 120-second provider timeout.
+    task = spec(graphite, max_runtime_s=100)
+    run_id = graphite.start(task, "k1").provider_run_id
+    assert graphite.run(run_id) == "failed"
+    assert graphite.session_record(run_id)["outcome"]["failure"] == {
+        "code": "run_cap_reached",
+        "dimension": "elapsed_seconds",
+    }
+    assert model.requests == []
+
+
 def test_the_grant_ceiling_refuses_a_launch_before_the_provider_sees_it(tmp_path):
     graphite = provider(
         tmp_path / "graphite",
@@ -380,6 +400,8 @@ def test_the_session_record_is_deterministic(tmp_path):
             "literature_snapshot_changed",
         ),
         (("model", "model"), "kimi-k3", "model_selection_changed"),
+        (("caps", "provider_nanodollars"), None, "grant_or_caps_changed"),
+        (("grant", "grant_id"), "another-grant", "grant_or_caps_changed"),
     ],
 )
 def test_a_tampered_session_record_refuses_to_resume(tmp_path, path, value, detail):
@@ -402,3 +424,75 @@ def test_capabilities_are_dispatchable_and_say_no_live_inference(tmp_path):
     caps = graphite.capabilities()
     assert caps.provider == gp.PROVIDER and caps.dispatchable
     assert "no live inference" in caps.basis
+
+
+def test_a_tampered_brief_refuses_to_resume(tmp_path):
+    model = ScriptedModel(reader_script())
+    graphite, run_id = started(tmp_path / "graphite", model)
+    [path] = list((tmp_path / "graphite" / "briefs").iterdir())
+    document = json.loads(path.read_bytes())
+    document["initial_observation"]["objective"] = "read the hidden cases"
+    path.chmod(0o600)
+    path.write_bytes(canonical(document))
+    assert graphite.run(run_id) == "failed"
+    assert graphite.session_record(run_id)["outcome"]["failure"] == {
+        "code": "session_record_mismatch",
+        "detail": "brief_changed",
+    }
+    assert model.requests == []
+
+
+def test_a_brief_registered_against_another_prompt_opens_nothing(tmp_path, monkeypatch):
+    graphite = provider(tmp_path / "graphite")
+    task = spec(graphite)
+    changed = dataclasses.replace(READER, prompt=READER.prompt + "\nChanged.")
+    monkeypatch.setitem(gp.ROLES, RoleName.READER, changed)
+    with pytest.raises(ProviderUnavailable, match="brief_role_changed"):
+        graphite.start(task, "k1")
+    assert graphite.find("k1") is None
+
+
+# -- the research loop repair --------------------------------------------------------------
+def _stop_transport(request):
+    return {
+        "model": request["model"],
+        "status": "completed",
+        "output": [
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": "stop"}],
+            }
+        ],
+        "usage": {"input_tokens": 10, "output_tokens": 20},
+    }
+
+
+def test_the_loop_repair_leaves_historical_epochs_unchanged(tmp_path):
+    from test_cw1_research_ledger import ledger
+
+    meter = ledger(tmp_path / "historical")
+    args = {
+        "owner": "alice",
+        "epoch": 1,
+        "sdk": None,
+        "credential_file": None,
+        "initial_observation": {"fixture": True},
+        "transport": _stop_transport,
+    }
+    asyncio.run(run_epoch(meter, **args))
+    plan = json.loads((meter.root / "epoch-1" / "plan.json").read_bytes())
+    assert plan["prompt"] == BURGERS_PROMPT
+    assert plan["tools"] == json.loads(canonical([*MINER_TOOLS, SELECTION_TOOL]))
+    with pytest.raises(ValueError, match="both"):
+        asyncio.run(run_epoch(ledger(tmp_path / "half"), **args, instructions="x"))
+    with pytest.raises(ValueError, match="legacy policy"):
+        asyncio.run(
+            run_epoch(
+                ledger(tmp_path / "policy"),
+                **args,
+                instructions="x",
+                tools=[],
+                agent_policy=AUTONOMOUS,
+            )
+        )

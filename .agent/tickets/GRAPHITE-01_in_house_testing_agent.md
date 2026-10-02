@@ -65,11 +65,13 @@ owner spending grant.
   - a call in flight at a crash keeps its reservation and is reconciled,
     never resent;
   - controller and provider crash points;
-  - the per-run money cap, the call cap and the grant ceiling;
+  - the per-run money cap, the call cap, the elapsed limit and the grant
+    ceiling;
   - cancellation mid-run, before the run starts, and at the runtime limit;
   - typed provider rejections;
   - deterministic session records;
-  - refusal to resume a tampered session record.
+  - refusal to resume a tampered session record or brief, and refusal to
+    open a brief registered against another prompt or manifest.
 - `tests/cpu/test_graphite_boundaries.py`:
   - roles;
   - injection-as-data, from a literature card and from a miner tool result;
@@ -151,12 +153,16 @@ editing the named file):
   - File: `graphite/provider.py`.
 - **GRAPHITE-D8, lifecycle.**
   - A task's `instructions_digest` names a brief that Carbon registered
-    beforehand.
+    beforehand. The brief binds the role's prompt and manifest digests, and
+    `start` refuses it if either has changed since.
   - `start` opens the session record.
   - `run` is the worker; an operator calls it.
   - `cancel` is observed at the loop's next ledger checkpoint, which comes
     before every reservation. A call already in flight completes and is
     journalled.
+  - Before resuming, `run` re-verifies the session record against the
+    role, the model selection, the literature snapshot, the brief, the grant
+    and the caps. Any difference refuses the run.
   - Usage is read from the run's ledger. A reservation whose outcome is
     unknown is reported as pending, at its full amount.
   - File: `graphite/provider.py`.
