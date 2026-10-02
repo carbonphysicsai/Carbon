@@ -9,12 +9,15 @@ protection.
 from __future__ import annotations
 
 import pytest
+import test_agent_campaign_climb as tclimb
 import test_agent_campaign_study as tstudy
 import test_graphite_level_planner as tlp
+import test_loss_expressions as tle
 
-from carbon.agent_campaign import study
+from carbon.agent_campaign import climb, study
 from carbon.agent_campaign.graphite import closed_task
 from carbon.agent_campaign.graphite import level_planner as lp
+from carbon.reconstruction import loss_expressions as le
 
 
 def _rejection(name):
@@ -24,6 +27,34 @@ def _rejection(name):
 
 
 MUTATIONS = {
+    "loss_expression_constants_are_bounded": (
+        lambda m: m.setattr(le, "_number", lambda value: True),
+        lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
+            {"op": "scale", "by": True, "arg": {"term": "sq_error"}},
+            "by_outside_bounds",
+        ),
+    ),
+    "loss_expression_terms_are_registered": (
+        lambda m: m.setattr(
+            le.OperationSet,
+            "terms",
+            property(lambda self: ("score", "sq_error")),
+            raising=False,
+        ),
+        lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
+            {"term": "score"}, "term_not_registered"
+        ),
+    ),
+    "climb_budgets_are_matched": (
+        lambda m: m.setattr(climb.ClimbPlan, "__post_init__", lambda self: None),
+        lambda tmp: tclimb.test_a_malformed_plan_is_refused(
+            {"budget": 2}, "attack_budget_must_match_the_attack_set"
+        ),
+    ),
+    "climb_stops_on_a_finding": (
+        lambda m: m.setattr(climb._Record, "stopped", lambda self: False),
+        lambda tmp: tclimb.test_a_reproduced_violation_stops_the_climb(),
+    ),
     "planner_sources_resolve_to_the_brief": (
         lambda m: m.setattr(lp, "_resolves", lambda source, document: "card"),
         _rejection("unresolved_source"),

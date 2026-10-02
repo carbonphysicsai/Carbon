@@ -190,6 +190,35 @@ Delegated engineering decisions, recorded under
   difference is computed from the contract and the map. A Level 0 reply must
   cite every rebuildable capability labelled above 0, name every excluded
   capability, and name every empty level, or the level is rejected.
+- **GA-D5, the Level-1 draft lives outside the registry.** The registry holds
+  one contract per Challenge token, and the miner path validates every
+  submission against it, so registering the draft would open it to miners.
+  Its surface kinds (uint, float, bool, choice) also cannot describe an
+  expression. The draft, its operation set and its development profile are
+  therefore plain data outside `capability_registry`. Battery's
+  `objective.loss_expressions` stays excluded, and tests hold the miner path's
+  refusal. This leaves one owner decision, below.
+- **GA-D6, the draft's bounds are proposed engineering bounds.** Depth 4,
+  16 nodes, add arity 8, scale 0-10 (the registered weights' range), exponent
+  0.5-2 and epsilon 1e-6 (`training.case_loss`'s). They bound a construction
+  surface and change no score, threshold or tolerance. They are accepted or
+  changed with the Level-1 proposal.
+
+## Open owner decisions
+
+- **How a level is served to Graphite's development campaigns without
+  reaching miners** (slice B; handoff §8: "A level opened for Graphite's
+  development campaigns is never opened to miners"). The registry cannot hold
+  a development-only variant today. The smallest decision: either (a) approve
+  a development-only contract variant held outside
+  `capability_registry.CONTRACTS`, pinned by its own digest and read only by
+  Carbon's proposal runner, never by the miner MCP server, the validator or
+  the intake; or (b) keep each new level out of Graphite's live campaigns
+  until it is accepted and recorded for everyone. Until then, nothing at
+  Level 1 runs live. The lesson `2026-10-02-battery-level1-draft` files (a) as
+  a proposed revision.
+- **Accept or decline battery's level proposals** when a live level-planning
+  session has produced them (technical owner), and authorize that session.
 
 ## Slices delivered
 
@@ -250,6 +279,33 @@ Delegated engineering decisions, recorded under
     accepting or declining it, are people's acts.
   - Tests: `tests/cpu/test_graphite_level_planner.py`, and six mutation
     checks.
+- **Slice B, battery Level 1 (bounded loss expressions), engineering only.**
+  - Challenge-neutral: `carbon/reconstruction/loss_expressions.py`, the
+    bounded operation set (add, mul, div, scale, pow, log1p, sqrt over a
+    Challenge's non-negative per-case terms), its canonical form, digest,
+    rebuild from pinned bytes and evaluation with any array namespace; and
+    `carbon/agent_campaign/climb.py`, the handoff §8 harness: valid
+    constructions under the previous and expanded profiles, matched attack
+    budgets, ablation per new permission, combined-permission interactions and
+    clean rebuilds of promising results, with typed findings that stop the
+    climb.
+  - Battery adapter: `carbon/battery/level1_draft.py`. Battery's operation
+    set and terms (computed as `training.case_loss` computes them), the
+    expression restating a registered menu setting, the draft shaped like a
+    level proposal, the development profile's identity and battery's climb
+    plan.
+  - A second Challenge supplies: its non-negative per-case terms and their
+    computation, its operation-set bounds, its menu restatement, and its
+    panel, attacks, budget and promising rule for the climb.
+  - Evidence: from its pinned bytes alone, a clean process trains to
+    bit-identical parameters. The menu restatement computes the registered
+    objective to 1e-12. Battery's contract, expansion records and every miner
+    path are unchanged; a strategy naming `loss_expressions` is refused as
+    `parameter.not_rebuildable`.
+  - Not done, by design: no expansion record, no contract change, no trainer
+    change. Those follow the owner's acceptance of a Level-1 proposal.
+  - Tests: `tests/cpu/test_loss_expressions.py`,
+    `tests/cpu/test_agent_campaign_climb.py`, and four mutation checks.
 
 ## Lessons
 
@@ -258,3 +314,4 @@ Delegated engineering decisions, recorded under
 - `2026-10-02-graphite-admission-reconciliation`
 - `2026-10-02-study-sheet-takes-a-challenge`
 - `2026-10-02-graphite-level-planner`
+- `2026-10-02-battery-level1-draft` (PROPOSED revision)
