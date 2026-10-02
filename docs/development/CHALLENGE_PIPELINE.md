@@ -48,18 +48,28 @@ for it. A level not reached is NOT_RUN, never a pass.
 
 **Climb procedure**, for every level above 0:
 
-1. Record the changed contract and permissions as an expansion record.
-2. Ship Carbon's reconstruction for the new level, with a test that Carbon rebuilds it.
-3. Run valid constructions under the previous and the expanded profile.
-4. Run matched adversarial budgets under both profiles.
-5. Remove the new permission and repeat the comparison (ablation).
-6. Test interactions with earlier permissions (combined-permission attacks).
-7. Reconstruct promising valid submissions on clean workers.
-8. Open the level to miners only after a person locks it, and only once validators serve the new contract: a miner sends a declarative recipe and the contract digest it was written against, the validator rebuilds it with the reconstruction pinned in its own Carbon version, and a digest it does not serve is refused.
+1. Graphite proposes the level's capabilities for this Challenge, with their bounds, the research behind them, the reconstruction work each needs and the attack surface it opens; the construction contract owner accepts or declines the proposal.
+2. Record the changed contract and permissions as an expansion record.
+3. Ship Carbon's reconstruction for the new level, with a test that Carbon rebuilds it.
+4. Run valid constructions under the previous and the expanded profile.
+5. Run matched adversarial budgets under both profiles.
+6. Remove the new permission and repeat the comparison (ablation).
+7. Test interactions with earlier permissions (combined-permission attacks).
+8. Reconstruct promising valid submissions on clean workers.
+9. Open the level to miners only after a person locks it, and only once validators serve the new contract: a miner sends a declarative recipe and the contract digest it was written against, the validator rebuilds it with the reconstruction pinned in its own Carbon version, and a digest it does not serve is refused.
 
 | Family | Contract | Level | L0 | L1 | L2 | L3 | L4 | L5 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | OPEN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
+
+**Graphite's level proposals.** Graphite proposes the capabilities for every
+level of every Challenge; the construction contract owner accepts or declines
+each (`carbon/challenge_pipeline/proposals/`). A level above 0 is reached only
+with an accepted proposal.
+
+| Contract | L0 | L1 | L2 | L3 | L4 | L5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `battery-fastcharge-ageing-development-v1` | none | none | none | none | none | none |
 
 ## Priority queue
 
@@ -132,10 +142,4 @@ One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
 adopts or declines it; nothing is applied silently.
 
-8 entries: 6 recorded, 1 proposed, 1 adopted, 0 declined.
-
-**Awaiting a decision:**
-
-| Lesson | Challenge | Target | Proposed revision |
-| --- | --- | --- | --- |
-| 2026-10-02-level-proposal-step | protocol | construction_ladder.climb_procedure | Add step 0, the level proposal. For one Challenge and one level it states the capabilities to admit, mapped onto the ladder, with their bounds; the research behind them (Graphite's method cards and experiments on development material); the reconstruction work each needs; and the expected attack surface. Graphite or an engineer drafts it, and the construction contract owner (the technical owner) accepts it before step 1 records the contract change. |
+10 entries: 8 recorded, 0 proposed, 2 adopted, 0 declined.

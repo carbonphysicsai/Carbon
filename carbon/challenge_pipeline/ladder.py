@@ -15,6 +15,9 @@ A pipeline record's `construction` block is checked against these rules:
 - **A level is reached only with its reconstruction** (OWNER-GRAPHITE-02): it
   names the expansion record that opened it and the test that shows Carbon
   rebuilds it, and both are in the repository.
+- **A level above 0 starts from Graphite's accepted proposal**
+  (`proposals.py`). Graphite proposes every level's capabilities, and the
+  construction contract owner accepts them.
 - **Climb one level at a time.** Every level below the current one is TESTED or
   FROZEN, with its evidence.
 - **The current level names the newest expansion record.** A newer record means
@@ -28,6 +31,7 @@ follows a finding (`admission_expansion_after_finding`).
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -43,13 +47,26 @@ LEVELS = {
 STATES = ("OPEN", "TESTED", "FROZEN")
 NOT_RUN = "NOT_RUN"
 EXPANSIONS = "carbon/reconstruction/expansions"
-ENTRY_KEYS = {"level", "state", "expansion_record", "reconstruction", "evidence"}
+ENTRY_KEYS = {
+    "level",
+    "state",
+    "proposal",
+    "expansion_record",
+    "reconstruction",
+    "evidence",
+}
 TOKEN = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 RECORD_NAME = re.compile(r"^\d{4}\.json$")
+PROPOSALS = "carbon/challenge_pipeline/proposals"
 
 #: The climb procedure (Admission §3 and the Graphite admission handoff §8),
 #: run for every level above 0 before it may be TESTED.
 CLIMB_PROCEDURE = (
+    (
+        "Graphite proposes the level's capabilities for this Challenge, with their bounds, "
+        "the research behind them, the reconstruction work each needs and the attack surface "
+        "it opens; the construction contract owner accepts or declines the proposal."
+    ),
     "Record the changed contract and permissions as an expansion record.",
     "Ship Carbon's reconstruction for the new level, with a test that Carbon rebuilds it.",
     "Run valid constructions under the previous and the expanded profile.",
@@ -142,6 +159,22 @@ def validate(construction, where, root):
                     f"{at}: {kind} {ref!r} is not in the repository; a level is reached "
                     "only with its expansion record and Carbon's reconstruction for it"
                 )
+        proposal = entry["proposal"]
+        expected = f"{PROPOSALS}/{challenge}/level-{entry['level']}.json"
+        if proposal is None:
+            if entry["level"] > 0:
+                raise LadderError(
+                    f"{at}: a level above 0 is reached only with Graphite's accepted "
+                    f"proposal ({expected})"
+                )
+        else:
+            path = Path(root) / str(proposal)
+            if proposal != expected or not path.exists():
+                raise LadderError(
+                    f"{at}: the proposal is {expected}, in the repository"
+                )
+            if json.loads(path.read_text(encoding="utf-8")).get("status") != "ACCEPTED":
+                raise LadderError(f"{at}: the proposal is not ACCEPTED")
         if entry["state"] in ("TESTED", "FROZEN"):
             evidence = entry["evidence"]
             if not (isinstance(evidence, str) and (Path(root) / evidence).exists()):
