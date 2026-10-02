@@ -32,8 +32,8 @@ PROVIDERS["runpod"] = ("RunPod", _runpod)
 PROVIDERS["lium"] = ("Lium (subnet 51)", _lium)
 
 
-def provider_adapter(name, key_file):
+def provider_adapter(name, credential_file):
     """The named provider's adapter on the miner's own key file."""
     if name not in PROVIDERS:
         raise ValueError(f"unknown compute provider {name!r}")
-    return PROVIDERS[name][1](FileCredentialProvider(Path(key_file)))
+    return PROVIDERS[name][1](FileCredentialProvider(Path(credential_file)))
