@@ -137,19 +137,40 @@ def verified_predictions(directory, manifest):
     return out
 
 
-def content_verified_predictions(directory, results, contract, repository="."):
-    """Every member's predictions, each checked by content: its recomputed
-    exam components (E, E_important, decision score, eligibility) must equal
-    the components the result recorded, exactly. For regenerated files whose
-    bytes differ only in wall-clock fields, so their byte digests cannot
-    match (OWNER-EV4-REGEN-01)."""
-    store, case_ids, _ = sc.scoring_set(repository)
-    out = {}
-    for path in sorted(Path(directory).glob("*.json.gz")):
-        document = sc.load_predictions(path)
-        member = document["member"]
-        got = sc.components(document["predictions"], case_ids, store, contract)
-        want = results["components"][member]
+class content_verified_predictions:  # noqa: N801 - used like the eager loader
+    """Every member's predictions, each checked by content when it is read:
+    its recomputed exam components (E, E_important, decision score,
+    eligibility) must equal the components the result recorded, exactly.
+
+    For regenerated files whose bytes differ only in wall-clock fields, so
+    their byte digests cannot match (OWNER-EV4-REGEN-01). Files are read one
+    member at a time and not kept, so a 100-member panel fits in memory.
+    """
+
+    def __init__(self, directory, results, contract, repository="."):
+        self.directory, self.results, self.contract = Path(directory), results, contract
+        self.store, self.case_ids, _ = sc.scoring_set(repository)
+        expected = {
+            m
+            for m, row in results["summary"]["members"].items()
+            if row["kind"] != "SYNTHETIC_CONTROL"
+        }
+        present = {
+            path.name.removesuffix(".json.gz")
+            for path in self.directory.glob("*.json.gz")
+        }
+        if present != expected:
+            raise ValueError("regenerated predictions do not cover the panel")
+        self.verified = []
+
+    def __getitem__(self, member):
+        document = sc.load_predictions(self.directory / (member + ".json.gz"))
+        if document["member"] != member:
+            raise ValueError("a prediction file names another member: " + member)
+        got = sc.components(
+            document["predictions"], self.case_ids, self.store, self.contract
+        )
+        want = self.results["components"][member]
         same = (
             got["eligible"] == want["eligible"]
             and got["E"] == want["E"]
@@ -159,15 +180,8 @@ def content_verified_predictions(directory, results, contract, repository="."):
         )
         if not same:
             raise ValueError("regenerated predictions differ in content: " + member)
-        out[member] = document["predictions"]
-    expected = {
-        m
-        for m, row in results["summary"]["members"].items()
-        if row["kind"] != "SYNTHETIC_CONTROL"
-    }
-    if set(out) != expected:
-        raise ValueError("regenerated predictions do not cover the panel")
-    return out
+        self.verified.append(member)
+        return document["predictions"]
 
 
 def with_margins(results, contract, predictions, repository="."):
