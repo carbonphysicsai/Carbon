@@ -342,3 +342,18 @@ Delegated engineering decisions, recorded under
 - `2026-10-02-graphite-level-planner`
 - `2026-10-02-battery-level1-draft` (PROPOSED revision)
 - `2026-10-02-optimizer-researcher-pilot`
+- `2026-10-02-graphite-admission-regression`
+
+## Engineering verification
+
+On the canonical workflow
+(`CARBON_UV_GROUPS="chain archive science-jax science-torch mcp" ./scripts/dev/canonical.sh python -m pytest <paths> -q -p no:cacheprovider`),
+the handoff §14 list with this ticket's suites passed: 728 tests. The list is
+admission, readiness, engineering value (EV1, EV2, EV4, audit), divergence,
+expansion record, capability registry, battery construction contract, MCP
+connection (CPU and service), protected material, rule v2, intake, B02b
+boundaries, the Graphite and agent-campaign suites, design-search commitment
+and pilot, loss expressions and the pipeline. The quality ratchet passed with
+every changed Python file clean, diff hygiene passed, and the Hub validates
+and renders current. Native-host results are diagnostics; canonical CI is
+acceptance.
