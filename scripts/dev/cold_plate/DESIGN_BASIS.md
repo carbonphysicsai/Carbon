@@ -105,6 +105,24 @@ The fitted points (μ in mPa·s):
 | 49 | 1.09608 | 1.09607 | -7.4e-06 |
 | 50 | 1.07260 | 1.07262 | +1.6e-05 |
 
+**Rung 6e: fits over the fluid's whole range.** Rung 6d's fluid reached
+79 °C, so its 30-50 °C fit was extrapolated where up to half the fluid sat.
+`plate_channel/fit_viscosity.py` refits the same model under a selection rule
+stated in the script before it is applied (lowest degree positive over
+250-500 K with a written residual within 1e-4; else the smallest residual):
+
+| Fit | Degree | Largest relative residual, as written | c₀ … c₆ |
+|---|---|---|---|
+| 30-80 °C | 6 | 2.3e-5 | 17.849881432792948, −0.30849429267675, 2.229195303851334e-03, −8.615712938028535e-06, 1.877630788396675e-08, −2.186903343496054e-11, 1.063194651727941e-14 |
+| 30-99 °C | 6 | 1.7e-4 | 11.809225533760118, −0.19835015412139706, 1.3929060738771873e-03, −5.23132660955004e-06, 1.1076921123177383e-08, −1.2533006110289745e-11, 5.917954657407082e-15 |
+
+- Both stay positive over 250-500 K. The odd degrees go negative between
+  112 and 140 °C and were rejected.
+- 99 °C is the top because the model ends at 100 °C: CoolProp refuses it.
+- At the nominal geometry the two fits give the same peak to 1e-4 K and the
+  same Δp to 0.003 Pa (rung 6e). Within its range, the fit is no longer a
+  source of error.
+
 The command that produced the table:
 
 ```bash
