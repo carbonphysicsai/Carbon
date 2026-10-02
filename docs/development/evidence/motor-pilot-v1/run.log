@@ -11,22 +11,22 @@ a05cc36c0e50620ff71c8c31daebe6d71101af0518a13fbd2725ec76c0bf5fca  population.py
 86485ce6ba3db13ad8d18f499b7a5c34e76145341e085996f8384bc21e25863c  run_batch.py
 0775388a700f16539c821d27b4aa648445db76fdfb24490120f09cb62e97a664  run_sweep.py
 image sha256:85c337abf8e2ae83e8a347977aa1b5c9ab965df98ca6340b32cdc435227feaed
-ordinary-4: OK 1108.6 s 
-ordinary-3: OK 1288.6 s 
-ordinary-6: OK 1373.1 s 
-ordinary-5: OK 2043.9 s 
-ordinary-7: OK 1258.6 s 
-ordinary-2: OK 2427.9 s 
-ordinary-1: OK 2454.5 s 
-ordinary-8: OK 1742.2 s 
-difficult-2-sharpest-cogging: OK 1072.3 s 
-difficult-1-deep-saturation: OK 3415.2 s 
-difficult-4-field-weakening: OK 2411.0 s 
-difficult-3-weakest-field: OK 3416.5 s 
-difficult-2-sharpest-cogging-n2880: OK 1534.5 s 
-ordinary-1-n2880: OK 4180.6 s 
-ordinary-2-n2880: OK 3986.1 s 
-difficult-1-deep-saturation-n2880: OK 4549.5 s 
-ordinary-2-n2880-a120: OK 5983.0 s 
+ordinary-4: OK 1108.6 s
+ordinary-3: OK 1288.6 s
+ordinary-6: OK 1373.1 s
+ordinary-5: OK 2043.9 s
+ordinary-7: OK 1258.6 s
+ordinary-2: OK 2427.9 s
+ordinary-1: OK 2454.5 s
+ordinary-8: OK 1742.2 s
+difficult-2-sharpest-cogging: OK 1072.3 s
+difficult-1-deep-saturation: OK 3415.2 s
+difficult-4-field-weakening: OK 2411.0 s
+difficult-3-weakest-field: OK 3416.5 s
+difficult-2-sharpest-cogging-n2880: OK 1534.5 s
+ordinary-1-n2880: OK 4180.6 s
+ordinary-2-n2880: OK 3986.1 s
+difficult-1-deep-saturation-n2880: OK 4549.5 s
+ordinary-2-n2880-a120: OK 5983.0 s
 {"batch": "motor-pilot-v1", "cases": 17, "wall_s": 10822.4, "counts": {"OK": 17}}
 end 2026-10-02T08:04:29Z
