@@ -40,6 +40,10 @@ def test_triage_refuses_the_human_input_grant_before_reading_a_key(
     tmp_path, capsys, monkeypatch
 ):
     seed(tmp_path, entry(1))
+    unfinished = json.loads(GRANT_FILE.read_bytes())
+    unfinished["account"] = "HUMAN_INPUT"
+    grant_file = tmp_path / "grant.json"
+    grant_file.write_text(json.dumps(unfinished))
     monkeypatch.setenv("ENGY_API_KEY", KEY)
     code, out = _main(
         capsys,
@@ -47,7 +51,7 @@ def test_triage_refuses_the_human_input_grant_before_reading_a_key(
         "--root",
         str(tmp_path),
         "--grant",
-        str(GRANT_FILE),
+        str(grant_file),
         "--credential-env",
         "ENGY_API_KEY",
     )

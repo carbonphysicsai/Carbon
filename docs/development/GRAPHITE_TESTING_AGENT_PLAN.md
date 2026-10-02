@@ -319,8 +319,8 @@ Phase 3 constructs only within the existing recorded construction contract.
 
 - The ceiling is USD 9.
 - It is recorded in `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json`,
-  with the derivation in its README. The account and expiry stay
-  `HUMAN_INPUT`, so the grant refuses until the owner fills them.
+  with the derivation in its README. The owner completed the account
+  (`Carbon-Account`) and expiry (2026-12-31) on 2026-10-02.
 
 **Total for phases 1-5:** about USD 10-60 of inference, depending on which
 rungs the roles reach, plus about USD 10-20 of pod time.
@@ -356,7 +356,7 @@ It is not needed now. The design keeps the door open:
 
 | Decision | Owner | Blocks |
 |---|---|---|
-| Per-phase spending grants (token and compute). Phase 2: USD 9, decided (OWNER-GRAPHITE-02); its account and expiry are still `HUMAN_INPUT` | Owner | Phases 2-6 (phase 2: the two fields only) |
+| Per-phase spending grants (token and compute). Phase 2: USD 9, decided and complete (OWNER-GRAPHITE-02) | Owner | Phases 3-6 |
 | Level-0 study population, reconstruction tolerances, attack budget | Science owner and owner | Phases 3-4 freeze |
 | Attacker model and isolation scope for hostile executables | Security owner | Executable attack families |
 | PB-INV / PB-ADV acceptance policies | Science owner | Pass/fail use of B3 |

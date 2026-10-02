@@ -7,8 +7,9 @@
 - Phase 1 is merged.
 - Phase 2 is built (conditional closeout: it takes effect when its PR passes
   automated acceptance and merges, per `.agent/DELIVERY_PROTOCOL.md`). Its
-  live backfill and the 50 hand-checked cards wait for the owner to complete
-  the grant's `account` and `expires_at`, and for the owner's checkers.
+  live backfill runs under the completed USD 9 grant (account
+  `Carbon-Account`, expiry 2026-12-31) in a session that has `ENGY_API_KEY`;
+  the 50 hand-checked cards wait for the owner's checkers.
 - Later phases are planned, and each needs an owner spending grant.
 
 ## Scope of phase 1
@@ -361,8 +362,7 @@ Nothing from that sample is committed.
     Chutes adapter.
   - File: `graphite/phase2.py`.
 
-**Running phase 2 live** (once the owner fills `account` and `expires_at` in
-the grant):
+**Running phase 2 live** (the grant is complete as of 2026-10-02):
 
 ```
 export ENGY_API_KEY=...             # already in the owner's environment

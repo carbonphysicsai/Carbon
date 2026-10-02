@@ -17164,8 +17164,10 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
    2026-10-02). It is recorded as
    `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json` in the
    existing `SpendingGrant` format, provider `graphite`, currency USD.
-   - `account` and `expires_at` stay `HUMAN_INPUT`, so the grant fails closed
-     (`grant_value_missing`) until the owner fills them.
+   - The owner completed the last two fields the same day: "Expiry
+     12/31/2026 and “Carbon Account”". `expires_at` is
+     `2026-12-31T23:59:59Z`; `account` is `Carbon-Account`, the owner's label
+     hyphenated because the format allows no spaces. The grant now validates.
    - The other limits are derived, not chosen: the arithmetic is in
      `docs/development/graphite/grants/README.md`. The run cap is 3,000 calls
      at the triage settings, so the worst case per run is USD 2.49 and three
@@ -17200,8 +17202,7 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 **Unchanged.**
 - Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
-- Spend runs only under the grant; nothing is spent until the owner fills the
-  grant's `HUMAN_INPUT` fields.
+- Spend runs only under the grant, within its USD 9 ceiling and run limits.
 - Scientific, security and launch qualification stay human-reserved. A
   method card is the paper's claim as extracted, never Carbon's.
 

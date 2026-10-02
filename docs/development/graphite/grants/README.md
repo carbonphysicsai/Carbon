@@ -6,17 +6,19 @@
 "Start Graphite phase 2 with full Engy balance". Later on 2026-10-02 the owner
 replaced that with "grant is $9".
 
-**State.** Refused. Two fields are still `HUMAN_INPUT`, so
-`SpendingGrant.from_document` refuses the file (`grant_value_missing`) and
-nothing can be spent:
+**State.** Complete. On 2026-10-02 the owner supplied the last two fields
+("Expiry 12/31/2026 and “Carbon Account”"), so the grant validates
+and the runner accepts it:
 
-- `account`: which Engy account pays;
-- `expires_at`: the owner gave no expiry.
-
-When both are filled, the grant validates and the runner accepts it.
+- `account`: `Carbon-Account`, the owner's label “Carbon Account” for the
+  paying Engy account (a label, not a credential), written with a hyphen
+  because the grant format allows no spaces;
+- `expires_at`: `2026-12-31T23:59:59Z`.
 
 | Field | Value | Basis |
 |---|---|---|
+| `account` | `Carbon-Account` | The owner: “Carbon Account” (2026-10-02); hyphenated for the format |
+| `expires_at` | `2026-12-31T23:59:59Z` | The owner: "Expiry 12/31/2026" (2026-10-02) |
 | `monetary_ceiling` | `9.00` USD | The owner: "grant is $9" (2026-10-02) |
 | `provider` | `graphite` | The provider a Graphite grant binds (`graphite.provider.PROVIDER`) |
 | `granted_by` | `owner` | OWNER-GRAPHITE-02 |

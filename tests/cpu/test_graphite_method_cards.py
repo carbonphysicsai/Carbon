@@ -155,15 +155,23 @@ def test_a_fenced_json_reply_is_read():
 # -- the grant ----------------------------------------------------------------------------
 
 
-def test_the_phase2_grant_document_fails_closed():
+def test_the_phase2_grant_document_is_the_owners_grant():
     document = json.loads(GRANT_FILE.read_bytes())
     assert document["provider"] == "graphite"
     assert document["currency"] == "USD"
     assert document["monetary_ceiling"] == "9.00"
-    assert document["account"] == "HUMAN_INPUT"
+    assert document["account"] == "Carbon-Account"
+    assert document["expires_at"] == "2026-12-31T23:59:59Z"
     assert set(document) == set(grants.FIELDS)
-    with pytest.raises(grants.GrantError, match="grant_value_missing"):
-        grants.SpendingGrant.from_document(document)
+    grants.SpendingGrant.from_document(document)
+
+
+def test_the_phase2_grant_fails_closed_while_any_field_is_human_input():
+    for field in ("account", "expires_at", "worst_case_run_cost"):
+        document = json.loads(GRANT_FILE.read_bytes())
+        document[field] = "HUMAN_INPUT"
+        with pytest.raises(grants.GrantError, match="grant_value_missing"):
+            grants.SpendingGrant.from_document(document)
 
 
 def test_a_backfill_refuses_without_an_exact_grant(tmp_path):
