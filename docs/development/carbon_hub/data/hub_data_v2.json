@@ -2402,6 +2402,20 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "challenge-pipeline-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-PIPELINE",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "challenge-protocol-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-PROTOCOL",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
         "id": "mira-admission-integration",
         "match_type": "exact",
         "path": ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md",
@@ -3859,6 +3873,27 @@
         "path": "docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md",
         "impact_class": "mapped_detail",
         "map_ref": "WAVE-B/B-E4"
+      },
+      {
+        "id": "challenge-roadmap",
+        "match_type": "exact",
+        "path": "Design_Specs/Challenge_Roadmap.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "challenge-pipeline-code",
+        "match_type": "prefix",
+        "path": "carbon/challenge_pipeline/",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "challenge-pipeline-view",
+        "match_type": "exact",
+        "path": "docs/development/CHALLENGE_PIPELINE.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
         "id": "protocol-detail",
