@@ -67,6 +67,16 @@ CAMPAIGNS = {
         "ceiling_usd": 15.0,
         "name": "carbon-ev4",
     },
+    # The challenge pools' public TRAIN and PRACTICE cases on CPU pods
+    # (owner approval 2026-10-02, USD 25 cap). Private pools never run here.
+    "challenge-pools": {
+        "evidence": "docs/development/evidence/challenge-pools-2026-10-02",
+        "active": "challenge_pools_active_pods",
+        "token": None,
+        "max_pods": 2,
+        "ceiling_usd": 25.0,
+        "name": "carbon-challenge-pools",
+    },
 }
 CAMPAIGN = "exam-design"
 EVID = os.path.join(REPO, CAMPAIGNS[CAMPAIGN]["evidence"])
@@ -694,6 +704,228 @@ def cmd_dispatch(a) -> None:
     )
 
 
+#: The most a 32-vCPU CPU pod may cost per hour; a pod created above it is
+#: terminated at once, and the budget check charges every pod at this rate.
+MAX_CPU_RATE = 2.0
+CPU_FLAVORS = ["cpu5c", "cpu3c"]  # compute-optimized, newest first
+OPENFOAM_IMAGE = (
+    "opencfd/openfoam-default@sha256:"
+    "33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+)
+UBUNTU_IMAGE = (
+    "ubuntu:24.04@sha256:"
+    "33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517"
+)
+#: Each kind's pod image, the shell steps that make it the pinned reference
+#: environment, and the description every case record carries. The cold
+#: plate runs in its own pinned image; only the harness's python3 is added.
+#: The motor replays scripts/dev/motor/reference/Dockerfile on its pinned
+#: base: the same dated snapshot and the same SHA-256-checked solvers.
+CPU_KINDS = {
+    "cold-plate": {
+        "image": OPENFOAM_IMAGE,
+        "setup": (
+            "export DEBIAN_FRONTEND=noninteractive"
+            " && apt-get update -qq"
+            " && apt-get install -y -qq --no-install-recommends python3"
+        ),
+        "environment": f"runpod-cpu-pod:{OPENFOAM_IMAGE}",
+    },
+    "motor": {
+        "image": UBUNTU_IMAGE,
+        "setup": (
+            "export DEBIAN_FRONTEND=noninteractive SNAP=20260930T000000Z"
+            " && apt-get update -qq"
+            " && apt-get install -y -qq --no-install-recommends ca-certificates"
+            ' && apt-get update -qq --snapshot "$SNAP"'
+            ' && apt-get install -y -qq --no-install-recommends --snapshot "$SNAP"'
+            " curl libgl1 libglu1-mesa libxft2 libgomp1 libxcursor1 libxinerama1 python3"
+            " && mkdir -p /opt/getdp /opt/gmsh /tmp/dl"
+            " && curl -sSfL -o /tmp/dl/getdp.tgz"
+            " https://getdp.info/bin/Linux/getdp-3.5.0-Linux64r.tgz"
+            " && curl -sSfL -o /tmp/dl/gmsh.tgz"
+            " https://gmsh.info/bin/Linux/gmsh-4.15.2-Linux64-sdk.tgz"
+            " && echo 'bca39450cc6f33feac27bff1c8c3e47bb200f44679b0f03d85820def84ef1444"
+            "  /tmp/dl/getdp.tgz' | sha256sum -c -"
+            " && echo '2dbd68d033f99b05789554bf4db6d47f4108dd36b0b36d4a50935df0ceb9e772"
+            "  /tmp/dl/gmsh.tgz' | sha256sum -c -"
+            " && tar xzf /tmp/dl/getdp.tgz -C /opt/getdp --strip-components 1"
+            " && tar xzf /tmp/dl/gmsh.tgz -C /opt/gmsh --strip-components 1"
+            " && export PATH=/opt/getdp/bin:/opt/gmsh/bin:$PATH PYTHONPATH=/opt/gmsh/lib"
+            " && getdp --version && gmsh --version"
+        ),
+        "environment": (
+            f"runpod-cpu-pod:{UBUNTU_IMAGE} + scripts/dev/motor/reference/Dockerfile"
+            " steps (snapshot 20260930T000000Z; GetDP 3.5.0, Gmsh 4.15.2, SHA-256 checked)"
+        ),
+    },
+}
+#: What a CPU pod ships besides the plan: the two packages and their runners.
+CPU_SHIP = [
+    "carbon/__init__.py",
+    "carbon/cold_plate",
+    "carbon/motor",
+    "scripts/dev/cold_plate/reference/run_batch.py",
+    "scripts/dev/motor/reference/run_batch.py",
+    "scripts/dev/motor/reference/Dockerfile",
+    "scripts/dev/challenge_pools/pod_phase.py",
+    "scripts/dev/exam_design/runpod/bootstrap.py",
+]
+
+
+def cpu_start_command(setup: str) -> str:
+    """The pod's shell: set the environment up (its log is served with the
+    results), then exec the bootstrap with the environment it built. A failed
+    setup still starts the bootstrap when python3 exists, so the failure can
+    be read; the watchdog ends the pod at its deadline either way."""
+    return (
+        "mkdir -p /tmp/out; { " + setup + " ; } > /tmp/out/setup.log 2>&1"
+        " || echo 'SETUP FAILED' >> /tmp/out/setup.log;"
+        ' exec python3 -I -c "$CARBON_BOOT"'
+    )
+
+
+def cmd_dispatch_cpu(a) -> None:
+    """One CPU pod running one public pool plan natively (pod_phase.py)."""
+    kind = CPU_KINDS[a.kind]
+    allowed = allowed_pods(a.max_pods)
+    check_pod_allowance(active_pods(), pods(), allowed)
+    acct = account()
+    minutes = float(a.minutes)
+    pod_cost = pod_cost_usd(minutes, MAX_CPU_RATE)
+    spent = committed_spend()
+    cap = campaign_cap()
+    check_budget(spent, pod_cost, cap)
+    if acct["clientBalance"] - pod_cost < BALANCE_FLOOR:
+        raise SystemExit("refusing: balance would fall below the floor")
+    ref = (
+        a.ref
+        or subprocess.run(
+            ["git", "-C", REPO, "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    )
+    if not ref_is_pushed(ref):
+        raise SystemExit(
+            f"refusing: {ref} is on no remote branch; push it first (the pod fetches it)"
+        )
+    plan_doc = json.loads(Path(os.path.join(REPO, a.plan)).read_text())
+    if "root_commitment" in plan_doc or "private" in str(plan_doc.get("batch", "")):
+        raise SystemExit("refusing: a private pool never runs on rented compute")
+    paths = list(dict.fromkeys([*ship_paths(ref, CPU_SHIP), a.plan]))
+    manifest = code_manifest(ref, paths)
+    token = secrets.token_urlsafe(24)
+    created_req = time.time()
+    deadline = created_req + minutes * 60
+    phase_cfg = {"plan_path": a.plan, "max_workers": a.max_workers or a.vcpu}
+    boot = Path(os.path.join(os.path.dirname(__file__), "bootstrap.py")).read_text()
+    env = {
+        "PROBE_TOKEN": token,
+        "PROBE_DEADLINE": str(int(deadline + 60)),
+        "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
+        "CODE_REF": ref,
+        **manifest_env(manifest),
+        "PHASE_MODULE": "scripts.dev.challenge_pools.pod_phase",
+        "PHASE": a.kind,
+        "PHASE_CONFIG": json.dumps(phase_cfg),
+        "CARBON_REFERENCE_ENV": kind["environment"],
+        "CARBON_BOOT": boot,
+    }
+    body = {
+        "name": f"{CAMPAIGNS[CAMPAIGN]['name']}-{a.kind}",
+        "imageName": kind["image"],
+        "computeType": "CPU",
+        "cloudType": "SECURE",
+        "interruptible": False,
+        "cpuFlavorIds": CPU_FLAVORS,
+        "cpuFlavorPriority": "custom",
+        "vcpuCount": a.vcpu,
+        "containerDiskInGb": DISK_GB,
+        "volumeInGb": 0,
+        "ports": ["8000/http"],
+        "dockerEntrypoint": ["bash", "-c"],
+        "dockerStartCmd": [cpu_start_command(kind["setup"])],
+        "env": env,
+    }
+    ledger(
+        "dispatch_requested",
+        campaign=CAMPAIGN,
+        max_pods=allowed,
+        phase=a.kind,
+        plan=a.plan,
+        ref=ref,
+        minutes=minutes,
+        vcpu=a.vcpu,
+        balance_usd=acct["clientBalance"],
+        committed_before_usd=round(spent, 4),
+    )
+    code, resp = rest("POST", "/pods", body)
+    pod_id = resp.get("id") if isinstance(resp, dict) else None
+    if not pod_id:
+        after = pods()
+        ledger(
+            "create_failed",
+            http=code,
+            response=str(resp)[:300],
+            pods_after=[p["id"] for p in after],
+        )
+        raise SystemExit(
+            f"create failed ({code}); pods now: {[p['id'] for p in after]} - reconcile before retrying"
+        )
+    record_active(pod_id, token)
+    rate_actual = float(resp.get("costPerHr") or MAX_CPU_RATE)
+    ledger(
+        "created",
+        pod_id=pod_id,
+        phase=a.kind,
+        rate=rate_actual,
+        created_epoch=created_req,
+        deadline_epoch=deadline,
+        machine_id=resp.get("machineId"),
+        image=resp.get("imageName"),
+        ref=ref,
+        code_manifest_sha256=hashlib.sha256(
+            json.dumps(manifest, sort_keys=True).encode()
+        ).hexdigest(),
+    )
+    subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "scripts.dev.exam_design.runpod.pod_control",
+            "--campaign",
+            CAMPAIGN,
+            "watchdog",
+            pod_id,
+            str(int(deadline)),
+        ],
+        cwd=REPO,
+        start_new_session=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL,
+    )
+    if rate_actual > MAX_CPU_RATE:
+        print(f"rate {rate_actual} > {MAX_CPU_RATE}: terminating immediately")
+        _terminate(pod_id)
+        return
+    print(
+        json.dumps(
+            {
+                "pod_id": pod_id,
+                "rate": rate_actual,
+                "deadline_utc": time.strftime(
+                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime(deadline)
+                ),
+                "ref": ref,
+                "files": len(manifest),
+            }
+        )
+    )
+
+
 def _proxy(path: str, timeout=60, pod: str | None = None):
     pod = pick_pod(pod)
     r = urllib.request.Request(
@@ -895,6 +1127,14 @@ def main(argv=None) -> None:
         default=1,
         help="pods allowed at once, never above the campaign's hard limit",
     )
+    c = sub.add_parser("dispatch-cpu")
+    c.add_argument("kind", choices=sorted(CPU_KINDS))
+    c.add_argument("--plan", required=True, help="a public pool plan in the repository")
+    c.add_argument("--minutes", required=True)
+    c.add_argument("--vcpu", type=int, default=32)
+    c.add_argument("--max-workers", type=int)
+    c.add_argument("--ref")
+    c.add_argument("--max-pods", type=int, default=2)
     p = sub.add_parser("poll")
     p.add_argument("--pod")
     f = sub.add_parser("fetch")
@@ -913,6 +1153,7 @@ def main(argv=None) -> None:
         "start": cmd_start,
         "status": cmd_status,
         "dispatch": cmd_dispatch,
+        "dispatch-cpu": cmd_dispatch_cpu,
         "poll": cmd_poll,
         "fetch": cmd_fetch,
         "terminate": cmd_terminate,

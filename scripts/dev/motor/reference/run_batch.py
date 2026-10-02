@@ -28,6 +28,7 @@ import json
 import math
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -88,6 +89,35 @@ def currents(p, k):
     return [p["current_a"] * math.cos(base - m * 2 * math.pi / 3) for m in range(3)]
 
 
+#: Set by --native: the description of the environment the cases run in
+#: directly (a pod set up as the pinned image is), recorded on every case.
+NATIVE = None
+
+
+def run_native(command, cwd, timeout_s, env=None):
+    """Run a case's commands directly in this environment: a pod started from
+    the pinned reference environment, where no container can be launched.
+    The case gets its own process group, so a timeout kills all of it and
+    nothing else. Returns (exit code, or None on timeout; wall s; stderr tail)."""
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        _, err = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        return None, time.monotonic() - start, ""
+    return proc.returncode, time.monotonic() - start, (err or "")[-2000:]
+
+
 def solve(case_dir, p, name, cpus, timeout_s):
     calls = ["python3 mesh.py params.json . > log.mesh 2>&1"]
     for k in p["steps"]:
@@ -98,6 +128,15 @@ def solve(case_dir, p, name, cpus, timeout_s):
             f" -solve MagSta -pos MagSta -v 2 >> log.getdp 2>&1"
         )
     script = "set -e; " + "; ".join(calls[:1]) + "; " + " && ".join(calls[1:])
+    if NATIVE:
+        env = {**os.environ, "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1"}
+        try:
+            code, wall, _ = run_native(["bash", "-c", script], case_dir, timeout_s, env)
+        except OSError as exc:
+            return "FAILED_INFRA", 0.0, f"native: {exc}"
+        if code is None:
+            return "REFERENCE_TIMEOUT", wall, f"wall limit {timeout_s} s"
+        return None, wall, f"exit {code}"
     # One BLAS/OpenMP thread: GetDP's OpenBLAS otherwise starts a thread per
     # host CPU inside a two-CPU container; under load a rotor position took
     # 3.2x longer (53.8 s against 16.7 s, measured during the pilot).
@@ -214,6 +253,8 @@ def run_case(entry, out, args, batch, lock):
     name = f"carbon-motor-{batch}-{case_id}"[:120]
     status, wall, detail = solve(case_dir, p, name, args.cpus, args.timeout_s)
     record.update(wall_s=round(wall, 1), run=detail, image=IMAGE)
+    if NATIVE:
+        record["execution"] = NATIVE
     if status is not None:
         record.update(status=status, reasons=[detail])
         return _finish(record, out, lock, case_dir, args)
@@ -263,7 +304,15 @@ def main(argv=None):
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--timeout-s", type=float, default=7200.0)
     parser.add_argument("--keep", choices=("all", "failed", "none"), default="all")
+    parser.add_argument(
+        "--native",
+        metavar="ENVIRONMENT",
+        help="run each case directly in this environment, described for the record "
+        "(a pod set up as the pinned image is); no container is launched",
+    )
     args = parser.parse_args(argv)
+    global NATIVE
+    NATIVE = args.native
     plan = json.loads(args.plan.read_text())
     ids = [c["case_id"] for c in plan["cases"]]
     if len(ids) != len(set(ids)):
