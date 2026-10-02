@@ -452,7 +452,11 @@ New modules in `carbon/agent_campaign/graphite/`:
   - **Pinned build.** Carbon computes what it would build before any pod:
     the recipe, the staged files and the program, by digest.
   - **Pod reservation.** Each pod is reserved against the run's combined
-    token and pod cap.
+    token and pod cap. Each model call is held to the same cap
+    (`phase3.Phase3Ledger`).
+  - **Lost creates.** A create whose answer is lost is never sent again. The
+    pod it made is adopted by its ownership tag, and when none exists its
+    reservation is released.
   - **Independent rebuild check.** The pod's `built.json` is compared with
     Carbon's own record. A mismatch is a finding, and the proposal is not
     scored.
@@ -491,14 +495,14 @@ Other changes:
 
 **Tests.**
 
-- `tests/cpu/test_graphite_phase3.py`: 39 tests covering every DoD item.
+- `tests/cpu/test_graphite_phase3.py`: 41 tests covering every DoD item.
   Also covered:
   - the pod phase's local CPU run, and its refusal of a different build;
   - pod_control's code-manifest equality;
   - the live RunPod backend against an in-memory RunPod;
   - the miner adapter translation;
   - the runner's refusals and its dry run.
-- `tests/cpu/test_graphite_phase3_mutations.py`: 11 protections, each
+- `tests/cpu/test_graphite_phase3_mutations.py`: 12 protections, each
   switched off in turn.
 - `tests/service/test_graphite_miner_path.py`: a Constructor session whose
   miner tools reach the battery composition through the standard

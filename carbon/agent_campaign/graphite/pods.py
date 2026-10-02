@@ -192,7 +192,9 @@ class PodBackend(Protocol):
 
     def charge(self, handle: PodHandle) -> Decimal | None: ...
 
-    def recover(self, intent_id: str, private: Path) -> PodHandle | None: ...
+    def recover(self, intent_id: str, private: Path) -> PodHandle | None:
+        """The pod an uncertain create made; None only when none exists."""
+        ...
 
 
 # -- the hash-pinned code ship -------------------------------------------------------------
@@ -442,16 +444,27 @@ class RunPodPods:
 
     def recover(self, intent_id, private):
         """A pod whose create may have happened: adopted by its ownership tag
-        (`ComputeService.recover`), never created again. None if not found."""
-        from carbon.compute import ComputeError
+        (`ComputeService.recover`), never created again.
+
+        None means no pod exists for the intent, definitively: it was never
+        dispatched, or the compute layer settled it `NOT_FOUND` after its
+        grace period. `PodFailure` means it cannot yet say."""
+        from carbon.compute import ComputeError, IntentState
 
         intent = self.store.intent(self.CAMPAIGN, intent_id)
-        if intent is None:
+        if intent is None or intent.state in (
+            IntentState.REQUESTED,
+            IntentState.CANCELLED,
+            IntentState.REJECTED,
+            IntentState.NOT_FOUND,
+        ):
             return None
         try:
             resource = self.service.recover(intent)
-        except ComputeError:
-            return None
+        except ComputeError as failure:
+            if not failure.resources_may_remain:
+                return None
+            raise PodFailure("recover", failure.failed, executed=True) from None
         return PodHandle(
             intent_id, resource.resource_id, _rate(resource.rate_usd_per_hr)
         )
@@ -546,8 +559,9 @@ class Step:
     - `outputs`: a callable `(job) -> {name: bytes}` for the exported files;
     - `rate`: the provider-reported hourly rate; `charge`: the provider's
       reported charge for the pod, or None (unresolved);
-    - `launch`: None, "refused" (definitive, nothing created) or "ambiguous"
-      (the create may have happened; the pod exists);
+    - `launch`: None, "refused" (definitive, nothing created), "ambiguous"
+      (the create's answer was lost; the pod exists) or "lost" (the answer
+      was lost; no pod exists);
     - `terminate_failures`: deletes that do not take before one does;
     - `hook`: a callable run while the job runs (for example to cancel);
     - `crash`: "wait" or "fetch" to die there, leaving the pod alive.
@@ -596,6 +610,9 @@ class ScriptedPods:
         step = self._step(job.intent_id)
         if step.launch == "refused":
             raise PodFailure("launch", "scripted refusal", executed=False)
+        if step.launch == "lost":
+            # The create's answer was lost and no pod exists.
+            raise PodFailure("launch", "scripted lost create", executed=True)
         pod_id = "pod" + hashlib.sha256(job.intent_id.encode()).hexdigest()[:12]
         self.alive[pod_id] = {"intent_id": job.intent_id, "job": job, "failures": 0}
         if step.launch == "ambiguous":

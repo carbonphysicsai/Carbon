@@ -15,6 +15,7 @@ from graphite_phase3_fixtures import BASELINE, UNREBUILDABLE
 
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import miner_path, phase3, pod_phase
+from carbon.agent_campaign.graphite.provider import GraphiteLedger
 
 _ADMIT = ex.admit
 
@@ -59,6 +60,13 @@ MUTATIONS = {
             phase3.Phase3Provider, "_tokens_usd", lambda self, run_id: Decimal(0)
         ),
         lambda tmp: t3.test_tokens_plus_pods_share_one_run_cap(tmp),
+    ),
+    # A model call is held to the same run cap as the pods.
+    "model_calls_held_to_combined_cap": (
+        lambda m: m.setattr(phase3.Phase3Ledger, "_reserve", GraphiteLedger._reserve),
+        lambda tmp: t3.test_a_model_call_is_refused_when_pods_have_used_the_run_cap(
+            tmp
+        ),
     ),
     # Cancellation terminates the running pod.
     "terminate_on_cancel": (

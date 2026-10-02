@@ -359,6 +359,7 @@ class PodLedger:
                 pod["launch"] = pod["launch"] or "requested"
             elif event == "pod_launch_refused":
                 pod["launch"] = "refused"
+                pod["terminated"] = True  # nothing was created
             elif event == "pod_launch_ambiguous":
                 pod["launch"] = "ambiguous"
             elif event == "pod_created":
@@ -586,10 +587,11 @@ class Experiment:
                     pod["intent_id"], pod["pod_id"], pod["rate_usd_per_hr"]
                 )
             else:
-                handle = self.pods.recover(
-                    pod["intent_id"], self._dir(pod["proposal"]) / "private"
-                )
+                handle = self._recover(pod["proposal"], pod["intent_id"])
                 if handle is None:
+                    report.append({"intent_id": pod["intent_id"], "terminated": True})
+                    continue
+                if handle == "unknown":
                     report.append({"intent_id": pod["intent_id"], "terminated": None})
                     continue
                 self.ledger.append(
@@ -603,6 +605,30 @@ class Experiment:
             verified = self._terminate(pod["proposal"], handle)
             report.append({"intent_id": pod["intent_id"], "terminated": verified})
         return report
+
+    def _recover(self, pid, intent_id):
+        """A pod an uncertain create may have made. None when none exists (its
+        reservation is then released), "unknown" when the provider cannot say
+        yet (the reservation stays), else its handle."""
+        try:
+            handle = self.pods.recover(intent_id, self._dir(pid) / "private")
+        except podlib.PodFailure:
+            return "unknown"
+        if handle is None:
+            self.ledger.append(
+                "pod_launch_refused",
+                intent_id=intent_id,
+                proposal=pid,
+                stage="recover_found_no_pod",
+            )
+            self.ledger.append(
+                "pod_settled",
+                intent_id=intent_id,
+                proposal=pid,
+                charge_usd="0",
+                basis="no_pod_was_created",
+            )
+        return handle
 
     def _terminate(self, pid, handle):
         self.ledger.append(
@@ -960,8 +986,10 @@ class Experiment:
             self.ledger.append(
                 "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
             )
-            handle = self.pods.recover(job.intent_id, private)
+            handle = self._recover(pid, job.intent_id)
             if handle is None:
+                return "launch_refused", {}
+            if handle == "unknown":
                 return "launch_unresolved", {}
         self.ledger.append(
             "pod_created",

@@ -360,6 +360,31 @@ def test_tokens_plus_pods_share_one_run_cap(tmp_path):
     assert graphite.caps()["provider_nanodollars"] == ex.usd_to_nano(Decimal("0.04"))
 
 
+def test_a_model_call_is_refused_when_pods_have_used_the_run_cap(tmp_path):
+    """A pod that RunPod charged above its reservation (4.909 of a 4.91 run)
+    leaves no room: the next pod and the next model call are both refused."""
+    script = [
+        propose(variant(width=128)),
+        text("never sent: the run cap is used"),
+    ]
+    account = ScriptedPods(
+        steps=[Step(outputs=pods.synthetic_outputs(1.0), charge="4.909")]
+    )
+    result, graphite, _ = session(tmp_path, script, account)
+    [proposal] = proposals(graphite, kind="proposal")
+    assert proposal["status"] == "REFUSED_BUDGET"
+    assert len(account.launched) == 1
+    assert result["provider_state"] == "failed"
+    state = json.loads((graphite._dir(run_id()) / "state.json").read_bytes())
+    assert state["failure"] == {
+        "code": "run_cap_reached",
+        "dimension": "run_cap_tokens_plus_pods",
+    }
+    assert graphite.model.remaining == 1  # the second call was never sent
+    tokens = graphite._tokens_usd(run_id())
+    assert tokens + Decimal("4.909") <= Decimal("4.91")
+
+
 def test_the_session_pod_limit_and_the_grant_run_limit_hold(tmp_path):
     graphite = provider(tmp_path, [], ScriptedPods())
     experiment = graphite.experiment(_opened(tmp_path, graphite))
@@ -542,6 +567,33 @@ def test_a_definitively_refused_launch_costs_nothing_and_is_not_scored(tmp_path)
     assert ledger.committed() == (Decimal("0.10"), Decimal(0))
     [proposal] = proposals(graphite, kind="proposal")
     assert proposal["against_baseline"]["outcome"] == "NO_BASELINE"
+
+
+def test_a_lost_create_is_adopted_by_its_tag_or_released_never_resent(tmp_path):
+    """A create whose answer is lost is never sent again: the pod it made is
+    adopted and used, and when none exists its reservation is released."""
+    account = ScriptedPods(
+        steps=[
+            Step(outputs=pods.synthetic_outputs(1.0), launch="ambiguous"),
+            Step(outputs=pods.synthetic_outputs(0.4), launch="lost"),
+        ]
+    )
+    _result, graphite, _ = session(
+        tmp_path, [propose(variant(width=128)), text("done")], account
+    )
+    experiment = graphite.experiment(run_id())
+    assert experiment.record("baseline")["status"] == "SCORED"
+    [proposal] = proposals(graphite, kind="proposal")
+    assert (proposal["status"], proposal["reason_code"]) == (
+        "FAILED_INFRA",
+        "launch_refused",
+    )
+    assert len(account.launched) == 2  # one create each, never resent
+    seen = experiment.ledger.pods()
+    lost = seen[run_id() + "-" + proposal["proposal_id"]]
+    assert (lost["launch"], lost["settled_usd"]) == ("refused", "0")
+    assert seen[run_id() + "-baseline"]["terminated"] is True
+    assert account.alive == {} and experiment.ledger.live() == []
 
 
 # -- injection, protected material and confirmation ---------------------------------------------

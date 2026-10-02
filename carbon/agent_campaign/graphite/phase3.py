@@ -53,6 +53,7 @@ bundle and clean rebuild are real; the predictions are SYNTHETIC.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import contextlib
 import json
 import os
@@ -81,7 +82,15 @@ from . import delivery as deliver_
 from . import experiment as ex
 from . import tools as toolbox
 from .ladder import LadderError
-from .provider import EPOCH, NANO_PER_USD, OWNER, GraphiteProvider, SessionBrief
+from .provider import (
+    EPOCH,
+    NANO_PER_USD,
+    OWNER,
+    GraphiteLedger,
+    GraphiteProvider,
+    RunCapReached,
+    SessionBrief,
+)
 from .roles import CONSTRUCTOR_STALL_ATTEMPTS, PROPOSE, ROLES, RoleName
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -103,7 +112,11 @@ class Phase3Tools:
 
     async def call(self, name, arguments, identity):
         if name == PROPOSE:
-            return self.experiment.propose_tool(arguments, identity)
+            # A pod runs for minutes: off the event loop, so the miner path's
+            # own tasks keep running. A process death still propagates.
+            return await asyncio.to_thread(
+                self.experiment.propose_tool, arguments, identity
+            )
         if self.miner is None:
             return toolbox.refusal(
                 toolbox.UNAVAILABLE,
@@ -114,6 +127,23 @@ class Phase3Tools:
 
 
 # -- the provider --------------------------------------------------------------------------
+class Phase3Ledger(GraphiteLedger):
+    """The run's research ledger, held to the run's combined cap: a model call
+    is reserved only while tokens committed, plus pods committed, plus the
+    call's own reservation stay within the grant's worst-case run cost. A
+    replayed call (already reserved) is never refused."""
+
+    def __init__(self, root, *, clock, cancelled, crash, admits):
+        super().__init__(root, clock=clock, cancelled=cancelled, crash=crash)
+        self._admits = admits
+
+    def _reserve(self, identity, **kwargs):
+        nano = (kwargs.get("resources") or {}).get("provider_nanodollars") or 0
+        if nano and not self._admits(identity, nano):
+            raise RunCapReached("run_cap_tokens_plus_pods")
+        return super()._reserve(identity, **kwargs)
+
+
 class Phase3Provider(GraphiteProvider):
     """`GraphiteProvider` for the Constructor's Level-0 sessions.
 
@@ -196,6 +226,21 @@ class Phase3Provider(GraphiteProvider):
         if getattr(self, "_rule", None) is None:
             self._rule = ex.FrozenRule(self.repository)
         return self._rule
+
+    def _ledger(self, run_id):
+        return Phase3Ledger(
+            self._dir(run_id) / "ledger",
+            clock=self.clock,
+            cancelled=lambda: self._state(run_id)["cancel_requested"],
+            crash=self._checkpoint_crash,
+            admits=lambda identity, nano: self._admits_call(run_id, identity, nano),
+        )
+
+    def _admits_call(self, run_id, identity, nano):
+        if any(call["identity"] == identity for call in self._calls(run_id)):
+            return True  # a replay reserves nothing new
+        committed = self._tokens_usd(run_id) + self.experiment(run_id).pod_committed()
+        return committed + Decimal(nano) / NANO_PER_USD <= self.budget.run_cap_usd
 
     def _tokens_usd(self, run_id):
         settled, pending = GraphiteProvider._spend(self, run_id)
