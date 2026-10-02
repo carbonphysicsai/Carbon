@@ -173,9 +173,13 @@ Delegated engineering decisions, recorded under
 
 ## Slices delivered
 
-Filled in as each slice lands.
+- **Reconciliation:** `docs/development/graphite/ADMISSION_RECONCILIATION.md`.
+  It lists the commits, what exists and is missing per handoff section, the
+  affected tests, and every battery literal in shared code with its
+  disposition.
 
 ## Lessons
 
 - `2026-10-02-graphite-admission-contract`
 - `2026-10-02-lessons-regenerate-pipeline-view` (PROPOSED revision)
+- `2026-10-02-graphite-admission-reconciliation`

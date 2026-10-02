@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-graphite-admission-reconciliation",
+ "recorded_at": "2026-10-02T21:25:00Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "stage_gate",
+  "ref": "docs/development/graphite/ADMISSION_RECONCILIATION.md",
+  "description": "Reconciled the Graphite admission handoff against main, PR 498, PR 504 and the step 4 branch, and searched the shared admission, agent-campaign and value code for battery-only literals."
+ },
+ "expected": "The modules #475 built for an external agent are Challenge-neutral apart from their battery adapters.",
+ "observed": "They are not. study.py hard-codes the battery token, its capability-to-level map and its pin sources; the research-checkout allowlists list battery files per role; the literature query set and Reader prompt name battery; search_commitment's schema is battery's design and condition variables. The capability registry is per-Challenge data, which is where it belongs. None of these modules had a test with a second Challenge, so the literals went unnoticed.",
+ "keep": [
+  "Reconcile against exact commits and branch heads before building.",
+  "Keep each Challenge's specifics in its own record or adapter, as the capability registry does."
+ ],
+ "change": [
+  "Give every shared module a test with a synthetic second Challenge from its first commit.",
+  "Move the remaining literals (allowlists, query set, compiler dispatch) to per-Challenge records as each module is next touched."
+ ],
+ "protocol_elements": [
+  "protocol.generalizable",
+  "graphite.permissions",
+  "study_sheet"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
