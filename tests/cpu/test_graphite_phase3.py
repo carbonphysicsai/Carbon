@@ -483,7 +483,7 @@ def _opened(root, graphite, number=1):
     from carbon.agent_campaign.provider import TaskSpec
 
     brief = phase3.session_brief(checkout_commit="1" * 40, budget=graphite.budget)
-    _doc, profile = phase3.permission_profile()
+    profile = phase3.campaign_profile(graphite)
     spec = TaskSpec(
         campaign_id=phase3.CAMPAIGN,
         role=ROLES[RoleName.CONSTRUCTOR].boundary.value,

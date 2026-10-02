@@ -34,6 +34,13 @@ under one owner grant that covers both its model calls and its pods
 5. findings (an unrebuildable proposal, a rebuild mismatch) are recorded on
    the controller, where they stop any later expansion.
 
+**Staged** (CHALLENGE-PROTOCOL-04, PROTO4-D11). The campaign's profile, and
+every task's, is the stage profile of `test_iterate` composed with this
+runner's Level-0 permission profile (`staged_profile`). The provider then
+refuses a role outside the stage's ledger row, a construction level that
+differs from the inventory's and a changed ledger; `run_session` refuses an
+unstaged provider and a stale permission profile.
+
 `DIR` is a private directory outside the repository. Nothing here opens a
 pull request, writes under `docs/`, or touches chain state.
 
@@ -79,6 +86,7 @@ from ..provider import (
 )
 from . import delivery as deliver_
 from . import experiment as ex
+from . import stage as stages
 from . import tools as toolbox
 from .ladder import LadderError
 from .provider import (
@@ -439,6 +447,31 @@ def permission_profile():
     return document, digest(canonical(document))
 
 
+#: The pipeline stage the Constructor block runs at (PROTO4-D2).
+STAGE = "test_iterate"
+
+
+def staged_profile(stage=STAGE):
+    """The Constructor campaign's profile: the stage profile of the recorded
+    contract's Challenge, composed with this runner's Level-0 permission
+    profile (PROTO4-D11)."""
+    document, _digest = permission_profile()
+    challenge = document["construction_contract"]["challenge"]
+    return stages.stage_profile(stage, challenge, runner_profile=document)
+
+
+def campaign_profile(provider):
+    """The profile digest a staged Constructor's campaign and tasks carry.
+    Refuses an unstaged provider, and one whose permission profile is no
+    longer this runner's."""
+    profile = provider.stage_profile
+    if profile is None:
+        raise ProviderUnavailable("stage_profile_required")
+    if profile.get("runner_profile") != permission_profile()[0]:
+        raise ProviderUnavailable("runner_profile_changed")
+    return stages.profile_digest(profile)
+
+
 def controller_for(root, provider, grant, clock=None):
     from ..controller import CampaignController
 
@@ -485,7 +518,7 @@ def run_session(control, provider, brief, number):
     """Launch (or resume) session `number` under the controller and run it."""
     if type(number) is not int or not 1 <= number <= control.grant.permitted_runs:
         raise ValueError("session is 1 .. the grant's permitted runs")
-    _document, profile = permission_profile()
+    profile = campaign_profile(provider)
     ensure_campaign(
         control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
     )
@@ -666,6 +699,7 @@ def command_run(args):
             model=model,
             pods=pods,
             miner_attach=attach,
+            stage_profile=staged_profile(),
         )
         control = controller_for(root, provider, grant)
         try:
@@ -830,6 +864,7 @@ def dry_run(root):
         pods=pods,
         miner_tools=DryRunMiner(),
         randomness=lambda n: b"\x00" * n,
+        stage_profile=staged_profile(),
     )
     control = controller_for(root, provider, grant)
     try:

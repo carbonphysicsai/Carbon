@@ -69,6 +69,10 @@ def steps(*qualities, **extra):
 
 
 def provider(root, script, pods, *, grant_changes=None, miner=None, **kw):
+    # Staged as the runner stages it (PROTO4-D11); pass stage_profile=None
+    # for an unstaged provider.
+    if "stage_profile" not in kw:
+        kw["stage_profile"] = phase3.staged_profile()
     return phase3.Phase3Provider(
         root=Path(root) / "graphite",
         grant=grant(**(grant_changes or {})),
