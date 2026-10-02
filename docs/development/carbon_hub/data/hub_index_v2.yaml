@@ -10670,6 +10670,18 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T09:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CHALLENGE-COLD-PLATE-01 slice 4: the cold plate's pools are complete, all 700 OK (400 TRAIN with 308 solved on a RunPod CPU pod, 100 PRACTICE, 200 private from the operator-held root on the owner's host only). Every gate holds on every reference; the scales come from TRAIN. On the private pool the conventional closed form with axial spreading scores 0.109 and the generic Gaussian-kernel ridge 0.105, worse than the closed form on the profile: the conventional model is a strong baseline, so a useful surrogate must beat a physics-aware one. The learned model's grid was widened before final scoring because its PRACTICE choice sat on the grid edge (D11, with the dry run disclosed); select now reports edge choices. Readiness record v6 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the cold plate is prior work for laminar internal flow and steady conduction. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T19:30:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
