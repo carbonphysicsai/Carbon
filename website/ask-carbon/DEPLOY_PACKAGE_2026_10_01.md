@@ -1,5 +1,10 @@
 # Ask Carbon deploy package: bundle `86f51385…` (WEB-QA-11-D1, approved 2026-10-01)
 
+> **Executed 2026-10-02. Do not run it again.** `carbonwebsite` `c12d547a…`
+> and `ask-carbon-public` `e4358421…` are live. The record is the WEB-QA-11-D2
+> deployment event in `.agent/DECISIONS.md`. Step 0 of this package now
+> captures `c12d547a`, not `dc4469a7`, so it stops as designed.
+
 For the operator (Nick Fitzpatrick), deploying from his own Mac. Everything
 needed is in this file and in two scripts in the public repository. Nothing has
 to be re-derived, and no file has to be obtained from the owner.

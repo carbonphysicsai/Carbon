@@ -283,12 +283,12 @@ test("the shipped baseline manifest is a complete, self-consistent inventory of 
   // Every entry states why it changed since the previous baseline, and the
   // change set agrees with those reasons: a baseline that changes without a
   // recorded reason is not a baseline.
-  const reasonOf = (path) => manifest.assets.find((asset) => asset.path === path)?.change_since_2026_09_22_baseline ?? "";
-  assert.ok(manifest.assets.every((asset) => /^(UNCHANGED|CHANGED|ADDED)\b/.test(asset.change_since_2026_09_22_baseline ?? "")));
+  const reasonOf = (path) => manifest.assets.find((asset) => asset.path === path)?.change_since_previous_live ?? "";
+  assert.ok(manifest.assets.every((asset) => /^(UNCHANGED|CHANGED|ADDED)\b/.test(asset.change_since_previous_live ?? "")));
   const { changed_paths: changed, added_paths: added, removed_paths: removed } = manifest.changes_since_previous_live;
   assert.ok(changed.length > 0 && changed.every((path) => reasonOf(path).startsWith("CHANGED")));
   assert.ok(added.every((path) => reasonOf(path).startsWith("ADDED")));
-  assert.equal(manifest.assets.filter((asset) => /^(CHANGED|ADDED)/.test(asset.change_since_2026_09_22_baseline)).length, changed.length + added.length);
+  assert.equal(manifest.assets.filter((asset) => /^(CHANGED|ADDED)/.test(asset.change_since_previous_live)).length, changed.length + added.length);
   // Removed paths are gone from the inventory and each carries its own reason.
   for (const path of removed) {
     assert.ok(!manifest.assets.some((asset) => asset.path === path), `${path} was removed and must not be an entry`);

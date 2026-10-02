@@ -16764,6 +16764,24 @@ each hostname and passes everything else, including health (`active:true`,
 - The next candidate is not built while this one is undeployed. It will carry
   #455 and #458, both of which change the Pilot Designer page.
 
+**Deployment event (recorded 2026-10-02).** Bundle `86f51385…` is live. Nick
+Fitzpatrick deployed it as the operator from his own machine, following the
+deploy package from a public clone of main `65732f59`. Claude Code ran the
+commands in his session.
+
+| Item | Value | Basis |
+| --- | --- | --- |
+| Rollback targets captured before deploying | `carbonwebsite` `dc4469a7-f4da-4437-aaa1-2789277e57fc` (as the repository expected); `ask-carbon-public` `6edb92d1-b459-406e-b6e7-a2bf2afb8f60` | `wrangler deployments status`, step 0 |
+| Pre-deploy checks | baseline 100/100 against manifest v3 on both hostnames, which agreed; rebuild reproduced `86f51385…`, `deployable_to_carbonwebsite: true`; the verifier failed on exactly the four expected lines | steps 1–3 |
+| `carbonwebsite` | `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`, 2026-10-02T01:52Z; wrangler uploaded exactly the two changed assets | `wrangler deploy` output |
+| `ask-carbon-public` | `e4358421-8f15-425b-92dc-4a8c611c1e13`, 2026-10-02T01:53Z, `wrangler.public-release-active.toml` | `wrangler deploy` output |
+| Verification | `VERIFIED` after the static publish and again after the Worker (18/18; health `active:true`, `reasons:[]`, `gemma-4-31b-turbo-tee:v1` on both hostnames); `/workbench/` serves "Workbench moved" with a 5-second refresh to `/ask-carbon/pilot-designer` | `tools/verify-publication.mjs`; `curl` |
+| Re-read | both versions at 100% of traffic, 2026-10-02T02:56Z | `wrangler deployments status` |
+
+This also records the Worker ids, which the WEB-QA-10-D1 event lacked. Nothing
+else changed: the budget, the `AskCarbonUsageLedger` Durable Object and Email
+Routing were not touched.
+
 ## 2026-10-01 — OWNER-BATTERY-3B-AND-EXPOSURE-01: amendment 4 approved; miners never see a hidden batch or anything computed from it
 
 **Authority.** The owner, in the Testnet session on 2026-10-01, in two
@@ -17141,3 +17159,59 @@ Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 - Scientific, security and launch qualification stay human-reserved.
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+## 2026-10-02 — WEB-QA-12-D1: Ask Carbon candidate 2026-10-02.1 carries #458's readiness gate and #455 in the Pilot Designer (built; exact bundle awaits the owner)
+
+**Authority.**
+- WEB-QA-11-D2 recorded that the next candidate would carry #455 and #458
+  once `86f51385…` was deployed. It was deployed on 2026-10-02.
+- The operator, Nick Fitzpatrick, asked for this candidate in session: "Yes,
+  cut the new candidate for #458". He chose to carry #455 in the same
+  candidate, so the site needs one approval and one deploy.
+- **Building the candidate is not approval to publish it.** Every Ask Carbon
+  publication decision attaches to an exact bundle identity, so this one waits
+  for the owner to approve `e517b546…`.
+
+**Why #458 needed a new PR.** #473 split the protocol out of #458 and merged.
+Because #473's branch contained #458's head commit, GitHub marked #458 merged,
+although its held part (readiness records v3, the launch gate and the
+regenerated Workbench) never reached main. #477 restores that part. This
+candidate merges #477 and #455 onto main `211c7a7c` and regenerates the
+Workbench release once from the combined sources. The freshness check reports
+13 generated files current.
+
+**Exact artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `e517b546633b6cb6459cef662c2d38a2feb6e1c33c1b0888e989bee1d7662b43` (105 files). Supersedes `86f51385…`, which production serves |
+| Pilot Designer | `5b819b253d1b884779ef3ba25dc7ce349e5e195d03b1530edc541235a9fb6ce1` (live: `be64f8b9…`) |
+| Unchanged | homepage `b1e8e7cd…`, Q&A component `62ba26ce…`, knowledge `fab55d5d…`, `/workbench/` page `9a44f683…`, the Worker and the other 100 paths |
+| Static rollback target | `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`, captured with wrangler on the operator's machine on 2026-10-02 |
+
+**Measured.**
+- The baseline was re-derived from live: 100/100 manifest-v4 paths on both
+  hostnames at 2026-10-02T02:57Z.
+- The build was certified with `--require-complete-bundle`.
+- All 105 staged paths were compared with live on both hostnames at
+  2026-10-02T02:58Z. Only `ask-carbon/pilot-designer.html` differs; the other
+  104 are identical.
+
+**Engineering choice (delegated): baseline manifest v4.** The manifest must
+describe live, and live now serves the retired `/workbench/` page. V4 records
+that page as the baseline entry, and uses the deployed bundle directory as its
+provenance. Each entry's change reason now covers the change since the
+previous live state (`change_since_previous_live`). The bundle guard checks
+that field with the same strength as before, and v3's cumulative reasons are
+kept under `supersedes`. The `/workbench/` replacement stays declared and now
+changes no byte. It keeps the shipped page pinned to its reviewed repository
+file.
+
+**Deployment, once the exact bundle is approved.** Static only. The operator
+re-confirms `carbonwebsite` is still `c12d547a`, re-derives the baseline,
+rebuilds (the identity must be `e517b546…`), deploys `carbonwebsite` and
+verifies; see `OPERATIONS.md`. The Worker is not redeployed.
+
+**Not authorized by this decision.** Publication; any change to the budget,
+the ceilings, the `AskCarbonUsageLedger` Durable Object or Email Routing; the
+six cards expiring 2026-10-16.

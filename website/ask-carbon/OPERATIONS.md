@@ -336,7 +336,7 @@ Production needs a separate exact owner authorization after the staging report:
 > Rebuilding the currently deployed revision against that baseline must
 > reproduce the live bundle identity before it is trusted.
 
-> **Candidate 2026-09-30.1: approved for deployment (WEB-QA-11-D2, 2026-10-01).**
+> **Candidate 2026-09-30.1: deployed 2026-10-02 (WEB-QA-11-D2).**
 > Bundle `86f51385…` ships the GOAL-WORKBENCH-16 Pilot Designer and retires
 > `/workbench/`. The retired page is the reviewed `site/workbench/index.html`,
 > declared in `site-replacements.json`. The operator follows
@@ -352,6 +352,38 @@ Production needs a separate exact owner authorization after the staging report:
 > The Worker inputs are byte-identical to the live WEB-QA-10-D1 revision. The
 > repository expects the static rollback target `dc4469a7…`; the id captured at
 > deploy time wins.
+>
+> Deployed by Nick Fitzpatrick on 2026-10-02 from his own machine:
+> - `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`, rollback target
+>   `dc4469a7…`;
+> - `ask-carbon-public` `e4358421-8f15-425b-92dc-4a8c611c1e13`, rollback target
+>   `6edb92d1-b459-406e-b6e7-a2bf2afb8f60`.
+>
+> `verify-publication.mjs` reported `VERIFIED` after each deploy. The full
+> record is the WEB-QA-11-D2 deployment event in `.agent/DECISIONS.md`.
+
+> **Candidate 2026-10-02.1: static only, awaiting the owner's approval of the
+> exact bundle (WEB-QA-12-D1).** Bundle `e517b546…` ships the Pilot Designer
+> regenerated from #477 (#458's readiness gate) and #455 (hedges and
+> disabled-control reasons). Exactly one path changes against live:
+> `ask-carbon/pilot-designer.html`, `be64f8b9…` → `5b819b25…`. The Worker is
+> not redeployed. The baseline is manifest v4, which already carries the
+> retired `/workbench/` page, so the declared replacement no longer changes a
+> byte; it stays as a pin. From the approved merge commit:
+>
+> ```sh
+> npx wrangler deployments status --name carbonwebsite   # must still be c12d547a
+> node tools/fetch-live-baseline.mjs --host carbonphysics.ai --out "$BASE"   # 100/100
+> node tools/integrate-static.mjs \
+>   --input "$BASE/index.html" --output "$OUT/index.html" --asset-prefix ./ask-carbon \
+>   --existing-site "$BASE" --site-replacements site-replacements.json \
+>   --require-complete-bundle              # bundle_identity_sha256 must be e517b546…
+> node tools/verify-publication.mjs --bundle "$OUT"   # before: FAIL only on the Pilot Designer, both hostnames
+> npx wrangler deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12
+> node tools/verify-publication.mjs --bundle "$OUT"   # after: VERIFIED
+> ```
+>
+> Rollback: `npx wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4 --name carbonwebsite`.
 
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
@@ -376,7 +408,21 @@ from production. `integrate-static.mjs` writes only `index.html` and the
 `ask-carbon/` assets, so deploying its output directory on its own would
 delete the live Workbench route and the shared homepage images.
 
-#### The asset inventory: what is true as of 2026-09-28
+#### The asset inventory: what is true as of 2026-10-02
+
+The manifest is version 4 (observed 2026-10-02T02:57Z). It keeps v3's 100 site
+entries, with one change: `workbench/index.html` is now the retired-page
+notice `9a44f683…`, which the WEB-QA-11-D1 deployment published.
+- **Completeness:** holds by construction. The basis is the staged bundle
+  `86f51385…`, the exact directory deployed as `carbonwebsite` `c12d547a`.
+- **Measured:** all 100 entries matched live on both hostnames.
+- **Change reasons:** each entry now states its change since the previous live
+  state in `change_since_previous_live`. V3's cumulative reasons since
+  2026-09-22 are kept under `supersedes`.
+- **Rollback target:** `live_version_id` is `c12d547a`, captured with wrangler
+  on the operator's machine.
+
+The v3 history below still describes how the inventory was established.
 
 Both earlier statements were wrong, in opposite directions. This section said
 the inventory was "not established" while `production-baseline.manifest.json`

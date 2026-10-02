@@ -1,107 +1,117 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 4,
   "target": "carbonwebsite",
   "target_kind": "cloudflare-static-assets-worker",
-  "observed_utc": "2026-09-28T12:55:00Z",
+  "observed_utc": "2026-10-02T02:57:00Z",
   "inventory_status": "verified-complete",
   "inventory_complete": true,
-  "inventory_status_reason": "The 100 entries below are the complete site asset set of carbonphysics.ai as served on 2026-09-28, excluding the five ask-carbon/ assets the integration tool supplies. Basis: the owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55aee17ae5468673eb19e7416b710744257de1c178ead339d3daeab3e2cf, 105 files = these 100 + ask-carbon/{ask-carbon.js,ask-carbon.css,release-contract.js,public-knowledge.v1.json,pilot-designer.html}) was fetched path by path from https://carbonphysics.ai and https://www.carbonphysics.ai at 2026-09-28T12:55Z and matched 105/105 on both by SHA-256 (HTML compared after removing the Cloudflare challenge script and Web Analytics beacon the edge injects). Completeness of the archive as the deployed directory is the owner's statement; the per-path match is measured.",
+  "inventory_status_reason": "The 100 entries below are the complete site asset set of carbonphysics.ai as served on 2026-10-02, excluding the five ask-carbon/ assets the integration tool supplies. Basis: the staged bundle 86f51385… (105 files = these 100, with index.html as the integrated homepage b1e8e7cd…, plus the five ask-carbon/ assets) IS the directory the operator passed to `wrangler deploy --name carbonwebsite --assets`, deployed as version c12d547a at 2026-10-02T01:52Z, so completeness holds by construction. It was built from the manifest-v3 baseline re-derived from live (100/100 on both hostnames) with one declared replacement, workbench/index.html. After the deploy, tools/verify-publication.mjs reported VERIFIED on both hostnames, and the 100 entries below were re-fetched from both hostnames at 2026-10-02T02:57Z and matched by SHA-256 (HTML after removing the edge-injected challenge script and analytics beacon).",
   "supersedes": {
-    "manifest_version": 2,
-    "observed_utc": "2026-09-22T07:40:00Z",
-    "asset_count": 97,
-    "why_superseded": "The v2 manifest (97 entries, build 2026-09-22) was accurate for live through at least 2026-09-26T16:38Z: on that date 96 of its 97 entries matched live by digest on both hostnames and index.html matched as the integrated homepage (measured while building candidate 2026-09-26.1). A later carbonwebsite deployment carrying the v3 Litepaper and Whitepaper changed 53 entries, added 4 and removed 1. Its 'verified-complete' status was therefore true of the older live state and stale afterwards.",
+    "manifest_version": 3,
+    "observed_utc": "2026-09-28T12:55:00Z",
+    "asset_count": 100,
+    "why_superseded": "Manifest v3 described live until the WEB-QA-11-D1 deployment (carbonwebsite c12d547a, 2026-10-02T01:52Z) replaced workbench/index.html with the retired-page notice. Every other v3 entry is unchanged.",
     "counts": {
-      "common_paths": 96,
-      "changed": 53,
-      "index_html_representation_only": 1,
-      "added": 4,
-      "removed": 1
-    }
+      "common_paths": 100,
+      "changed": 1,
+      "added": 0,
+      "removed": 0
+    },
+    "superseded_v3_changes_since_previous_live": {
+      "deployment": "carbonwebsite deployment carrying carbon-site-upload-v3-papers.zip, after 2026-09-26T16:38Z (version id not readable from the building host)",
+      "changed_paths": [
+        "assets/cover-litepaper.webp",
+        "assets/cover-whitepaper.webp",
+        "assets/pages/lp-01.webp",
+        "assets/pages/lp-02.webp",
+        "assets/pages/lp-03.webp",
+        "assets/pages/lp-04.webp",
+        "assets/pages/lp-05.webp",
+        "assets/pages/lp-06.webp",
+        "assets/pages/lp-07.webp",
+        "assets/pages/lp-08.webp",
+        "assets/pages/lp-09.webp",
+        "assets/pages/lp-10.webp",
+        "assets/pages/lp-11.webp",
+        "assets/pages/wp-01.webp",
+        "assets/pages/wp-02.webp",
+        "assets/pages/wp-03.webp",
+        "assets/pages/wp-04.webp",
+        "assets/pages/wp-05.webp",
+        "assets/pages/wp-06.webp",
+        "assets/pages/wp-07.webp",
+        "assets/pages/wp-08.webp",
+        "assets/pages/wp-09.webp",
+        "assets/pages/wp-10.webp",
+        "assets/pages/wp-11.webp",
+        "assets/pages/wp-12.webp",
+        "assets/pages/wp-13.webp",
+        "assets/pages/wp-14.webp",
+        "assets/pages/wp-15.webp",
+        "assets/pages/wp-16.webp",
+        "assets/pages/wp-17.webp",
+        "assets/pages/wp-18.webp",
+        "assets/pages/wp-19.webp",
+        "assets/pages/wp-20.webp",
+        "assets/pages/wp-21.webp",
+        "assets/pages/wp-22.webp",
+        "assets/pages/wp-23.webp",
+        "assets/pages/wp-24.webp",
+        "assets/pages/wp-25.webp",
+        "assets/pages/wp-26.webp",
+        "assets/pages/wp-27.webp",
+        "assets/pages/wp-28.webp",
+        "assets/pages/wp-29.webp",
+        "assets/pages/wp-30.webp",
+        "assets/pages/wp-31.webp",
+        "assets/pages/wp-32.webp",
+        "assets/pages/wp-33.webp",
+        "assets/pages/wp-34.webp",
+        "assets/pages/wp-35.webp",
+        "assets/pages/wp-36.webp",
+        "assets/pages/wp-37.webp",
+        "assets/pages/wp-38.webp",
+        "assets/pages/wp-39.webp",
+        "papers/index.html"
+      ],
+      "added_paths": [
+        "assets/Carbon_Litepaper_v3.pdf",
+        "assets/Carbon_Whitepaper_v3.pdf",
+        "assets/pages/wp-40.webp",
+        "assets/pages/wp-41.webp"
+      ],
+      "removed_paths": [
+        "assets/pages/lp-12.webp"
+      ],
+      "representation_only": [
+        "index.html"
+      ]
+    },
+    "superseded_v3_removed_since_previous": [
+      {
+        "path": "assets/pages/lp-12.webp",
+        "previous_sha256": "d3fb396a1c48cf6d30faa95516789979875f1082471530011949c75bb4734248",
+        "reason": "REMOVED by the v3 papers deployment (after 2026-09-26T16:38Z): the v3 Litepaper has 11 pages. HTTP 404 on live; present on live at 2026-09-26T16:38Z."
+      }
+    ]
   },
-  "removed_since_previous": [
-    {
-      "path": "assets/pages/lp-12.webp",
-      "previous_sha256": "d3fb396a1c48cf6d30faa95516789979875f1082471530011949c75bb4734248",
-      "reason": "REMOVED by the v3 papers deployment (after 2026-09-26T16:38Z): the v3 Litepaper has 11 pages. HTTP 404 on live; present on live at 2026-09-26T16:38Z."
-    }
-  ],
+  "removed_since_previous": [],
   "changes_since_previous_live": {
-    "deployment": "carbonwebsite deployment carrying carbon-site-upload-v3-papers.zip, after 2026-09-26T16:38Z (version id not readable from the building host)",
+    "deployment": "carbonwebsite c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4, bundle 86f51385… (WEB-QA-11-D1/D2), deployed by Nick Fitzpatrick from his own machine at 2026-10-02T01:52Z",
     "changed_paths": [
-      "assets/cover-litepaper.webp",
-      "assets/cover-whitepaper.webp",
-      "assets/pages/lp-01.webp",
-      "assets/pages/lp-02.webp",
-      "assets/pages/lp-03.webp",
-      "assets/pages/lp-04.webp",
-      "assets/pages/lp-05.webp",
-      "assets/pages/lp-06.webp",
-      "assets/pages/lp-07.webp",
-      "assets/pages/lp-08.webp",
-      "assets/pages/lp-09.webp",
-      "assets/pages/lp-10.webp",
-      "assets/pages/lp-11.webp",
-      "assets/pages/wp-01.webp",
-      "assets/pages/wp-02.webp",
-      "assets/pages/wp-03.webp",
-      "assets/pages/wp-04.webp",
-      "assets/pages/wp-05.webp",
-      "assets/pages/wp-06.webp",
-      "assets/pages/wp-07.webp",
-      "assets/pages/wp-08.webp",
-      "assets/pages/wp-09.webp",
-      "assets/pages/wp-10.webp",
-      "assets/pages/wp-11.webp",
-      "assets/pages/wp-12.webp",
-      "assets/pages/wp-13.webp",
-      "assets/pages/wp-14.webp",
-      "assets/pages/wp-15.webp",
-      "assets/pages/wp-16.webp",
-      "assets/pages/wp-17.webp",
-      "assets/pages/wp-18.webp",
-      "assets/pages/wp-19.webp",
-      "assets/pages/wp-20.webp",
-      "assets/pages/wp-21.webp",
-      "assets/pages/wp-22.webp",
-      "assets/pages/wp-23.webp",
-      "assets/pages/wp-24.webp",
-      "assets/pages/wp-25.webp",
-      "assets/pages/wp-26.webp",
-      "assets/pages/wp-27.webp",
-      "assets/pages/wp-28.webp",
-      "assets/pages/wp-29.webp",
-      "assets/pages/wp-30.webp",
-      "assets/pages/wp-31.webp",
-      "assets/pages/wp-32.webp",
-      "assets/pages/wp-33.webp",
-      "assets/pages/wp-34.webp",
-      "assets/pages/wp-35.webp",
-      "assets/pages/wp-36.webp",
-      "assets/pages/wp-37.webp",
-      "assets/pages/wp-38.webp",
-      "assets/pages/wp-39.webp",
-      "papers/index.html"
+      "workbench/index.html"
     ],
-    "added_paths": [
-      "assets/Carbon_Litepaper_v3.pdf",
-      "assets/Carbon_Whitepaper_v3.pdf",
-      "assets/pages/wp-40.webp",
-      "assets/pages/wp-41.webp"
-    ],
-    "removed_paths": [
-      "assets/pages/lp-12.webp"
-    ],
+    "added_paths": [],
+    "removed_paths": [],
     "representation_only": [
       "index.html"
     ]
   },
   "upload_archive": {
-    "name": "carbon-site-upload-v3-papers.zip",
-    "sha256": "23fe55aee17ae5468673eb19e7416b710744257de1c178ead339d3daeab3e2cf",
+    "name": "staged bundle directory ask-carbon-86f51385 (no archive: the integration tool's output directory was deployed directly)",
+    "sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+    "sha256_kind": "bundle identity (integrate-static.mjs bundleIdentity over every staged path, digest and size), not an archive digest",
     "files": 105,
-    "bytes": 11198601,
-    "note": "Contains the five ask-carbon/ assets of the live release (ask-carbon.js 6a098c0a…, pilot-designer.html 3de37b43…, ask-carbon.css 52b6ae66…, release-contract.js 3b91dca5…, public-knowledge.v1.json d937e9ca…) and the integrated homepage b1e8e7cd….",
     "file_count": 105,
     "site_file_count": 100,
     "ask_carbon_files": [
@@ -111,7 +121,14 @@
       "ask-carbon/public-knowledge.v1.json",
       "ask-carbon/release-contract.js"
     ],
-    "count_note": "The archive is the live integrated site: the 100 site entries below (with index.html as the integrated homepage b1e8e7cd…, which the baseline records as its reviewed source 99be1318…) plus the five ask-carbon/ assets the integration tool supplies."
+    "note": "Contains the five ask-carbon/ assets of the live release (ask-carbon.js 62ba26ce…, pilot-designer.html be64f8b9…, ask-carbon.css 52b6ae66…, release-contract.js 3b91dca5…, public-knowledge.v1.json fab55d5d…) and the integrated homepage b1e8e7cd….",
+    "count_note": "The archive is the live integrated site: the 100 site entries below (with index.html as the integrated homepage b1e8e7cd…, which the baseline records as its reviewed source 99be1318…) plus the five ask-carbon/ assets the integration tool supplies.",
+    "superseded_archive": {
+      "name": "carbon-site-upload-v3-papers.zip",
+      "sha256": "23fe55aee17ae5468673eb19e7416b710744257de1c178ead339d3daeab3e2cf",
+      "files": 105,
+      "bytes": 11198601
+    }
   },
   "homepage_source_authority": {
     "note": "The homepage source is the redesigned site's own index.html (entry below, sha256 99be1318…). It needs no owner-upload reconciliation: the build directory is the reviewed source. The production bundle intentionally REPLACES index.html with the integrated homepage; every other entry must survive byte-for-byte.",
@@ -123,17 +140,22 @@
   },
   "deployment_target_observed": {
     "worker": "carbonwebsite",
-    "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
-    "live_version_note": "dc4469a7 is the WEB-QA-10-D1 deployment (bundle 48fd4680…), still live when captured on 2026-09-30, and the rollback target for candidate ask-carbon-public-release-2026-09-30.1. Not b694b20f (v2 site) and not f7954cb2 (the pre-WEB-QA-10-D1 version).",
+    "live_version_id": "c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4",
+    "live_version_note": "c12d547a is the WEB-QA-11-D1 deployment (bundle 86f51385…), live when captured on 2026-10-02, and the rollback target for candidate ask-carbon-public-release-2026-10-02.1. Not dc4469a7 (WEB-QA-10-D1, bundle 48fd4680…): rolling back to it would restore the old Pilot Designer and the Workbench application page.",
     "live_version_capture": {
-      "captured_by": "the owner, running `wrangler deployments status --name carbonwebsite` on their own machine (not this host), 2026-09-30",
-      "recorded_in_repository": "2026-09-30. First relayed by the Workbench session, then confirmed first-hand by the owner in the Ask Carbon session. The wrangler output itself was not supplied to the repository.",
+      "captured_by": "Claude Code on the operator's (Nick Fitzpatrick's) machine, which holds the Cloudflare credential: printed by `wrangler deploy` at 2026-10-02T01:52Z and re-read with `wrangler deployments status --name carbonwebsite` at 2026-10-02T02:56Z (100% of traffic, created 2026-10-02T01:52:41.964Z)",
+      "recorded_in_repository": "2026-10-02, from that capture.",
       "equals_previous_deployed_after_capture": true,
-      "building_host_can_read": false
+      "building_host_can_read": true
     },
     "compatibility_date": "2026-09-12",
     "bindings": [],
     "superseded_rollback_targets": [
+      {
+        "version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+        "was_live_until": "2026-10-02T01:52Z",
+        "description": "WEB-QA-10-D1 deployment (bundle 48fd4680…), the rollback target of WEB-QA-11-D1; rolling back to it now would withdraw the GOAL-WORKBENCH-16 Pilot Designer and the /workbench/ retirement"
+      },
       {
         "version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc",
         "was_live_until": "after 2026-09-26T16:38Z",
@@ -184,700 +206,700 @@
       "sha256": "2f555675ec55a990fe50a7d810df3dd732173f146dd47e0d3adbfbf5eee55f87",
       "bytes": 9178,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "about/index.html",
       "sha256": "8f0a0a10c8d91fdd427454e6c4dccd0a86a57d0573294eb807c2d6b082714848",
       "bytes": 12443,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/Carbon_Litepaper_v2.pdf",
       "sha256": "f167c0769b9867930a72714976c22797ee549544c5bb68ff16fe04c2c3bb15cf",
       "bytes": 220067,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/Carbon_Litepaper_v3.pdf",
       "sha256": "682a2628a378fed27e358abb26f5c94834b363ef42905b7e62b5204ee7c48a88",
       "bytes": 468239,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "ADDED by the v3 papers deployment (after 2026-09-26T16:38Z): the v3 Litepaper/Whitepaper PDF; HTTP 200 on live."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/Carbon_Whitepaper_v2.0.pdf",
       "sha256": "fab7b772ea133ca94185a018409e9fd025d6b76eb1f91c22a3699c483ae196f6",
       "bytes": 616205,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/Carbon_Whitepaper_v3.pdf",
       "sha256": "a1f3caa8d57895a480740c71829011a7c1198e1dd69877f744fd71ff5c16a228",
       "bytes": 803529,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "ADDED by the v3 papers deployment (after 2026-09-26T16:38Z): the v3 Litepaper/Whitepaper PDF; HTTP 200 on live."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/aerospace-mono.webp",
       "sha256": "fcb1da7b13b394b3adde44e9294e3a86802abfa9c9867514799f9526e7b8a8e9",
       "bytes": 18428,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/aerospace.webp",
       "sha256": "44efaba1301a099706edee0319718e5a3100bb45d8d5f3cf3bcbf75c504a8df4",
       "bytes": 17914,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/automotive.webp",
       "sha256": "b5f96884963d879e85b73c43ba321bfa4942d5d4bade14ee4e4a859b2105163a",
       "bytes": 52558,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/brand-1.svg",
       "sha256": "b8e76cf15c68f32b77021db5632e3cc807ac7736227cf468ffbb2b6d3da05a26",
       "bytes": 3393,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/brand-2.svg",
       "sha256": "98cd406e21141304bee9085918dd7d6d41383a70d2c929964d64717c2655f276",
       "bytes": 3393,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/cover-litepaper.webp",
       "sha256": "022f0f4a70783443e097d78b64f07bb2679e8540bfbae9b8ef1efeabf7fe6c0e",
       "bytes": 98416,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/cover-whitepaper.webp",
       "sha256": "565ae0122115389656ebf007926fdd427212221f4b41883d4d7d394019e44f4b",
       "bytes": 129416,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/engineers-mono.webp",
       "sha256": "c265f2bde9eb06fc75c395d5bdd6afa2709aa4914b52c943a83027fe3538c2d9",
       "bytes": 138736,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/flow-field.webp",
       "sha256": "9c00779885be75b36e2912a8434a0672fc8762028ac09eb537542845a129328f",
       "bytes": 49990,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/globe-frame.webp",
       "sha256": "8ae3640bd70f8715b0c2e4c338c8bf2cabc3a8daf845c84efc59531bb1035c24",
       "bytes": 145428,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/hero-car.webp",
       "sha256": "b5f96884963d879e85b73c43ba321bfa4942d5d4bade14ee4e4a859b2105163a",
       "bytes": 52558,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/industrial.webp",
       "sha256": "4b64f87a7092974f0f0cccdd2d31a0a3484557e94f4b68a3b63714cf84cae63a",
       "bytes": 90066,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/logo-boeing.png",
       "sha256": "b83e62cabb4234ceeecf1559eae8aef20b4b001bb24bbfe0215ec782ea51d7e1",
       "bytes": 43300,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/logo-usaf.png",
       "sha256": "5aba293966ae1666da189f393a0e72f6fc06d80c7acd0c5e5bf995f54f7f5fef",
       "bytes": 4564,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/logo-virgin-galactic.svg",
       "sha256": "4b4068252dc653aaa1d2a8d8fcc91ba8a01b3dc62aa727975f35fb301d896db7",
       "bytes": 134294,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/neue-0.otf",
       "sha256": "69bcecee993d4564980d8e082d4f15a461fd1f7e8ebbc36e8533d9e95f0131f8",
       "bytes": 196112,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/neue-1.otf",
       "sha256": "437ad49efdf9812ec50df7440fab56f66f1c8311ce9f276c1473919b63a1050d",
       "bytes": 213064,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/og-carbon.png",
       "sha256": "298bc55377cd2f8e40231f3086d0df560f9156f783d8a75773f38a23db484cec",
       "bytes": 25341,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-01.webp",
       "sha256": "9111d2dfb1c0d824ccb218de24dfb528f0a8847b923913cdf30e41f5f8ffbdb9",
       "bytes": 103606,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-02.webp",
       "sha256": "1c96532db764f917f925dc119eaa9a15c7e510c16b6dc7e3237385aeb4e8ffbf",
       "bytes": 144748,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-03.webp",
       "sha256": "4e25a24f07200b2b34e4aedd32bbbf8816389f9e836a41075fdcdc13af0948f8",
       "bytes": 153598,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-04.webp",
       "sha256": "31e5e2c84730164304435bcbe68cee6edd70a1ea22cafea67ddec4f4866f1b51",
       "bytes": 176666,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-05.webp",
       "sha256": "131a5fc2c5925d70687feb1f62639a4bbe0931257c8c060691931bb6182fe9fd",
       "bytes": 134910,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-06.webp",
       "sha256": "200ad04860c947b580db3b2e01dd461fadca3a54bbbbd9b4a82d056ef7d6808f",
       "bytes": 135720,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-07.webp",
       "sha256": "0b695ace6b16fc2a389a60ad7ff52420ed7c9cfdeba8abcae0b78d3dca1167fe",
       "bytes": 150442,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-08.webp",
       "sha256": "ab1750ff8628c39de0d81d672340863bc0dbb3204e993a542dc8e57d085d1c12",
       "bytes": 155156,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-09.webp",
       "sha256": "6047820fff71ab7e632ca8ab3941c6307dad140ae80a3688406ce3b18fcc06c8",
       "bytes": 142312,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-10.webp",
       "sha256": "819d3da8bb25a1a7081b2af19ac957d60395ca99e44b754fd67efb98f003508c",
       "bytes": 170264,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/lp-11.webp",
       "sha256": "2657b973c64c54ce08aa0d392e70a38f1f6a95a96dc280026e3ebd22249ef2d9",
       "bytes": 130744,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-01.webp",
       "sha256": "3fb75fe710ae4a2f53c77a0add8f37c4e31ae63f0b71120482b8f89db2cdf114",
       "bytes": 135496,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-02.webp",
       "sha256": "23d57486ef0e244b43b7d3db8f09706b92902ab956a8f6f82586cb0afbf7af12",
       "bytes": 191678,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-03.webp",
       "sha256": "268134e41609b8553bfdfeeea4d01edb82b382a124b1d79cfebd7cdcda62e200",
       "bytes": 142448,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-04.webp",
       "sha256": "6ffb432f07c7b64a738635c668e19d4b8d117630c7962db6a8479031de2a08f9",
       "bytes": 159556,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-05.webp",
       "sha256": "c409303cf8821970c636ca70312f050af684a986fd0187b15bbbf86d750c9f34",
       "bytes": 126122,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-06.webp",
       "sha256": "90d54f1ce527b9103c5933df016bf03c71b76738cb79e1a4195b0e68cfd773df",
       "bytes": 157492,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-07.webp",
       "sha256": "d5292be9d51095708efdae8575825aaf88703b9891e7c806bc3cfcaba861e14b",
       "bytes": 170886,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-08.webp",
       "sha256": "ecb30fd3bf28f5b16ecb237dbaadd2807458219606565b11342bb40f46ca33b5",
       "bytes": 152626,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-09.webp",
       "sha256": "e8c3530217e14f13e2f5f169a8e7648186799411da2b6d141a8539683ffa7e92",
       "bytes": 141086,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-10.webp",
       "sha256": "a49e36e17af2a1652d965778c6c3b11a5ef7ecaf768a0a3e15dab600b5f2cedd",
       "bytes": 154448,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-11.webp",
       "sha256": "58acfa93ba1ef31e76e3db5f7ba6bfc915d3968dec1383bc9e1f5d7d4150e778",
       "bytes": 161532,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-12.webp",
       "sha256": "37b04b163c3a9244ea42c059cd71855b5722aa1a2372aa1cfbdd2a060b5ff18e",
       "bytes": 151180,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-13.webp",
       "sha256": "d32c338429728b297366bfbd821e487e7272057eacbaf3f8597c3631c0bb6c1b",
       "bytes": 138816,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-14.webp",
       "sha256": "a767e5680bf13d1ac192ea34068da2bec23d75d2bda88c8844111f15262bbd07",
       "bytes": 159150,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-15.webp",
       "sha256": "6cfb1ad0d149f229acdc9cf88a6b152680c3fb84aa862f099e88e4285d1a7b58",
       "bytes": 132476,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-16.webp",
       "sha256": "8cc9d9e60066711e9834dfe51690628a7ac0490390a2dddaf9bedb2e8dd8257c",
       "bytes": 151320,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-17.webp",
       "sha256": "49dc32641b74638bbeb4d1918b1af009cc0cf967467f120421488885ebe9eb9b",
       "bytes": 133368,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-18.webp",
       "sha256": "8d41aa4374c620032022dcf2690926bc673d962b427230813d748a9af53192c6",
       "bytes": 126398,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-19.webp",
       "sha256": "c5c516e876313af88fb50bc4c882ae5c035f065dacb5e6d11fe11ee83af6b576",
       "bytes": 154436,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-20.webp",
       "sha256": "6db5aa74eb649a1ddacbd63125d9a0749a68e790f1949e63e6f800227bffb5d4",
       "bytes": 130994,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-21.webp",
       "sha256": "42ab5dadb782f60537a8f14c7a99832f862f7cec9612bf4183b0d3cd946d87cb",
       "bytes": 139672,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-22.webp",
       "sha256": "e15347aee3b81dabe109b4af63143239ec8cdeac404db58a91c5b5200da810fb",
       "bytes": 120198,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-23.webp",
       "sha256": "a34f310fe7fd4a7db4050b82957f518385ff51a612c065fb15dcbae8c6ea2934",
       "bytes": 157154,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-24.webp",
       "sha256": "be3c4540dd9e4423fbcbd4063bd291d83cabcb7a0fd95f05ab6be461eaae503d",
       "bytes": 148546,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-25.webp",
       "sha256": "382293f1fce71a503b7589f6af42a9e4b54bfadd75b94ed1711064ea1ccba28d",
       "bytes": 149202,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-26.webp",
       "sha256": "4a7ac8ded290d65378b8b254d2bedda3c433ec99dd633c57dd2be19163d175bd",
       "bytes": 169922,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-27.webp",
       "sha256": "7d5b82f7f170cd1d0733369aec35971313eb6be83b8dbba15318acdace862365",
       "bytes": 136214,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-28.webp",
       "sha256": "b60331c2c6f323b523499447a37b6ab2a84c6999df283c9fb3a9a16c189b2236",
       "bytes": 166924,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-29.webp",
       "sha256": "a61d145a6e95a673e68aa49a0d6831478104110c80b6bde3ee32a72ee1a98643",
       "bytes": 149990,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-30.webp",
       "sha256": "619c357434dcb0007eb66ad186576411ca2131d1a7ffc8ca3e7c3f4bfa8bcfa7",
       "bytes": 178848,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-31.webp",
       "sha256": "fc8db9d5ff3bb55d293dfd8694929b9476b61f8b6b802fb5d90a5d871ba68bd1",
       "bytes": 156488,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-32.webp",
       "sha256": "dcc895eb49778a834aa1f01e616907daf4923e255f22085438f6d137b44ac43a",
       "bytes": 152250,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-33.webp",
       "sha256": "b0aeafd553a4ffe930bb341f29742179a4e37a41269e9cacbfe47fb075bba93d",
       "bytes": 135138,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-34.webp",
       "sha256": "8d990592b0dcbd85911bd45e937841d970617fbe30c42bce13e04fc7cb0b05f9",
       "bytes": 161098,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-35.webp",
       "sha256": "0da4451a9442a000d752d370d6e52c23ee3473f547e92155f7a1c6b7c6abe208",
       "bytes": 127566,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-36.webp",
       "sha256": "fd89e6fd9cedee3a608775db318d85c08a71a9332fc4846695405ee9867cbdf8",
       "bytes": 121416,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-37.webp",
       "sha256": "c098deeb51a973c9470c9f3ddc1d5a22eae7f8c2195a41233d50cfc01b6d14d7",
       "bytes": 88108,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-38.webp",
       "sha256": "f70d080c3b13ca31d55318a7ed575eb7e0ad0c5145975cd5c827f89e49c7b017",
       "bytes": 125358,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-39.webp",
       "sha256": "b994f19a394cb9b1e8cdfdd4deed4807bd1cff25cf6f758c006108ed99071f66",
       "bytes": 139708,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): paper page/cover image re-rendered from the v3 Litepaper/Whitepaper. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-40.webp",
       "sha256": "6e624baa4d6993b55bd828f42626a6c3c372dd64b23a59e369a4785f5102f490",
       "bytes": 180564,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "ADDED by the v3 papers deployment (after 2026-09-26T16:38Z): an additional Whitepaper page image (the v3 Whitepaper has 41 pages); HTTP 200 on live."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/pages/wp-41.webp",
       "sha256": "252f1b124a86791527d87bda5c19a7264849ad901a07b0a0d3db61b38eb2a074",
       "bytes": 163014,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "ADDED by the v3 papers deployment (after 2026-09-26T16:38Z): an additional Whitepaper page image (the v3 Whitepaper has 41 pages); HTTP 200 on live."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/team-harshdeep.webp",
       "sha256": "a5a8b2ed466e473582d29ec68a41b94163abf9cd81df9ec612aeeee0c56347f6",
       "bytes": 72304,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/team-nick.webp",
       "sha256": "70fb5380e57335810829d03eef571997d8dcb58cca8058d1c2774799c84a340e",
       "bytes": 58960,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/team-ryan.webp",
       "sha256": "96da3aa9755a4558bbcfa9e1bfdcb1695f9fdfadf04bbe2604cb6894d2b48e2f",
       "bytes": 49580,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/turbine-blade.webp",
       "sha256": "fb685a8e9982e984fd73f723e6ce6bf68d82d261bfa1a8589785ecf02651d991",
       "bytes": 180900,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "assets/x-logo.png",
       "sha256": "955a1f2d23b14d3ef2802e7d8e46c35f94fc4e94a0f3a315a9c7eceb56a23642",
       "bytes": 2478,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "customers/index.html",
       "sha256": "7dd2062fd4030015b64cbaaa5654dea5798fdc55e2bddcb0be09aa4dd4164e22",
       "bytes": 21298,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "favicon.svg",
       "sha256": "87209026227c1a427c72879815e7b714e69e493a556b139213956e9d6e6d8598",
       "bytes": 1032,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "index.html",
       "sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
       "bytes": 17096,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z; entry is the reviewed source, not the integrated live homepage",
-      "change_since_2026_09_22_baseline": "UNCHANGED reviewed homepage source 99be1318…. The archive holds the integrated homepage b1e8e7cd… (this source plus the two Ask Carbon integration blocks); the bundle replaces index.html with the integrated document, so the baseline keeps the reviewed source."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "investors/index.html",
       "sha256": "2eb018bd3dc128b693726e8a0b4db38d0eeca799ee66cda7241b8f8e768317f0",
       "bytes": 31878,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "miners/index.html",
       "sha256": "88517c7c62c1743f2cd4628e4bf583fd86160fd3ab1f2ac02f7cee3d4ccafe43",
       "bytes": 22975,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "papers/index.html",
       "sha256": "fe9f5cb65ca0746d5605c06b0d94737bb987b6865acbf169ba6f8ac917752a09",
       "bytes": 10871,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "CHANGED by the v3 papers deployment (after 2026-09-26T16:38Z): the papers page. Matched the previous baseline on live at 2026-09-26T16:38Z."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "robots.txt",
       "sha256": "031d34df7fb5a940fd62c983c3775ec792ddf7a431ae22ed7b17fa6b0a2fc012",
       "bytes": 69,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "site.css",
       "sha256": "f5d9649021426958b87262691e4c3e46740df53deeeb96b5d173a6f382f4c2cd",
       "bytes": 87761,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "sitemap.xml",
       "sha256": "18a8b1638e93ad1eb4222beb42e8001f7823ce7f6c03eeaae4ca619b13f3fc6c",
       "bytes": 511,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "validators/index.html",
       "sha256": "d76340edf1ae78d85894017fcf7914f053aadc72884d6a7bc27b53ca98ca138c",
       "bytes": 22780,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/app.js",
       "sha256": "5ad2c249fe5acf2b58ce7af62e679bbb7e4098c0eecfd77b60acbdc4c060b1dc",
       "bytes": 38459,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/assist-contract.js",
       "sha256": "fc9d05ee4da65e15dbe5e153b455f0809163e7216e7bc190790538ea454ab85b",
       "bytes": 3871,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/assist-ui.js",
       "sha256": "765966584774affcaf1748ad5917ebc19414185fcce5be82798ffa16e7794a8b",
       "bytes": 9630,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/atlas-source.json",
       "sha256": "450068990094bc07d49b7bf7ea6106ef35c7c7213cdeaa43f5dc80f04fb9671a",
       "bytes": 156568,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/atlas.js",
       "sha256": "155eda1a2c96bb40167292b7ce3a3b9fc3e7c495e4834f17d660e1c7d640bdc1",
       "bytes": 134448,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/cooling-v02.js",
       "sha256": "199a93b595a13b563a8fc47209089f7e2c4b750de61d45fe7f5aed3b43c0dca3",
       "bytes": 6925,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/engine.js",
       "sha256": "32caeaf50bf6477c0af4dbefdc197f4c9c791036bd7f2ce324ebcdf1b1a5acf3",
       "bytes": 49400,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     },
     {
       "path": "workbench/index.html",
-      "sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
-      "bytes": 38076,
-      "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+      "bytes": 9481,
+      "transport": "the deployed bundle 86f51385… (WEB-QA-11-D1/D2, carbonwebsite c12d547a, 2026-10-02), whose reviewed source is website/ask-carbon/site/workbench/index.html; fetched from both hostnames at 2026-10-02T02:57Z and matched by SHA-256 after removing the edge injections",
+      "change_since_previous_live": "CHANGED by the WEB-QA-11-D1 deployment c12d547a (2026-10-02): the retired-page notice 9a44f683… (\"Workbench is now part of the Pilot Designer\", redirects to /ask-carbon/pilot-designer after five seconds) replaced the Workbench application page 05018e5c… (38076 bytes)."
     },
     {
       "path": "workbench/styles.css",
       "sha256": "269f2a0fb4934a46acbbc4fbeb92ec9fe890f3ec2fc3bfd545cec653d29cde3a",
       "bytes": 41054,
       "transport": "owner-supplied live archive carbon-site-upload-v3-papers.zip (sha256 23fe55ae…), verified 105/105 identical to live on both hostnames 2026-09-28T12:55Z",
-      "change_since_2026_09_22_baseline": "UNCHANGED since the 2026-09-22 baseline."
+      "change_since_previous_live": "UNCHANGED since manifest v3 (observed 2026-09-28T12:55Z); byte-identical in the deployed bundle 86f51385…."
     }
   ]
 }
