@@ -1,0 +1,30 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-lessons-regenerate-pipeline-view",
+ "recorded_at": "2026-10-02T21:16:00Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "python -m carbon.challenge_pipeline render",
+  "description": "Added the first lessons entry from a branch other than the pipeline's own, then re-rendered the pipeline view, because tests/cpu/test_challenge_pipeline.py fails while the view is stale."
+ },
+ "expected": "Appending a lessons entry touches only carbon/challenge_pipeline/lessons/, so parallel branches never conflict (lessons.py: one file per entry).",
+ "observed": "The committed view docs/development/CHALLENGE_PIPELINE.md prints the count of entries by status, so every new entry forces a regeneration of that file. Two branches that each add a lesson then conflict in the view, which defeats the one-file-per-entry design.",
+ "keep": [
+  "One file per lessons entry.",
+  "Regenerate the view with its renderer; never edit it by hand."
+ ],
+ "change": [
+  "Keep counts that change with every execution out of the committed view."
+ ],
+ "protocol_elements": [
+  "lessons",
+  "pipeline.view"
+ ],
+ "proposed_revision": {
+  "target": "lessons",
+  "text": "The committed pipeline view lists only lessons awaiting a decision (PROPOSED) and links to carbon/challenge_pipeline/lessons/ for the rest, without a count. Adding a RECORDED entry then changes no committed file but the entry itself, and parallel branches no longer conflict in the view."
+ },
+ "status": "PROPOSED"
+}

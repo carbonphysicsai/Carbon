@@ -2444,6 +2444,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "graphite-admission-testing",
+        "match_type": "exact",
+        "path": ".agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-public-gpu-diagnostic",
         "match_type": "exact",
         "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",

@@ -17650,3 +17650,67 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
 - Engineering evidence is not a security audit. The record is the owner's
   acceptance; tests only hold the gate.
 - Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — OWNER-GRAPHITE-04: Graphite, not Mira, does Carbon's internal admission testing; one generalizable protocol; lessons after every execution; Graphite proposes every level's capabilities
+
+**Owner, verbatim, in session on 2026-10-02:**
+1. "The plan is to use GRAPHITE not Mira for this testing. Ignore all
+   autoscience and Mira talk and replace it with our graphite agent."
+2. "Make sure everything we have is a generalizable test and design protocol
+   that can be adapted to any challenge and improved as we go. Note lessons
+   learned after every execution."
+3. "I want graphite to propose capabilities for every construction level."
+
+**Decision.**
+1. **Graphite does the admission-testing work.** Graphite, Carbon's in-house
+   research and testing agent (OWNER-GRAPHITE-01), does the construction,
+   attack and optimizer-research work of internal admission testing. No
+   external research agent takes that role.
+2. **The handoff is re-issued for Graphite.** The owner's Mira handoff of
+   2026-10-01 is re-issued with Graphite in Mira's place:
+   `docs/development/graphite/ADMISSION_TESTING_HANDOFF.md`. Its vendor
+   contract section is gone because Graphite is Carbon's own. The work runs
+   under `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`.
+3. **Two standing rules.**
+   - **Generalizable.** Every module, record, study sheet, ladder map, attack
+     family, optimizer request and report takes the Challenge as a parameter
+     and reads that Challenge's specifics from its own registered records or
+     adapter. Battery is the first instance, not the design. A battery-only
+     literal in shared code is a defect to move into battery's own record or
+     adapter.
+   - **Lessons after every execution.** Each execution appends one entry to
+     the pipeline's lessons log (`carbon/challenge_pipeline/lessons/`,
+     OWNER-CHALLENGE-ROADMAP-03). A lesson that should change the protocol is
+     a proposed revision until a named owner adopts or declines it; it is never
+     applied silently.
+4. **Graphite proposes every level's capabilities.** For every Challenge and
+   every level 0-5, Graphite writes a PROPOSED level proposal
+   (`carbon/challenge_pipeline/proposals.py`). The construction contract owner
+   accepts or declines it. Graphite never writes the contract, an expansion
+   record, or an ACCEPTED or DECLINED status.
+5. **Mira stays paused and is superseded for this work.** MIRA-ADMISSION-01
+   stays paused (OWNER-GRAPHITE-02). Its ticket and
+   `docs/development/mira/README.md` carry a superseded note, and nothing is
+   deleted. Its built controller, boundaries, study sheet and design-search
+   commitment layer (#475) are reused, not rebuilt. The Mira adapter keeps
+   refusing every call.
+
+**How it meets earlier decisions.**
+- **OWNER-CHALLENGE-ROADMAP-03: `NO_CONFLICT`.** That decision named this
+  ticket and this decision (item 5) and adopted the level-proposal step
+  (item 7). This record carries them out.
+- **OWNER-GRAPHITE-01 item 4: `NO_CONFLICT`.** A paid Mira comparison stays
+  optional and needs its own owner decision.
+- **OWNER-GRAPHITE-02: `NO_CONFLICT`.** The reconstruction rule binds every
+  level Graphite helps open: Carbon's reconstruction ships with the level.
+
+**Unchanged.**
+- Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
+- A level opened for Graphite's development campaigns is never opened to
+  miners to gather acceptance data.
+- No live inference, pod or spend without an owner grant enforced by the
+  campaign controller.
+- Scientific, security and launch qualification stay human-reserved, as do
+  network activation and every population, threshold and tolerance.
+
+Ticket: `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`.
