@@ -442,3 +442,27 @@ def test_the_pilot_report_pairs_meshes_and_checks_angle_resolution(tmp_path):
     assert resolution["midpoint_max_abs_nm"] == pytest.approx(0, abs=1e-12)
     assert resolution["determinism_max_abs_nm"] == 0.0
     assert [row["case_id"] for row in out["baseline"]] == ["ordinary-2"]
+
+
+# ------------------------------------------------------------------ pools
+
+POOLS = REPOSITORY / "docs/development/evidence/motor-pools-v1"
+
+
+def test_the_committed_public_pools_are_the_public_draws(tmp_path):
+    spec = importlib.util.spec_from_file_location(
+        "motor_pool_plan", REPOSITORY / "scripts/dev/motor/reference/pool_plan.py"
+    )
+    plan = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(plan)
+    plan.main([str(tmp_path), "--root", str(tmp_path / "root"), "--private", "1"])
+    for name, count in (("train", 150), ("practice", 30)):
+        drawn = json.loads((tmp_path / f"{name}.plan.json").read_text())["cases"]
+        pool = [
+            json.loads(line)
+            for line in (POOLS / f"{name}.jsonl").read_text().splitlines()
+        ]
+        assert len(pool) == count and all(r["status"] == "OK" for r in pool)
+        assert [r["case_id"] for r in pool] == [c["case_id"] for c in drawn[:count]]
+        assert all(r["inputs"] == c["inputs"] for r, c in zip(pool, drawn)), name
+        assert not any("/home/" in json.dumps(r) for r in pool)
