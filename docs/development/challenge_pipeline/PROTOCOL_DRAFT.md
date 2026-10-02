@@ -226,16 +226,23 @@ harness work.
 | Graphite permission ledger and procedure | this draft (§6) | process owner | DRAFT |
 | Exam rotation cadence and sealed-pool size | science owner | process owner | `HUMAN_INPUT`. Battery's rule v1 rotates screening batches of 100, 3 active. |
 | Per-challenge iteration budget and stop-rule values | technical and science owners, from battery's cycle-time baseline (step 7) | process owner | `HUMAN_INPUT` |
-| Reference timing hardware | technical owner | process owner | `HUMAN_INPUT` (recommendation below) |
-| Backends admitted by Track A vector 1 (JAX only, or JAX and PyTorch) | owner (OWNER-CHALLENGE-ROADMAP-01) | owner | `NEW_OWNER_DECISION_REQUIRED` |
+| Reference timing hardware | technical owner | technical owner alone (rev 2.1) | **Approved** 2026-10-02 (OWNER-CHALLENGE-ROADMAP-02), below |
+| Backends admitted by Track A vector 1 | owner | owner | **Decided** 2026-10-02: JAX and PyTorch (OWNER-CHALLENGE-ROADMAP-02) |
 
-**Recommendation for reference timing hardware.** Use a pinned RunPod CPU
-pod (flavor `cpu5c`, 16 vCPU, a named image digest), not the owner's host.
-- Anyone on the team can rent the same machine, so a measurement can be
-  repeated and checked.
-- The cold plate and motor pools already ran natively on it, and matched the
-  owner host's container results to round-off.
-- It costs about USD 0.48 per hour.
+**Reference timing hardware, approved.** A RunPod CPU pod, recorded in
+`protocol.json` as `runpod-cpu5c-16vcpu` with the technical owner's approval:
+- flavor `cpu5c` with no fallback, so every measurement runs on the same CPU
+  family;
+- 16 vCPU;
+- the challenge's pinned image.
 
-The alternative, the owner's host, is free but cannot be reproduced by anyone
-else. This is a recommendation, not a setting.
+Each timing study records the CPU model it ran on. The earlier pool pods,
+created with a fallback flavor, landed on two different processors (EPYC
+9655P and 4564P).
+- **Why this hardware.** Anyone on the team can rent the same machine, so a
+  measurement can be repeated and checked. The cold plate and motor pools
+  already ran natively on such pods, and matched the owner host's container
+  results to round-off.
+- **What it costs.** About USD 0.03 per vCPU-hour at list price.
+- **Who approved it.** The owner approved it on 2026-10-02 and made it the
+  technical owner's approval alone (roadmap rev 2.1).
