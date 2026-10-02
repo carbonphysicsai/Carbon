@@ -46,6 +46,7 @@ import time
 from pathlib import Path
 
 from carbon.battery.gpu import SPEED_ONLY as SPEED_ONLY_NOTE
+from carbon.compute.providers import PROVIDERS
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -60,6 +61,23 @@ LOCAL_CPU = "this-machine-cpu"
 #: slice 3). Research and practice run there; the validator rebuilds on its
 #: own pinned backend and resources.
 LOCAL_GPU = "this-machine-gpu"
+#: A GPU rented on the miner's own provider account (C-MLP-03 slice 4).
+RENTED_GPU = "rented-gpu"
+RENTED_FIELDS = {
+    "provider",
+    "image_ref",
+    "gpu_type_id",
+    "max_rate_usd_per_hr",
+    "storage_usd_per_gb_month",
+    "cloud_type",
+}
+#: How the pinned GPU worker reaches a rented pod: the miner pushes it to a
+#: registry of their own and names the pushed digest.
+PUSH_STEP = (
+    "push your GPU worker to a registry you control (docker tag <image id> "
+    "<repository>; docker push <repository>) and name it by the pushed "
+    "repository@sha256 digest"
+)
 #: The host device record setup installs names this machine and provider.
 GPU_RECORD_ID = "this-machine"
 GPU_PROVIDER = "own-machine"
@@ -347,6 +365,29 @@ def choices() -> dict:
                     "nvidia-smi, installs this host's device record, and "
                     "verifies your GPU worker image and the NVIDIA container "
                     "runtime. No network, no cost."
+                ),
+                "note": SPEED_ONLY_NOTE,
+            },
+            {
+                "id": RENTED_GPU,
+                "display_name": "A GPU rented on your own provider account",
+                "default": False,
+                "needs_gpu_image": True,
+                "providers": [
+                    {"id": name, "display_name": display}
+                    for name, (display, _factory) in sorted(PROVIDERS.items())
+                ],
+                "cost_basis": (
+                    "Per hour at your provider's price, billed by it to your "
+                    "account, within the hourly ceiling you set and the "
+                    "balance it reports. Each practice trial rents one pod and "
+                    "terminates it. Carbon bills nothing."
+                ),
+                "live_check": (
+                    "Reads your account balance and the GPU's current price "
+                    "with your key, and checks the image you pushed is your "
+                    "pinned GPU worker. Nothing is rented and nothing is "
+                    "billed by the check."
                 ),
                 "note": SPEED_ONLY_NOTE,
             },
@@ -663,6 +704,70 @@ class LiveChecks:
             "record_digest": record.digest,
         }
 
+    def rented(self, rented: dict, credential_file: Path, gpu_manifest: Path) -> dict:
+        """Read the miner's balance and the GPU's price with their key, and
+        check the pushed image is their pinned GPU worker. Rents nothing."""
+        from carbon.battery.gpu import gpu_scope, is_gpu_image, rented_scope
+        from carbon.compute.errors import ComputeError
+        from carbon.compute.providers import provider_adapter
+        from carbon.compute.rented_runner import RentedCompute
+        from carbon.reconstruction.worker.docker_runtime import (
+            DockerCLI,
+            load_image_identity,
+        )
+        from carbon.reconstruction.worker.model import WorkerFailure
+
+        try:
+            image = load_image_identity(gpu_manifest)
+        except Exception:  # noqa: BLE001 - never echo a local path or error.
+            image = None
+        if not is_gpu_image(image):
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_image_unverified",
+                next_step=BUILD_STEPS["gpu_image_manifest"],
+            )
+        try:
+            compute = RentedCompute(**rented)
+        except (TypeError, ValueError):
+            raise SetupRefused("rented", "rented_choice_invalid") from None
+        try:
+            inspected = DockerCLI().json(
+                ["image", "inspect", image.image_id, "--format", "{{json .}}"]
+            )
+        except WorkerFailure:
+            inspected = None
+        repo_digests = (inspected or {}).get("RepoDigests") or []
+        if compute.image_ref not in repo_digests:
+            # The pod pulls this digest; it must be the pinned worker's own.
+            raise SetupRefused(
+                "image_ref", "image_ref_is_not_your_gpu_worker", next_step=PUSH_STEP
+            )
+        adapter = provider_adapter(compute.provider, credential_file)
+        try:
+            balance = adapter.read_balance()
+            offers = adapter.offers(
+                [compute.gpu_type_id], gpu_count=1, cloud_type=compute.cloud_type
+            )
+        except ComputeError as failure:
+            raise SetupRefused(
+                "key", "provider_check_failed", next_step=failure.next_action
+            ) from None
+        offer = offers[0] if offers else None
+        if offer is None or offer.usd_per_hr is None:
+            raise SetupRefused("gpu_type_id", "gpu_type_not_offered_now")
+        if offer.usd_per_hr > compute.max_rate_usd_per_hr:
+            raise SetupRefused("max_rate_usd_per_hr", "price_above_your_ceiling")
+        return {
+            "scope": rented_scope(compute, image),
+            "gpu_scope": gpu_scope(image),
+            "balance_usd": balance.balance_usd,
+            "balance_source": balance.source,
+            "offer_usd_per_hr": offer.usd_per_hr,
+            "offer_source": offer.source,
+            "stock": offer.stock_status,
+        }
+
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
         from carbon.chain.external_signer import SignerFailure, connect_signer
 
@@ -859,11 +964,22 @@ class EnvironmentSetup:
         _closed(
             value,
             {"choice", "image_manifest", "analysis_image_manifest"},
-            {"gpu_image_manifest"},
+            {"gpu_image_manifest", "rented", "key"},
         )
-        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU):
+        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU, RENTED_GPU):
             raise SetupRefused("choice", "compute_not_offered")
-        gpu = value["choice"] == LOCAL_GPU
+        rented = value["choice"] == RENTED_GPU
+        if rented != ("rented" in value) or ("key" in value and not rented):
+            raise SetupRefused(
+                "rented", "field_required" if rented else "rented_is_for_a_rented_gpu"
+            )
+        if rented:
+            choice = value["rented"]
+            if type(choice) is not dict or set(choice) != RENTED_FIELDS:
+                raise SetupRefused("rented", "rented_choice_invalid")
+            if choice["provider"] not in PROVIDERS:
+                raise SetupRefused("provider", "compute_provider_not_offered")
+        gpu = value["choice"] in (LOCAL_GPU, RENTED_GPU)
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -891,6 +1007,32 @@ class EnvironmentSetup:
                 "balance": "not applicable: your own machine",
             }
             step = {"choice": value["choice"], "paths": paths}
+            if rented:
+                provider = value["rented"]["provider"]
+                credential = self.root / "keys" / (provider + ".compute-key")
+                if "key" in value:
+                    write_private(credential, _secret(value["key"], "key"))
+                elif not credential.exists():
+                    raise SetupRefused("key", "field_required")
+                found = self.checks.rented(value["rented"], credential, Path(gpu_image))
+                runtime = {
+                    **runtime,
+                    "gpu_research": [found["gpu_scope"]],
+                    "rented_gpu": [found["scope"]],
+                }
+                step["gpu_image"] = gpu_image
+                step["paths"] = {**paths, "compute_credential": str(credential)}
+                check.update(
+                    provider=provider,
+                    balance_usd=found["balance_usd"],
+                    offer_usd_per_hr=found["offer_usd_per_hr"],
+                    stock=found["stock"],
+                    ceiling_usd_per_hr=value["rented"]["max_rate_usd_per_hr"],
+                    note=SPEED_ONLY_NOTE,
+                )
+                return self._step(
+                    "compute", {**step, "runtime": runtime, "check": check}
+                )
             if gpu:
                 detected = self.checks.gpu(Path(gpu_image))
                 runtime = {**runtime, "gpu_research": [detected["scope"]]}

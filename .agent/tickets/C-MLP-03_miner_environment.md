@@ -16,11 +16,13 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slices 1, 2 and 3 implemented (engineering evidence only). Slice
-2's live acceptance (completions with miner-held Chutes and Engy keys, and a
-battery autonomous launch with each) is pending the miner's keys. Slice 3's
-(a real battery practice on a local GPU, and the same recipe accepted by the
-validator) is pending a GPU host.
+**Status:** slices 1 to 4 implemented (engineering evidence only), Targon
+excepted (below). Slice 2's live acceptance (completions with miner-held
+Chutes and Engy keys, and a battery autonomous launch with each) is pending
+the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
+same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
+real battery practice each on RunPod and Lium from a miner account, teardown
+verified and charges reconciled) is pending the miner's accounts.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
   `/api/v1/setup` in the controller and the "Set up your environment" view.
 - Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
@@ -129,6 +131,48 @@ validator) is pending a GPU host.
     does not pick for them.
   - *CPU stays the default.* The GPU is offered beside it, never chosen for
     the miner (owner, 2026-10-01).
+- **Slice 4 (rented GPUs):** `carbon/compute/job_server.py` (the one-job
+  server a rented pod runs), `remote_job.py` (its client),
+  `rented_runner.py` (the carrier-compatible runner over `ComputeService`),
+  `lium.py` (Lium adapter), `providers.py`, the RunPod adapter fixes, the
+  battery `rented_gpu` scope, and setup's "A GPU rented on your own provider
+  account". `tests/cpu/test_rented_job.py`, `test_rented_runner.py` and
+  `test_lium_adapter.py` cover it.
+- **Recorded engineering decisions (slice 4, 2026-10-02):**
+  - *A rented pod runs one job, served by Carbon's own fixed server.* The
+    pinned GPU worker's wheel includes `carbon.compute.job_server`; it is the
+    pod's start command. The controller stages the job's public inputs, runs
+    them and fetches the output over HTTP, with a per-job random token. The
+    pod gets the pinned worker, the public inputs and that token. No provider
+    key, hotkey or signer leaves the miner's machine. Runs start
+    asynchronously and are polled, because provider proxies close long
+    requests (RunPod's Cloudflare proxy: 100 s).
+  - *The pinned worker reaches the pod through the miner's own registry.*
+    Carbon publishes no registry. The miner pushes the GPU worker and names
+    it by `repository@sha256` digest. Setup checks that digest is one of the
+    local pinned image's RepoDigests.
+  - *Spend follows the compute layer's existing rules.* A balance is observed
+    and recorded first, the hourly ceiling and deadline bound each pod, and
+    the miner's budget applies. Each trial rents one pod, which is terminated
+    and verified gone whether the job succeeds or not. The provider's own
+    charge is recorded when it reports one; otherwise the record says it is
+    unresolved, never an estimate. A durable job record (owner-only) fixes the
+    request, token and deadline before any provider call, so a restart never
+    sends a different request.
+  - *Provider facts, read 2026-10-02.* RunPod REST v1 (`dockerEntrypoint` /
+    `dockerStartCmd`; billing needs `grouping=podId`, which the adapter now
+    sends) and GraphQL for balance and price. Lium's OpenAPI (`X-API-Key`,
+    executors, one-time templates by digest, rent with an idempotency key and
+    a termination time, per-pod statements).
+  - *Lium jobs travel over plain HTTP.* Lium documents no HTTPS proxy, so the
+    job is reached on the node's IP. The token and public inputs cross
+    unencrypted, and the backend record states `job_transport: http-direct`.
+    Nothing secret is on the pod, and nothing measured there is evidence.
+  - *Targon is not built.* Its current API runs no container image (the
+    rental type answers 410; VM, bare metal and sandbox take no OCI image),
+    and it reports no per-workload charge. A VM-and-SSH design would be
+    needed; that is an owner decision. Targon stays an unavailable
+    integration with that cause.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
@@ -293,6 +337,10 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
   it.
 
 ## Owner input
+
+- **Targon:** build a VM-and-SSH route (the pinned worker run with Docker
+  inside a Targon VM, reached over SSH), or leave Targon out until its API
+  runs container images again?
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).

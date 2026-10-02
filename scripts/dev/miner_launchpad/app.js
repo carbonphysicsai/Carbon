@@ -508,12 +508,26 @@
     // plain statement that GPU practice is for speed only.
     const gpuBox = el("div"); gpuBox.dataset.step = "compute"; compute.append(gpuBox);
     const gpuImage = setupField(gpuBox, "gpu_image_manifest", "GPU worker image manifest (absolute path)");
+    // A GPU rented on the miner's own account (C-MLP-03 slice 4): the
+    // provider, its key (entered once), the pushed image by digest, the GPU
+    // and the hourly ceilings. Nothing is rented by the check.
+    const rentedBox = el("div"); rentedBox.dataset.step = "compute"; compute.append(rentedBox);
+    const rentedChoice = offered.compute.find(c => c.id === "rented-gpu");
+    const rentedProvider = setupSelect(rentedBox, "provider", "Provider", (rentedChoice?.providers || []).map(p => [p.id, p.display_name]));
+    const rentedKey = setupField(rentedBox, "compute_key", "Provider API key (entered once; leave empty to keep the stored key)", "password");
+    const rentedImage = setupField(rentedBox, "image_ref", "Your pushed GPU worker (repository@sha256:...)");
+    const rentedGpu = setupField(rentedBox, "gpu_type_id", "GPU type (as your provider names it)");
+    const rentedRate = setupField(rentedBox, "max_rate_usd_per_hr", "Most you will pay per hour (USD)", "number");
+    const rentedStorage = setupField(rentedBox, "storage_usd_per_gb_month", "Storage price ceiling (USD per GB-month)", "number");
+    const rentedCloud = setupSelect(rentedBox, "cloud_type", "Cloud", [["SECURE", "Secure"], ["COMMUNITY", "Community"]]);
+    rentedRate.step = rentedStorage.step = "0.01";
     const describeCompute = () => {
       const choice = offered.compute.find(c => c.id === computeChoice.value);
       computeCost.replaceChildren();
       costNote(computeCost, choice);
       if (choice?.note) researchNote(computeCost, choice.note, "hint");
       gpuBox.hidden = !choice?.needs_gpu_image;
+      rentedBox.hidden = choice?.id !== "rented-gpu";
     };
     computeChoice.addEventListener("change", describeCompute);
     if (steps.compute?.checked && steps.compute.choice) computeChoice.value = steps.compute.choice;
@@ -523,6 +537,18 @@
       event.preventDefault();
       const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
       if (!gpuBox.hidden) request.gpu_image_manifest = gpuImage.value.trim();
+      if (!rentedBox.hidden) {
+        request.rented = {
+          provider: rentedProvider.value,
+          image_ref: rentedImage.value.trim(),
+          gpu_type_id: rentedGpu.value.trim(),
+          max_rate_usd_per_hr: Number(rentedRate.value),
+          storage_usd_per_gb_month: Number(rentedStorage.value),
+          cloud_type: rentedCloud.value,
+        };
+        if (rentedKey.value) request.key = rentedKey.value;
+        rentedKey.value = "";
+      }
       await setupCall("compute", request);
     });
 

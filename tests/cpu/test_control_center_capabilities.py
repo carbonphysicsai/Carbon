@@ -221,7 +221,10 @@ def test_launch_contract_is_the_operation_and_names_the_challenge():
 def test_unoffered_providers_are_unavailable_with_a_reason():
     document = capabilities.control_center(None)
     compute = {item["id"]: item for item in document["compute"]["unavailable"]}
-    assert "runpod" in compute and unavailable_is_explained(compute["runpod"])
+    # RunPod and Lium launch from setup (C-MLP-03 slice 4); Targon runs no
+    # container image and is unavailable with that reason.
+    assert "targon" in compute and unavailable_is_explained(compute["targon"])
+    assert "runpod" not in compute and "lium" not in compute
     models = {item["id"] for item in document["model"]["unavailable"]}
     # Engy's and Chutes' adapters are registered providers now, not
     # unavailable integrations; the specimen is that they appear as providers.

@@ -84,7 +84,10 @@ ALLOWED_OPERATIONS: tuple[tuple[str, str, str], ...] = (
     (
         "charges",
         "GET",
-        r"https://rest\.runpod\.io/v1/billing/pods\?podId=[A-Za-z0-9]{1,64}",
+        (
+            r"https://rest\.runpod\.io/v1/billing/pods\?podId=[A-Za-z0-9]{1,64}"
+            r"&grouping=podId"
+        ),
     ),
 )
 _ALLOWED = {
@@ -96,7 +99,8 @@ _GRAPHQL_PREFIX = {
     "offers": "query { gpuTypes(",
     "balance": "query { myself { clientBalance } }",
 }
-# Not exercised by pod_control.py; see module docstring.
+# Not exercised by pod_control.py; see module docstring. The stop path matches
+# the REST v1 spec (read 2026-10-02) but has not been run live.
 STOP_SHAPE_VERIFIED_LIVE = False
 BILLING_SHAPE_VERIFIED_LIVE = False
 
@@ -355,6 +359,12 @@ class RunPodAdapter:
         if spec.gpu_count:
             body["gpuTypeIds"] = [spec.gpu_type_id]
             body["gpuCount"] = spec.gpu_count
+        if spec.start_command:
+            # REST v1 `dockerEntrypoint` replaces the image's ENTRYPOINT (read
+            # 2026-10-02 from rest.runpod.io/v1/openapi.json); an empty
+            # `dockerStartCmd` passes it no arguments.
+            body["dockerEntrypoint"] = list(spec.start_command)
+            body["dockerStartCmd"] = []
         return body
 
     def create(self, spec: PodSpec, *, ownership_tag: str) -> CreateResult:
@@ -502,7 +512,11 @@ class RunPodAdapter:
         """Provider-reported spend for one pod, or ``None`` when unresolved."""
 
         owned = _refuse_non_owned(owned, "charges")
-        query = urllib.parse.urlencode({"podId": owned.resource_id})
+        # Records carry `podId` only when grouped by pod; RunPod's default
+        # grouping is by GPU type (REST v1 spec, read 2026-10-02).
+        query = urllib.parse.urlencode(
+            {"podId": owned.resource_id, "grouping": "podId"}
+        )
         status, payload = self._send(
             "charges", "GET", f"{REST}/billing/pods?{query}", mutating=False
         )

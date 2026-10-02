@@ -160,7 +160,14 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     assert inference["engy-chat"]["needs_endpoint"] is False
     # Slice 3: this machine's CPU is the default; its own GPU is offered
     # beside it, for practice speed only.
-    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU, "this-machine-gpu"]
+    # Slice 4: a GPU rented on the miner's own provider account.
+    assert [c["id"] for c in offered["compute"]] == [
+        LOCAL_CPU,
+        "this-machine-gpu",
+        "rented-gpu",
+    ]
+    rented = offered["compute"][2]
+    assert {p["id"] for p in rented["providers"]} == {"runpod", "lium"}
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
     assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS]
@@ -345,7 +352,7 @@ def test_a_missing_image_names_its_field_and_build_step(tmp_path, state):
     with pytest.raises(SetupRefused) as refused:
         setup.compute(
             {
-                "choice": "rented-gpu",
+                "choice": "someone-elses-gpu",
                 "image_manifest": made["worker.json"],
                 "analysis_image_manifest": made["analysis.json"],
             }

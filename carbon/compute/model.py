@@ -105,6 +105,9 @@ class PodSpec:
     env: tuple[tuple[str, str], ...] = ()
     max_rate_usd_per_hr: float | None = None
     storage_usd_per_gb_month: float | None = None
+    #: Overrides the image's own entry point (a rented job runs
+    #: `carbon.compute.job_server`); empty keeps the image's.
+    start_command: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.image or "@sha256:" not in self.image:
@@ -127,6 +130,10 @@ class PodSpec:
         value = asdict(self)
         value["ports"] = list(self.ports)
         value["env"] = [list(item) for item in self.env]
+        # Absent when empty, so every earlier request keeps its digest.
+        command = value.pop("start_command")
+        if command:
+            value["start_command"] = list(command)
         return value
 
 

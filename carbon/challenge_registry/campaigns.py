@@ -58,6 +58,9 @@ class ChallengeCampaign:
     #: (root, runtime) -> the campaign's verified GPU worker image, or None
     #: when its runtime declares no GPU practice.
     gpu_image: Callable = lambda root, runtime: None
+    #: (root, manifest, credential file) -> the campaign's rented-GPU practice
+    #: runner on the miner's own provider account, or None.
+    rented: Callable = lambda root, manifest, credential: None
 
 
 def _manifest_challenge(manifest):
@@ -94,6 +97,7 @@ def _battery():
         check_attached=battery.check_attached,
         compose=battery.compose,
         gpu_image=battery.host_gpu_image,
+        rented=battery.host_rented_runner,
     )
 
 

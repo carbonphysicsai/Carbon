@@ -121,7 +121,9 @@ class FakeRunPod:
                     del self.pods[pod_id]
                 return self._reply(200, {})
         match = re.fullmatch(
-            r"https://rest\.runpod\.io/v1/billing/pods\?podId=(\w+)", url
+            # Records name their pod only when grouped by pod.
+            r"https://rest\.runpod\.io/v1/billing/pods\?podId=(\w+)&grouping=podId",
+            url,
         )
         if match:
             pod_id = match.group(1)
