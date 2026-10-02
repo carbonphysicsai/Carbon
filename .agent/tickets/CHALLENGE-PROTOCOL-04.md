@@ -1,6 +1,9 @@
 # CHALLENGE-PROTOCOL-04 — Phase 1 step 4: battery through Test/iterate with Graphite (Graphite phases 3 and 4)
 
-**Status:** in progress (slice 1).
+**Status:** slices 1-6 built and tested. Slices 5 and 7, the live blocks,
+wait on two owner inputs: the Engy key in the running session's environment,
+and a battery campaign with no agent of its own for Graphite to drive. Until
+then nothing live has run, and nothing has been spent.
 **Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`, `HUB_UPDATE_REQUIRED`.
 **Affects:** `SYSTEM/AGENT-EXECUTION`.
 **Authority:**
@@ -75,6 +78,24 @@ about USD 0.73 expected. Derivation: `docs/development/graphite/grants/README.md
    - coverage report.
 7. **The live block of 3 Attacker sessions.** Then the coverage report and
    iteration log are committed and step 4 closes.
+
+## What is built
+
+| Slice | Code | Tests |
+| --- | --- | --- |
+| 1 Records, grant, stage | ; ;  | ,  |
+| 2 Live-session repairs | ; per-role call caps; run-namespaced identities; trial cap; model view with the full result kept |  |
+| 3 Miner path | ;  | : a scripted session practices and selects on battery's real path |
+| 4 Carbon-side scoring | : contract check, compile, rebuild, clean rebuild, development score, incumbent comparison |  |
+| 5 Runner | : , , Code coverage for Python, version 7.3.1 with C extension.  Use 'coverage help' for help.
+Full documentation is at https://coverage.readthedocs.io/en/7.3.1; dry run |  |
+| 6 Attacker v1 | : brief, attempts, re-verification, findings, coverage |  |
+
+**Dry runs, no spend.**
+- **Constructor.** A scripted KNN selection was rebuilt identically and
+  scored E 0.171 (eligible) on the full development scoring set.
+- **Attacker.** One refused attempt was held, with no finding. The coverage
+  report merges with suite v1's report under its digest.
 
 ## Working decisions (slice 1)
 
