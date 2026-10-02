@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T05:08:23Z"
+  captured_at_utc: "2026-10-02T14:39:14Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "7b481abb53bb6f7c415585fa6267d787e95acc56"
+  authority_snapshot_commit: "9e626e6de6adaa23306f21a58fa6d9b9a01934f0"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10672,6 +10672,19 @@ events:
     recorded_at: "2026-10-02T09:45:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4B-TARGON-VM"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4b: battery practice on a Targon GPU VM on the miner's own account, reached over SSH (OWNER-C-MLP-03-ANSWERS-01, which also records the C-MLP-03 Mira question as answered by OWNER-GRAPHITE-01). Targon's API runs no container image, so the adapter rents a VM instead. Each trial makes one SSH key on the miner's machine (owner-only, removed at teardown), registers and deploys a VM with that key and the miner's chosen VM image, and starts the pinned GPU worker there once with Docker on the VM's loopback. The controller reaches the job through an SSH local port forward, recorded as job_transport ssh-tunnel. A VM image without Docker or the NVIDIA Container Toolkit is refused by name, and nothing is installed. Teardown deletes the VM and its SSH key and verifies both. Targon documents no idempotency key, end time or per-VM charge: a lost answer is reconciled by the ownership name, and the charge stays unresolved, never estimated. Setup offers Targon with a VM image field, checks the image name, the credits and the price, and rents nothing. Shapes are from docs.targon.com and API v3.7.0, read 2026-10-02 and not run live. A real Targon practice is the acceptance. The battery intake's exposure record is not made here. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T10:33:18Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
     event_id: "GRAPHITE-03"
     owner_lane: "technical_lead"
@@ -10682,6 +10695,19 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-10-02T10:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-04-CHALLENGE-NEUTRAL-CONTROL-CENTER"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-04 (OWNER-CONTROL-CENTER-NEUTRAL-01): miners reach the Control Center and choose what to mine, and nothing there is battery-only. scripts/install_miner.sh takes a clean Linux machine through a machine check, the locked environment and local builds of the pinned images to a running Control Center, and records the images for setup; the Control Center reopens the miner's written setup on restart, and website/get-started is the website's page for it (deployment separate). A miner needs no operator file: setup reads Carbon's testnet and its publisher (UID 0 of a finalized snapshot) into miner-network.json, and every campaign entry point binds through carbon.development_session.miner_network. Everything that differs by Challenge (feedback modes and schema, the validator intake check, GPU and rented-GPU scopes) is read from that Challenge's registered campaign; the Launchpad and MCP doors import no Challenge module, profiles carry per-Challenge intakes and validators (legacy battery_* fields read as before), GPU practice is set up for a Challenge the miner names and never launches another, and the catalog shows every Challenge's profiles, research provisions and setup offers alike. Only implemented Challenges launch; the rest are shown and refused with the registry's code. The retired Burgers identity left the pre-launch review. Engineering evidence only; the fresh-machine run is a person's, and nothing is qualified or written to the chain."
+    primary_detail: ".agent/tickets/C-MLP-04_challenge_neutral_control_center.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T10:57:26Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
