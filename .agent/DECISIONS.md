@@ -17714,3 +17714,41 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
   network activation and every population, threshold and tolerance.
 
 Ticket: `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`.
+
+## 2026-10-02 — OWNER-GRAPHITE-05: the executor proposes grants and the owner approves them; GRAPHITE-GRANT-PLANNER-01
+
+**Owner, verbatim, in session on 2026-10-02.** The question was whether to
+draft Graphite's Level 1 proposal for battery, which needs a live session and
+so a grant. The answer: "stop requiring grants. Just ask for platform and
+budget and propose one. Approve".
+
+The executor then proposed the planner grant with every value. The owner
+answered "Approve as proposed".
+
+**Decision.**
+1. **Proposals replace owner-written grants.** For paid work, the executor
+   proposes a grant with its derivation, and the owner approves it in a line:
+   - platform and account;
+   - ceiling, runs and worst case per run;
+   - expiry and cleanup.
+
+   The owner no longer writes grants. The proposal and the approval are
+   recorded together, in the grant file, the grants README and this log.
+2. **The spend control is unchanged.** The controller still requires an
+   approved grant file as its hard ceiling, and nothing spends without one.
+3. **GRAPHITE-GRANT-PLANNER-01** (`docs/development/graphite/grants/`),
+   approved as proposed:
+   - Engy inference only, no pods, on `Carbon-Account`;
+   - USD 5.00, expiring 2026-12-31;
+   - 2 runs at a worst case of USD 2.50 each;
+   - a cap of 43 calls per run at the planner's settings;
+   - cleanup 0.00.
+
+   It funds Graphite's level-planner sessions: battery first, plus one retry
+   or a second Challenge. The runner accepts only this grant, refuses a
+   credential file that is not owner-only, and writes PROPOSED proposals only.
+   Accepting or declining them stays the construction contract owner's act.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Testnet 567 only.

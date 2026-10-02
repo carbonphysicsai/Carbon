@@ -412,6 +412,75 @@ def test_the_live_runner_refuses_before_any_call(tmp_path, capsys, case, code):
     assert not (lp.PROTOCOL.parents[2] / "scratch-level-plan").exists()
 
 
+@pytest.mark.parametrize(
+    "case, code",
+    [
+        ("readable_by_group", "credential_file_not_owner_only"),
+        ("symlink", "credential_file_not_owner_only"),
+        ("other_grant", "planner_grant_required"),
+    ],
+)
+def test_the_live_runner_needs_an_owner_only_key_and_the_planner_grant(
+    tmp_path, capsys, case, code
+):
+    key = tmp_path / "api_key"
+    key.write_text("not-a-real-key")
+    key.chmod(0o600)
+    if case == "readable_by_group":
+        key.chmod(0o640)
+    credential = key
+    if case == "symlink":
+        credential = tmp_path / "link"
+        credential.symlink_to(key)
+    grant_file = tmp_path / "grant.json"
+    grant_file.write_text(
+        json.dumps(
+            grant_document(
+                grant_id="graphite-test-grant"
+                if case == "other_grant"
+                else "GRAPHITE-GRANT-PLANNER-01"
+            )
+        )
+    )
+    argv = ["--challenge", BATTERY, "--root", str(tmp_path / "root")]
+    argv += ["--snapshot", str(tmp_path / "missing-snapshot.json")]
+    argv += ["--grant", str(grant_file), "--credential-file", str(credential)]
+    assert lp.main(argv, environ={}) == 2
+    refusal = json.loads(capsys.readouterr().out.splitlines()[0])
+    assert refusal == {"status": "REFUSED", "reason_code": code}
+    # Refused before the snapshot is even read, so before any call.
+    assert lp.PLANNER_GRANTS == {"GRAPHITE-GRANT-PLANNER-01"}
+
+
+def test_the_planner_grant_covers_its_calls():
+    from decimal import Decimal
+
+    from carbon.agent_campaign.grant import SpendingGrant
+
+    document = json.loads(
+        (
+            lp.PROTOCOL.parents[2]
+            / "docs/development/graphite/grants/GRAPHITE-GRANT-PLANNER-01.json"
+        ).read_text()
+    )
+    planner_grant = SpendingGrant.from_document(document)
+    # One call reserved at the planner's settings on glm-5.2: 680 and 1,500
+    # nanodollars per input and output token.
+    call = Decimal(
+        lp.SETTINGS["max_input_tokens"] * 680 + lp.SETTINGS["max_output_tokens"] * 1500
+    ) / Decimal(10**9)
+    assert call == Decimal("0.056852480")
+    cap = int(planner_grant.worst_case_run_cost // call)
+    assert cap == 43 and lp.MAX_CALLS <= cap
+    assert planner_grant.max_runtime_s == cap * lp.SETTINGS["timeout_seconds"]
+    assert (
+        planner_grant.permitted_runs * planner_grant.worst_case_run_cost
+        + planner_grant.cleanup_allowance
+        <= planner_grant.monetary_ceiling
+    )
+    assert planner_grant.provider == "graphite" and planner_grant.max_concurrency == 1
+
+
 def test_an_injection_inside_a_card_is_data(tmp_path):
     injected = dict(FIXTURE_INDEX.cards[0])
     injected["abstract"] = (

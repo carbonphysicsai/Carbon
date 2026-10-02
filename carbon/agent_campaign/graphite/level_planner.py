@@ -87,6 +87,10 @@ SETTINGS = {
     "timeout_seconds": 300,
 }
 ISOLATED = (4, 5)
+#: The grants a live planner session may run under: the executor proposes
+#: them and the owner approves them (OWNER-GRAPHITE-05). Each one's call cap
+#: covers MAX_CALLS at SETTINGS (see the grants README).
+PLANNER_GRANTS = frozenset({"GRAPHITE-GRANT-PLANNER-01"})
 _SOURCE = re.compile(r"^(card|result|contract):(\S+)$")
 _RESULT_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
@@ -500,9 +504,28 @@ class LevelPlanner:
         return summary
 
 
+def owner_only(path):
+    """Refuse a credential file anyone but its owner could read or replace.
+    Checks metadata only; the file is never opened here."""
+    import os
+    import stat
+
+    from . import phase2
+
+    info = os.lstat(path)
+    if (
+        stat.S_ISLNK(info.st_mode)
+        or not stat.S_ISREG(info.st_mode)
+        or info.st_uid != os.getuid()
+        or info.st_mode & 0o077
+    ):
+        raise phase2.RunnerRefused("credential_file_not_owner_only")
+
+
 def main(argv=None, *, environ=None):
-    """The live runner. It needs the owner's grant and a credential, writes
-    only under a root outside the repository, and exits 4 on a typed stop."""
+    """The live runner. It needs an approved planner grant and an owner-only
+    credential, writes only under a root outside the repository, and exits 4
+    on a typed stop."""
     import argparse
     import os
 
@@ -533,6 +556,10 @@ def main(argv=None, *, environ=None):
             env=args.credential_env,
             environ=os.environ if environ is None else environ,
         ) as reference:
+            if args.credential_file is not None:
+                owner_only(args.credential_file)
+            if grant.grant_id not in PLANNER_GRANTS:
+                raise phase2.RunnerRefused("planner_grant_required")
             index = load_snapshot(args.snapshot)
             results = (
                 json.loads(Path(args.results).read_bytes()) if args.results else []

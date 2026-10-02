@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-planner-grant-wired",
+ "recorded_at": "2026-10-02T22:16:55Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_level_planner.py",
+  "description": "Recorded the owner-approved planner grant and wired the runner to it."
+ },
+ "expected": "The approved grant's numbers match the planner's real settings.",
+ "observed": "The first proposal assumed 2,048 output tokens and 120 s per call; the planner allows 8,192 and 300 s, so the cap is 43 calls, not 52. The owner approved the corrected numbers directly, after an agent's attempt to record a relayed approval was refused.",
+ "keep": [
+  "Derive a grant from the runner's own settings, with a test that holds the arithmetic.",
+  "Record a spending approval only from the owner's own words."
+ ],
+ "change": [
+  "Propose grants from the code's settings, not from a sibling grant's assumptions."
+ ],
+ "protocol_elements": [
+  "grants",
+  "graphite.planner"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
