@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-pytest-deselection-exit-code",
+ "recorded_at": "2026-10-02T20:06:18Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "carbon/challenge_pipeline/suite.py (Phase 1 step 3)",
+  "description": "Ran suite checks selected by test id with pytest -k."
+ },
+ "expected": "pytest exits 0 when every selected check passes.",
+ "observed": "The invariants conftest exits 1 whenever any test is deselected, even when every selected test passes.",
+ "keep": [
+  "The deselection guard; it stops a partial run passing as a full one."
+ ],
+ "change": [
+  "The coverage runner reads pytest's summary and records which checks ran, rather than trusting the exit code alone."
+ ],
+ "protocol_elements": [
+  "coverage_run"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -10758,6 +10758,20 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "adjustment"
+    event_id: "OWNER-CHALLENGE-ROADMAP-03"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Challenge Roadmap rev 2.2 (OWNER-CHALLENGE-ROADMAP-03). The owner found that the pipeline had dropped Challenge Admission section 3's construction ladder, so the ladder becomes the spine of construction iteration. Every Challenge enters Test/iterate at Level 0 and climbs one level at a time by the climb procedure: an expansion record, Carbon's reconstruction with tests, valid and matched adversarial runs under both profiles, ablation, interaction tests, clean-worker rebuilds, and opening to miners only after a person locks the level and validators serve its contract. A miner sends a declarative recipe and the contract digest it was written against, and the validator rebuilds with the reconstruction pinned in its own Carbon version, so a climb is a Carbon release. Levels not reached are NOT_RUN, frozen evidence and leaderboard entries name their level, and battery's Phase 1 includes its first climb, to Level 1. carbon/challenge_pipeline gains ladder.py, each record's construction block (battery at Level 0, OPEN, expansion 0001) and lessons.py: one entry after every execution, and a proposed revision adopted or declined by a named owner, never applied silently. The protocol is Challenge-neutral and improves through recorded revisions. Graphite, not Mira, is the testing agent. Rev 2.1's backend wording is corrected: JAX and PyTorch are where Carbon rebuilds a declarative recipe. No qualification, reward, deployment or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-PIPELINE-01.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T22:30:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

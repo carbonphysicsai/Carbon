@@ -5,10 +5,14 @@ from __future__ import annotations
 
 import copy
 import json
+import re
+from pathlib import Path
 
 import pytest
 
-from carbon.challenge_pipeline import render
+from carbon.challenge_pipeline import ladder, render
+from carbon.challenge_pipeline.lessons import LESSONS, LessonError, load_lessons
+from carbon.challenge_pipeline.lessons import validate as validate_lesson
 from carbon.challenge_pipeline.roadmap import (
     board_rows,
     ff_upper,
@@ -291,3 +295,222 @@ def test_the_reference_hardware_is_the_technical_owners_approval(protocol):
             validate_protocol(dict(protocol, reference_hardware_approval=approval))
     with pytest.raises(PipelineError, match="hardware it approves"):
         validate_protocol(dict(protocol, reference_hardware=None))
+
+
+# --- the construction ladder (rev 2.2, OWNER-CHALLENGE-ROADMAP-03) -----------
+
+REPOSITORY = Path(__file__).resolve().parents[2]
+
+
+def test_the_ladder_is_challenge_admission_section_3():
+    text = (REPOSITORY / "Design_Specs/Challenge_Admission.md").read_text()
+    section = text.split("## 3. Track A", 1)[1].split("### 3.1", 1)[0]
+    rows = dict(re.findall(r"^\| (\d) \| (.+?) \|$", section, flags=re.MULTILINE))
+    assert {int(k): v for k, v in rows.items()} == ladder.LEVELS
+    roadmap = (REPOSITORY / "Design_Specs/Challenge_Roadmap.md").read_text()
+    for step in ladder.CLIMB_PROCEDURE:
+        assert step.split(",")[0].split(" (")[0] in roadmap.replace("\n", " ")
+
+
+def test_battery_is_on_the_ladder_at_level_0_and_no_other_family_is_yet():
+    _, _, _, records = load_state()
+    battery = records["f05"]["construction"]
+    assert (battery["challenge"], battery["level"]) == (
+        "battery-fastcharge-ageing-development-v1",
+        0,
+    )
+    assert ladder.state_of(battery, 0) == "OPEN"
+    assert [ladder.state_of(battery, n) for n in range(1, 6)] == ["NOT_RUN"] * 5
+    assert battery["levels"][0]["expansion_record"] == ladder.newest_record(
+        battery["challenge"], REPOSITORY
+    )
+    assert all(
+        r["construction"] == ladder.empty()
+        for fid, r in records.items()
+        if fid != "f05"
+    )
+
+
+def _challenge(tmp_path, token="synthetic-heat-v1", records=2):
+    """A Challenge that is not battery: its own expansion records and test."""
+    folder = tmp_path / ladder.EXPANSIONS / token
+    folder.mkdir(parents=True)
+    for n in range(records):
+        (folder / f"{n:04d}.json").write_text("{}")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests/test_rebuilds.py").write_text("")
+    (tmp_path / "evidence.md").write_text("")
+    return token
+
+
+def _level(token, n, state="OPEN", record=0, evidence=None):
+    return {
+        "level": n,
+        "state": state,
+        "expansion_record": f"{ladder.EXPANSIONS}/{token}/{record:04d}.json",
+        "reconstruction": "tests/test_rebuilds.py",
+        "evidence": evidence,
+    }
+
+
+def test_any_challenge_climbs_one_level_at_a_time(tmp_path):
+    token = _challenge(tmp_path)
+    climbed = {
+        "challenge": token,
+        "level": 1,
+        "levels": [
+            _level(token, 0, "TESTED", 0, "evidence.md"),
+            _level(token, 1, "OPEN", 1),
+        ],
+    }
+    ladder.validate(climbed, "synthetic", tmp_path)
+    for broken, message in (
+        (dict(climbed, levels=[_level(token, 0, record=0), _level(token, 1, record=1)]),
+         "one level at a time"),
+        (dict(climbed, levels=[climbed["levels"][0], dict(_level(token, 2, record=1))]),
+         "contiguous from 0"),
+        (dict(climbed, level=0), "highest listed level"),
+        (dict(climbed, levels=[climbed["levels"][0], _level(token, 1, record=0)]),
+         "newest expansion record"),
+    ):  # fmt: skip
+        with pytest.raises(ladder.LadderError, match=message):
+            ladder.validate(broken, "synthetic", tmp_path)
+
+
+def test_a_level_is_reached_only_with_its_expansion_record_and_reconstruction(tmp_path):
+    token = _challenge(tmp_path, records=1)
+    base = {"challenge": token, "level": 0, "levels": [_level(token, 0)]}
+    ladder.validate(base, "synthetic", tmp_path)
+    no_rebuild = dict(_level(token, 0), reconstruction="tests/missing.py")
+    elsewhere = dict(_level(token, 0), expansion_record="docs/0000.json")
+    tested_bare = _level(token, 0, "TESTED")
+    open_with_evidence = _level(token, 0, evidence="evidence.md")
+    for entry, message in (
+        (no_rebuild, "reconstruction"),
+        (elsewhere, "names the expansion record"),
+        (tested_bare, "needs its evidence"),
+        (open_with_evidence, "no evidence yet"),
+        (dict(_level(token, 0), state="NOT_RUN"), "unlisted level is NOT_RUN"),
+    ):
+        with pytest.raises(ladder.LadderError, match=message):
+            ladder.validate(dict(base, levels=[entry]), "synthetic", tmp_path)
+    with pytest.raises(ladder.LadderError, match="contract token"):
+        ladder.validate(dict(base, challenge=None), "synthetic", tmp_path)
+
+
+def test_test_iterate_needs_a_ladder_and_frozen_results_a_frozen_level(
+    protocol, battery
+):
+    ids, locked = {"f04"}, _locked(protocol)
+    gated = dict(battery["gates"], scope=SIGNED, design=SIGNED)
+    flow = dict(battery, family="f04", stage="test", gates=gated)
+    validate_record(flow, locked, ids)
+    with pytest.raises(
+        PipelineError, match="needs a construction contract on the ladder"
+    ):
+        validate_record(dict(flow, construction=ladder.empty()), locked, ids)
+    evidence = dict(
+        battery["evidence"], frozen="carbon/challenge_pipeline/protocol.json"
+    )
+    frozen_run = dict(flow, evidence=evidence, suite="suite-v1", rho=0.5)
+    with pytest.raises(PipelineError, match="FROZEN construction level"):
+        validate_record(frozen_run, locked, ids)
+    level = dict(
+        battery["construction"]["levels"][0],
+        state="FROZEN",
+        evidence="carbon/challenge_pipeline/protocol.json",
+    )
+    construction = dict(battery["construction"], levels=[level])
+    validate_record(dict(frozen_run, construction=construction), locked, ids)
+
+
+# --- lessons after every execution --------------------------------------------
+
+
+def _lesson(**changes):
+    entry = {
+        "schema": "carbon.challenge-pipeline.lesson.v1",
+        "lesson_id": "2026-10-02-example",
+        "recorded_at": "2026-10-02T12:00:00Z",
+        "challenge": "synthetic-heat-v1",
+        "stage": "test_iterate",
+        "execution": {"kind": "test_run", "ref": "abc123", "description": "ran it"},
+        "expected": "it passes",
+        "observed": "it passed",
+        "keep": ["the check"],
+        "change": [],
+        "protocol_elements": ["suite_v1.A5"],
+        "proposed_revision": None,
+        "status": "RECORDED",
+    }
+    entry.update(changes)
+    return entry
+
+
+def test_the_committed_lessons_are_valid_and_cover_the_ladder_fix(protocol):
+    entries = load_lessons(protocol)
+    assert len(entries) >= 5 and len(list(LESSONS.glob("*.json"))) == len(entries)
+    fix = next(
+        e for e in entries if e["lesson_id"].endswith("construction-ladder-dropped")
+    )
+    assert fix["status"] == "ADOPTED"
+    assert fix["decision"]["ref"] == "OWNER-CHALLENGE-ROADMAP-03"
+
+
+def test_a_lesson_records_one_execution(protocol):
+    validate_lesson(_lesson(), "2026-10-02-example", protocol)
+    revision = {"target": "suite_v1.A5", "text": "repeat seeds three times"}
+    for entry, name, message in (
+        (_lesson(), "2026-10-02-other", "file name"),
+        (_lesson(recorded_at="2026-10-03T00:00:00Z"), "2026-10-02-example", "recorded date"),
+        (_lesson(recorded_at="2026-10-02T12:00:00+02:00"), "2026-10-02-example", "UTC"),
+        (_lesson(execution={"kind": "chat", "ref": "x", "description": "y"}),
+         "2026-10-02-example", "kind one of"),
+        (_lesson(protocol_elements=[]), "2026-10-02-example", "at least one protocol element"),
+        (_lesson(observed=" "), "2026-10-02-example", "observed is a statement"),
+        (_lesson(challenge="Battery!"), "2026-10-02-example", "Challenge token"),
+        (_lesson(proposed_revision=revision), "2026-10-02-example", "makes the lesson PROPOSED"),
+        (_lesson(status="PROPOSED"), "2026-10-02-example", "needs a proposed revision"),
+        (_lesson(status="ADOPTED", proposed_revision=revision),
+         "2026-10-02-example", "needs a decision"),
+        (_lesson(decision=SIGNED), "2026-10-02-example", "only an adopted or declined"),
+    ):  # fmt: skip
+        with pytest.raises(LessonError, match=message):
+            validate_lesson(entry, name, protocol)
+    validate_lesson(
+        _lesson(status="PROPOSED", proposed_revision=revision),
+        "2026-10-02-example",
+        protocol,
+    )
+
+
+def test_after_lock_only_the_process_owner_adopts_a_revision(protocol):
+    revision = {"target": "suite_v1.A5", "text": "repeat seeds three times"}
+    adopted = _lesson(status="ADOPTED", proposed_revision=revision, decision=SIGNED)
+    validate_lesson(adopted, "2026-10-02-example", protocol)
+    with pytest.raises(LessonError, match="by a named owner"):
+        validate_lesson(
+            dict(adopted, decision=dict(SIGNED, by="Someone")),
+            "2026-10-02-example",
+            protocol,
+        )
+    with pytest.raises(LessonError, match="by the process owner"):
+        validate_lesson(adopted, "2026-10-02-example", _locked(protocol))
+    validate_lesson(
+        dict(adopted, decision=dict(SIGNED, by="Fitz")),
+        "2026-10-02-example",
+        _locked(protocol),
+    )
+
+
+def test_the_view_shows_the_ladder_and_the_lessons():
+    text = render.render()
+    assert (
+        "## Construction ladder" in text and "## Lessons and proposed revisions" in text
+    )
+    assert (
+        "| f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | OPEN | NOT_RUN"
+        in text
+    )
+    for step in ladder.CLIMB_PROCEDURE:
+        assert step in text

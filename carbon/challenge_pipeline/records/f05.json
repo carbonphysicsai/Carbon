@@ -15,7 +15,7 @@
  "regret": null,
  "n": null,
  "k": null,
- "notes": "Defines the protocol (Phase 1). Its status record comes from Phase 1 step 1 (CHALLENGE-PROTOCOL-01).",
+ "notes": "Defines the protocol (Phase 1). Its status record comes from Phase 1 step 1 (CHALLENGE-PROTOCOL-01). Construction is at Level 0, including the JAX or PyTorch backend a recipe names (expansion 0001); step 4 tests Level 0, then climbs to Level 1 as the worked example.",
  "at": "2026-10-02",
  "gates": {
   "scope": null,
@@ -52,5 +52,18 @@
    "what": "Challenge admission protocol, Tracks A and B (OWNER-CHALLENGE-ADMISSION-01)",
    "ref": ".agent/tickets/CHALLENGE-ADMISSION-01.md"
   }
- ]
+ ],
+ "construction": {
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "level": 0,
+  "levels": [
+   {
+    "level": 0,
+    "state": "OPEN",
+    "expansion_record": "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json",
+    "reconstruction": "tests/cpu/test_battery_construction_contract.py",
+    "evidence": null
+   }
+  ]
+ }
 }

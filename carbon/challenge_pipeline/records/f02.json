@@ -36,5 +36,10 @@
    "what": "Cold plate reference service, pilot and exam (OWNER-CHALLENGE-DESIGN-01, PR #489)",
    "ref": ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
   }
- ]
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "levels": []
+ }
 }
