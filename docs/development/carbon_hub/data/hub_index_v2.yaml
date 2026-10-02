@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T02:48:19Z"
+  captured_at_utc: "2026-10-02T02:54:27Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5ee769c778f71402a827b44d5dd66a714c68881a"
+  authority_snapshot_commit: "3d0fc51794fc0fa162687e659e2056695d57c3b0"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10585,6 +10585,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T02:46:38Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-6-FRESH-MINER"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 6: the fresh-miner journey's engineering seam and runbook. When the validator runs elsewhere, a battery campaign now submits its frozen candidate through the validator's intake (OD-7(b)). The candidate is built by intake_client, signed by the miner's own signer (btauth/1) and posted to the intake named in the profile (battery_intake: https, or loopback). The campaign then polls its status until a verdict arrives. Each epoch submits at most once, because the submission id is recorded owner-only and a later attempt only polls. A refusal, or a wait that runs out, consumes no epoch. Setup's review step reads the intake's public facts and checks it serves this chain and Challenge. docs/development/FRESH_MINER_JOURNEY.md is the runbook and record for the clean-machine acceptance run: register, set up, launch, practise on GPU, freeze and submit, verify teardown and reconcile cost. The run is a person's, and it closes no Gap. The intake stays loopback until the owner's exposure record. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T02:51:54Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
