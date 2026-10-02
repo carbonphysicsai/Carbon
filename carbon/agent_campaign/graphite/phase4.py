@@ -125,7 +125,7 @@ class AttackerTools:
     def __init__(self, *, miner, emit, started):
         self.miner, self.emit, self.started = miner, emit, started
 
-    def _code_run_refusal(self, name, arguments):
+    def _code_run_refusal(self, arguments):
         if self.started >= MAX_CODE_RUNS:
             return "attacker_code_run_cap_reached"
         if arguments.get("action") in attack.CODE_ACTIONS:
@@ -143,7 +143,7 @@ class AttackerTools:
     async def call(self, name, arguments, identity):
         code_run = attack.is_code_run(name, arguments)
         if code_run:
-            refused = self._code_run_refusal(name, arguments)
+            refused = self._code_run_refusal(arguments)
             if refused is not None:
                 return toolbox.refusal("REFUSED_NOT_RUN", refused, limits=LIMITS)
         if self.miner is None:
