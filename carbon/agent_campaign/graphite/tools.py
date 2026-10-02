@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_tools import PREFIX as RESEARCH_PREFIX
 
 from .. import boundaries
 from . import literature
@@ -105,15 +106,48 @@ def refusal(status, code, **extra):
     }
 
 
-class GraphiteToolbox:
-    """The `sdk` a Graphite session's research loop calls."""
+#: Miner tools that start a research trial (practice or code in the sandbox).
+TRIAL_TOOLS = frozenset({"start_research_task"})
 
-    def __init__(self, *, role, literature_index, emit, miner_tools=None):
+
+def _bare(name):
+    """A miner tool's name without the research prefix."""
+    return name.removeprefix(RESEARCH_PREFIX)
+
+
+class GraphiteToolbox:
+    """The `sdk` a Graphite session's research loop calls.
+
+    Miner tool calls go to `miner_tools` with the loop's identity prefixed by
+    `namespace` (the run), so two sessions never reuse an identity on one
+    campaign. With `max_trials`, a call that would start one trial too many is
+    refused before dispatch. With `view`, the model sees `view(result)`, and
+    the full result is kept through `retain` under its digest.
+    """
+
+    def __init__(
+        self,
+        *,
+        role,
+        literature_index,
+        emit,
+        miner_tools=None,
+        namespace=None,
+        max_trials=None,
+        trials_started=0,
+        view=None,
+        retain=None,
+    ):
         self.role = role
         self.manifest = frozenset(role.tools)
         self.literature = literature_index
         self.emit = emit
         self.miner_tools = miner_tools
+        self.namespace = namespace
+        self.max_trials = max_trials
+        self.trials = trials_started
+        self.view = view
+        self.retain = retain
 
     def _refuse(self, identity, name, arguments, result):
         self.emit(
@@ -159,7 +193,23 @@ class GraphiteToolbox:
                 reason="Graphite phase 1 has no miner SDK connection; nothing ran.",
             )
         else:
-            result = await self.miner_tools.call(name, arguments, identity)
+            if _bare(name) in TRIAL_TOOLS and self.max_trials is not None:
+                if self.trials >= self.max_trials:
+                    return self._refuse(
+                        identity,
+                        name,
+                        arguments,
+                        refusal("REFUSED_NOT_RUN", "research_trial_cap_reached"),
+                    )
+                self.trials += 1
+                self.emit(
+                    "trial-" + identity,
+                    {"kind": "trial_dispatched", "tool": name, "identity": identity},
+                )
+            delegated = (
+                identity if self.namespace is None else self.namespace + ":" + identity
+            )
+            result = await self.miner_tools.call(name, arguments, delegated)
             if type(result) is not dict:
                 result = refusal(UNAVAILABLE, "malformed_tool_result")
         if protected(result):
@@ -169,6 +219,11 @@ class GraphiteToolbox:
                 arguments,
                 refusal(REFUSED_RESULT, "protected_material_in_result"),
             )
+        full = canonical(result)
+        full_digest = digest(full)
+        shown = result if self.view is None else self.view(result)
+        if self.retain is not None and shown is not result:
+            self.retain(full_digest, full)
         self.emit(
             "tool-" + identity,
             {
@@ -176,10 +231,15 @@ class GraphiteToolbox:
                 "tool": name,
                 "identity": identity,
                 "status": result.get("status"),
-                "result_digest": digest(canonical(result)),
+                "result_digest": full_digest,
+                **(
+                    {"model_view_digest": digest(canonical(shown))}
+                    if shown is not result
+                    else {}
+                ),
             },
         )
-        return result
+        return shown
 
     def _literature(self, name, arguments):
         try:

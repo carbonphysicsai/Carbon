@@ -35,6 +35,17 @@ session record is re-verified against the role's prompt digest and tool
 manifest, the model selection and the literature snapshot; any difference
 refuses the run.
 
+**Live sessions (with a stage).** A staged session additionally runs under:
+- the one-call-per-turn rule (`PARALLEL_CALLS`);
+- each role's call cap;
+- the research-trial cap (`MAX_RESEARCH_TRIALS`), counted across resumes;
+- the model's trimmed view of results (`model_view`), with every full result
+  kept by digest in the run directory.
+
+Miner tool calls carry identities namespaced by run, so sessions on one
+campaign never collide. `run_async` runs inside an open event loop, such as
+the miner path's.
+
 **Stage.** A provider built with a `stage_profile` (`stage.py`) runs at one
 stage of the challenge pipeline. It refuses:
 - a role the stage's row of Graphite's permission ledger does not admit;
@@ -64,8 +75,12 @@ from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import select, selection_from_record
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent import ProviderCallFailed
+from carbon.development_session.research_agent_policy import (
+    MAX_RESEARCH_TRIALS,
+    PARALLEL_CALLS,
+)
 from carbon.development_session.research_ledger import VERSION, CampaignLedger
-from carbon.development_session.research_loop import run_epoch
+from carbon.development_session.research_loop import model_view, run_epoch
 
 from ..controller import SimulatedCrash
 from ..grant import SpendingGrant
@@ -239,6 +254,7 @@ class GraphiteProvider:
         miner_tools=None,
         adapter_id="engy-anthropic",
         max_calls_per_run=None,
+        role_call_caps=None,
         stage_profile=None,
         clock=time.time,
         crash_at=None,
@@ -269,6 +285,10 @@ class GraphiteProvider:
             raise ValueError("max_calls_per_run is a positive integer or None")
         if crash_at is not None and crash_at not in CRASH_POINTS:
             raise ValueError("unknown crash point")
+        role_call_caps = dict(role_call_caps or {})
+        for name, cap in role_call_caps.items():
+            if type(name) is not RoleName or type(cap) is not int or cap < 1:
+                raise ValueError("role_call_caps maps a RoleName to a positive integer")
         if stage_profile is not None:
             try:
                 stages.check(stage_profile)
@@ -283,6 +303,7 @@ class GraphiteProvider:
         self.miner_tools = miner_tools
         self.adapter_id = adapter_id
         self.max_calls_per_run = max_calls_per_run
+        self.role_call_caps = role_call_caps
         self.stage_profile = stage_profile
         self.clock = clock
         self.crash_at = crash_at
@@ -321,10 +342,12 @@ class GraphiteProvider:
             )
         )
 
-    def caps(self):
+    def caps(self, role=None):
+        """The run's caps. A role's own call cap, when set, replaces the
+        operator's general one."""
         return {
             "epochs": 1,
-            "provider_attempts": self.max_calls_per_run,
+            "provider_attempts": self.role_call_caps.get(role, self.max_calls_per_run),
             "provider_nanodollars": self.per_run_ceiling_nano(),
             "research_trials": 0,
             "final_replicas": 0,
@@ -343,6 +366,35 @@ class GraphiteProvider:
             "profile_digest": stages.profile_digest(self.stage_profile),
             "ledger_digest": self.stage_profile["ledger_digest"],
         }
+
+    def _live_settings(self):
+        """Settings a staged (live) session runs under; None without a stage."""
+        if self.stage_profile is None:
+            return None
+        return {
+            "parallel_calls": PARALLEL_CALLS["rule"],
+            "max_research_trials": MAX_RESEARCH_TRIALS,
+            "model_view": "research_loop.model_view",
+        }
+
+    def _trials_started(self, run_id):
+        """Research trials dispatched so far in this session, from its events,
+        so a resumed session keeps counting."""
+        path = self._dir(run_id) / "events.jsonl"
+        if not path.exists():
+            return 0
+        return sum(
+            1
+            for line in path.read_bytes().splitlines()
+            if json.loads(line).get("kind") == "trial_dispatched"
+        )
+
+    def _retain(self, run_id, result_digest, payload):
+        directory = self._dir(run_id) / "results"
+        directory.mkdir(mode=0o700, exist_ok=True)
+        path = directory / (result_digest.removeprefix("sha256:") + ".json")
+        if not path.exists():
+            write_once(path, payload)
 
     def _grant_record(self):
         return {
@@ -500,8 +552,13 @@ class GraphiteProvider:
             },
             "checkout": brief["checkout"],
             **({"stage": stage_record} if stage_record is not None else {}),
+            **(
+                {"live_settings": self._live_settings()}
+                if stage_record is not None
+                else {}
+            ),
             "grant": self._grant_record(),
-            "caps": self.caps(),
+            "caps": self.caps(role.name),
             "live_inference": bool(self.model.live),
             "authority": {
                 "evaluator": False,
@@ -623,6 +680,10 @@ class GraphiteProvider:
     # -- the worker --------------------------------------------------------------------------
     def run(self, run_id):
         """Execute (or resume) one session. Returns the final state."""
+        return asyncio.run(self.run_async(run_id))
+
+    async def run_async(self, run_id):
+        """`run` for a caller that already has an event loop open."""
         state = self._state(run_id)
         if state["state"] in _TERMINAL:
             return state["state"]
@@ -643,10 +704,12 @@ class GraphiteProvider:
                 selection.record(),
                 self.literature.snapshot_digest,
                 digest(canonical(brief)),
-                {"grant": self._grant_record(), "caps": self.caps()},
+                {"grant": self._grant_record(), "caps": self.caps(role.name)},
             )
             if opened.get("stage") != self._stage_record():
                 raise SessionMismatch("stage_changed")
+            if opened.get("live_settings") != self._live_settings():
+                raise SessionMismatch("live_settings_changed")
         except (SessionMismatch, ValueError) as error:
             code = (
                 error.args[0]
@@ -661,27 +724,34 @@ class GraphiteProvider:
             )
         ledger = self._ledger(run_id)
         ledger.freeze(self._manifest(opened))
+        live = self._live_settings()
         sdk = toolbox.GraphiteToolbox(
             role=role,
             literature_index=self.literature,
             emit=lambda event_id, body: self._emit(run_id, event_id, body),
             miner_tools=self.miner_tools,
+            namespace=run_id,
+            max_trials=None if live is None else live["max_research_trials"],
+            trials_started=self._trials_started(run_id),
+            view=None if live is None else model_view,
+            retain=lambda result_digest, payload: self._retain(
+                run_id, result_digest, payload
+            ),
         )
         self._active.add(run_id)
         try:
-            report = asyncio.run(
-                run_epoch(
-                    ledger,
-                    owner=OWNER,
-                    epoch=EPOCH,
-                    sdk=sdk,
-                    credential_file=None,
-                    initial_observation=brief["initial_observation"],
-                    transport=self.model.transport_for(selection),
-                    provider=selection,
-                    instructions=role.prompt,
-                    tools=role.tool_schemas(),
-                )
+            report = await run_epoch(
+                ledger,
+                owner=OWNER,
+                epoch=EPOCH,
+                sdk=sdk,
+                credential_file=None,
+                initial_observation=brief["initial_observation"],
+                transport=self.model.transport_for(selection),
+                provider=selection,
+                parallel_calls=None if live is None else PARALLEL_CALLS,
+                instructions=role.prompt,
+                tools=role.tool_schemas(),
             )
         except RunCancelled:
             return self._finish(run_id, "cancelled", None, None)
