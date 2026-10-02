@@ -632,7 +632,7 @@ def work_once(inbox, target):
     duration only. An infrastructure state leaves the submission where it
     was, to be retried; it is never a refusal of the miner.
     """
-    from .daemon import CommitmentRequired
+    from .daemon import BackendNotServed, CommitmentRequired
     from .deployment import writer
     from .pool_store import HotkeyWindowUsed
 
@@ -655,6 +655,12 @@ def work_once(inbox, target):
                 else "commitment_required"
             )
             inbox.mark(submission_id, "REFUSED", {"failure": {"code": code}})
+            continue
+        except BackendNotServed as missing:
+            # This validator has no image for the recipe's backend: not a
+            # judgement of the recipe, and nothing is recorded in the pool.
+            failure = {"code": "backend_not_served", "backend": missing.backend}
+            inbox.mark(submission_id, "REFUSED", {"failure": failure})
             continue
         # An invalid construction is admitted and settled at once; it does
         # not use the hotkey's window (the daemon does not count it either).

@@ -26,6 +26,7 @@ place it is known not to is disclosed below rather than omitted.
 from __future__ import annotations
 
 from carbon.reconstruction import profile as reconstruction_profile
+from carbon.reconstruction import torch_profile
 from carbon.reconstruction.worker import model as worker
 
 SCHEMA = "carbon.public-validator-exam-environment.v1"
@@ -120,6 +121,32 @@ def exam_environment() -> dict[str, object]:
             {"name": name, "version": version, "identity": identity}
             for name, version, identity in reconstruction_profile.DEPENDENCY_SPECS
         ],
+        # OWNER-PYTORCH-BACKEND-01: a recipe may name the PyTorch backend where
+        # its Challenge offers it (battery), and is then rebuilt in this
+        # environment instead. Declared, not qualified, exactly as above.
+        "additional_backend_profiles": [
+            {
+                "backend": "pytorch-cpu",
+                "challenges": ["battery-fastcharge-ageing-development-v1"],
+                "environment_id": torch_profile.ENVIRONMENT_ID,
+                "environment_version": torch_profile.ENVIRONMENT_VERSION,
+                "environment_digest": torch_profile.ENVIRONMENT_DIGEST,
+                "worker_image": (
+                    "the C-03 worker image plus the exact-hashed science-torch "
+                    "export " + torch_profile.REQUIREMENTS_PATH
+                ),
+                "pinned_dependencies": [
+                    {"name": name, "version": version, "identity": identity}
+                    for name, version, identity in torch_profile.DEPENDENCY_SPECS
+                ],
+                "precision": {"parameter_dtype": "float32 or float64 (fno: float32)"},
+                "determinism": (
+                    "torch.use_deterministic_algorithms(True), one explicit "
+                    "generator per rebuild, two CPU threads"
+                ),
+                "qualified": False,
+            }
+        ],
         "platform": {"operating_system": "linux", "architecture": "x86_64"},
         "precision": {
             "parameter_dtype": "float32",
@@ -166,6 +193,7 @@ def exam_environment() -> dict[str, object]:
             "CROSS_HOST_REPRODUCIBILITY",
             "ANY_TOLERANCE_OR_ACCEPTANCE_THRESHOLD",
             "GPU_BACKEND_COVERAGE",
+            "PYTORCH_BACKEND_REPRODUCIBILITY_TOLERANCE",
         ],
         # Measured under N2 and reported because it bears on what a miner can
         # infer from the envelope above: varying usable cores (1, 2, 4, 8) and

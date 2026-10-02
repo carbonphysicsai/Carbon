@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-01T21:17:08Z"
+  captured_at_utc: "2026-10-01T22:41:55Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "046a71c45dafbc62ea024eebc7b7bc41900887e9"
+  authority_snapshot_commit: "3b04cf1aefa838ef905971cd20b88524101e4921"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10483,6 +10483,30 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-01T19:16:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "RECON-TORCH-01-PYTORCH-BACKEND-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented RECON-TORCH-01 under OWNER-PYTORCH-BACKEND-01: a battery recipe names its reconstruction backend, jax (the default) or pytorch, and Carbon rebuilds it with its own trainer for that backend, in that backend's pinned worker image, and scores it the same way in one ranking. The battery construction contract gains inference.backend, which realizes model_family.pytorch_backend (moved from excluded to supported), and a PyTorch-only fno family (neuraloperator 2.0 Fourier neural operator over the time grid, float32 only) with an n_modes surface; expansion record 0001 records the widening. carbon/battery/torch_training.py ports every registered optimizer, learning-rate curve, loss, stage and averaging to PyTorch, with deterministic algorithms, explicit generators and fixed threads, and the same prediction format and a pickle-free state. On the validator end the carrier holds one image per backend; the PyTorch worker image is layered on the C-03 image from an exact-hashed science-torch export, and a deployment binds it to its JAX parent and that export. A validator without it answers backend_not_served, which records nothing against the miner, and a worker image that lacks a backend is infrastructure. On the miner end practice runs each recipe in its own backend and the PyTorch worker image is the miner's worker image. CI installs science-torch and requires the PyTorch lane. A determinism harness produces repeat-and-compare evidence. The reproducibility tolerance, the training limit and the image's security acceptance remain the owner's; PyTorch recipes are DEVELOPMENT only, with no reward, frontier or qualification authority."
+    primary_detail: ".agent/tickets/RECON-TORCH-01_pytorch_backend.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-01T19:32:51Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "OWNER-BATTERY-CARRYOVER-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented the owner's 2026-10-01 carry-over decision for the battery validator deployment. During testing the owner revises recipes and the construction contract while a deployment runs, and incumbents stay winners. PoolStore.rebind carries a deployment over in place: only the construction contract, recipe implementation, backend images and envelope may change, every earlier identity is kept, and a changed exam rule, public material or seed pin is still refused. The operator runs it as operate upgrade. After an upgrade, a recipe admitted under a recorded earlier contract is recompiled under the current one and each recompile is recorded; one the current contract refuses is closed as contract_revised without stalling the queue behind it; a final whose side the current contract refuses keeps the incumbent; and a digest that matches no recorded identity is still artifact_mismatch. The same decision has PyTorch run with the same standing as JAX, its tolerance, training limit and image analysed in tandem with testing, and names autoscience.io/Mira as C-MLP-03's Mira. Battery stays a DEVELOPMENT, non-paying Challenge; the exam, scoring and qualification are unchanged."
+    primary_detail: "carbon/battery/pool_store.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-01T22:41:55Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
