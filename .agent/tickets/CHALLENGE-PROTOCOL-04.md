@@ -1,9 +1,26 @@
 # CHALLENGE-PROTOCOL-04 — Phase 1 step 4: battery through Test/iterate with Graphite (Graphite phases 3 and 4)
 
-**Status:** slices 1-6 built and tested. Slices 5 and 7, the live blocks,
-wait on two owner inputs: the Engy key in the running session's environment,
-and a battery campaign with no agent of its own for Graphite to drive. Until
-then nothing live has run, and nothing has been spent.
+**Status:** re-scoped on 2026-10-02 by the owner (below). Nothing live has
+run here, and nothing has been spent.
+
+**Re-scope (owner, 2026-10-02).** The Graphite lane's #504 (GRAPHITE-01
+phase 3, under OWNER-GRAPHITE-03) builds the same Constructor in files of the
+same names. Asked which to keep, the owner answered "yes" to this
+recommendation:
+- **#504 lands as the Constructor.**
+- **This ticket drops its duplicate Constructor slices** (2 to 5: the
+  provider repairs, miner path, Carbon-side scoring and runner).
+- **What only this branch has is rebuilt on top of #504 once it merges:**
+  - the stage profile and Graphite's per-stage enforcement (slice 1);
+  - the Attacker with Carbon-side re-verification, findings and suite
+    coverage (slice 6);
+  - the step 4 grant.
+
+This branch stays as the reference implementation until then and is not
+merged as it stands. The live blocks then run on #504's Constructor and this
+ticket's Attacker:
+- a fresh Launchpad battery campaign with no agent (owner, 2026-10-02);
+- the Engy key in an owner-only file, `~/.carbon/private/engy/api_key`.
 **Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`, `HUB_UPDATE_REQUIRED`.
 **Affects:** `SYSTEM/AGENT-EXECUTION`.
 **Authority:**
