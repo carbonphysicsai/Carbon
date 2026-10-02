@@ -34,6 +34,7 @@ import re
 from pathlib import Path
 
 from carbon.challenge_pipeline import ladder
+from carbon.challenge_pipeline.proposals import ProposalError, load_proposals
 from carbon.challenge_pipeline.roadmap import load_families
 
 HERE = Path(__file__).parent
@@ -273,6 +274,10 @@ def load_state(
         if path.stem != record["family"]:
             raise PipelineError(f"{path.name}: named for {record['family']}")
         out[record["family"]] = record
+    try:
+        load_proposals(protocol)
+    except ProposalError as error:
+        raise PipelineError(str(error)) from error
     return families, protocol, rubric, out
 
 

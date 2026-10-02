@@ -24,7 +24,12 @@
  ],
  "proposed_revision": {
   "target": "construction_ladder.climb_procedure",
-  "text": "Add step 0, the level proposal. For one Challenge and one level it states the capabilities to admit, mapped onto the ladder, with their bounds; the research behind them (Graphite's method cards and experiments on development material); the reconstruction work each needs; and the expected attack surface. Graphite or an engineer drafts it, and the construction contract owner (the technical owner) accepts it before step 1 records the contract change."
+  "text": "Add step 0, the level proposal. Graphite proposes the capabilities for every construction level of every Challenge: what each adds, its bounds, the research behind it (method cards and development experiments), the reconstruction work it needs and the attack surface it opens, and what the level leaves out. The construction contract owner accepts or declines each proposal, and a level above 0 is reached only with an accepted one."
  },
- "status": "PROPOSED"
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-03 amendment: \"I want graphite to propose capabilities for every construction level\""
+ }
 }

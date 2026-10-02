@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from carbon.challenge_pipeline import ladder
 from carbon.challenge_pipeline.lessons import load_lessons, open_revisions
+from carbon.challenge_pipeline.proposals import load_proposals
 from carbon.challenge_pipeline.roadmap import board_rows, prerequisites_later, rank_all
 from carbon.challenge_pipeline.state import (
     REPOSITORY,
@@ -126,6 +127,31 @@ def render():
             out.append(
                 f"| {fid} {names[fid]} | `{c['challenge']}` | {c['level']} | {states} |"
             )
+    proposals = load_proposals(protocol)
+    out += [
+        "",
+        "**Graphite's level proposals.** Graphite proposes the capabilities for every",
+        "level of every Challenge; the construction contract owner accepts or declines",
+        "each (`carbon/challenge_pipeline/proposals/`). A level above 0 is reached only",
+        "with an accepted proposal.",
+        "",
+    ]
+    contracts = sorted(
+        {c["challenge"] for c in on_ladder.values()} | {key[0] for key in proposals}
+    )
+    if not contracts:
+        out.append("No Challenge has a contract on the ladder yet.")
+    else:
+        out += [
+            "| Contract | " + " | ".join(f"L{n}" for n in ladder.LEVELS) + " |",
+            "| --- | " + " | ".join("---" for _ in ladder.LEVELS) + " |",
+        ]
+        for token in contracts:
+            cells = " | ".join(
+                proposals[(token, n)]["status"] if (token, n) in proposals else "none"
+                for n in ladder.LEVELS
+            )
+            out.append(f"| `{token}` | {cells} |")
     out += [
         "",
         "## Priority queue",

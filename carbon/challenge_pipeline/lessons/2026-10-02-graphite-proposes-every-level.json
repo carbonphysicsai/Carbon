@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-graphite-proposes-every-level",
+ "recorded_at": "2026-10-02T20:54:17Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_challenge_pipeline.py",
+  "description": "Added level proposals and ran the pipeline tests."
+ },
+ "expected": "A level above 0 cannot be reached without Graphite's accepted proposal, for any Challenge.",
+ "observed": "27 passed, including a synthetic Challenge that climbs only once its Level 1 proposal is ACCEPTED, and refusals of a non-Graphite proposer and a non-technical-owner acceptance.",
+ "keep": [
+  "The proposal is a record the pipeline checks, not a convention."
+ ],
+ "change": [
+  "Graphite's planner sessions must emit proposals in this schema; build that role next (GRAPHITE-ADMISSION-01)."
+ ],
+ "protocol_elements": [
+  "construction_ladder.climb_procedure",
+  "graphite.planner"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

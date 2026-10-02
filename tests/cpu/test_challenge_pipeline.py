@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from carbon.challenge_pipeline import ladder, render
+from carbon.challenge_pipeline import ladder, proposals, render
 from carbon.challenge_pipeline.lessons import LESSONS, LessonError, load_lessons
 from carbon.challenge_pipeline.lessons import validate as validate_lesson
 from carbon.challenge_pipeline.roadmap import (
@@ -347,14 +347,56 @@ def _level(token, n, state="OPEN", record=0, evidence=None):
     return {
         "level": n,
         "state": state,
+        "proposal": None if n == 0 else f"{ladder.PROPOSALS}/{token}/level-{n}.json",
         "expansion_record": f"{ladder.EXPANSIONS}/{token}/{record:04d}.json",
         "reconstruction": "tests/test_rebuilds.py",
         "evidence": evidence,
     }
 
 
+def _proposal(token="synthetic-heat-v1", level=1, status="ACCEPTED", **changes):
+    """Graphite's proposal for one level of a synthetic Challenge."""
+    proposal = {
+        "schema": "carbon.challenge-pipeline.level-proposal.v1",
+        "challenge": token,
+        "level": level,
+        "recorded_at": "2026-10-02T12:00:00Z",
+        "proposed_by": {"agent": "graphite", "role": "planner", "session": "gs-0001"},
+        "capabilities": [
+            {
+                "id": "objective.loss_expressions",
+                "adds": "loss terms composed from a bounded operation set",
+                "bounds": "add, multiply, abs, square over registered quantities; depth 3",
+                "rationale": "physics-weighted losses improved held-out error in development",
+                "sources": ["method-card:example-0001"],
+                "reconstruction": "compile the expression tree into the JAX and PyTorch losses",
+                "attack_surface": "expression parser; nonfinite gradients",
+            }
+        ],
+        "left_out": ["arbitrary code in the loss"],
+        "status": status,
+    }
+    if status != "PROPOSED":
+        proposal["decision"] = dict(SIGNED, by="Ryan")
+    proposal.update(changes)
+    return proposal
+
+
+def _file_proposal(tmp_path, proposal):
+    path = (
+        tmp_path
+        / ladder.PROPOSALS
+        / proposal["challenge"]
+        / f"level-{proposal['level']}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(proposal))
+    return path
+
+
 def test_any_challenge_climbs_one_level_at_a_time(tmp_path):
     token = _challenge(tmp_path)
+    _file_proposal(tmp_path, _proposal(token))
     climbed = {
         "challenge": token,
         "level": 1,
@@ -396,6 +438,57 @@ def test_a_level_is_reached_only_with_its_expansion_record_and_reconstruction(tm
             ladder.validate(dict(base, levels=[entry]), "synthetic", tmp_path)
     with pytest.raises(ladder.LadderError, match="contract token"):
         ladder.validate(dict(base, challenge=None), "synthetic", tmp_path)
+
+
+def test_a_level_above_0_starts_from_graphites_accepted_proposal(tmp_path, protocol):
+    token = _challenge(tmp_path)
+    climbed = {
+        "challenge": token,
+        "level": 1,
+        "levels": [
+            _level(token, 0, "TESTED", 0, "evidence.md"),
+            _level(token, 1, "OPEN", 1),
+        ],
+    }
+    with pytest.raises(ladder.LadderError, match="proposal is .* in the repository"):
+        ladder.validate(climbed, "synthetic", tmp_path)
+    unproposed = dict(climbed["levels"][1], proposal=None)
+    with pytest.raises(ladder.LadderError, match="Graphite's accepted proposal"):
+        ladder.validate(
+            dict(climbed, levels=[climbed["levels"][0], unproposed]),
+            "synthetic",
+            tmp_path,
+        )
+    path = _file_proposal(tmp_path, _proposal(token, status="PROPOSED"))
+    with pytest.raises(ladder.LadderError, match="not ACCEPTED"):
+        ladder.validate(climbed, "synthetic", tmp_path)
+    path.write_text(json.dumps(_proposal(token)))
+    ladder.validate(climbed, "synthetic", tmp_path)
+
+
+def test_graphite_proposes_and_the_contract_owner_decides(protocol, tmp_path):
+    proposals.validate(_proposal(status="PROPOSED"), "p", protocol)
+    proposals.validate(_proposal(), "p", protocol)
+    engineer = {"agent": "engineer", "role": "planner", "session": "x"}
+    capability = _proposal()["capabilities"][0]
+    for proposal, message in (
+        (_proposal(proposed_by=engineer), "agent: graphite"),
+        (_proposal(decision=dict(SIGNED, by="Harshdeep")), "technical owner"),
+        (_proposal(status="PROPOSED", decision=SIGNED), "no decision yet"),
+        (_proposal(capabilities=[dict(capability, sources=[])]), "sources"),
+        (_proposal(capabilities=[dict(capability, id="loss")]), "<group>.<name>"),
+        (_proposal(capabilities=[capability, capability]), "unique"),
+        (_proposal(capabilities=[], left_out=[]), "why the level adds nothing"),
+        (_proposal(level=6), "level is 0-5"),
+    ):
+        with pytest.raises(proposals.ProposalError, match=message):
+            proposals.validate(proposal, "p", protocol)
+    # Filed under its own challenge and level.
+    directory = tmp_path / "proposals"
+    (directory / "synthetic-heat-v1").mkdir(parents=True)
+    (directory / "synthetic-heat-v1/level-2.json").write_text(json.dumps(_proposal()))
+    with pytest.raises(proposals.ProposalError, match="its own challenge and level"):
+        proposals.load_proposals(protocol, directory)
 
 
 def test_test_iterate_needs_a_ladder_and_frozen_results_a_frozen_level(
@@ -514,3 +607,12 @@ def test_the_view_shows_the_ladder_and_the_lessons():
     )
     for step in ladder.CLIMB_PROCEDURE:
         assert step in text
+    # Graphite's proposals for every level: none filed for battery yet.
+    assert "**Graphite's level proposals.**" in text
+    assert (
+        "| `battery-fastcharge-ageing-development-v1` | none | none | none | none | none | none |"
+        in text
+    )
+    assert ladder.CLIMB_PROCEDURE[0].startswith(
+        "Graphite proposes the level's capabilities"
+    )

@@ -60,6 +60,7 @@
    {
     "level": 0,
     "state": "OPEN",
+    "proposal": null,
     "expansion_record": "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json",
     "reconstruction": "tests/cpu/test_battery_construction_contract.py",
     "evidence": null
