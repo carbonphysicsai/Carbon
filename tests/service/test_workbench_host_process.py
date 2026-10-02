@@ -189,7 +189,10 @@ def prepare(root: Path, manifest: Path, image, monkeypatch):
     # Only the worker image manifest exists. The provider key file, miner key and
     # operator config are named but absent: the runtime that would read them is
     # the one substitution, and nothing can be authorized from a missing file.
-    paths = {name: str(root / "absent" / (name + ".json")) for name in PATH_FIELDS}
+    paths = {
+        name: str(root / "absent" / (name + ".json"))
+        for name in PATH_FIELDS | {"operator_config"}
+    }
     paths["image_manifest"] = str(manifest)
     profile = root / "profile.json"
     private_write(

@@ -28,8 +28,8 @@ from pathlib import Path
 from scripts.dev.miner_launchpad.controller import Rejected
 
 
-def _battery_feedback_modes():
-    # The runner validates against the same tuple (runner.feedback_modes).
+def _feedback_modes():
+    # The runner validates against the same campaigns (runner.feedback_modes).
     from scripts.dev.miner_launchpad.runner import feedback_modes
 
     return feedback_modes()
@@ -94,9 +94,10 @@ FIELDS = {
     "feedback_mode": (
         "string",
         (
-            "Battery Challenge only: one of "
-            + ", ".join(_battery_feedback_modes())
-            + " (FULL by default). Frozen when the campaign is created; a "
+            "One of the chosen Challenge's feedback modes (its description "
+            "lists them; every mode offered: "
+            + ", ".join(_feedback_modes())
+            + "). FULL by default. Frozen when the campaign is created; a "
             "resume keeps the frozen mode."
         ),
     ),

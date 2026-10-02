@@ -31,7 +31,18 @@ def _text_fields(body, fields):
     return {k: body[k][:4096] for k in fields if type(body.get(k)) is str}
 
 
-BATTERY_FEEDBACK_SCHEMA = "carbon.battery.permitted-feedback.v1"
+def feedback_schemas():
+    """The permitted-feedback schemas the implemented Challenges' validators
+    return, each read from its own campaign (C-MLP-04)."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+
+    return {
+        campaign.feedback_schema
+        for _entry, campaign in implemented_campaigns()
+        if campaign.feedback_schema is not None
+    }
+
+
 #: What the Submission view shows of a validator outcome: only fields the
 #: permitted feedback already carries for this miner, never more.
 _SCREENING_FIELDS = (
@@ -64,7 +75,7 @@ def _validator_outcome(epoch, path):
         document = json.loads(path.read_bytes())
         outcome = document["outcome"]
         if (
-            document.get("schema") != BATTERY_FEEDBACK_SCHEMA
+            document.get("schema") not in feedback_schemas()
             or document.get("epoch") != epoch
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
