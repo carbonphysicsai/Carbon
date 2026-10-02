@@ -11,7 +11,7 @@ import json
 import math
 import re
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
 
 from carbon.reconstruction.worker import liveness_reaper
@@ -235,6 +235,7 @@ def _run_locked(
     output_validator=None,
     miner_authored=False,
     before_finish=None,
+    accelerator=None,
 ):
     before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
@@ -269,6 +270,20 @@ def _run_locked(
         # Prospective language routes bind their complete reviewed environment.
         # Leaving this absent preserves historical Python operation identities.
         request["execution_contract"] = execution_contract
+    device = None
+    if accelerator is not None:
+        # Carbon's own fixed practice program on the miner's own GPU (C-MLP-03
+        # slice 3). The device is the host's installed record, bound to this
+        # request, so a replaced or withdrawn record is a different request.
+        # Absent for every CPU run, so their identities are unchanged.
+        if accelerator != MINER_GPU or miner_lane:
+            raise ValueError("unsupported accelerator request")
+        device = _gpu_device()
+        request["accelerator"] = {
+            "kind": MINER_GPU,
+            "profile": _gpu_profile_id(),
+            "device": device.digest,
+        }
     launch = digest(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
@@ -348,6 +363,8 @@ def _run_locked(
             checked = doctor(image_id=image.image_id, cli=cli)
         else:
             checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+            if device is not None:
+                _check_gpu_host(cli, image, device)
         if not checked.eligible:
             # No attempt is automatically retried and its reservation remains
             # visible.
@@ -397,13 +414,21 @@ def _run_locked(
             miner_authored=miner_authored,
             before_finish=before_finish,
         )
-    worker = DevelopmentWorkerProfile(
-        digest(b"carbon.autoresearch.public-research.v1"),
-        digest(b"2cpu-4gib-noswap-600seconds"),
-    )
+    worker = _worker_profile(device)
     create_attempted = False
     output = operation / "export.stream"
+    lease = ExitStack()
     try:
+        if device is not None:
+            from carbon.reconstruction.worker.accelerator_runtime import (
+                miner_device_lease,
+                reject_existing_device_containers,
+            )
+
+            # This host's own concurrent runs on the device, and Carbon's own
+            # retained work on it; nothing about anyone else's use of the GPU.
+            lease.enter_context(miner_device_lease(device.device_uuid))
+            reject_existing_device_containers(cli=cli)
         _check_cancel(ledger, owner, identity)
         create_attempted = True
         cli.run(
@@ -464,17 +489,26 @@ def _run_locked(
             ),
         )
     finally:
-        if create_attempted:
-            # C-03 checks the exact launch label, removes the entire container,
-            # and confirms absence before any output becomes an associated result.
-            remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
-            # Require a successful daemon query too: an inspect transport error
-            # alone is not evidence that the container and descendants are gone.
-            remaining = cli.run(
-                ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
-            )
-            if remaining.stdout.strip():
-                raise ValueError("research cleanup uncertain; capacity stays reserved")
+        try:
+            if create_attempted:
+                # C-03 checks the exact launch label, removes the entire
+                # container, and confirms absence before any output becomes an
+                # associated result.
+                remove_exact_container(
+                    cli=cli, container_name=name, launch_digest=launch
+                )
+                # Require a successful daemon query too: an inspect transport
+                # error alone is not evidence that the container and descendants
+                # are gone.
+                remaining = cli.run(
+                    ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+                )
+                if remaining.stdout.strip():
+                    raise ValueError(
+                        "research cleanup uncertain; capacity stays reserved"
+                    )
+        finally:
+            lease.close()
     _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     decode_output_stream(output, snapshot)
@@ -506,6 +540,72 @@ def _run_locked(
         identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
     )
     return result
+
+
+#: The one accelerator a carrier run may ask for: the miner's own GPU, for
+#: Carbon's fixed practice program (never a miner-authored script).
+MINER_GPU = "MINER_OWN_GPU"
+
+
+def _gpu_profile_id():
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    return GPU_PROFILE.profile_id
+
+
+def _gpu_device():
+    """The installed host device record; fails closed when absent."""
+    from carbon.reconstruction.worker.accelerator_runtime import host_device
+
+    try:
+        return host_device()
+    except WorkerFailure:
+        raise ValueError(
+            "no GPU device record is installed on this host; run setup's GPU "
+            "check (or scripts/dev/carbon_accelerator.py prepare)"
+        ) from None
+
+
+def _check_gpu_host(cli, image, device):
+    """The miner-lane readiness the GPU controller requires, and no more."""
+    from carbon.reconstruction.onboarding import doctor_report, miner_lane_blockers
+    from carbon.reconstruction.worker.accelerator_runtime import (
+        HOST_ROOT,
+        verify_image_and_toolkit,
+    )
+
+    verify_image_and_toolkit(cli=cli, image=image)
+    if miner_lane_blockers(doctor_report(root=HOST_ROOT, cli=cli, image=image)):
+        raise ValueError("GPU host not ready")
+    if _gpu_device().digest != device.digest:
+        raise ValueError("installed host device record changed before dispatch")
+
+
+def _worker_profile(device):
+    """The carrier's worker profile: CPU, or the miner lane on `device`."""
+    policy = digest(b"carbon.autoresearch.public-research.v1")
+    resources = digest(b"2cpu-4gib-noswap-600seconds")
+    if device is None:
+        return DevelopmentWorkerProfile(policy, resources)
+    from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+    from carbon.reconstruction.worker.model import (
+        MINER_HOST_AUTHORITY,
+        registered_run_controls,
+    )
+
+    return DevelopmentWorkerProfile(
+        policy,
+        resources,
+        "carbon.c03.cuda.development.v1",
+        "1.0",
+        GPU_PROFILE.profile_id,
+        device.digest,
+        AcceleratorRole.MINER_RESEARCH.value,
+        MINER_HOST_AUTHORITY,
+        None,
+        device.device_uuid,
+        registered_run_controls(),
+    )
 
 
 def _miner_guard(seconds):

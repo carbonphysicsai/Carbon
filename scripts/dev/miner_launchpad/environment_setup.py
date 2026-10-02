@@ -29,9 +29,10 @@ Only launchable choices are offered. Inference (slice 2) offers every provider
 adapter: Engy's Chat Completions route first, Chutes with the prices it
 publishes, the fixed OpenAI and Anthropic APIs, and the generic OpenAI-shaped
 adapters with the miner's own endpoint and, optionally, their declared price.
-Rented GPUs and other agents are later slices (3 to 5); until each lands, the
-research environment standard names it as a Gap rather than this page offering
-something that would not run.
+Compute (slice 3) offers this machine's CPU, every miner's default, and this
+machine's own GPU for practice speed. Rented GPUs and other agents are later
+slices (4 and 5); until each lands, the research environment standard names it
+as a Gap rather than this page offering something that would not run.
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ import threading
 import time
 from pathlib import Path
 
+from carbon.battery.gpu import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -52,8 +54,15 @@ STEPS = ("inference", "compute", "agent", "review")
 PROFILE_ID = "miner-environment"
 REPO = Path(__file__).resolve().parents[3]
 
-#: The only compute this slice can launch: the miner's own machine, CPU.
+#: The miner's own machine, CPU: every miner's default (owner, 2026-10-01).
 LOCAL_CPU = "this-machine-cpu"
+#: The miner's own machine with its GPU, for practice speed only (C-MLP-03
+#: slice 3). Research and practice run there; the validator rebuilds on its
+#: own pinned backend and resources.
+LOCAL_GPU = "this-machine-gpu"
+#: The host device record setup installs names this machine and provider.
+GPU_RECORD_ID = "this-machine"
+GPU_PROVIDER = "own-machine"
 #: The only agent this slice can launch: Carbon's autonomous battery agent,
 #: running in this controller's process on this machine.
 AUTONOMOUS = "carbon-autonomous"
@@ -89,7 +98,21 @@ BUILD_STEPS = {
         "carbon.development_session.research_image --parent-manifest "
         "<worker manifest> --root <directory>"
     ),
+    "gpu_image_manifest": (
+        "Build the GPU worker from this exact clean checkout: "
+        "./scripts/dev/accelerator_worker_image.sh"
+    ),
 }
+
+#: What a miner does when setup cannot install the host device record itself.
+GPU_RECORD_STEP = (
+    "install it as the user that owns /var/lib/carbon/accelerators: "
+    "python scripts/dev/carbon_accelerator.py prepare --record-id "
+    + GPU_RECORD_ID
+    + " --provider "
+    + GPU_PROVIDER
+    + " --container-runtime DOCKER_ENGINE"
+)
 
 #: The inference check: one short completion. Its quoted maximum is Carbon's
 #: own reservation bound for one request at these settings (the provider's
@@ -305,12 +328,28 @@ def choices() -> dict:
             {
                 "id": LOCAL_CPU,
                 "display_name": "This machine (CPU)",
+                "default": True,
+                "needs_gpu_image": False,
                 "cost_basis": "Your own machine: nothing is rented or billed.",
                 "live_check": (
                     "Reads this checkout's revision and verifies your locally "
                     "built worker and analysis images. No network, no cost."
                 ),
-            }
+            },
+            {
+                "id": LOCAL_GPU,
+                "display_name": "This machine (your GPU)",
+                "default": False,
+                "needs_gpu_image": True,
+                "cost_basis": "Your own machine: nothing is rented or billed.",
+                "live_check": (
+                    "Everything the CPU check does, then detects your GPU with "
+                    "nvidia-smi, installs this host's device record, and "
+                    "verifies your GPU worker image and the NVIDIA container "
+                    "runtime. No network, no cost."
+                ),
+                "note": SPEED_ONLY_NOTE,
+            },
         ],
         "agent": [
             {
@@ -343,9 +382,12 @@ class LiveChecks:
     provider. Each check returns public facts only, never a key or a path.
     """
 
-    def __init__(self, *, opener=None, repo: Path = REPO):
+    def __init__(self, *, opener=None, repo: Path = REPO, host_root=None):
         self.opener = opener
         self.repo = repo
+        # Where the host device record lives (`HOST_ROOT` unless a test names
+        # another directory).
+        self.host_root = host_root
 
     def published_pricing(self, provider_id, model_id) -> dict:
         """The live-priced provider's published price for `model_id` (free,
@@ -526,6 +568,99 @@ class LiveChecks:
         return {
             "implementation": implementation,
             "images": [image.image_id, analysis.image_id],
+        }
+
+    def gpu(self, gpu_manifest: Path) -> dict:
+        """Detect this machine's GPU, install its device record, and verify
+        the GPU worker image and container runtime. Nothing leaves the host."""
+        from carbon.battery.gpu import gpu_scope, is_gpu_image
+        from carbon.reconstruction import onboarding
+        from carbon.reconstruction.host_inventory import (
+            HOST_DEVICE_RECORD,
+            HostDeviceRecord,
+        )
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            HOST_ROOT,
+            verify_image_and_toolkit,
+        )
+        from carbon.reconstruction.worker.docker_runtime import (
+            DockerCLI,
+            load_image_identity,
+        )
+        from carbon.reconstruction.worker.model import WorkerFailure
+
+        root = self.host_root or HOST_ROOT
+        try:
+            image = load_image_identity(gpu_manifest)
+        except Exception:  # noqa: BLE001 - never echo a local path or error.
+            image = None
+        if not is_gpu_image(image):
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_image_unverified",
+                next_step=BUILD_STEPS["gpu_image_manifest"],
+            )
+        try:
+            observed = onboarding.observe_local_device()
+        except WorkerFailure:
+            raise SetupRefused(
+                "gpu",
+                "gpu_not_detected",
+                next_step="install the NVIDIA driver so nvidia-smi reports your GPU",
+            ) from None
+        cli = DockerCLI()
+        try:
+            info = cli.json(["info", "--format", "{{json .}}"])
+        except WorkerFailure:
+            info = None
+        runtime = onboarding._detect_container_runtime(info)
+        try:
+            document = onboarding.build_host_record(
+                observed=observed,
+                record_id=GPU_RECORD_ID,
+                provider=GPU_PROVIDER,
+                container_runtime=None if runtime == onboarding.UNKNOWN else runtime,
+                provenance="detected by Launchpad setup with "
+                + str(observed.get("source")),
+            )
+        except WorkerFailure:
+            # Several GPUs, an unknown platform or container runtime: the
+            # miner names them; Carbon does not pick for them.
+            raise SetupRefused(
+                "gpu", "gpu_record_needs_your_choice", next_step=GPU_RECORD_STEP
+            ) from None
+        try:
+            installed = HostDeviceRecord.load(root)
+        except WorkerFailure:
+            installed = None
+        if installed is None or installed.device_uuid != document["device_uuid"]:
+            try:
+                onboarding.install_record(root, document, name=HOST_DEVICE_RECORD)
+            except WorkerFailure:
+                raise SetupRefused(
+                    "gpu", "host_device_record_not_writable", next_step=GPU_RECORD_STEP
+                ) from None
+        try:
+            verify_image_and_toolkit(cli=cli, image=image)
+        except WorkerFailure:
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_container_runtime_unavailable",
+                next_step=(
+                    "install the NVIDIA Container Toolkit, then build the GPU "
+                    "worker: ./scripts/dev/accelerator_worker_image.sh"
+                ),
+            ) from None
+        blockers = onboarding.miner_lane_blockers(
+            onboarding.doctor_report(root=root, cli=cli, image=image)
+        )
+        if blockers:
+            raise SetupRefused("gpu", "gpu_host_not_ready:" + ",".join(blockers))
+        record = HostDeviceRecord.load(root)
+        return {
+            "scope": gpu_scope(image),
+            "device_kind": record.device_kind,
+            "record_digest": record.digest,
         }
 
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
@@ -721,34 +856,52 @@ class EnvironmentSetup:
             )
 
     def compute(self, value) -> dict:
-        _closed(value, {"choice", "image_manifest", "analysis_image_manifest"})
-        if value["choice"] != LOCAL_CPU:
+        _closed(
+            value,
+            {"choice", "image_manifest", "analysis_image_manifest"},
+            {"gpu_image_manifest"},
+        )
+        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU):
             raise SetupRefused("choice", "compute_not_offered")
+        gpu = value["choice"] == LOCAL_GPU
+        if gpu != ("gpu_image_manifest" in value):
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "field_required" if gpu else "gpu_image_is_for_the_gpu_choice",
+            )
         paths = {}
-        for field in ("image_manifest", "analysis_image_manifest"):
+        fields = ("image_manifest", "analysis_image_manifest") + (
+            ("gpu_image_manifest",) if gpu else ()
+        )
+        for field in fields:
             path = _absolute(value[field], field)
             if not path.is_file() or path.is_symlink():
                 raise SetupRefused(
                     field, "image_not_built", next_step=BUILD_STEPS[field]
                 )
             paths[field] = str(path)
+        gpu_image = paths.pop("gpu_image_manifest", None)
         with self.lock:
             runtime = self.checks.compute(
                 Path(paths["image_manifest"]), Path(paths["analysis_image_manifest"])
             )
-            return self._step(
-                "compute",
-                {
-                    "choice": LOCAL_CPU,
-                    "paths": paths,
-                    "runtime": runtime,
-                    "check": {
-                        "revision": runtime["implementation"]["revision"],
-                        "images": runtime["images"],
-                        "balance": "not applicable: your own machine",
-                    },
-                },
-            )
+            check = {
+                "revision": runtime["implementation"]["revision"],
+                "images": runtime["images"],
+                "balance": "not applicable: your own machine",
+            }
+            step = {"choice": value["choice"], "paths": paths}
+            if gpu:
+                detected = self.checks.gpu(Path(gpu_image))
+                runtime = {**runtime, "gpu_research": [detected["scope"]]}
+                step["gpu_image"] = gpu_image
+                check.update(
+                    gpu=detected["device_kind"],
+                    device_record=detected["record_digest"],
+                    gpu_image=detected["scope"]["image"],
+                    note=SPEED_ONLY_NOTE,
+                )
+            return self._step("compute", {**step, "runtime": runtime, "check": check})
 
     def agent(self, value) -> dict:
         from carbon.chain.models import CARBON_NETUID
@@ -812,6 +965,7 @@ class EnvironmentSetup:
             "accepted_revision": compute["runtime"]["implementation"]["revision"],
             "campaigns_root": str(campaigns),
             "runtime": compute["runtime"],
+            **({"gpu_image": compute["gpu_image"]} if "gpu_image" in compute else {}),
             "provider_credentials": {inference["provider_id"]: key},
             "model_selection": {
                 "provider_id": inference["provider_id"],

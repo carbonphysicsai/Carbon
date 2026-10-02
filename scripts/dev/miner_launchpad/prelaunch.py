@@ -71,11 +71,11 @@ def review(cfg):
     research_execution = {"profile": ENVIRONMENT_ID, "backend": "cpu"}
     assurance = None
     if "gpu_research" in runtime:
-        from carbon.development_session.gpu_research import declared_gpu_runtime
+        from carbon.battery.gpu import declared_scope
         from carbon.reconstruction.accelerators import GPU_PROFILE, miner_lane_assurance
 
         try:
-            declared_gpu_runtime(runtime)
+            declared_scope(runtime)
         except ValueError:
             # A declared GPU runtime whose scope is malformed is not a GPU
             # campaign. Reviewing it as one would show a miner a cuda backend

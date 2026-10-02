@@ -152,11 +152,13 @@ def _runtime(profile):
     from carbon.challenge_registry.campaigns import campaign_for_manifest
 
     # Each Challenge's campaign re-checks its own frozen binding.
-    campaign_for_manifest(profile.manifest).check_attached(
+    campaign = campaign_for_manifest(profile.manifest)
+    campaign.check_attached(
         profile.manifest,
         implementation=implementation,
         images=runtime["images"],
         julia_image=_authored_image(profile, analysis),
+        gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
     )
     return _connection(profile, paths), image, analysis, None
 
@@ -457,7 +459,8 @@ async def attached_profile(profile: OperatorProfile):
         # Capability demand on this host: registry ids and miner digests
         # only. On a miner's machine it stays theirs.
         demand = DemandStore(profile.root / "capability-demand.sqlite")
-        composition, wrapper = campaign_for_manifest(profile.manifest).compose(
+        campaign = campaign_for_manifest(profile.manifest)
+        composition, wrapper = campaign.compose(
             ledger=ledger,
             owner=owner,
             image=image,
@@ -466,6 +469,7 @@ async def attached_profile(profile: OperatorProfile):
             demand=demand,
             cleanup_only=cleanup_only,
             julia_image=_authored_image(profile, analysis),
+            gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
         )
         bound = None
         try:

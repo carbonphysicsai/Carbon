@@ -501,13 +501,29 @@
 
     const compute = setupStep(body, "compute", "2. Compute", steps.compute);
     const computeChoice = setupSelect(compute, "choice", "Where research runs", offered.compute.map(c => [c.id, c.display_name]));
-    costNote(compute, offered.compute[0]);
+    const computeCost = el("div"); compute.append(computeCost);
     const image = setupField(compute, "image_manifest", "Worker image manifest (absolute path)");
     const analysis = setupField(compute, "analysis_image_manifest", "Analysis image manifest (absolute path)");
+    // This machine's GPU (C-MLP-03 slice 3): its GPU worker image, and the
+    // plain statement that GPU practice is for speed only.
+    const gpuBox = el("div"); gpuBox.dataset.step = "compute"; compute.append(gpuBox);
+    const gpuImage = setupField(gpuBox, "gpu_image_manifest", "GPU worker image manifest (absolute path)");
+    const describeCompute = () => {
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      computeCost.replaceChildren();
+      costNote(computeCost, choice);
+      if (choice?.note) researchNote(computeCost, choice.note, "hint");
+      gpuBox.hidden = !choice?.needs_gpu_image;
+    };
+    computeChoice.addEventListener("change", describeCompute);
+    if (steps.compute?.checked && steps.compute.choice) computeChoice.value = steps.compute.choice;
+    describeCompute();
     compute.append(el("button", "Verify on this machine"));
     compute.addEventListener("submit", async event => {
       event.preventDefault();
-      await setupCall("compute", {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()});
+      const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
+      if (!gpuBox.hidden) request.gpu_image_manifest = gpuImage.value.trim();
+      await setupCall("compute", request);
     });
 
     const agent = setupStep(body, "agent", "3. Agent", steps.agent);

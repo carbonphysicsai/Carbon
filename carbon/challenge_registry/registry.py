@@ -179,6 +179,8 @@ class Entry:
 
 
 CPU_RESEARCH = "cpu_research"
+#: Practice on the miner's own GPU, for speed only (C-MLP-03 slice 3).
+GPU_RESEARCH = "gpu_research"
 
 
 def _burgers():
@@ -234,6 +236,14 @@ def _entries():
                     "carrier; exact Carbon recipe and training bytes staged",
                     "jax-cpu/isolated-carrier",
                     carrier,
+                ),
+                ExecutionProfile(
+                    GPU_RESEARCH,
+                    "JAX practice on the miner's own GPU in the isolated "
+                    "carrier, for speed only; the validator rebuilds on its "
+                    "own pinned backend",
+                    "jax-cuda/isolated-carrier",
+                    carrier + ("gpu_worker_image", "host_device_record"),
                 ),
             ),
             _battery,
