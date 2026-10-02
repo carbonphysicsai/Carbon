@@ -72,9 +72,11 @@ def render():
         approval = protocol["reference_hardware_approval"]
         out += [
             "",
-            f"**Reference timing hardware** (`{protocol['reference_hardware']}`, approved "
-            f"by {approval['by']} on {approval['on']}, {approval['ref']}): "
-            f"{protocol['reference_hardware_spec']}.",
+            (
+                f"**Reference timing hardware** (`{protocol['reference_hardware']}`, approved "
+                f"by {approval['by']} on {approval['on']}, {approval['ref']}): "
+                f"{protocol['reference_hardware_spec']}."
+            ),
         ]
     out += [
         "",
