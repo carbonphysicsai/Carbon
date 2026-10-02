@@ -17433,3 +17433,65 @@ and #504 (GRAPHITE-01).
      and EV4 results (42) are retained with the run.
    - They escalate under §3.3, and should be entered in the readiness record
      when the v3 wiring (#477) lands.
+
+## 2026-10-02 — OWNER-TRACK-A-L0-02: battery Track A Level 0 values approved; the lock waits on a fixed scoring rule; scoring ratios are proposed and tested
+
+**Authority.** The owner, in session on 2026-10-02. On the open values: "I
+approve and sign everything". On the specific proposal: "Approve and (a) for
+6. We need to be proposing and testing new scoring ratios when we're having
+this problem."
+
+**Decision.** The values are frozen in
+`docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json`.
+
+1. **Threat model.** The attacker is any registered miner, with up to 3
+   cooperating.
+   - They have all public material: code, TRAIN, PRACTICE, the kit and the
+     research image.
+   - They see practice feedback, refusal codes and timing.
+   - They have no validator host, private root, journal or hidden-batch
+     results.
+   - Level 0 recipes are declarative.
+   - Chain attacks, operator compromise and the image supply chain are
+     reviewed separately.
+   - Hostile executables at later levels run only in the pinned C-03
+     isolated worker, on disposable hosts with canaries. No level above 0 is
+     opened.
+2. **Attack budget.**
+   - The hand-written harness is unlimited at no spend.
+   - Agent attacks (GRAPHITE-01 phase 4) are 3 sessions of up to 20
+     executed attempts.
+   - Hard cap: USD 25 for tokens, pods and the confirmation batch together.
+     Pods follow EV4's rules (A40 at no more than USD 0.49 per hour, at most
+     3, termination verified).
+   - Any escape or answer-key exposure stops all runs.
+3. **Study population.**
+   - Attack discovery uses miner-equivalent public material.
+   - Confirmation uses one fresh private batch from the committed root: 120
+     cases plus 4 hidden duplicates, uniform over the published box, with
+     the important region reported separately, sealed until retirement.
+4. **Reconstruction tolerances.**
+   - Same pinned CPU worker and seed: bit-identical parameters and
+     predictions.
+   - Fresh seeds or other permitted hardware: every gate passes, the
+     paired-repeat threshold holds, and the score lies within the recipe's
+     own seed-to-seed spread from the EV4 panel.
+   - With no measured spread, no rebuild acceptance.
+5. **Review.** The SciML/technical lead reviews findings first in #42 and may
+   block; silence does not block. The owner signs the Track A lock.
+6. **Lock precondition, route (a).** The deciding rule scores the
+   boundary-optimist control at or above every eligible real model on EV2
+   and EV4, so Track A at Level 0 is not locked while that stands. It is
+   recorded INCONCLUSIVE. The route out is fixing the scoring rule through
+   Track B, not proving the behaviour unconstructible.
+7. **Scoring ratios, standing direction.** While score-value divergence
+   findings stand, new scoring ratios are proposed and tested.
+   - The first study is SR-1 (`docs/development/BATTERY_SCORING_RATIOS_SR1.md`).
+   - It is pre-registered before any new ratio is computed.
+   - It is offline, on retained EV results, with no spend.
+   - A selected ratio is a proposal, like `dar-p0-r100-a0`. It changes no
+     testnet rule until it passes a fresh confirmation and its own approval.
+
+**Unchanged.** The deciding testnet rule, historical results (invariant 10),
+and every claim boundary: this is not a security audit, a qualification or a
+mainnet decision.
