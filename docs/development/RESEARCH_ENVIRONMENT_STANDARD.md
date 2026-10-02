@@ -97,10 +97,13 @@ OWNER-MINER-ENVIRONMENT-01 provisions. The ticket
 `.agent/tickets/C-MLP-03_miner_environment.md` closes them slice by slice:
 - slice 2: `model` (closed in code on 2026-10-02; live acceptance with
   miner-held keys pending);
-- slices 3 and 4: `compute` (the miner's own GPU closed it in code on
-  2026-10-02; a real GPU practice and rented GPU, slice 4, follow);
+- slices 3, 4 and 4b: `compute`. The miner's own GPU closed it in code on
+  2026-10-02. Rented GPUs on RunPod and Lium (slice 4) and a Targon VM over
+  SSH (slice 4b) are built too. A real GPU practice on each is the live
+  acceptance and is pending.
 - slice 5: `agent` (Hermes, closed in code on 2026-10-02; a Hermes-driven
-  campaign and Mira follow).
+  campaign follows). Mira is not offered: OWNER-GRAPHITE-01 builds Graphite
+  instead, and the Mira adapter refuses until a vendor contract exists.
 
 **Training data for submissions is fixed per Challenge version.** A
 submission cannot ask Carbon for extra training cases; that would reward

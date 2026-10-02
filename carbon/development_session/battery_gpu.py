@@ -22,6 +22,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from carbon.battery.practice import PROGRAM
+from carbon.development_session.gpu_practice import SPEED_ONLY, is_gpu_image
 from carbon.development_session.profile import canonical, digest
 
 SCOPE_SCHEMA = "carbon.battery.gpu-practice.scope.v1"
@@ -32,10 +33,6 @@ GPU_IMAGE_RECORD = "gpu-worker-image.json"
 #: and no PyTorch, so a PyTorch recipe practises on the CPU PyTorch worker.
 BACKENDS = ("jax",)
 JAX_PLATFORMS = "cuda"
-SPEED_ONLY = (
-    "GPU practice is for speed only. The validator rebuilds your recipe on its "
-    "own pinned backend and resources; nothing measured here is scored."
-)
 
 #: The practice program with one addition: the worker records what JAX
 #: actually ran on, so the feedback states the backend observed, not assumed.
@@ -57,17 +54,6 @@ import jax
     )
 )
 """
-
-
-def is_gpu_image(image):
-    """Whether `image` is the pinned GPU worker (its lock is the GPU profile's)."""
-    from carbon.reconstruction.accelerators import GPU_PROFILE
-    from carbon.reconstruction.worker.model import WorkerImageIdentity
-
-    return (
-        type(image) is WorkerImageIdentity
-        and image.lock_digest == GPU_PROFILE.environment_lock_digest
-    )
 
 
 def gpu_scope(image):
@@ -226,4 +212,5 @@ def compute_from_scope(scope):
         max_rate_usd_per_hr=scope["max_rate_usd_per_hr"],
         storage_usd_per_gb_month=scope["storage_usd_per_gb_month"],
         cloud_type=scope["cloud_type"],
+        vm_image=scope.get("vm_image"),
     )

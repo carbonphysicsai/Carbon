@@ -68,7 +68,7 @@ def key_file(tmp_path, name, secret, mode=0o600):
 
 def profile(tmp_path, *, credentials=None):
     tmp_path.chmod(0o700)
-    paths = {name: str(tmp_path / name) for name in PATH_FIELDS}
+    paths = {name: str(tmp_path / name) for name in PATH_FIELDS | {"operator_config"}}
     paths["api_key_file"] = str(key_file(tmp_path, "openai.key", OPENAI_KEY))
     cfg = {**configured(tmp_path), "paths": paths}
     if credentials is not None:
@@ -336,26 +336,41 @@ def test_an_invalid_feedback_mode_is_refused(tmp_path, monkeypatch, mode):
 @pytest.mark.parametrize(
     ("challenge", "refusal"),
     [
-        # A non-battery Challenge (the registered fixture) refuses the mode.
-        ({}, "feedback_mode_is_battery_only"),
+        # The registered fixture Challenge offers only FULL (C-MLP-04: each
+        # Challenge's campaign declares its own modes), so a mode only
+        # battery's campaign declares is refused for it.
+        ({}, "feedback_mode_not_offered_by_challenge"),
         # Burgers is retired: refused as retired, before any mode is read.
         (BURGERS, "challenge_retired"),
     ],
 )
-def test_feedback_mode_is_refused_outside_the_battery(
+def test_a_mode_the_challenge_does_not_offer_is_refused(
     tmp_path, monkeypatch, challenge, refusal
 ):
     bridge, started = host(tmp_path, monkeypatch, profile(tmp_path))
     with pytest.raises(Rejected, match=refusal):
         bridge.launch(
-            {"profile": "opaque-profile", **challenge, "feedback_mode": "FULL"}, KEY
+            {
+                "profile": "opaque-profile",
+                **challenge,
+                "feedback_mode": "SCORE_WITHHELD",
+            },
+            KEY,
         )
     assert started == []
-    # The specimen: the same mode is accepted on the battery Challenge.
+    # FULL is every Challenge's, so the fixture Challenge accepts it.
+    if not challenge:
+        bridge.launch(
+            {"profile": "opaque-profile", "feedback_mode": "FULL"},
+            "fixture-full-mode-launch",
+        )
+        assert started[-1][4].feedback_mode == "FULL"
+    # The specimen: the battery Challenge's campaign offers the mode.
     bridge.launch(
-        {"profile": "opaque-profile", **BATTERY, "feedback_mode": "FULL"}, KEY
+        {"profile": "opaque-profile", **BATTERY, "feedback_mode": "SCORE_WITHHELD"},
+        "battery-specimen-launch",
     )
-    assert started[0][4].feedback_mode == "FULL"
+    assert started[-1][4].feedback_mode == "SCORE_WITHHELD"
 
 
 def test_a_withheld_score_needs_a_campaign_that_reads_the_mode(tmp_path, monkeypatch):
@@ -396,7 +411,7 @@ def test_the_runner_takes_its_modes_from_the_battery_campaign(tmp_path, monkeypa
     )
     assert started[0][4].feedback_mode == "FIXTURE_NEW_MODE"
     for mode in battery.FEEDBACK_MODES:
-        assert mode in operations._battery_feedback_modes()
+        assert mode in operations._feedback_modes()
 
 
 def test_the_described_modes_are_the_battery_modes():

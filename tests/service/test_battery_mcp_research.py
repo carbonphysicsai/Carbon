@@ -150,7 +150,12 @@ def battery_campaign(root, monkeypatch, agent="none", budget=None):
         "profile_id": "fixture-profile",
         "principal": "operator-alice",
         "enabled": True,
-        "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
+        # An operator's profile names its configuration (C-MLP-04 made it
+        # optional for miners, who name a miner_network instead).
+        "paths": {
+            name: str(root / (name + ".json"))
+            for name in PATH_FIELDS | {"operator_config"}
+        },
         "accepted_revision": runtime["implementation"]["revision"],
         "campaigns_root": str(campaigns),
         "runtime": runtime,
