@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "MIRA-ADMISSION-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Provider-independent supervision of an external research agent (first: Autoscience Mira) for internal admission testing under OWNER-CHALLENGE-ADMISSION-01 as amended; internal development only, never mainnet, not a qualification gate. A durable campaign controller persists intent and reserves worst-case spend before dispatch, reconciles ambiguous dispatch instead of retrying, enforces owner-supplied grant and per-campaign ceilings and limits outside the agent, halts on unknown state or usage, verifies cancellation, records findings that stop expansion, and keeps a hash-chained attempt ledger; tested against a fake provider with crash recovery and mutation checks. Separate roles, workspaces and credentials with an allowlisted research checkout and canaries. A versioned design-search commitment layer serves a separate development experiment and refuses EV4 material. The Mira adapter refuses every call because its integration contract is unverified (capability report and owner inquiry), so live Mira execution is BLOCKED; the Level-0 study sheet is prepared, not frozen or executed; no campaign has run and no evidence is accepted.",
+  "primary_detail": ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md",
+  "affects": [
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-01T20:41:29Z"
+}

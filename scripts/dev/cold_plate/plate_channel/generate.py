@@ -76,17 +76,65 @@ for _name, _t_c, _rho, _cp, _mu, _pr in (
         "pr_f": _pr,
         "t_in": 273.15 + _t_c,
     }
-#: Rung 6d: PG25 viscosity as a polynomial in T (kelvin), mu = sum c_i T^i
-#: (Pa s), least-squares over CoolProp 6.8.0 INCOMP::MPG[0.25] at 2 bar, 1 K
-#: steps over 30-50 C only (DESIGN_BASIS.md section 1). Maximum relative
-#: residual in 30-50 C: 1.6e-5. Outside that range it is an extrapolation.
-MU_POLYNOMIAL = (
-    2.2138268571145154,
-    -0.026510771069392616,
-    0.0001196248034665941,
-    -2.408213659063999e-07,
-    1.823829766797535e-10,
-)
+#: PG25 viscosity as a polynomial in T (kelvin), mu = sum c_i T^i (Pa s),
+#: least-squares over CoolProp 6.8.0 INCOMP::MPG[0.25] at 2 bar, 1 K steps.
+#: Each fit is named by the range it was fitted over; outside that range it is
+#: an extrapolation, and analyze.py reports how much fluid lies there.
+#:
+#: - "30-50": rung 6d, degree 4, max relative residual 1.6e-5 in range. It
+#:   overstates viscosity by +5 % at 70 C and +25 % at 80 C, where up to 52 %
+#:   of the fluid sat. Kept unchanged so rung 6d reproduces exactly.
+#: - "30-80": rung 6e, degree 6, max relative residual 2.34e-5 in range,
+#:   evaluated on the coefficients as written. Positive over 250-500 K; +0.35 %
+#:   at 90 C. Covers the fluid of rung 6d's three cases (at most 79 C).
+#: - "30-99": rung 6e, degree 6, max relative residual 1.7e-4 in range, as
+#:   written. Positive over 250-500 K. It spans the coolant model's whole
+#:   validity above the lowest inlet (CoolProp refuses 100 C), so it is the fit
+#:   a population whose fluid reaches 99 C can use.
+#: Both come from fit_viscosity.py, whose selection rule is stated there
+#: before it is applied.
+MU_POLYNOMIALS = {
+    "30-50": (
+        2.2138268571145154,
+        -0.026510771069392616,
+        0.0001196248034665941,
+        -2.408213659063999e-07,
+        1.823829766797535e-10,
+    ),
+    "30-80": (
+        17.849881432792948,
+        -0.30849429267675,
+        0.002229195303851334,
+        -8.615712938028535e-06,
+        1.877630788396675e-08,
+        -2.186903343496054e-11,
+        1.063194651727941e-14,
+    ),
+    "30-99": (
+        11.809225533760118,
+        -0.19835015412139706,
+        0.0013929060738771873,
+        -5.23132660955004e-06,
+        1.1076921123177383e-08,
+        -1.2533006110289745e-11,
+        5.917954657407082e-15,
+    ),
+}
+MU_FIT_RANGE_C = {
+    "30-50": (30.0, 50.0),
+    "30-80": (30.0, 80.0),
+    "30-99": (30.0, 99.0),
+}
+#: Rung 6d's fit, under its original name, for anything that imports it.
+MU_POLYNOMIAL = MU_POLYNOMIALS["30-50"]
+#: `--viscosity` choices and the fit each selects. "polynomial" keeps its
+#: rung-6d meaning so the documented rung-6d command reproduces exactly.
+VISCOSITY_FITS = {
+    "polynomial": "30-50",
+    "polynomial-30-50": "30-50",
+    "polynomial-30-80": "30-80",
+    "polynomial-30-99": "30-99",
+}
 #: The fluid template's `const` lines, and their polynomial forms. OpenFOAM
 #: v2512 accepts `polynomial` transport only with `hPolynomial` thermo and a
 #: polynomial equation of state, so c_p and rho become degree-0 polynomials:
@@ -107,7 +155,7 @@ _POLYNOMIAL_LINES = (
 _CONST_MIXTURE = "    transport       { mu MU_F; Pr PR_F; }\n"
 
 
-def polynomial_transport(text, properties):
+def polynomial_transport(text, properties, mu_coeffs=MU_POLYNOMIAL):
     """The fluid's constant viscosity replaced by a polynomial in T.
 
     Only viscosity varies. Conductivity is held at the constant-property
@@ -122,7 +170,7 @@ def polynomial_transport(text, properties):
     kappa = properties["mu_f"] * properties["cp_f"] / properties["pr_f"]
     return text.replace(
         _CONST_MIXTURE,
-        f"    transport       {{ muCoeffs<8> ( {pad(MU_POLYNOMIAL)} ); "
+        f"    transport       {{ muCoeffs<8> ( {pad(mu_coeffs)} ); "
         f"kappaCoeffs<8> ( {pad((kappa,))} ); }}\n",
     )
 
@@ -288,10 +336,12 @@ def main(argv=None):
     )
     parser.add_argument(
         "--viscosity",
-        choices=("constant", "polynomial"),
+        choices=("constant", *VISCOSITY_FITS),
         default="constant",
-        help="design sets only: 'polynomial' makes PG25 viscosity vary with "
-        "temperature (rung 6d); conductivity stays constant",
+        help="design sets only: make PG25 viscosity vary with temperature; "
+        "conductivity stays constant. 'polynomial' is rung 6d's 30-50 C fit, "
+        "kept for reproducibility; 'polynomial-30-80' is rung 6e's fit over the "
+        "fluid's actual range",
     )
     for name, value in DEFAULTS.items():
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=value)
@@ -303,8 +353,8 @@ def main(argv=None):
         or args.wall_grading < 1
     ):
         parser.error("every dimension and the resolution must be positive")
-    if args.viscosity == "polynomial" and not args.properties.startswith("design"):
-        parser.error("--viscosity polynomial is a design-set option (PG25)")
+    if args.viscosity != "constant" and not args.properties.startswith("design"):
+        parser.error(f"--viscosity {args.viscosity} is a design-set option (PG25)")
     if args.out.exists():
         parser.error(f"{args.out} exists; refusing to overwrite")
     shutil.copytree(TEMPLATE, args.out)
@@ -317,9 +367,12 @@ def main(argv=None):
             geometry, args.flow_lpm_per_kw
         )
     fluid_thermo = args.out / "constant" / "fluid" / "thermophysicalProperties"
-    if args.viscosity == "polynomial":
+    fit = VISCOSITY_FITS.get(args.viscosity)
+    if fit is not None:
         fluid_thermo.write_text(
-            polynomial_transport(fluid_thermo.read_text(), properties)
+            polynomial_transport(
+                fluid_thermo.read_text(), properties, MU_POLYNOMIALS[fit]
+            )
         )
     for path in args.out.rglob("*"):
         if path.is_file():
@@ -347,8 +400,13 @@ def main(argv=None):
         "iterations": args.iterations,
         "mesh": mesh,
     }
-    if args.viscosity == "polynomial":
-        case["viscosity"] = {"model": "polynomial", "mu_coeffs": MU_POLYNOMIAL}
+    if fit is not None:
+        case["viscosity"] = {
+            "model": "polynomial",
+            "fit": fit,
+            "fit_range_c": list(MU_FIT_RANGE_C[fit]),
+            "mu_coeffs": list(MU_POLYNOMIALS[fit]),
+        }
     (args.out / "case.json").write_text(json.dumps(case, indent=2) + "\n")
     print(json.dumps(case))
 

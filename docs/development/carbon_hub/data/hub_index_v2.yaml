@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T03:32:32Z"
+  captured_at_utc: "2026-10-02T05:07:12Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a863840514cf8f82524b019cd94b473b49143411"
+  authority_snapshot_commit: "93c820def0718df5014eacd4007286f622e88e38"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10497,6 +10497,18 @@ events:
     recorded_at: "2026-10-01T19:32:51Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "MIRA-ADMISSION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Provider-independent supervision of an external research agent (first: Autoscience Mira) for internal admission testing under OWNER-CHALLENGE-ADMISSION-01 as amended; internal development only, never mainnet, not a qualification gate. A durable campaign controller persists intent and reserves worst-case spend before dispatch, reconciles ambiguous dispatch instead of retrying, enforces owner-supplied grant and per-campaign ceilings and limits outside the agent, halts on unknown state or usage, verifies cancellation, records findings that stop expansion, and keeps a hash-chained attempt ledger; tested against a fake provider with crash recovery and mutation checks. Separate roles, workspaces and credentials with an allowlisted research checkout and canaries. A versioned design-search commitment layer serves a separate development experiment and refuses EV4 material. The Mira adapter refuses every call because its integration contract is unverified (capability report and owner inquiry), so live Mira execution is BLOCKED; the Level-0 study sheet is prepared, not frozen or executed; no campaign has run and no evidence is accepted."
+    primary_detail: ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T20:41:29Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "decision"
     event_id: "BATTERY-EV4-01"
     owner_lane: "technical_lead"
@@ -10548,6 +10560,18 @@ events:
     recorded_at: "2026-10-02T00:38:15Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "GRAPHITE-02"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "GRAPHITE-01 phase 1, the Graphite harness, with no live inference and no spend. A GraphiteProvider in carbon/agent_campaign/graphite runs behind the #475 campaign controller and drives the existing research loop, with metering, replay without resending and typed failures from research_agent. The loop gained an optional role prompt and closed tool list. Six frozen roles (Planner, Constructor, Attacker, Optimizer researcher, Reader, Writer) each have a prompt recorded by digest, a closed tool manifest and a starting rung on the owner's Engy ladder. Escalation moves one rung, only on a recorded typed research failure, never above the top rung. lit.search and lit.card answer from a synthetic fixture index, and tool output is data. Requests for confirmation or official material get a typed refusal. Session records are deterministic and digested. Per-run caps equal the grant's worst-case run cost. Cancellation is checked at the loop's checkpoints, and a live model needs an exact owner spending grant. Scripted-model tests cover crash recovery at every checkpoint, caps, cancellation, injection-as-data, refusal, escalation and mutation checks. Nothing here grades, qualifies, rewards or spends; the literature layer, Chutes and live sessions remain later phases, each needing an owner grant."
+    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-02T00:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "C-MLP-03-SLICE-3-OWN-GPU"
     owner_lane: "technical_lead"
@@ -10559,19 +10583,6 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T02:14:02Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "adjustment"
-    event_id: "C-MLP-03-SLICE-4-RENTED-GPU"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "C-MLP-03 slice 4: battery practice on a GPU rented on the miner's own RunPod or Lium account. A rented pod runs one job. The pinned GPU worker, pushed by the miner to a registry of their own and named by digest, starts Carbon's fixed job server (carbon.compute.job_server). The controller, on the miner's machine, stages the job's public inputs, runs them and fetches the output with a per-job token, so no provider key, hotkey or signer leaves that machine. RentedRunner has the carrier's signature. It provisions through ComputeService: balance observed first, hourly ceiling and deadline bound, the miner's budget applied, an ownership tag on the resource, and a durable job record so a restart never resends a different request. It terminates and verifies every pod, and records the provider's own charge when one is reported. A Lium adapter is added, and the RunPod adapter now sends the start command and reads per-pod charges. Setup offers the rented GPU with its live balance and price check, which rents nothing. Lium jobs travel over plain HTTP, as recorded. Targon runs no container image today, so it stays unavailable with that cause, and a VM-and-SSH route is an owner decision. Real practices on each provider are the acceptance. Engineering evidence only; nothing is qualified, and no chain write is made."
-    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: null
-    recorded_at: "2026-10-02T02:28:50Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

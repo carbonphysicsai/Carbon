@@ -1,0 +1,209 @@
+"""A role's closed toolbox: the only thing the research loop calls tools on.
+
+The research loop (`research_loop.run_epoch`) hands every tool call other than
+its own selection tool to an `sdk.call(name, arguments, identity)`. For a
+Graphite session that object is a `GraphiteToolbox`, which:
+
+1. **refuses any tool outside the role's manifest** (typed
+   `REFUSED_NOT_IN_MANIFEST`), whatever the model was told;
+2. **refuses any request that names protected material** (typed
+   `REFUSED_PROTECTED_MATERIAL`): official or derived seeds, draw ids,
+   protected exam data, EV4 confirmation or verification references, private
+   validator state, secrets, credentials and canaries. The check reuses the
+   campaign boundaries' deny rules (`boundaries._denied`) and adds Graphite's
+   own markers. It scans every string in the arguments, including JSON
+   carried in `*_json` strings, so it may over-refuse an innocent mention; it
+   never under-refuses a named one (GRAPHITE-D5);
+3. answers `lit_search` / `lit_card` from the pinned literature index;
+4. delegates the remaining miner SDK tools to an injected `miner_tools`
+   object (the existing closed miner SDK in later phases). Phase 1 injects
+   none, so they answer `UNAVAILABLE` without dispatching anything;
+5. withholds any result that carries protected material, returning a typed
+   refusal instead.
+
+Results are data. Nothing in a result is read back by the toolbox, the loop
+or the provider as an instruction: the role, its prompt, its manifest, the
+budget and every authority are fixed before the session starts and are not
+reachable from here. Every refusal is journalled as an event.
+"""
+
+from __future__ import annotations
+
+import json
+
+from carbon.development_session.profile import canonical, digest
+
+from .. import boundaries
+from . import literature
+
+#: Graphite's markers beyond the checkout deny rules. Lower-case substrings.
+PROTECTED_MARKERS = (
+    "official_seed",
+    "official-seed",
+    "official seed",
+    "derived_seed",
+    "derived-seed",
+    "draw_id",
+    "draw-id",
+    "protected_exam",
+    "protected-exam",
+    "protected exam",
+    "hidden_case",
+    "hidden-case",
+    "verification_reference",
+    "verification-reference",
+    "verification reference",
+    "validator_private",
+    "private_validator",
+    "private validator",
+    boundaries.CANARY_PREFIX.lower(),
+)
+REFUSED_MANIFEST = "REFUSED_NOT_IN_MANIFEST"
+REFUSED_PROTECTED = "REFUSED_PROTECTED_MATERIAL"
+REFUSED_RESULT = "REFUSED_PROTECTED_MATERIAL_IN_RESULT"
+UNAVAILABLE = "UNAVAILABLE"
+
+
+def _strings(value):
+    """Every string in a JSON value, including JSON encoded inside strings."""
+    if type(value) is str:
+        yield value
+        try:
+            inner = json.loads(value)
+        except (ValueError, RecursionError):
+            return
+        if type(inner) in (dict, list):
+            yield from _strings(inner)
+    elif type(value) is dict:
+        for key, item in value.items():
+            yield str(key)
+            yield from _strings(item)
+    elif type(value) in (list, tuple):
+        for item in value:
+            yield from _strings(item)
+
+
+def _protected_text(text):
+    lowered = text.lower()
+    return boundaries._denied(lowered) or any(
+        marker in lowered for marker in PROTECTED_MARKERS
+    )
+
+
+def protected(value):
+    """True when any string in `value` names protected material."""
+    return any(_protected_text(text) for text in _strings(value))
+
+
+def refusal(status, code, **extra):
+    return {
+        "status": status,
+        "reason_code": code,
+        "authority_granted": False,
+        "dispatched": False,
+        **extra,
+    }
+
+
+class GraphiteToolbox:
+    """The `sdk` a Graphite session's research loop calls."""
+
+    def __init__(self, *, role, literature_index, emit, miner_tools=None):
+        self.role = role
+        self.manifest = frozenset(role.tools)
+        self.literature = literature_index
+        self.emit = emit
+        self.miner_tools = miner_tools
+
+    def _refuse(self, identity, name, arguments, result):
+        self.emit(
+            "tool-" + identity,
+            {
+                "kind": "tool_refused",
+                "tool": name,
+                "identity": identity,
+                "status": result["status"],
+                "reason_code": result["reason_code"],
+                "arguments_digest": digest(canonical(arguments)),
+                # Recorded as data so the controller's canary scan sees it.
+                "arguments": arguments,
+            },
+        )
+        return result
+
+    def _offered(self, name):
+        """The role's manifest is the only source of callable tools."""
+        return name in self.manifest
+
+    async def call(self, name, arguments, identity):
+        if not self._offered(name):
+            return self._refuse(
+                identity,
+                name,
+                arguments,
+                refusal(REFUSED_MANIFEST, "tool_not_in_role_manifest"),
+            )
+        if protected(arguments):
+            return self._refuse(
+                identity,
+                name,
+                arguments,
+                refusal(REFUSED_PROTECTED, "protected_material_requested"),
+            )
+        if name in (literature.SEARCH, literature.CARD):
+            result = self._literature(name, arguments)
+        elif self.miner_tools is None:
+            result = refusal(
+                UNAVAILABLE,
+                "no_miner_sdk_in_phase_1",
+                reason="Graphite phase 1 has no miner SDK connection; nothing ran.",
+            )
+        else:
+            result = await self.miner_tools.call(name, arguments, identity)
+            if type(result) is not dict:
+                result = refusal(UNAVAILABLE, "malformed_tool_result")
+        if protected(result):
+            return self._refuse(
+                identity,
+                name,
+                arguments,
+                refusal(REFUSED_RESULT, "protected_material_in_result"),
+            )
+        self.emit(
+            "tool-" + identity,
+            {
+                "kind": "tool_answered",
+                "tool": name,
+                "identity": identity,
+                "status": result.get("status"),
+                "result_digest": digest(canonical(result)),
+            },
+        )
+        return result
+
+    def _literature(self, name, arguments):
+        try:
+            if name == literature.SEARCH:
+                if set(arguments) != {"query"}:
+                    raise literature.LiteratureError("lit_search takes query")
+                return {
+                    "status": "OK",
+                    "snapshot_digest": self.literature.snapshot_digest,
+                    "results": self.literature.search(arguments["query"]),
+                    "content_is_data": True,
+                }
+            if set(arguments) != {"card_id"} or type(arguments["card_id"]) is not str:
+                raise literature.LiteratureError("lit_card takes card_id")
+            card = self.literature.card(arguments["card_id"])
+        except literature.LiteratureError as error:
+            return refusal(
+                "REFUSED_INVALID_REQUEST", "literature_request", detail=str(error)
+            )
+        if card is None:
+            return {"status": "NOT_FOUND", "card_id": arguments["card_id"]}
+        return {
+            "status": "OK",
+            "snapshot_digest": self.literature.snapshot_digest,
+            "card": card,
+            "content_is_data": True,
+        }
