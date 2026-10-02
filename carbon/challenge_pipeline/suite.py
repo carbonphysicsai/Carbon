@@ -1,13 +1,23 @@
 """The common test suite (Challenge Roadmap §03), version 1, DRAFT.
 
-`suite_v1.json` registers Track A's eight attack vectors and Track B's
-studies, the draft severity rules, the metrics and the exam registration.
-Each Track A vector cites the existing checks that exercise it, as pytest node
-ids grouped as `generic`, per challenge (`battery`), and `sandbox` for those
-that need a real container. It also lists its known gaps.
+`suite_v1.json` is Challenge-neutral: it names no challenge. It registers
+Track A's eight attack vectors and Track B's studies, the draft severity rules,
+the metrics, the exam registration and each vector's place on the
+construction ladder. Each Track A vector cites the shared checks that exercise
+it, as pytest node ids grouped as `generic` and `sandbox` (those that need a
+real container), and lists its known shared gaps.
+
+Each challenge supplies a suite map, `suite_maps/<challenge>.json`:
+- its own checks per vector, including its own sandbox checks;
+- its own gaps;
+- the dependency groups its checks need;
+- its Track B and exam specifics.
+
+A second challenge adds a map. It never edits the suite.
 
 `run` executes one challenge's cited checks and reports each vector's
-coverage, bound to the suite's digest and the commit it ran on:
+coverage, bound to the suite's digest, the map's digest, the challenge's
+construction level and the commit it ran on:
 - PASS: every cited check ran and passed;
 - FINDING_CANDIDATE: a cited check failed. A failing defense test is a
   candidate finding for the technical owner to grade, not a grade;
@@ -24,7 +34,9 @@ run that selects by name exits 1 even when every selected test passed;
 
 A NOT_RUN check is neither a pass nor a finding. The listed gaps stay open
 whatever the checks say, because a clean run does not prove resistance to
-unrestricted agents.
+unrestricted agents. A vector's participant-code part, which needs a level the
+challenge has not reached (Level 4 and above), is reported NOT_RUN at that
+level, never a pass.
 """
 
 from __future__ import annotations
@@ -39,36 +51,104 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 SUITE = Path(__file__).with_name("suite_v1.json")
+MAPS = Path(__file__).with_name("suite_maps")
+RECORDS = Path(__file__).with_name("records")
 REPOSITORY = Path(__file__).resolve().parents[2]
-GROUPS = ("generic", "battery", "sandbox")
+GROUPS = ("generic", "sandbox")
+VECTORS = tuple(f"A{i}" for i in range(1, 9))
+MAP_KEYS = {
+    "schema",
+    "suite_version",
+    "challenge",
+    "family",
+    "environment_groups",
+    "track_a",
+    "track_b",
+    "exam",
+}
 
 
 def load_suite(path=SUITE):
     suite = json.loads(Path(path).read_text(encoding="utf-8"))
-    if [v["id"] for v in suite["track_a"]] != [f"A{i}" for i in range(1, 9)]:
+    if [v["id"] for v in suite["track_a"]] != list(VECTORS):
         raise ValueError("Track A has vectors A1 to A8, in order")
     for vector in suite["track_a"]:
         if set(vector["checks"]) - set(GROUPS):
-            raise ValueError(f"{vector['id']}: check groups are {GROUPS}")
+            raise ValueError(
+                f"{vector['id']}: shared check groups are {GROUPS}; a challenge's "
+                "own checks belong in its suite map"
+            )
+        ladder = vector.get("ladder")
+        if not (
+            isinstance(ladder, dict)
+            and ladder.get("applies_from_level") == 0
+            and ladder.get("participant_code_from_level") in (None, 4, 5)
+        ):
+            raise ValueError(f"{vector['id']}: states its place on the ladder")
     if set(suite["severity"]["levels"]) != {"critical", "high", "medium", "low"}:
         raise ValueError("severity levels are critical, high, medium and low")
     return suite
 
 
-def digest(path=SUITE):
-    """The suite's pin: SHA-256 of its canonical JSON."""
-    body = json.dumps(load_suite(path), sort_keys=True, separators=(",", ":"))
+def _pin(value):
+    body = json.dumps(value, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(body.encode()).hexdigest()
 
 
-def checks_for(suite, challenge, *, sandbox=False):
-    """{vector id: [node ids]} for one challenge: the generic checks, the
-    challenge's own, and the sandbox checks only when asked for."""
-    groups = ["generic", challenge] + (["sandbox"] if sandbox else [])
-    return {
-        v["id"]: [n for g in groups for n in v["checks"].get(g, [])]
-        for v in suite["track_a"]
-    }
+def digest(path=SUITE):
+    """The suite's pin: SHA-256 of its canonical JSON."""
+    return _pin(load_suite(path))
+
+
+def load_map(challenge, maps=MAPS, suite=None):
+    """One challenge's suite map, checked against the suite it maps onto."""
+    path = Path(maps) / f"{challenge}.json"
+    if not path.is_file():
+        raise ValueError(f"no suite map for {challenge}: add {path.name}")
+    suite_map = json.loads(path.read_text(encoding="utf-8"))
+    if set(suite_map) != MAP_KEYS or suite_map["schema"] != (
+        "carbon.challenge-pipeline.suite-map.v1"
+    ):
+        raise ValueError(f"{path.name}: keys are {sorted(MAP_KEYS)}")
+    if suite_map["challenge"] != challenge:
+        raise ValueError(f"{path.name}: maps {suite_map['challenge']}, not {challenge}")
+    suite = suite or load_suite()
+    if suite_map["suite_version"] != suite["suite_version"]:
+        raise ValueError(f"{path.name}: maps onto another suite version")
+    if set(suite_map["track_a"]) != set(VECTORS):
+        raise ValueError(f"{path.name}: maps every Track A vector, A1 to A8")
+    for vid, entry in suite_map["track_a"].items():
+        if set(entry) != {"checks", "sandbox", "gaps"}:
+            raise ValueError(f"{path.name} {vid}: {{checks, sandbox, gaps}}")
+    if set(suite_map["track_b"]) != {b["id"] for b in suite["track_b"]}:
+        raise ValueError(f"{path.name}: maps every Track B study")
+    return suite_map
+
+
+def map_digest(challenge, maps=MAPS):
+    return _pin(load_map(challenge, maps))
+
+
+def construction_level(challenge, records=RECORDS):
+    """The challenge's recorded construction level, from its pipeline record."""
+    for path in sorted(Path(records).glob("*.json")):
+        construction = json.loads(path.read_text(encoding="utf-8")).get("construction")
+        if construction and construction.get("challenge") == challenge:
+            return construction.get("level")
+    return None
+
+
+def checks_for(suite, suite_map, *, sandbox=False):
+    """{vector id: [node ids]} for one challenge: the shared generic checks,
+    the challenge's own, and both sets of sandbox checks only when asked for."""
+    out = {}
+    for v in suite["track_a"]:
+        own = suite_map["track_a"][v["id"]]
+        nodes = list(v["checks"].get("generic", [])) + list(own["checks"])
+        if sandbox:
+            nodes += list(v["checks"].get("sandbox", [])) + list(own["sandbox"])
+        out[v["id"]] = nodes
+    return out
 
 
 def _outcomes(junit):
@@ -94,11 +174,20 @@ def _status(outcomes):
 
 
 def run(
-    challenge, *, sandbox=False, suite_path=SUITE, repository=REPOSITORY, python=None
+    challenge,
+    *,
+    sandbox=False,
+    suite_path=SUITE,
+    maps=MAPS,
+    records=RECORDS,
+    repository=REPOSITORY,
+    python=None,
 ):
     """Run one challenge's Track A checks; return the coverage report."""
     suite = load_suite(suite_path)
-    plan = checks_for(suite, challenge, sandbox=sandbox)
+    suite_map = load_map(challenge, maps, suite)
+    level = construction_level(challenge, records)
+    plan = checks_for(suite, suite_map, sandbox=sandbox)
     nodes = sorted({n for ids in plan.values() for n in ids})
     # Select by name across the cited files, so a check that is missing or a
     # file that cannot be collected here leaves its own checks NOT_RUN and
@@ -150,23 +239,40 @@ def run(
             status = "NOT_RUN"
         else:
             status = "PASS"
+        ladder = vector["ladder"]
+        code_level = ladder["participant_code_from_level"]
+        participant_code = None
+        if code_level is not None:
+            reached = level is not None and level >= code_level
+            participant_code = {
+                "what": ladder["participant_code"],
+                "from_level": code_level,
+                # Not reached means NOT_RUN at this level, never a pass. Once
+                # reached it is IN_SCOPE: the vector's checks must then cover
+                # it, which the technical owner confirms; reaching it is not
+                # evidence that they do.
+                "status": "IN_SCOPE" if reached else "NOT_RUN",
+            }
         vectors.append(
             {
                 "id": vector["id"],
                 "name": vector["name"],
                 "status": status,
                 "checks": checks,
-                "gaps": vector["gaps"],
+                "participant_code": participant_code,
+                "gaps": vector["gaps"] + suite_map["track_a"][vector["id"]]["gaps"],
                 "open_parameters": vector["open_parameters"],
             }
         )
-    needed = suite.get("environments", {}).get(challenge, [])
+    needed = suite_map["environment_groups"]
     installed = os.environ.get("CARBON_UV_GROUPS", "").split()
     return {
         "schema": "carbon.challenge-pipeline.suite-run.v1",
         "suite_version": suite["suite_version"],
         "suite_digest": digest(suite_path),
         "challenge": challenge,
+        "map_digest": _pin(suite_map),
+        "construction_level": level,
         "sandbox": sandbox,
         "commit": commit or None,
         "pytest_exit": exit_code,

@@ -101,6 +101,32 @@ changed the suite; the earlier run was at `sha256:6b8255c5…`.
   Two failed on missing modules. That is why the suite now records each
   challenge's required groups (`environments`) and the groups a run had.
 
+## Rev 2.2: a Challenge-neutral suite, scoped by construction level
+
+OWNER-CHALLENGE-ROADMAP-03 requires a generalizable protocol and the
+construction ladder as its spine.
+- **`suite_v1.json` names no challenge.** Each challenge supplies a suite map,
+  `carbon/challenge_pipeline/suite_maps/<challenge>.json`, holding:
+  - its own checks per vector, including its own sandbox checks;
+  - its own gaps;
+  - the dependency groups its checks need;
+  - its Track B and exam specifics.
+
+  Battery's checks, container tests, gaps, groups, EV and exam specifics moved
+  there unchanged. A second challenge adds a map and never edits the suite.
+- **Every vector states its place on the ladder.**
+  - All eight apply from Level 0.
+  - The participant-code parts of A1 (admission), A2 (execution isolation) and
+    A4 (resource enforcement) start at Level 4.
+  - Below that level they are reported NOT_RUN, never a pass. At or above it
+    they are IN_SCOPE, and the technical owner confirms the checks cover them.
+- **The coverage report binds** the suite digest, the map digest and the
+  challenge's construction level, read from its pipeline record.
+- **Re-run** in the canonical environment with battery's groups (`suite
+  battery-fastcharge-ageing-development-v1`): 259 cited checks passed, all eight
+  vectors PASS at Level 0, and participant code NOT_RUN for A1, A2 and A4. No
+  group was missing and no uncited test failed.
+
 ## Definition of done
 
 - `suite_v1.json` loads and validates. Its cited checks all exist. Every

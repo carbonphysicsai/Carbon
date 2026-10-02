@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-protocol-draft-ladder",
+ "recorded_at": "2026-10-02T21:00:30Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md (step 2)",
+  "description": "Wrote the ladder, level proposals and lessons into the protocol draft and ran its tests."
+ },
+ "expected": "The draft says who does what at every climb step, for any challenge.",
+ "observed": "The draft had the ladder only as a reference row; it now has section 3a (who proposes, records, rebuilds, runs, evaluates and locks), the Design exit at Level 0, and battery's recorded difference from the ladder. The draft's and the pipeline's tests pass.",
+ "keep": [
+  "One table of who does what per climb step, Challenge-neutral."
+ ],
+ "change": [
+  "Reconcile each draft section against the roadmap revision it implements when that revision lands."
+ ],
+ "protocol_elements": [
+  "protocol_draft",
+  "construction_ladder.climb_procedure"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

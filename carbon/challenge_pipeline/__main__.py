@@ -22,7 +22,7 @@ def main(argv=None):
     r = sub.add_parser("render", help="write docs/development/CHALLENGE_PIPELINE.md")
     r.add_argument("--check", action="store_true", help="fail if the view is stale")
     s = sub.add_parser("suite", help="run one challenge's Track A checks (suite v1)")
-    s.add_argument("challenge")
+    s.add_argument("challenge", help="the challenge's contract token, with a suite map")
     s.add_argument("--sandbox", action="store_true", help="include container checks")
     s.add_argument("--out", type=Path, help="write the coverage report here")
     args = parser.parse_args(argv)
@@ -30,8 +30,11 @@ def main(argv=None):
         report = suite.run(args.challenge, sandbox=args.sandbox)
         if args.out:
             args.out.write_text(json.dumps(report, indent=1) + "\n")
+        print(f"construction level {report['construction_level']}")
         for vector in report["vectors"]:
-            print(f"{vector['id']} {vector['status']:<17} {vector['name']}")
+            code = vector["participant_code"]
+            note = f"  participant code: {code['status']}" if code else ""
+            print(f"{vector['id']} {vector['status']:<17} {vector['name']}{note}")
         return 0
     families, protocol, _, records = load_state()
     if args.command == "validate":

@@ -15,7 +15,7 @@ battery, run in priority order across 26 simulation families.
 
 | Rev | Date | Change |
 | --- | --- | --- |
-| 2.2 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-03): the construction ladder (Challenge Admission §3, Levels 0-5) is the spine of construction iteration; every Challenge starts at Level 0 and climbs one level at a time, and battery's Phase 1 includes its first climb. The protocol is Challenge-neutral and improves through recorded revisions, with a lessons entry after every execution. Graphite is the testing agent. Corrects rev 2.1's backend wording: JAX and PyTorch are where Carbon rebuilds a declarative recipe, not executable submissions. |
+| 2.2 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-03): the construction ladder (Challenge Admission §3, Levels 0-5) is the spine of construction iteration; every Challenge starts at Level 0 and climbs one level at a time, and battery's Phase 1 includes its first climb. Graphite proposes the capabilities for every level of every Challenge, and the construction contract owner accepts them. The protocol is Challenge-neutral and improves through recorded revisions, with a lessons entry after every execution. Graphite is the testing agent. Corrects rev 2.1's backend wording: JAX and PyTorch are where Carbon rebuilds a declarative recipe, not executable submissions. |
 | 2.1 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-02): admission and rebuilds accept every backend the construction contract supports (JAX and PyTorch); the reference timing hardware is approved by the technical owner alone and is a RunPod CPU pod, flavor cpu5c, 16 vCPU. |
 | 2.0 | 10-02 | Rebuilt around one pipeline: Prioritize → Design → Test/iterate → Rank for deployment. Battery defines the protocol with Graphite. In-house challenges only; customer track, Workbench and commercial gates removed. Deployment leaderboard added. |
 | 1.1 | 10-02 | Current solve time added as a third, equally weighted ranking factor. |
@@ -218,7 +218,8 @@ leaderboard re-run on it before they are compared.
   (each capability mapped onto the ladder, Carbon's reconstruction for it and
   the first expansion record) and cheap baselines.
 - **Graphite.** Sets up and runs reference, refinement and timing studies;
-  drafts the generator, splits and construction contract.
+  drafts the generator and splits; proposes the capabilities for every
+  construction level, 0 through 5, from which the Level 0 contract is built.
 - **Output.** Design packet; measured solve time entered in §05.
 - **Exit.** Challenge has solver, plan, data and a Level 0 construction
   contract Carbon rebuilds. Harshdeep signs.
@@ -265,16 +266,35 @@ The challenge's permission manifest is the authority. The level is its label.
 Where today's Level 0 already admits a surface the ladder places higher, the
 record says so rather than hiding it.
 
+**Graphite proposes every level's capabilities.** The ladder is the same for
+every challenge, but what each level admits is challenge-specific. For every
+challenge, Graphite proposes the capabilities for every level, 0 through 5
+(owner, 2026-10-02: "I want graphite to propose capabilities for every
+construction level"). A proposal states:
+- what each capability adds and its bounds;
+- the research behind it: Graphite's method cards and development
+  experiments;
+- the reconstruction work Carbon must ship for it;
+- the attack surface it opens;
+- what the level leaves out.
+
+The construction contract owner accepts or declines each proposal. Graphite
+proposes; it never writes the contract or an expansion record.
+
 **Climb procedure, for every level above 0:**
-1. Record the changed contract and permissions as an expansion record.
-2. Ship Carbon's reconstruction for the new level, with a test that Carbon
+1. Graphite proposes the level's capabilities for this Challenge, with their
+   bounds, the research behind them, the reconstruction work each needs and
+   the attack surface it opens; the construction contract owner accepts or
+   declines the proposal.
+2. Record the changed contract and permissions as an expansion record.
+3. Ship Carbon's reconstruction for the new level, with a test that Carbon
    rebuilds it.
-3. Run valid constructions under the previous and the expanded profile.
-4. Run matched adversarial budgets under both profiles.
-5. Remove the new permission and repeat the comparison (ablation).
-6. Test interactions with earlier permissions (combined-permission attacks).
-7. Reconstruct promising valid submissions on clean workers.
-8. Open the level to miners only after a person locks it, and only once
+4. Run valid constructions under the previous and the expanded profile.
+5. Run matched adversarial budgets under both profiles.
+6. Remove the new permission and repeat the comparison (ablation).
+7. Test interactions with earlier permissions (combined-permission attacks).
+8. Reconstruct promising valid submissions on clean workers.
+9. Open the level to miners only after a person locks it, and only once
    validators serve the new contract.
 
 **How a validator knows how to build a construction.** A miner never sends
@@ -315,8 +335,10 @@ and a new frozen run. Earlier evidence stays bound to its level.
   lands in the iteration log, and every execution gets a lessons entry.
 - Never reads or writes the sealed pool, and never edits the pinned harness or
   a frozen record.
-- Constructs only within the campaign's recorded construction level. May
-  propose the next level, which opens only by the climb procedure.
+- Proposes the capabilities for every construction level of every
+  challenge. Constructs only within the campaign's recorded level; a proposed
+  level opens only by the climb procedure, after the construction contract
+  owner accepts the proposal.
 - Its outputs are drafts until a named owner signs the stage gate.
 
 ### Stop rules
