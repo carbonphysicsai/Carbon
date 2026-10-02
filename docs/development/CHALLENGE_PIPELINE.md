@@ -132,4 +132,10 @@ One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
 adopts or declines it; nothing is applied silently.
 
-7 entries: 6 recorded, 0 proposed, 1 adopted, 0 declined.
+8 entries: 6 recorded, 1 proposed, 1 adopted, 0 declined.
+
+**Awaiting a decision:**
+
+| Lesson | Challenge | Target | Proposed revision |
+| --- | --- | --- | --- |
+| 2026-10-02-level-proposal-step | protocol | construction_ladder.climb_procedure | Add step 0, the level proposal. For one Challenge and one level it states the capabilities to admit, mapped onto the ladder, with their bounds; the research behind them (Graphite's method cards and experiments on development material); the reconstruction work each needs; and the expected attack surface. Graphite or an engineer drafts it, and the construction contract owner (the technical owner) accepts it before step 1 records the contract change. |
