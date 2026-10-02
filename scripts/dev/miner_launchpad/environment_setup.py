@@ -45,7 +45,7 @@ import threading
 import time
 from pathlib import Path
 
-from carbon.compute.providers import PROVIDERS
+from carbon.compute.providers import PROVIDERS, VM_PROVIDERS
 from carbon.development_session.battery_gpu import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
@@ -378,7 +378,13 @@ def choices() -> dict:
                 "default": False,
                 "needs_gpu_image": True,
                 "providers": [
-                    {"id": name, "display_name": display}
+                    {
+                        "id": name,
+                        "display_name": display,
+                        # A VM provider (Targon) boots a VM image the miner
+                        # names, and runs the pinned worker in it over SSH.
+                        "vm": name in VM_PROVIDERS,
+                    }
                     for name, (display, _factory) in sorted(PROVIDERS.items())
                 ],
                 "cost_basis": (
@@ -772,8 +778,18 @@ class LiveChecks:
             raise SetupRefused(
                 "image_ref", "image_ref_is_not_your_gpu_worker", next_step=PUSH_STEP
             )
-        adapter = provider_adapter(compute.provider, credential_file)
+        adapter = provider_adapter(
+            compute.provider,
+            credential_file,
+            # The check rents nothing, so no VM key is ever written here.
+            state_dir=credential_file.parent / "vm-keys",
+            vm_image=compute.vm_image,
+        )
         try:
+            if compute.vm_image is not None and compute.vm_image not in (
+                adapter.vm_images()
+            ):
+                raise SetupRefused("vm_image", "vm_image_not_offered")
             balance = adapter.read_balance()
             offers = adapter.offers(
                 [compute.gpu_type_id], gpu_count=1, cloud_type=compute.cloud_type
@@ -1048,10 +1064,19 @@ class EnvironmentSetup:
             )
         if rented:
             choice = value["rented"]
-            if type(choice) is not dict or set(choice) != RENTED_FIELDS:
+            if type(choice) is not dict or set(choice) - {"vm_image"} != RENTED_FIELDS:
                 raise SetupRefused("rented", "rented_choice_invalid")
             if choice["provider"] not in PROVIDERS:
                 raise SetupRefused("provider", "compute_provider_not_offered")
+            if (choice["provider"] in VM_PROVIDERS) != ("vm_image" in choice):
+                raise SetupRefused(
+                    "vm_image",
+                    (
+                        "field_required"
+                        if choice["provider"] in VM_PROVIDERS
+                        else "vm_image_is_for_a_vm_provider"
+                    ),
+                )
         gpu = value["choice"] in (LOCAL_GPU, RENTED_GPU)
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
@@ -1102,6 +1127,11 @@ class EnvironmentSetup:
                     stock=found["stock"],
                     ceiling_usd_per_hr=value["rented"]["max_rate_usd_per_hr"],
                     note=SPEED_ONLY_NOTE,
+                    **(
+                        {"vm_image": value["rented"]["vm_image"]}
+                        if "vm_image" in value["rented"]
+                        else {}
+                    ),
                 )
                 return self._step(
                     "compute", {**step, "runtime": runtime, "check": check}

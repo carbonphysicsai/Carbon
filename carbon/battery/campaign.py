@@ -536,7 +536,16 @@ def host_rented_runner(root, manifest, credential):
     miner = manifest["admission"]["hotkey"]
     return RentedRunner(
         compute=compute,
-        service=ComputeService(store, provider_adapter(compute.provider, credential)),
+        service=ComputeService(
+            store,
+            provider_adapter(
+                compute.provider,
+                credential,
+                # A VM provider's per-VM SSH keys stay in the campaign root.
+                state_dir=root / "compute" / "vm-keys",
+                vm_image=compute.vm_image,
+            ),
+        ),
         tenant=miner,
         miner=miner,
         campaign_id=campaign_id,

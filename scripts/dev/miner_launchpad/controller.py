@@ -406,13 +406,9 @@ INTEGRATIONS = (
     # documents a route, the interface stays unverified.
     {"id": "mira", "reason": "integration_interface_unverified"},
     # RunPod and Lium launch from setup on the miner's own account
-    # (C-MLP-03 slice 4). Targon's current API (read 2026-10-02) runs no
-    # container image: its rental workload type answers 410 TYPE_DEPRECATED,
-    # and its VM, bare-metal and sandbox types take no OCI image. Running the
-    # pinned worker there would be a VM-and-SSH design, an owner decision.
-    # `test_unavailable_reasons_have_causes` fails when Targon gains an
-    # adapter.
-    {"id": "targon", "reason": "provider_runs_no_container_image"},
+    # (C-MLP-03 slice 4), and so does Targon, as a VM reached over SSH (slice
+    # 4b, OWNER-C-MLP-03-ANSWERS-01): its API runs no container image, so the
+    # pinned worker runs with Docker inside a rented VM.
     {
         # Two earlier reasons here were wrong in different ways. The
         # first named a signing wallet adapter, which the key rule
@@ -442,13 +438,6 @@ INTEGRATION_PLACEMENT = {
         (
             "None today: Mira publishes no way to connect to tools on your "
             "machine. Use Hermes or Carbon's agent under Set up your environment."
-        ),
-    ),
-    "targon": (
-        "compute_provider",
-        (
-            "Rent a GPU on RunPod or Lium under Set up your environment, "
-            "Compute, or run on this machine."
         ),
     ),
     "testnet-registration": (
