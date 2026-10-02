@@ -17189,3 +17189,84 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
+
+## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
+
+**Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
+blocker". This is an engineering change under that direction. It is not a
+release decision.
+
+**The blocker.**
+- `tools/integrate-static.mjs` read the Pilot Designer from the Workbench's
+  working copy, `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`.
+- `tests/bundle-guard.test.mjs` held the candidate's `pilot_html_sha256` to
+  that file.
+- So any Workbench rebuild failed canonical until a new candidate was
+  re-derived and approved. A rebuild happens for every relayed readiness
+  record (CHALLENGE-READINESS-RELAY-01), not only for Pilot Designer work.
+
+**The change.**
+- The release ships `website/ask-carbon/release/pilot-designer.html`, a
+  committed snapshot. The guard holds `pilot_html_sha256` to the snapshot.
+- A new guard test fails if the integrator reads a Pilot Designer from outside
+  the Ask Carbon tree.
+- Shipping a newer Pilot Designer is now an explicit release step: copy the
+  preview over the snapshot, then re-derive the candidate (`OPERATIONS.md`).
+
+**What does not change.**
+- The snapshot is byte-identical to the approved and live Pilot Designer
+  (`be64f8b9…`).
+- Rebuilt with the snapshot against a baseline re-fetched from both hostnames
+  (100/100), the integrator reproduces the approved bundle
+  `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a`, 105
+  files, exactly.
+- So the candidate record, its approval (WEB-QA-11-D2) and production are
+  untouched, and nothing is deployed.
+
+**The WEB-QA-11-D2 deployment, recorded.**
+- The operator deployed bundle `86f51385` as `carbonwebsite`
+  `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` on 2026-10-02 at 01:52:41Z, with
+  100 % of traffic, replacing `dc4469a7`.
+- Capture: the operator's wrangler deploy output, re-read with
+  `wrangler deployments status` at 02:56Z, and relayed by the owner in
+  session.
+- From this host, `tools/verify-publication.mjs` against the reproduced bundle
+  is VERIFIED on both hostnames: Pilot Designer `be64f8b9…`, `/workbench/`
+  `9a44f683…`, health `active:true` with `gemma-4-31b-turbo-tee:v1`.
+- The manifest's rollback target is now `c12d547a`, and `dc4469a7` is
+  superseded. The candidate is `OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED`.
+- The `ask-carbon-public` version ids were not supplied.
+- **The next candidate has one prerequisite.** It must first fold the
+  `/workbench/` replacement, now live, into a v4 baseline inventory.
+
+**Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
+
+## 2026-10-02 — OWNER-C-MLP-03-ANSWERS-01: the Mira note stands; build Targon's VM-and-SSH route
+
+**Owner, verbatim, in session on 2026-10-02:** "Approve, Build Targon VM
+route, Security approved". The three answers are, in order:
+1. the slice-5 ticket edit that records the Mira question as answered by
+   OWNER-GRAPHITE-01;
+2. the C-MLP-03 Targon question;
+3. the battery intake's exposure. That needs its own record of the form
+   `OWNER-…INTAKE-EXPOSURE-NN`, made with the listener change it gates; it is
+   not made here.
+
+**Decision.**
+1. **Mira.** The C-MLP-03 ticket records "Mira's connection" as answered.
+   - OWNER-GRAPHITE-01 builds Graphite instead of buying Mira.
+   - The Mira adapter refuses every call until a vendor contract exists
+     (`docs/development/mira/CAPABILITY_REPORT.md`, MIRA-ADMISSION-01, #475).
+2. **Targon.** C-MLP-03 builds a Targon route on the miner's own account:
+   - rent a Targon GPU VM;
+   - reach it over SSH;
+   - run the pinned GPU worker there with Docker.
+
+   Like RunPod and Lium, the route is for research practice only. It has:
+   - the miner's own key;
+   - finite ceilings;
+   - teardown verified;
+   - charges reconciled against the provider.
+
+**Unchanged.** Practice on rented compute is speed only and never evidence.
+No key reaches Carbon. The exam is unchanged.

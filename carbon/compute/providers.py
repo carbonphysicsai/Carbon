@@ -32,12 +32,27 @@ def _lium(credentials):
     return LiumAdapter(credentials)
 
 
+def _targon(credentials, *, state_dir, vm_image):
+    from .targon import TargonAdapter
+
+    return TargonAdapter(credentials, state_dir=state_dir, vm_image=vm_image)
+
+
 PROVIDERS["runpod"] = ("RunPod", _runpod)
 PROVIDERS["lium"] = ("Lium (subnet 51)", _lium)
+PROVIDERS["targon"] = ("Targon (subnet 4), a VM over SSH", _targon)
+#: Providers that rent a VM rather than run a container image: the miner
+#: names a VM image, and the adapter keeps per-VM SSH keys in `state_dir`.
+VM_PROVIDERS = frozenset({"targon"})
 
 
-def provider_adapter(name, credential_file):
+def provider_adapter(name, credential_file, *, state_dir=None, vm_image=None):
     """The named provider's adapter on the miner's own key file."""
     if name not in PROVIDERS:
         raise ValueError(f"unknown compute provider {name!r}")
-    return PROVIDERS[name][1](FileCredentialProvider(Path(credential_file)))
+    credentials = FileCredentialProvider(Path(credential_file))
+    if name in VM_PROVIDERS:
+        if state_dir is None:
+            raise ValueError(f"{name} needs a directory for its VM keys")
+        return PROVIDERS[name][1](credentials, state_dir=state_dir, vm_image=vm_image)
+    return PROVIDERS[name][1](credentials)

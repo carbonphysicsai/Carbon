@@ -200,8 +200,9 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "A real practice on a local GPU is the slice's acceptance and needs "
             "a GPU host. A GPU rented on the miner's own RunPod or Lium "
             "account runs the same practice (carbon.compute.rented_runner, "
-            "C-MLP-03 slice 4); one real practice on each is its acceptance and "
-            "needs the miner's account. Targon runs no container image today.",
+            "C-MLP-03 slice 4), and so does a Targon VM, reached over SSH with "
+            "the pinned worker run there by Docker (slice 4b); one real "
+            "practice on each is its acceptance and needs the miner's account.",
         ),
         "model": Provided(
             (

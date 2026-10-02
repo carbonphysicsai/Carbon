@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -70,10 +71,23 @@ class RentedCompute:
     container_disk_gb: int = 20
     #: Time a pod may take to start and pull the image, before the job's own.
     startup_seconds: int = 900
+    #: A VM provider's image (Targon): the operating system the VM boots, in
+    #: which the pinned worker then runs with Docker. None for a provider that
+    #: runs the worker image itself.
+    vm_image: str | None = None
 
     def __post_init__(self):
+        from .providers import VM_PROVIDERS
+
         if "@sha256:" not in self.image_ref:
             raise ValueError("the rented worker image must be pinned by digest")
+        if (self.provider in VM_PROVIDERS) != (self.vm_image is not None):
+            raise ValueError("a VM provider, and only one, names a VM image")
+        if self.vm_image is not None and (
+            type(self.vm_image) is not str
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}", self.vm_image)
+        ):
+            raise ValueError("invalid VM image name")
         for value in (self.max_rate_usd_per_hr, self.storage_usd_per_gb_month):
             if not (isinstance(value, int | float) and math.isfinite(value)):
                 raise ValueError("a finite rate ceiling is required")
@@ -88,6 +102,8 @@ class RentedCompute:
             "max_rate_usd_per_hr": self.max_rate_usd_per_hr,
             "storage_usd_per_gb_month": self.storage_usd_per_gb_month,
             "cloud_type": self.cloud_type,
+            # Present only for a VM provider, so no other choice's identity moves.
+            **({} if self.vm_image is None else {"vm_image": self.vm_image}),
         }
 
 
@@ -234,10 +250,11 @@ class RentedRunner:
             owned = self.service.owned(
                 self.campaign_id, intent_id, resource.resource_id
             )
-            plain = getattr(self.service.provider, "job_transport", "") == (
-                "http-direct"
-            )
-            rented["job_transport"] = "http-direct" if plain else "https"
+            # https through a provider proxy unless the adapter states another
+            # route: Lium's node IP over plain HTTP, or Targon's SSH forward.
+            transport = getattr(self.service.provider, "job_transport", "https")
+            plain = transport == "http-direct"
+            rented["job_transport"] = transport
             job = self.job(
                 self._job_url(owned, ledger, owner, identity),
                 record["token"],
