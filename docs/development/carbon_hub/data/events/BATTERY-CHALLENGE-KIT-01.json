@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "BATTERY-CHALLENGE-KIT-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Battery challenge kit (carbon/challenge_kit/battery.py, 2026-10-02) closes the battery generate gap (OWNER-RESEARCH-ENVIRONMENT-01). It is a command on the miner's own machine (OWNER-MINER-OWN-MACHINE-01 item 4). It draws uniformly over the published input box with the validator's own rule (seeds.draw_inputs), from the miner's own 32-byte seed roots in mock seeding only; a test shows its draws equal the validator's for the same bytes. It labels them with the pinned PyBaMM reference in the pinned truth image, through the validator's own no-network, read-only solve run, keeping typed reference failures, and writes the OK records in TRAIN v1's shape. Tests show it names no official seeding, private root, batch or journal, and is not shipped into the research sandbox. Generated data is self-reported research material, never a grading reference; submissions are still rebuilt on the pinned TRAIN version. Semantic decontamination (constitution 7.2) stays open with the MQ-008 holder. A Docker run on a miner machine is the live acceptance.",
+  "primary_detail": "docs/development/RESEARCH_ENVIRONMENT_STANDARD.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T19:06:19Z"
+}
