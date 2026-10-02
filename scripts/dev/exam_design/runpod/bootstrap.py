@@ -51,6 +51,12 @@ MANIFEST = json.loads(
     else os.environ.get("CODE_MANIFEST", "{}")
 )
 PHASE = os.environ.get("PHASE", "")
+# The module run as the phase: the exam-design runner unless a campaign names
+# its own (the challenge pools run scripts.dev.challenge_pools.pod_phase).
+PHASE_MODULE = os.environ.get("PHASE_MODULE", "scripts.dev.exam_design.runner")
+# A CPU pod's shell start command carries this file in CARBON_BOOT; it is not
+# passed on to the phase.
+os.environ.pop("CARBON_BOOT", None)
 ROOT, OVL, OUT = "/tmp/carbon", "/tmp/overlay", "/tmp/out"
 CTX = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
 STATE = {
@@ -295,7 +301,7 @@ def main():
                 [
                     sys.executable,
                     "-m",
-                    "scripts.dev.exam_design.runner",
+                    PHASE_MODULE,
                     PHASE,
                     "--out",
                     OUT,
