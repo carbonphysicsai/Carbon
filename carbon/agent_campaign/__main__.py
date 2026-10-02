@@ -17,6 +17,11 @@ def main(argv=None):
     sheet = sub.add_parser("study", help="write or check the Level-0 study sheet")
     sheet.add_argument("--out")
     sheet.add_argument("--check")
+    sheet.add_argument(
+        "--challenge",
+        default=study.CHALLENGE,
+        help="the Challenge's construction contract token (with --out)",
+    )
     args = parser.parse_args(argv)
     if args.command == "capabilities":
         caps = mira.MiraProvider().capabilities()
@@ -45,7 +50,7 @@ def main(argv=None):
         )
         return 1 if changed else 0
     if args.out:
-        print(study.write(args.out))
+        print(study.write(args.out, challenge=args.challenge))
         return 0
     parser.error("study needs --out or --check")
     return 2

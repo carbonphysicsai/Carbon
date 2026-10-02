@@ -170,6 +170,18 @@ Delegated engineering decisions, recorded under
   is never edited by hand. The lesson
   `2026-10-02-lessons-regenerate-pipeline-view` proposes keeping the count out
   of the view, so that an entry changes no other committed file.
+- **GA-D1, battery's map places every dimension of its contract.** The map
+  moved from `study.py` to `carbon/battery/admission_study.py` with its ten
+  historical labels unchanged. It adds `hybrid` and `prediction` at Level 4,
+  as new model forms behind the constrained inference interface, because the
+  level planner (slice P) refuses a contract dimension the map does not place.
+  Battery has no rebuildable capability in either dimension, so the inventory
+  and sheet are unchanged. The labels are planning labels; the owner may
+  change them.
+- **GA-D2, the study adapter is registered in one hook.** `study._studies()`
+  maps a Challenge token to its adapter, as `challenge_registry.campaigns`
+  does for campaigns. Adding a Challenge is adding its adapter there. A test
+  or an unregistered Challenge passes a `ChallengeStudy` directly.
 
 ## Slices delivered
 
@@ -177,9 +189,33 @@ Delegated engineering decisions, recorded under
   It lists the commits, what exists and is missing per handoff section, the
   affected tests, and every battery literal in shared code with its
   disposition.
+- **Slice A, study sheet and ladder map.**
+  - Challenge-neutral: `carbon/agent_campaign/study.py`. `ChallengeStudy`,
+    `study_for`, `planning_level`, and `permission_inventory`, `scope_pins`,
+    `study_sheet`, `write` taking a Challenge; `drift` reads the Challenge
+    from the written sheet; the CLI takes `--challenge`. A rebuildable
+    capability whose dimension the map does not place is refused
+    (`capability_not_on_ladder_map`), never defaulted. The adapter is checked:
+    its contract's token, a map of dimensions to levels 0-5, exactly the
+    Challenge-specific pins, one specimen per check, its sheet text.
+  - Battery adapter: `carbon/battery/admission_study.py`. Battery's map, its
+    pin sources, its eight specimens and the sheet text naming rule v2, moved
+    unchanged.
+  - A second Challenge supplies: a registered construction contract, a map
+    placing every dimension it uses, its pin sources (generator, reference,
+    score, environment, decision contract, feedback; budget and population
+    stay None until the owners set them), one specimen and control per check,
+    its feedback text and permitted hardware.
+  - Evidence: the battery sheet and inventory written before and after the
+    change are byte-identical, and equal the committed
+    `docs/development/mira/level0/` files. `permission_inventory()` with no
+    argument returns them unchanged.
+  - Tests: `tests/cpu/test_agent_campaign_study.py`, and two mutation checks
+    in `tests/cpu/test_graphite_admission_mutations.py`.
 
 ## Lessons
 
 - `2026-10-02-graphite-admission-contract`
 - `2026-10-02-lessons-regenerate-pipeline-view` (PROPOSED revision)
 - `2026-10-02-graphite-admission-reconciliation`
+- `2026-10-02-study-sheet-takes-a-challenge`
