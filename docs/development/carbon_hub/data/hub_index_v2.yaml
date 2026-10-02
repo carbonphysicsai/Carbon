@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T20:10:32Z"
+  captured_at_utc: "2026-10-02T20:22:36Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5d24eb26f6d7430ae0b7ea1b4f70517e90002de2"
+  authority_snapshot_commit: "4a1de41005d53efc6599a6d16892968b898f29d9"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10746,6 +10746,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: "C-MLP-03-SLICE-4-RENTED-GPU"
     recorded_at: "2026-10-02T20:01:19Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4, rebuilt under OWNER-MINER-COMPUTE-LINK-ONLY-01 (LINKONLY-D4): battery practice can run on a GPU machine the miner runs, reached over SSH with Docker and the NVIDIA Container Toolkit; the library is built and setup does not offer it yet. carbon.compute.remote_machine drives the system ssh with the miner's own agent, config and known hosts (no -i, no IdentitiesOnly, no Carbon known_hosts, no accept-new, BatchMode) to a [user@]host or alias destination that can never be an option. A fixed script refuses by code when Docker (90), the NVIDIA Container Toolkit (91), Docker without sudo (92) or the pinned worker by image ID (93) is missing, installs nothing, and starts one carbon-job-<24 hex> container with --rm, the GPUs and the job port on the machine's loopback, its environment through a deleted temporary file; only such containers are ever removed, and the worker image is streamed with docker save | ssh docker load and checked by ID. carbon.compute.remote_runner reserves the trial, writes the owner-only job record, starts the container, reaches the job server through an SSH port forward and always closes the tunnel and removes the container, recording whether the machine confirmed it; BatteryPractice records the REMOTE_GPU backend. Carbon never starts, stops or bills the machine. Engineering evidence only; a real practice on a miner's machine is the acceptance, and nothing is qualified."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: "C-MLP-03-SLICE-4B-TARGON-VM"
+    recorded_at: "2026-10-02T20:22:17Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
