@@ -1,0 +1,2097 @@
+{
+ "batch": "motor-public-remaining-v1",
+ "purpose": "the motor's public TRAIN (first 150) and PRACTICE (first 30) cases not yet recorded on the owner's host, moved to a RunPod CPU pod (owner approval 2026-10-02); each case keeps its pool's case_id",
+ "population": "carbon.motor.development-population.v1",
+ "labels": [
+  "carbon.motor.pools-v1.train",
+  "carbon.motor.pools-v1.practice"
+ ],
+ "cases": [
+  {
+   "case_id": "train-0025",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.543936238007898,
+    "embrace": 0.9075360911739047,
+    "airgap_mm": 0.8400660169963543,
+    "slot_open_deg": 3.635830206920729,
+    "tooth_mm": 3.935084954887831,
+    "slot_bottom_mm": 37.01362395106396,
+    "current_density_a_mm2": 8.61087062107172,
+    "current_angle_deg": 2.4887132894066255
+   }
+  },
+  {
+   "case_id": "train-0027",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.435568931597465,
+    "embrace": 0.6129715552164271,
+    "airgap_mm": 0.5571844346007488,
+    "slot_open_deg": 5.370979630724784,
+    "tooth_mm": 2.9468284565136655,
+    "slot_bottom_mm": 41.11157221857789,
+    "current_density_a_mm2": 11.94317870728041,
+    "current_angle_deg": 49.96373110215481
+   }
+  },
+  {
+   "case_id": "train-0028",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.1272910736112336,
+    "embrace": 0.8358249397243362,
+    "airgap_mm": 0.7150105599157557,
+    "slot_open_deg": 3.079696425551022,
+    "tooth_mm": 2.9776235377348885,
+    "slot_bottom_mm": 41.167444760802375,
+    "current_density_a_mm2": 4.050778004994633,
+    "current_angle_deg": 28.795192556300563
+   }
+  },
+  {
+   "case_id": "train-0029",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.3310010182474983,
+    "embrace": 0.7761567010953306,
+    "airgap_mm": 0.5543333327424672,
+    "slot_open_deg": 4.680688251663913,
+    "tooth_mm": 3.5704728343450607,
+    "slot_bottom_mm": 35.57240108049622,
+    "current_density_a_mm2": 5.945455662970235,
+    "current_angle_deg": 57.07339173355717
+   }
+  },
+  {
+   "case_id": "train-0030",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.9640298231073388,
+    "embrace": 0.747970701935257,
+    "airgap_mm": 0.945547099981104,
+    "slot_open_deg": 2.56163763505102,
+    "tooth_mm": 2.8496075779660446,
+    "slot_bottom_mm": 40.779195085786625,
+    "current_density_a_mm2": 4.133062417710266,
+    "current_angle_deg": 23.35038340170812
+   }
+  },
+  {
+   "case_id": "train-0031",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.750638378750892,
+    "embrace": 0.8708483100131188,
+    "airgap_mm": 0.8807827968813204,
+    "slot_open_deg": 1.309844609061336,
+    "tooth_mm": 3.412697677707121,
+    "slot_bottom_mm": 35.14348667437078,
+    "current_density_a_mm2": 3.713333981268029,
+    "current_angle_deg": 47.25444381633225
+   }
+  },
+  {
+   "case_id": "train-0032",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6296485216029981,
+    "embrace": 0.9291893388652702,
+    "airgap_mm": 0.37383587457357476,
+    "slot_open_deg": 2.1753753925007233,
+    "tooth_mm": 3.398377579414288,
+    "slot_bottom_mm": 40.36118763666558,
+    "current_density_a_mm2": 2.8937784288206636,
+    "current_angle_deg": 41.878001361123594
+   }
+  },
+  {
+   "case_id": "train-0033",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6460831677952226,
+    "embrace": 0.5684611904097838,
+    "airgap_mm": 0.37352064743657826,
+    "slot_open_deg": 3.548012065123636,
+    "tooth_mm": 4.36166771138887,
+    "slot_bottom_mm": 36.66418782981684,
+    "current_density_a_mm2": 11.57289664430267,
+    "current_angle_deg": 27.408051854558334
+   }
+  },
+  {
+   "case_id": "train-0034",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4300798292389203,
+    "embrace": 0.6859047084502436,
+    "airgap_mm": 0.6153262707949603,
+    "slot_open_deg": 1.724723215292823,
+    "tooth_mm": 4.912859589700169,
+    "slot_bottom_mm": 35.86604282310169,
+    "current_density_a_mm2": 8.75392703158133,
+    "current_angle_deg": 59.98831051174727
+   }
+  },
+  {
+   "case_id": "train-0035",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8283758135368107,
+    "embrace": 0.8493432941882773,
+    "airgap_mm": 0.9081233491954623,
+    "slot_open_deg": 3.3749854819257745,
+    "tooth_mm": 3.966617118814587,
+    "slot_bottom_mm": 34.29618838349305,
+    "current_density_a_mm2": 9.304700083410072,
+    "current_angle_deg": 57.50726346347725
+   }
+  },
+  {
+   "case_id": "train-0036",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6991718618880767,
+    "embrace": 0.806106472116173,
+    "airgap_mm": 0.6308413327699052,
+    "slot_open_deg": 2.8604346003626784,
+    "tooth_mm": 3.2954408974391254,
+    "slot_bottom_mm": 41.09305365260515,
+    "current_density_a_mm2": 9.56973320556121,
+    "current_angle_deg": 51.713730692419766
+   }
+  },
+  {
+   "case_id": "train-0037",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.286196070995274,
+    "embrace": 0.6961582542961853,
+    "airgap_mm": 0.5732749433651704,
+    "slot_open_deg": 2.1041993462413613,
+    "tooth_mm": 4.097723338908256,
+    "slot_bottom_mm": 35.140281495422094,
+    "current_density_a_mm2": 10.24483048064727,
+    "current_angle_deg": 29.44982375762386
+   }
+  },
+  {
+   "case_id": "train-0038",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.0163467047547012,
+    "embrace": 0.6488524575958614,
+    "airgap_mm": 0.3890574724150723,
+    "slot_open_deg": 2.2728769416020427,
+    "tooth_mm": 2.5318261792446317,
+    "slot_bottom_mm": 40.191583524189824,
+    "current_density_a_mm2": 1.291272288975781,
+    "current_angle_deg": 4.783098880789329
+   }
+  },
+  {
+   "case_id": "train-0039",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.672089608888623,
+    "embrace": 0.6788695577955234,
+    "airgap_mm": 0.6262477620601727,
+    "slot_open_deg": 4.635915591932264,
+    "tooth_mm": 3.4177092514896104,
+    "slot_bottom_mm": 35.10790856392849,
+    "current_density_a_mm2": 1.1730971033134656,
+    "current_angle_deg": 50.329192954078714
+   }
+  },
+  {
+   "case_id": "train-0040",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6761469476321884,
+    "embrace": 0.9389975093588141,
+    "airgap_mm": 0.8733369045462676,
+    "slot_open_deg": 4.054051143071052,
+    "tooth_mm": 3.240909277666182,
+    "slot_bottom_mm": 37.59742297270584,
+    "current_density_a_mm2": 8.467170893960287,
+    "current_angle_deg": 15.66750567472624
+   }
+  },
+  {
+   "case_id": "train-0041",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.240092261768976,
+    "embrace": 0.742961716136598,
+    "airgap_mm": 0.5074975560689572,
+    "slot_open_deg": 2.981361059451329,
+    "tooth_mm": 3.786445549865553,
+    "slot_bottom_mm": 41.6834222305302,
+    "current_density_a_mm2": 8.769793926693955,
+    "current_angle_deg": 55.73877160920566
+   }
+  },
+  {
+   "case_id": "train-0042",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.4852256941874566,
+    "embrace": 0.6094837259350235,
+    "airgap_mm": 0.3503825482859304,
+    "slot_open_deg": 1.8426261687807863,
+    "tooth_mm": 4.372291197352253,
+    "slot_bottom_mm": 41.889602690019025,
+    "current_density_a_mm2": 0.9025595093427558,
+    "current_angle_deg": 43.555787473048134
+   }
+  },
+  {
+   "case_id": "train-0043",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4852861977866203,
+    "embrace": 0.9165971979358385,
+    "airgap_mm": 0.9688334508023686,
+    "slot_open_deg": 3.318790120386689,
+    "tooth_mm": 3.78981173393057,
+    "slot_bottom_mm": 39.68393378545664,
+    "current_density_a_mm2": 9.893865604317819,
+    "current_angle_deg": 42.82974084453434
+   }
+  },
+  {
+   "case_id": "train-0044",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.1825555857025223,
+    "embrace": 0.7531385764386893,
+    "airgap_mm": 0.866413214450722,
+    "slot_open_deg": 1.8547403250904673,
+    "tooth_mm": 4.565081605549075,
+    "slot_bottom_mm": 40.29193940500791,
+    "current_density_a_mm2": 7.690083143295458,
+    "current_angle_deg": 28.2043224968616
+   }
+  },
+  {
+   "case_id": "train-0045",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.9292959653368813,
+    "embrace": 0.9181840228356296,
+    "airgap_mm": 0.7066518168447947,
+    "slot_open_deg": 3.017200869609618,
+    "tooth_mm": 3.305237501458748,
+    "slot_bottom_mm": 35.30946729578913,
+    "current_density_a_mm2": 9.188958811758978,
+    "current_angle_deg": 6.178691575895483
+   }
+  },
+  {
+   "case_id": "train-0046",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.5512243674499193,
+    "embrace": 0.7869028906006915,
+    "airgap_mm": 0.9332419020377081,
+    "slot_open_deg": 4.566917803297492,
+    "tooth_mm": 2.605170755967841,
+    "slot_bottom_mm": 34.0980576697202,
+    "current_density_a_mm2": 8.619012390370774,
+    "current_angle_deg": 3.8477323009743825
+   }
+  },
+  {
+   "case_id": "train-0047",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.0923800651555196,
+    "embrace": 0.9405008941380018,
+    "airgap_mm": 0.4267164019796124,
+    "slot_open_deg": 2.5455684088577804,
+    "tooth_mm": 2.6237433898878737,
+    "slot_bottom_mm": 41.51559256917504,
+    "current_density_a_mm2": 14.730700717322643,
+    "current_angle_deg": 34.61806039687682
+   }
+  },
+  {
+   "case_id": "train-0048",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.9982028196307864,
+    "embrace": 0.6302711222841568,
+    "airgap_mm": 0.9678115268619598,
+    "slot_open_deg": 3.8773601339948267,
+    "tooth_mm": 3.942425919976089,
+    "slot_bottom_mm": 39.22433508810262,
+    "current_density_a_mm2": 8.702567896514875,
+    "current_angle_deg": 26.947245998899753
+   }
+  },
+  {
+   "case_id": "train-0049",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.7449460565294836,
+    "embrace": 0.6141420017318675,
+    "airgap_mm": 0.895236542988683,
+    "slot_open_deg": 4.924301145165691,
+    "tooth_mm": 4.178746533722136,
+    "slot_bottom_mm": 39.68302868313594,
+    "current_density_a_mm2": 4.349329501758889,
+    "current_angle_deg": 11.823541452239342
+   }
+  },
+  {
+   "case_id": "train-0050",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.8270661216921535,
+    "embrace": 0.7439326187503458,
+    "airgap_mm": 0.4880609874674324,
+    "slot_open_deg": 4.391906398995655,
+    "tooth_mm": 3.892043349250298,
+    "slot_bottom_mm": 36.55491377040623,
+    "current_density_a_mm2": 12.505130728021992,
+    "current_angle_deg": 32.56407761333145
+   }
+  },
+  {
+   "case_id": "train-0051",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6766111916468263,
+    "embrace": 0.8515899904467756,
+    "airgap_mm": 0.43598654895938205,
+    "slot_open_deg": 1.0524749888927718,
+    "tooth_mm": 4.215132000226145,
+    "slot_bottom_mm": 37.04455516554223,
+    "current_density_a_mm2": 5.302012591445144,
+    "current_angle_deg": 46.00844575844513
+   }
+  },
+  {
+   "case_id": "train-0052",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.9546985382756183,
+    "embrace": 0.8082707849066555,
+    "airgap_mm": 0.8770374055710861,
+    "slot_open_deg": 2.1420317319152273,
+    "tooth_mm": 3.0657641040325734,
+    "slot_bottom_mm": 38.16342744544576,
+    "current_density_a_mm2": 7.66996929506108,
+    "current_angle_deg": 57.95764892656862
+   }
+  },
+  {
+   "case_id": "train-0053",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.468322705298158,
+    "embrace": 0.7631656570242288,
+    "airgap_mm": 0.7401007756355136,
+    "slot_open_deg": 3.017733772613539,
+    "tooth_mm": 4.851104144628924,
+    "slot_bottom_mm": 40.02521495439275,
+    "current_density_a_mm2": 13.086416108511179,
+    "current_angle_deg": 51.145104341764956
+   }
+  },
+  {
+   "case_id": "train-0054",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.1338697557166575,
+    "embrace": 0.8531614427391291,
+    "airgap_mm": 0.6000489949713805,
+    "slot_open_deg": 2.784251387778995,
+    "tooth_mm": 3.9774301859318966,
+    "slot_bottom_mm": 40.24781705110165,
+    "current_density_a_mm2": 4.378386201847501,
+    "current_angle_deg": 43.1005091176263
+   }
+  },
+  {
+   "case_id": "train-0055",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.649953669828371,
+    "embrace": 0.5506824398038688,
+    "airgap_mm": 0.9977376360662673,
+    "slot_open_deg": 2.946864202235204,
+    "tooth_mm": 2.977553772076758,
+    "slot_bottom_mm": 39.81380516163392,
+    "current_density_a_mm2": 2.6808072320953324,
+    "current_angle_deg": 43.67425442140197
+   }
+  },
+  {
+   "case_id": "train-0056",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.659938348150732,
+    "embrace": 0.9268469540229827,
+    "airgap_mm": 0.6206060833382833,
+    "slot_open_deg": 2.6975629260494034,
+    "tooth_mm": 3.5122581585721155,
+    "slot_bottom_mm": 39.55254860811647,
+    "current_density_a_mm2": 13.07015585464898,
+    "current_angle_deg": 52.44800161242685
+   }
+  },
+  {
+   "case_id": "train-0057",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.241950767436037,
+    "embrace": 0.8219301439411162,
+    "airgap_mm": 0.6136242826214268,
+    "slot_open_deg": 1.1316524685956622,
+    "tooth_mm": 2.6863555938212538,
+    "slot_bottom_mm": 34.32756522122521,
+    "current_density_a_mm2": 8.440750573179203,
+    "current_angle_deg": 28.30982546610062
+   }
+  },
+  {
+   "case_id": "train-0058",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.7310619455153446,
+    "embrace": 0.9141956046383013,
+    "airgap_mm": 0.3053405187892602,
+    "slot_open_deg": 3.0969098329900584,
+    "tooth_mm": 3.5559634091420675,
+    "slot_bottom_mm": 36.56861776057664,
+    "current_density_a_mm2": 13.343837218869337,
+    "current_angle_deg": 57.15154504404925
+   }
+  },
+  {
+   "case_id": "train-0059",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.999744859023083,
+    "embrace": 0.7320084507164398,
+    "airgap_mm": 0.4231154695505737,
+    "slot_open_deg": 4.586554400562036,
+    "tooth_mm": 3.3172891797373856,
+    "slot_bottom_mm": 37.81710535950303,
+    "current_density_a_mm2": 0.7799504991039952,
+    "current_angle_deg": 23.134392037345165
+   }
+  },
+  {
+   "case_id": "train-0060",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.926981728822407,
+    "embrace": 0.6069717880897579,
+    "airgap_mm": 0.6141358256771211,
+    "slot_open_deg": 4.210776590861625,
+    "tooth_mm": 4.688702577411295,
+    "slot_bottom_mm": 39.70876258368262,
+    "current_density_a_mm2": 9.326430859932625,
+    "current_angle_deg": 13.762968843307151
+   }
+  },
+  {
+   "case_id": "train-0061",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.7710267068172576,
+    "embrace": 0.6310942470063137,
+    "airgap_mm": 0.8593096643382994,
+    "slot_open_deg": 4.70628674164414,
+    "tooth_mm": 2.6644137609734444,
+    "slot_bottom_mm": 36.29191341196255,
+    "current_density_a_mm2": 4.191421571747026,
+    "current_angle_deg": 40.33372224056063
+   }
+  },
+  {
+   "case_id": "train-0062",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8160466455120183,
+    "embrace": 0.6507469916243993,
+    "airgap_mm": 0.3535220634815571,
+    "slot_open_deg": 1.3537669539500043,
+    "tooth_mm": 3.5996852594553737,
+    "slot_bottom_mm": 34.518702579878074,
+    "current_density_a_mm2": 12.759190957216319,
+    "current_angle_deg": 34.3582250515352
+   }
+  },
+  {
+   "case_id": "train-0063",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.1163550251766963,
+    "embrace": 0.784435794654291,
+    "airgap_mm": 0.7418389954606488,
+    "slot_open_deg": 4.313031277246926,
+    "tooth_mm": 3.075081334768275,
+    "slot_bottom_mm": 36.89365422917902,
+    "current_density_a_mm2": 5.903074532354513,
+    "current_angle_deg": 9.722802592954437
+   }
+  },
+  {
+   "case_id": "train-0064",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.805558780211756,
+    "embrace": 0.6875208843321141,
+    "airgap_mm": 0.47644671696916907,
+    "slot_open_deg": 5.9551468650059185,
+    "tooth_mm": 3.5394541614833734,
+    "slot_bottom_mm": 38.0560282915757,
+    "current_density_a_mm2": 4.751039254721005,
+    "current_angle_deg": 42.892932732310975
+   }
+  },
+  {
+   "case_id": "train-0065",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8091632992656206,
+    "embrace": 0.8353741712056897,
+    "airgap_mm": 0.9807692073576413,
+    "slot_open_deg": 4.322353833243248,
+    "tooth_mm": 3.4861158066571067,
+    "slot_bottom_mm": 38.25901444882331,
+    "current_density_a_mm2": 0.8873195863987138,
+    "current_angle_deg": 16.66351824133701
+   }
+  },
+  {
+   "case_id": "train-0066",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.459807033615557,
+    "embrace": 0.7177100680071586,
+    "airgap_mm": 0.6137939495001928,
+    "slot_open_deg": 3.674237432098621,
+    "tooth_mm": 3.7036671966077384,
+    "slot_bottom_mm": 36.33217205463491,
+    "current_density_a_mm2": 1.5700523145835472,
+    "current_angle_deg": 32.18839307248137
+   }
+  },
+  {
+   "case_id": "train-0067",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.029100033026886,
+    "embrace": 0.6688881905090966,
+    "airgap_mm": 0.5672508905068099,
+    "slot_open_deg": 1.4609443734059377,
+    "tooth_mm": 3.1051116742435934,
+    "slot_bottom_mm": 39.08398963963545,
+    "current_density_a_mm2": 11.03738308044398,
+    "current_angle_deg": 39.58072378060527
+   }
+  },
+  {
+   "case_id": "train-0068",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.0867110162072477,
+    "embrace": 0.9263524656884052,
+    "airgap_mm": 0.3648898094585377,
+    "slot_open_deg": 4.1675869900507685,
+    "tooth_mm": 2.5183254711467313,
+    "slot_bottom_mm": 41.88095725493083,
+    "current_density_a_mm2": 13.06991888620984,
+    "current_angle_deg": 0.11917436897006972
+   }
+  },
+  {
+   "case_id": "train-0069",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.616886358700933,
+    "embrace": 0.7829611905361645,
+    "airgap_mm": 0.7521930493619109,
+    "slot_open_deg": 5.141382480943755,
+    "tooth_mm": 4.043551904211284,
+    "slot_bottom_mm": 39.079689043511976,
+    "current_density_a_mm2": 8.224819265108692,
+    "current_angle_deg": 37.02432461216458
+   }
+  },
+  {
+   "case_id": "train-0070",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.030378417136281,
+    "embrace": 0.7964686075924157,
+    "airgap_mm": 0.4342862759256416,
+    "slot_open_deg": 1.6900276287843172,
+    "tooth_mm": 3.348165495584811,
+    "slot_bottom_mm": 37.35734116933853,
+    "current_density_a_mm2": 5.5396323902757265,
+    "current_angle_deg": 56.88328715034528
+   }
+  },
+  {
+   "case_id": "train-0071",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.5391511469220462,
+    "embrace": 0.6700883098770821,
+    "airgap_mm": 0.744105881490553,
+    "slot_open_deg": 5.978403437914673,
+    "tooth_mm": 3.0583526722066563,
+    "slot_bottom_mm": 40.68035618907612,
+    "current_density_a_mm2": 1.630548832197138,
+    "current_angle_deg": 25.04353506969472
+   }
+  },
+  {
+   "case_id": "train-0072",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6771482428833493,
+    "embrace": 0.8473096792880579,
+    "airgap_mm": 0.9144838721647865,
+    "slot_open_deg": 5.115919523283655,
+    "tooth_mm": 3.2677317564111155,
+    "slot_bottom_mm": 37.007357179155896,
+    "current_density_a_mm2": 13.630977085010322,
+    "current_angle_deg": 39.07060030059382
+   }
+  },
+  {
+   "case_id": "train-0073",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.865438552090179,
+    "embrace": 0.8091015981386577,
+    "airgap_mm": 0.5560912966975562,
+    "slot_open_deg": 4.37458806759894,
+    "tooth_mm": 2.670125089844283,
+    "slot_bottom_mm": 38.42000060679706,
+    "current_density_a_mm2": 2.570996036897567,
+    "current_angle_deg": 39.98110973800244
+   }
+  },
+  {
+   "case_id": "train-0074",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6922311206563854,
+    "embrace": 0.6509995110593627,
+    "airgap_mm": 0.699893321968025,
+    "slot_open_deg": 3.4634983323022692,
+    "tooth_mm": 4.442441992335446,
+    "slot_bottom_mm": 41.5553220584312,
+    "current_density_a_mm2": 11.733357251687602,
+    "current_angle_deg": 44.943819998030534
+   }
+  },
+  {
+   "case_id": "train-0075",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.5297461163185835,
+    "embrace": 0.6044946987513989,
+    "airgap_mm": 0.3253135877363323,
+    "slot_open_deg": 4.685503918862788,
+    "tooth_mm": 3.5080417602579943,
+    "slot_bottom_mm": 41.80642287769224,
+    "current_density_a_mm2": 6.682867543022509,
+    "current_angle_deg": 8.127533023789525
+   }
+  },
+  {
+   "case_id": "train-0076",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.850003630536491,
+    "embrace": 0.8837449619454405,
+    "airgap_mm": 0.6007481933548982,
+    "slot_open_deg": 1.9969504906563702,
+    "tooth_mm": 3.358354167057031,
+    "slot_bottom_mm": 41.82874941157203,
+    "current_density_a_mm2": 10.33699407715066,
+    "current_angle_deg": 46.06193666256344
+   }
+  },
+  {
+   "case_id": "train-0077",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.7567911547984447,
+    "embrace": 0.878870858677445,
+    "airgap_mm": 0.5166823376644003,
+    "slot_open_deg": 4.426283497886698,
+    "tooth_mm": 3.510883121613388,
+    "slot_bottom_mm": 36.547042563616166,
+    "current_density_a_mm2": 5.891417954274985,
+    "current_angle_deg": 33.48957199761749
+   }
+  },
+  {
+   "case_id": "train-0078",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.5907258097233195,
+    "embrace": 0.5976588781456179,
+    "airgap_mm": 0.9905305761583938,
+    "slot_open_deg": 2.7407124409534585,
+    "tooth_mm": 2.5495543428683627,
+    "slot_bottom_mm": 36.17930945074831,
+    "current_density_a_mm2": 14.104200723233436,
+    "current_angle_deg": 44.77775292880308
+   }
+  },
+  {
+   "case_id": "train-0079",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.229339003508417,
+    "embrace": 0.8359211031418237,
+    "airgap_mm": 0.5836854795825389,
+    "slot_open_deg": 3.5033212264451405,
+    "tooth_mm": 4.014322843725523,
+    "slot_bottom_mm": 40.03448071558249,
+    "current_density_a_mm2": 0.09531446430183443,
+    "current_angle_deg": 22.064419557954952
+   }
+  },
+  {
+   "case_id": "train-0080",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.8842778719311957,
+    "embrace": 0.8744378693475446,
+    "airgap_mm": 0.8798775800085519,
+    "slot_open_deg": 5.4790496891704175,
+    "tooth_mm": 3.7207837482291257,
+    "slot_bottom_mm": 34.35792372982688,
+    "current_density_a_mm2": 14.92550899248265,
+    "current_angle_deg": 17.69844479360797
+   }
+  },
+  {
+   "case_id": "train-0081",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8727486224053613,
+    "embrace": 0.8801216563821248,
+    "airgap_mm": 0.7485104391329038,
+    "slot_open_deg": 4.664421547587879,
+    "tooth_mm": 4.058958725912331,
+    "slot_bottom_mm": 37.25798888551098,
+    "current_density_a_mm2": 14.747176400121605,
+    "current_angle_deg": 20.800425054961117
+   }
+  },
+  {
+   "case_id": "train-0082",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.5528917976295595,
+    "embrace": 0.8922677976276415,
+    "airgap_mm": 0.5319361440430641,
+    "slot_open_deg": 1.830300310046706,
+    "tooth_mm": 3.8877722130720405,
+    "slot_bottom_mm": 34.18197310239362,
+    "current_density_a_mm2": 10.481793802371685,
+    "current_angle_deg": 57.47642649289187
+   }
+  },
+  {
+   "case_id": "train-0083",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.601399353715722,
+    "embrace": 0.6196951232710695,
+    "airgap_mm": 0.6993866008318514,
+    "slot_open_deg": 3.0860827013917547,
+    "tooth_mm": 3.710598375260764,
+    "slot_bottom_mm": 38.75345423642117,
+    "current_density_a_mm2": 6.596570484753449,
+    "current_angle_deg": 15.513760294080964
+   }
+  },
+  {
+   "case_id": "train-0084",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4554706451915433,
+    "embrace": 0.6743831548517664,
+    "airgap_mm": 0.4435187084392607,
+    "slot_open_deg": 2.8382828675110146,
+    "tooth_mm": 4.2147793238617774,
+    "slot_bottom_mm": 39.04540164569153,
+    "current_density_a_mm2": 8.149899757510992,
+    "current_angle_deg": 12.667091480182012
+   }
+  },
+  {
+   "case_id": "train-0085",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.078422448428532,
+    "embrace": 0.8232784197643486,
+    "airgap_mm": 0.5663590669275993,
+    "slot_open_deg": 3.2669944490642377,
+    "tooth_mm": 2.7339410113832683,
+    "slot_bottom_mm": 41.196204009748904,
+    "current_density_a_mm2": 12.211027674104798,
+    "current_angle_deg": 53.81503655465765
+   }
+  },
+  {
+   "case_id": "train-0086",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.9789579447709573,
+    "embrace": 0.862213328075755,
+    "airgap_mm": 0.3750859717836949,
+    "slot_open_deg": 4.506017623183051,
+    "tooth_mm": 3.6507891126868826,
+    "slot_bottom_mm": 35.09604378979648,
+    "current_density_a_mm2": 11.813950638758666,
+    "current_angle_deg": 52.28043818521445
+   }
+  },
+  {
+   "case_id": "train-0087",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.7883040529697167,
+    "embrace": 0.7439449037708556,
+    "airgap_mm": 0.851246687442081,
+    "slot_open_deg": 4.157192514192611,
+    "tooth_mm": 3.124730500803038,
+    "slot_bottom_mm": 41.658421010210674,
+    "current_density_a_mm2": 11.317784763659787,
+    "current_angle_deg": 6.9996638960207935
+   }
+  },
+  {
+   "case_id": "train-0088",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.73820965014522,
+    "embrace": 0.9397568790899271,
+    "airgap_mm": 0.9279453550073167,
+    "slot_open_deg": 1.1684819904806396,
+    "tooth_mm": 4.141523234271733,
+    "slot_bottom_mm": 41.152377028291355,
+    "current_density_a_mm2": 4.030125180879161,
+    "current_angle_deg": 36.56881002362644
+   }
+  },
+  {
+   "case_id": "train-0089",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.9934432570587732,
+    "embrace": 0.8942437635477871,
+    "airgap_mm": 0.8362566412540877,
+    "slot_open_deg": 3.2585132750181716,
+    "tooth_mm": 3.457068241278675,
+    "slot_bottom_mm": 39.888613612111854,
+    "current_density_a_mm2": 14.289272050458578,
+    "current_angle_deg": 31.818371549726518
+   }
+  },
+  {
+   "case_id": "train-0090",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.9814777505516417,
+    "embrace": 0.8447848350978784,
+    "airgap_mm": 0.9410300202041195,
+    "slot_open_deg": 4.102011800674095,
+    "tooth_mm": 4.3088680463136715,
+    "slot_bottom_mm": 34.71031127360312,
+    "current_density_a_mm2": 10.556084533645842,
+    "current_angle_deg": 20.716953423024407
+   }
+  },
+  {
+   "case_id": "train-0091",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.584087641882772,
+    "embrace": 0.9009079446135753,
+    "airgap_mm": 0.40468193850376133,
+    "slot_open_deg": 1.9936274581717897,
+    "tooth_mm": 4.870689540546859,
+    "slot_bottom_mm": 40.680367622501024,
+    "current_density_a_mm2": 13.434194901203833,
+    "current_angle_deg": 47.07648308460759
+   }
+  },
+  {
+   "case_id": "train-0092",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6840429123989216,
+    "embrace": 0.7574394409896181,
+    "airgap_mm": 0.6977352884585308,
+    "slot_open_deg": 4.050981219365483,
+    "tooth_mm": 2.7882945810273396,
+    "slot_bottom_mm": 39.277789943815336,
+    "current_density_a_mm2": 4.340867443262092,
+    "current_angle_deg": 30.24113545170583
+   }
+  },
+  {
+   "case_id": "train-0093",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.826733626959319,
+    "embrace": 0.6196388592987933,
+    "airgap_mm": 0.48000387837478947,
+    "slot_open_deg": 1.8338096899046843,
+    "tooth_mm": 4.209390060016942,
+    "slot_bottom_mm": 38.596517050471725,
+    "current_density_a_mm2": 3.4969003530092655,
+    "current_angle_deg": 1.8110614257885227
+   }
+  },
+  {
+   "case_id": "train-0094",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.900370937204638,
+    "embrace": 0.945340522708847,
+    "airgap_mm": 0.6661236422896846,
+    "slot_open_deg": 4.155282627686097,
+    "tooth_mm": 3.0231410297227024,
+    "slot_bottom_mm": 38.070070071220435,
+    "current_density_a_mm2": 2.010728919035812,
+    "current_angle_deg": 13.181470521977127
+   }
+  },
+  {
+   "case_id": "train-0095",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4507665600575175,
+    "embrace": 0.9112538458164834,
+    "airgap_mm": 0.5242183623090303,
+    "slot_open_deg": 3.8967323110799414,
+    "tooth_mm": 4.107724370432468,
+    "slot_bottom_mm": 40.41239780903901,
+    "current_density_a_mm2": 0.07767677217991542,
+    "current_angle_deg": 15.61877118510203
+   }
+  },
+  {
+   "case_id": "train-0096",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.52464790225907,
+    "embrace": 0.7177899477366138,
+    "airgap_mm": 0.7153372810901824,
+    "slot_open_deg": 1.0517484766609737,
+    "tooth_mm": 2.6670964697443473,
+    "slot_bottom_mm": 37.04551610337334,
+    "current_density_a_mm2": 14.352636754267628,
+    "current_angle_deg": 44.38390673366254
+   }
+  },
+  {
+   "case_id": "train-0097",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.900568384101124,
+    "embrace": 0.7831249637353439,
+    "airgap_mm": 0.7283903850508917,
+    "slot_open_deg": 3.441986791406041,
+    "tooth_mm": 2.9279814374111233,
+    "slot_bottom_mm": 36.545898182210166,
+    "current_density_a_mm2": 12.02779266697839,
+    "current_angle_deg": 44.75901394229897
+   }
+  },
+  {
+   "case_id": "train-0098",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.408864315421358,
+    "embrace": 0.6078804196587719,
+    "airgap_mm": 0.7410537192605399,
+    "slot_open_deg": 3.1211747609422877,
+    "tooth_mm": 4.479095436751019,
+    "slot_bottom_mm": 36.43593257578155,
+    "current_density_a_mm2": 7.877026701542439,
+    "current_angle_deg": 1.870074905663106
+   }
+  },
+  {
+   "case_id": "train-0099",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.451479366197024,
+    "embrace": 0.8978856065940064,
+    "airgap_mm": 0.8314905778218202,
+    "slot_open_deg": 4.826506405363411,
+    "tooth_mm": 3.7148834443765537,
+    "slot_bottom_mm": 41.72050514558858,
+    "current_density_a_mm2": 8.190914369890045,
+    "current_angle_deg": 54.63379286307098
+   }
+  },
+  {
+   "case_id": "train-0100",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.1022597885208336,
+    "embrace": 0.834507078454102,
+    "airgap_mm": 0.7266152524465109,
+    "slot_open_deg": 1.7099329221181678,
+    "tooth_mm": 3.6430558380105884,
+    "slot_bottom_mm": 34.2784158216989,
+    "current_density_a_mm2": 2.954828449878564,
+    "current_angle_deg": 44.787071696742785
+   }
+  },
+  {
+   "case_id": "train-0101",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4733315032780565,
+    "embrace": 0.7694334674422343,
+    "airgap_mm": 0.5004504773727128,
+    "slot_open_deg": 2.3253272384546118,
+    "tooth_mm": 3.955441241098874,
+    "slot_bottom_mm": 35.21365437607045,
+    "current_density_a_mm2": 9.023842629126328,
+    "current_angle_deg": 32.102355222262666
+   }
+  },
+  {
+   "case_id": "train-0102",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8478884800010942,
+    "embrace": 0.558760491935302,
+    "airgap_mm": 0.43936329409285807,
+    "slot_open_deg": 3.2706886160591595,
+    "tooth_mm": 3.053462515667974,
+    "slot_bottom_mm": 35.04596203750938,
+    "current_density_a_mm2": 5.220352684285209,
+    "current_angle_deg": 40.89383088003742
+   }
+  },
+  {
+   "case_id": "train-0103",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.8562466709824417,
+    "embrace": 0.6149880276771347,
+    "airgap_mm": 0.9136143158038041,
+    "slot_open_deg": 4.599068267077261,
+    "tooth_mm": 4.591993959809836,
+    "slot_bottom_mm": 38.303102036814096,
+    "current_density_a_mm2": 5.110657924545626,
+    "current_angle_deg": 8.223153154977094
+   }
+  },
+  {
+   "case_id": "train-0104",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.462880149695651,
+    "embrace": 0.8128629014214541,
+    "airgap_mm": 0.4469514469087874,
+    "slot_open_deg": 2.351189275169926,
+    "tooth_mm": 4.714630916434622,
+    "slot_bottom_mm": 41.77728288386539,
+    "current_density_a_mm2": 6.219148176207437,
+    "current_angle_deg": 16.896561113776087
+   }
+  },
+  {
+   "case_id": "train-0105",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6403243767223497,
+    "embrace": 0.5573522922020709,
+    "airgap_mm": 0.5752046357420022,
+    "slot_open_deg": 3.421515045307161,
+    "tooth_mm": 3.338291601298321,
+    "slot_bottom_mm": 36.76841287053901,
+    "current_density_a_mm2": 11.287622306382861,
+    "current_angle_deg": 40.62248704656782
+   }
+  },
+  {
+   "case_id": "train-0106",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.5775999069087616,
+    "embrace": 0.9146130222553329,
+    "airgap_mm": 0.5395986598328484,
+    "slot_open_deg": 2.5768758503397184,
+    "tooth_mm": 4.1142892704952185,
+    "slot_bottom_mm": 40.70450150923863,
+    "current_density_a_mm2": 9.19738621390401,
+    "current_angle_deg": 38.19034932841931
+   }
+  },
+  {
+   "case_id": "train-0107",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.5084899477741827,
+    "embrace": 0.8282443573290839,
+    "airgap_mm": 0.3110170888939695,
+    "slot_open_deg": 1.4414143868277676,
+    "tooth_mm": 3.508054110739997,
+    "slot_bottom_mm": 36.89348475613082,
+    "current_density_a_mm2": 1.729855061494755,
+    "current_angle_deg": 5.966658145435952
+   }
+  },
+  {
+   "case_id": "train-0108",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.694274390827366,
+    "embrace": 0.7413741989657143,
+    "airgap_mm": 0.5659118533298917,
+    "slot_open_deg": 4.368353115010221,
+    "tooth_mm": 4.5183232794663795,
+    "slot_bottom_mm": 35.38812812858216,
+    "current_density_a_mm2": 0.9540608891797847,
+    "current_angle_deg": 18.372372440473324
+   }
+  },
+  {
+   "case_id": "train-0109",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.3564249220641056,
+    "embrace": 0.9003319840642936,
+    "airgap_mm": 0.5852667198451056,
+    "slot_open_deg": 2.8314562224893676,
+    "tooth_mm": 3.471296023141579,
+    "slot_bottom_mm": 36.02064600584695,
+    "current_density_a_mm2": 12.050882984056601,
+    "current_angle_deg": 40.158862212696384
+   }
+  },
+  {
+   "case_id": "train-0110",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.0115019926509174,
+    "embrace": 0.8239205514474948,
+    "airgap_mm": 0.9216231049370642,
+    "slot_open_deg": 3.7316395455364137,
+    "tooth_mm": 4.293927656606354,
+    "slot_bottom_mm": 36.36488629675194,
+    "current_density_a_mm2": 3.2013696140301064,
+    "current_angle_deg": 19.413149660683054
+   }
+  },
+  {
+   "case_id": "train-0111",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.3096963368206342,
+    "embrace": 0.7219565485834898,
+    "airgap_mm": 0.634714900363067,
+    "slot_open_deg": 4.512889094240971,
+    "tooth_mm": 4.364451453755796,
+    "slot_bottom_mm": 37.240465512935515,
+    "current_density_a_mm2": 2.3611178582765815,
+    "current_angle_deg": 6.368003804805776
+   }
+  },
+  {
+   "case_id": "train-0112",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.1852185768686883,
+    "embrace": 0.8631900628613673,
+    "airgap_mm": 0.5389626283061855,
+    "slot_open_deg": 2.033651883643787,
+    "tooth_mm": 4.704277444770863,
+    "slot_bottom_mm": 39.64090282903481,
+    "current_density_a_mm2": 11.424422357606122,
+    "current_angle_deg": 36.56393226836102
+   }
+  },
+  {
+   "case_id": "train-0113",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.3138603423902055,
+    "embrace": 0.8135212078019012,
+    "airgap_mm": 0.499173738738487,
+    "slot_open_deg": 4.242209056595855,
+    "tooth_mm": 3.695204527641188,
+    "slot_bottom_mm": 36.37352292213921,
+    "current_density_a_mm2": 14.826173868766572,
+    "current_angle_deg": 31.864219106917645
+   }
+  },
+  {
+   "case_id": "train-0114",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.9762271566357628,
+    "embrace": 0.5755736708576136,
+    "airgap_mm": 0.9462114856488772,
+    "slot_open_deg": 4.109735527329684,
+    "tooth_mm": 3.5419000996035708,
+    "slot_bottom_mm": 37.188027000793646,
+    "current_density_a_mm2": 3.5813780730915825,
+    "current_angle_deg": 4.868733862340633
+   }
+  },
+  {
+   "case_id": "train-0115",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.7422910057181844,
+    "embrace": 0.6170144542213544,
+    "airgap_mm": 0.9596335726695437,
+    "slot_open_deg": 2.316939734986678,
+    "tooth_mm": 3.2502572646053762,
+    "slot_bottom_mm": 38.1690030342987,
+    "current_density_a_mm2": 5.872618873671287,
+    "current_angle_deg": 44.35505728360896
+   }
+  },
+  {
+   "case_id": "train-0116",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6134293025873536,
+    "embrace": 0.8907424853985302,
+    "airgap_mm": 0.8828770358496127,
+    "slot_open_deg": 2.8246987288519314,
+    "tooth_mm": 2.5315465746312102,
+    "slot_bottom_mm": 40.16524922261903,
+    "current_density_a_mm2": 0.943817559724241,
+    "current_angle_deg": 50.77593080494098
+   }
+  },
+  {
+   "case_id": "train-0117",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.7455869809404465,
+    "embrace": 0.9184840685806845,
+    "airgap_mm": 0.9848193922636099,
+    "slot_open_deg": 3.217925460733916,
+    "tooth_mm": 3.710183751766497,
+    "slot_bottom_mm": 37.312709928886854,
+    "current_density_a_mm2": 2.4177651887016665,
+    "current_angle_deg": 22.492724729248202
+   }
+  },
+  {
+   "case_id": "train-0118",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.732719450278,
+    "embrace": 0.779224753710601,
+    "airgap_mm": 0.9887224796961491,
+    "slot_open_deg": 2.6106557472765717,
+    "tooth_mm": 3.0446440989879373,
+    "slot_bottom_mm": 36.00258802711925,
+    "current_density_a_mm2": 14.243967958347682,
+    "current_angle_deg": 23.5451917335539
+   }
+  },
+  {
+   "case_id": "train-0119",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.3775168119609704,
+    "embrace": 0.9019099568752321,
+    "airgap_mm": 0.33579356660790033,
+    "slot_open_deg": 1.810075833269564,
+    "tooth_mm": 3.3919183447609726,
+    "slot_bottom_mm": 41.2943214496598,
+    "current_density_a_mm2": 10.16253129920209,
+    "current_angle_deg": 47.442557120464954
+   }
+  },
+  {
+   "case_id": "train-0120",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.915096917402846,
+    "embrace": 0.6023946926429081,
+    "airgap_mm": 0.8382482222478236,
+    "slot_open_deg": 2.807065261722785,
+    "tooth_mm": 2.5249287408165926,
+    "slot_bottom_mm": 34.8449937494809,
+    "current_density_a_mm2": 12.74750867447197,
+    "current_angle_deg": 21.472107318996365
+   }
+  },
+  {
+   "case_id": "train-0121",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.107798302208632,
+    "embrace": 0.8497547803894983,
+    "airgap_mm": 0.6808661698014279,
+    "slot_open_deg": 3.1831516377236837,
+    "tooth_mm": 3.4024958861357897,
+    "slot_bottom_mm": 37.69906306375743,
+    "current_density_a_mm2": 2.7284658557396435,
+    "current_angle_deg": 52.455442550527124
+   }
+  },
+  {
+   "case_id": "train-0122",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.9382524980429772,
+    "embrace": 0.6834061723676944,
+    "airgap_mm": 0.6607620798219258,
+    "slot_open_deg": 1.1020930921696928,
+    "tooth_mm": 4.920323468030382,
+    "slot_bottom_mm": 38.5118159493658,
+    "current_density_a_mm2": 1.9711065764794227,
+    "current_angle_deg": 34.31434454749547
+   }
+  },
+  {
+   "case_id": "train-0123",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.4280726081146975,
+    "embrace": 0.8252514777814784,
+    "airgap_mm": 0.9126006467222219,
+    "slot_open_deg": 5.843456365200356,
+    "tooth_mm": 2.8420839977264727,
+    "slot_bottom_mm": 38.06771971273584,
+    "current_density_a_mm2": 3.5182458915159676,
+    "current_angle_deg": 7.871355942674201
+   }
+  },
+  {
+   "case_id": "train-0124",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.137418937468368,
+    "embrace": 0.8664662383605236,
+    "airgap_mm": 0.47014933832318617,
+    "slot_open_deg": 1.7673396046229781,
+    "tooth_mm": 3.429785373556465,
+    "slot_bottom_mm": 38.778872312236366,
+    "current_density_a_mm2": 12.106635428404704,
+    "current_angle_deg": 25.84624520522173
+   }
+  },
+  {
+   "case_id": "train-0125",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.0946642140081457,
+    "embrace": 0.6866723301215857,
+    "airgap_mm": 0.8916749384132117,
+    "slot_open_deg": 3.5455895035819287,
+    "tooth_mm": 3.3195035206910974,
+    "slot_bottom_mm": 35.6791589193819,
+    "current_density_a_mm2": 13.841826197008988,
+    "current_angle_deg": 26.207375037631916
+   }
+  },
+  {
+   "case_id": "train-0126",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.1112015295122246,
+    "embrace": 0.793568793631134,
+    "airgap_mm": 0.4052614601892173,
+    "slot_open_deg": 3.992235527966253,
+    "tooth_mm": 2.696015234507521,
+    "slot_bottom_mm": 34.596089393093045,
+    "current_density_a_mm2": 13.287055216482548,
+    "current_angle_deg": 12.933656446192765
+   }
+  },
+  {
+   "case_id": "train-0127",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.079007955859142,
+    "embrace": 0.7610838356563093,
+    "airgap_mm": 0.8475862937842749,
+    "slot_open_deg": 4.660802513448003,
+    "tooth_mm": 4.593479405255527,
+    "slot_bottom_mm": 34.86455673680864,
+    "current_density_a_mm2": 3.342832778397435,
+    "current_angle_deg": 1.8660977894140207
+   }
+  },
+  {
+   "case_id": "train-0128",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.710478094691658,
+    "embrace": 0.7478356761528591,
+    "airgap_mm": 0.41336809635594574,
+    "slot_open_deg": 2.797451481713443,
+    "tooth_mm": 4.832798867207158,
+    "slot_bottom_mm": 39.83229681559638,
+    "current_density_a_mm2": 14.908037795494792,
+    "current_angle_deg": 4.496752204445809
+   }
+  },
+  {
+   "case_id": "train-0129",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.825572399873131,
+    "embrace": 0.7356445420711939,
+    "airgap_mm": 0.8103084457889536,
+    "slot_open_deg": 2.150921182443592,
+    "tooth_mm": 2.6975389806094805,
+    "slot_bottom_mm": 40.62365172535471,
+    "current_density_a_mm2": 13.862466133512985,
+    "current_angle_deg": 15.693507990871318
+   }
+  },
+  {
+   "case_id": "train-0130",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.969353782923651,
+    "embrace": 0.8668518055467251,
+    "airgap_mm": 0.8872176906083455,
+    "slot_open_deg": 2.777399788344498,
+    "tooth_mm": 2.8657828060597708,
+    "slot_bottom_mm": 41.4872974371568,
+    "current_density_a_mm2": 6.207344719636019,
+    "current_angle_deg": 22.91188651000484
+   }
+  },
+  {
+   "case_id": "train-0131",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.7138858267660972,
+    "embrace": 0.8943321313789737,
+    "airgap_mm": 0.30311389695524704,
+    "slot_open_deg": 3.7715875454263283,
+    "tooth_mm": 3.1864275085475273,
+    "slot_bottom_mm": 37.470876338213664,
+    "current_density_a_mm2": 0.531025941594026,
+    "current_angle_deg": 3.9140355801707982
+   }
+  },
+  {
+   "case_id": "train-0132",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.7921109686481689,
+    "embrace": 0.8160742713714739,
+    "airgap_mm": 0.5111009389469283,
+    "slot_open_deg": 3.2884330916864464,
+    "tooth_mm": 3.0339445532072977,
+    "slot_bottom_mm": 35.64410194995188,
+    "current_density_a_mm2": 13.717379036232575,
+    "current_angle_deg": 27.962884291882418
+   }
+  },
+  {
+   "case_id": "train-0133",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.000479021150343,
+    "embrace": 0.7485711091797178,
+    "airgap_mm": 0.7627278472652866,
+    "slot_open_deg": 1.801810778915828,
+    "tooth_mm": 4.178881120268858,
+    "slot_bottom_mm": 38.709323741599476,
+    "current_density_a_mm2": 8.302503179265546,
+    "current_angle_deg": 34.36442194259154
+   }
+  },
+  {
+   "case_id": "train-0134",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6101294129810544,
+    "embrace": 0.6328700649207731,
+    "airgap_mm": 0.31223562314618347,
+    "slot_open_deg": 5.904971249860452,
+    "tooth_mm": 3.814046093899978,
+    "slot_bottom_mm": 40.74526982051633,
+    "current_density_a_mm2": 9.724921653246778,
+    "current_angle_deg": 34.348134310681374
+   }
+  },
+  {
+   "case_id": "train-0135",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.774474185151644,
+    "embrace": 0.8659380165755544,
+    "airgap_mm": 0.30663683848058443,
+    "slot_open_deg": 3.644278031131351,
+    "tooth_mm": 4.952532236258126,
+    "slot_bottom_mm": 41.671475611327494,
+    "current_density_a_mm2": 4.436995400097086,
+    "current_angle_deg": 36.69484049178637
+   }
+  },
+  {
+   "case_id": "train-0136",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6948417472458475,
+    "embrace": 0.6698077425267464,
+    "airgap_mm": 0.9497830343798974,
+    "slot_open_deg": 1.8277862965800948,
+    "tooth_mm": 3.1339628549330296,
+    "slot_bottom_mm": 39.52087591067492,
+    "current_density_a_mm2": 5.017549207290448,
+    "current_angle_deg": 40.18721683707396
+   }
+  },
+  {
+   "case_id": "train-0137",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.016072312560677,
+    "embrace": 0.9182957004852039,
+    "airgap_mm": 0.5128675321506714,
+    "slot_open_deg": 2.884413577217426,
+    "tooth_mm": 3.1121758493493816,
+    "slot_bottom_mm": 36.387404234918584,
+    "current_density_a_mm2": 1.92412285205944,
+    "current_angle_deg": 18.80452056605313
+   }
+  },
+  {
+   "case_id": "train-0138",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.8174007159495726,
+    "embrace": 0.8036610545138082,
+    "airgap_mm": 0.9207503051380999,
+    "slot_open_deg": 1.933227217084311,
+    "tooth_mm": 3.1230102663855073,
+    "slot_bottom_mm": 41.983470227405256,
+    "current_density_a_mm2": 2.7399331932224547,
+    "current_angle_deg": 57.95114296117605
+   }
+  },
+  {
+   "case_id": "train-0139",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.2549358982368353,
+    "embrace": 0.6906289142534996,
+    "airgap_mm": 0.9929179851788601,
+    "slot_open_deg": 3.529446201638186,
+    "tooth_mm": 4.930914364407722,
+    "slot_bottom_mm": 40.1270674886374,
+    "current_density_a_mm2": 3.550243028969491,
+    "current_angle_deg": 49.02547571298475
+   }
+  },
+  {
+   "case_id": "train-0140",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.6715473365853457,
+    "embrace": 0.8884521129821203,
+    "airgap_mm": 0.43310958131866373,
+    "slot_open_deg": 4.909744587059221,
+    "tooth_mm": 2.85577958826877,
+    "slot_bottom_mm": 40.64544353433237,
+    "current_density_a_mm2": 13.024489801186634,
+    "current_angle_deg": 57.95290480182141
+   }
+  },
+  {
+   "case_id": "train-0141",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6436626072775082,
+    "embrace": 0.8292866710170368,
+    "airgap_mm": 0.9003629897197973,
+    "slot_open_deg": 1.6667780394443272,
+    "tooth_mm": 3.806461657133051,
+    "slot_bottom_mm": 34.19392125717822,
+    "current_density_a_mm2": 3.8418811246919042,
+    "current_angle_deg": 42.01390661939537
+   }
+  },
+  {
+   "case_id": "train-0142",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.378528974015736,
+    "embrace": 0.8462426221495969,
+    "airgap_mm": 0.6232396235119231,
+    "slot_open_deg": 4.448329570828861,
+    "tooth_mm": 4.637252686646253,
+    "slot_bottom_mm": 34.610921595884875,
+    "current_density_a_mm2": 10.860478335870477,
+    "current_angle_deg": 39.07358398458134
+   }
+  },
+  {
+   "case_id": "train-0143",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.60657463507955,
+    "embrace": 0.9273722550871635,
+    "airgap_mm": 0.9760614351276036,
+    "slot_open_deg": 3.149124009925893,
+    "tooth_mm": 4.443913327903585,
+    "slot_bottom_mm": 41.411798704340356,
+    "current_density_a_mm2": 5.73019699911671,
+    "current_angle_deg": 3.3760281743213505
+   }
+  },
+  {
+   "case_id": "train-0144",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.8516377724370994,
+    "embrace": 0.7232842896645342,
+    "airgap_mm": 0.7831383399271094,
+    "slot_open_deg": 4.360388389565102,
+    "tooth_mm": 4.698311436587785,
+    "slot_bottom_mm": 39.02598917899118,
+    "current_density_a_mm2": 4.576269853930514,
+    "current_angle_deg": 12.73304274993279
+   }
+  },
+  {
+   "case_id": "train-0145",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.1805594844710248,
+    "embrace": 0.9476007851386643,
+    "airgap_mm": 0.8157918502089723,
+    "slot_open_deg": 2.871826957447201,
+    "tooth_mm": 3.6798228376216073,
+    "slot_bottom_mm": 40.395109895253015,
+    "current_density_a_mm2": 2.6806619732721924,
+    "current_angle_deg": 5.150596272499048
+   }
+  },
+  {
+   "case_id": "train-0146",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.575037085458632,
+    "embrace": 0.554644937984626,
+    "airgap_mm": 0.6163142873505538,
+    "slot_open_deg": 3.6286036554850285,
+    "tooth_mm": 2.885960828426507,
+    "slot_bottom_mm": 41.29849415482316,
+    "current_density_a_mm2": 14.649640664842002,
+    "current_angle_deg": 28.02775808708678
+   }
+  },
+  {
+   "case_id": "train-0147",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6000459473928081,
+    "embrace": 0.9314480053211123,
+    "airgap_mm": 0.4029946083073041,
+    "slot_open_deg": 2.896507605239534,
+    "tooth_mm": 3.1978574611144683,
+    "slot_bottom_mm": 35.025307250518594,
+    "current_density_a_mm2": 5.710093034329525,
+    "current_angle_deg": 33.30610790996085
+   }
+  },
+  {
+   "case_id": "train-0148",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.7074902045209868,
+    "embrace": 0.6188135546867355,
+    "airgap_mm": 0.49718330951495715,
+    "slot_open_deg": 1.973786522210408,
+    "tooth_mm": 4.87036317192491,
+    "slot_bottom_mm": 38.10722187157934,
+    "current_density_a_mm2": 11.5571109531856,
+    "current_angle_deg": 35.56929046662721
+   }
+  },
+  {
+   "case_id": "train-0149",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.4128929301873243,
+    "embrace": 0.7808200200662772,
+    "airgap_mm": 0.9906840310639655,
+    "slot_open_deg": 4.7810836777000265,
+    "tooth_mm": 3.4184863933862637,
+    "slot_bottom_mm": 36.27764362410534,
+    "current_density_a_mm2": 7.378864269613363,
+    "current_angle_deg": 44.540247073349434
+   }
+  },
+  {
+   "case_id": "practice-0005",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.9765776626862785,
+    "embrace": 0.6316710987952905,
+    "airgap_mm": 0.8906476598850133,
+    "slot_open_deg": 2.4622050278477996,
+    "tooth_mm": 3.9262416937178988,
+    "slot_bottom_mm": 41.68723683867938,
+    "current_density_a_mm2": 4.505587319053591,
+    "current_angle_deg": 18.5692925908613
+   }
+  },
+  {
+   "case_id": "practice-0006",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.685513222320986,
+    "embrace": 0.6408817651112236,
+    "airgap_mm": 0.9109433644195244,
+    "slot_open_deg": 4.467963177688914,
+    "tooth_mm": 3.9818551492938603,
+    "slot_bottom_mm": 34.72574639883069,
+    "current_density_a_mm2": 7.681985589728145,
+    "current_angle_deg": 10.874426617670645
+   }
+  },
+  {
+   "case_id": "practice-0007",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.49854812069076,
+    "embrace": 0.643048514462921,
+    "airgap_mm": 0.8453362138299019,
+    "slot_open_deg": 4.584719728620885,
+    "tooth_mm": 3.5414626788562416,
+    "slot_bottom_mm": 37.0048769337738,
+    "current_density_a_mm2": 4.766034704056473,
+    "current_angle_deg": 19.793322454671475
+   }
+  },
+  {
+   "case_id": "practice-0008",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.868238140786692,
+    "embrace": 0.9346813177105157,
+    "airgap_mm": 0.9991554725605916,
+    "slot_open_deg": 4.052312582597503,
+    "tooth_mm": 3.856918948211241,
+    "slot_bottom_mm": 35.55850069194127,
+    "current_density_a_mm2": 11.690626648508655,
+    "current_angle_deg": 10.720585543201931
+   }
+  },
+  {
+   "case_id": "practice-0009",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.29992568558807,
+    "embrace": 0.6665731360194553,
+    "airgap_mm": 0.7063038269099748,
+    "slot_open_deg": 3.111462233264183,
+    "tooth_mm": 4.940433499193803,
+    "slot_bottom_mm": 39.967709003682856,
+    "current_density_a_mm2": 7.903470523395345,
+    "current_angle_deg": 45.79618589235868
+   }
+  },
+  {
+   "case_id": "practice-0010",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.7719240084706223,
+    "embrace": 0.8769382917244346,
+    "airgap_mm": 0.9754524756288971,
+    "slot_open_deg": 1.381275516213508,
+    "tooth_mm": 3.846151210361782,
+    "slot_bottom_mm": 38.1132407634379,
+    "current_density_a_mm2": 13.394497726375343,
+    "current_angle_deg": 9.755003053027808
+   }
+  },
+  {
+   "case_id": "practice-0011",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.762629896104401,
+    "embrace": 0.6323159201720376,
+    "airgap_mm": 0.687756402919511,
+    "slot_open_deg": 1.1258294647941631,
+    "tooth_mm": 3.5532887234304065,
+    "slot_bottom_mm": 40.592922292851306,
+    "current_density_a_mm2": 1.5540380579070179,
+    "current_angle_deg": 34.08168745469528
+   }
+  },
+  {
+   "case_id": "practice-0012",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.5470861171804295,
+    "embrace": 0.7589319572194576,
+    "airgap_mm": 0.8143374659618476,
+    "slot_open_deg": 2.504643350942887,
+    "tooth_mm": 4.647169024751028,
+    "slot_bottom_mm": 39.85222926946868,
+    "current_density_a_mm2": 8.875962194735983,
+    "current_angle_deg": 22.973773534330203
+   }
+  },
+  {
+   "case_id": "practice-0013",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.9929174333590716,
+    "embrace": 0.8859654717313514,
+    "airgap_mm": 0.7896446995972783,
+    "slot_open_deg": 1.47048111062158,
+    "tooth_mm": 3.734157730014358,
+    "slot_bottom_mm": 36.99096989691405,
+    "current_density_a_mm2": 14.321848804466319,
+    "current_angle_deg": 44.009420753623495
+   }
+  },
+  {
+   "case_id": "practice-0014",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.644889322813966,
+    "embrace": 0.66939343062619,
+    "airgap_mm": 0.8089128983467244,
+    "slot_open_deg": 5.039122106984351,
+    "tooth_mm": 3.483702049809209,
+    "slot_bottom_mm": 34.746298256975834,
+    "current_density_a_mm2": 0.889484003968043,
+    "current_angle_deg": 48.925221468114415
+   }
+  },
+  {
+   "case_id": "practice-0015",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.218107369335663,
+    "embrace": 0.7640859338099112,
+    "airgap_mm": 0.6488693200462072,
+    "slot_open_deg": 2.8221236959050717,
+    "tooth_mm": 3.665959897698933,
+    "slot_bottom_mm": 38.622756792121514,
+    "current_density_a_mm2": 10.19870848931038,
+    "current_angle_deg": 20.064676692325556
+   }
+  },
+  {
+   "case_id": "practice-0016",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.5777835684083574,
+    "embrace": 0.6429651194594702,
+    "airgap_mm": 0.7289918139921223,
+    "slot_open_deg": 5.1790959993641525,
+    "tooth_mm": 4.051621161740073,
+    "slot_bottom_mm": 41.876293543908886,
+    "current_density_a_mm2": 1.0935852675119107,
+    "current_angle_deg": 6.269022733588921
+   }
+  },
+  {
+   "case_id": "practice-0017",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.839447728124048,
+    "embrace": 0.5731520715703975,
+    "airgap_mm": 0.4655766984213305,
+    "slot_open_deg": 1.4062752551262228,
+    "tooth_mm": 3.9524819515882212,
+    "slot_bottom_mm": 34.03870560714747,
+    "current_density_a_mm2": 11.348415186898176,
+    "current_angle_deg": 41.99719995732772
+   }
+  },
+  {
+   "case_id": "practice-0018",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.2669680615422747,
+    "embrace": 0.9203063081416696,
+    "airgap_mm": 0.6221030390253868,
+    "slot_open_deg": 3.712671861159868,
+    "tooth_mm": 2.716434678474593,
+    "slot_bottom_mm": 37.37832598130686,
+    "current_density_a_mm2": 9.930581723012915,
+    "current_angle_deg": 38.72586358069387
+   }
+  },
+  {
+   "case_id": "practice-0019",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.1876443366347074,
+    "embrace": 0.9452179746585367,
+    "airgap_mm": 0.8879008200372949,
+    "slot_open_deg": 5.4116402070948,
+    "tooth_mm": 3.099610523945606,
+    "slot_bottom_mm": 39.227760099617626,
+    "current_density_a_mm2": 6.343600035247762,
+    "current_angle_deg": 12.092523173695525
+   }
+  },
+  {
+   "case_id": "practice-0020",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.421779303550128,
+    "embrace": 0.6912818671845881,
+    "airgap_mm": 0.6092898469315645,
+    "slot_open_deg": 1.980485187305264,
+    "tooth_mm": 3.6429288144052925,
+    "slot_bottom_mm": 35.672764951890954,
+    "current_density_a_mm2": 7.674385639729381,
+    "current_angle_deg": 46.84962606953493
+   }
+  },
+  {
+   "case_id": "practice-0021",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.2681176351163423,
+    "embrace": 0.6964474843746113,
+    "airgap_mm": 0.6766985204776945,
+    "slot_open_deg": 4.9233041948869,
+    "tooth_mm": 4.396121327794501,
+    "slot_bottom_mm": 34.94993515334265,
+    "current_density_a_mm2": 14.180601193643623,
+    "current_angle_deg": 49.42800468257908
+   }
+  },
+  {
+   "case_id": "practice-0022",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.2073105865975746,
+    "embrace": 0.9043476364523543,
+    "airgap_mm": 0.34626244081991187,
+    "slot_open_deg": 3.5374854017145907,
+    "tooth_mm": 2.8324695735419523,
+    "slot_bottom_mm": 40.9197392881392,
+    "current_density_a_mm2": 10.206613138733854,
+    "current_angle_deg": 11.154673161354543
+   }
+  },
+  {
+   "case_id": "practice-0023",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.9489879918169681,
+    "embrace": 0.6109841092901755,
+    "airgap_mm": 0.3546914892731088,
+    "slot_open_deg": 3.866717152527451,
+    "tooth_mm": 4.126267217960382,
+    "slot_bottom_mm": 38.89131553737899,
+    "current_density_a_mm2": 3.185091747212265,
+    "current_angle_deg": 54.43291577291161
+   }
+  },
+  {
+   "case_id": "practice-0024",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.375556023103082,
+    "embrace": 0.8449157144316459,
+    "airgap_mm": 0.9234914360123652,
+    "slot_open_deg": 5.288704553762745,
+    "tooth_mm": 2.5187338110300828,
+    "slot_bottom_mm": 37.85758604459858,
+    "current_density_a_mm2": 7.309909247410869,
+    "current_angle_deg": 9.248233593890438
+   }
+  },
+  {
+   "case_id": "practice-0025",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 2.0561044890588347,
+    "embrace": 0.7030580940288143,
+    "airgap_mm": 0.4670414078520948,
+    "slot_open_deg": 1.0712044743002243,
+    "tooth_mm": 4.6518885175576346,
+    "slot_bottom_mm": 36.212389797770626,
+    "current_density_a_mm2": 6.123026664154903,
+    "current_angle_deg": 50.91166850525972
+   }
+  },
+  {
+   "case_id": "practice-0026",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.8868728794568868,
+    "embrace": 0.8284850188405533,
+    "airgap_mm": 0.7514839031739218,
+    "slot_open_deg": 4.429985240822137,
+    "tooth_mm": 4.076642155178622,
+    "slot_bottom_mm": 39.52217664588146,
+    "current_density_a_mm2": 10.690134533170605,
+    "current_angle_deg": 43.93420619254756
+   }
+  },
+  {
+   "case_id": "practice-0027",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.745865835192293,
+    "embrace": 0.8831582075346798,
+    "airgap_mm": 0.6642313517081958,
+    "slot_open_deg": 1.1890485665007091,
+    "tooth_mm": 4.4308249435962255,
+    "slot_bottom_mm": 41.61906578736098,
+    "current_density_a_mm2": 13.239181301581162,
+    "current_angle_deg": 11.625654183488193
+   }
+  },
+  {
+   "case_id": "practice-0028",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6830060290177205,
+    "embrace": 0.9470289924598954,
+    "airgap_mm": 0.8898130565596389,
+    "slot_open_deg": 5.61320424741899,
+    "tooth_mm": 4.099443830927479,
+    "slot_bottom_mm": 41.8394164573299,
+    "current_density_a_mm2": 5.075828008040248,
+    "current_angle_deg": 46.9941989296528
+   }
+  },
+  {
+   "case_id": "practice-0029",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.6229947681309076,
+    "embrace": 0.6262454716970097,
+    "airgap_mm": 0.4407374749291383,
+    "slot_open_deg": 2.4515712769599975,
+    "tooth_mm": 4.405138026219167,
+    "slot_bottom_mm": 40.60582309933316,
+    "current_density_a_mm2": 6.308908289432111,
+    "current_angle_deg": 50.692758575482955
+   }
+  }
+ ]
+}

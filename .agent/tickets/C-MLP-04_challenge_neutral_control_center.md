@@ -99,7 +99,7 @@ The survey of 2026-10-02 found:
 - Testnet 567 only; DEVELOPMENT; nothing here qualifies, pays or writes to
   the chain.
 - No key reaches Carbon. The installer reads none and asks for none.
-- The battery intake's exposure record is not made here
-  (`OWNER-…INTAKE-EXPOSURE-NN`).
+- The battery intake's exposure record is not made here; it was recorded
+  separately the same day (OWNER-INTAKE-EXPOSURE-01).
 - The website page is a candidate. Deploying it, like the Ask Carbon
   component, is the owner's decision.
