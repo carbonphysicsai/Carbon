@@ -16,7 +16,9 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slice 1 implemented (engineering evidence only).
+**Status:** slices 1 and 2 implemented (engineering evidence only). Slice 2's
+live acceptance (completions with miner-held Chutes and Engy keys, and a
+battery autonomous launch with each) is pending the miner's keys.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
   `/api/v1/setup` in the controller and the "Set up your environment" view.
 - Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
@@ -64,6 +66,31 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
   - *The operator config is supplied, not generated.* The miner supplies its
     path, and setup validates it for subnet 567. Its content is deployment
     identity and never enters the repository.
+- **Slice 2 (inference):** `model_provider.py` adds the `chutes` adapter and
+  `published_pricing`; setup offers every adapter, Engy Chat Completions
+  first; `tests/cpu/test_miner_inference_providers.py` and the setup browser
+  smoke cover it.
+- **Recorded engineering decisions (slice 2, 2026-10-02):**
+  - *Chutes settles on metered usage.* Whether Chutes reports a charge, and
+    its rate limits, are unverified. Until they are, no charge report is
+    read: spend is the returned usage at the published price, within the
+    reservation rule.
+  - *A live price is recorded with its list and time.* Chutes' per-token
+    prices are read from `GET /v1/models` when the miner quotes. The record
+    keeps the list URL and the UTC time read (`provider_published`), and a
+    launch reuses that record rather than re-reading. USD per million tokens
+    becomes integer nanodollars per token (×1000, rounded). A model the list
+    does not price is refused at setup, not launched at unknown spend.
+  - *Chutes and the generic adapters take a typed model id.* They have no
+    fixed list, so any id the provider serves is accepted; Chutes must price
+    it.
+  - *A generic endpoint is configured only in setup.* An OpenAI-compatible
+    adapter launches only as the setup's own choice, with the endpoint and
+    optional declared price recorded in the profile. Choosing another
+    generic adapter at launch is refused (`model_provider_endpoint_not_configured`),
+    so no launch request can point Carbon at a new URL.
+  - *Chutes OAuth is not built.* Its scopes, billing and revocation are
+    unverified; a key is the only credential.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on

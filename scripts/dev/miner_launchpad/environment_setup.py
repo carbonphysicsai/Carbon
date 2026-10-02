@@ -25,10 +25,13 @@ nothing.
 
 **Refusals name the field** they are about, so the page can point at it.
 
-Only launchable choices are offered. Rented GPUs, other inference providers and
-other agents are later slices (C-MLP-03 slices 2 to 5); until each lands, the
-research environment standard names it as a Gap rather than this page
-offering something that would not run.
+Only launchable choices are offered. Inference (slice 2) offers every provider
+adapter: Engy's Chat Completions route first, Chutes with the prices it
+publishes, the fixed OpenAI and Anthropic APIs, and the generic OpenAI-shaped
+adapters with the miner's own endpoint and, optionally, their declared price.
+Rented GPUs and other agents are later slices (3 to 5); until each lands, the
+research environment standard names it as a Gap rather than this page offering
+something that would not run.
 """
 
 from __future__ import annotations
@@ -54,6 +57,18 @@ LOCAL_CPU = "this-machine-cpu"
 #: The only agent this slice can launch: Carbon's autonomous battery agent,
 #: running in this controller's process on this machine.
 AUTONOMOUS = "carbon-autonomous"
+
+#: The order inference choices are offered in; the first is the default
+#: (Engy's Chat Completions route, C-MLP-03 slice 2).
+INFERENCE_ORDER = (
+    "engy-chat",
+    "chutes",
+    "engy-anthropic",
+    "openai-responses",
+    "anthropic",
+    "openai-compatible-chat",
+    "openai-compatible-responses",
+)
 
 #: Where a provider lists its models for a key holder. Engy publishes its list
 #: without a key (`models_url`); these need the miner's key. Provider facts,
@@ -166,10 +181,12 @@ def _consented(value, quote):
         raise SetupRefused("consent", "consent_does_not_match_quoted_cost")
 
 
-def check_quote(provider_id, model_id, credential_file: Path) -> dict:
+def check_quote(provider_id, model_id, credential_file: Path, spec=None) -> dict:
     """What the inference check can cost at most, before it runs.
 
-    Reads no key: the selection only records where the key file is.
+    Reads no key: the selection only records where the key file is. `spec`
+    carries a generic adapter's `endpoint`, the miner's `declared_pricing` or
+    a live-priced provider's `published_pricing`.
     """
     from carbon.development_session.model_provider import (
         ADAPTERS,
@@ -184,9 +201,15 @@ def check_quote(provider_id, model_id, credential_file: Path) -> dict:
             model_id=model_id,
             credential={"kind": "file", "reference": str(credential_file)},
             settings=CHECK_SETTINGS,
+            **(spec or {}),
         )
     except ModelSelectionRefused:
-        raise SetupRefused("model_id", "model_selection_refused") from None
+        field = (
+            "endpoint"
+            if spec and "endpoint" in spec and ADAPTERS[provider_id].endpoint is None
+            else "model_id"
+        )
+        raise SetupRefused(field, "model_selection_refused") from None
     bound = selection.reservation_nano
     name = ADAPTERS[provider_id].display_name
     if bound is None:
@@ -232,18 +255,33 @@ def choices() -> dict:
     from carbon.development_session.model_provider import ADAPTERS
 
     inference = []
-    for adapter in ADAPTERS.values():
-        if adapter.endpoint is None:
-            continue  # Generic adapters need endpoint and pricing (slice 2).
+    for adapter in sorted(
+        ADAPTERS.values(), key=lambda a: INFERENCE_ORDER.index(a.adapter_id)
+    ):
         inference.append(
             {
                 "id": adapter.adapter_id,
                 "display_name": adapter.display_name,
+                "default": adapter.adapter_id == INFERENCE_ORDER[0],
                 "models": adapter.summary_models(),
                 "model_policy": (
                     "only the listed models"
                     if adapter.allowed_models is not None
-                    else "any model id this provider serves"
+                    else "any model id this provider serves; type it"
+                ),
+                "needs_endpoint": adapter.endpoint is None,
+                "pricing": (
+                    "listed"
+                    if adapter.priced_models
+                    else (
+                        "published live by the provider"
+                        if adapter.live_pricing
+                        else (
+                            "yours to declare (optional)"
+                            if adapter.endpoint is None
+                            else "not listed"
+                        )
+                    )
                 ),
                 "cost_basis": (
                     "Per token at "
@@ -309,7 +347,30 @@ class LiveChecks:
         self.opener = opener
         self.repo = repo
 
-    def inference(self, provider_id, model_id, credential_file: Path) -> dict:
+    def published_pricing(self, provider_id, model_id) -> dict:
+        """The live-priced provider's published price for `model_id` (free,
+        no key). Refused by field when the provider does not price it."""
+        from carbon.development_session.model_provider import (
+            ProviderHTTPError,
+            published_pricing,
+        )
+
+        try:
+            return published_pricing(provider_id, model_id, opener=self.opener)
+        except ProviderHTTPError:
+            raise SetupRefused(
+                "provider_id", "provider_model_list_unavailable"
+            ) from None
+        except OSError:
+            raise SetupRefused(
+                "provider_id", "provider_model_list_unavailable"
+            ) from None
+        except ValueError:
+            raise SetupRefused("model_id", "model_not_priced_by_provider") from None
+
+    def inference(
+        self, provider_id, model_id, credential_file: Path, spec=None
+    ) -> dict:
         from carbon.development_session.model_provider import (
             ADAPTERS,
             ModelSelectionRefused,
@@ -324,9 +385,13 @@ class LiveChecks:
             if adapter.models_url is not None:
                 listed = fetch_models(provider_id, opener=self.opener)
                 source, models = listed["source"], listed["models"]
-            else:
+            elif provider_id in KEYED_MODEL_LISTS:
                 source = KEYED_MODEL_LISTS[provider_id]
                 models = self._keyed_models(adapter, source, credential_file)
+            else:
+                # A generic adapter's endpoint lists nothing Carbon can rely
+                # on; the completion below is the check.
+                source, models = None, None
         except ProviderHTTPError as refused:
             field = "key" if refused.status in (401, 403) else "provider_id"
             raise SetupRefused(field, "provider_refused_model_list") from None
@@ -334,7 +399,7 @@ class LiveChecks:
             raise SetupRefused(
                 "provider_id", "provider_model_list_unavailable"
             ) from None
-        if model_id not in models:
+        if models is not None and model_id not in models:
             raise SetupRefused("model_id", "model_not_listed_by_provider")
         try:
             selection = select(
@@ -342,6 +407,7 @@ class LiveChecks:
                 model_id=model_id,
                 credential={"kind": "file", "reference": str(credential_file)},
                 settings=CHECK_SETTINGS,
+                **(spec or {}),
             )
             reply = SelectionTransport(selection, opener=self.opener)(
                 {
@@ -365,8 +431,8 @@ class LiveChecks:
         if type(reply) is not dict or type(reply.get("output")) is not list:
             raise SetupRefused("provider_id", "provider_completion_failed")
         return {
-            "models_source": source,
-            "models_listed": len(models),
+            "models_source": source or "not listed: any model id",
+            "models_listed": None if models is None else len(models),
             "completion": "answered",
             "usage": reply.get("usage") if type(reply.get("usage")) is dict else None,
         }
@@ -539,7 +605,15 @@ class EnvironmentSetup:
             "registered_hotkey": record.get("hotkey"),
             "steps": {
                 "inference": _public(
-                    record.get("inference"), ("provider_id", "model_id", "check")
+                    record.get("inference"),
+                    (
+                        "provider_id",
+                        "model_id",
+                        "endpoint",
+                        "declared_pricing",
+                        "published_pricing",
+                        "check",
+                    ),
                 ),
                 "compute": _public(record.get("compute"), ("choice", "check")),
                 "agent": _public(record.get("agent"), ("choice", "check")),
@@ -586,20 +660,46 @@ class EnvironmentSetup:
             and value["model_id"] not in adapter.allowed_models
         ):
             raise SetupRefused("model_id", "model_not_offered_for_provider")
+        if adapter.endpoint is None and "endpoint" not in value:
+            raise SetupRefused("endpoint", "field_required")
+        if adapter.endpoint is not None and "endpoint" in value:
+            raise SetupRefused("endpoint", "endpoint_is_fixed_for_provider")
+        if "declared_pricing" in value and (adapter.endpoint is not None):
+            raise SetupRefused("declared_pricing", "price_is_the_providers")
         return provider
+
+    def _spec(self, provider, value) -> dict:
+        """The pricing and endpoint a selection for this choice carries."""
+        from carbon.development_session.model_provider import ADAPTERS
+
+        spec = {k: value[k] for k in ("endpoint", "declared_pricing") if k in value}
+        if ADAPTERS[provider].live_pricing:
+            spec["published_pricing"] = self.checks.published_pricing(
+                provider, value["model_id"]
+            )
+        return spec
 
     def quote(self, value) -> dict:
         """The inference check's maximum cost for this provider and model."""
-        _closed(value, {"provider_id", "model_id"})
+        _closed(value, {"provider_id", "model_id"}, {"endpoint", "declared_pricing"})
         provider = self._inference_choice(value)
         credential_file = self.root / "keys" / (provider + ".key")
-        return check_quote(provider, value["model_id"], credential_file)
+        return check_quote(
+            provider, value["model_id"], credential_file, self._spec(provider, value)
+        )
 
     def inference(self, value) -> dict:
-        _closed(value, {"provider_id", "model_id", "consent"}, {"key"})
+        _closed(
+            value,
+            {"provider_id", "model_id", "consent"},
+            {"key", "endpoint", "declared_pricing"},
+        )
         provider = self._inference_choice(value)
         credential_file = self.root / "keys" / (provider + ".key")
-        _consented(value, check_quote(provider, value["model_id"], credential_file))
+        spec = self._spec(provider, value)
+        _consented(
+            value, check_quote(provider, value["model_id"], credential_file, spec)
+        )
         with self.lock:
             if "hotkey" not in self._record():
                 raise SetupRefused("address", "registration_not_confirmed")
@@ -607,12 +707,15 @@ class EnvironmentSetup:
                 write_private(credential_file, _secret(value["key"], "key"))
             elif not credential_file.exists():
                 raise SetupRefused("key", "field_required")
-            check = self.checks.inference(provider, value["model_id"], credential_file)
+            check = self.checks.inference(
+                provider, value["model_id"], credential_file, spec
+            )
             return self._step(
                 "inference",
                 {
                     "provider_id": provider,
                     "model_id": value["model_id"],
+                    **spec,
                     "check": check,
                 },
             )
@@ -713,6 +816,11 @@ class EnvironmentSetup:
             "model_selection": {
                 "provider_id": inference["provider_id"],
                 "model_id": inference["model_id"],
+                **{
+                    k: inference[k]
+                    for k in ("endpoint", "declared_pricing", "published_pricing")
+                    if k in inference
+                },
             },
         }
         try:
@@ -741,5 +849,5 @@ def _public(step, fields):
     return {
         "checked": True,
         "checked_at": step["checked_at"],
-        **{f: step[f] for f in fields},
+        **{f: step[f] for f in fields if f in step},
     }

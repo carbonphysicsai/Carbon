@@ -414,15 +414,41 @@
     const inference = setupStep(body, "inference", "1. Inference", steps.inference);
     const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
     const model = setupField(inference, "model_id", "Model id");
+    // A generic adapter has no endpoint of its own: the miner names it here,
+    // with an optional declared price (nanodollars per token). Without one the
+    // spend is stated as unknown and no money ceiling can be set.
+    const generic = el("div"); generic.dataset.step = "inference"; inference.append(generic);
+    const endpoint = setupField(generic, "endpoint", "Endpoint URL (https, the full completion route)");
+    const priceNote = el("p", "Your price, optional: nanodollars per token, the date you read it and where.", "hint"); generic.append(priceNote);
+    const declared = {};
+    for (const [name, label, type] of [["input_nano", "Input", "number"], ["cached_input_nano", "Cached input", "number"], ["output_nano", "Output (including reasoning)", "number"], ["observed", "Observed (YYYY-MM-DD)", "text"], ["note", "Where this price comes from", "text"]]) {
+      declared[name] = setupField(generic, name, label, type);
+    }
     const key = setupField(inference, "key", "API key (entered once; leave empty to keep the stored key)", "password");
     const inferenceCost = el("div"); inference.append(inferenceCost);
     const describeProvider = () => {
       const choice = offered.inference.find(c => c.id === provider.value);
       inferenceCost.replaceChildren();
       costNote(inferenceCost, choice);
+      if (choice) researchNote(inferenceCost, "Price: " + choice.pricing, "hint");
       const listed = (choice?.models || []).map(m => m.model_id);
-      if (listed.length) researchNote(inferenceCost, "Models: " + listed.join(", ") + " (" + choice.model_policy + ")", "hint");
+      researchNote(inferenceCost, (listed.length ? "Models: " + listed.join(", ") + " (" : "Models: (") + (choice?.model_policy || "") + ")", "hint");
+      generic.hidden = !choice?.needs_endpoint;
       if (!model.value) model.value = (choice?.models || []).find(m => m.default)?.model_id || listed[0] || "";
+    };
+    const inferenceSpec = () => {
+      const choice = offered.inference.find(c => c.id === provider.value);
+      const spec = {provider_id: provider.value, model_id: model.value.trim()};
+      if (!choice?.needs_endpoint) return spec;
+      spec.endpoint = endpoint.value.trim();
+      if (Object.values(declared).some(input => input.value.trim())) {
+        spec.declared_pricing = {};
+        for (const [name, input] of Object.entries(declared)) {
+          const value = input.value.trim();
+          spec.declared_pricing[name] = input.type === "number" && value !== "" && /^\d+$/.test(value) ? Number(value) : value;
+        }
+      }
+      return spec;
     };
     // Consent is to a quoted amount: the server states the check's maximum
     // cost for this model, the miner ticks to agree to that amount, and only
@@ -439,8 +465,9 @@
     const requote = async () => {
       const mine = ++quoting;
       quote = null; agree.checked = false; check.disabled = true; agree.disabled = true;
-      const wanted = {provider_id: provider.value, model_id: model.value.trim()};
+      const wanted = inferenceSpec();
       if (!wanted.model_id) { agreeLabel.textContent = "Choose a model to see what this check costs."; return; }
+      if (wanted.endpoint === "") { agreeLabel.textContent = "Enter your endpoint to see what this check costs."; return; }
       try {
         const answer = await api("/api/v1/setup/quote", wanted, undefined, 15000);
         if (mine !== quoting) return;
@@ -454,13 +481,19 @@
     agree.addEventListener("change", () => { check.disabled = !(agree.checked && quote); });
     provider.addEventListener("change", () => { model.value = ""; describeProvider(); requote(); });
     model.addEventListener("change", requote);
-    if (steps.inference?.checked) { provider.value = steps.inference.provider_id; model.value = steps.inference.model_id; }
+    for (const input of [endpoint, ...Object.values(declared)]) input.addEventListener("change", requote);
+    if (steps.inference?.checked) {
+      provider.value = steps.inference.provider_id; model.value = steps.inference.model_id;
+      endpoint.value = steps.inference.endpoint || "";
+      for (const [name, input] of Object.entries(declared)) input.value = steps.inference.declared_pricing?.[name] ?? "";
+    }
     describeProvider();
     requote();
     inference.addEventListener("submit", async event => {
       event.preventDefault();
       if (!(agree.checked && quote)) return;
-      const request = {provider_id: quote.provider_id, model_id: quote.model_id, consent: {max_cost_nano: quote.max_cost_nano}};
+      // The quote was for this exact spec; any edit since re-quoted it.
+      const request = {...inferenceSpec(), consent: {max_cost_nano: quote.max_cost_nano}};
       if (key.value) request.key = key.value;
       key.value = "";
       await setupCall("inference", request);

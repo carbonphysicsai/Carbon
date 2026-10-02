@@ -67,14 +67,14 @@ def test_runpod_is_implemented_but_no_launch_path_dispatches_to_it():
     assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) == []
 
 
-def test_chutes_has_no_adapter_of_its_own_but_the_generic_one_reaches_it():
-    assert _reason("chutes").startswith("no_chutes_adapter")
-    ids = set(model_provider.ADAPTERS)
-    # Specimen, and the path the next action names.
-    assert "openai-compatible-chat" in ids
-    assert model_provider.ADAPTERS["openai-compatible-chat"].endpoint is None
-    # The cause.
-    assert not any("chutes" in adapter_id for adapter_id in ids)
+def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
+    # C-MLP-03 slice 2 added Chutes' own adapter, with the prices it
+    # publishes; the unavailable entry that said it had none is gone.
+    assert "chutes" in model_provider.ADAPTERS
+    assert model_provider.ADAPTERS["chutes"].live_pricing is True
+    assert "chutes" not in {item["id"] for item in controller.INTEGRATIONS}
+    # Specimen: the same search finds an entry that is still there.
+    assert "lium" in {item["id"] for item in controller.INTEGRATIONS}
 
 
 def test_lium_has_no_compute_provider():
