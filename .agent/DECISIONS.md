@@ -17240,3 +17240,106 @@ release decision.
   `/workbench/` replacement, now live, into a v4 baseline inventory.
 
 **Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-01: the Challenge Roadmap rev 2.0 is Carbon's standing challenge development pipeline
+
+**Owner, verbatim, in session on 2026-10-02**, attaching the Challenge
+Roadmap rev 2.0 (status "Direction approved"; process approver Fitz,
+technical Ryan, science Harshdeep): "Implement this as our standing
+challenge develop pipeline and roadmap we need to build out and execute."
+
+**Decision.**
+1. **One pipeline.** Every in-house challenge goes through Prioritize,
+   Design, Test/iterate and Rank for deployment, under one common test
+   suite, in the roadmap's priority order. The roadmap's text is
+   `Design_Specs/Challenge_Roadmap.md`. Its family data, frequency and value
+   labels and estimates are transcribed exactly into
+   `carbon/challenge_pipeline/families.json`, with the source page's SHA-256.
+2. **Machinery.** `carbon/challenge_pipeline/` ports the page's arithmetic
+   (queue, false-feasible bound, leaderboard) and holds the versioned state:
+   the protocol, the rubric and one record per family. The generated view is
+   `docs/development/CHALLENGE_PIPELINE.md`. The page's shared store stays
+   the owners' interactive view, with the same record fields.
+3. **Phase 1 starts now.** Battery defines the protocol through the
+   roadmap's eight steps, one ticket per step (`CHALLENGE-PROTOCOL-01` for
+   step 1, and so on as each opens). No other family enters the pipeline
+   before the process owner locks the protocol (step 8). The code refuses a
+   record that says otherwise.
+4. **Gates are the named owners' acts.**
+   - Scope and Design are signed by the science owner, Track A by the
+     technical owner, and Track B by the science owner.
+   - The lock, the rubric and deployments are approved by the process owner.
+   - A record carries a sign-off only with the decision or review that made
+     it. The executor never writes one on an owner's behalf.
+5. **The rubric is unset.** Its thresholds (rank agreement, false-feasible
+   bound, scenario count, optional regret) stay null until the science owner
+   proposes them from battery's results and the process owner approves them
+   at lock. The open critical and high limits start at zero, as §05's gate
+   states.
+6. **Solve times enter the queue only from the reference hardware.** That
+   hardware is chosen during Phase 1 and approved at lock. The pre-protocol
+   timings of the cold plate, motor and photonic coupler were taken on other
+   hosts, so they do not re-rank the queue.
+
+**How it meets earlier decisions.**
+- **OWNER-CHALLENGE-ADMISSION-01 (amended): `NO_CONFLICT`.**
+  - The roadmap's Tracks A and B are that protocol's tracks.
+  - Its trigger model (expand freely, escalate on a finding) governs
+    iteration before freeze. The roadmap adds the common suite, the freeze
+    rule and the leaderboard.
+  - §2 holds: the pipeline is internal and never mainnet, and miners see only
+    the final optimized version.
+  - A stage, a queue position or a leaderboard place is not a qualification
+    gate (§2.1, §7).
+- **OWNER-CHALLENGE-DESIGN-01: superseded for sequencing.**
+  - The three challenges designed under it are prior work for their
+    families: the cold plate for f02, f03 and f04; the motor for f09; the
+    photonic coupler for f06 and f14. Each family's pipeline record links
+    the work.
+  - They enter the pipeline at Prioritize, in queue order, after lock. Their
+    readiness records stand unchanged and are not leaderboard entries.
+  - Working decision ROADMAP-D1: the slices already in flight finish and are
+    recorded. Those are the cold plate and motor public pools (already
+    computed on the paid pods), their baselines, and the readiness relay
+    (#493). The compute is spent and the evidence is prior work. No further
+    design starts on the three until their family reaches Prioritize.
+  - The alternative, stopping mid-slice, was rejected: it would waste paid
+    results and leave the prior work unrecorded.
+- **OWNER-LAUNCH-PORTFOLIO-01: the deployment criterion is superseded by the
+  owner's later direction.**
+  - Rev 2.0 settles that deployment goes to the challenges with the cleanest
+    attack results and the closest score-to-value match, picked by the
+    process owner from the leaderboard.
+  - The portfolio's families stay in the queue at their ranked positions.
+  - Battery goes first because it defines the protocol.
+- **Customer pilots, Workbench intake and the Pilot Designer route:
+  `NO_CONFLICT`.** The roadmap puts them outside this plan. They are not
+  cancelled, and their decisions are unchanged.
+- **OWNER-GRAPHITE-01: `NO_CONFLICT`.**
+  - Graphite is the roadmap's Graphite. Its controller, per-stage permission
+    ledger and operating procedure are Phase 1 work, locked at step 8.
+  - Graphite still proposes, and the frozen verifier decides.
+- **OWNER-TRAINING-BUDGET-STUDY-01: unchanged.** A challenge's training
+  budget study belongs to its Design construction contract.
+- **OWNER-PYTORCH-BACKEND-01: `NEW_OWNER_DECISION_REQUIRED`.**
+  - Roadmap §03 (Track A, admission) rejects "non-JAX executables". §06
+    says Carbon "accepts and rebuilds only JAX-runnable submissions".
+  - OWNER-PYTORCH-BACKEND-01 (2026-10-01) lets a construction contract name
+    `pytorch`, rebuilt in DEVELOPMENT only until its reserved values are
+    set.
+  - The smallest decision needed is which governs pipeline challenges:
+    either JAX only, or recipes in any backend the construction contract
+    supports.
+  - Until the owner decides, the roadmap text stands as written, runtime
+    behavior is unchanged, and suite v1's admission vector (Phase 1 step 3)
+    keeps the backend set as an explicit open parameter. Nothing else waits
+    on it.
+
+**Unchanged.**
+- AGENTS.md §3 and §5: scientific, security and launch qualification, LIVE,
+  reward, frontier and chain authority stay human-reserved.
+- Network activation stays a separate owner decision.
+- Testnet 567 only, and spending only under owner grants.
+- No population, threshold, tolerance or rubric value is set by the executor.
+
+Ticket: `.agent/tickets/CHALLENGE-PIPELINE-01.md`.
