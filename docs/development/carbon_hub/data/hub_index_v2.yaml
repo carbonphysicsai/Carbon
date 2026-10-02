@@ -10670,6 +10670,18 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T09:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-MOTOR-01-POOLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CHALLENGE-MOTOR-01 slice 4: the motor's pools are complete (150 TRAIN and 30 PRACTICE, all OK, 149 solved on a RunPod CPU pod; 60 private from the operator-held root on the owner's host only, 59 OK and 1 REFERENCE_INVALID on the reference's periodicity check, charged to the reference). Both baselines are scored through the exam on the private pool: textbook closed form 0.463 (mean torque 0.165, ripple shape 0.761), Gaussian-kernel ridge 0.214 (0.038, 0.391), its hyperparameters chosen on PRACTICE inside a widened declared grid (D11). Readiness record v4 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the motor is prior work for the magnetostatics family. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-MOTOR-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T19:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
