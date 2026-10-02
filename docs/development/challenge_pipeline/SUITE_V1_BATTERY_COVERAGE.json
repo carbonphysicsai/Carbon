@@ -1,12 +1,14 @@
 {
  "schema": "carbon.challenge-pipeline.suite-run.v1",
  "suite_version": "suite-v1-draft",
- "suite_digest": "sha256:49995abaab8a13dabe827267b8ae8c52592e05856e42d6edd190e71b60923777",
- "challenge": "battery",
+ "suite_digest": "sha256:cf46fd394dd12ca301c0ad3ae2faf949f236e54114b643d692d155198e3155a0",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "map_digest": "sha256:222a5391d450aca110c9982fef7e4597a78c978870356035079a1985f2d02429",
+ "construction_level": 0,
  "sandbox": false,
- "commit": "5428335fdb43311b180dee707f5437595d8d1eec",
+ "commit": "e880a4f9680e2d0d61c0037c2112cfd6f0620cb9",
  "pytest_exit": 1,
- "pytest_summary": "259 passed, 551 deselected, 2 warnings in 120.13s (0:02:00)",
+ "pytest_summary": "259 passed, 552 deselected, 2 warnings in 114.89s (0:01:54)",
  "uncited_failures": [],
  "environment": {
   "canonical": "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64",
@@ -70,6 +72,11 @@
      "status": "PASS"
     }
    ],
+   "participant_code": {
+    "what": "Rejecting and containing disguised or executable participant content",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
    "gaps": [
     "No byte-level detection of disguised executable content (ELF, pickle and similar magic); strings are only kept inert.",
     "Executable submissions do not exist at Level 0, so their rejection is not a containment test."
@@ -110,6 +117,11 @@
      "status": "PASS"
     }
    ],
+   "participant_code": {
+    "what": "Isolating hostile participant code at run time (filesystem, network, process, credential and cross-job access)",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
    "gaps": [
     "The hostile probes run against the C-03 image only; no filesystem, process or credential probe runs in the battery image.",
     "The battery container tests are skipped unless CARBON_BATTERY_TEST_IMAGE is set, which no CI job does."
@@ -182,6 +194,7 @@
      "status": "PASS"
     }
    ],
+   "participant_code": null,
    "gaps": [
     "The sealed pool is not a registered artifact yet.",
     "Influence on the evaluation service is tested only by refusing a seed field."
@@ -220,6 +233,11 @@
      "status": "PASS"
     }
    ],
+   "participant_code": {
+    "what": "Enforcing resource limits on participant-controlled code",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
    "gaps": [
     "No memory or storage overrun test in the battery image.",
     "The battery worker's output_bounds refusal has no test of its own."
@@ -256,9 +274,10 @@
      "status": "PASS"
     }
    ],
+   "participant_code": null,
    "gaps": [
-    "No repeat-seed rebuild of battery on a fresh worker.",
-    "The recipient-rebuild and undeclared-dependency specimens are NOT_RUN."
+    "The recipient-rebuild and undeclared-dependency specimens are NOT_RUN.",
+    "No repeat-seed rebuild of battery on a fresh worker."
    ],
    "open_parameters": [
     "reconstruction tolerance (HUMAN_INPUT, study sheet)"
@@ -298,9 +317,10 @@
      "status": "PASS"
     }
    ],
+   "participant_code": null,
    "gaps": [
-    "No battery stale-cache test.",
     "The model-state and output-change refusals have no tests of their own.",
+    "No battery stale-cache test.",
     "Report hashes are not shown to be bound for battery."
    ],
    "open_parameters": []
@@ -359,6 +379,7 @@
      "status": "PASS"
     }
    ],
+   "participant_code": null,
    "gaps": [
     "No quarantine of unresolved battery grades.",
     "No check of disagreement between battery workers."
@@ -395,13 +416,14 @@
      "status": "PASS"
     }
    ],
+   "participant_code": null,
    "gaps": [
-    "No battery disclosure budget: exposure across many hotkeys is unbounded and recorded as unresolved in carbon/battery/exam.py.",
-    "No cross-case leakage test."
+    "No cross-case leakage test.",
+    "No battery disclosure budget: exposure across many hotkeys is unbounded and recorded as unresolved in carbon/battery/exam.py."
    ],
    "open_parameters": [
     "disclosure budget (HUMAN_INPUT)",
-    "rotation cadence and selection rule (HUMAN_INPUT beyond battery's rule v1/v2)"
+    "rotation cadence and selection rule (HUMAN_INPUT beyond a challenge's registered rule)"
    ]
   }
  ],

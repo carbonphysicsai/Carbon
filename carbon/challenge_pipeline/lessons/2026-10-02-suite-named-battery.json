@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-suite-named-battery",
+ "recorded_at": "2026-10-02T20:40:10Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/challenge_pipeline/suite_v1.json (step 3)",
+  "description": "Split suite v1 into a Challenge-neutral suite and per-challenge suite maps, and scoped vectors by construction level."
+ },
+ "expected": "The common suite is the same for every challenge and names none.",
+ "observed": "Suite v1 held battery's checks, container tests, gaps, groups, EV and exam specifics inline, and the runner hard-coded a battery group. All of it moved to battery's suite map; the suite names no challenge.",
+ "keep": [
+  "A test that the shared suite names no challenge and that every map fits it."
+ ],
+ "change": [
+  "A second challenge adds a suite map; it never edits the suite."
+ ],
+ "protocol_elements": [
+  "suite_v1",
+  "suite_maps"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

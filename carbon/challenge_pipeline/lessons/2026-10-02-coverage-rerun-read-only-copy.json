@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-coverage-rerun-read-only-copy",
+ "recorded_at": "2026-10-02T21:08:10Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "protocol",
+ "execution": {
+  "kind": "coverage_run",
+  "ref": "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json",
+  "description": "Re-ran battery's suite v1 coverage after the split, in the canonical environment."
+ },
+ "expected": "The report is written where --out points.",
+ "observed": "Canonical mode runs on a read-only copy, so the first --out was discarded and the old report stayed. Captured from the container instead: 259 checks passed, all eight vectors PASS at Level 0, participant code NOT_RUN for A1, A2 and A4.",
+ "keep": [
+  "The pin test that fails when the committed report is not for the current suite and map."
+ ],
+ "change": [
+  "Coverage runs in the canonical environment print their report for the host to save; document that in the suite runner."
+ ],
+ "protocol_elements": [
+  "coverage_run",
+  "canonical_environment"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
