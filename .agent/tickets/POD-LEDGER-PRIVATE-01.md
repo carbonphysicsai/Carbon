@@ -9,7 +9,7 @@
 - the owner's decisions of 2026-10-02, in session: pod rates and host machine
   ids stay private; campaign ceilings and the account balance floor are
   operator configuration; the narrative balance lines and spend totals are
-  redacted; history is to be rewritten (see Human input required);
+  redacted; history is not rewritten (decided after the impact below);
 - OWNER-DX-03.
 
 ## Outcome
@@ -54,12 +54,18 @@ ceiling and the balance floor in source.
   estimates, run matrices) are left for the owner; this ticket removes
   balances and actual spend.
 
+## History is not rewritten
+
+The owner first approved a rewrite, then decided against it on 2026-10-02
+after seeing its impact. A rewrite from the first committed ledger would
+change the identity of every later commit: 847 commits. Committed evidence
+cites those SHAs (ledger `ref`s, the code refs pods fetched, Hub authority
+pins, the Ask Carbon release, decisions), at least 1,071 full-length
+citations in 59 files on main. It would also force-push 161 branches. The
+figures already committed are treated as disclosed.
+
 ## Human input required
 
-- **History rewrite.** Any rewrite changes the identity of every later commit.
-  Evidence across the repository pins commit SHAs: ledger `ref`s, dispatch
-  code refs, Hub authority pins and pre-registrations. The scope and method
-  need an explicit decision first.
 - **Workbench relay.** `EXAM_DESIGN_CAMPAIGN_RESULT.md` (a balance line) and
   `EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md` (the ceiling formula) are pinned by
   digest in the Workbench relay and the Ask Carbon release. The Pilot
