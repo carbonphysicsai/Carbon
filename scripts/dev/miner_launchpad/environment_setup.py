@@ -45,8 +45,8 @@ import threading
 import time
 from pathlib import Path
 
-from carbon.battery.gpu import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.compute.providers import PROVIDERS
+from carbon.development_session.battery_gpu import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -614,7 +614,7 @@ class LiveChecks:
     def gpu(self, gpu_manifest: Path) -> dict:
         """Detect this machine's GPU, install its device record, and verify
         the GPU worker image and container runtime. Nothing leaves the host."""
-        from carbon.battery.gpu import gpu_scope, is_gpu_image
+        from carbon.development_session.battery_gpu import gpu_scope, is_gpu_image
         from carbon.reconstruction import onboarding
         from carbon.reconstruction.host_inventory import (
             HOST_DEVICE_RECORD,
@@ -707,10 +707,14 @@ class LiveChecks:
     def rented(self, rented: dict, credential_file: Path, gpu_manifest: Path) -> dict:
         """Read the miner's balance and the GPU's price with their key, and
         check the pushed image is their pinned GPU worker. Rents nothing."""
-        from carbon.battery.gpu import gpu_scope, is_gpu_image, rented_scope
         from carbon.compute.errors import ComputeError
         from carbon.compute.providers import provider_adapter
         from carbon.compute.rented_runner import RentedCompute
+        from carbon.development_session.battery_gpu import (
+            gpu_scope,
+            is_gpu_image,
+            rented_scope,
+        )
         from carbon.reconstruction.worker.docker_runtime import (
             DockerCLI,
             load_image_identity,

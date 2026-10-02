@@ -95,7 +95,7 @@ verified and charges reconciled) is pending the miner's accounts.
     so no launch request can point Carbon at a new URL.
   - *Chutes OAuth is not built.* Its scopes, billing and revocation are
     unverified; a key is the only credential.
-- **Slice 3 (the miner's own GPU):** `carbon/battery/gpu.py` (battery's
+- **Slice 3 (the miner's own GPU):** `carbon/development_session/battery_gpu.py` (battery's
   GPU practice scope and program), the carrier's GPU branch in
   `research_carrier.py`, `BatteryPractice(gpu_image=...)`, the registry's
   battery `gpu_research` profile, and setup's "This machine (your GPU)"
@@ -131,6 +131,11 @@ verified and charges reconciled) is pending the miner's accounts.
     does not pick for them.
   - *CPU stays the default.* The GPU is offered beside it, never chosen for
     the miner (owner, 2026-10-01).
+  - *GPU knowledge stays on the execution side.* Only the execution packages
+    may import the accelerator profile (`test_protected_material_isolation`),
+    and `carbon.battery` holds protected material (exam pools, seeds, truth).
+    So battery's GPU practice code lives in `carbon.development_session`,
+    beside Burgers' GPU lane, and the boundary is not widened.
 - **Slice 4 (rented GPUs):** `carbon/compute/job_server.py` (the one-job
   server a rented pod runs), `remote_job.py` (its client),
   `rented_runner.py` (the carrier-compatible runner over `ComputeService`),
