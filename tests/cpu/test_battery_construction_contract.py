@@ -16,6 +16,7 @@ Claims tested:
 - Burgers keeps its vocabulary and lanes.
 """
 
+import os
 from dataclasses import replace
 from pathlib import Path
 
@@ -64,9 +65,10 @@ def test_each_challenge_has_its_own_contract_and_digest():
         "knn": "battery_knn",
         "mlp": "battery_mlp",
         "deeponet": "battery_deeponet",
+        "fno": "battery_torch_fno",
     }
     # The same capability id carries a status per Challenge.
-    assert r.status_map("model_family.fno") == {
+    assert r.status_map("model_family.transolver") == {
         BURGERS: "rebuildable_development",
         BATTERY: "research_only",
     }
@@ -92,7 +94,7 @@ def test_the_digest_pins_the_vocabulary():
 def test_a_contract_cannot_claim_what_it_does_not_rebuild():
     item = r.contract(BATTERY)
     with pytest.raises(ValueError):  # a lane of a family it does not rebuild
-        replace(item, lanes=(("gpu", ("fno",)),))
+        replace(item, lanes=(("gpu", ("transolver",)),))
     with pytest.raises(ValueError):  # a field for a family it lacks
         replace(
             item,
@@ -125,7 +127,7 @@ def test_every_battery_consumer_derives_from_the_registry():
 
     contracts = battery_contracts()
     options = contracts.assembly.backbone_surface.options
-    assert [o.selector_token for o in options] == ["knn", "mlp", "deeponet"]
+    assert [o.selector_token for o in options] == ["knn", "mlp", "deeponet", "fno"]
     surfaces = {e.surface_id for e in contracts.catalog.entries}
     assert surfaces == {"strategy_backbone", *r.catalog_surfaces(BATTERY)}
 
@@ -147,10 +149,15 @@ def test_every_reviewed_capability_has_a_battery_status():
         )
     assert r.status_map("schedule.sgdr")[BATTERY] == "rebuildable_development"
     assert r.status_map("inference.precision")[BATTERY] == "rebuildable_development"
-    # Validation is JAX-only: the other backends and the PyBaMM reference are
-    # excluded for battery, not merely pending.
+    # OWNER-PYTORCH-BACKEND-01: a recipe names its backend, JAX or PyTorch, and
+    # the battery `backend` field realizes the PyTorch review item. Julia, the
+    # PyBaMM reference and the declarative rule's exclusions stay excluded, not
+    # merely pending.
+    assert r.realizer("model_family.pytorch_backend", BATTERY).capability_id == (
+        "inference.backend"
+    )
+    assert statuses["model_family.pytorch_backend"] is r.Status.REBUILDABLE_DEVELOPMENT
     for name in (
-        "model_family.pytorch_backend",
         "model_family.julia_backend",
         "training_data.label_method",
         "hybrid.reference_solver_reuse",
@@ -238,9 +245,6 @@ def test_an_ignored_or_inconsistent_field_is_refused_by_name(parameters, path):
 
 
 def test_a_burgers_family_under_battery_is_refused_by_name_and_the_reverse():
-    assert refusals(strategy(BATTERY, "fno")) == {
-        ("backbone.not_rebuildable", "/backbone")
-    }
     assert refusals(strategy(BATTERY, "transolver")) == {
         ("backbone.not_rebuildable", "/backbone")
     }
@@ -251,9 +255,9 @@ def test_a_burgers_family_under_battery_is_refused_by_name_and_the_reverse():
         ("backbone.not_in_contract", "/backbone")
     }
     # A field one Challenge owns is unknown to the other.
-    # n_modes is registered for battery, as not applicable (research-only).
+    # n_modes is a battery field of the FNO family only.
     assert refusals(strategy(BATTERY, "mlp", n_modes=8)) == {
-        ("parameter.not_rebuildable", "/parameters/n_modes")
+        ("parameter.not_applicable", "/parameters/n_modes")
     }
     assert refusals(strategy(BURGERS, "fno", ensemble_members=2)) == {
         ("parameter.unknown", "/parameters/ensemble_members")
@@ -353,9 +357,18 @@ def test_check_design_answers_per_challenge():
         "source": "selected",
     }
     assert result["rebuild"]["canonical"]["depth"]["source"] == "defaulted"
-    wrong = check_design({"strategy": strategy(BATTERY, "fno")})
+    wrong = check_design({"strategy": strategy(BATTERY, "transolver")})
     assert wrong["verdict"] == "not_yet_rebuildable"
     assert "rebuild" not in wrong
+    # The FNO is rebuildable under battery in the PyTorch backend only; under
+    # the default backend the refusal names the field to change.
+    jax_fno = check_design({"strategy": strategy(BATTERY, "fno")})
+    assert jax_fno["verdict"] == "refused"
+    assert jax_fno["rebuild"]["issues"] == [
+        {"code": "parameter.dependency_unsatisfied", "path": "/parameters/backend"}
+    ]
+    torch_fno = check_design({"strategy": strategy(BATTERY, "fno", backend="pytorch")})
+    assert torch_fno["verdict"] == "submittable"
     unknown = check_design({"strategy": strategy("battery", "mlp")})
     assert unknown["verdict"] == "refused"
     assert unknown["challenge"]["reason"] == "unrecognized"
@@ -370,6 +383,7 @@ SMALL = {
     "mlp": {"width": 16, "depth": 1, "steps": 32},
     "deeponet": {"width": 16, "deeponet_depth": 1, "basis_functions": 4, "steps": 32},
     "knn": {},
+    "fno": {"width": 8, "depth": 1, "n_modes": 4, "steps": 32, "backend": "pytorch"},
 }
 
 
@@ -458,6 +472,8 @@ CONTROLS = [
     ("activation", "mlp", "gelu", "tanh", {}),
     ("normalization", "mlp", "none", "layer_norm", {}),
     ("initialization", "mlp", "he_normal", "glorot_normal", {}),
+    ("backend", "mlp", "jax", "pytorch", {}),
+    ("n_modes", "fno", 4, 8, {}),
 ]
 #: Choice values checked without a model fit, by the tests below.
 UNIT_CHOICES = {
@@ -590,6 +606,10 @@ def test_every_activation_and_initialization_builds_a_different_network():
 def test_every_surface_changes_what_carbon_rebuilds(
     material, train, surface, family, a, b, extra
 ):
+    torch_needed = "pytorch" in (a, b, SMALL[family].get("backend"))
+    if torch_needed and os.environ.get("CARBON_REQUIRE_TORCH") != "1":
+        pytest.importorskip("torch")
+        pytest.importorskip("neuralop")
     first = fit(material, train, family, **extra, **{surface: a})
     second = fit(material, train, family, **extra, **{surface: b})
     assert differs(first, second)

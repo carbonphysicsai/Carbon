@@ -199,7 +199,9 @@ journey from a different machine.
 - **Hermes** is configured locally with consent: an `mcp_servers` stdio entry
   running `carbon-mcp --configuration <profile>`, and a custom
   OpenAI-compatible model.
-- **Mira** is verified first. If a cloud agent cannot reach a local tool
+- **Mira** is Mira at autoscience.io (autoscience.io/Mira; owner,
+  2026-10-01, OWNER-BATTERY-CARRYOVER-01). It is verified first: read its
+  current documentation for how it connects to tools. If a cloud agent cannot reach a local tool
   server, record the Gap and stop: a network door into a miner's machine is
   an owner decision.
 - **Acceptance:** a Hermes-driven battery campaign that practices, freezes and
@@ -227,4 +229,5 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 ## Owner input
 
-- **Which Mira?** This ticket assumes Mira Network's Flows.
+- **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
+  Network's Flows (OWNER-BATTERY-CARRYOVER-01).

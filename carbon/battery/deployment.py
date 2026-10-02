@@ -14,6 +14,10 @@ operator's; none is reachable from a miner surface:
 - `backend`: `"carrier"` (the isolated reconstruction worker; needs
   `image_manifest`) or `"direct"` (in-process, trusted, reported as
   `DIRECT_TRUSTED_PROCESS` in every outcome);
+- `torch_image_manifest` (optional, carrier only): the pinned PyTorch worker
+  image (OWNER-PYTORCH-BACKEND-01). Without it the deployment serves JAX
+  recipes only, and a PyTorch recipe is answered `backend_not_served`, an
+  unavailability that is never recorded against the miner;
 - `rule` (optional): `"v1"` (the default; OD-2's count-based rotation) or
   `"v2"` (OWNER-BATTERY-SCORING-WINDOW-01: one scored submission per hotkey
   per tempo, block-based rotation). The seed root is committed for one rule,
@@ -41,7 +45,14 @@ from pathlib import Path
 
 SCHEMA = "carbon.battery.validator-deployment.v1"
 REQUIRED = {"schema", "state", "private_root", "journal", "work", "backend"}
-OPTIONAL = {"require_commitment", "service_key", "image_manifest", "seconds", "rule"}
+OPTIONAL = {
+    "require_commitment",
+    "service_key",
+    "image_manifest",
+    "torch_image_manifest",
+    "seconds",
+    "rule",
+}
 BACKENDS = ("carrier", "direct")
 
 _VALIDATORS = {}
@@ -85,6 +96,8 @@ def load_config(path):
     if config["backend"] not in BACKENDS:
         raise EvaluationUnavailable("evaluation_config_backend")
     if config["backend"] == "carrier" and not config.get("image_manifest"):
+        raise EvaluationUnavailable("evaluation_config_image")
+    if config.get("torch_image_manifest") and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_image")
     from .exam import RULES
 
@@ -147,11 +160,31 @@ def build(config, *, repository, readonly=False):
         )
 
         image = load_image_identity(Path(config["image_manifest"]))
-        if not doctor(image_id=image.image_id, image_identity=image).eligible:
-            raise EvaluationUnavailable("evaluation_host_unavailable")
+        torch_image = (
+            load_image_identity(Path(config["torch_image_manifest"]))
+            if config.get("torch_image_manifest")
+            else None
+        )
+        if torch_image is not None:
+            from carbon.reconstruction.torch_profile import requirements_digest
+
+            # The PyTorch image is the one built on this JAX image from this
+            # checkout's exact-hashed science-torch export, nothing else.
+            if (
+                torch_image.base_image_digest != image.image_id
+                or torch_image.lock_digest != requirements_digest(repository)
+            ):
+                raise EvaluationUnavailable("evaluation_config_image")
+        for pinned in (image, torch_image):
+            if (
+                pinned is not None
+                and not doctor(image_id=pinned.image_id, image_identity=pinned).eligible
+            ):
+                raise EvaluationUnavailable("evaluation_host_unavailable")
         backend = CarrierBackend(
             WorkLedger(store, work),
             image,
+            torch_image=torch_image,
             root=repository,
             seconds=int(config.get("seconds", 600)),
         )
@@ -201,7 +234,7 @@ def evaluate(target, submission):
 
     Runs under the deployment's single-writer lock (`writer`).
     """
-    from .daemon import CommitmentRequired
+    from .daemon import BackendNotServed, CommitmentRequired
     from .pool_store import HotkeyWindowUsed
 
     if getattr(target, "readonly", False):
@@ -223,6 +256,8 @@ def evaluate(target, submission):
                 else "commitment_required"
             )
             raise EvaluationUnavailable(code) from None
+        except BackendNotServed:
+            raise EvaluationUnavailable("backend_not_served") from None
         sid = admitted["submission_id"]
         if admitted["state"] != "INVALID_CONSTRUCTION":
             target.process(sid)

@@ -42,8 +42,9 @@ PROVISIONS = {
         "entries and why each is gated, so a miner can see what can be tried."
     ),
     "train": (
-        "The validator's own construction runtime (the same pinned JAX "
-        "environment and training code), runnable by the miner."
+        "The validator's own construction runtime (the same pinned backend "
+        "environment - JAX, or PyTorch where the Challenge offers it - and "
+        "training code), runnable by the miner."
     ),
     "generate": (
         "The Challenge's public generator and reference solver, runnable in the "
@@ -148,8 +149,16 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         "research": Provided(("carbon.battery.research:challenge_parts",)),
         "hypothesize": Provided((REGISTRY_EVIDENCE,)),
         "train": Provided(
-            ("carbon.battery.research:implementation_files",),
-            "training.py is published and staged byte-identical in practice.",
+            (
+                "carbon.battery.research:implementation_files",
+                "carbon.battery.practice:staged_files",
+            ),
+            "training.py and the PyTorch trainer (torch_training.py, "
+            "torch_families.py) are published and staged byte-identical in "
+            "practice. Practice runs a recipe in its own backend; PyTorch "
+            "recipes need the PyTorch worker image "
+            "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
+            "(OWNER-PYTORCH-BACKEND-01).",
         ),
         "generate": Gap(
             reason=(

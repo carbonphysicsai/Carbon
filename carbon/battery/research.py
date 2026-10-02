@@ -550,6 +550,7 @@ class BatteryPractice:
 
         self.ledger, self.owner, self.image = ledger, owner, image
         self.root, self.seconds = Path(root), seconds
+        self.backends = image_backends(image, self.root)
         self.runner = _run if runner is None else runner
         self.backend = backend or {
             "kind": "ISOLATED_CARRIER",
@@ -583,6 +584,14 @@ class BatteryPractice:
         from carbon.development_session.research_workspace import ResearchWorkspace
 
         _compiled, recipe = self.compile(strategy)
+        backend = recipe.settings.get("backend", "jax")
+        if backend not in self.backends:
+            # Refused before any run: this host's worker image cannot rebuild
+            # the recipe's backend, and saying so is not a practice result.
+            raise ValueError(
+                f"backend_not_served: {backend} recipes practise in the PyTorch "
+                "worker image (scripts/dev/torch_worker_image.sh)"
+            )
         seed = self._seed(identity)
         worker = self.runner(
             self.ledger,
@@ -646,6 +655,19 @@ class BatteryPractice:
         return result
 
 
+def image_backends(image, root):
+    """The reconstruction backends a pinned worker image rebuilds.
+
+    Every C-03 worker carries JAX. The PyTorch worker is the one whose lock
+    digest is this checkout's exact-hashed `science-torch` export.
+    """
+    from carbon.reconstruction.torch_profile import requirements_digest
+
+    if getattr(image, "lock_digest", None) == requirements_digest(root):
+        return ("jax", "pytorch")
+    return ("jax",)
+
+
 def implementation_files():
     here = Path(__file__).parent
     return tuple(
@@ -659,6 +681,8 @@ def implementation_files():
             "recipes.py",
             "research.py",
             "training.py",
+            "torch_training.py",
+            "torch_families.py",
         )
     )
 

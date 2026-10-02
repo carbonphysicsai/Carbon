@@ -550,10 +550,21 @@ REGISTRY = (
 #
 # Every capability of the construction review has a battery status: its own
 # entry, or a battery entry that realizes it. Research time (owner direction,
-# 2026-09-25): everything Carbon can rebuild in JAX is submittable; validation
-# stays JAX-only; excluded items stay excluded; Burgers is not edited.
+# 2026-09-25): everything Carbon can rebuild is submittable; excluded items stay
+# excluded; Burgers is not edited. OWNER-PYTORCH-BACKEND-01 (2026-10-01): a
+# recipe names its reconstruction backend, JAX (the default) or PyTorch, and
+# the validator rebuilds it in that backend with Carbon's own trainer. Julia
+# stays excluded.
 KNN, MLP, BDEEPONET = ("knn",), ("mlp",), ("deeponet",)
-LEARNED = MLP + BDEEPONET
+#: Families only the PyTorch backend rebuilds (OWNER-PYTORCH-BACKEND-01).
+OPERATOR = ("fno",)
+#: Families built from Carbon's dense layers, which the dense-layer fields
+#: (activation, normalization, initialization) configure.
+DENSE = MLP + BDEEPONET
+#: Reconstruction backends a battery recipe may name; the first is the default
+#: and the meaning of every recipe recorded before the choice existed.
+BATTERY_BACKENDS = ("jax", "pytorch")
+LEARNED = MLP + BDEEPONET + OPERATOR
 
 _GRID_OPERATOR = (
     "not applicable to battery: a grid-to-grid operator over a spatial input "
@@ -616,9 +627,18 @@ BATTERY_REGISTRY = (
         "over the 30 s time grid form the voltage and temperature "
         "trajectories; the branch also heads plating margin and capacity",
     ),
+    _family(
+        "fno",
+        "fno",
+        "battery_torch_fno",
+        "Fourier neural operator (neuraloperator 2.0, PyTorch backend only) over "
+        "the 30 s time grid: the inputs, broadcast over time with the time "
+        "coordinate, map to the voltage and temperature trajectories; a dense "
+        "head on the inputs gives plating margin and capacity",
+    ),
     *(
         _not_applicable(M, name, "a grid-to-grid operator over a spatial field")
-        for name in ("fno", "transolver", "haar_operator", "gno", "gino")
+        for name in ("transolver", "haar_operator", "gno", "gino")
     ),
     _todo(
         M,
@@ -646,17 +666,12 @@ BATTERY_REGISTRY = (
         "2D and 3D families; needs a new Challenge",
         Trigger.AUTHORITY_BOUNDARY,
     ),
-    *(
-        _excluded(
-            M,
-            name,
-            summary + "; owner, 2026-09-25: validator reconstruction is JAX-only",
-            Trigger.AUTHORITY_BOUNDARY,
-        )
-        for name, summary in (
-            ("pytorch_backend", "PyTorch families (neuraloperator, PhysicsNeMo)"),
-            ("julia_backend", "Julia families (NeuralOperators.jl, NeuralPDE)"),
-        )
+    _excluded(
+        M,
+        "julia_backend",
+        "Julia families (NeuralOperators.jl, NeuralPDE); owner, 2026-09-25 and "
+        "2026-10-01: validator reconstruction is JAX or PyTorch",
+        Trigger.AUTHORITY_BOUNDARY,
     ),
     # --- Architecture. ---
     _field(
@@ -667,7 +682,20 @@ BATTERY_REGISTRY = (
         KNN,
     ),
     _field(A, "width", Surface("model", "uint", 8, 512, 256), "Hidden width", LEARNED),
-    _field(A, "depth", Surface("model", "uint", 1, 6, 3), "Hidden layers", MLP),
+    _field(
+        A,
+        "depth",
+        Surface("model", "uint", 1, 6, 3),
+        "Hidden layers (MLP) or Fourier layers (FNO)",
+        MLP + OPERATOR,
+    ),
+    _field(
+        A,
+        "n_modes",
+        Surface("model", "uint", 1, 61, 16),
+        "Fourier modes kept per layer, of the 61 the 121-point grid has (FNO)",
+        OPERATOR,
+    ),
     _field(
         A,
         "deeponet_depth",
@@ -707,7 +735,7 @@ BATTERY_REGISTRY = (
             "gelu",
         ),
         "Hidden-layer activation",
-        LEARNED,
+        DENSE,
         ("architecture.activation_normalization_init",),
     ),
     _field(
@@ -715,7 +743,7 @@ BATTERY_REGISTRY = (
         "normalization",
         Surface("model", "choice", ("none", "layer_norm"), None, "none"),
         "Normalization after each hidden layer",
-        LEARNED,
+        DENSE,
         ("architecture.activation_normalization_init",),
     ),
     _field(
@@ -729,13 +757,12 @@ BATTERY_REGISTRY = (
             "he_normal",
         ),
         "Weight initialization",
-        LEARNED,
+        DENSE,
         ("architecture.activation_normalization_init",),
     ),
     *(
         _not_applicable(A, name, "a field of the grid operator families")
         for name in (
-            "n_modes",
             "branch_points",
             "heads",
             "slices",
@@ -962,6 +989,15 @@ BATTERY_REGISTRY = (
         Surface("train", "choice", ("float32", "float64"), None, "float32"),
         "Training and prediction precision",
         LEARNED,
+    ),
+    _field(
+        INF,
+        "backend",
+        Surface("train", "choice", BATTERY_BACKENDS, None, "jax"),
+        "Reconstruction backend: Carbon rebuilds the recipe with its own trainer "
+        "in this framework's pinned worker image (OWNER-PYTORCH-BACKEND-01)",
+        LEARNED,
+        realizes=("model_family.pytorch_backend",),
     ),
     _excluded(
         INF,

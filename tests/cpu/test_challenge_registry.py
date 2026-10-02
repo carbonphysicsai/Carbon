@@ -222,5 +222,8 @@ def test_battery_states_the_scope_of_its_submission_exclusions():
 
     scope = describe(BATTERY, "1.0")["exclusion_scope"]
     assert "JAX" in scope["submission"] and "PyBaMM" in scope["submission"]
+    # OWNER-PYTORCH-BACKEND-01: PyTorch is an approved runtime, Julia is not.
+    assert "JAX or PyTorch" in scope["submission"]
+    assert "Julia submission" in scope["submission"]
     text = " ".join(scope["not_excluded"])
     assert "TRAIN" in text and "truth service" in text
