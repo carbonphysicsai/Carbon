@@ -10824,6 +10824,19 @@ events:
   -
     map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
     event_type: "adjustment"
+    event_id: "CHALLENGE-PROTOCOL-04-GENERAL"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Phase 1 step 4's Graphite code is generalized (OWNER-CHALLENGE-ROADMAP-03): the stage profile, the Attacker and its runner take the Challenge as a parameter and read its specifics from its records, with battery as the first instance. A Challenge is its Graphite record (family, label, coverage report, vector wording, Attacker campaign with its grant, ceiling and call cap), an adapter (permission inventory, public identity, admission gate, code-run wall allowance, an out-of-contract recipe), its pipeline record and its suite map. The stage profile records the construction level (battery: Level 0, from its inventory, agreeing with its pipeline record), and a staged provider refuses a session whose level or permissions differ from the inventory's. The Attacker's coverage binds the suite and suite-map digests, states its level, and carries participant code through as NOT_RUN at Level 0, never a pass. A synthetic second Challenge runs stage and attack with battery code made to raise; battery's brief, limits, dry-run grant amounts and verdicts are unchanged. The owner answered the open ceiling question: the Constructor uses #504's grant and registered ceiling (\"let it use it\"), and USD 5.00 binds the Attacker only. Each execution has a lessons entry; two propose protocol revisions for an owner. No live session, no spend. Not scientific or security qualification."
+    primary_detail: ".agent/tickets/CHALLENGE-PROTOCOL-04.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: "CHALLENGE-PROTOCOL-04"
+    recorded_at: "2026-10-02T21:40:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "adjustment"
     event_id: "OWNER-CHALLENGE-ROADMAP-03"
     owner_lane: "technical_lead"
     status: "implemented"
