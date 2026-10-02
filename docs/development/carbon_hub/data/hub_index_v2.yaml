@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T02:48:19Z"
+  captured_at_utc: "2026-10-02T03:32:56Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5ee769c778f71402a827b44d5dd66a714c68881a"
+  authority_snapshot_commit: "eb0db52686433ba30655dcae0151234877791c3e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10552,7 +10552,7 @@ events:
     event_id: "C-MLP-03-SLICE-3-OWN-GPU"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "C-MLP-03 slice 3: battery practice on the miner's own GPU, for speed only. Battery gains its own GPU practice scope (carbon.battery.gpu), bound to the pinned GPU worker image and marked speed_only, with no score and never official. A campaign freezes the scope, and an attach re-checks it against the GPU image record installed in the campaign root. Practice runs Carbon's fixed program in the isolated carrier with the miner lane's GPU worker profile: the device comes from the installed host device record, JAX_PLATFORMS=cuda is set, and the request binds the record's digest. The feedback records the backend the worker observed, and CPU practice identities are unchanged. Setup offers this machine's GPU beside the CPU default: it detects the GPU with nvidia-smi, installs the host device record (or names the prepare command), and verifies the GPU worker and the NVIDIA container runtime. The registry gives battery a gpu_research profile, and battery's compute provision is Provided. A real GPU practice is the slice's acceptance. The validator rebuilds on its own pinned backend. Engineering evidence only; nothing is qualified, and no chain write is made."
+    summary: "C-MLP-03 slice 3: battery practice on the miner's own GPU, for speed only. Battery gains its own GPU practice scope (carbon.development_session.battery_gpu, on the execution side of the protected-material boundary), bound to the pinned GPU worker image and marked speed_only, with no score and never official. A campaign freezes the scope, and an attach re-checks it against the GPU image record installed in the campaign root. Practice runs Carbon's fixed program in the isolated carrier with the miner lane's GPU worker profile: the device comes from the installed host device record, JAX_PLATFORMS=cuda is set, and the request binds the record's digest. The feedback records the backend the worker observed, and CPU practice identities are unchanged. Setup offers this machine's GPU beside the CPU default: it detects the GPU with nvidia-smi, installs the host device record (or names the prepare command), and verifies the GPU worker and the NVIDIA container runtime. The registry gives battery a gpu_research profile, and battery's compute provision is Provided. A real GPU practice is the slice's acceptance. The validator rebuilds on its own pinned backend. Engineering evidence only; nothing is qualified, and no chain write is made."
     primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
     affects:
       - "SYSTEM/AGENT-EXECUTION"
