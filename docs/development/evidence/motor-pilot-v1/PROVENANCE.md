@@ -6,7 +6,8 @@
 - The run was attempt 3. Attempts 1 and 2 were stopped and left no records
   (ticket D3, D3a).
 - `run.log` lists the SHA-256 of every source and of the frozen plan at
-  start.
+  start. The one host path in it is shortened to `<host>/`, because the
+  repository refuses workstation paths. Nothing else in it is edited.
 
 **The image** is `carbon-motor-reference:dev`, local ID
 `sha256:85c337abf8e2ae83e8a347977aa1b5c9ab965df98ca6340b32cdc435227feaed`,
