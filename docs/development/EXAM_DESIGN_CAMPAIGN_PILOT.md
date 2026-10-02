@@ -23,17 +23,17 @@ qualified.
 | Revision on the pod | `da1a55b2f0094fee29cf83bcc41438eabb0b839e` (hash-pinned code manifest) |
 | Battery (refs A, 1016 jobs) | see §8 (measured at the decision point) |
 | Photonic pilot (16 jobs) | 0 complete after 15 min; GPU utilization 0 % throughout (see §5) |
-| Spend | USD 0.63 by account balance (22.24 → 21.60); elapsed-time estimate USD 0.65 |
-| Discarded attempts | USD 0.23 (see below) |
-| Ceiling | USD 20.00 (min(20, balance − 2) at start); cleanup reserve USD 0.25 per pod |
+| Spend | within the ceiling; figures in the operator's private ledger |
+| Discarded attempts | see below; figures in the operator's private ledger |
+| Ceiling | fixed at start from the operator's configuration, never above the balance less a floor; cleanup reserve USD 0.25 per pod |
 
 **The three discarded attempts,** retained as evidence, not re-labelled:
 
-| Pod | Cost | What went wrong |
-|---|---|---|
-| `9qhyoniu04hdte` | USD 0.005 | superseded by a combined plan |
-| `d8jfjlw2bucnoz` | USD 0.114 | the plan's own name collided with the runtime `plan` key, so the battery child exited |
-| `c45fer91e5645o` | USD 0.114 | every worker sized its thread pools to 96 visible cores, which ran about 10× slow with the GPU idle |
+| Pod | What went wrong |
+|---|---|
+| `9qhyoniu04hdte` | superseded by a combined plan |
+| `d8jfjlw2bucnoz` | the plan's own name collided with the runtime `plan` key, so the battery child exited |
+| `c45fer91e5645o` | every worker sized its thread pools to 96 visible cores, which ran about 10× slow with the GPU idle |
 
 There were also two create refusals, neither of which created a pod or cost
 anything: one schema error (CUDA 13.2 is not accepted by the API) and one "no
@@ -201,9 +201,8 @@ and nothing is inferred from coarse sums.
 | Contingency | one failed pod, reruns of `FAILED_INFRA` cases | | | USD 1.50 |
 | **Remaining total** | | | | **≈ USD 5.5** |
 
-With about USD 0.8 spent by the time pod X starts, the projected total is about
-**USD 6.3 of the USD 20 ceiling**. The stages after reconstruction are CPU-only
-and need no rental:
+The projected total stays within the campaign ceiling. The stages after
+reconstruction are CPU-only and need no rental:
 - the learning curve, on PRACTICE (local);
 - the batch-size and rotation replay;
 - the simulations;
