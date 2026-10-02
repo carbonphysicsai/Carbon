@@ -182,6 +182,14 @@ Delegated engineering decisions, recorded under
   maps a Challenge token to its adapter, as `challenge_registry.campaigns`
   does for campaigns. Adding a Challenge is adding its adapter there. A test
   or an unregistered Challenge passes a `ChallengeStudy` directly.
+- **GA-D3, the level planner is a Planner task, not a new role.** It runs on
+  the Planner's rung with its own prompt (by digest), as the Reader's card
+  extraction runs on the Reader's rung. So `roles.py`, which PR 504 changes,
+  is untouched, and `proposed_by.role` is `planner`.
+- **GA-D4, Carbon checks the Level 0 difference; it does not write it.** The
+  difference is computed from the contract and the map. A Level 0 reply must
+  cite every rebuildable capability labelled above 0, name every excluded
+  capability, and name every empty level, or the level is rejected.
 
 ## Slices delivered
 
@@ -212,6 +220,36 @@ Delegated engineering decisions, recorded under
     argument returns them unchanged.
   - Tests: `tests/cpu/test_agent_campaign_study.py`, and two mutation checks
     in `tests/cpu/test_graphite_admission_mutations.py`.
+- **Slice P, Graphite's level planner.**
+  - Challenge-neutral: `carbon/agent_campaign/graphite/closed_task.py` (one
+    closed, tool-less, metered call per item under a grant, the phase-2
+    pattern generalized) and `carbon/agent_campaign/graphite/level_planner.py`
+    (the brief, the per-level rules, the reply checks, the session and a live
+    runner).
+  - Battery adapter: none of its own. The planner reads battery through its
+    construction contract and its slice A study adapter.
+  - A second Challenge supplies: a registered construction contract and a
+    study adapter whose map places every dimension of the contract. The
+    session then needs only a literature index and any permitted development
+    results.
+  - What Carbon checks, outside the model: a closed reply shape; sources that
+    resolve to the brief; a card or result behind every capability above
+    Level 0; a reason for an empty level; isolation and reconstruction at
+    Levels 4-5; Level 0's difference from today's contract; then
+    `proposals.validate`. A rejected level is recorded with its code. The
+    planner never writes a contract, an expansion record, an ACCEPTED or
+    DECLINED status, or anything in the repository.
+  - Battery's Level 0 difference, computed: the rebuildable capabilities the
+    map labels 1 (`objective.*` weights), 2 (`batching`, `optimizer`,
+    `schedule`, `stages`, `training_data`) and 5 (declarative `inference.*`);
+    `objective.loss_expressions` among the excluded; Level 3 empty.
+  - No battery proposal is committed. The live session needs the owner's
+    authorization and a grant:
+    `python -m carbon.agent_campaign.graphite.level_planner --challenge battery-fastcharge-ageing-development-v1 --root DIR --snapshot SNAPSHOT --grant GRANT --credential-env ENGY_API_KEY`.
+    It writes under a root outside the repository. Committing a proposal, and
+    accepting or declining it, are people's acts.
+  - Tests: `tests/cpu/test_graphite_level_planner.py`, and six mutation
+    checks.
 
 ## Lessons
 
@@ -219,3 +257,4 @@ Delegated engineering decisions, recorded under
 - `2026-10-02-lessons-regenerate-pipeline-view` (PROPOSED revision)
 - `2026-10-02-graphite-admission-reconciliation`
 - `2026-10-02-study-sheet-takes-a-challenge`
+- `2026-10-02-graphite-level-planner`
