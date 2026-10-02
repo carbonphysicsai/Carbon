@@ -36,6 +36,31 @@ not to a provider or a machine.
 A GPU backend profile is a separate profile and a separate qualification. It is
 not covered by this declaration, and running on a GPU does not inherit this one.
 
+### PyTorch backend profile (battery)
+
+OWNER-PYTORCH-BACKEND-01 lets a battery recipe name `backend: pytorch`. Such a
+recipe is rebuilt in a second declared environment,
+`carbon_torch_linux_x86_64_py311` version `1.0`
+(`carbon/reconstruction/torch_profile.py`). Its image is the C-03 worker image
+plus the exact-hashed `science-torch` export
+`.devcontainer/torch/torch-cpu-py311.txt` (torch 2.13.0+cpu, torchvision
+0.28.0+cpu, neuraloperator 2.0.0, nvidia-physicsnemo 2.2.0). The disclosure
+lists it under `additional_backend_profiles`.
+
+It runs with `torch.use_deterministic_algorithms(True)`, one explicit generator
+per rebuild and two CPU threads. It is declared, not qualified, and runs with
+the same standing as the JAX profile (OWNER-BATTERY-CARRYOVER-01): its
+reproducibility tolerance and training limit are analysed in tandem with
+testing, not set in advance. `python -m carbon.battery.torch_determinism`
+produces the repeat-and-compare evidence for that analysis; it sets no value.
+
+Miners get the same environment. A miner names the PyTorch worker image's
+manifest as their worker `image_manifest` (it keeps the C-03 image's source
+identity, so `verify_current_worker` accepts it), and the analysis image is then
+built on it. Practice runs each recipe in its own backend; in a JAX-only worker
+image a PyTorch recipe is refused before any run as `backend_not_served`, never
+reported as a practice result.
+
 ### Pinned versions
 
 The environment lock is the authority; these are its principal entries, as

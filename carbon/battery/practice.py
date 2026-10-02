@@ -57,6 +57,8 @@ STAGED_MODULES = {
     "battery-domain.py": "domain.py",
     "battery-recipes.py": "recipes.py",
     "battery-training.py": "training.py",
+    "battery-torch-training.py": "torch_training.py",
+    "battery-torch-families.py": "torch_families.py",
 }
 
 PROGRAM = r'''"""Carbon battery practice worker: train one compiled recipe, predict PRACTICE.
@@ -78,6 +80,8 @@ for staged, module in (
     ("battery-domain.py", "domain.py"),
     ("battery-recipes.py", "recipes.py"),
     ("battery-training.py", "training.py"),
+    ("battery-torch-training.py", "torch_training.py"),
+    ("battery-torch-families.py", "torch_families.py"),
 ):
     shutil.copyfile(work / staged, lab / module)
 sys.path.insert(0, str(work))

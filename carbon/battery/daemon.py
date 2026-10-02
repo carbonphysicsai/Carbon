@@ -178,6 +178,31 @@ class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
 
 
+class BackendNotServed(PermissionError):
+    """This validator has no worker image for the recipe's backend.
+
+    Not a refusal of the recipe: nothing is recorded, and the miner may
+    submit it to a validator that serves the backend (OWNER-PYTORCH-BACKEND-01).
+    """
+
+    def __init__(self, backend):
+        super().__init__(backend)
+        self.backend = backend
+
+
+class ContractRevised(ValueError):
+    """A recipe admitted under an earlier contract that the current one refuses.
+
+    Raised only for a carried-over deployment. It is Carbon's revision, never
+    the miner's failure: the submission is closed with its named issues and
+    nothing is scored.
+    """
+
+    def __init__(self, issues):
+        super().__init__("contract_revised")
+        self.issues = issues
+
+
 class PublishedCaseRefused(ValueError):
     """A batch that repeats a published campaign case cannot be hidden."""
 
@@ -421,6 +446,9 @@ class BatteryValidator:
                 [{"code": i.code, "path": list(i.path)} for i in issues],
             )
         recipe = admitted.construction
+        backend = recipe.settings.get("backend", "jax")
+        if backend not in getattr(self.backend, "backends", ("jax",)):
+            raise BackendNotServed(backend)
         commitment = None
         expected = commitment_digest(
             submission.strategy["challenge_id"],
@@ -477,15 +505,54 @@ class BatteryValidator:
 
     # --- screening --------------------------------------------------------------------
 
+    def _carried(self, binding):
+        """Whether `binding` was made under an identity this deployment was
+        carried over from (`PoolStore.rebind`, OWNER-BATTERY-CARRYOVER-01).
+
+        Only a recorded earlier identity counts: a binding whose contract or
+        implementation matches neither the current identity nor one the
+        operator carried over from is a mismatch, never a carry-over.
+        """
+        keys = ("contract_digest", "implementation_digest")
+        current = self.store.identities() or {}
+        if all(binding.get(k) == current.get(k) for k in keys):
+            return False
+        return any(
+            all(binding.get(k) == old.get(k) for k in keys)
+            for old in self.store.identity_history()
+        )
+
     def _recipe(self, row):
         from .compile import compile_recipe
 
-        _, recipe = compile_recipe(row["strategy"])
+        carried = self._carried(row["binding"])
+        try:
+            _, recipe = compile_recipe(row["strategy"])
+        except ValueError as refused:
+            if not carried:
+                raise
+            # The recipe was admitted under an earlier contract and the
+            # current one refuses it: Carbon's revision, not the miner's.
+            issues = getattr(getattr(refused, "rejected", None), "issues", ())
+            raise ContractRevised(
+                [{"code": i.code, "path": list(i.path)} for i in issues]
+            ) from None
         if recipe.recipe_digest != row["binding"]["recipe_digest"]:
-            # The recipe Carbon would build now is not the one admitted: the
-            # compiler or contract changed underneath. Never build silently.
-            raise StateError(
-                "artifact_mismatch", "recipe digest differs from admission"
+            if not carried:
+                # The recipe Carbon would build now is not the one admitted:
+                # the compiler or contract changed underneath. Never build
+                # silently.
+                raise StateError(
+                    "artifact_mismatch", "recipe digest differs from admission"
+                )
+            # Carried over: rebuilt under the current contract, and recorded.
+            self.store.note(
+                "recompiled",
+                {
+                    "submission_id": row["submission_id"],
+                    "from": row["binding"]["recipe_digest"],
+                    "to": recipe.recipe_digest,
+                },
             )
         return recipe
 
@@ -553,7 +620,15 @@ class BatteryValidator:
         # reuses a run identity that might still be unresolved.
         attempt = row["binding"]["attempt"]
         try:
-            recipe = self._recipe(row)
+            try:
+                recipe = self._recipe(row)
+            except ContractRevised as revised:
+                self.store.mark(
+                    submission_id,
+                    "INVALID_CONSTRUCTION",
+                    {"code": "contract_revised", "issues": revised.issues},
+                )
+                return self.outcome(submission_id)
             if self.store.model_state(submission_id) is None:
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
@@ -773,8 +848,24 @@ class BatteryValidator:
                 ("challenger", final["challenger"]),
             ):
                 source = self.store.submission(model)
-                recipe = self._recipe(source)
-                if recipe.recipe_digest != frozen[role + "_recipe"]:
+                try:
+                    recipe = self._recipe(source)
+                except ContractRevised:
+                    # OWNER-BATTERY-CARRYOVER-01: the incumbent stays the
+                    # winner; a side the current contract refuses is not
+                    # compared, and nothing is promoted.
+                    return self._decide(
+                        final_id,
+                        {
+                            "outcome": exam.INSUFFICIENT,
+                            "reason": f"{role} contract_revised",
+                            "promotable": False,
+                        },
+                        fingerprint,
+                    )
+                if recipe.recipe_digest != frozen[role + "_recipe"] and not (
+                    self._carried(source["binding"])
+                ):
                     raise StateError("artifact_mismatch", role)
                 fresh = f"{final_id}-{role}"
                 if self.store.model_state(fresh) is None:

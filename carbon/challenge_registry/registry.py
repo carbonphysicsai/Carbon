@@ -230,8 +230,8 @@ def _entries():
             (
                 ExecutionProfile(
                     CPU_RESEARCH,
-                    "JAX CPU practice in the isolated research carrier; "
-                    "exact Carbon recipe and training bytes staged",
+                    "JAX or PyTorch CPU practice in the isolated research "
+                    "carrier; exact Carbon recipe and training bytes staged",
                     "jax-cpu/isolated-carrier",
                     carrier,
                 ),
