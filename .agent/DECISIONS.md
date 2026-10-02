@@ -17500,6 +17500,27 @@ session builds it, and the phase 2 grant's account and expiry are reused.
    - Battery's Level 0 predates proposals and names none.
    - This adopts the lessons log's first proposed revision
      (`2026-10-02-level-proposal-step`), broadened by the owner to every level.
+8. **The climb is internal; miners get the chosen level** (owner, same day:
+   "This is all internal testing. We choose a best construction level. Then
+   lock and open challenge to miners!").
+   - Graphite climbs the ladder in internal testing.
+   - The owners choose each challenge's best construction level, which need
+     not be the highest tested.
+   - The challenge is frozen, locked and opened to miners at that level only.
+     Miners never see the internal levels.
+   - Each record's `construction.chosen` holds the choice. Only the chosen level
+     may be FROZEN, a frozen run is taken at it, and `ready`/`deployed` need it.
+   - The roadmap's climb procedure ends at clean rebuilds, followed by two
+     launch steps: choose, then freeze, lock and open.
+9. **Internal levels run on a development-only contract variant** (owner, same
+   day, choosing between that and "open to everyone first").
+   - The variant is held outside the miner-facing registry
+     (`capability_registry.CONTRACTS`) and is served only to Carbon's own
+     registered Graphite campaigns.
+   - The miner path never reads it.
+   - The chosen level's contract becomes the miner-facing contract only at
+     launch.
+   - The variant is built with battery's Level 1 work (GRAPHITE-ADMISSION-01).
 
 **Unchanged.**
 - Scientific, security and launch qualification stay human-reserved.

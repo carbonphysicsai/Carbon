@@ -246,11 +246,15 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
             "Design exits with Level 0 that Carbon rebuilds"
         )
     if evidence["frozen"] is not None and (
-        construction["level"] is None
-        or ladder.state_of(construction, construction["level"]) != "FROZEN"
+        construction["chosen"] is None
+        or ladder.state_of(construction, construction["chosen"]) != "FROZEN"
     ):
         raise PipelineError(
-            f"{where}: a frozen run is taken at a FROZEN construction level"
+            f"{where}: a frozen run is taken at the chosen construction level, FROZEN"
+        )
+    if stage in ("ready", "deployed") and construction["chosen"] is None:
+        raise PipelineError(
+            f"{where}: stage {stage} needs the chosen construction level miners get"
         )
     for item in record["prior_work"]:
         if set(item) != {"what", "ref"} or not _exists(item["ref"], root):
