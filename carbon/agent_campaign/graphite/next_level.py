@@ -2,7 +2,7 @@
 
 GRAPHITE-D30. When a method card points at a capability outside the current
 recorded battery construction contract (a new loss form, an architecture
-family, a data pipeline), the Planner may record it with
+family, a data pipeline), the Planner or the Constructor may record it with
 `graphite_propose_next_level`. Carbon validates the arguments against the
 session's offered cards and the recorded contract, and stores a typed,
 write-once record with status `PROPOSED` under the run root

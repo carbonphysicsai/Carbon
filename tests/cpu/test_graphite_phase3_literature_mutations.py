@@ -66,10 +66,15 @@ MUTATIONS = {
         lambda m: m.setattr(next_level.ProposalStore, "write", _widening_write),
         tl.test_a_proposal_never_changes_the_contract_permissions_or_score,
     ),
-    # Only the Planner's manifest offers the proposal tool.
-    "proposal_tool_planner_only": (
+    # A Constructor's proposal never widens either.
+    "constructor_proposal_never_widens": (
+        lambda m: m.setattr(next_level.ProposalStore, "write", _widening_write),
+        tl.test_a_phase3_constructor_writes_a_proposal_that_widens_nothing,
+    ),
+    # Only the Planner's and the Constructor's manifests offer the tool.
+    "proposal_tool_planner_and_constructor_only": (
         lambda m: m.setattr(gt.GraphiteToolbox, "_offered", lambda self, name: True),
-        tl.test_the_constructor_cannot_write_a_proposal,
+        tl.test_roles_without_the_tool_are_refused_a_proposal,
     ),
 }
 

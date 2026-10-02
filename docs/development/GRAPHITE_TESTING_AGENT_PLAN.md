@@ -232,7 +232,7 @@ failure. Graphite keeps that rule per role:
     every tool result.
   - No checked card means an empty index, stated in the session record.
     Nothing falls back to the fixture.
-  - The Planner may record a **next-level proposal**
+  - The Planner and the Constructor may record a **next-level proposal**
     (`graphite_propose_next_level`) when a card points at a capability
     outside the recorded construction contract. It is a typed `PROPOSED`
     record for the owner, and it widens nothing.

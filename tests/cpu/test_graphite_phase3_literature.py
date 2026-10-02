@@ -541,10 +541,12 @@ def test_a_planner_proposal_is_validated_written_and_listed(tmp_path, capsys):
         )
 
 
-def test_only_the_planner_holds_the_next_level_tool():
-    assert [n for n, r in ROLES.items() if NEXT_LEVEL in r.tools] == [RoleName.PLANNER]
+def test_only_the_planner_and_constructor_hold_the_next_level_tool():
+    holders = [n for n, r in ROLES.items() if NEXT_LEVEL in r.tools]
+    assert holders == [RoleName.PLANNER, RoleName.CONSTRUCTOR]
     assert NEXT_LEVEL == gt.NEXT_LEVEL
-    assert NEXT_LEVEL in ROLES[RoleName.PLANNER].prompt
+    for name in holders:
+        assert NEXT_LEVEL in ROLES[name].prompt
 
 
 def _unchanged_surface():
@@ -622,13 +624,47 @@ def test_a_proposal_never_changes_the_contract_permissions_or_score(
     assert _unchanged_surface() == before
 
 
-def test_the_constructor_cannot_write_a_proposal(tmp_path):
-    script = [tool(NEXT_LEVEL, proposal_arguments()), text("stop")]
+def test_a_phase3_constructor_writes_a_proposal_that_widens_nothing(
+    tmp_path, monkeypatch
+):
+    # The owner gave the Constructor the tool too (GRAPHITE-D30 amendment).
+    _forbid_widening(monkeypatch)
+    before = _unchanged_surface()
+    arguments = proposal_arguments(source_card_ids=["fixture-operator-0001"])
+    script = [tool(NEXT_LEVEL, arguments), text("stop")]
     result, graphite, _ = session(tmp_path, script, ScriptedPods())
-    [answer] = outputs(graphite.model)
-    assert answer["status"] == gt.REFUSED_MANIFEST
-    assert next_level.ProposalStore(graphite._dir(run_id())).proposals() == []
-    assert result["next_level_proposals"] == []
+    answers = outputs(graphite.model)
+    assert [a["status"] for a in answers] == ["OK"]
+    answer = answers[0]
+    [stored] = next_level.ProposalStore(graphite._dir(run_id())).proposals()
+    assert stored["proposal_id"] == answer["proposal_id"]
+    assert stored["role"] == "constructor" and stored["status"] == "PROPOSED"
+    assert stored["authority"]["widens_construction_surface"] is False
+    assert stored["authority"]["affects_score"] is False
+    assert result["next_level_proposals"] == [stored["proposal_id"]]
+    # Nothing was proposed to Carbon's runner, so nothing was scored.
+    assert not [
+        r for r in graphite.experiment(run_id()).records() if r["status"] == "SCORED"
+    ]
+    assert _unchanged_surface() == before
+
+
+def test_roles_without_the_tool_are_refused_a_proposal(tmp_path):
+    _, offer = offered(tmp_path / "lit", count=1, verdicts={1: "CORRECT"})
+    for role in (
+        RoleName.ATTACKER,
+        RoleName.READER,
+        RoleName.OPTIMIZER,
+        RoleName.WRITER,
+    ):
+        model = ScriptedModel([tool(NEXT_LEVEL, proposal_arguments()), text("stop")])
+        graphite, rid = started(
+            tmp_path / role.value, model, role=role, literature_index=offer
+        )
+        graphite.run(rid)
+        [answer] = outputs(model)
+        assert answer["status"] == gt.REFUSED_MANIFEST
+        assert next_level.ProposalStore(graphite._dir(rid)).proposals() == []
 
 
 def test_injected_card_text_triggers_no_proposal_and_no_tool_change(tmp_path):

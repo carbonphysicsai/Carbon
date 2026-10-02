@@ -85,8 +85,9 @@ PROPOSAL_TOOL = {
 }
 
 
-#: The Planner's next-level proposal (GRAPHITE-D30): a typed record that a
-#: card points at a capability outside the recorded construction contract.
+#: The next-level proposal (GRAPHITE-D30), held by the Planner and the
+#: Constructor: a typed record that a card points at a capability outside the
+#: recorded construction contract.
 #: It is stored for the owner and widens nothing (`next_level`).
 NEXT_LEVEL = "graphite_propose_next_level"
 #: The construction contract's dimensions (`capability_registry.Dimension`).
@@ -224,7 +225,10 @@ before practice, read the development feedback, and iterate within your
 budget. To have Carbon run and score a recipe, propose it with
 graphite_run_proposal: Carbon runs it on a pod, scores it by the frozen rule
 against the session's baseline, and refuses anything it cannot rebuild. Select
-a recipe only with evidence, or stop and say why.
+a recipe only with evidence, or stop and say why. When a card points at a
+capability outside the recorded construction contract, you may record it with
+graphite_propose_next_level: a proposal for the owner, which widens nothing and
+is never scored.
 """),
     RoleName.ATTACKER: _prompt("""
 Role: Attacker. Red-team the admission boundaries named in your brief
@@ -356,6 +360,7 @@ ROLES = {
                 literature.CARD,
                 PROPOSE,
                 SELECT,
+                NEXT_LEVEL,
             ),
             start_model="deepseek-v4-flash-0731",
             escalation_kinds=frozenset(

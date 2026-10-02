@@ -431,7 +431,7 @@ class GraphiteProvider:
         return literature_record(self.literature)
 
     def _next_level(self, run_id, role):
-        """The Planner's next-level writer for one run (GRAPHITE-D30)."""
+        """The next-level writer for one run (GRAPHITE-D30)."""
 
         def write(arguments, identity):
             return next_level.propose_tool(

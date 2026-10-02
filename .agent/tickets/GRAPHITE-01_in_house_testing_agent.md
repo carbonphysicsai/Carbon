@@ -712,8 +712,9 @@ started, no key was read and nothing was spent.
     `empty: true` and a note. Nothing falls back to the fixture.
   - A v1 snapshot still loads; its cards count as `UNCHECKED`.
 - **Next-level proposals.**
-  - New module `graphite/next_level.py`, and the Planner's new closed tool
-    `graphite_propose_next_level`. The Planner is the only role that holds it.
+  - New module `graphite/next_level.py`, and a new closed tool
+    `graphite_propose_next_level`. The Planner and the Constructor are the
+    only roles that hold it.
   - The arguments are checked:
     - the capability (1 to 300 characters);
     - 1 to 8 source card ids, each offered to this session;
@@ -806,10 +807,14 @@ started, no key was read and nothing was spent.
 - **GRAPHITE-D30, next-level proposals.**
   - The contract a proposal is checked against is the recorded battery
     construction contract (Level 0's), from `experiment.recorded_contract`.
-  - The tool is the Planner's only, as approved. Phase 3 runs the Constructor
-    only, so a phase-3 session itself writes no proposal: a Planner session
-    (the phase-1 provider, in the same root) writes them. Giving the
-    Constructor the tool too is a one-line manifest change, left to the owner.
+  - The Planner and the Constructor hold the tool. The Planner's came with
+    the approved design. The Constructor's was added on 2026-10-02 on the
+    owner's instruction ("Yes add it"). Phase 3 runs the Constructor, so a
+    phase-3 session can now write proposals itself. Every other role is
+    refused at the manifest.
+  - A Constructor's proposal follows the same rules as the Planner's: it is
+    validated, write-once and `PROPOSED`, and it widens nothing. The record
+    carries `role: constructor`.
   - Files: `graphite/next_level.py`, `graphite/roles.py`, `graphite/tools.py`,
     `graphite/provider.py`, `graphite/delivery.py`, `graphite/phase3.py`.
 - **GRAPHITE-D31, the Constructor's catalogue.** The brief lists up to 100
@@ -845,13 +850,11 @@ different one is refused for a session that has already opened.
   checked by people yet. Until one is, the default run is offered an empty
   index.
 - Keyword search only; no embeddings.
-- A phase-3 session cannot itself propose a next level (GRAPHITE-D30).
 - The human check is a guard, not authentication (GRAPHITE-D14).
 - None of this is scientific, security or production qualification.
 
 **Open owner decisions** (none blocks the build):
 
-- whether the Constructor should also hold `graphite_propose_next_level`;
 - acting on any proposal: widening a level is the owner's decision under the
   reconstruction rule, and ships with Carbon's reconstruction of the widened
   surface.

@@ -49,8 +49,8 @@ nothing falls back to another index. The dry run without a snapshot serves the
 phase-1 synthetic fixture and records that it did.
 
 **Next-level proposals** (GRAPHITE-D30). `proposals` lists the typed records
-a Planner session wrote with `graphite_propose_next_level`; a run's bundle
-carries its own. A proposal widens nothing and is never scored.
+a Planner or Constructor session wrote with `graphite_propose_next_level`; a
+run's bundle carries its own. A proposal widens nothing and is never scored.
 
 `DIR` is a private directory outside the repository. Nothing here opens a
 pull request, writes under `docs/`, or touches chain state.

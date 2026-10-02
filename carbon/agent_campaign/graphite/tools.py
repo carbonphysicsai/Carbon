@@ -17,7 +17,7 @@ Graphite session that object is a `GraphiteToolbox`, which:
 3. answers `lit_search` / `lit_card` from the pinned literature index. An
    `OfferedLiterature` index marks every card's check status in the result,
    and an `UNCHECKED` card says so (GRAPHITE-D29);
-4. hands the Planner's `graphite_propose_next_level` to the injected
+4. hands `graphite_propose_next_level` (Planner and Constructor) to the injected
    `next_level` writer, which stores a PROPOSED record and widens nothing
    (GRAPHITE-D30); without one it answers `UNAVAILABLE`;
 5. delegates the remaining miner SDK tools to an injected `miner_tools`
@@ -41,7 +41,7 @@ from carbon.development_session.profile import canonical, digest
 from .. import boundaries
 from . import literature
 
-#: The Planner's next-level proposal tool (`roles.NEXT_LEVEL`; roles imports
+#: The next-level proposal tool (`roles.NEXT_LEVEL`; roles imports
 #: this module's checks through the literature index, so the name is repeated
 #: here and `roles` asserts the two agree).
 NEXT_LEVEL = "graphite_propose_next_level"
