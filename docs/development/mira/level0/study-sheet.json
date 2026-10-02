@@ -40,12 +40,12 @@
  "missing_results": "a timeout or infrastructure failure is neither an attack pass nor a physics failure; it is recorded and counted against the budget",
  "pins": {
   "budget": null,
-  "construction": "sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45",
+  "construction": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
   "decision_contract": "sha256:1877091055d1dac2515da5aa05bf4f0ad56cf3376045d73086dcf1f0848ce743",
-  "environment": "sha256:f11109e2c10bba182b388c7ef4e1e31d12a78562968c4cf6fd17325760b1a515",
+  "environment": "sha256:bf499b2eedd49e0f1af9f717c59bd7ea2636ec4d2fc4f7254c145a8a6bfbfbe0",
   "feedback": "sha256:ce5e2596e01ea87dbec012257fed1dbe4afa2aea12acaa52246a9a65172b721f",
   "generator": "sha256:50287c7a4f47dde9fdb7f9525f11a9abc7670820128eb2537e0c853fbc8cbd7f",
-  "permissions": "sha256:9d192100262a21130d9fcca9e9ff73dc8dfd77818658131177eb1a447ccb9508",
+  "permissions": "sha256:e1ae2c040d9ddf30007794f6d44822e8723995e362d6d1e08735558a201042c7",
   "population": null,
   "reference": "sha256:a507d1aaadf0a7d72d0eb645f4f30870219c0e92e077fd4ebed52013dcf2f9bc",
   "score": "sha256:7c9153b2af7170687aec1056bb3a1d19247109f22192f161ae158d5a3c6f6526"
