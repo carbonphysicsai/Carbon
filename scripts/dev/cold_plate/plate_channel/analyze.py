@@ -174,18 +174,30 @@ def at_time(case, t, geometry, props):
     peak_x, peak, _ = max(face, key=lambda item: item[1])
     extra = {}
     if "viscosity" in spec_of(case):
-        # Rung 6d: mu varies with T, so the constant-mu duct series no longer
-        # describes the developed gradient; report it, do not judge it. Also
-        # report how much of the fluid lies outside the fit's 30-50 C range.
+        # mu varies with T, so the constant-mu duct series no longer describes
+        # the developed gradient; report it, do not judge it. Also report how
+        # much of the fluid lies outside the case's OWN fitted range. A rung-6d
+        # case records no range and was fitted over 30-50 C.
         expected = None
-        fit_top = 273.15 + 50.0
+        lo_c, hi_c = spec_of(case)["viscosity"].get("fit_range_c", [30.0, 50.0])
+        fit_lo, fit_top = 273.15 + lo_c, 273.15 + hi_c
         volume = sum(fluid_w)
         extra = {
             "dp_dx_check": "NOT_APPLICABLE: viscosity varies with temperature",
+            "viscosity_fit_range_C": [lo_c, hi_c],
             "fluid_T_min_K": min(fluid_t),
             "fluid_T_max_K": max(fluid_t),
-            "fluid_volume_fraction_above_50C": sum(
+            "fluid_volume_fraction_above_fit": sum(
                 w for tt, w in zip(fluid_t, fluid_w) if tt > fit_top
+            )
+            / volume,
+            "fluid_volume_fraction_below_fit": sum(
+                w for tt, w in zip(fluid_t, fluid_w) if tt < fit_lo
+            )
+            / volume,
+            # A plain physical fact, kept for comparison with rung 6d.
+            "fluid_volume_fraction_above_50C": sum(
+                w for tt, w in zip(fluid_t, fluid_w) if tt > 273.15 + 50.0
             )
             / volume,
         }
