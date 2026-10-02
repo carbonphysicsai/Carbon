@@ -3,7 +3,8 @@ Roadmap's Phase 1 step 4 (CHALLENGE-PROTOCOL-04 slice 5).
 
     python -m carbon.agent_campaign.graphite.phase3 session --root DIR \
         --grant docs/development/graphite/grants/GRAPHITE-GRANT-STEP4.json \
-        --credential-env ENGY_API_KEY --configuration RUNNER.json --campaign NAME
+        --credential-file ~/.carbon/private/engy/api_key \
+        --configuration RUNNER.json --campaign NAME [--role attacker]
     python -m carbon.agent_campaign.graphite.phase3 session --root DIR --dry-run
     python -m carbon.agent_campaign.graphite.phase3 log --root DIR
 
@@ -281,7 +282,12 @@ def session(args, environ=None):
     environ = os.environ if environ is None else environ
     root = _root(args.root)
     if args.dry_run:
-        if args.grant or args.credential_env or args.configuration:
+        if (
+            args.grant
+            or args.credential_env
+            or args.credential_file
+            or args.configuration
+        ):
             raise RunnerRefused("dry_run_takes_no_grant_credential_or_campaign")
         root = root / "dry-run"
         root.mkdir(mode=0o700, exist_ok=True)
@@ -321,7 +327,14 @@ def session(args, environ=None):
         raise RunnerRefused("grant_configuration_and_campaign_required")
     grant = load_grant(args.grant)
     _bind_store(root, grant)
-    with credential_file(env=args.credential_env, environ=environ) as reference:
+    if args.credential_file:
+        key_file = Path(args.credential_file).expanduser()
+        if key_file.is_file() and key_file.stat().st_mode & 0o077:
+            raise RunnerRefused("credential_file_must_be_owner_only")
+        source = {"path": str(key_file)}
+    else:
+        source = {"env": args.credential_env}
+    with credential_file(**source, environ=environ) as reference:
         try:
             model = LiveModel(
                 grant=grant, credential_file=reference, provider="graphite"
@@ -364,6 +377,10 @@ def parser():
     one.add_argument("--root", required=True)
     one.add_argument("--grant")
     one.add_argument("--credential-env", default="ENGY_API_KEY")
+    one.add_argument(
+        "--credential-file",
+        help="an owner-only file holding the Engy key, used in place of the variable",
+    )
     one.add_argument("--configuration")
     one.add_argument("--campaign")
     one.add_argument("--key")

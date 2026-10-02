@@ -71,3 +71,29 @@ def test_a_live_session_is_refused_without_its_inputs(tmp_path):
             ["session", "--root", str(phase3.REPOSITORY / "tmp-step4"), "--dry-run"]
         )
     assert not (phase3.REPOSITORY / "tmp-step4").exists()
+
+
+def test_a_key_file_others_can_read_is_refused(tmp_path):
+    key = tmp_path / "api_key"
+    key.write_text("not-a-real-key")
+    key.chmod(0o644)
+    grant = (
+        phase3.REPOSITORY / "docs/development/graphite/grants/GRAPHITE-GRANT-STEP4.json"
+    )
+    args = phase3.parser().parse_args(
+        [
+            "session",
+            "--root",
+            str(tmp_path / "step4"),
+            "--grant",
+            str(grant),
+            "--credential-file",
+            str(key),
+            "--configuration",
+            str(tmp_path / "runner.json"),
+            "--campaign",
+            "c1",
+        ]
+    )
+    with pytest.raises(RunnerRefused):
+        phase3.session(args, environ={})
