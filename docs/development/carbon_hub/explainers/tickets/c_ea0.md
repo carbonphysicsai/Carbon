@@ -40,11 +40,11 @@ Specified and contract-tested evidence-capture semantics only; archive implement
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/3f64932084472afd6d1fa78e8542b76d46b1fb2f/.agent/tickets/C-EA0_evidence_capture_contract.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/09c4b9e5e3027a60bfd00cfd5f23918037e5550e/.agent/tickets/C-EA0_evidence_capture_contract.md)
 - [Program authority](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/3f64932084472afd6d1fa78e8542b76d46b1fb2f/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Machine-checkable contract cases](https://github.com/carbonphysicsai/Carbon/blob/3f64932084472afd6d1fa78e8542b76d46b1fb2f/Design_Specs/evidence_capture_contract_v1.json)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/3f64932084472afd6d1fa78e8542b76d46b1fb2f/.agent/evidence/wave_c/c-ea0.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/3f64932084472afd6d1fa78e8542b76d46b1fb2f/.agent/WAVE_C.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/09c4b9e5e3027a60bfd00cfd5f23918037e5550e/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Machine-checkable contract cases](https://github.com/carbonphysicsai/Carbon/blob/09c4b9e5e3027a60bfd00cfd5f23918037e5550e/Design_Specs/evidence_capture_contract_v1.json)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/09c4b9e5e3027a60bfd00cfd5f23918037e5550e/.agent/evidence/wave_c/c-ea0.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/09c4b9e5e3027a60bfd00cfd5f23918037e5550e/.agent/WAVE_C.md)
 
 > C-EA0 reserves unsupported durability, required-artifact, retention, legal/IP, custody/key, deployment, capacity, recovery and security decisions as HUMAN_INPUT rather than inventing defaults.
