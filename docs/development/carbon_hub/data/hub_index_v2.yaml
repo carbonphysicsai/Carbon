@@ -10634,6 +10634,18 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T04:40:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-PHOTONIC-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Under OWNER-CHALLENGE-DESIGN-01, the photonic coupler (#345) is repaired and becomes a DEVELOPMENT test Challenge. The campaign's relative-phase flips were a mode-sign ambiguity: with each port's mode normalized and signed by construction, a mirror-symmetric pair's supermode phases cancel and arg(S41/S31) = -pi/2 exactly. The reference is declared as a local-supermode model, never relabelled as the planned 3D FDTD: Carbon's own full-vector FDFD mode solver (exact on slabs, the 500 x 220 nm strip at 2.4496) tabulates the even and odd supermodes on a 41-gap ladder at 10 nm, committed and pinned by hash to the sources that built them, and a case's cross power and unwrapped common phase follow by integration in about 0.1 s. Builds are bitwise reproducible. The 12-case pilot ran 12 of 12 OK; refinement to 5 nm moves the phase difference 0.25 % and the common phase 0.024 rad, against closed-form (effective index) errors of 1.1 to 1.7 in the unit-free S-parameter score. Public TRAIN (1,000) and PRACTICE (200) pools and a 500-case private pool under an operator-held root are generated; every gate holds on all 1,700 references; on the private pool the closed-form baseline scores 1.446 and a learned Chebyshev ridge 5.8e-4. Agreement with the campaign's FDTD is supported at the 5 to 10 % level only, and for this symmetric family the reference is the conventional design method, so it is a phase-aware test Challenge, not a demonstration of engineering value. Readiness record v4 waits in CHALLENGE-READINESS-RELAY-01. Every value is a provisional DEVELOPMENT value; the registry entry stays RESERVED until the miner path (CHALLENGE-PHOTONIC-02); no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T07:40:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
