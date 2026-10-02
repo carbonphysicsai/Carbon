@@ -1,12 +1,13 @@
-"""Graphite: Carbon's in-house research and testing agent (GRAPHITE-01, phase 1).
+"""Graphite: Carbon's in-house research and testing agent (GRAPHITE-01).
 
 OWNER-GRAPHITE-01 (2026-10-02). Internal development tooling under
 OWNER-CHALLENGE-ADMISSION-01: never mainnet, never shown to miners, not a
 qualification gate, no evaluator authority. **Graphite proposes; Carbon's
 verifier decides.**
 
-Phase 1 is the harness only. Nothing here sends a live inference request,
-reads an API key or spends money; the tests drive it with a scripted model.
+Phase 1 is the harness; phase 2 adds the literature layer. Nothing is sent to
+a live model, and nothing is spent, without an owner spending grant; the tests
+drive everything with a scripted model.
 
 - `roles`: the six roles (Planner, Constructor, Attacker, Optimizer
   researcher, Reader, Writer), each a frozen record with its prompt (by
@@ -21,6 +22,10 @@ reads an API key or spends money; the tests drive it with a scripted model.
   refusal; nothing a tool returns changes a role, tool, budget or authority.
 - `model`: the injected model access. `ScriptedModel` replays a script;
   `LiveModel` refuses to exist without an owner spending grant.
+- `literature_fetch`, `method_cards`, `triage`, `phase2` (phase 2): the arXiv
+  fetch for a registered query set, the Reader's method-card extraction
+  under a grant, human checks, deterministic snapshots that `literature`
+  serves, and the runner (`python -m carbon.agent_campaign.graphite.phase2`).
 - `provider`: `GraphiteProvider`, a second provider behind the #475 campaign
   controller. It drives the existing research loop
   (`carbon.development_session.research_loop`) with metering, replay and
