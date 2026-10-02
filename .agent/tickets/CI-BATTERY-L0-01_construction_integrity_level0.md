@@ -12,7 +12,13 @@ protocol: not mainnet, not a qualification gate, not a security audit.
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** claimed and in progress (2026-10-02).
+**Status:** slice 2 implemented (engineering evidence only, 2026-10-02):
+`carbon/battery/track_a.py`, with tests in `tests/cpu/test_battery_track_a.py`
+and evidence in `docs/development/evidence/track-a-battery-l0-2026-10-02/`.
+Slice 3 (battery-specific worker attacks against the pinned image) is open.
+The pinned C-03 worker image cannot be built in the cloud container, because
+TLS interception breaks the image build's downloads; that slice runs in the
+CI service lane.
 
 ## Claim check (2026-10-02)
 
@@ -86,6 +92,10 @@ is not touched.
 1. Claim, ticket and lane notices (this commit).
 2. The attack catalogue and detectors, with a specimen and a control for each
    family, as unit tests.
-3. Runs through the real isolated worker image in Docker; an attempt ledger.
-4. Coverage report, findings emitted in the admission ledger's form, docs,
-   Hub event, PR.
+3. Battery-specific runs against the pinned worker image in the C-03 service
+   lane (CI). Two attacks:
+   - a canary scan of every staged and exported byte;
+   - surface-edge recipes against the worker envelope.
+   Until then, isolation is reused evidence, mapped in `track_a.COVERAGE`.
+4. The coverage report, findings, docs, Hub event and PR, delivered with
+   slice 2.
