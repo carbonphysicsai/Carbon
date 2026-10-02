@@ -99,3 +99,22 @@ is not touched.
    Until then, isolation is reused evidence, mapped in `track_a.COVERAGE`.
 4. The coverage report, findings, docs, Hub event and PR, delivered with
    slice 2.
+
+## Update 2026-10-02: owner values, the combined test and SR-1
+
+- **OWNER-TRACK-A-L0-02.** The owner approved the threat model, the USD 25
+  attack budget, the confirmation population, the reconstruction tolerances
+  and the review roles. They are frozen in
+  `docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json`.
+  Track A at Level 0 is INCONCLUSIVE until the scoring rule stops ranking the
+  boundary optimist at or above real models: route (a).
+- **OWNER-ADMISSION-COMBINED-01.** Construction, attack and value run as one
+  admission test per rung, with three separate verdicts. This harness is its
+  attack side. GRAPHITE's Constructor and Attacker, the design optimizer
+  (Mode X for attack, Mode D for value) and score tuning all run inside it.
+- **SR-1** (`docs/development/BATTERY_SCORING_RATIOS_SR1.md`, results in
+  `docs/development/evidence/sr1-2026-10-02/`) ended NO_PROMOTION.
+  - 27 of 66 ratios catch the optimist without hurting real-model ranking.
+  - No ratio of the three existing legs reduces the real-model divergence,
+    which stays at 7 conditions on EV4 verification. The next scoring
+    candidate needs new information, such as margin-aware decision error.

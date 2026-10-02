@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T21:18:24Z"
+  captured_at_utc: "2026-10-02T22:40:23Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "19246e44100827d2c678a3945cec6da2c662f534"
+  authority_snapshot_commit: "5799895d1147a8df8ecefeae98c7eae22fa60ebc"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10783,6 +10783,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T19:51:46Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-ADMISSION-COMBINED-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-TRACK-A-L0-02 and OWNER-ADMISSION-COMBINED-01 (2026-10-02). The owner approved battery Track A's Level 0 values (threat model, USD 25 attack budget, 120+4 confirmation batch, reconstruction tolerances, review roles), frozen in a study sheet. The Level 0 lock waits on a scoring rule that stops ranking the boundary-optimist control at or above real models (route a), so the state is INCONCLUSIVE. Construction, attack and value now run as one admission test per ladder rung: one sheet, one panel (legitimate and attack constructions together), one confirmation set and one ledger. Score tuning, GRAPHITE and the design optimizer (Mode X attack, Mode D value) run inside it, with three separate verdicts that never compensate. SR-1, pre-registered before computing, tested 66 weighted-geometric ratios of accuracy, important-region robustness and decision agreement offline on EV2 and EV4. Outcome NO_PROMOTION: 27 ratios catch the optimist; the chosen sr-a0.5-r0.1-g0.4 ranks real models no worse (EV4 verification tau 0.412 vs 0.403, delta UNRESOLVED) but leaves real-model score-value divergence unchanged (7 vs 7). The next candidate needs new information. No testnet rule changed; not a qualification."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR1.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:10:05Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
