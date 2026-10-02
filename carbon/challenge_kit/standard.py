@@ -213,18 +213,19 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "with miner-held keys is the ticket's acceptance and needs the "
             "miner's keys.",
         ),
-        "agent": Gap(
-            reason=(
-                "Setup offers only Carbon's own autonomous agent. Hermes, the "
-                "other agent OWNER-MINER-ENVIRONMENT-01 names, is not "
-                "connectable in setup."
+        "agent": Provided(
+            (
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
             ),
-            next_step=(
-                "C-MLP-03 slice 5: connect Hermes to the Challenge's research "
-                "tools through carbon-mcp. Closing this does not wait on Mira, "
-                "which the decision adds only once verified (which Mira is "
-                "open owner input)."
-            ),
+            "Setup offers Carbon's autonomous agent or Hermes Agent (Nous "
+            "Research) on the miner's machine: with consent to the exact files, "
+            "setup writes a Hermes profile with the inference choice as its "
+            "model and Carbon's MCP server over stdio, each changing tool "
+            "asking first (C-MLP-03 slice 5). A Hermes-driven battery campaign "
+            "is the acceptance and needs Hermes and the miner's keys. Mira "
+            "(autoscience.ai) publishes no tool connection, so it is not "
+            "offered.",
         ),
     },
 }

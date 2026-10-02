@@ -350,7 +350,6 @@ def _default_onboarding():
 #: `unavailable` and the Control Center's per-category unavailable entries, so
 #: a reason cannot be corrected in one place and left stale in the other.
 INTEGRATIONS = (
-    {"id": "hermes", "reason": "adapter_not_implemented"},
     {
         # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
         # miner and a planner act on: a wrong one sends someone to build
@@ -399,6 +398,12 @@ INTEGRATIONS = (
         "id": "personal-agent",
         "reason": "remote_door_not_hosted",
     },
+    # Hermes is configured in setup (C-MLP-03 slice 5) and left this list.
+    # Mira is autoscience.ai/mira (owner, 2026-10-01). Read 2026-10-02: access
+    # is a sales form, and nothing public says how Mira connects to tools,
+    # whether over MCP or to a server on the miner's machine. A network door
+    # into a miner's machine would be an owner decision; until Autoscience
+    # documents a route, the interface stays unverified.
     {"id": "mira", "reason": "integration_interface_unverified"},
     # RunPod and Lium launch from setup on the miner's own account
     # (C-MLP-03 slice 4). Targon's current API (read 2026-10-02) runs no
@@ -428,15 +433,17 @@ INTEGRATIONS = (
 
 #: Where each integration is shown in the Control Center, and what to do now.
 INTEGRATION_PLACEMENT = {
-    "hermes": (
-        "agent",
-        "Use Carbon's agent, research manually, or bring your own agent over MCP stdio.",
-    ),
     "personal-agent": (
         "agent",
         "Connect your own MCP client over stdio; it needs no Carbon credential.",
     ),
-    "mira": ("connection", "None today; the interface has not been verified."),
+    "mira": (
+        "connection",
+        (
+            "None today: Mira publishes no way to connect to tools on your "
+            "machine. Use Hermes or Carbon's agent under Set up your environment."
+        ),
+    ),
     "targon": (
         "compute_provider",
         (
@@ -637,9 +644,7 @@ class Handler(BaseHTTPRequestHandler):
                 setup = self.server.setup
                 if setup is None:
                     raise Rejected("setup_unavailable", 409)
-                from scripts.dev.miner_launchpad.environment_setup import choices
-
-                self.reply(200, {**setup.state(), "choices": choices()})
+                self.reply(200, {**setup.state(), "choices": setup.offered()})
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})

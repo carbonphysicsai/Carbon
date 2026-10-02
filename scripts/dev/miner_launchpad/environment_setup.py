@@ -49,6 +49,7 @@ from carbon.compute.providers import PROVIDERS
 from carbon.development_session.battery_gpu import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
+from scripts.dev.miner_launchpad.hermes_setup import START
 
 SETUP_SCHEMA = "carbon.launchpad.environment-setup.v1"
 STEPS = ("inference", "compute", "agent", "review")
@@ -81,9 +82,12 @@ PUSH_STEP = (
 #: The host device record setup installs names this machine and provider.
 GPU_RECORD_ID = "this-machine"
 GPU_PROVIDER = "own-machine"
-#: The only agent this slice can launch: Carbon's autonomous battery agent,
-#: running in this controller's process on this machine.
+#: Carbon's autonomous battery agent, running in this controller's process
+#: on this machine.
 AUTONOMOUS = "carbon-autonomous"
+#: Hermes Agent on the miner's machine, driving Carbon's MCP server over stdio
+#: (C-MLP-03 slice 5).
+HERMES = "hermes"
 
 #: The order inference choices are offered in; the first is the default
 #: (Engy's Chat Completions route, C-MLP-03 slice 2).
@@ -406,12 +410,29 @@ def choices() -> dict:
                     "holds and checks it is the registered one. Carbon never "
                     "sees your key or password. No network, no cost."
                 ),
-            }
+            },
+            {
+                "id": HERMES,
+                "display_name": "Hermes Agent (Nous Research), on this machine",
+                "cost_basis": (
+                    "Runs on this machine with your inference choice as its "
+                    "model, billed by your provider. Carbon bills nothing."
+                ),
+                "live_check": (
+                    "Finds your installed Hermes and its version, checks your "
+                    "signer as above, then, with your consent to the exact "
+                    "files, writes a Hermes profile named carbon: your model "
+                    "and Carbon's research tools over MCP stdio, each tool "
+                    "that can change anything asking you first. No network, "
+                    "no cost."
+                ),
+                "needs_consent_to_write": True,
+                "start": START,
+            },
         ],
         "not_yet_offered": (
-            "Rented GPUs, your own GPU, other inference providers and other "
-            "agents arrive in later C-MLP-03 slices; the research environment "
-            "standard names each as a Gap until then."
+            "Mira (autoscience.ai) publishes no way to connect it to tools "
+            "on your machine; the research environment standard names it."
         ),
     }
 
@@ -423,9 +444,13 @@ class LiveChecks:
     provider. Each check returns public facts only, never a key or a path.
     """
 
-    def __init__(self, *, opener=None, repo: Path = REPO, host_root=None):
+    def __init__(
+        self, *, opener=None, repo: Path = REPO, host_root=None, hermes_home=None
+    ):
         self.opener = opener
         self.repo = repo
+        # Where Hermes keeps its profiles (`HERMES_HOME` or ~/.hermes).
+        self.hermes_home = hermes_home
         # Where the host device record lives (`HOST_ROOT` unless a test names
         # another directory).
         self.host_root = host_root
@@ -772,6 +797,33 @@ class LiveChecks:
             "stock": offer.stock_status,
         }
 
+    def hermes_files(self) -> list[str]:
+        """The exact files a Hermes choice writes, for the miner's consent."""
+        from scripts.dev.miner_launchpad.hermes_setup import (
+            hermes_home,
+            profile_files,
+        )
+
+        return [str(p) for p in profile_files(self.hermes_home or hermes_home())]
+
+    def hermes(self, document: dict, key: str) -> dict:
+        """Find Hermes, then write the consented profile files."""
+        from scripts.dev.miner_launchpad import hermes_setup
+
+        binary = hermes_setup.find_hermes()
+        version = None if binary is None else hermes_setup.hermes_version(binary)
+        if version is None:
+            raise SetupRefused(
+                "hermes", "hermes_not_installed", next_step=hermes_setup.INSTALL_STEP
+            )
+        written = hermes_setup.write_profile(
+            self.hermes_home or hermes_setup.hermes_home(),
+            document,
+            key,
+            write_private,
+        )
+        return {"hermes": version, "written": written}
+
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
         from carbon.chain.external_signer import SignerFailure, connect_signer
 
@@ -1049,12 +1101,55 @@ class EnvironmentSetup:
                 )
             return self._step("compute", {**step, "runtime": runtime, "check": check})
 
+    def offered(self) -> dict:
+        """What each step offers, with the exact files a Hermes choice writes."""
+        value = choices()
+        for choice in value["agent"]:
+            if choice["id"] == HERMES:
+                choice["writes"] = self.checks.hermes_files()
+        return value
+
+    def _hermes_document(self, value):
+        """The Hermes profile for this setup's inference choice, or a refusal.
+
+        The miner's consent must name exactly the files it writes.
+        """
+        from scripts.dev.miner_launchpad import hermes_setup
+
+        consent = value.get("consent")
+        if (
+            type(consent) is not dict
+            or consent.get("writes") != self.checks.hermes_files()
+        ):
+            raise SetupRefused("consent", "consent_must_name_the_files")
+        inference = self._record().get("inference")
+        if inference is None:
+            raise SetupRefused("inference", "step_not_checked")
+        try:
+            base_url = hermes_setup.model_base_url(
+                inference["provider_id"], inference.get("endpoint")
+            )
+        except hermes_setup.HermesUnavailable as refused:
+            raise SetupRefused(
+                refused.field, refused.code, next_step=refused.next_step
+            ) from None
+        document = hermes_setup.config_document(
+            model_id=inference["model_id"],
+            base_url=base_url,
+            runner_profile=self.profile_path,
+            repo=REPO,
+        )
+        key = (self.root / "keys" / (inference["provider_id"] + ".key")).read_text()
+        return document, key
+
     def agent(self, value) -> dict:
         from carbon.chain.models import CARBON_NETUID
 
-        _closed(value, {"choice", "operator_config"}, {"signer_socket"})
-        if value["choice"] != AUTONOMOUS:
+        _closed(value, {"choice", "operator_config"}, {"signer_socket", "consent"})
+        if value["choice"] not in (AUTONOMOUS, HERMES):
             raise SetupRefused("choice", "agent_not_offered")
+        if value["choice"] == AUTONOMOUS and "consent" in value:
+            raise SetupRefused("consent", "nothing_to_consent_to")
         operator = _absolute(value["operator_config"], "operator_config")
         self.checks.operator_config(operator)
         socket_path = (
@@ -1066,7 +1161,18 @@ class EnvironmentSetup:
             record = self._record()
             if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
+            hermes = self._hermes_document(value) if value["choice"] == HERMES else None
             check = self.checks.agent(record["hotkey"], socket_path)
+            if hermes is not None:
+                # Written only after the signer answered, so a refused setup
+                # leaves the miner's Hermes untouched.
+                check = {
+                    **check,
+                    **self.checks.hermes(*hermes),
+                    "profile": "carbon",
+                    "start": START,
+                    "tools_ask_first": True,
+                }
             # A password stored by an earlier version of this page is no
             # longer needed by anything: remove it rather than keep a secret.
             (self.root / "miner-password").unlink(missing_ok=True)
@@ -1079,7 +1185,7 @@ class EnvironmentSetup:
                 paths["signer_socket"] = str(socket_path)
             return self._step(
                 "agent",
-                {"choice": AUTONOMOUS, "paths": paths, "check": check},
+                {"choice": value["choice"], "paths": paths, "check": check},
             )
 
     def profile(self) -> dict:

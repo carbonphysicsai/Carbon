@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T05:07:27Z"
+  captured_at_utc: "2026-10-02T05:08:11Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "b752cb6c92112c261aa829b71dc0fae7c4351f10"
+  authority_snapshot_commit: "1d6c0d8d4e5cc3e8b2daa9e43ca7d11eec7571d1"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10596,6 +10596,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T02:28:50Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-5-AGENTS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 5: Hermes Agent (Nous Research) is configured in setup, on the miner's machine, with their consent. Setup writes a dedicated Hermes profile, carbon, so the miner's own Hermes configuration is never touched. The profile uses the setup's inference choice as a custom OpenAI-compatible model, with the key only in the profile's owner-only .env. It has one mcp_servers stdio entry running Carbon's MCP server with the miner's runner profile, marked trust: untrusted so Hermes asks before every tool that can change anything. Nothing is written unless the request's consent names exactly those files, and nothing is written when the signer check fails. Hermes leaves the unavailable list, and battery's agent provision is Provided. Mira (autoscience.ai/mira) documents no tool connection, so it is recorded and stopped, as the ticket directs. A Hermes-driven battery campaign is the acceptance. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T02:46:38Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

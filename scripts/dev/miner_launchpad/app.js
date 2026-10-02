@@ -554,15 +554,41 @@
 
     const agent = setupStep(body, "agent", "3. Agent", steps.agent);
     const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
-    costNote(agent, offered.agent[0]);
+    const agentCost = el("div"); agent.append(agentCost);
     researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
     const operator = setupField(agent, "operator_config", "Testnet operator config (absolute path)");
     const socket = setupField(agent, "signer_socket", "Signer socket (optional; leave empty for the default)");
+    // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
+    // without their consent to the exact files, unticked by default.
+    const hermesBox = el("div"); agent.append(hermesBox);
+    const hermesAgree = document.createElement("input");
+    hermesAgree.type = "checkbox"; hermesAgree.id = "setup-agent-hermes-consent"; hermesAgree.checked = false;
+    const hermesLabel = el("label"); hermesLabel.htmlFor = hermesAgree.id;
+    const hermesRow = el("div", undefined, "consent"); hermesRow.append(hermesAgree, hermesLabel);
+    hermesBox.append(hermesRow);
+    const describeAgent = () => {
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      agentCost.replaceChildren();
+      costNote(agentCost, choice);
+      hermesBox.hidden = !choice?.needs_consent_to_write;
+      hermesAgree.checked = false;
+      if (choice?.needs_consent_to_write) {
+        hermesLabel.textContent = "Write my Hermes profile: " + (choice.writes || []).join(", ") + ". Then start it with: " + choice.start;
+      }
+    };
+    agentChoice.addEventListener("change", describeAgent);
+    if (steps.agent?.checked && steps.agent.choice) agentChoice.value = steps.agent.choice;
+    describeAgent();
     agent.append(el("button", "Check my signer"));
     agent.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: agentChoice.value, operator_config: operator.value.trim()};
       if (socket.value.trim()) request.signer_socket = socket.value.trim();
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      if (choice?.needs_consent_to_write) {
+        if (!hermesAgree.checked) { $("setup-result").replaceChildren(setupLine("consent: tick to agree to the files your Hermes profile needs.")); return; }
+        request.consent = {writes: choice.writes};
+      }
       await setupCall("agent", request);
     });
 

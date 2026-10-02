@@ -286,7 +286,7 @@ def test_capabilities_do_not_claim_external_execution():
     assert data["mode"] == "REHEARSAL"
     assert {entry["id"] for entry in data["unavailable"]} >= {
         "targon",
-        "hermes",
+        "mira",
         "testnet-registration",
     }
 
