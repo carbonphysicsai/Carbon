@@ -21,8 +21,8 @@ from scripts.dev.miner_launchpad import controller
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: Where a launch is decided and dispatched. Wiring RunPod into a launch means
-#: one of these reaching `carbon.compute`.
+#: Where a launch is decided and dispatched. Wiring a compute provider into a
+#: launch means one of these reaching it.
 LAUNCH_PATH = (
     ROOT / "scripts/dev/miner_launchpad",
     ROOT / "carbon/development_session",
@@ -50,32 +50,29 @@ def _importers(pattern, *roots):
     ]
 
 
-COMPUTE_IMPORT = r"^\s*(from carbon\.compute\b|import carbon\.compute\b)"
+#: The provider-API modules OWNER-MINER-COMPUTE-LINK-ONLY-01 removed.
+PROVIDER_IMPORT = (
+    r"^\s*(from|import) carbon\.compute\.(runpod|lium|targon|providers?|service"
+    r"|store|accounting|reconcile|rented_runner)\b"
+)
 
 
-def test_runpod_and_lium_launch_from_setup_and_left_the_list():
-    # C-MLP-03 slice 4 wired both into launch: battery practice runs on a
-    # rented GPU through `carbon.compute.rented_runner`, on the miner's own
-    # account. Their unavailable entries are gone.
-    from carbon.compute.providers import PROVIDERS
-
-    assert {"runpod", "lium"} <= set(PROVIDERS)
-    listed = {item["id"] for item in controller.INTEGRATIONS}
-    assert not {"runpod", "lium"} & listed
-    # The cause is gone too: the launch path now reaches the compute layer.
-    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) != []
-
-
-def test_targon_launches_from_setup_as_a_vm_and_left_the_list():
-    # C-MLP-03 slice 4b (OWNER-C-MLP-03-ANSWERS-01): Targon runs no container
-    # image, so its adapter rents a VM and runs the pinned worker in it over
-    # SSH. The unavailable entry that said so is gone, and so is its cause.
-    from carbon.compute.providers import PROVIDERS, VM_PROVIDERS
-
+def test_no_rented_compute_provider_is_listed_or_reachable():
+    # OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute. RunPod, Lium
+    # and Targon are not unavailable integrations to be built: a miner runs
+    # their own machine on any provider. The cause holds in code: no provider
+    # adapter exists and nothing on the launch path reaches one.
     names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
-    assert {"lium", "targon"} <= names
-    assert "targon" in PROVIDERS and "targon" in VM_PROVIDERS
-    assert "targon" not in {item["id"] for item in controller.INTEGRATIONS}
+    assert not {"runpod", "lium", "targon", "providers", "rented_runner"} & names
+    # Specimen: the same listing finds the module that is still there.
+    assert "job_server" in names
+    listed = {item["id"] for item in controller.INTEGRATIONS}
+    assert not {"runpod", "lium", "targon"} & listed
+    assert _importers(PROVIDER_IMPORT, *LAUNCH_PATH, ROOT / "carbon") == []
+    # Specimen: the pattern finds such an import where one is written.
+    assert re.search(
+        PROVIDER_IMPORT, "x = 1\nfrom carbon.compute.runpod import A\n", re.MULTILINE
+    )
 
 
 def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():

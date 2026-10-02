@@ -17399,3 +17399,76 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
 - Engineering evidence is not a security audit. The record is the owner's
   acceptance; tests only hold the gate.
 - Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon connects to the miner's own machine and rents no compute
+
+**Owner, verbatim, in session on 2026-10-02:** "Why do we care about rented
+resources for submissions? ... Don't we just wire them to pods to create
+themselves? Should we be creating them?? I think we just linked them to it."
+Then, on the proposal to retire the rented route: "Yes and you take it on."
+
+**Decision.** Carbon never creates, stops, terminates, bills or reads the
+balance of rented compute with the miner's provider key. A miner rents and
+stops their own machines; Carbon only connects to a machine the miner already
+runs.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **LINKONLY-D1, scope.** The miner-facing path only: the Launchpad, the
+  Control Center, battery practice, the miner MCP door and the research
+  environment standard. Operator scripts on the operator's own RunPod account
+  (`scripts/dev/challenge_pools/pod_phase.py`,
+  `scripts/dev/exam_design/runpod/`) are outside this decision and unchanged.
+- **LINKONLY-D2, old inputs fail closed** with
+  `rented_gpu_retired_connect_your_machine`, following
+  `miner_password_file_retired_start_signer`:
+  - a runner profile naming `compute_credential`, or whose runtime declares
+    `rented_gpu`, is refused (409) before its closed-set checks;
+  - a setup request choosing `rented-gpu` is refused on the field `choice`,
+    and a compute step an earlier page checked for one is refused at review;
+  - a frozen campaign declaring `rented_gpu` raises `RentedComputeRetired` at
+    both campaign doors, before any network or SSH call.
+
+  The next step says: start and stop your machine yourself; check your
+  provider console for leftover `carbon-…` pods, VMs or SSH keys; revoke the
+  key you gave Carbon. A rented scope is never translated into anything else.
+- **LINKONLY-D3, Carbon's copy of the key is deleted.** The next time the
+  miner runs compute setup, Carbon deletes its stored copy of a rented-GPU
+  provider key (`keys/*.compute-key`), as setup already deletes a stored
+  hotkey password, and tells the miner to revoke the key at the provider.
+- **LINKONLY-D4, the remote route.** The miner's own GPU machine, reached
+  over SSH, with Docker and the NVIDIA Container Toolkit. The worker image is
+  streamed (`docker save <image id> | ssh <machine> docker load`) and checked
+  by image ID. Carbon runs one job container per trial and removes it; it
+  never starts or stops the machine. The miner's own SSH agent, configuration
+  and known hosts decide how the machine is reached, and their key never
+  leaves their machine. Container-only rentals (for example RunPod pods, which
+  have no Docker daemon) are not supported; whether to support them is an
+  owner question.
+
+**Removed.** The provider-API layer under `carbon/compute/`: the RunPod, Lium
+and Targon adapters, the provisioning service and its store, accounting,
+admission, the reconciler and its CLI, and `rented_runner.py`. Also setup's
+rented-GPU choice and its live balance and price check, the battery
+`rented_gpu` scope, and the rented hooks in the Challenge campaign and both
+campaign doors. Kept: `carbon.compute.job_server` (the worker's start
+command) and `carbon.compute.remote_job`.
+
+**Supersedes.**
+- OWNER-MINER-ENVIRONMENT-01 §2 ("The named integrations"), its compute item:
+  "Lium and Targon, with RunPod under the miner's own key". The miner's own
+  GPU stays.
+- OWNER-C-MLP-03-ANSWERS-01 §2 ("Targon"): the Targon VM rented on the
+  miner's own account, with its ceilings, verified teardown and charge
+  reconciliation.
+
+**Unchanged.**
+- Practice on any GPU is speed only and never evidence; the exam is
+  unchanged.
+- No key reaches Carbon.
+- OWNER-MINER-OWN-MACHINE-01: the miner's own machine is the default and its
+  sandbox is kept. Remote compute stays opt-in and the miner's own.
+- Testnet 567; DEVELOPMENT; nothing is qualified.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
+retired; the remote-machine route replaces them).

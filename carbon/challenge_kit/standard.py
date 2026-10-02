@@ -59,7 +59,7 @@ PROVISIONS = {
     # after registration. Carbon facilitates; the miner's own accounts, keys
     # and machines provide these, and nothing is hosted by Carbon.
     "compute": (
-        "A GPU research path on the miner's own or rented hardware, set up "
+        "A GPU research path on hardware the miner runs themselves, set up "
         "from the Control Center after registration."
     ),
     "model": (
@@ -184,7 +184,6 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             (
                 "carbon.development_session.battery_gpu:gpu_scope",
                 "carbon.battery.research:BatteryPractice",
-                "carbon.compute.rented_runner:RentedRunner",
             ),
             "Setup (Set up your environment, Compute) offers this machine's "
             "CPU, every miner's default, or its own GPU: setup detects the GPU, "
@@ -194,11 +193,10 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "records the backend observed. GPU practice is for speed only; the "
             "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
             "A real practice on a local GPU is the slice's acceptance and needs "
-            "a GPU host. A GPU rented on the miner's own RunPod or Lium "
-            "account runs the same practice (carbon.compute.rented_runner, "
-            "C-MLP-03 slice 4), and so does a Targon VM, reached over SSH with "
-            "the pinned worker run there by Docker (slice 4b); one real "
-            "practice on each is its acceptance and needs the miner's account.",
+            "a GPU host. Carbon rents no compute "
+            "(OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU route of slices "
+            "4 and 4b is retired, and a GPU machine the miner runs elsewhere "
+            "is connected over SSH once setup offers it.",
         ),
         "model": Provided(
             (

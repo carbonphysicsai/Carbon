@@ -16,15 +16,20 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slices 1 to 5 implemented, and slice 6's engineering seam
-(engineering evidence only), Targon and Mira excepted (below). Slice 6's run
-itself is a person's, on a clean machine
+**Status:** slices 1 to 3 and 5 implemented, and slice 6's engineering seam
+(engineering evidence only), Mira excepted (below). Slices 4 and 4b (a GPU
+rented with the miner's provider key on RunPod, Lium or Targon) were built and
+are **retired** by OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon rents
+no compute, and old profiles, setup requests and frozen campaigns are refused
+with `rented_gpu_retired_connect_your_machine`. Slice 4 is now the miner's own
+remote GPU machine, connected over SSH (LINKONLY-D4); it is not built yet.
+Slice 6's run itself is a person's, on a clean machine
 (`docs/development/FRESH_MINER_JOURNEY.md`). Slice 2's live acceptance (completions with miner-held
 Chutes and Engy keys, and a battery autonomous launch with each) is pending
 the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
 same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
-real battery practice each on RunPod and Lium from a miner account, teardown
-verified and charges reconciled) is pending the miner's accounts. Slice 5's
+real battery practice on a GPU machine the miner runs, with its job container
+removed) is pending its setup wiring and a miner's machine. Slice 5's
 (a Hermes-driven battery campaign that practices, freezes and submits) is
 pending Hermes and the miner's keys.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
@@ -140,7 +145,14 @@ pending Hermes and the miner's keys.
     and `carbon.battery` holds protected material (exam pools, seeds, truth).
     So battery's GPU practice code lives in `carbon.development_session`,
     beside Burgers' GPU lane, and the boundary is not widened.
-- **Slice 4 (rented GPUs):** `carbon/compute/job_server.py` (the one-job
+- **Retired 2026-10-02 (OWNER-MINER-COMPUTE-LINK-ONLY-01):** slices 4 and 4b
+  below are kept as the record of what was built. Their provider-API modules,
+  setup choice, battery `rented_gpu` scope and campaign hooks were removed;
+  `job_server.py` and `remote_job.py` stay for the remote-machine route. What
+  a miner may still hold from them is refused by name
+  (`carbon/compute/retired.py`, `tests/cpu/test_rented_compute_retired.py`),
+  and setup deletes Carbon's stored copy of the provider key.
+- **Slice 4 (rented GPUs, retired):** `carbon/compute/job_server.py` (the one-job
   server a rented pod runs), `remote_job.py` (its client),
   `rented_runner.py` (the carrier-compatible runner over `ComputeService`),
   `lium.py` (Lium adapter), `providers.py`, the RunPod adapter fixes, the
@@ -182,7 +194,7 @@ pending Hermes and the miner's keys.
     OCI image), and it reports no per-workload charge. The owner chose the
     VM-and-SSH route on 2026-10-02 (OWNER-C-MLP-03-ANSWERS-01); slice 4b
     builds it.
-- **Slice 4b (Targon, a VM over SSH):** `carbon/compute/targon.py`, the
+- **Slice 4b (Targon, a VM over SSH, retired):** `carbon/compute/targon.py`, the
   `targon` provider with `vm_image` in the rented choice, and setup's VM
   image field and check; `tests/cpu/test_targon_adapter.py`, the rented
   runner and setup tests, and the setup browser smoke cover it.
@@ -355,7 +367,8 @@ journey from a different machine.
 - **Every connection is checked live.** The checks use the miner's key and
   run at their cost, and setup says so first.
   - Inference: list the models and run one short completion.
-  - Compute: read the balance and the inventory.
+  - Compute: verify the worker images and, for a GPU, the device. No
+    provider balance or inventory is read (OWNER-MINER-COMPUTE-LINK-ONLY-01).
   - Agent: complete a handshake.
 - **Refusals name the field** they are about (#419).
 
@@ -395,18 +408,27 @@ journey from a different machine.
 - **Acceptance:** a real battery practice on a local GPU with the backend
   recorded, and the same recipe accepted by the validator.
 
-### 4. Rented GPU: Lium, Targon and RunPod on the miner's account
+### 4. Remote GPU: the miner's own machine, connected over SSH
 
-- **`ComputeProvider` adapters** for Lium and Targon; RunPod wired the same
-  way.
-- **`ComputeService` wired into launch**, with a durable intent, the pinned
-  worker, and verified teardown.
+OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02) replaced this slice's first
+form, a GPU rented on Lium, Targon or RunPod with the miner's provider key.
+Carbon rents no compute: the miner starts and stops their own machine, on any
+provider, and Carbon only connects to it.
+
+- **The miner's own GPU machine over SSH,** with Docker and the NVIDIA
+  Container Toolkit (LINKONLY-D4). The miner's own SSH agent, configuration
+  and known hosts reach it; no key of theirs reaches Carbon or the machine.
+- **The pinned worker is streamed and checked by image ID.** Each trial runs
+  one job container from it and removes that container; Carbon never starts,
+  stops or bills the machine.
 - **Keep the trust boundary.**
   - The controller, keys and signing stay on the miner's machine.
-  - A rented box receives the pinned worker and one job's public inputs only.
-- **Spend stays the miner's.**
-- **Acceptance:** one real battery practice each on Lium, Targon and RunPod
-  from a miner account, with teardown verified and charges reconciled.
+  - A remote machine receives the pinned worker and one job's public inputs
+    only.
+- **Container-only rentals** (for example RunPod pods, with no Docker daemon)
+  are not supported; that is an owner question.
+- **Acceptance:** one real battery practice on a GPU machine the miner runs,
+  with its job container removed.
 
 ### 5. Agents: Hermes and Mira
 
@@ -424,8 +446,10 @@ journey from a different machine.
 ### 6. The fresh-miner journey
 
 On a clean machine: register, set up, launch battery, practice on GPU, freeze
-and submit, then verify teardown and cost. This confirms, from a different
-machine, the three provisions slices 2 to 5 closed; it closes no Gap itself.
+and submit. Carbon rents nothing, so there is no Carbon-made resource to tear
+down or charge to reconcile; a remote machine is the miner's to stop. This
+confirms, from a different machine, the three provisions slices 2 to 5
+closed; it closes no Gap itself.
 
 **Dependency.** A submission from a machine other than the validator's host
 needs the battery intake (OD-7(b)) merged and exposed under its own record.
@@ -445,7 +469,12 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 - **Targon:** answered 2026-10-02 (OWNER-C-MLP-03-ANSWERS-01): build the
   VM-and-SSH route, the pinned worker run with Docker inside a Targon VM on
-  the miner's own account, reached over SSH (slice 4b, below).
+  the miner's own account, reached over SSH (slice 4b). Superseded the same
+  day by OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute, and a
+  Targon VM the miner runs is reached like any other machine of theirs.
+- **Container-only rentals (open):** whether Carbon should run practice on a
+  rental with no Docker daemon, such as a RunPod pod, that the miner starts
+  themselves. Not built until the owner decides (LINKONLY-D4).
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).
