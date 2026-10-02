@@ -495,14 +495,14 @@ Other changes:
 
 **Tests.**
 
-- `tests/cpu/test_graphite_phase3.py`: 41 tests covering every DoD item.
+- `tests/cpu/test_graphite_phase3.py`: 44 tests covering every DoD item.
   Also covered:
   - the pod phase's local CPU run, and its refusal of a different build;
   - pod_control's code-manifest equality;
   - the live RunPod backend against an in-memory RunPod;
   - the miner adapter translation;
   - the runner's refusals and its dry run.
-- `tests/cpu/test_graphite_phase3_mutations.py`: 12 protections, each
+- `tests/cpu/test_graphite_phase3_mutations.py`: 14 protections, each
   switched off in turn.
 - `tests/service/test_graphite_miner_path.py`: a Constructor session whose
   miner tools reach the battery composition through the standard
@@ -586,6 +586,26 @@ Other changes:
   - **Settlement.** A pod's spend settles from RunPod's billing record. An
     unreported charge keeps the full reservation.
   - File: `graphite/phase3.py`.
+- **GRAPHITE-D26, the Constructor's 150-call session** (OWNER-GRAPHITE-03
+  amendment, 2026-10-02: "up the plan to 150").
+  - A Constructor session (one research epoch) may make up to 150 model
+    calls, `roles.CONSTRUCTOR_SESSION_TURNS`. It was capped at the shared
+    48, while the plan expects about 150 turns.
+  - Mechanism: `research_loop.run_epoch` takes an optional
+    `max_provider_calls`, accepted only with a role's `instructions` and
+    `tools` (as the GRAPHITE-D18 repair is) and recorded in the epoch plan.
+    Omitted, the shared `research_agent_policy.MAX_PROVIDER_CALLS` (48)
+    stands and the plan is byte-identical, so frozen studies such as the
+    battery agent-campaign pre-registrations are unchanged.
+  - `Phase3Provider` passes 150 to `run_epoch` and uses it as the run
+    ledger's `provider_attempts` cap. `GraphiteProvider` itself is
+    unchanged: phase-1 and phase-2 sessions keep their recorded shape.
+  - The grant's `max_runtime_s` becomes 150 × 120 s + 12 × 1,800 s =
+    39,600. The ceiling, `worst_case_run_cost` and pod budget are unchanged.
+    The 1.95 token share still binds first on an expensive rung (40 calls on
+    the fourth rung).
+  - Files: `graphite/roles.py`, `graphite/phase3.py`,
+    `development_session/research_loop.py`, the phase-3 grant and its README.
 
 **Running phase 3 live** (the later session; the grant expires 2026-12-31):
 
@@ -620,6 +640,9 @@ What each argument is:
 
 - No live session has run. Token, pod and time figures are planning
   estimates until the first one.
+- A Constructor session makes at most 150 model calls (GRAPHITE-D26), the
+  plan's "about 150 turns". On a dear rung the run's 1.95 token share stops
+  it sooner (about 40 calls on the fourth rung).
 - RunPod's billing read (`RunPodAdapter.provider_charge`) has not been
   exercised live. Until it is, a pod may stay at its full reservation, which
   leaves fewer proposals per session but never more spend.

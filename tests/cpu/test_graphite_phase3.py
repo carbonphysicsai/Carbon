@@ -60,6 +60,7 @@ from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import tools as gt
 from carbon.agent_campaign.graphite.model import ScriptedModel
 from carbon.agent_campaign.graphite.roles import (
+    CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
     PROPOSE,
     ROLES,
@@ -114,7 +115,8 @@ def test_the_phase3_grant_is_complete_and_one_ceiling_covers_tokens_and_pods():
     assert run == Decimal("4.91")
     assert 3 * run + granted.cleanup_allowance <= granted.monetary_ceiling
     assert (granted.monetary_ceiling - granted.cleanup_allowance) // run == 3
-    assert granted.max_runtime_s == 48 * 120 + 12 * 30 * 60
+    assert granted.max_runtime_s == CONSTRUCTOR_SESSION_TURNS * 120 + 12 * 30 * 60
+    assert granted.max_runtime_s == 39600
     assert (granted.max_concurrency, granted.max_submissions) == (1, 3)
     # A template is refused, as every grant with a missing value is.
     with pytest.raises(GrantError):
@@ -383,6 +385,73 @@ def test_a_model_call_is_refused_when_pods_have_used_the_run_cap(tmp_path):
     assert graphite.model.remaining == 1  # the second call was never sent
     tokens = graphite._tokens_usd(run_id())
     assert tokens + Decimal("4.909") <= Decimal("4.91")
+
+
+def _plan(graphite):
+    path = graphite._dir(run_id()) / "ledger" / "epoch-1" / "plan.json"
+    return json.loads(path.read_bytes())
+
+
+def test_a_constructor_session_makes_up_to_150_model_calls(tmp_path):
+    """OWNER-GRAPHITE-03 amendment ("up the plan to 150"), GRAPHITE-D26: a
+    Constructor session runs past the shared 48 and stops at exactly 150."""
+    assert CONSTRUCTOR_SESSION_TURNS == 150
+    probe = tool(PREFIX + "get_challenge_info", {})
+    script = [probe] * CONSTRUCTOR_SESSION_TURNS + [text("never sent: the cap")]
+    miner = RecordingMinerTools()
+    result, graphite, _ = session(tmp_path, script, ScriptedPods(), miner=miner)
+    assert result["provider_state"] == "succeeded"
+    assert len(graphite.model.requests) == CONSTRUCTOR_SESSION_TURNS
+    assert graphite.model.remaining == 1
+    assert len(miner.calls) == CONSTRUCTOR_SESSION_TURNS
+    outcome = json.loads(
+        (graphite._dir(run_id()) / "ledger" / "epoch-1" / "outcome.json").read_bytes()
+    )
+    assert outcome["reason"] == "epoch provider-call ceiling"
+    assert _plan(graphite)["max_provider_calls"] == CONSTRUCTOR_SESSION_TURNS
+    assert graphite.caps()["provider_attempts"] == CONSTRUCTOR_SESSION_TURNS
+
+
+def test_a_constructor_session_below_the_cap_ends_when_the_agent_stops(tmp_path):
+    probe = tool(PREFIX + "get_challenge_info", {})
+    script = [probe] * 60 + [text("done")]
+    result, graphite, _ = session(tmp_path, script, ScriptedPods())
+    assert result["provider_state"] == "succeeded"
+    assert len(graphite.model.requests) == 61  # past the shared 48
+    assert graphite.model.remaining == 0
+
+
+def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
+    """On glm-5.2 a call reserves 47,636,480 nanodollars; settled at that
+    charge, the 1.95 token share stops the run after 40 calls, well before
+    the 150-call cap."""
+    probe = tool(PREFIX + "get_challenge_info", {})
+    script = [probe] * CONSTRUCTOR_SESSION_TURNS
+    graphite = provider(tmp_path, script, ScriptedPods())
+    graphite.ladder.model = lambda role: "glm-5.2"
+    graphite.ladder.rung = lambda role: ENGY_LADDER.index("glm-5.2")
+    reservation = graphite._selection("glm-5.2").reservation_nano
+    assert reservation == 65536 * 680 + 2048 * 1500 == 47636480
+    graphite.model.charged_micro = reservation // 1000  # all but 480 nanodollars of it
+    control = controller(tmp_path, graphite)
+    try:
+        result = phase3.run_session(
+            control,
+            graphite,
+            phase3.session_brief(checkout_commit="1" * 40, budget=graphite.budget),
+            1,
+        )
+    finally:
+        control.close()
+    assert result["provider_state"] == "failed"
+    state = json.loads((graphite._dir(run_id()) / "state.json").read_bytes())
+    assert state["failure"] == {
+        "code": "run_cap_reached",
+        "dimension": "provider_nanodollars",
+    }
+    assert len(graphite.model.requests) == 40
+    tokens = graphite._tokens_usd(run_id())
+    assert tokens <= graphite.budget.token_allowance_usd == Decimal("1.95")
 
 
 def test_the_session_pod_limit_and_the_grant_run_limit_hold(tmp_path):

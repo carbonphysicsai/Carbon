@@ -329,6 +329,8 @@ Phase 3 constructs only within the existing recorded construction contract.
 - It is recorded in `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json`,
   with the derivation in its README. Each of the 3 runs is capped at USD 4.91:
   USD 2.96 for 12 thirty-minute pods and USD 1.95 for tokens.
+- A Constructor session may make up to 150 model calls, this table's "about
+  150 turns" (the owner, 2026-10-02: "up the plan to 150"; GRAPHITE-D26).
 - Phase 3 is built (GRAPHITE-01, phase 3 delivery). Its first block of 3
   live sessions is pending.
 

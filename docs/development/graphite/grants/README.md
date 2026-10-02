@@ -72,6 +72,14 @@ owner was asked for the phase-3 grant amount (USD 15 suggested) and whether
 RunPod pod time is inside it or separate. The owner answered "$15 runpod
 included", then "Start phase 3 build in parallel".
 
+**Amendment (2026-10-02).** A Constructor session was capped at 48 model
+calls, the shared `research_agent_policy.MAX_PROVIDER_CALLS`, where the plan
+expects about 150 turns. The owner answered: "up the plan to 150". A
+Constructor session now has its own cap of 150 calls
+(`roles.CONSTRUCTOR_SESSION_TURNS`, GRAPHITE-D26), and the shared 48 is
+unchanged. Only `max_runtime_s` changes; the ceiling, `worst_case_run_cost`
+and the pod budget do not.
+
 **State.** Complete: the grant validates and the runner accepts it. No live
 session has run.
 
@@ -92,7 +100,7 @@ does not report keeps its full reservation.
 | `permitted_runs` | `3` | The plan's first block of 3 sessions (plan §7) |
 | `cleanup_allowance` | `0.25` USD | pod_control's `CLEANUP_RESERVE_USD` (below) |
 | `worst_case_run_cost` | `4.91` USD | Derived (below) |
-| `max_runtime_s` | `27360` | Derived (below) |
+| `max_runtime_s` | `39600` | Derived (below); 27,360 before the 150-call amendment |
 | `max_concurrency` | `1` | One session at a time; each session runs one pod at a time |
 | `max_submissions` | `3` | One session export per permitted run; the controller counts exports across the grant |
 
@@ -152,14 +160,18 @@ permitted runs, rounded down to the cent:
 
 The run's research ledger is frozen with 1.95 as its money cap, and a pod is
 admitted only while tokens committed, plus pods committed, plus the new pod's
-reservation stay within 4.91. A research epoch makes at most 48 model calls
-(`research_agent_policy.MAX_PROVIDER_CALLS`). At `DEFAULT_SETTINGS` (65,536
+reservation stay within 4.91. A Constructor session makes at most 150 model
+calls (`roles.CONSTRUCTOR_SESSION_TURNS`, passed to the research loop as its
+`max_provider_calls`; the shared `research_agent_policy.MAX_PROVIDER_CALLS`
+of 48 is unchanged for every other epoch). At `DEFAULT_SETTINGS` (65,536
 input and 2,048 output tokens) one call reserves:
 
 - `deepseek-v4-flash-0731` (the Constructor's start): 65,536 × 45 + 2,048 × 90
-  = 3,133,440 nanodollars, so 48 calls reserve USD 0.15;
+  = 3,133,440 nanodollars, so 150 calls reserve
+  150 × 3,133,440 = 470,016,000 nanodollars, USD 0.47, within the 1.95
+  token share;
 - `glm-5.2`: 65,536 × 680 + 2,048 × 1,500 = 47,636,480 nanodollars, so the
-  1.95 cap stops a run after 40 calls.
+  1.95 cap still stops a run after 40 calls, before the 150-call cap.
 
 So whichever rung the Constructor reaches, a run cannot spend more than 1.95
 on tokens. The plan estimates about USD 0.10 a session on
@@ -167,7 +179,7 @@ on tokens. The plan estimates about USD 0.10 a session on
 
 **Runtime.** Every model call and every pod, one after another:
 
-      48 × 120 s (the provider timeout) + 12 × 30 min = 5,760 + 21,600 = 27,360 s
+      150 × 120 s (the provider timeout) + 12 × 1,800 s = 18,000 + 21,600 = 39,600 s
 
 **Expected spend.** Each call and each pod settles from the provider's
 reported charge, not from its reservation. The plan's estimate is about

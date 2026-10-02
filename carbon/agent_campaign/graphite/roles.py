@@ -45,6 +45,13 @@ ROLE_SCHEMA = "carbon.graphite.role.v1"
 #: (`ladder.Ladder.record_failure`).
 CONSTRUCTOR_STALL_ATTEMPTS = 5
 
+#: The model calls one Constructor session (one research epoch) may make
+#: (plan §7: "about 150 turns"; OWNER-GRAPHITE-03 amendment, 2026-10-02: "up
+#: the plan to 150"). Graphite's own cap, passed to `run_epoch` as
+#: `max_provider_calls` (GRAPHITE-D26); the shared
+#: `research_agent_policy.MAX_PROVIDER_CALLS` (48) is unchanged.
+CONSTRUCTOR_SESSION_TURNS = 150
+
 
 #: Carbon's proposal runner (`experiment.Experiment.propose_tool`, phase 3):
 #: the Constructor's one way to have a recipe run on a pod and scored. It

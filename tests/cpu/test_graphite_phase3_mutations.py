@@ -105,6 +105,17 @@ MUTATIONS = {
             tmp
         ),
     ),
+    # A Constructor session gets its own 150-call cap (GRAPHITE-D26); without
+    # it the session falls back to the shared 48.
+    "constructor_session_turns": (
+        lambda m: m.setattr(phase3, "CONSTRUCTOR_SESSION_TURNS", None),
+        lambda tmp: t3.test_a_constructor_session_makes_up_to_150_model_calls(tmp),
+    ),
+    # The 150-call cap bounds the session; it does not run past it.
+    "constructor_session_turns_bound": (
+        lambda m: m.setattr(phase3, "CONSTRUCTOR_SESSION_TURNS", 151),
+        lambda tmp: t3.test_a_constructor_session_makes_up_to_150_model_calls(tmp),
+    ),
     # The pod runs only the build Carbon pinned.
     "pod_runs_only_the_pinned_build": (
         lambda m: m.setattr(pod_phase, "pinned", lambda record, expected: True),

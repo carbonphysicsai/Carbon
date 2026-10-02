@@ -68,7 +68,6 @@ from pathlib import Path
 
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_agent_policy import MAX_PROVIDER_CALLS
 from carbon.development_session.research_loop import run_epoch
 
 from .. import boundaries
@@ -91,7 +90,13 @@ from .provider import (
     RunCapReached,
     SessionBrief,
 )
-from .roles import CONSTRUCTOR_STALL_ATTEMPTS, PROPOSE, ROLES, RoleName
+from .roles import (
+    CONSTRUCTOR_SESSION_TURNS,
+    CONSTRUCTOR_STALL_ATTEMPTS,
+    PROPOSE,
+    ROLES,
+    RoleName,
+)
 
 REPOSITORY = Path(__file__).resolve().parents[3]
 CAMPAIGN = "graphite-phase3"
@@ -172,7 +177,7 @@ class Phase3Provider(GraphiteProvider):
             self.budget = ex.phase3_budget(grant)
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
-        kwargs.setdefault("max_calls_per_run", MAX_PROVIDER_CALLS)
+        kwargs.setdefault("max_calls_per_run", CONSTRUCTOR_SESSION_TURNS)
         super().__init__(
             root=root, grant=grant, model=model, miner_tools=miner_tools, **kwargs
         )
@@ -325,6 +330,7 @@ class Phase3Provider(GraphiteProvider):
                 provider=selection,
                 instructions=role.prompt,
                 tools=role.tool_schemas(),
+                max_provider_calls=CONSTRUCTOR_SESSION_TURNS,
             )
         if report["status"] != "RECONCILIATION_REQUIRED":
             self._deliver(run_id, experiment, report)
@@ -756,7 +762,7 @@ DRY_RUN_GRANT = {
     "worst_case_run_cost": "4.91",
     "permitted_runs": 3,
     "max_concurrency": 1,
-    "max_runtime_s": 27360,
+    "max_runtime_s": 39600,
     "max_submissions": 3,
 }
 

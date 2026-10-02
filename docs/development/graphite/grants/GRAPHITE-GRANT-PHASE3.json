@@ -11,6 +11,6 @@
  "worst_case_run_cost": "4.91",
  "permitted_runs": 3,
  "max_concurrency": 1,
- "max_runtime_s": 27360,
+ "max_runtime_s": 39600,
  "max_submissions": 3
 }

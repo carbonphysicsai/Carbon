@@ -17411,3 +17411,30 @@ separate, the owner answered: "$15 runpod included". The owner then said:
 - Scientific, security and launch qualification stay human-reserved.
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.
