@@ -1,21 +1,31 @@
-"""Operator commands for exam-design pods: one A40 at a time, bounded and accounted.
+"""Operator commands for exam-design pods: bounded and accounted A40 pods.
 
-    python -m scripts.dev.exam_design.runpod.pod_control status
-    python -m scripts.dev.exam_design.runpod.pod_control dispatch PHASE --plan PATH --minutes N [--ref SHA]
-    python -m scripts.dev.exam_design.runpod.pod_control poll          # pod status page
-    python -m scripts.dev.exam_design.runpod.pod_control fetch DEST    # results tarball, verified
-    python -m scripts.dev.exam_design.runpod.pod_control terminate     # only the recorded pod; verified
-    python -m scripts.dev.exam_design.runpod.pod_control reconcile     # after an interruption
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] start [--cap-usd X]
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] status
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] dispatch PHASE --plan PATH --minutes N \
+        [--ref SHA] [--ship carbon ...] [--max-pods N]
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] poll [--pod ID]
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] fetch DEST [--pod ID] [--tar]
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] terminate [--pod ID]
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] reconcile
+
+Campaigns (``CAMPAIGNS``) each have their own ledger, local state and hard
+limits. ``exam-design`` (the default) is the 2026-09-24 campaign: one pod at a
+time under its USD 20 ceiling. ``ev4`` is EV4 and the Problem-C optimizer
+(owner approval 2026-10-01): up to 3 pods in parallel under a USD 15 cap.
 
 The API key is read from ``~/.runpod/api_key`` (mode 600) and never printed,
-logged or placed on a command line. The active pod id is written to
-``~/.runpod/exam_design_active_pod`` the moment the create call returns, and
-every lifecycle event is appended to the campaign ledger in the repository.
+logged or placed on a command line. Each active pod id is recorded locally the
+moment the create call returns, and every lifecycle event is appended to the
+campaign ledger in the repository.
 
-Refusals, all before any spend: a pod already exists; the A40 Secure rate is
-above ``MAX_RATE``; the account balance would fall below ``BALANCE_FLOOR``; or
-the ledger's committed spend plus this pod's full-deadline cost plus the
-cleanup reserve would exceed the campaign ceiling.
+Refusals, all before any spend: the campaign's pod allowance (``--max-pods``,
+never above the campaign's hard limit) is used up, counting both recorded and
+live pods; the A40 Secure rate is above ``MAX_RATE``; the account balance
+would fall below ``BALANCE_FLOOR``; the dispatch ref is not on a remote branch
+(the pod fetches code from GitHub at that commit); or the ledger's committed
+spend (every live pod counted to its full deadline) plus this pod's
+full-deadline cost plus the cleanup reserve would exceed the campaign cap.
 """
 
 from __future__ import annotations
@@ -33,15 +43,106 @@ import sys
 import tarfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
-EVID = os.path.join(REPO, "docs/development/evidence/exam-design-2026-09-24")
-LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
 STATE_DIR = os.path.expanduser("~/.runpod")
-ACTIVE = os.path.join(STATE_DIR, "exam_design_active_pod")
-TOKEN_FILE = os.path.join(STATE_DIR, "exam_design_token")
+#: Per-campaign evidence directory, local state, hard pod limit and ceiling.
+CAMPAIGNS = {
+    "exam-design": {
+        "evidence": "docs/development/evidence/exam-design-2026-09-24",
+        "active": "exam_design_active_pod",  # one pod: a single file
+        "token": "exam_design_token",
+        "max_pods": 1,
+        "ceiling_usd": 20.0,
+        "name": "carbon-exam-design",
+    },
+    "ev4": {
+        "evidence": "docs/development/evidence/ev4-2026-10-01",
+        "active": "ev4_active_pods",  # a directory: one file per pod (its token)
+        "token": None,
+        "max_pods": 3,
+        "ceiling_usd": 15.0,
+        "name": "carbon-ev4",
+    },
+}
+CAMPAIGN = "exam-design"
+EVID = os.path.join(REPO, CAMPAIGNS[CAMPAIGN]["evidence"])
+LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
+ACTIVE = os.path.join(STATE_DIR, CAMPAIGNS[CAMPAIGN]["active"])
+TOKEN_FILE = os.path.join(STATE_DIR, CAMPAIGNS[CAMPAIGN]["token"])
+#: A manifest larger than this travels gzipped (CODE_MANIFEST_GZ_B64).
+MANIFEST_GZ_ABOVE = 16_000
+
+
+def use_campaign(name: str) -> None:
+    """Point the ledger, local state and limits at one campaign."""
+    global CAMPAIGN, EVID, LEDGER, ACTIVE, TOKEN_FILE, CEILING_USD
+    spec = CAMPAIGNS[name]
+    CAMPAIGN = name
+    EVID = os.path.join(REPO, spec["evidence"])
+    LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
+    ACTIVE = os.path.join(STATE_DIR, spec["active"])
+    TOKEN_FILE = os.path.join(STATE_DIR, spec["token"]) if spec["token"] else None
+    CEILING_USD = spec["ceiling_usd"]
+
+
+def _multi() -> bool:
+    return CAMPAIGNS[CAMPAIGN]["token"] is None
+
+
+def active_pods() -> list[str]:
+    """Pods this campaign recorded as active (created, not verified gone)."""
+    if _multi():
+        return sorted(os.listdir(ACTIVE)) if os.path.isdir(ACTIVE) else []
+    return [Path(ACTIVE).read_text().strip()] if os.path.exists(ACTIVE) else []
+
+
+def _write_private(path: str, text: str) -> None:
+    old = os.umask(0o077)
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        Path(path).write_text(text)
+    finally:
+        os.umask(old)
+
+
+def record_active(pod_id: str, token: str) -> None:
+    if _multi():
+        _write_private(os.path.join(ACTIVE, pod_id), token)
+    else:
+        _write_private(TOKEN_FILE, token)
+        Path(ACTIVE).write_text(pod_id)
+
+
+def clear_active(pod_id: str) -> None:
+    if _multi():
+        path = os.path.join(ACTIVE, pod_id)
+        if os.path.exists(path):
+            os.remove(path)
+    elif os.path.exists(ACTIVE) and Path(ACTIVE).read_text().strip() == pod_id:
+        os.remove(ACTIVE)
+
+
+def token_for(pod_id: str) -> str:
+    if _multi():
+        return Path(os.path.join(ACTIVE, pod_id)).read_text().strip()
+    return Path(TOKEN_FILE).read_text().strip()
+
+
+def pick_pod(pod: str | None) -> str:
+    """The pod a command acts on: the named one, or the only active one."""
+    live = active_pods()
+    if pod:
+        if pod not in live:
+            raise SystemExit(f"refusing: {pod} is not an active pod of {CAMPAIGN}")
+        return pod
+    if len(live) != 1:
+        raise SystemExit(f"name the pod with --pod; active: {live}")
+    return live[0]
+
 
 IMAGE = (
     "ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:"
@@ -222,23 +323,43 @@ def pods() -> list:
     return body
 
 
+def start_cap(balance: float, cap_usd: float | None) -> float:
+    """The campaign cap: the requested cap, never above the campaign ceiling
+    or the balance less the floor."""
+    requested = CEILING_USD if cap_usd is None else min(float(cap_usd), CEILING_USD)
+    return min(requested, balance - BALANCE_FLOOR)
+
+
 def cmd_start(a) -> None:
-    acct = account()
-    cap = min(CEILING_USD, acct["clientBalance"] - BALANCE_FLOOR)
     if any(r["event"] == "campaign_start" for r in ledger_rows()):
         raise SystemExit("campaign already started; the cap is fixed at start")
-    ledger(
-        "campaign_start",
-        balance_usd=acct["clientBalance"],
-        cap_usd=round(cap, 4),
-        rule="min(USD 20, balance - USD 2); no top-up, no billing change",
-    )
-    ledger(
-        "connectivity_test",
-        pod_id="d69n88ih5wkx3i",
-        cost_usd=0.011,
-        note="bounded connectivity test before the campaign; counted against the cap conservatively",
-    )
+    acct = account()
+    cap = start_cap(acct["clientBalance"], a.cap_usd)
+    if CAMPAIGN == "exam-design":
+        ledger(
+            "campaign_start",
+            balance_usd=acct["clientBalance"],
+            cap_usd=round(cap, 4),
+            rule="min(USD 20, balance - USD 2); no top-up, no billing change",
+        )
+        ledger(
+            "connectivity_test",
+            pod_id="d69n88ih5wkx3i",
+            cost_usd=0.011,
+            note="bounded connectivity test before the campaign; counted against the cap conservatively",
+        )
+    else:
+        ledger(
+            "campaign_start",
+            campaign=CAMPAIGN,
+            balance_usd=acct["clientBalance"],
+            cap_usd=round(cap, 4),
+            max_pods=CAMPAIGNS[CAMPAIGN]["max_pods"],
+            rule=(
+                f"min(requested cap, USD {CEILING_USD:g}, balance - USD "
+                f"{BALANCE_FLOOR:g}); no top-up, no billing change"
+            ),
+        )
     print(json.dumps({"balance": acct["clientBalance"], "cap_usd": round(cap, 4)}))
 
 
@@ -257,9 +378,8 @@ def cmd_status(a) -> None:
                     }
                     for p in pods()
                 ],
-                "active_file": (
-                    Path(ACTIVE).read_text().strip() if os.path.exists(ACTIVE) else None
-                ),
+                "campaign": CAMPAIGN,
+                "active_pods": active_pods(),
                 "committed_spend_usd": round(committed_spend(), 4),
                 "cap_usd": campaign_cap(),
             },
@@ -268,16 +388,81 @@ def cmd_status(a) -> None:
     )
 
 
+def allowed_pods(requested: int | None) -> int:
+    """Pods that may run at once: `--max-pods`, never above the campaign's
+    hard limit (one for the exam-design campaign)."""
+    return max(1, min(int(requested or 1), CAMPAIGNS[CAMPAIGN]["max_pods"]))
+
+
+def check_pod_allowance(recorded: list, live: list, allowed: int) -> None:
+    if len(recorded) >= allowed:
+        raise SystemExit(
+            f"refusing: {len(recorded)} active pod(s) recorded {recorded}; "
+            f"allowance {allowed}; reconcile or terminate first"
+        )
+    if len(live) >= allowed:
+        raise SystemExit(
+            f"refusing: {len(live)} pod(s) already exist on the account; allowance {allowed}"
+        )
+
+
+def check_budget(spent: float, pod_cost: float, cap: float) -> None:
+    """Committed spend (live pods to their full deadline) + this pod's
+    full-deadline cost + the cleanup reserve must stay within the cap."""
+    if spent + pod_cost + CLEANUP_RESERVE_USD > cap:
+        raise SystemExit(
+            f"refusing: committed {spent:.3f} + pod {pod_cost:.3f} + reserve "
+            f"{CLEANUP_RESERVE_USD:.2f} > cap {cap:.2f}"
+        )
+
+
+def pod_cost_usd(minutes: float, rate: float = MAX_RATE) -> float:
+    return minutes / 60 * (rate + DISK_GB * DISK_USD_PER_GB_MONTH / 730)
+
+
+def ship_paths(ref: str, prefixes) -> list[str]:
+    """Every tracked file under each prefix at `ref` (a directory such as
+    `carbon`, or one file)."""
+    out = []
+    for prefix in prefixes:
+        files = subprocess.run(
+            ["git", "-C", REPO, "ls-tree", "-r", "--name-only", ref, "--", prefix],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+        if not files:
+            raise SystemExit(f"refusing: nothing tracked under {prefix} at {ref}")
+        out += files
+    return out
+
+
+def manifest_env(manifest: dict) -> dict:
+    """The manifest for the pod's environment; gzipped when large."""
+    text = json.dumps(manifest, separators=(",", ":"), sort_keys=True)
+    if len(text) <= MANIFEST_GZ_ABOVE:
+        return {"CODE_MANIFEST": text}
+    return {
+        "CODE_MANIFEST_GZ_B64": base64.b64encode(
+            gzip.compress(text.encode(), 9, mtime=0)
+        ).decode()
+    }
+
+
+def ref_is_pushed(ref: str) -> bool:
+    """The pod reads code from GitHub at `ref`: it must be on a remote branch."""
+    out = subprocess.run(
+        ["git", "-C", REPO, "branch", "-r", "--contains", ref],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return out.returncode == 0 and bool(out.stdout.strip())
+
+
 def cmd_dispatch(a) -> None:
-    if os.path.exists(ACTIVE):
-        raise SystemExit(
-            f"refusing: an active pod is recorded ({Path(ACTIVE).read_text().strip()}); reconcile first"
-        )
-    existing = pods()
-    if existing:
-        raise SystemExit(
-            f"refusing: {len(existing)} pod(s) already exist; one A40 at a time"
-        )
+    allowed = allowed_pods(a.max_pods)
+    check_pod_allowance(active_pods(), pods(), allowed)
     cuda_ok = []
     for cuda in (
         "13.0",
@@ -292,13 +477,10 @@ def cmd_dispatch(a) -> None:
     rate = MAX_RATE
     acct = account()
     minutes = float(a.minutes)
-    pod_cost = minutes / 60 * (rate + DISK_GB * DISK_USD_PER_GB_MONTH / 730)
+    pod_cost = pod_cost_usd(minutes, rate)
     spent = committed_spend()
     cap = campaign_cap()
-    if spent + pod_cost + CLEANUP_RESERVE_USD > cap:
-        raise SystemExit(
-            f"refusing: committed {spent:.3f} + pod {pod_cost:.3f} + reserve > cap {cap:.2f}"
-        )
+    check_budget(spent, pod_cost, cap)
     if acct["clientBalance"] - pod_cost < BALANCE_FLOOR:
         raise SystemExit("refusing: balance would fall below the floor")
     ref = (
@@ -325,7 +507,17 @@ def cmd_dispatch(a) -> None:
         text=True,
         check=True,
     ).stdout.split()
+    if not ref_is_pushed(ref):
+        raise SystemExit(
+            f"refusing: {ref} is on no remote branch; push it first (the pod fetches it)"
+        )
+    plan_doc = (
+        json.loads(Path(os.path.join(REPO, a.plan)).read_text()) if a.plan else {}
+    )
+    # Whole trees the plan or the operator names (e.g. the `carbon` package).
+    paths += ship_paths(ref, [*plan_doc.get("ship", []), *(a.ship or [])])
     paths += [a.plan] if a.plan else []
+    paths = list(dict.fromkeys(paths))
     if a.plan:
         # Every repository file the plan names (TRAIN file, inputs, OCV table, slot list, blobs) is shipped and
         # hash-pinned too; a child must never find a referenced path missing on the pod.
@@ -357,9 +549,6 @@ def cmd_dispatch(a) -> None:
         )
     manifest = code_manifest(ref, paths)
     token = secrets.token_urlsafe(24)
-    old = os.umask(0o077)
-    Path(TOKEN_FILE).write_text(token)
-    os.umask(old)
     created_req = time.time()
     deadline = created_req + minutes * 60
     phase_cfg = {"plan_path": a.plan} if a.plan else {}
@@ -380,7 +569,7 @@ def cmd_dispatch(a) -> None:
         "PROBE_DEADLINE": str(int(deadline + 60)),
         "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
         "CODE_REF": ref,
-        "CODE_MANIFEST": json.dumps(manifest, separators=(",", ":")),
+        **manifest_env(manifest),
         "PHASE": a.phase,
         "PHASE_CONFIG": json.dumps(phase_cfg),
     }
@@ -410,7 +599,7 @@ def cmd_dispatch(a) -> None:
         }
     boot = Path(os.path.join(os.path.dirname(__file__), "bootstrap.py")).read_text()
     body = {
-        "name": f"carbon-exam-design-{a.phase}",
+        "name": f"{CAMPAIGNS[CAMPAIGN]['name']}-{a.phase}",
         "imageName": IMAGE,
         "computeType": "GPU",
         "cloudType": "SECURE",
@@ -429,6 +618,8 @@ def cmd_dispatch(a) -> None:
         body["vcpuCount"] = a.vcpu
     ledger(
         "dispatch_requested",
+        campaign=CAMPAIGN,
+        max_pods=allowed,
         phase=a.phase,
         plan=a.plan,
         ref=ref,
@@ -451,7 +642,7 @@ def cmd_dispatch(a) -> None:
         raise SystemExit(
             f"create failed ({code}); pods now: {[p['id'] for p in after]} - reconcile before retrying"
         )
-    Path(ACTIVE).write_text(pod_id)
+    record_active(pod_id, token)
     rate_actual = float(resp.get("costPerHr") or rate)
     ledger(
         "created",
@@ -472,6 +663,8 @@ def cmd_dispatch(a) -> None:
             sys.executable,
             "-m",
             "scripts.dev.exam_design.runpod.pod_control",
+            "--campaign",
+            CAMPAIGN,
             "watchdog",
             pod_id,
             str(int(deadline)),
@@ -501,12 +694,11 @@ def cmd_dispatch(a) -> None:
     )
 
 
-def _proxy(path: str, timeout=60):
-    pod = Path(ACTIVE).read_text().strip()
-    token = Path(TOKEN_FILE).read_text().strip()
+def _proxy(path: str, timeout=60, pod: str | None = None):
+    pod = pick_pod(pod)
     r = urllib.request.Request(
         f"https://{pod}-8000.proxy.runpod.net{path}",
-        headers={"X-Probe-Token": token, "User-Agent": "carbon-exam-design/1"},
+        headers={"X-Probe-Token": token_for(pod), "User-Agent": "carbon-exam-design/1"},
     )
     try:
         with urllib.request.urlopen(r, timeout=timeout) as resp:
@@ -518,12 +710,68 @@ def _proxy(path: str, timeout=60):
 
 
 def cmd_poll(a) -> None:
-    code, body = _proxy("/status")
+    code, body = _proxy("/status", pod=a.pod)
     print(code, body.decode(errors="replace")[:3000])
 
 
+def safe_relpath(rel: str) -> bool:
+    parts = rel.split("/")
+    return (
+        bool(rel)
+        and not rel.startswith("/")
+        and all(p not in ("", ".", "..") for p in parts)
+    )
+
+
+def fetch_files(listing: list, get, dest: str) -> dict:
+    """Download every listed file with `get(path) -> (code, bytes)`, verify its
+    size and sha256, and write it under `dest`. Refuses unsafe paths and
+    existing files that differ. Returns a summary with the listing digest."""
+    total = 0
+    for row in listing:
+        if not safe_relpath(row["path"]):
+            raise SystemExit(f"refusing unsafe path {row['path']!r}")
+    for row in listing:
+        code, body = get(row["path"])
+        if (
+            code != 200
+            or len(body) != row["size"]
+            or hashlib.sha256(body).hexdigest() != row["sha256"]
+        ):
+            raise SystemExit(f"fetch failed or hash mismatch: {row['path']} ({code})")
+        target = os.path.join(dest, *row["path"].split("/"))
+        if os.path.exists(target):
+            if Path(target).read_bytes() != body:
+                raise SystemExit(f"refusing to overwrite a different {target}")
+            continue
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        Path(target).write_bytes(body)
+        total += len(body)
+    return {
+        "files": len(listing),
+        "bytes_written": total,
+        "listing_sha256": hashlib.sha256(
+            json.dumps(listing, sort_keys=True).encode()
+        ).hexdigest(),
+    }
+
+
 def cmd_fetch(a) -> None:
-    code, body = _proxy("/out.tar.gz", timeout=600)
+    pod = pick_pod(a.pod)
+    if not a.tar:
+        # File by file: a large result never travels as one long response.
+        code, body = _proxy("/files", pod=pod)
+        if code != 200:
+            raise SystemExit(f"listing failed: {code}")
+        summary = fetch_files(
+            json.loads(body),
+            lambda rel: _proxy("/file/" + urllib.parse.quote(rel), 600, pod),
+            os.path.join(a.dest, "out"),
+        )
+        ledger("exported", pod_id=pod, dest=os.path.relpath(a.dest, REPO), **summary)
+        print(json.dumps(summary | {"dest": a.dest}))
+        return
+    code, body = _proxy("/out.tar.gz", timeout=600, pod=pod)
     if code != 200:
         raise SystemExit(f"fetch failed: {code}")
     sha = hashlib.sha256(body).hexdigest()
@@ -537,7 +785,6 @@ def cmd_fetch(a) -> None:
             ):
                 raise SystemExit(f"refusing unsafe tar member {m.name}")
         tf.extractall(a.dest)
-    pod = Path(ACTIVE).read_text().strip()
     ledger(
         "exported",
         pod_id=pod,
@@ -555,8 +802,7 @@ def _terminate(pod_id: str) -> bool:
         c2, _b2 = rest("GET", f"/pods/{pod_id}")
         if c2 == 404:
             ledger("terminated_verified", pod_id=pod_id, verified_epoch=time.time())
-            if os.path.exists(ACTIVE) and Path(ACTIVE).read_text().strip() == pod_id:
-                os.remove(ACTIVE)
+            clear_active(pod_id)
             return True
         time.sleep(10)
     ledger("terminate_unverified", pod_id=pod_id)
@@ -564,7 +810,7 @@ def _terminate(pod_id: str) -> bool:
 
 
 def cmd_terminate(a) -> None:
-    pod_id = a.pod or Path(ACTIVE).read_text().strip()
+    pod_id = pick_pod(a.pod)
     ok = _terminate(pod_id)
     print(
         json.dumps(
@@ -581,7 +827,7 @@ def cmd_terminate(a) -> None:
 def cmd_watchdog(a) -> None:
     pod_id, deadline = a.pod, float(a.deadline)
     while time.time() < deadline:
-        if not os.path.exists(ACTIVE) or Path(ACTIVE).read_text().strip() != pod_id:
+        if pod_id not in active_pods():
             return  # terminated by the operator
         time.sleep(10)
     ledger("watchdog_deadline", pod_id=pod_id)
@@ -590,29 +836,33 @@ def cmd_watchdog(a) -> None:
 
 def cmd_reconcile(a) -> None:
     live = pods()
-    rec = Path(ACTIVE).read_text().strip() if os.path.exists(ACTIVE) else None
+    recorded = active_pods()
     print(
         json.dumps(
             {
-                "recorded_active": rec,
+                "campaign": CAMPAIGN,
+                "recorded_active": recorded,
                 "live_pods": [{"id": p["id"], "name": p.get("name")} for p in live],
             }
         )
     )
-    if rec and rec not in [p["id"] for p in live]:
-        ledger(
-            "terminated_verified",
-            pod_id=rec,
-            verified_epoch=time.time(),
-            note="found absent at reconcile",
-        )
-        os.remove(ACTIVE)
+    for rec in recorded:
+        if rec not in [p["id"] for p in live]:
+            ledger(
+                "terminated_verified",
+                pod_id=rec,
+                verified_epoch=time.time(),
+                note="found absent at reconcile",
+            )
+            clear_active(rec)
 
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--campaign", choices=sorted(CAMPAIGNS), default="exam-design")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("start")
+    s = sub.add_parser("start")
+    s.add_argument("--cap-usd", type=float, help="never above the campaign ceiling")
     sub.add_parser("status")
     d = sub.add_parser("dispatch")
     d.add_argument("phase")
@@ -634,9 +884,23 @@ def main(argv=None) -> None:
         nargs="*",
         help="records.jsonl files whose OK cases are skipped (resume)",
     )
-    sub.add_parser("poll")
+    d.add_argument(
+        "--ship",
+        nargs="*",
+        help="tracked trees to ship hash-pinned besides scripts/dev/exam_design",
+    )
+    d.add_argument(
+        "--max-pods",
+        type=int,
+        default=1,
+        help="pods allowed at once, never above the campaign's hard limit",
+    )
+    p = sub.add_parser("poll")
+    p.add_argument("--pod")
     f = sub.add_parser("fetch")
     f.add_argument("dest")
+    f.add_argument("--pod")
+    f.add_argument("--tar", action="store_true", help="one tarball (small results)")
     t = sub.add_parser("terminate")
     t.add_argument("--pod")
     w = sub.add_parser("watchdog")
@@ -644,6 +908,7 @@ def main(argv=None) -> None:
     w.add_argument("deadline")
     sub.add_parser("reconcile")
     a = ap.parse_args(argv)
+    use_campaign(a.campaign)
     {
         "start": cmd_start,
         "status": cmd_status,

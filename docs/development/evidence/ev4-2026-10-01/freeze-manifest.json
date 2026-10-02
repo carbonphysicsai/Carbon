@@ -1,0 +1,2317 @@
+{
+  "candidates": [
+    {
+      "c1": 0.5,
+      "c2": 0.2,
+      "id": "c1=0.5,c2=0.2"
+    },
+    {
+      "c1": 0.5,
+      "c2": 0.4,
+      "id": "c1=0.5,c2=0.4"
+    },
+    {
+      "c1": 0.5,
+      "c2": 0.6,
+      "id": "c1=0.5,c2=0.6"
+    },
+    {
+      "c1": 0.5,
+      "c2": 0.8,
+      "id": "c1=0.5,c2=0.8"
+    },
+    {
+      "c1": 0.5,
+      "c2": 1.0,
+      "id": "c1=0.5,c2=1"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.2,
+      "id": "c1=0.75,c2=0.2"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.4,
+      "id": "c1=0.75,c2=0.4"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.6,
+      "id": "c1=0.75,c2=0.6"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.8,
+      "id": "c1=0.75,c2=0.8"
+    },
+    {
+      "c1": 0.75,
+      "c2": 1.0,
+      "id": "c1=0.75,c2=1"
+    },
+    {
+      "c1": 1.0,
+      "c2": 0.2,
+      "id": "c1=1,c2=0.2"
+    },
+    {
+      "c1": 1.0,
+      "c2": 0.4,
+      "id": "c1=1,c2=0.4"
+    },
+    {
+      "c1": 1.0,
+      "c2": 0.6,
+      "id": "c1=1,c2=0.6"
+    },
+    {
+      "c1": 1.0,
+      "c2": 0.8,
+      "id": "c1=1,c2=0.8"
+    },
+    {
+      "c1": 1.0,
+      "c2": 1.0,
+      "id": "c1=1,c2=1"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.2,
+      "id": "c1=1.25,c2=0.2"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.4,
+      "id": "c1=1.25,c2=0.4"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.6,
+      "id": "c1=1.25,c2=0.6"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.8,
+      "id": "c1=1.25,c2=0.8"
+    },
+    {
+      "c1": 1.25,
+      "c2": 1.0,
+      "id": "c1=1.25,c2=1"
+    },
+    {
+      "c1": 1.5,
+      "c2": 0.2,
+      "id": "c1=1.5,c2=0.2"
+    },
+    {
+      "c1": 1.5,
+      "c2": 0.4,
+      "id": "c1=1.5,c2=0.4"
+    },
+    {
+      "c1": 1.5,
+      "c2": 0.6,
+      "id": "c1=1.5,c2=0.6"
+    },
+    {
+      "c1": 1.5,
+      "c2": 0.8,
+      "id": "c1=1.5,c2=0.8"
+    },
+    {
+      "c1": 1.5,
+      "c2": 1.0,
+      "id": "c1=1.5,c2=1"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.2,
+      "id": "c1=1.75,c2=0.2"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.4,
+      "id": "c1=1.75,c2=0.4"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.6,
+      "id": "c1=1.75,c2=0.6"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.8,
+      "id": "c1=1.75,c2=0.8"
+    },
+    {
+      "c1": 1.75,
+      "c2": 1.0,
+      "id": "c1=1.75,c2=1"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.2,
+      "id": "c1=2,c2=0.2"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.4,
+      "id": "c1=2,c2=0.4"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.6,
+      "id": "c1=2,c2=0.6"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.8,
+      "id": "c1=2,c2=0.8"
+    },
+    {
+      "c1": 2.0,
+      "c2": 1.0,
+      "id": "c1=2,c2=1"
+    }
+  ],
+  "contract": {
+    "acceptance": {
+      "hypotheses": {
+        "H1": "Primary, paired: delta_tau = tau(dar-p0-r100-a0) - tau(control-exam-v1). Each tau is Kendall tau-b between the rule's ranking of the eligible reconstructed members and their decision-loss ranking on the 12 verification conditions. 95 % paired bootstrap interval, resampling members and conditions jointly, B = 10000, RNG seed 20261001. An interval that excludes 0 decides H1 in the direction of its sign; otherwise H1 is UNRESOLVED, never 'no difference'.",
+        "H2": "As EV2: dar-p0-r100-a0 scores the labelled boundary-optimist control below every eligible reconstructed member. Reported for every rule.",
+        "H3": "The real-model blind spot: the number of eligible reconstructed members that commit a reference-verified false acceptance (a selected protocol verified INFEASIBLE) on any verification condition, and each such member's rank under both rules.",
+        "continuity": "EV2's rule-selection procedure is kept: the development-chosen rule and its verification tau are reported.",
+        "interpretation": "H2 shows sensitivity to one constructed failure mode, not that the component catches every unsafe model. No outcome changes the testnet rule; a change needs its own prospective decision."
+      },
+      "paired_comparison": {
+        "deciding_rule": "control-exam-v1",
+        "decision": "an interval excluding 0 decides H1 in its sign's direction; otherwise UNRESOLVED",
+        "hypothesis": "H1",
+        "interval": "percentile",
+        "level": 0.95,
+        "pool": "eligible reconstructed members",
+        "proposed_rule": "dar-p0-r100-a0",
+        "replicates": 10000,
+        "resample": "members and conditions jointly, with replacement",
+        "rng": "numpy.random.default_rng (PCG64)",
+        "rng_seed": 20261001,
+        "split": "verification",
+        "statistic": "kendall_tau_b(proposed) - kendall_tau_b(deciding)"
+      },
+      "rule_selection": "on development scenarios, choose the profile whose model ranking has the highest Kendall tau with the decision-loss ranking; ties go to the control",
+      "success_condition": "Carbon can compare several models on the same engineering decision and show whether its scoring prefers models that select better reference-verified designs",
+      "verification": "freeze the chosen profile, then report its agreement on the verification scenarios; revising after inspecting them makes them development evidence"
+    },
+    "authority": {
+      "chain": false,
+      "changes_testnet_rule": false,
+      "qualification": false,
+      "record": "the owner's 2026-10-01 approval: \"I approve runpod use for EV4 and I approve your choice on the optimizer. Whatever is the most valuable and tangible use case to test and show.\" Budget option C: hard cap USD 15 total for EV4 and the optimizer, RunPod A40 pods at <= USD 0.49/h, up to 3 pods in parallel",
+      "reward": false
+    },
+    "baseline": {
+      "method": "fixed conservative default declared before any evaluation",
+      "protocol": {
+        "c1": 0.75,
+        "c2": 0.6
+      }
+    },
+    "budgets": {
+      "compute": "RunPod A40 (<= USD 0.49/h), shared cap USD 15 with the Problem-C optimizer",
+      "reconstructions_max": 100,
+      "reference_solves_max": 840
+    },
+    "case_prefix": "ev4",
+    "challenge": {
+      "id": "battery-fastcharge-ageing-development-v1",
+      "version": "1.0"
+    },
+    "constraints": [
+      {
+        "id": "reach_cv_in_window",
+        "quantity": "time_to_cv_onset_s",
+        "rule": "reached within the window",
+        "unit": "s"
+      },
+      {
+        "id": "no_plating_onset",
+        "meaning": "cycle-1 minimum plating overpotential stays non-negative",
+        "quantity": "plating_margin_v",
+        "rule": ">=",
+        "threshold": 0.0,
+        "unit": "V"
+      },
+      {
+        "id": "peak_temperature",
+        "meaning": "maximum volume-averaged temperature over the first hour",
+        "quantity": "peak_temperature_c",
+        "rule": "<=",
+        "threshold": 45.0,
+        "unit": "degC"
+      }
+    ],
+    "contract_id": "ev4-battery-charge-protocol-selection",
+    "data_scope": {
+      "classification": "PUBLIC_SYNTHETIC",
+      "permitted_use": "public DEVELOPMENT evidence; no client material; client studies require the private execution route"
+    },
+    "decision": {
+      "adaptation": "one protocol per operating condition (each scenario holds exactly one condition)",
+      "changes_from_ev2": [
+        "fresh development and verification conditions, 12 each, none an EV1 or EV2 condition",
+        "a 100-member panel: EV2's 15 members plus 85 added (70 distinct recipes over MLP, DeepONet and kNN settings, and 15 second seeds)",
+        "pre-registered paired comparison H1: the bootstrap interval of the difference in Kendall tau-b between the proposed rule dar-p0-r100-a0 and the deciding rule control-exam-v1",
+        "pre-registered H3: the real-model blind spot (reference-verified false acceptances by eligible real members, and their rank under both rules)",
+        "reference solves and reconstructions on RunPod A40 pods under the owner's 2026-10-01 approval"
+      ],
+      "claim_scope": "Charging speed is measured as time to constant-voltage onset (the voltage proxy below), not time to a target state of charge. The 30-cycle reference is not extrapolated to real-cell lifetime or safety.",
+      "intended_use": "Public synthetic DEVELOPMENT study (EV4): on a 100-member panel built to separate decision quality, does the proposed decision-aware rule rank real models by reference-verified decision quality better or worse than the deciding exam rule? Not a cell qualification, lifetime, warranty or safety claim.",
+      "statement": "For each declared operating condition, select from a fixed grid of two-stage fast-charge protocols the one that reaches the constant-voltage phase soonest while meeting every constraint in that condition, or abstain if none qualifies.",
+      "unchanged_from_ev2": "objective, constraints and thresholds, uncertainty bands, mistake costs, minimum useful improvement, baseline, tie rule, candidate grid, reference, models section, scoring candidates (every weight profile, decision-aware profile, component and aggregation), data scope, and the rule-selection rule"
+    },
+    "design_variables": {
+      "c1": {
+        "allowed": [
+          0.5,
+          0.75,
+          1.0,
+          1.25,
+          1.5,
+          1.75,
+          2.0
+        ],
+        "meaning": "first-stage constant-current rate, until 4.0 V",
+        "unit": "C"
+      },
+      "c2": {
+        "allowed": [
+          0.2,
+          0.4,
+          0.6,
+          0.8,
+          1.0
+        ],
+        "meaning": "second-stage constant-current rate, until 4.2 V",
+        "unit": "C"
+      }
+    },
+    "minimum_useful_improvement_s": 120.0,
+    "mistake_costs": {
+      "false_acceptance": 10.0,
+      "missed_opportunity": 1.0,
+      "regret_per_minimum_useful_improvement": 1.0,
+      "status": "PROVISIONAL_DEVELOPMENT",
+      "unit": "multiples of the minimum useful improvement"
+    },
+    "models": {
+      "prediction_access": "models receive only design variables and operating conditions; reference answers are never visible to training or selection",
+      "reconstruction": "Carbon rebuilds each declared recipe with its declared seed through the battery construction contract",
+      "repetition": "reconstruction seeds are repetitions of one recipe, never separate model families",
+      "training_data": "public TRAIN v1 only"
+    },
+    "objective": {
+      "charge_start_s": 120.0,
+      "definition": "For the scenario's one condition, the time from charge start (the end of the reference's 120 s initial rest) to the first crossing of the terminal voltage above 4.19 V on the 30 s grid, by linear interpolation.",
+      "name": "time_to_cv_onset",
+      "sense": "minimize",
+      "threshold_v": 4.19,
+      "unit": "s",
+      "unreached": "NOT_REACHED_IN_WINDOW: the protocol fails the reach constraint in that condition; its objective is undefined, never the window length.",
+      "window_s": 3600.0
+    },
+    "operating_conditions": {
+      "envelope": {
+        "soc0": [
+          0.05,
+          0.5
+        ],
+        "t_amb_c": [
+          5.0,
+          40.0
+        ]
+      },
+      "rule": "Conditions are fixed by the scenario; a selector cannot choose them.",
+      "variables": {
+        "soc0": {
+          "meaning": "initial state of charge",
+          "unit": "fraction"
+        },
+        "t_amb_c": {
+          "meaning": "ambient and initial temperature",
+          "unit": "degC"
+        }
+      }
+    },
+    "panel": "ev4",
+    "preferences_status": "The thresholds, candidate grid, baseline, minimum useful improvement and mistake costs are provisional DEVELOPMENT engineering preferences. No customer declared them and none is commercially qualified.",
+    "reference": {
+      "generator": "carbon.battery.reference (PyBaMM 26.8.0.0, DFN, OKane2022, 30 cycles), pinned truth image and overlay lock",
+      "measurement_limitations": [
+        "voltage and temperature are kept only over the first 3600 s on a 30 s grid",
+        "no state-of-charge or current trajectory is recorded, so time to a target state of charge is not measurable",
+        "the plating margin is a cycle-1 minimum, not a lifetime plating measure"
+      ],
+      "uncertainty": {
+        "bands": {
+          "peak_temperature_c": 0.157,
+          "plating_margin_v": 0.00197,
+          "time_to_cv_onset_s": 3.15
+        },
+        "basis": "maximum observed shift between standard and refined solves of the refined TRAIN cases (docs/development/evidence/exam-design-2026-09-24/refs-a-part*)",
+        "treatment": "a reference value within the band of a threshold is UNRESOLVED, never forced to pass or fail; a missing or failed reference is REFERENCE_UNAVAILABLE, never a candidate failure"
+      }
+    },
+    "scenarios": {
+      "condition_order": [
+        "t_amb_c",
+        "soc0"
+      ],
+      "development": [
+        {
+          "conditions": [
+            [
+              5.0,
+              0.12
+            ]
+          ],
+          "id": "D-T5-S0.12"
+        },
+        {
+          "conditions": [
+            [
+              5.0,
+              0.33
+            ]
+          ],
+          "id": "D-T5-S0.33"
+        },
+        {
+          "conditions": [
+            [
+              5.0,
+              0.48
+            ]
+          ],
+          "id": "D-T5-S0.48"
+        },
+        {
+          "conditions": [
+            [
+              14.0,
+              0.12
+            ]
+          ],
+          "id": "D-T14-S0.12"
+        },
+        {
+          "conditions": [
+            [
+              14.0,
+              0.33
+            ]
+          ],
+          "id": "D-T14-S0.33"
+        },
+        {
+          "conditions": [
+            [
+              14.0,
+              0.48
+            ]
+          ],
+          "id": "D-T14-S0.48"
+        },
+        {
+          "conditions": [
+            [
+              24.0,
+              0.12
+            ]
+          ],
+          "id": "D-T24-S0.12"
+        },
+        {
+          "conditions": [
+            [
+              24.0,
+              0.33
+            ]
+          ],
+          "id": "D-T24-S0.33"
+        },
+        {
+          "conditions": [
+            [
+              24.0,
+              0.48
+            ]
+          ],
+          "id": "D-T24-S0.48"
+        },
+        {
+          "conditions": [
+            [
+              34.0,
+              0.12
+            ]
+          ],
+          "id": "D-T34-S0.12"
+        },
+        {
+          "conditions": [
+            [
+              34.0,
+              0.33
+            ]
+          ],
+          "id": "D-T34-S0.33"
+        },
+        {
+          "conditions": [
+            [
+              34.0,
+              0.48
+            ]
+          ],
+          "id": "D-T34-S0.48"
+        }
+      ],
+      "rule": "Two interleaved 4 x 3 grids spanning the envelope, fixed before any EV4 solve; no condition repeats an EV1 or EV2 condition. A verification condition with no feasible protocol is reported as such, never replaced.",
+      "verification": [
+        {
+          "conditions": [
+            [
+              9.0,
+              0.06
+            ]
+          ],
+          "id": "V-T9-S0.06"
+        },
+        {
+          "conditions": [
+            [
+              9.0,
+              0.22
+            ]
+          ],
+          "id": "V-T9-S0.22"
+        },
+        {
+          "conditions": [
+            [
+              9.0,
+              0.4
+            ]
+          ],
+          "id": "V-T9-S0.40"
+        },
+        {
+          "conditions": [
+            [
+              19.0,
+              0.06
+            ]
+          ],
+          "id": "V-T19-S0.06"
+        },
+        {
+          "conditions": [
+            [
+              19.0,
+              0.22
+            ]
+          ],
+          "id": "V-T19-S0.22"
+        },
+        {
+          "conditions": [
+            [
+              19.0,
+              0.4
+            ]
+          ],
+          "id": "V-T19-S0.40"
+        },
+        {
+          "conditions": [
+            [
+              29.0,
+              0.06
+            ]
+          ],
+          "id": "V-T29-S0.06"
+        },
+        {
+          "conditions": [
+            [
+              29.0,
+              0.22
+            ]
+          ],
+          "id": "V-T29-S0.22"
+        },
+        {
+          "conditions": [
+            [
+              29.0,
+              0.4
+            ]
+          ],
+          "id": "V-T29-S0.40"
+        },
+        {
+          "conditions": [
+            [
+              38.0,
+              0.06
+            ]
+          ],
+          "id": "V-T38-S0.06"
+        },
+        {
+          "conditions": [
+            [
+              38.0,
+              0.22
+            ]
+          ],
+          "id": "V-T38-S0.22"
+        },
+        {
+          "conditions": [
+            [
+              38.0,
+              0.4
+            ]
+          ],
+          "id": "V-T38-S0.40"
+        }
+      ]
+    },
+    "schema": "carbon.engineering-value-contract.v1",
+    "scoring_candidates": {
+      "aggregation": "carbon.development-weight-profile.v1 weighted geometric mean; zero weights removed from ranking, gates kept",
+      "components": {
+        "accuracy": "1/(1+E): mean normalized case error over all scorable cases",
+        "decision_agreement": "1/(1 + mean cost per resolved constraint call) on the scoring set: for every case and every contract constraint, the model's PASS/FAIL call from its own predictions against the reference call with the contract's bands (UNRESOLVED references excluded); a false acceptance costs mistake_costs.false_acceptance, a false rejection mistake_costs.missed_opportunity",
+        "physics": "NOT_MEASURABLE for battery: no defensible physics measurement exists; the gates are mandatory checks, not a score",
+        "robustness": "1/(1+E_important): mean normalized case error over the published important region"
+      },
+      "control": "carbon.battery.exam.v1 approved DEVELOPMENT rule: gates, then mean normalized case error",
+      "decision_aware_profiles": [
+        {
+          "id": "dar-p0-r100-a0",
+          "rationale": "decision agreement alone",
+          "weights": {
+            "accuracy": 0.0,
+            "physics": 0.0,
+            "robustness": 1.0
+          }
+        },
+        {
+          "id": "dar-p0-r30-a70",
+          "rationale": "EV1's p0-r30-a70 with the decision-aware robustness leg",
+          "weights": {
+            "accuracy": 0.7,
+            "physics": 0.0,
+            "robustness": 0.3
+          }
+        },
+        {
+          "id": "dar-p0-r50-a50",
+          "rationale": "sensitivity",
+          "weights": {
+            "accuracy": 0.5,
+            "physics": 0.0,
+            "robustness": 0.5
+          }
+        }
+      ],
+      "scoring_data": "retained exam-design private-role references (pscreen, pfinal, pverify), public since the campaign reveal",
+      "weight_profiles": [
+        {
+          "id": "p45-r30-a25",
+          "weights": {
+            "accuracy": 0.25,
+            "physics": 0.45,
+            "robustness": 0.3
+          }
+        },
+        {
+          "id": "p0-r30-a70",
+          "weights": {
+            "accuracy": 0.7,
+            "physics": 0.0,
+            "robustness": 0.3
+          }
+        },
+        {
+          "id": "p0-r20-a80",
+          "rationale": "sensitivity of p0-r30-a70",
+          "weights": {
+            "accuracy": 0.8,
+            "physics": 0.0,
+            "robustness": 0.2
+          }
+        },
+        {
+          "id": "p0-r40-a60",
+          "rationale": "sensitivity of p0-r30-a70",
+          "weights": {
+            "accuracy": 0.6,
+            "physics": 0.0,
+            "robustness": 0.4
+          }
+        }
+      ]
+    },
+    "status": "PROVISIONAL_DEVELOPMENT",
+    "tie_rule": "lowest predicted objective; exact ties broken by lower c1, then lower c2",
+    "version": "1.0"
+  },
+  "contract_digest": "sha256:fedd753c0e7aa69d2fd4d6efbf3d877ac8eeb211859d9f32d76a61f38bbe38d1",
+  "controls": [
+    "oracle",
+    "conservative",
+    "boundary_optimist",
+    "rank_preserving_delay",
+    "localized_sign_error"
+  ],
+  "decision_cases": 840,
+  "frozen_unix": 1790885366,
+  "implementation_digest": "sha256:fb9353a00426296dcbba3af5977e3094fd330236ca12d34aa4980c35fe0a5b7d",
+  "panel": [
+    {
+      "backbone": "knn",
+      "family": "knn",
+      "member": "knn-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 5
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp",
+      "member": "mlp-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp",
+      "member": "mlp-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp",
+      "member": "mlp-s2",
+      "seed": 2,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_half",
+      "member": "mlp_half-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "train_fraction": 0.5,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_half",
+      "member": "mlp_half-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "train_fraction": 0.5,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_plus",
+      "member": "mlp_plus-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "arrhenius_features": true,
+          "depth": 3,
+          "steps": 6000,
+          "trajectory_components": 16,
+          "weight_decay": 0.0001,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_localized",
+      "member": "mlp_localized-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.1,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_localized",
+      "member": "mlp_localized-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.1,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_raw",
+      "member": "mlp_raw-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "bounded_voltage_head": false,
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_ens3",
+      "member": "mlp_ens3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "ensemble_members": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet",
+      "member": "deeponet-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet",
+      "member": "deeponet-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_wide",
+      "member": "mlp_wide-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn15",
+      "member": "knn15-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 15
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w64_d2",
+      "member": "mlp_t500_w64_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 500,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w64_d2",
+      "member": "mlp_t500_w64_d2-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 500,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w64_d3",
+      "member": "mlp_t500_w64_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w128_d2",
+      "member": "mlp_t500_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w128_d3",
+      "member": "mlp_t500_w128_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w256_d2",
+      "member": "mlp_t500_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w256_d3",
+      "member": "mlp_t500_w256_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w256_d3",
+      "member": "mlp_t500_w256_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w512_d2",
+      "member": "mlp_t500_w512_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w512_d3",
+      "member": "mlp_t500_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w64_d2",
+      "member": "mlp_t1500_w64_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w64_d3",
+      "member": "mlp_t1500_w64_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d2",
+      "member": "mlp_t1500_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d3",
+      "member": "mlp_t1500_w128_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d3",
+      "member": "mlp_t1500_w128_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w256_d2",
+      "member": "mlp_t1500_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w256_d3",
+      "member": "mlp_t1500_w256_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w512_d2",
+      "member": "mlp_t1500_w512_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w512_d2",
+      "member": "mlp_t1500_w512_d2-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w512_d3",
+      "member": "mlp_t1500_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w64_d2",
+      "member": "mlp_t3000_w64_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w64_d3",
+      "member": "mlp_t3000_w64_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w64_d3",
+      "member": "mlp_t3000_w64_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w128_d2",
+      "member": "mlp_t3000_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w128_d3",
+      "member": "mlp_t3000_w128_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d2",
+      "member": "mlp_t3000_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d2",
+      "member": "mlp_t3000_w256_d2-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d3",
+      "member": "mlp_t3000_w256_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w512_d2",
+      "member": "mlp_t3000_w512_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w512_d3",
+      "member": "mlp_t3000_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w64_d2",
+      "member": "mlp_t6000_w64_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w64_d2",
+      "member": "mlp_t6000_w64_d2-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w64_d3",
+      "member": "mlp_t6000_w64_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 64
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w128_d2",
+      "member": "mlp_t6000_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w128_d3",
+      "member": "mlp_t6000_w128_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w128_d3",
+      "member": "mlp_t6000_w128_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d2",
+      "member": "mlp_t6000_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w512_d3",
+      "member": "mlp_t6000_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w512_d3",
+      "member": "mlp_t6000_w512_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_f25",
+      "member": "mlp_t6000_w256_d3_f25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "train_fraction": 0.25,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d3_f25",
+      "member": "mlp_t3000_w256_d3_f25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "train_fraction": 0.25,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d3_f25",
+      "member": "mlp_t3000_w256_d3_f25-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "train_fraction": 0.25,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d3_f50",
+      "member": "mlp_t3000_w256_d3_f50-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "train_fraction": 0.5,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d2_f25",
+      "member": "mlp_t1500_w128_d2_f25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "train_fraction": 0.25,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d2_f50",
+      "member": "mlp_t1500_w128_d2_f50-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 1500,
+          "train_fraction": 0.5,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w512_d2_f25",
+      "member": "mlp_t6000_w512_d2_f25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "train_fraction": 0.25,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w512_d2_f50",
+      "member": "mlp_t6000_w512_d2_f50-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 6000,
+          "train_fraction": 0.5,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t500_w128_d3_f50",
+      "member": "mlp_t500_w128_d3_f50-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 500,
+          "train_fraction": 0.5,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w512_d3_f25",
+      "member": "mlp_t3000_w512_d3_f25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 3000,
+          "train_fraction": 0.25,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_wd1em5",
+      "member": "mlp_t6000_w256_d3_wd1em5-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "weight_decay": 1e-05,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_wd1em3",
+      "member": "mlp_t6000_w256_d3_wd1em3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "weight_decay": 0.001,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_wd1em3",
+      "member": "mlp_t6000_w256_d3_wd1em3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "weight_decay": 0.001,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w128_d3_wd1em4",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 1500,
+          "weight_decay": 0.0001,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w512_d2_wd1em4",
+      "member": "mlp_t3000_w512_d2_wd1em4-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "steps": 3000,
+          "weight_decay": 0.0001,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_arr",
+      "member": "mlp_t6000_w256_d3_arr-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "arrhenius_features": true,
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w256_d3_arr_pca16",
+      "member": "mlp_t3000_w256_d3_arr_pca16-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "arrhenius_features": true,
+          "depth": 3,
+          "steps": 3000,
+          "trajectory_components": 16,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_pca8",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "trajectory_components": 8,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t1500_w256_d2_arr",
+      "member": "mlp_t1500_w256_d2_arr-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "arrhenius_features": true,
+          "depth": 2,
+          "steps": 1500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_irw003",
+      "member": "mlp_t6000_w256_d3_irw003-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.03,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_irw03",
+      "member": "mlp_t6000_w256_d3_irw03-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_irw03",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_irw3",
+      "member": "mlp_t6000_w256_d3_irw3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 3.0,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w128_d2_irw01",
+      "member": "mlp_t3000_w128_d2_irw01-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "important_region_weight": 0.1,
+          "steps": 3000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_ens2",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "ensemble_members": 2,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t6000_w256_d3_ens4",
+      "member": "mlp_t6000_w256_d3_ens4-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "ensemble_members": 4,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "mlp",
+      "family": "mlp_t3000_w128_d2_ens3",
+      "member": "mlp_t3000_w128_d2_ens3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 2,
+          "ensemble_members": 3,
+          "steps": 3000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t500_w128_d2",
+      "member": "deeponet_t500_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t1500_w128_d2",
+      "member": "deeponet_t1500_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 1500,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t1500_w256_d3",
+      "member": "deeponet_t1500_w256_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 1500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t1500_w256_d3",
+      "member": "deeponet_t1500_w256_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 1500,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t1500_w512_d3",
+      "member": "deeponet_t1500_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 1500,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t3000_w128_d3",
+      "member": "deeponet_t3000_w128_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 3000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t3000_w256_d2",
+      "member": "deeponet_t3000_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 3000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t3000_w256_d2",
+      "member": "deeponet_t3000_w256_d2-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 3000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t3000_w512_d3",
+      "member": "deeponet_t3000_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 3000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t6000_w128_d2",
+      "member": "deeponet_t6000_w128_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 6000,
+          "width": 128
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t6000_w256_d2",
+      "member": "deeponet_t6000_w256_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t6000_w512_d2",
+      "member": "deeponet_t6000_w512_d2-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 2,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t6000_w512_d3",
+      "member": "deeponet_t6000_w512_d3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "deeponet",
+      "family": "deeponet_t6000_w512_d3",
+      "member": "deeponet_t6000_w512_d3-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "deeponet",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "deeponet_depth": 3,
+          "steps": 6000,
+          "width": 512
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn1",
+      "member": "knn1-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 1
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn3",
+      "member": "knn3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 3
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn10",
+      "member": "knn10-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 10
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn25",
+      "member": "knn25-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 25
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "backbone": "knn",
+      "family": "knn40",
+      "member": "knn40-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 40
+        },
+        "schema_version": "1.0"
+      }
+    }
+  ],
+  "schema": "carbon.engineering-value-experiment.v1",
+  "scoring_set": {
+    "cases": 1588,
+    "note": "hidden duplicates are not in this set, so the paired_repeat gate is not exercised here",
+    "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+    "sha256": "88df01aacec5222fabd0c6dada9d7f414662534997f22addd5a40352b4d730c6"
+  }
+}
