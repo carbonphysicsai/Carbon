@@ -17641,3 +17641,23 @@ prospectively.
 **Unchanged.** Internal development only: not mainnet, not a qualification
 gate. Every existing invariant, and the deciding testnet rule, until a
 candidate passes confirmation and its own approval.
+
+## 2026-10-02 — OWNER-SR3-NEAR-01: "near the decision boundary" is the published important region
+
+**Authority.** The owner, in session on 2026-10-02: "Use the important region
+band as 'near' and build SR-3".
+
+**Decision.** For score tuning (SR-3 and later), a case is near the decision
+boundary when the reference is in the published important region,
+`carbon.battery.domain.is_important`:
+- the reference plating margin is within `PLATING_BAND_V` (5 mV) of zero;
+  or
+- the reference peak temperature is at or above `T_IMPORTANT_C` (55 °C).
+
+These are the existing published DEVELOPMENT values (OD-2), reused
+unchanged. No new number is introduced. On the retained scoring set, 311 of
+1,588 cases are near: 221 by plating and 90 by temperature.
+
+**Unchanged.** The deciding testnet rule and the published important-region
+definition itself. A score built on it stays a proposal until confirmation
+and its own approval.
