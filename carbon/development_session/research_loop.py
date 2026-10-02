@@ -147,6 +147,8 @@ async def run_epoch(
     challenge=None,
     provider=DEFAULT_SELECTION,
     parallel_calls=None,
+    instructions=None,
+    tools=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -162,14 +164,38 @@ async def run_epoch(
     `PARALLEL_CALLS` runs the first call, answers each other with a journalled
     refusal that consumes no trial slot, and stops only on its consecutive
     limit.
+
+    `instructions` and `tools` are a caller's own closed role (GRAPHITE-01):
+    given together, they replace the policy prompt and the offered tool list,
+    and the loop runs the selection or stop tool only when that list offers
+    it; every other call goes to `sdk`, which owns refusing it. Both are
+    recorded in the epoch plan. Omitted, the historical prompt and tools stand
+    unchanged.
     """
     if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
         raise ValueError("unknown parallel tool call rule")
+    if (instructions is None) != (tools is None):
+        raise ValueError("a role supplies both its instructions and its tools")
+    if instructions is not None and (agent_policy != LEGACY or challenge is not None):
+        raise ValueError("role instructions run under the legacy policy only")
     root = _epoch_paths(ledger, epoch)
     policy = binding(agent_policy, challenge)
     autonomous = agent_policy == AUTONOMOUS
-    prompt = prompt_for(agent_policy, challenge)
-    tools = tools_for_sdk(sdk) + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
+    if instructions is None:
+        prompt = prompt_for(agent_policy, challenge)
+        tools = (
+            tools_for_sdk(sdk) + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
+        )
+    else:
+        if type(instructions) is not str or not instructions:
+            raise ValueError("role instructions are a non-empty string")
+        if type(tools) is not list or any(
+            type(t) is not dict or t.get("type") != "function" for t in tools
+        ):
+            raise ValueError("a role's tools are a list of local functions")
+        prompt = instructions
+        tools = json.loads(canonical(tools))
+    offered = {tool["name"] for tool in tools}
     plan = {
         "schema": "carbon.autoresearch.epoch-plan.v1",
         "epoch": epoch,
@@ -400,9 +426,9 @@ async def run_epoch(
                 )
             ledger.checkpoint()
             write_once(intent_file, canonical(intent))
-            if autonomous and call["name"] == STOP:
+            if autonomous and call["name"] == STOP and STOP in offered:
                 result = stop_result(arguments)
-            elif call["name"] == SELECT:
+            elif call["name"] == SELECT and SELECT in offered:
                 if (
                     set(arguments) != {"strategy_json", "reason", "used_feedback"}
                     or type(arguments["used_feedback"]) is not bool
