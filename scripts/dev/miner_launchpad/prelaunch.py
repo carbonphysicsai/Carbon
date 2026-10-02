@@ -71,7 +71,7 @@ def review(cfg):
     research_execution = {"profile": ENVIRONMENT_ID, "backend": "cpu"}
     assurance = None
     if "gpu_research" in runtime:
-        from carbon.battery.gpu import declared_scope
+        from carbon.development_session.battery_gpu import declared_scope
         from carbon.reconstruction.accelerators import GPU_PROFILE, miner_lane_assurance
 
         try:

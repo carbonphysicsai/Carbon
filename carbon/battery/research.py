@@ -547,10 +547,10 @@ class BatteryPractice:
         device=None,
         rented=None,
     ):
+        from carbon.development_session.battery_gpu import BACKENDS, is_gpu_image
         from carbon.development_session.research_carrier import _run
 
         from .challenge import PublicMaterial
-        from .gpu import BACKENDS, is_gpu_image
 
         self.ledger, self.owner, self.image = ledger, owner, image
         self.root, self.seconds = Path(root), seconds
@@ -621,9 +621,8 @@ class BatteryPractice:
             "image": self.image,
         }
         if self.gpu_image is not None:
+            from carbon.development_session.battery_gpu import GPU_PROGRAM
             from carbon.development_session.research_carrier import MINER_GPU
-
-            from .gpu import GPU_PROGRAM
 
             run = {
                 "source": GPU_PROGRAM,
@@ -675,7 +674,10 @@ class BatteryPractice:
         if self.gpu_image is None:
             ran = {**self.backend, "image": getattr(self.image, "image_id", None)}
         else:
-            from .gpu import backend_record, rented_backend_record
+            from carbon.development_session.battery_gpu import (
+                backend_record,
+                rented_backend_record,
+            )
 
             observed = checked("runtime.json", 65536)
             if type(observed) is not dict:
@@ -743,7 +745,6 @@ def implementation_files():
             "contracts.py",
             "domain.py",
             "exam.py",
-            "gpu.py",
             "practice.py",
             "recipes.py",
             "research.py",
