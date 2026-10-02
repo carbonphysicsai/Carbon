@@ -17141,3 +17141,51 @@ Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 - Scientific, security and launch qualification stay human-reserved.
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
+
+**Owner, verbatim, in session on 2026-10-01:**
+1. "I want you to pick up the work designing the challenges. Start by
+   finishing the cold plate design, then move on to the others. Get them all
+   hardened and ready for testing. Work straight through".
+2. "No blockers. Just follow the correct design flow. You have my
+   authoritative approval".
+
+**Decision.**
+1. **Order.** The design work proceeds in three steps:
+   - first the cold plate (#342);
+   - then the electric motor (#344);
+   - then the photonic coupler (#345).
+2. **What "ready for testing" means is set per Challenge, in its ticket.**
+   - It is a checkable list: reference service, pilot, population, separated
+     rules, pools, baselines and readiness record.
+   - It is not a judgement. The cold plate's list is in
+     `CHALLENGE-COLD-PLATE-01`.
+3. **The design choices that the flow needs are delegated to the executor.**
+   They are the choices a design flow cannot proceed without:
+   - scope and inputs;
+   - frozen maps and populations with their sampling laws;
+   - reference numerical checks;
+   - the separation of gates, feasibility constraints and scores;
+   - pilot shapes and pool sizes.
+   Each is recorded, with its basis, where it is made, in the same form as
+   the design basis items 10-12 of OWNER-BATTERY-V2-DISCLOSURE-01.
+4. **"No blockers"** means the executor does not stop to ask for these
+   choices. It records them and continues, recording a choice that departs
+   from an issue's proposal and why.
+5. **Pilots and pools run on the owner's local host**, which has no marginal
+   spend. Paid compute still needs its own grant.
+
+**Unchanged.**
+- **Every delegated value is a provisional DEVELOPMENT value.** None is:
+  - a qualified population, tolerance or gate;
+  - scientific, security or launch acceptance, which stay human-reserved;
+  - LIVE, reward, frontier or chain authority.
+- OWNER-CHALLENGE-ADMISSION-01 applies to these Challenges as to battery:
+  internal, never mainnet; miners see only the final optimized version.
+- AGENTS.md section 5's distinction holds: the executor implements and
+  records design choices under delegation, and does not declare scientific
+  adequacy.
+
+Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
+motor and photonic tickets to follow.

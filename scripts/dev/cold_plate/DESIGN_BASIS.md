@@ -190,3 +190,34 @@ from it:**
   refinement), which goes to the owner priced, before it runs.
 
 Those are made, and recorded, when the pilot is proposed.
+
+## 5. Decided on 2026-10-01, for the DEVELOPMENT exam
+
+The owner delegated the design flow (OWNER-CHALLENGE-DESIGN-01): "No
+blockers. Just follow the correct design flow." Section 4's open items are
+decided as follows. The full record, with each choice's basis, is
+`.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, D1-D8. Every
+value is a provisional DEVELOPMENT value, not a qualified one.
+
+- **The frozen heat maps are a family, not a list.**
+  - The family is an axial hot band: a Gaussian on a uniform floor,
+    normalized to the heat load.
+  - Its parameters are a peak-to-average ratio of 1-3, a centre of 3-27 mm
+    and a width of 1.5-3.5 mm.
+  - 3.5 mm is the widest band that still reaches 3x on a 30 mm die.
+  - The reason for a hot spot at all: with a uniform map, the textbook
+    closed-form model is within 0.1-0.35 K of the reference peak. That would
+    leave a learned model nothing to add.
+- **The population and its sampling law.**
+  - Draws are uniform over the nine-input box.
+  - A draw is admitted when the closed-form model (with axial spreading)
+    predicts a hottest wall of at most 95 °C and Re of at most 2,000.
+  - The coolant model ends at 100 °C; the reference checks its own fluid
+    against 99 °C.
+- **Gates, feasibility and scores are kept apart.**
+  - Gates are physical laws only.
+  - Feasibility (die temperature through the TIM, and hydraulic power) is a
+    decision property, never a gate.
+  - The score is TRAIN-normalized peak, profile and pressure-drop error.
+- **The pilot** ran in #342's shape on the owner's host, at no marginal
+  spend: 16 of 16 OK (`reference/README.md`).

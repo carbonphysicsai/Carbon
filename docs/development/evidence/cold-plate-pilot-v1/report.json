@@ -1,0 +1,185 @@
+{
+  "batch": "pilot-v1",
+  "planned": 16,
+  "recorded": 16,
+  "missing": [],
+  "outcomes": {
+    "OK": 16
+  },
+  "worst_checks": {
+    "mass_imbalance_rel": 6.915172878763087e-10,
+    "energy_balance_rel": 2.120035927699604e-06,
+    "iteration_change_k": 1.6469999764012755e-07,
+    "iteration_change_pressure_rel": 1.376973202127374e-09
+  },
+  "fluid_max_c": 96.69148124500003,
+  "fluid_ceiling_c": 99.0,
+  "inlet_undershoot_k": 2.299795603715154,
+  "re_outlet_max": 1341.24910527301,
+  "wall_s": {
+    "corner": [
+      849.4,
+      1545.3
+    ],
+    "ordinary": [
+      1302.0,
+      1456.5
+    ],
+    "refinement": [
+      2997.6,
+      3784.5
+    ]
+  },
+  "baseline": [
+    {
+      "case_id": "difficult-2-sharpest-spot",
+      "peak_c": 93.21825429785196,
+      "baseline_peak_error_k": 0.3722359468217178,
+      "baseline_profile_rms_k": 1.5016655628655895,
+      "baseline_dp_error_rel": -0.05763299795559673,
+      "screen_wall_c": 84.21166104964306,
+      "fluid_max_c": 81.67496562400004
+    },
+    {
+      "case_id": "ordinary-6",
+      "peak_c": 73.9738902573244,
+      "baseline_peak_error_k": 0.15104430625217447,
+      "baseline_profile_rms_k": 0.3613985384978797,
+      "baseline_dp_error_rel": -0.05883630359512704,
+      "screen_wall_c": 70.22221160568927,
+      "fluid_max_c": 69.423690604
+    },
+    {
+      "case_id": "ordinary-8",
+      "peak_c": 87.88043661475047,
+      "baseline_peak_error_k": 0.7904622789262703,
+      "baseline_profile_rms_k": 1.4793234013899048,
+      "baseline_dp_error_rel": -0.04091291523388596,
+      "screen_wall_c": 83.74688733337916,
+      "fluid_max_c": 81.46606643800004
+    },
+    {
+      "case_id": "ordinary-1",
+      "peak_c": 80.17705361032955,
+      "baseline_peak_error_k": -2.3746437286089304,
+      "baseline_profile_rms_k": 3.0487838713146562,
+      "baseline_dp_error_rel": -0.002148183233512624,
+      "screen_wall_c": 71.28122100262914,
+      "fluid_max_c": 72.323934027
+    },
+    {
+      "case_id": "ordinary-5",
+      "peak_c": 76.75491779115436,
+      "baseline_peak_error_k": -0.8733098112330708,
+      "baseline_profile_rms_k": 0.7251748143116407,
+      "baseline_dp_error_rel": -0.05970323601584404,
+      "screen_wall_c": 72.09243489087538,
+      "fluid_max_c": 72.12123348300003
+    },
+    {
+      "case_id": "ordinary-7",
+      "peak_c": 71.0749953210825,
+      "baseline_peak_error_k": 3.134629146904956,
+      "baseline_profile_rms_k": 1.8020080433817205,
+      "baseline_dp_error_rel": -0.032268438218274076,
+      "screen_wall_c": 71.84659240872543,
+      "fluid_max_c": 67.36115488400003
+    },
+    {
+      "case_id": "ordinary-2",
+      "peak_c": 86.20915687694361,
+      "baseline_peak_error_k": -0.48678481469914914,
+      "baseline_profile_rms_k": 0.402164941268149,
+      "baseline_dp_error_rel": -0.038544920595947385,
+      "screen_wall_c": 83.39100307355454,
+      "fluid_max_c": 82.62258180100002
+    },
+    {
+      "case_id": "ordinary-3",
+      "peak_c": 94.83711289808025,
+      "baseline_peak_error_k": 3.7922424526867644,
+      "baseline_profile_rms_k": 3.1478746799369755,
+      "baseline_dp_error_rel": -0.055239223477908106,
+      "screen_wall_c": 92.14500958805934,
+      "fluid_max_c": 86.84693768300002
+    },
+    {
+      "case_id": "ordinary-4",
+      "peak_c": 91.71188267457376,
+      "baseline_peak_error_k": 2.787772985897732,
+      "baseline_profile_rms_k": 2.624695918729911,
+      "baseline_dp_error_rel": -0.050121737548685985,
+      "screen_wall_c": 89.59155468950075,
+      "fluid_max_c": 85.56521554400001
+    },
+    {
+      "case_id": "difficult-1-screen-edge",
+      "peak_c": 101.62672776349763,
+      "baseline_peak_error_k": -2.57985048446011,
+      "baseline_profile_rms_k": 5.303006761950947,
+      "baseline_dp_error_rel": 0.09178609452060638,
+      "screen_wall_c": 94.97068774397269,
+      "fluid_max_c": 96.644503058
+    },
+    {
+      "case_id": "difficult-3-highest-pressure",
+      "peak_c": 77.4023844961954,
+      "baseline_peak_error_k": 1.129428058142139,
+      "baseline_profile_rms_k": 1.5724154819407659,
+      "baseline_dp_error_rel": -0.03468559206390709,
+      "screen_wall_c": 74.63847862174708,
+      "fluid_max_c": 73.08761351100003
+    },
+    {
+      "case_id": "difficult-4-highest-re",
+      "peak_c": 93.14930470306575,
+      "baseline_peak_error_k": 2.7937681104389753,
+      "baseline_profile_rms_k": 2.7079496883374365,
+      "baseline_dp_error_rel": -0.015155269013771067,
+      "screen_wall_c": 89.68500810061363,
+      "fluid_max_c": 85.98646495700001
+    }
+  ],
+  "refinement": [
+    {
+      "case_id": "ordinary-2",
+      "peak_change_k": 0.015742156516012074,
+      "profile_max_change_k": 0.0616935625100723,
+      "dp_change_rel": 0.010736603977488324,
+      "wall_s": [
+        1435.2,
+        2997.6
+      ]
+    },
+    {
+      "case_id": "ordinary-1",
+      "peak_change_k": 0.020485517339068338,
+      "profile_max_change_k": 0.05412148814411921,
+      "dp_change_rel": 0.008772560977832633,
+      "wall_s": [
+        1370.5,
+        3377.2
+      ]
+    },
+    {
+      "case_id": "difficult-2-sharpest-spot",
+      "peak_change_k": 0.09663946352509356,
+      "profile_max_change_k": 0.11930909150714797,
+      "dp_change_rel": 0.008996189718009084,
+      "wall_s": [
+        1287.4,
+        3356.8
+      ]
+    },
+    {
+      "case_id": "difficult-1-screen-edge",
+      "peak_change_k": -0.3303772663468294,
+      "profile_max_change_k": 0.6477020007438341,
+      "dp_change_rel": 0.0160385266943861,
+      "wall_s": [
+        1545.3,
+        3784.5
+      ]
+    }
+  ]
+}
