@@ -38,6 +38,13 @@ from . import literature
 
 ROLE_SCHEMA = "carbon.graphite.role.v1"
 
+#: The registered number of attempts after which a Constructor's builds count
+#: as stalled against the baseline (plan §3; OWNER-GRAPHITE-02, 2026-10-02:
+#: "stall limit of 5"). A `BUILD_STALLED_AGAINST_BASELINE` observation is
+#: recorded only with evidence of at least this many attempts
+#: (`ladder.Ladder.record_failure`).
+CONSTRUCTOR_STALL_ATTEMPTS = 5
+
 
 def _registry():
     tools = {tool["name"]: tool for tool in MINER_TOOLS}
