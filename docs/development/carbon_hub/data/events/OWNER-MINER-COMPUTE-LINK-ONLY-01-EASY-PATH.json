@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "OWNER-MINER-COMPUTE-LINK-ONLY-01-EASY-PATH",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "OWNER-MINER-COMPUTE-LINK-ONLY-01, second amendment (owner, 2026-10-02: \"I agree and approve your decision, we just need to help miners figure out what to do easily.\"): the endpoint transport, a long-lived internet-facing job server holding a standing secret, stays designed and not built and is refused by name; ssh-container covers SSH-capable container rentals. LINKONLY-D10 makes the miner's path easy in the Control Center, under the owner's direction to make it \"way more intuitive and to match our brand\": Overview leads with six ordered steps (start your signer, register, inference, compute, agent, review and launch), each done only when the controller confirmed it; setup is the same six steps as a wizard; a Where's your GPU? chooser offers this machine and one card per setup the wiring guide covers (RunPod, Lium, Targon, Vast.ai, Lambda, your own server), each setting the transport its guide section names and showing that section, UNVERIFIED marks kept, with its commands to copy; the controller serves the guide itself; setup fills in the images it finds and otherwise names one command; each blocking status is one sentence and one link to the fix, codes behind Details; Compute lists this machine and a GPU run elsewhere. The page uses the public website's design system and serves Carbon's wordmark and the Montreal font itself (owner, 2026-10-02: \"Our license covers it, bundle the font\"; digests equal the website baseline manifest's), and loads nothing from the internet. Provider cards are notes for the miner's own accounts: Carbon calls no provider API and starts, stops or bills nothing. Engineering evidence only; nothing is qualified.",
+  "primary_detail": ".agent/tickets/C-MLP-03_miner_environment.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T23:45:27Z"
+}

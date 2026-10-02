@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T22:20:29Z"
+  captured_at_utc: "2026-10-02T23:45:27Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "1ceeab35d92762af1ce17027df497a1df4577180"
+  authority_snapshot_commit: "7f5399c5effb21eef61f6b05d3470a7db04c56b4"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10783,6 +10783,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
     recorded_at: "2026-10-02T22:20:29Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-MINER-COMPUTE-LINK-ONLY-01-EASY-PATH"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-MINER-COMPUTE-LINK-ONLY-01, second amendment (owner, 2026-10-02: \"I agree and approve your decision, we just need to help miners figure out what to do easily.\"): the endpoint transport, a long-lived internet-facing job server holding a standing secret, stays designed and not built and is refused by name; ssh-container covers SSH-capable container rentals. LINKONLY-D10 makes the miner's path easy in the Control Center, under the owner's direction to make it \"way more intuitive and to match our brand\": Overview leads with six ordered steps (start your signer, register, inference, compute, agent, review and launch), each done only when the controller confirmed it; setup is the same six steps as a wizard; a Where's your GPU? chooser offers this machine and one card per setup the wiring guide covers (RunPod, Lium, Targon, Vast.ai, Lambda, your own server), each setting the transport its guide section names and showing that section, UNVERIFIED marks kept, with its commands to copy; the controller serves the guide itself; setup fills in the images it finds and otherwise names one command; each blocking status is one sentence and one link to the fix, codes behind Details; Compute lists this machine and a GPU run elsewhere. The page uses the public website's design system and serves Carbon's wordmark and the Montreal font itself (owner, 2026-10-02: \"Our license covers it, bundle the font\"; digests equal the website baseline manifest's), and loads nothing from the internet. Provider cards are notes for the miner's own accounts: Carbon calls no provider API and starts, stops or bills nothing. Engineering evidence only; nothing is qualified."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T23:45:27Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
