@@ -1,6 +1,8 @@
 # CHALLENGE-COLD-PLATE-01 — the cold plate as a DEVELOPMENT exam, ready for testing
 
-**Status:** in progress.
+**Status:** slices 1-4 complete; readiness record v6 (baselines MEASURED,
+PROCEED). Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is
+prior work for laminar internal flow (f04) and steady conduction (f03).
 **Primary Hub map_ref:** `CL-CP-01`, `HUB_UPDATE_REQUIRED`.
 **Authority:** OWNER-CHALLENGE-DESIGN-01 (2026-10-01) and OWNER-DX-03, under
 the design basis delegated by OWNER-BATTERY-V2-DISCLOSURE-01 items 10-12 and
@@ -162,6 +164,45 @@ below is a provisional DEVELOPMENT value with its basis beside it.
     scored once more, in full, with the declared grid.
   - The motor shares the module. Its baselines are scored with the same
     widened grid.
+
+## Pools and baselines (slice 4)
+
+Evidence is in `docs/development/evidence/cold-plate-pools-v1/`: the public
+pools, `pools.json` and `baselines.json`, which holds aggregates only.
+
+- **Pools.** All 700 cases are OK:
+  - 400 TRAIN, of which 308 were solved on a RunPod CPU pod (D10);
+  - 100 PRACTICE;
+  - 200 private cases from the operator-held root (D9), solved on the
+    owner's host only.
+- **Exam.**
+  - Every gate holds on every reference of every pool. The smallest TRAIN
+    margins are a face 3.7 K above the inlet, and a peak 6e-4 K above the
+    hottest profile segment.
+  - The scales come from TRAIN alone: peak 10.6 K, profile
+    11.5 K, log pressure drop 0.837.
+- **Baselines**, scored through the exam (lower is better):
+
+  | | PRACTICE | Private | Private peak | Private profile | Private pressure | Private important region |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | Conventional closed form (axial spreading) | 0.120 | 0.109 | 0.138 | 0.149 | 0.041 | 0.143 |
+  | Kernel ridge (length 8, ridge 1e-06) | 0.099 | 0.105 | 0.118 | 0.182 | 0.016 | 0.141 |
+
+- **The generic learned model barely beats the conventional one, and is
+  worse on the profile.**
+  - With axial spreading modelled (D5a), the closed form is a strong
+    baseline. 400 samples in nine inputs are too few for a model that knows
+    nothing of the physics to do much better.
+  - So a useful surrogate here has to beat a physics-aware baseline. A
+    learned correction to the conventional model is the natural next
+    baseline. That is new design, and it waits for the family's turn in the
+    challenge pipeline.
+- **Dry-run disclosure (D11).** Before the grid was widened, a dry run
+  scored the first 83 private cases: closed form 0.115, kernel ridge on the
+  original grid 0.101. The final scores above use the declared grid, once,
+  on all 200.
+- **Reproducibility.** A test reproduces the PRACTICE scores and the scales
+  from the committed public pools.
 
 ## Slices
 
