@@ -22,6 +22,7 @@ import argparse
 import copy
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -65,18 +66,24 @@ def legs(component):
 
 
 def score(component, weights):
-    """A profile's score; 0 when ineligible (gates are never rescued);
-    None when a leg with positive weight is not measured."""
+    """A profile's score: Carbon's weight-profile combination
+    (`carbon.scoring.weight_profile.combine`), a weighted geometric mean
+    `exp(sum(w * log(leg)))` over positive-weight legs, 0 when any of them is
+    0. Extended to three legs because the registered profile type has one
+    robustness slot. 0 when ineligible (gates are never rescued); None when a
+    leg with positive weight is not measured."""
     if not component.get("eligible"):
         return 0.0
-    total = 0.0
+    terms = []
     for weight, leg in zip(weights, legs(component), strict=True):
         if weight == 0:
             continue
         if leg is None:
             return None
-        total += weight * leg
-    return total
+        if leg == 0.0:
+            return 0.0
+        terms.append(weight * math.log(leg))
+    return math.exp(math.fsum(terms))
 
 
 def rescored(results):

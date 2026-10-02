@@ -17495,3 +17495,52 @@ this problem."
 **Unchanged.** The deciding testnet rule, historical results (invariant 10),
 and every claim boundary: this is not a security audit, a qualification or a
 mainnet decision.
+
+## 2026-10-02 — OWNER-ADMISSION-COMBINED-01: construction, attack and value run as one admission test, with separate verdicts
+
+**Authority.** The owner, in session on 2026-10-02: "This almost makes me
+think construction + attack + value should be rolled into one test". Then:
+"I agree. Let's run it as one test where we're still working up the ladder,
+using graphite, and attacking but value/score tuning at the same time."
+
+**Amends** OWNER-CHALLENGE-ADMISSION-01 (`Design_Specs/Challenge_Admission.md`)
+prospectively.
+
+1. **One run per Challenge and ladder rung.** Each run has one frozen study
+   sheet, one panel, one fresh confirmation set and one ledger.
+   - The panel holds both the legitimate constructions (real models, and
+     GRAPHITE's Constructor) and the attackers' best constructions (the
+     registered harness, `carbon.battery.track_a`, and GRAPHITE's Attacker).
+   - Attack constructions are scored and value-tested exactly like real
+     ones, so an attack that only shows up as a value failure is caught. The
+     boundary optimist is the case that motivates this.
+2. **Score tuning runs inside the test.**
+   - Candidate scoring rules are proposed and tested on the run's own
+     development material. SR-1 is the first.
+   - The design optimizer runs inside the test:
+     - Mode X (adversarial) belongs to the attack side;
+     - Mode D (design) belongs to the value side.
+   - A rule is chosen on development conditions only and confirmed once on
+     fresh cases.
+3. **Separate verdicts, never blended.** The run reports three verdicts, and
+   any one can fail the rung:
+   - construction integrity: no breach, escape or forbidden access;
+   - adversarial score: no high-scoring unacceptable construction under the
+     candidate rule;
+   - value: the rule's ranking agrees with decision quality within the noise
+     band, and design search beats the baseline.
+
+   A gain in one never compensates for a failure in another (§1 unchanged).
+4. **Up the ladder.**
+   - Each level is a new run with its own sheet.
+   - A rung is passed only when all three verdicts pass and the owner signs
+     the lock (OWNER-TRACK-A-L0-02).
+   - Unsupported levels stay NOT_RUN and are never opened to collect data.
+5. **Budgets.** Battery Level 0 runs under OWNER-TRACK-A-L0-02's USD 25 cap.
+   The next fresh value study (EV5) is the first combined run, and its
+   confirmation batch serves the attack confirmation too. Its own reference
+   budget, beyond that cap, comes to the owner before dispatch.
+
+**Unchanged.** Internal development only: not mainnet, not a qualification
+gate. Every existing invariant, and the deciding testnet rule, until a
+candidate passes confirmation and its own approval.

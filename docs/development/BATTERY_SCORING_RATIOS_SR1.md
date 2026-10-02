@@ -34,8 +34,16 @@ EV4 member. No new metric is introduced:
 | `r`, important-region robustness | `1/(1+E_important)` over the published important region |
 | `g`, decision agreement | `1/(1 + mean mistake cost per resolved constraint call)`, from the decision contract's own costs and bands |
 
-**Score definition.** `score = w_a·a + w_r·r + w_g·g`, with weights on the
+**Score definition.** `score = exp(w_a·ln a + w_r·ln r + w_g·ln g)`, Carbon's
+weight-profile combination (`carbon.scoring.weight_profile.combine`, a
+weighted geometric mean), extended to three legs. The weights lie on the
 simplex in steps of 0.1. That gives **66 profiles**, `sr-a{w_a}-r{w_r}-g{w_g}`.
+
+*Amended before any ratio was computed (2026-10-02).* The first version of
+this document said a weighted sum. Checking the code against the published
+EV4 profiles showed the registered combination is the geometric mean, so
+SR-1 uses it. The overlapping profiles in §8 are then exactly the published
+rules. No SR-1 ratio had been computed under either definition.
 
 **Fixed rules for every profile:**
 - Gates are mandatory: an ineligible member scores 0 under every profile.
