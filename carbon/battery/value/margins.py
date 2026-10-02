@@ -137,7 +137,7 @@ def verified_predictions(directory, manifest):
     return out
 
 
-class content_verified_predictions:  # noqa: N801 - used like the eager loader
+class content_verified_predictions:
     """Every member's predictions, each checked by content when it is read:
     its recomputed exam components (E, E_important, decision score,
     eligibility) must equal the components the result recorded, exactly.
