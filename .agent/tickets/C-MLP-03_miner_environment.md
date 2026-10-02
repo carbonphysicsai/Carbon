@@ -342,8 +342,10 @@ pending Hermes and the miner's keys.
     then review and launch. Setup is the same six steps as a wizard, with
     progress, Back and Next. A step is done only when the controller has
     confirmed it: registration by the chain read, each check by its live
-    check, the signer by the Agent step's handshake, the last step by a
-    campaign on record.
+    check, the signer by its identity handshake (asked at step 1 for the
+    miner's public hotkey address, before or after registration, or by the
+    Agent step), the last step by a campaign on record. One step reads Next;
+    others a miner can take now, in any order, read Open.
   - *Where's your GPU?* Setup's Compute step offers this machine (CPU or GPU)
     and one card per setup the wiring guide covers: RunPod, Lium, Targon,
     Vast.ai, Lambda and your own server. A card sets the remote choice and

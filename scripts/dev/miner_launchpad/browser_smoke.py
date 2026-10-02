@@ -1433,13 +1433,14 @@ def setup_journey():
                     "document.querySelector('[data-step-panel=register] .step-done')"
                     ".textContent.includes('Registered')"
                 )
-                # Until the Agent step asks it, the signer is not shown done.
+                # Until a handshake asks it, the signer is not shown done; this
+                # miner registered first, so step 1 is the one next.
                 assert (
                     session.evaluate(
                         "document.querySelector('#setup-progress li:first-child').className"
                     )
-                    == "is-waiting"
-                ), "the signer is checked at the Agent step, not before"
+                    == "is-next"
+                ), "the signer is done only once a handshake has asked it"
                 assert session.evaluate(
                     "document.getElementById('setup-next').disabled"
                     " && document.getElementById('setup-next-reason').textContent.includes('check')"
@@ -1873,9 +1874,14 @@ def fresh_miner():
                     "agent",
                     "review",
                 ], steps
-                # Nothing is confirmed yet, so nothing is done; the signer
-                # comes first and registration is open beside it.
-                assert [s[2] for s in steps] == ["Next", "Next"] + ["Waiting"] * 4
+                # Nothing is confirmed yet, so nothing is done. One step reads
+                # Next, the signer; registration is open beside it, in either
+                # order, and says so.
+                assert [s[2] for s in steps] == ["Next", "Open"] + ["Waiting"] * 4
+                assert session.evaluate(
+                    "document.querySelector('#getting-started-steps [data-step=register]')"
+                    ".textContent.includes('either order')"
+                )
                 assert "is-current" in steps[0][1]
                 primary = json.loads(
                     session.evaluate(
@@ -1904,6 +1910,19 @@ def fresh_miner():
                     )
                 )
                 assert locked == [False, False, True, True, True, True], locked
+                # The signer is checked here, before registration: its public
+                # address names the socket and it says which hotkey it holds.
+                session.evaluate(
+                    "document.getElementById('setup-signer-address').value = "
+                    + json.dumps("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                )
+                click(session, "setup-signer-check")
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: signer.'"
+                    " && document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                    " && document.querySelector('[data-step-panel=signer] .step-done') !== null",
+                )
                 click(session, "setup-next")
                 wait(
                     session,
@@ -1916,7 +1935,8 @@ def fresh_miner():
                     "Boolean(document.getElementById('setup-register-confirm'))"
                     " && document.querySelector('[data-step-panel=register] a[href=\"#wallet\"]') !== null"
                 )
-                # A started signer waits for its check; registration is next.
+                # The signer answered: step 1 is done, and registration is the
+                # one next.
                 goto(session, "#overview")
                 wait(
                     session,
@@ -2014,7 +2034,15 @@ def fresh_miner():
                     and not url.startswith(("data:", "blob:"))
                 ]
                 assert not outside, outside
-                for width in (1440, 390):
+                # Exactly one step reads Next at a time.
+                assert (
+                    session.evaluate(
+                        "[...document.querySelectorAll('#getting-started-steps .gs-state')]"
+                        ".filter(p => p.textContent === 'Next').length"
+                    )
+                    == 1
+                )
+                for width in (1440, 800, 390):
                     session.command(
                         "Emulation.setDeviceMetricsOverride",
                         {
@@ -2029,6 +2057,14 @@ def fresh_miner():
                         assert session.evaluate(
                             "document.documentElement.scrollWidth <= innerWidth"
                         ), (width, surface)
+                        # The navigation wraps: no view is cut off or behind
+                        # a sideways scroll.
+                        assert session.evaluate(
+                            "(() => { const nav = document.getElementById('tool-nav');"
+                            " return nav.scrollWidth <= nav.clientWidth"
+                            " && [...nav.querySelectorAll('a')].every(a =>"
+                            " a.getBoundingClientRect().right <= innerWidth + 0.5); })()"
+                        ), (width, surface)
                 exceptions = [
                     event
                     for event in session.events
@@ -2041,7 +2077,7 @@ def fresh_miner():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and the signer next, setup led with that step and locked the rest until registration, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
+        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and one step next (the signer, registration open beside it in either order), setup led with that step, checked the signer before registration by its handshake and locked the steps after registration, the navigation wrapped at 800 and 390 px, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
     )
 
 

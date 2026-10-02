@@ -12,8 +12,8 @@ returned, and sent only to its own provider.
 
 **Carbon never holds the miner's hotkey** (external signing, #445). The miner
 runs `carbon-miner-signer` for their registered hotkey in their own terminal;
-the Agent step only asks it, through `carbon.chain.external_signer`, which
-hotkey it holds. No hotkey file path and no password is asked for, stored or
+setup's first step and the Agent step only ask it, through
+`carbon.chain.external_signer`, which hotkey it holds. No hotkey file path and no password is asked for, stored or
 written into the profile.
 
 **Every connection is checked live, at the miner's cost, with consent.** A
@@ -1230,8 +1230,52 @@ class EnvironmentSetup:
                     "ready": "hotkey" in record and all(done.values()),
                     "profile_written": "profile" in record,
                 },
+                # Setup's first step (LINKONLY-D10): the miner's signer
+                # answered for this hotkey, by the same identity handshake the
+                # Agent step makes. It counts only for the registered hotkey,
+                # once there is one.
+                "signer": self._signer(record),
             },
         }
+
+    @staticmethod
+    def _signer(record) -> dict:
+        signer = record.get("signer")
+        if signer is None or record.get("hotkey") not in (None, signer["hotkey"]):
+            return {"checked": False}
+        return {
+            "checked": True,
+            "checked_at": signer["checked_at"],
+            "hotkey": signer["hotkey"],
+            "check": signer["check"],
+        }
+
+    def signer(self, value) -> dict:
+        """Ask the miner's signer which hotkey it holds, before or after
+        registration: the identity handshake only, nothing is signed and
+        nothing leaves this machine. `address` is the public hotkey address
+        whose signer socket is asked."""
+        _closed(value, {"address"}, {"signer_socket"})
+        address = value["address"]
+        if type(address) is not str or not _ADDRESS.fullmatch(address):
+            raise SetupRefused("address", "hotkey_address_required")
+        socket_path = (
+            _absolute(value["signer_socket"], "signer_socket")
+            if value.get("signer_socket")
+            else None
+        )
+        check = self.checks.agent(address, socket_path)
+        with self.lock:
+            record = self._record()
+            if record.get("hotkey") not in (None, address):
+                raise SetupRefused("address", "signer_hotkey_is_not_the_registered_one")
+            record["signer"] = {
+                "hotkey": address,
+                "check": check,
+                "checked_at": int(time.time()),
+            }
+            self._save(record)
+        return self.state()
 
     def begin(self, value) -> dict:
         """Start setup for a hotkey the chain reads as registered."""

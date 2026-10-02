@@ -34,6 +34,7 @@ code,.code,pre{font-family:var(--mono)}
 .pill-done{background:var(--fg);border-color:var(--fg);color:var(--bg)}
 .pill-next{border-color:var(--red);color:var(--fg);background:var(--card)}
 .pill-wait{border-color:var(--border);color:var(--muted-fg)}
+.pill-open{border-color:var(--fg);color:var(--fg)}
 .pill-need{border-color:var(--red);color:var(--fg)}
 
 /* Header, as the site's: light, with a hairline. */
@@ -158,6 +159,7 @@ details pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--bor
 .setup-step>ol.guide-steps{padding-left:22px;margin:0}
 .step-lede{font-size:17px;color:var(--muted-fg);margin-bottom:8px;max-width:62ch}
 .step-done{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 14px;font-size:15px}
+.step-done span,#setup-result p,.setup-step p{min-width:0;overflow-wrap:anywhere}
 .step-action{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .setup-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:0;padding:18px 30px;background:var(--card);border:1px solid var(--border);border-top:0}
 .setup-nav button{min-width:120px}
@@ -308,13 +310,14 @@ label.check input{width:auto;min-height:0}
 @media(max-width:900px){
   .shell{display:block}
   .shell main{padding:24px 16px}
-  .tool-nav{position:sticky;top:72px;z-index:2;max-height:none;padding:0 8px;border-right:0;border-bottom:1px solid var(--border);overflow-x:auto;display:flex;align-items:center;background:var(--bg)}
-  .tool-nav ul{flex-direction:row;gap:2px}
-  .tool-nav a{white-space:nowrap;border-left:0;border-bottom:2px solid transparent}
+  /* The navigation wraps rather than scrolls sideways: every view in reach. */
+  .tool-nav{position:static;max-height:none;padding:8px 12px;border-right:0;border-bottom:1px solid var(--border);overflow:visible;display:flex;flex-wrap:wrap;align-items:center;gap:0 4px;background:var(--bg)}
+  .tool-nav ul{flex-direction:row;flex-wrap:wrap;gap:0 2px}
+  .tool-nav a{white-space:nowrap;border-left:0;border-bottom:2px solid transparent;padding:0 10px}
   .tool-nav a:hover{border-left:0;border-bottom-color:var(--fg)}
   .tool-nav a[aria-current]{border-bottom-color:var(--red)}
-  .nav-label{margin:0 6px 0 14px;white-space:nowrap}
-  .sticky-controls{top:118px}
+  .nav-label{margin:0 4px 0 10px;white-space:nowrap}
+  .sticky-controls{top:72px}
   .layout,.connect{grid-template-columns:1fr}
   .connect{gap:12px}
   .integration-grid{grid-template-columns:1fr}
@@ -327,8 +330,9 @@ label.check input{width:auto;min-height:0}
   .wordmark img{width:96px}
   .wordmark span{display:none}
   .topbar-state .pill{padding:4px 6px;font-size:10px}
-  .tool-nav{top:0}
-  .sticky-controls{top:46px}
+  .tool-nav{padding:6px 8px}
+  .tool-nav a{font-size:14px;padding:0 8px}
+  .sticky-controls{top:0}
   .panel{padding:20px 16px}
   .setup-nav{padding:14px 16px}
   .two{grid-template-columns:1fr;gap:0}

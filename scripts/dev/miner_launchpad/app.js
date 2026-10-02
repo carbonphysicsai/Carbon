@@ -479,9 +479,9 @@
     ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
   ];
   const SETUP_IDS = SETUP_STEPS.map(([id]) => id);
-  const STATE_LABEL = {done: "Done", next: "Next", waiting: "Waiting"};
-  // Per-browser conveniences only: never a token, key or address.
-  const signerSeenKey = "carbon.control-center.signer-started.v1";
+  // One step reads Next; others a miner can take now, in any order, read Open.
+  const STATE_LABEL = {done: "Done", next: "Next", open: "Open", waiting: "Waiting"};
+  // A per-browser convenience only: never a token, key or address.
   const whereKey = "carbon.control-center.where.v1";
   let setupState = null;
   let setupRead = false;
@@ -521,7 +521,8 @@
     const sendPending = Boolean(steps.compute?.checked && steps.compute.check?.next_step);
     const profile = Boolean(caps?.profile?.configured);
     const done = {
-      signer: Boolean(steps.agent?.checked),
+      // The signer answered step 1's handshake, or the Agent step's.
+      signer: Boolean(steps.signer?.checked || steps.agent?.checked),
       register: registered,
       inference: Boolean(steps.inference?.checked),
       compute: Boolean(steps.compute?.checked) && !sendPending,
@@ -529,18 +530,16 @@
       review: research.runs.length > 0,
     };
     const ready = done.inference && done.compute && done.agent;
-    // A signer is confirmed only by the Agent step; until then a started one
-    // waits for that check rather than holding the miner at step 1.
-    const signerSeen = Boolean(stored(signerSeenKey, null));
     const state = {};
     for (const id of SETUP_IDS) {
       if (done[id]) state[id] = "done";
-      else if (id === "signer") state[id] = registered || signerSeen ? "waiting" : "next";
-      else if (id === "register") state[id] = "next";
+      else if (id === "signer" || id === "register") state[id] = "next";
       else if (id === "review") state[id] = (registered && ready) || profile ? "next" : "waiting";
       else state[id] = registered ? "next" : "waiting";
     }
+    // The first open step is the one next; the rest can be taken in any order.
     const current = SETUP_IDS.find(id => state[id] === "next") || null;
+    for (const id of SETUP_IDS) if (state[id] === "next" && id !== current) state[id] = "open";
     return {state, done, current, registered, ready, profile, sendPending, steps};
   }
   function stepTitle(id, j) {
@@ -561,8 +560,8 @@
   function stepSentence(id, j) {
     const state = j.state[id];
     const steps = j.steps;
-    if (id === "signer") return state === "done" ? "Your signer answered for your registered hotkey." : state === "next" ? "Start carbon-miner-signer in your own terminal and leave it open." : "Leave it running. Carbon checks it at step 5.";
-    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet.";
+    if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
+    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
     if (id === "compute") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : "Choose where practice runs.";
@@ -634,9 +633,6 @@
   });
   $("setup-next").addEventListener("click", () => {
     const index = SETUP_IDS.indexOf(setupStepShown);
-    // Moving on from step 1 says the signer is started; it is still checked
-    // at the Agent step.
-    if (setupStepShown === "signer") store(signerSeenKey, {started: true});
     if (index < 0 || index >= SETUP_IDS.length - 1 || nextProblem(setupStepShown, journey())) return;
     location.hash = "#setup/" + SETUP_IDS[index + 1];
   });
@@ -708,12 +704,26 @@
     const j = journey();
     body.replaceChildren();
 
-    // 1. Start your signer.
-    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for your registered hotkey." : null);
+    // 1. Start your signer, then check it: the public hotkey address names
+    // its socket, and the signer says which hotkey it holds. Nothing is
+    // signed, and Carbon never sees the key.
+    const signerHotkey = steps.signer?.hotkey || setupState.registered_hotkey || "";
+    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered hotkey") + "." : null);
     signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
     copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
     researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
-    if (!j.done.signer) researchNote(signer, "Carbon checks it at step 5, Agent.", "hint");
+    const signerLabel = el("label", "Your hotkey address (ss58)"); signerLabel.htmlFor = "setup-signer-address";
+    const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
+    signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
+    const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
+    signerCheck.addEventListener("click", () => {
+      const address = signerAddress.value.trim();
+      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your hotkey address: its public ss58 address, never a key or phrase.", "error")); return; }
+      setupCall("signer", {address});
+    });
+    const signerAction = el("div", undefined, "step-action"); signerAction.append(signerCheck);
+    signer.append(signerLabel, signerAddress, signerAction);
+    researchNote(signer, "This asks your signer which hotkey it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
 
     // 2. Register on the subnet: confirmed here, prepared under Wallet.
     const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
@@ -721,7 +731,7 @@
       register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
       const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
       const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
-      address.value = $("onboarding-address").value.trim();
+      address.value = steps.signer?.hotkey || $("onboarding-address").value.trim();
       const confirm = el("button", "Check my registration", "primary go"); confirm.type = "button"; confirm.id = "setup-register-confirm";
       confirm.addEventListener("click", () => confirmRegistration(address.value.trim()));
       const action = el("div", undefined, "step-action"); action.append(confirm);
@@ -1375,7 +1385,7 @@
       const body = el("div", undefined, "gs-body");
       const title = el("h3"); const go = el("a", stepTitle(id, j)); go.href = stepHref(id, j); title.append(go);
       body.append(title, el("p", stepSentence(id, j)));
-      item.append(el("span", String(index + 1).padStart(2, "0"), "gs-num"), body, pill(STATE_LABEL[state], "gs-state pill-" + (state === "done" ? "done" : state === "next" ? "next" : "wait")));
+      item.append(el("span", String(index + 1).padStart(2, "0"), "gs-num"), body, pill(STATE_LABEL[state], "gs-state pill-" + ({done: "done", next: "next", open: "open"}[state] || "wait")));
       list.append(item);
     });
     const count = Object.values(j.state).filter(state => state === "done").length;

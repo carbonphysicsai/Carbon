@@ -161,6 +161,69 @@ def test_the_signer_command_names_placeholders_only():
     assert "carbon-miner-signer" in command
 
 
+def test_setup_checks_the_signer_first_by_its_public_address(tmp_path):
+    """Step 1 asks the miner's signer which hotkey it holds, before
+    registration if the miner likes: the Agent step's identity handshake,
+    for a public address, recorded only for that hotkey."""
+    from test_miner_launchpad_environment_setup import HOTKEY, Checks, Onboarding
+
+    from scripts.dev.miner_launchpad.environment_setup import SIGNER_STEP, SetupRefused
+
+    state = tmp_path / "state"
+    state.mkdir(mode=0o700)
+    checks = Checks()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    assert setup.state()["steps"]["signer"] == {"checked": False}
+    checked = setup.signer({"address": HOTKEY})
+    assert checked["registered_hotkey"] is None
+    signer = checked["steps"]["signer"]
+    assert (signer["checked"], signer["hotkey"]) == (True, HOTKEY)
+    assert checks.calls[-1] == ("agent", HOTKEY, None)
+    # Registering the same hotkey keeps it.
+    assert setup.begin({"address": HOTKEY})["steps"]["signer"]["checked"] is True
+    # Only an address is accepted: a phrase, or any other field, is refused
+    # by name and nothing is asked.
+    asked = len(checks.calls)
+    for request, field, code in (
+        (
+            {"address": "bottom drive obey lake curtain"},
+            "address",
+            "hotkey_address_required",
+        ),
+        ({"address": HOTKEY, "key_file": "/k"}, "key_file", "unknown_field"),
+    ):
+        with pytest.raises(SetupRefused) as refused:
+            setup.signer(request)
+        assert (refused.value.field, refused.value.code) == (field, code)
+    assert len(checks.calls) == asked
+    # Once registered, a signer for another hotkey is refused.
+    other = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    with pytest.raises(SetupRefused) as refused:
+        setup.signer({"address": other})
+    assert refused.value.code == "signer_hotkey_is_not_the_registered_one"
+
+    # A signer checked for one hotkey does not count for another registered.
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir(mode=0o700)
+    second = EnvironmentSetup(elsewhere, onboarding=Onboarding(), checks=Checks())
+    second.signer({"address": other})
+    assert second.begin({"address": HOTKEY})["steps"]["signer"] == {"checked": False}
+
+    # A signer that does not answer is refused by field, with how to start
+    # it, and nothing is recorded.
+    class Silent(Checks):
+        def agent(self, hotkey, socket_path=None):
+            raise SetupRefused("signer", "signer_not_running", next_step=SIGNER_STEP)
+
+    quiet = tmp_path / "quiet"
+    quiet.mkdir(mode=0o700)
+    silent = EnvironmentSetup(quiet, onboarding=Onboarding(), checks=Silent())
+    with pytest.raises(SetupRefused) as refused:
+        silent.signer({"address": HOTKEY})
+    assert (refused.value.field, refused.value.next_step) == ("signer", SIGNER_STEP)
+    assert silent.state()["steps"]["signer"] == {"checked": False}
+
+
 # --- the guide, served locally --------------------------------------------------
 
 

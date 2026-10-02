@@ -727,6 +727,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.path.startswith("/api/v1/setup/"):
                 action = self.path.removeprefix("/api/v1/setup/")
                 if action not in {
+                    "signer",
                     "begin",
                     "quote",
                     "inference",
