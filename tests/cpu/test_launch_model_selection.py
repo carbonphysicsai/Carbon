@@ -254,7 +254,7 @@ def test_the_profile_credential_map_is_closed(tmp_path):
         ),
         (
             {"model_provider": "openai-compatible-chat", "model": "m"},
-            "model_provider_endpoint_not_launchable",
+            "model_provider_endpoint_not_configured",
         ),
         (
             {"model_provider": "engy-anthropic", "agent": "none"},
@@ -469,7 +469,7 @@ def test_options_and_capabilities_offer_only_configured_providers(
     assert rows["openai-responses"]["availability"] == "available"
     assert rows["engy-chat"]["reason"] == "model_provider_credential_not_configured"
     assert rows["openai-compatible-chat"]["reason"] == (
-        "model_provider_endpoint_not_launchable"
+        "model_provider_endpoint_not_configured"
     )
     options = {"agents": [], "model_providers": list(rows.values())}
     listed = {

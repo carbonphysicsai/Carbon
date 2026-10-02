@@ -191,16 +191,19 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
                 "the miner's own GPU, then rented GPU on the miner's account."
             ),
         ),
-        "model": Gap(
-            reason=(
-                "Only the priced Engy and pinned adapters launch, and only from "
-                "a hand-written runner profile; no named inference provider is "
-                "connectable in setup."
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.development_session.model_provider:published_pricing",
             ),
-            next_step=(
-                "C-MLP-03 slice 2: the named inference providers, connected in "
-                "setup with the miner's own key and checked live."
-            ),
+            "Setup (Set up your environment, Inference) connects every adapter "
+            "with the miner's own key and checks it live: Engy (Chat "
+            "Completions by default, or Messages), Chutes at its published "
+            "per-token price, OpenAI, Anthropic, and the OpenAI-compatible "
+            "adapters at the miner's own endpoint and declared price "
+            "(C-MLP-03 slice 2). A live completion through Chutes and Engy "
+            "with miner-held keys is the ticket's acceptance and needs the "
+            "miner's keys.",
         ),
         "agent": Gap(
             reason=(

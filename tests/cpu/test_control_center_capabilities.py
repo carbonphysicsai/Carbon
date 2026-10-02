@@ -223,12 +223,11 @@ def test_unoffered_providers_are_unavailable_with_a_reason():
     compute = {item["id"]: item for item in document["compute"]["unavailable"]}
     assert "runpod" in compute and unavailable_is_explained(compute["runpod"])
     models = {item["id"] for item in document["model"]["unavailable"]}
-    assert "chutes" in models
-    # Engy's adapters are registered providers now, not an unavailable
-    # integration; the specimen is that they appear as providers.
-    assert "engy" not in models
+    # Engy's and Chutes' adapters are registered providers now, not
+    # unavailable integrations; the specimen is that they appear as providers.
+    assert "engy" not in models and "chutes" not in models
     providers = {item["id"] for item in document["model"]["providers"]}
-    assert {"engy-anthropic", "engy-chat"} <= providers
+    assert {"engy-anthropic", "engy-chat", "chutes"} <= providers
 
 
 def test_the_stale_burgers_bridge_entry_is_gone():

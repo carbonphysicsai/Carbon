@@ -401,15 +401,6 @@ INTEGRATIONS = (
     },
     {"id": "mira", "reason": "integration_interface_unverified"},
     {
-        # Not "no adapter": `openai-compatible-chat` sends to any endpoint
-        # the miner names, Chutes included. What is missing is an adapter
-        # of Chutes' own (its listed models, prices and charge report) and
-        # an exercise of the generic one against Chutes - Carbon has not
-        # run one, so it does not claim that it works.
-        "id": "chutes",
-        "reason": "no_chutes_adapter_generic_chat_adapter_unexercised_against_it",
-    },
-    {
         "id": "lium",
         "reason": "provisioning_and_teardown_adapter_not_implemented",
     },
@@ -448,13 +439,6 @@ INTEGRATION_PLACEMENT = {
         "Connect your own MCP client over stdio; it needs no Carbon credential.",
     ),
     "mira": ("connection", "None today; the interface has not been verified."),
-    "chutes": (
-        "model_provider",
-        (
-            "Choose 'Any service implementing OpenAI Chat Completions' with your "
-            "own endpoint and key, declaring the model's price for a spend limit."
-        ),
-    ),
     "runpod": (
         "compute_provider",
         (

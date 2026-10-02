@@ -229,6 +229,9 @@ class ProviderAdapter:
     cache_breakpoints: bool = False
     #: The public model list, readable without a key.
     models_url: str | None = None
+    #: Prices are read from `models_url` when a selection is made
+    #: (`published_pricing`) rather than listed in Carbon.
+    live_pricing: bool = False
     errors: ErrorSemantics = OPENAI_ERRORS
 
     def summary_models(self):
@@ -296,6 +299,21 @@ ENGY_LADDER = tuple(ENGY_MODELS)
 ENGY_DEFAULT_MODEL = "deepseek-v4-flash-0731"
 ENGY_MODELS_URL = "https://api.engy.ai/v1/models"
 
+#: Chutes (Bittensor subnet 64): OpenAI Chat Completions with a bearer key.
+#: Its public model list carries each model's price in USD per million tokens
+#: (`pricing.prompt`, `pricing.completion`, `pricing.input_cache_read`).
+#: Provider facts, read 2026-10-02.
+CHUTES_MODELS_URL = "https://llm.chutes.ai/v1/models"
+CHUTES_ERRORS = ErrorSemantics(
+    **{
+        **OPENAI_ERRORS.__dict__,
+        "basis": OPENAI_ERRORS.basis
+        + " Chutes' rate limits and charge reporting are not verified; these "
+        "semantics are the protocol's. No charge report is read, so a call is "
+        "metered at the published price.",
+    }
+)
+
 ADAPTERS = {
     adapter.adapter_id: adapter
     for adapter in (
@@ -333,6 +351,16 @@ ADAPTERS = {
             reported_charge="x_engy.charged_micro",
             models_url=ENGY_MODELS_URL,
             errors=ENGY_CHAT_ERRORS,
+        ),
+        ProviderAdapter(
+            adapter_id="chutes",
+            display_name="Chutes (subnet 64), OpenAI Chat Completions",
+            protocol=CHAT_COMPLETIONS,
+            endpoint="https://llm.chutes.ai/v1/chat/completions",
+            base_url="https://llm.chutes.ai/v1",
+            models_url=CHUTES_MODELS_URL,
+            live_pricing=True,
+            errors=CHUTES_ERRORS,
         ),
         ProviderAdapter(
             adapter_id="anthropic",
@@ -505,6 +533,103 @@ def _declared_pricing(value):
     )
 
 
+_OBSERVED_AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+
+
+def _published_pricing(adapter, value):
+    """A provider-published price, as `published_pricing` read it.
+
+    Only an adapter whose prices are live (`live_pricing`) takes one, and it
+    must name that adapter's own public list as its reference.
+    """
+    if not adapter.live_pricing:
+        raise ModelSelectionRefused("this adapter's prices are not published live")
+    fields = {
+        "unit",
+        "input",
+        "cached_input",
+        "output_including_reasoning",
+        "source",
+        "reference",
+        "observed",
+        "note",
+    }
+    if type(value) is not dict or set(value) != fields:
+        raise ModelSelectionRefused("published pricing record malformed")
+    if (
+        value["unit"] != "nanodollars per token"
+        or value["source"] != "provider_published"
+        or value["reference"] != adapter.models_url
+        or type(value["observed"]) is not str
+        or not _OBSERVED_AT.fullmatch(value["observed"])
+        or type(value["note"]) is not str
+        or not 1 <= len(value["note"]) <= 512
+    ):
+        raise ModelSelectionRefused("published pricing record malformed")
+    prices = [
+        _int(value[k], 0, 10**9, k)
+        for k in ("input", "cached_input", "output_including_reasoning")
+    ]
+    return Pricing(
+        *prices,
+        source="provider_published",
+        reference=adapter.models_url,
+        observed=value["observed"],
+        note=value["note"],
+    )
+
+
+def _nano_per_token(usd_per_million):
+    if (
+        type(usd_per_million) not in (int, float)
+        or isinstance(usd_per_million, bool)
+        or not 0 <= usd_per_million <= 10**6
+    ):
+        raise ValueError("published price malformed")
+    return round(usd_per_million * 1000)
+
+
+def published_pricing(adapter_id, model_id, *, opener=None, now=None):
+    """The price `adapter_id` publishes for `model_id` now, as a record.
+
+    Reads the provider's public model list (no key). A model the list does not
+    carry, or carries without a price, has no published price: ValueError.
+    The record names the list and the time it was read; `select` takes it as
+    `published_pricing`.
+    """
+    import datetime
+
+    adapter = ADAPTERS[adapter_id]
+    if not adapter.live_pricing:
+        raise ValueError("this provider publishes no live prices")
+    items = _model_list(adapter, opener)
+    item = next((i for i in items if type(i) is dict and i.get("id") == model_id), None)
+    if item is None:
+        raise ValueError("model not in the published list")
+    pricing = item.get("pricing")
+    if type(pricing) is not dict or not {"prompt", "completion"} <= set(pricing):
+        raise ValueError("model has no published price")
+    input_nano = _nano_per_token(pricing["prompt"])
+    observed = (now or datetime.datetime.now(datetime.timezone.utc)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+    return {
+        "unit": "nanodollars per token",
+        "input": input_nano,
+        "cached_input": _nano_per_token(
+            pricing.get("input_cache_read", pricing["prompt"])
+        ),
+        "output_including_reasoning": _nano_per_token(pricing["completion"]),
+        "source": "provider_published",
+        "reference": adapter.models_url,
+        "observed": observed,
+        "note": (
+            "Read from the provider's public model list when this selection "
+            "was made. Prices change; reconcile against your provider's usage."
+        ),
+    }
+
+
 def _endpoint(adapter, endpoint):
     if adapter.endpoint is not None:
         if endpoint not in (None, adapter.endpoint):
@@ -542,6 +667,7 @@ def select(
     endpoint=None,
     settings=None,
     declared_pricing=None,
+    published_pricing=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
@@ -550,7 +676,8 @@ def select(
     deepseek-v4-flash-0731). `settings` may override max_input_tokens,
     max_output_tokens, reasoning_effort and timeout_seconds.
     `declared_pricing` is the miner's own statement of price for a model with
-    no listed price; a listed price is never overridden.
+    no listed price; a listed price is never overridden. `published_pricing`
+    is a live-priced provider's own price as `published_pricing()` read it.
     """
     adapter = ADAPTERS.get(provider_id)
     if adapter is None:
@@ -581,11 +708,16 @@ def select(
     listed = adapter.priced_models.get(model_id)
     if listed is not None and declared_pricing is not None:
         raise ModelSelectionRefused("this model's price is listed; do not declare one")
-    pricing = (
-        listed
-        if listed is not None
-        else (None if declared_pricing is None else _declared_pricing(declared_pricing))
-    )
+    if published_pricing is not None and declared_pricing is not None:
+        raise ModelSelectionRefused("a price is published or declared, not both")
+    if published_pricing is not None:
+        pricing = _published_pricing(adapter, published_pricing)
+    elif listed is not None:
+        pricing = listed
+    else:
+        pricing = (
+            None if declared_pricing is None else _declared_pricing(declared_pricing)
+        )
     endpoint, credential = _endpoint(adapter, endpoint), _credential(credential)
     ticket = object()
     _TICKETS.add(ticket)
@@ -614,7 +746,11 @@ def selection_from_record(record, *, credential_file=None):
     if record.get("schema") != SELECTION_SCHEMA:
         raise ModelSelectionRefused("unknown provider record schema")
     pricing = record.get("pricing")
-    declared = None
+    declared = published = None
+    if pricing is not None and pricing.get("source") == "provider_published":
+        adapter = ADAPTERS.get(record.get("provider_id"))
+        if adapter is not None and adapter.live_pricing:
+            published = pricing
     if pricing is not None and pricing.get("source") == "miner_declared":
         declared = {
             "input_nano": pricing["input"],
@@ -633,10 +769,41 @@ def selection_from_record(record, *, credential_file=None):
         endpoint=None if adapter is None or adapter.endpoint else record["endpoint"],
         settings=record.get("settings"),
         declared_pricing=declared,
+        published_pricing=published,
     )
     if selection.record() != record:
         raise ModelSelectionRefused("provider record does not re-validate exactly")
     return selection
+
+
+def selection_spec(selection, *, settings=None):
+    """The `select()` arguments (credential aside) that rebuild `selection`.
+
+    The launch path hands a validated selection to a campaign as these, so an
+    endpoint, a declared price or a published price chosen in setup travels
+    with it rather than being dropped.
+    """
+    spec = {"provider_id": selection.provider_id, "model_id": selection.model_id}
+    if settings is not None:
+        spec["settings"] = dict(settings)
+    if selection.adapter.endpoint is None:
+        spec["endpoint"] = selection.endpoint
+    pricing = selection.pricing
+    if pricing is not None and pricing.source == "miner_declared":
+        spec["declared_pricing"] = {
+            "input_nano": pricing.input_nano,
+            "cached_input_nano": pricing.cached_input_nano,
+            "output_nano": pricing.output_nano,
+            "observed": pricing.observed,
+            "note": pricing.note,
+        }
+    elif (
+        pricing is not None
+        and pricing.source == "provider_published"
+        and selection.adapter.live_pricing
+    ):
+        spec["published_pricing"] = pricing.record()
+    return spec
 
 
 def check_budget(selection, ceilings):
@@ -1319,18 +1486,7 @@ def fetch_models(adapter_id="engy-anthropic", *, opener=None):
     fixture opener and never call it against the network.
     """
     adapter = ADAPTERS[adapter_id]
-    if adapter.models_url is None:
-        raise ValueError("this provider publishes no public model list")
-    opener = opener or urllib.request.build_opener(_NoRedirect())
-    outgoing = urllib.request.Request(adapter.models_url, method="GET")
-    with opener.open(outgoing, timeout=30) as response:
-        payload = response.read(2 * 1024**2 + 1)
-    if len(payload) > 2 * 1024**2:
-        raise ValueError("model list exceeds bound")
-    data = json.loads(payload)
-    items = data.get("data") if type(data) is dict else None
-    if type(items) is not list:
-        raise ValueError("model list malformed")
+    items = _model_list(adapter, opener)
     listed = sorted(
         item["id"]
         for item in items
@@ -1344,3 +1500,20 @@ def fetch_models(adapter_id="engy-anthropic", *, opener=None):
             m for m in adapter.allowed_models or () if m not in listed
         ],
     }
+
+
+def _model_list(adapter, opener=None):
+    """The items of a provider's public model list (`GET /v1/models`)."""
+    if adapter.models_url is None:
+        raise ValueError("this provider publishes no public model list")
+    opener = opener or urllib.request.build_opener(_NoRedirect())
+    outgoing = urllib.request.Request(adapter.models_url, method="GET")
+    with opener.open(outgoing, timeout=30) as response:
+        payload = response.read(2 * 1024**2 + 1)
+    if len(payload) > 2 * 1024**2:
+        raise ValueError("model list exceeds bound")
+    data = json.loads(payload)
+    items = data.get("data") if type(data) is dict else None
+    if type(items) is not list:
+        raise ValueError("model list malformed")
+    return items

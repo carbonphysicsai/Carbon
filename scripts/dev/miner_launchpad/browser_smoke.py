@@ -1255,7 +1255,19 @@ def journey():
 class SetupChecks:
     """Fixture live checks for the setup smoke: they contact nothing."""
 
-    def inference(self, provider_id, model_id, credential_file):
+    def published_pricing(self, provider_id, model_id):
+        return {
+            "unit": "nanodollars per token",
+            "input": 240,
+            "cached_input": 24,
+            "output_including_reasoning": 2200,
+            "source": "provider_published",
+            "reference": "https://llm.chutes.ai/v1/models",
+            "observed": "2026-10-02T00:00:00Z",
+            "note": "fixture",
+        }
+
+    def inference(self, provider_id, model_id, credential_file, spec=None):
         return {
             "models_source": "fixture",
             "models_listed": 1,
@@ -1334,6 +1346,40 @@ def setup_journey():
                 wait(session, "Boolean(document.getElementById('setup-inference-key'))")
                 assert session.evaluate(
                     "document.getElementById('setup-body').textContent.includes('billed by')"
+                )
+                # Engy's Chat Completions route is the default choice.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-inference-provider_id').value"
+                    )
+                    == "engy-chat"
+                )
+                # Chutes takes any model id it serves, typed, and is quoted
+                # at its published price; it needs no endpoint from the miner.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'chutes';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'Qwen/Qwen3.8-27B-TEE';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')"
+                    " && document.getElementById('setup-inference-endpoint').parentElement.hidden",
+                )
+                # A generic adapter asks for the miner's endpoint before quoting.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'openai-compatible-chat';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'my-model';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-endpoint').parentElement.hidden"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('endpoint')",
                 )
                 session.evaluate(
                     "document.getElementById('setup-inference-provider_id').value = 'engy-chat';"
