@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.ask-carbon.site-additions.v1",
+  "note": "Reviewed repository files published at paths live does not serve yet. integrate-static.mjs --site-additions writes each beside the verified baseline, refuses any path the baseline manifest lists, and verifies the bytes after staging.",
+  "additions": [
+    {
+      "path": "start-mining/index.html",
+      "source": "site/start-mining/index.html",
+      "sha256": "4adbf65ece6d43ab46176b44c0a59299561ebdc35de3a9ec662179c7e7c12e09",
+      "decision": "OWNER-WEBSITE-START-MINING-01 (2026-10-02); candidate ask-carbon-public-release-2026-10-02.1",
+      "reason": "The Start mining page: from a clean Linux machine to the Control Center, then choose a Challenge. It replaces the unpublished website/get-started draft (C-MLP-04) and uses the site header, footer and stylesheet."
+    }
+  ]
+}
