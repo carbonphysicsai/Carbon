@@ -306,6 +306,32 @@ Delegated engineering decisions, recorded under
     change. Those follow the owner's acceptance of a Level-1 proposal.
   - Tests: `tests/cpu/test_loss_expressions.py`,
     `tests/cpu/test_agent_campaign_climb.py`, and four mutation checks.
+- **Slice C, Graphite's Optimizer researcher.**
+  - Challenge-neutral: `carbon/design_search/` (`methods.py`: the registered
+    methods `screen_then_confirm` and `coarse_to_fine` with closed, bounded
+    parameters, each selecting by the baseline's rule; `experiment.py`: the
+    neutral request, the `SearchAdapter` a Challenge supplies, the freeze
+    manifest and the equal-query pilot) and
+    `carbon/agent_campaign/graphite/optimizer_research.py` (the Optimizer
+    researcher's closed method-proposal task).
+  - Battery adapter: `carbon/battery/value/design_search_adapter.py` over
+    `search_commitment`, used unchanged (development material, EV4's
+    conditions refused, commitment before reference access, the fixed grid as
+    baseline), and `design_search_pricing.py` with
+    `docs/development/graphite/OPTIMIZER_CHOICES.md`.
+  - A second Challenge supplies a `SearchAdapter`: its variables, its
+    commitment engine (request, budgeted oracle, commit, verify), its fixed
+    baseline, its feasibility, objective and margin readings, the code a
+    freeze pins, its tie policy, and its own priced choices. A test runs the
+    neutral methods and the pilot on a synthetic second Challenge.
+  - Evidence: on the synthetic cell, screen-then-confirm returns the fixed
+    grid's design with fewer model queries; coarse-to-fine never beats the
+    grid's optimum; every reference call follows a commitment.
+  - Priced, not chosen: K of 50 (EV4's), 100 and 200; design grids of 272,
+    1023 and 3965 designs; Mode X condition grids of 32 (EV4's, entirely
+    protected), 21 (offset, usable) and 150 (contains all 32 protected).
+  - Tests: `tests/cpu/test_design_search_pilot.py`, and three mutation
+    checks.
 
 ## Lessons
 
@@ -315,3 +341,4 @@ Delegated engineering decisions, recorded under
 - `2026-10-02-study-sheet-takes-a-challenge`
 - `2026-10-02-graphite-level-planner`
 - `2026-10-02-battery-level1-draft` (PROPOSED revision)
+- `2026-10-02-optimizer-researcher-pilot`

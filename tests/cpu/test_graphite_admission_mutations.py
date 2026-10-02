@@ -11,12 +11,16 @@ from __future__ import annotations
 import pytest
 import test_agent_campaign_climb as tclimb
 import test_agent_campaign_study as tstudy
+import test_design_search_pilot as tpilot
 import test_graphite_level_planner as tlp
 import test_loss_expressions as tle
 
 from carbon.agent_campaign import climb, study
 from carbon.agent_campaign.graphite import closed_task
 from carbon.agent_campaign.graphite import level_planner as lp
+from carbon.agent_campaign.graphite import optimizer_research as orr
+from carbon.design_search import experiment as ex
+from carbon.design_search import methods
 from carbon.reconstruction import loss_expressions as le
 
 
@@ -27,6 +31,36 @@ def _rejection(name):
 
 
 MUTATIONS = {
+    "design_search_freeze_is_checked": (
+        lambda m: m.setattr(ex, "check_frozen", lambda manifest, adapter, repo: None),
+        lambda tmp: (
+            tmp.mkdir(parents=True),
+            tpilot.test_the_pilot_refuses_drifted_code_an_altered_freeze_or_another_panel(
+                tmp
+            ),
+        ),
+    ),
+    "method_parameters_are_bounded": (
+        lambda m: m.setattr(
+            methods,
+            "check",
+            lambda method, parameters, *, mode, conditions: methods.METHODS[method],
+        ),
+        lambda tmp: tpilot.test_an_unregistered_method_or_parameter_is_refused(
+            "screen_then_confirm",
+            {"screen_condition": 4},
+            "PB-INV",
+            "parameter_outside_bounds",
+        ),
+    ),
+    "method_proposal_is_closed": (
+        lambda m: m.setattr(orr, "_closed", lambda value: True),
+        lambda tmp: tpilot.test_a_proposal_outside_the_rules_is_rejected(
+            tmp,
+            tpilot.reply(query_budget=10**6),
+            "reply_fields_not_exactly_the_proposal",
+        ),
+    ),
     "loss_expression_constants_are_bounded": (
         lambda m: m.setattr(le, "_number", lambda value: True),
         lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
