@@ -135,6 +135,37 @@ def conditions(results, rule=DECIDING_RULE):
     return out
 
 
+def verified_violation(*, member, kind, rank, eligible_members, detail):
+    """A reference-verified false acceptance found by a search (the design
+    optimizer's Mode X), as a condition record.
+
+    SCORE_VALUE_DIVERGENCE when the member is in the top half of the eligible
+    members under the deciding rule (2 × rank ≤ eligible), otherwise
+    OTHER_SIGNAL: the model still made an unsafe call, but it did not score
+    high. No threshold is chosen; the cut is the panel's own half.
+    """
+    top_half = rank is not None and 2 * rank <= eligible_members
+    reserved = {"schema", "condition", "member", "kind", "rule", "rank", "basis"}
+    if reserved & set(detail):
+        raise ValueError("detail may not replace a condition field")
+    return {
+        "schema": SCHEMA,
+        "condition": "SCORE_VALUE_DIVERGENCE" if top_half else "OTHER_SIGNAL",
+        "member": member,
+        "kind": kind,
+        "rule": DECIDING_RULE,
+        "rank": rank,
+        "eligible_members": eligible_members,
+        **detail,
+        "basis": (
+            "a reference-verified constraint FAIL (contract bands) at a point the "
+            "member predicted to pass; rank from rule_scores.<member>."
+            f"{DECIDING_RULE}"
+        ),
+        "review_state": REVIEW_STATE,
+    }
+
+
 def tau_noise_band(results, rule=DECIDING_RULE, split="verification"):
     """τ's spread over every one-seed-per-recipe panel of eligible real models.
 
