@@ -15,7 +15,11 @@ const OWNER_UPLOADED_SHA256 = "546fb89d7df7de98f191ae9585d9952db773eedff4bf33c06
 const OWNER_UPLOAD_RECONCILIATION = "owner-upload-2026-09-18-plus-workbench-navigation-v1";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
-const PILOT_DESIGNER = resolve(ROOT, "../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html");
+// The Pilot Designer the release ships is a committed snapshot, not the
+// Workbench's working copy: a Workbench or readiness-record change cannot
+// alter a certified bundle. Shipping a newer Pilot Designer is a release
+// step (OPERATIONS.md): refresh this file, then re-derive the candidate.
+export const PILOT_DESIGNER = resolve(ROOT, "release/pilot-designer.html");
 const DEFAULT_BASELINE_MANIFEST = resolve(ROOT, "production-baseline.manifest.json");
 
 // The homepage the bundle publishes is the integrated document, not the
