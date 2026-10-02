@@ -156,6 +156,24 @@ DEVELOPMENT, internal, non-paying. It confers:
   - Its two hyperparameters are chosen on PRACTICE.
   - Its one clamp lifts a negative-mean curve to a zero mean.
 
+- **D10. The public pools were solved on rented CPU pods; the private pool
+  on the owner's host only** (CHALLENGE-POOLS-CLOUD-01, under the owner's
+  grant of 2026-10-02).
+  - 149 cases ran natively on a RunPod CPU pod: 124 TRAIN and 25 PRACTICE.
+    The pod used the pinned Ubuntu base, with this ticket's Dockerfile steps
+    replayed and SHA-256-checked.
+  - Native results are bitwise identical to the container on the smoke
+    cases.
+  - `assemble.py` built each pool from every run that solved its cases. No
+    case changed.
+- **D11. The learned baseline uses the widened shared grid** (cold plate
+  D11).
+  - On the original grid the cold plate's PRACTICE choice sat at the grid's
+    edge, so the shared grid now spans lengths 0.25 to 16 and ridges 1e-8
+    to 1.
+  - `select` reports any choice on an edge.
+  - The motor's private pool is scored once, with this grid.
+
 ## Evidence so far
 
 **Rung M1, linear iron (mu_r 1,000), the benchmark's dimensions.**
