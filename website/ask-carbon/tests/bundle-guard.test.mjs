@@ -11,11 +11,15 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  HOMEPAGE_EDITS,
   PILOT_DESIGNER,
   REQUIRED_PRODUCTION_PATHS,
+  applyHomepageEdit,
   bundleIdentity,
   inventoryDirectory,
   loadBaselineManifest,
+  loadSiteAdditions,
+  loadSiteReplacements,
   verifyAssetContents,
 } from "../tools/integrate-static.mjs";
 
@@ -284,12 +288,17 @@ test("the shipped baseline manifest is a complete, self-consistent inventory of 
   // Every entry states why it changed since the previous baseline, and the
   // change set agrees with those reasons: a baseline that changes without a
   // recorded reason is not a baseline.
-  const reasonOf = (path) => manifest.assets.find((asset) => asset.path === path)?.change_since_2026_09_22_baseline ?? "";
-  assert.ok(manifest.assets.every((asset) => /^(UNCHANGED|CHANGED|ADDED)\b/.test(asset.change_since_2026_09_22_baseline ?? "")));
+  const reasonOf = (path) => manifest.assets.find((asset) => asset.path === path)?.change_since_previous_manifest ?? "";
+  assert.ok(manifest.assets.every((asset) => /^(UNCHANGED|CHANGED|ADDED)\b/.test(asset.change_since_previous_manifest ?? "")));
   const { changed_paths: changed, added_paths: added, removed_paths: removed } = manifest.changes_since_previous_live;
   assert.ok(changed.length > 0 && changed.every((path) => reasonOf(path).startsWith("CHANGED")));
   assert.ok(added.every((path) => reasonOf(path).startsWith("ADDED")));
-  assert.equal(manifest.assets.filter((asset) => /^(CHANGED|ADDED)/.test(asset.change_since_2026_09_22_baseline)).length, changed.length + added.length);
+  assert.equal(manifest.assets.filter((asset) => /^(CHANGED|ADDED)/.test(asset.change_since_previous_manifest)).length, changed.length + added.length);
+  // The manifest it supersedes is named, and the change counts agree.
+  assert.equal(manifest.supersedes.manifest_version, manifest.manifest_version - 1);
+  assert.equal(manifest.supersedes.counts.changed, changed.length);
+  assert.equal(manifest.supersedes.counts.added, added.length);
+  assert.equal(manifest.supersedes.counts.removed, removed.length);
   // Removed paths are gone from the inventory and each carries its own reason.
   for (const path of removed) {
     assert.ok(!manifest.assets.some((asset) => asset.path === path), `${path} was removed and must not be an entry`);
@@ -487,4 +496,122 @@ test("a replacement cannot add a path, touch the homepage or the Ask Carbon asse
     assert.match(result.stderr, message);
     await assert.rejects(readFile(output), /ENOENT/);
   }
+});
+
+// --- declared site additions ------------------------------------------------
+
+const withAddition = async (fixture, { path = "start-mining/index.html", contents = "<html><body>start</body></html>", declaredSha = null, source = "site/addition.html" } = {}) => {
+  await writeFixture(fixture.root, "site/addition.html", contents);
+  const file = join(fixture.root, "site-additions.json");
+  await writeFile(file, JSON.stringify({ additions: [{ path, source, sha256: declaredSha ?? sha256(Buffer.from(contents)), reason: "fixture: new page" }] }));
+  return file;
+};
+
+test("a declared addition is published at its new path, and every baseline asset is preserved", async () => {
+  const fixture = await buildBaseline();
+  const additions = await withAddition(fixture);
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--site-additions", additions, "--require-complete-bundle"]));
+  assert.equal(result.code, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.deployable_to_carbonwebsite, true);
+  assert.deepEqual(report.site_additions.map((item) => item.path), ["start-mining/index.html"]);
+  assert.equal(await readFile(join(fixture.root, "fresh", "start-mining/index.html"), "utf8"), "<html><body>start</body></html>");
+  for (const asset of fixture.assets.filter((item) => item.path !== "index.html")) {
+    assert.equal(sha256(await readFile(join(fixture.root, "fresh", asset.path))), asset.sha256, asset.path);
+  }
+  // Specimen: without the declaration the path is not published.
+  const plainOutput = join(fixture.root, "plain", "index.html");
+  const plain = await runCli(productionArgs(fixture, plainOutput, ["--require-complete-bundle"]));
+  assert.equal(plain.code, 0, plain.stderr);
+  await assert.rejects(readFile(join(fixture.root, "plain", "start-mining/index.html")), /ENOENT/);
+});
+
+test("an addition cannot replace a baseline path, the homepage or the Ask Carbon assets, escape its directory, or carry other bytes", async () => {
+  for (const [options, message] of [
+    [{ path: "miners/index.html" }, /cannot replace a path/],
+    [{ path: "index.html" }, /cannot replace a path/],
+    [{ path: "ask-carbon/extra.js" }, /integrated homepage or the Ask Carbon assets/],
+    [{ path: "../escape.html" }, /not a bounded site path/],
+    [{ path: "/start-mining/index.html" }, /not a bounded site path/],
+    [{ source: "../outside.html" }, /must be inside/],
+    [{ declaredSha: "0".repeat(64) }, /not the declared 0{64}/],
+  ]) {
+    const fixture = await buildBaseline();
+    await writeFixture(fixture.root, "../outside.html", "x");
+    const additions = await withAddition(fixture, options);
+    const output = join(fixture.root, "fresh", "index.html");
+    const result = await runCli(productionArgs(fixture, output, ["--site-additions", additions, "--require-complete-bundle"]));
+    assert.notEqual(result.code, 0, JSON.stringify(options));
+    assert.match(result.stderr, message);
+    await assert.rejects(readFile(output), /ENOENT/);
+  }
+});
+
+test("an addition never overwrites a file the supplied site already has at that path", async () => {
+  const fixture = await buildBaseline();
+  // A stray file the manifest does not list: the build must stop, not pick one.
+  await writeFixture(fixture.site, "start-mining/index.html", "<html><body>stray</body></html>");
+  const additions = await withAddition(fixture);
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--site-additions", additions, "--require-complete-bundle"]));
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /EEXIST/);
+  await assert.rejects(readFile(output), /ENOENT/);
+});
+
+// --- reviewed homepage edits ------------------------------------------------
+
+const MINERS_CARD = `<article class="audience-card"><p class="eyebrow">Miners</p><a class="text-link" href="/miners/" aria-label="Learn more for miners">Learn more <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a></article>`;
+
+test("the start-mining homepage edit adds one link after the Miners card's Learn more, and only once", () => {
+  const html = `<html><head></head><body>${MINERS_CARD}</body></html>`;
+  const edited = applyHomepageEdit(html, "start-mining-link-v1");
+  assert.equal(edited.split('href="/start-mining/"').length - 1, 1);
+  assert.ok(edited.includes('aria-label="Learn more for miners">Learn more <svg'));
+  assert.match(edited, /Learn more <svg[^]*?<\/svg><\/a><a class="text-link" href="\/start-mining\/" style="margin-top:12px">Start mining <svg[^]*?<\/svg><\/a><\/article>/);
+  // Applying it again, or to a page without the card, stops the build.
+  assert.throws(() => applyHomepageEdit(edited, "start-mining-link-v1"), /expected exactly one Miners card marker/);
+  assert.throws(() => applyHomepageEdit("<html><body></body></html>", "start-mining-link-v1"), /expected exactly one Miners card marker/);
+  assert.throws(() => applyHomepageEdit(html, "no-such-edit"), /Unknown homepage edit no-such-edit/);
+  assert.deepEqual(Object.keys(HOMEPAGE_EDITS), ["start-mining-link-v1"]);
+});
+
+test("a homepage edit applies after the source pin, and the report names it and the edited source", async () => {
+  const fixture = await buildBaseline();
+  const inputHtml = `<html><head><title>Carbon</title></head><body>${MINERS_CARD}</body></html>`;
+  await writeFile(fixture.input, inputHtml);
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs({ ...fixture, inputSha256: sha256(Buffer.from(inputHtml)) }, output, ["--homepage-edit", "start-mining-link-v1", "--require-complete-bundle"]));
+  assert.equal(result.code, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.homepage_edit, "start-mining-link-v1");
+  const edited = applyHomepageEdit(inputHtml, "start-mining-link-v1");
+  assert.equal(report.edited_homepage_source_sha256, sha256(Buffer.from(edited)));
+  assert.match(await readFile(output, "utf8"), /href="\/start-mining\/"/);
+  // The pin is still the unedited source: pinning the edited bytes refuses.
+  const pinned = await runCli(productionArgs({ ...fixture, inputSha256: sha256(Buffer.from(edited)) }, join(fixture.root, "pinned", "index.html"), ["--homepage-edit", "start-mining-link-v1"]));
+  assert.notEqual(pinned.code, 0);
+  assert.match(pinned.stderr, /does not match reviewed source/);
+});
+
+// --- the shipped declarations ----------------------------------------------
+
+test("the shipped replacements and additions load against the shipped baseline and link the Start mining page", async () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  const manifest = await loadBaselineManifest();
+  const replacements = await loadSiteReplacements(join(root, "site-replacements.json"), manifest);
+  const additions = await loadSiteAdditions(join(root, "site-additions.json"), manifest);
+  assert.deepEqual(replacements.map((item) => item.path), ["miners/index.html", "sitemap.xml"]);
+  assert.deepEqual(additions.map((item) => item.path), ["start-mining/index.html"]);
+  const page = additions[0].bytes.toString("utf8");
+  assert.match(page, /<title>Start mining · Carbon<\/title>/);
+  assert.match(page, /<link rel="canonical" href="https:\/\/carbonphysics.ai\/start-mining\/">/);
+  assert.doesNotMatch(page, /get-started|Get started/i);
+  // Link-only compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): the page names no provider.
+  assert.doesNotMatch(page, /RunPod|Lium|Targon/);
+  const miners = replacements[0].bytes.toString("utf8");
+  assert.match(miners, /<a class="button" href="\/start-mining\/">Start mining <svg/);
+  assert.doesNotMatch(miners, /href="#start">Start a development run/);
+  assert.match(replacements[1].bytes.toString("utf8"), /<loc>https:\/\/carbonphysics.ai\/start-mining\/<\/loc>/);
 });
