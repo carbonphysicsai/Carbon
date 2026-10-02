@@ -2430,6 +2430,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "battery-track-a-level0",
+        "match_type": "exact",
+        "path": ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-public-gpu-diagnostic",
         "match_type": "exact",
         "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",
