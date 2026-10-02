@@ -17705,3 +17705,100 @@ and #504 (GRAPHITE-01).
      and EV4 results (42) are retained with the run.
    - They escalate under §3.3, and should be entered in the readiness record
      when the v3 wiring (#477) lands.
+
+## 2026-10-02 — OWNER-WEBSITE-START-MINING-01: "Get started" becomes "Start mining", linked from the homepage and the miner page (candidate 2026-10-02.1; the exact bundle awaits the owner)
+
+**Owner, verbatim, in session on 2026-10-02:** ""get started" should be
+"start mining" and it should be linked on home page and on the miner pager."
+This is an instruction about content, given before the bundle existed. **It
+does not authorize deployment.** As with every Ask Carbon publication, that
+needs the owner's approval of the exact bundle, to be recorded as WEB-QA-12-D1.
+
+**Exact artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46` (106 files) |
+| `/start-mining/` (added) | `4adbf65e…`, from `website/ask-carbon/site/start-mining/index.html`, declared in `site-additions.json` |
+| `/miners/` | `044edfef…`, from `site/miners/index.html`: the hero button reads "Start mining" and goes to `/start-mining/` |
+| `/sitemap.xml` | `51fb9148…`, from `site/sitemap.xml`: lists `/start-mining/` |
+| Homepage | `5b842bf6…`: the reviewed source `99be1318…` plus `--homepage-edit start-mining-link-v1`, a "Start mining" link on the Miners card |
+| Unchanged | the other 102 paths, the Worker, the knowledge and the Pilot Designer `be64f8b9…` |
+| Rollback target | `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` (WEB-QA-11-D2) |
+
+**Measured.**
+- Manifest v4 was fetched from both hostnames at 2026-10-02T19:40Z and matched
+  100/100 on each.
+- Built against that baseline with no declaration, the integrator reproduces
+  the live bundle `86f51385…` exactly.
+- The candidate was certified with `--require-complete-bundle`.
+- Run against live before deployment, `tools/verify-publication.mjs` fails
+  exactly `/`, `/miners/`, `/start-mining/` (HTTP 404) and `/sitemap.xml` on
+  each hostname. Every other check, health included, is ok.
+
+**Engineering choices (delegated).**
+- **Manifest v4.** It folds the live `/workbench/` replacement into the
+  inventory, so `site-replacements.json` no longer lists it.
+  - The per-entry field `change_since_2026_09_22_baseline` becomes
+    `change_since_previous_manifest`.
+  - The `upload_archive` block now describes the deployed staged bundle,
+    which had no archive file.
+- **`--site-additions`.** It publishes a reviewed repository file at a path
+  live does not serve. It refuses:
+  - any path the manifest lists;
+  - the homepage and the Ask Carbon assets;
+  - a file already present in the supplied site.
+- **`--homepage-edit NAME`.** It applies a named, reviewed edit to the pinned
+  homepage source after its digest check, so the pin is unchanged and the
+  output stays deterministic. The marker must occur exactly once.
+- **The page uses the site's own header, footer and stylesheet.** It replaces
+  the unpublished standalone draft `website/get-started/index.html`
+  (C-MLP-04), which is removed.
+- **Compute, on the page: this machine's CPU or GPU only.**
+  - The owner decided the same day that Carbon does not create rented
+    machines. Miners rent and stop their own, and Carbon only connects to
+    them. That decision is recorded as OWNER-MINER-COMPUTE-LINK-ONLY-01 with
+    its change.
+  - Connecting a machine the miner runs is not built yet, so the page offers
+    only local compute.
+
+**Deployment, once the exact bundle is approved.** Static only, from
+`website/ask-carbon/DEPLOY_PACKAGE_2026_10_02.md`:
+1. capture the rollback id;
+2. re-derive the baseline;
+3. rebuild, and the identity must be `b22f6d1c…`;
+4. `wrangler deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12`;
+5. verify with `tools/verify-publication.mjs`.
+
+This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
+
+## 2026-10-02 — WEB-QA-12-D1: publish Ask Carbon bundle b22f6d1c (Start mining)
+
+**Owner, in session on 2026-10-02.** The question was "Start mining site:
+approve bundle `b22f6d1c…` for deployment". The answer: "1 start".
+
+**Exact artifact.** Bundle identity
+`b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46`, 106 files,
+as recorded under OWNER-WEBSITE-START-MINING-01. Rollback target:
+`carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`.
+
+**Re-verified at approval (2026-10-02T21:16Z).**
+- Manifest v4 matched 100/100 on both hostnames, and the hostnames agree.
+- The rebuild with Node 24.19.0 (Linux) reproduced `b22f6d1c…`, certified
+  deployable.
+- `tools/verify-publication.mjs` showed exactly the eight expected
+  differences before deployment.
+- A second run moments later got HTTP 429 on one hostname's health endpoint,
+  which is its per-client rate limit. The deploy package now says to wait and
+  re-run once.
+
+**Deployment** is the operator's act from `DEPLOY_PACKAGE_2026_10_02.md`.
+- Re-confirm the live version is `c12d547a` immediately before deploying.
+- Static only: the Worker is not redeployed.
+- This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
