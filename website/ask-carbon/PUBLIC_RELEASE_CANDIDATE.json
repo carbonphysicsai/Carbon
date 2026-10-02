@@ -1,21 +1,32 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-10-02.1",
-  "status": "BUILT_AWAITING_OWNER_PUBLICATION_APPROVAL",
-  "status_note": "Bundle b22f6d1c… (106 files) is built and certified deployable against live c12d547a. NOT approved and NOT deployed. It needs the owner's approval of this exact identity, then the operator's deploy from DEPLOY_PACKAGE_2026_10_02.md; this host holds no Cloudflare credential and ran no wrangler command.",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
+  "status_note": "Bundle b22f6d1c… (106 files) approved for deployment by the owner in session on 2026-10-02 (WEB-QA-12-D1). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_02.md; this host has none and ran no wrangler command. Re-verified at approval (2026-10-02T21:16Z): manifest v4 100/100 on both hostnames, and the rebuild reproduced b22f6d1c….",
+  "status_note_before_approval": "Bundle b22f6d1c… (106 files) is built and certified deployable against live c12d547a. NOT approved and NOT deployed. It needs the owner's approval of this exact identity, then the operator's deploy from DEPLOY_PACKAGE_2026_10_02.md; this host holds no Cloudflare credential and ran no wrangler command.",
   "deployment": {
     "state": "NOT_DEPLOYED"
   },
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
-    "decision": "pending: the owner's approval of this exact bundle (to be recorded as WEB-QA-12-D1)",
-    "state": "AWAITING_OWNER_APPROVAL_OF_EXACT_BUNDLE",
+    "decision": "WEB-QA-12-D1 (exact bundle); OWNER-WEBSITE-START-MINING-01 (content)",
+    "recorded_at": "2026-10-02",
+    "source": ".agent/DECISIONS.md",
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "state": "OWNER_APPROVED_EXACT_BUNDLE",
     "content_instruction": "OWNER-WEBSITE-START-MINING-01 (2026-10-02): the owner, in session: \"'get started' should be 'start mining' and it should be linked on home page and on the miner pager.\" An instruction about content, given before the bundle existed; it does not authorize deployment.",
     "attaches_to": {
       "bundle_identity_sha256": "b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46",
       "integrated_index_sha256": "5b842bf698ba60a34e16d9cb49e0f11549743488838bbc3ac8f830f838f393ca",
       "rollback_target_version_id": "carbonwebsite c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4 (WEB-QA-11-D2), re-confirmed by the operator with wrangler immediately before deploying"
+    },
+    "approval": "The owner, in session on 2026-10-02, answered \"1 start\" to \"Start mining site: approve bundle b22f6d1c… for deployment\" (WEB-QA-12-D1).",
+    "reverification_at_approval": {
+      "at": "2026-10-02T21:16Z",
+      "baseline": "tools/fetch-live-baseline.mjs: manifest v4 100/100 on carbonphysics.ai and www.carbonphysics.ai; hostnames agree",
+      "rebuild": "integrate-static.mjs with Node 24.19.0 (Linux) reproduced bundle b22f6d1c…, 106 files, deployable_to_carbonwebsite true",
+      "pre_deploy_check": "tools/verify-publication.mjs: exactly the eight expected FAIL lines (/, /miners/, /start-mining/, /sitemap.xml on each hostname); health ok"
     }
   },
   "owner_authorization_superseded_2026_10_02": {
@@ -411,7 +422,6 @@
   },
   "budget_note_2026_09_26": "Budget snapshot not re-read (the operator ledger endpoint is staging-only and needs an operator secret). Ceilings are unchanged: USD 50/month shared ledger, 100 requests/day, 12/client/hour, concurrency 4. Default-on live answers will raise request volume toward the daily limit; at the Chutes prices the per-request reservation falls from 5,640 to 3,139 micro-USD at the same 24,000/700 token bounds.",
   "required_before_production_mutation": [
-    "Owner approval of bundle identity b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46 (WEB-QA-12-D1)",
     "Live carbonwebsite version re-confirmed as c12d547a with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
   ],
   "required_before_production_mutation_satisfied": {
@@ -422,7 +432,8 @@
     "public content approved for display": "WEB-QA-07-D1 (2026-09-22)",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-24.1": "WEB-QA-08-D1 (2026-09-24), bundle c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-26.1": "WEB-QA-09-D1 (2026-09-26), bundle 2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
-    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)"
+    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)",
+    "owner approval of bundle identity b22f6d1c… (candidate 2026-10-02.1)": "WEB-QA-12-D1 (2026-10-02)"
   },
   "deployment_order": {
     "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
@@ -434,7 +445,7 @@
     "candidate_2026_09_30_1": "Static publish, then the owner-directed Worker activation, from DEPLOY_PACKAGE_2026_10_01.md: capture both rollback ids; re-derive the baseline with tools/fetch-live-baseline.mjs (100/100 on both hostnames); rebuild (identity must equal 86f51385…); `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`; verify with tools/verify-publication.mjs; then `wrangler deploy --config wrangler.public-release-active.toml` (Worker inputs byte-identical to the live WEB-QA-10-D1 revision 368c713e) and verify again."
   },
   "remaining_execution_inputs": [
-    "None beyond the owner's byte approval: no Worker deploy and no new secret."
+    "The operator's deploy from DEPLOY_PACKAGE_2026_10_02.md; no Worker deploy and no new secret."
   ],
   "execution_inputs_satisfied": {
     "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",

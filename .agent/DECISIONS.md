@@ -17468,3 +17468,31 @@ This host holds no Cloudflare credential and ran no wrangler command.
 
 **Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
 --name carbonwebsite`.
+
+## 2026-10-02 — WEB-QA-12-D1: publish Ask Carbon bundle b22f6d1c (Start mining)
+
+**Owner, in session on 2026-10-02.** The question was "Start mining site:
+approve bundle `b22f6d1c…` for deployment". The answer: "1 start".
+
+**Exact artifact.** Bundle identity
+`b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46`, 106 files,
+as recorded under OWNER-WEBSITE-START-MINING-01. Rollback target:
+`carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`.
+
+**Re-verified at approval (2026-10-02T21:16Z).**
+- Manifest v4 matched 100/100 on both hostnames, and the hostnames agree.
+- The rebuild with Node 24.19.0 (Linux) reproduced `b22f6d1c…`, certified
+  deployable.
+- `tools/verify-publication.mjs` showed exactly the eight expected
+  differences before deployment.
+- A second run moments later got HTTP 429 on one hostname's health endpoint,
+  which is its per-client rate limit. The deploy package now says to wait and
+  re-run once.
+
+**Deployment** is the operator's act from `DEPLOY_PACKAGE_2026_10_02.md`.
+- Re-confirm the live version is `c12d547a` immediately before deploying.
+- Static only: the Worker is not redeployed.
+- This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.

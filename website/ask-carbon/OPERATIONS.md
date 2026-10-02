@@ -383,9 +383,9 @@ Production needs a separate exact owner authorization after the staging report:
   into a v4 baseline inventory; until then `tools/fetch-live-baseline.mjs`
   reports 99/100. *(Done in candidate 2026-10-02.1: manifest v4.)*
 
-> **Candidate 2026-10-02.1: Start mining (built; awaits the owner's approval of
-> the exact bundle).** Bundle `b22f6d1c…`, 106 files, under
-> OWNER-WEBSITE-START-MINING-01. Static only, with four changes against live:
+> **Candidate 2026-10-02.1: Start mining (approved for deployment,
+> WEB-QA-12-D1, 2026-10-02; not yet deployed).** Bundle `b22f6d1c…`, 106
+> files, under OWNER-WEBSITE-START-MINING-01. Static only, with four changes against live:
 > - the new page `/start-mining/`;
 > - a "Start mining" link on the homepage's Miners card;
 > - the miner page's hero button, which now reads "Start mining";

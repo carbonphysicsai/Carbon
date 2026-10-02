@@ -4,8 +4,10 @@ For a named operator (WEB-QA-05-D2), deploying from their own machine.
 Everything needed is in this file and in the public repository. Nothing has to
 be re-derived, and no file has to be obtained from the owner.
 
-**Status: NOT APPROVED.** Do not run step 4 until the owner has approved this
-exact identity (to be recorded as WEB-QA-12-D1).
+**Status: APPROVED for deployment (WEB-QA-12-D1, 2026-10-02). Not yet
+deployed.** The owner approved this exact identity in session. At approval
+(21:16Z) live still matched manifest v4 100/100 on both hostnames, and the
+rebuild reproduced the identity below.
 
 **The artifact.** Bundle identity
 `b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46`, 106 files.
@@ -120,7 +122,10 @@ against the byte it should serve:
 - the four `/assets/*.png`;
 - `/workbench/atlas-source.json` and `/ask-carbon/pilot-designer.html`.
 
-It then checks `/api/ask-carbon/health`.
+It then checks `/api/ask-carbon/health`. The health endpoint is rate-limited
+per client. Running the check several times in a few minutes can return
+HTTP 429 on one hostname. If so, wait a few minutes and run step 5 once more
+before treating it as a failure; a 429 is not a content difference.
 
 Also open these in a browser:
 - `https://carbonphysics.ai/`: the Miners card shows "Start mining";
