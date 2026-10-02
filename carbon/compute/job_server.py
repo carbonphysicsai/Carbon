@@ -20,6 +20,15 @@ job and nothing else. The program runs with the carrier's working-directory
 layout (`workspace/` holds the inputs, `output/` beside it), so the same
 practice program runs here as in the local carrier.
 
+Where it listens depends on how the miner runs the worker (LINKONLY-D5).
+Inside a job container whose port Docker publishes on the machine's loopback
+(`ssh-docker`), it listens on every address of that container. As a process in
+a container the miner started from the pinned worker (`ssh-container`), it
+listens on that container's loopback only (`CARBON_JOB_BIND=127.0.0.1`), on a
+free port (`CARBON_JOB_PORT=0`) that it writes to `CARBON_JOB_PORT_FILE`, with
+its scratch under `CARBON_JOB_ROOT`, the directory Carbon removes afterwards.
+Either way the controller reaches it through an SSH port forward.
+
 What this is not: an isolation boundary. The machine is the miner's own;
 nothing that runs here is evidence the validator reads.
 """
@@ -50,6 +59,9 @@ MAX_LOG_BYTES = 1024**2
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 _TOKEN = re.compile(r"[0-9a-f]{64}")
 PROGRAM = "program.py"
+#: Where the server may listen: every address of a job container whose port
+#: Docker publishes on the machine's loopback, or a container's own loopback.
+BINDS = ("0.0.0.0", "127.0.0.1")
 
 
 def pack(files):
@@ -249,14 +261,16 @@ def handler_for(job, token, served):
     return Handler
 
 
-def serve(*, token, port, seconds, lifetime, root=None, ready=None):
+def serve(*, token, port, seconds, lifetime, root=None, ready=None, bind="0.0.0.0"):
     """Serve one job until its output is fetched or `lifetime` passes."""
     if not _TOKEN.fullmatch(token or ""):
         raise ValueError("a 64-hex job token is required")
+    if bind not in BINDS:
+        raise ValueError("the job server listens on 0.0.0.0 or 127.0.0.1")
     with tempfile.TemporaryDirectory(dir=root) as scratch:
         job, served = Job(scratch, seconds), threading.Event()
         server = http.server.ThreadingHTTPServer(
-            ("0.0.0.0", port), handler_for(job, token, served)
+            (bind, port), handler_for(job, token, served)
         )
         server.daemon_threads = True
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -268,13 +282,26 @@ def serve(*, token, port, seconds, lifetime, root=None, ready=None):
         server.server_close()
 
 
+def write_port(path, port):
+    """Tell whoever started this server which port it took, atomically: the
+    file appears only once it holds the whole port."""
+    target = Path(path)
+    staged = target.with_name(target.name + ".staged")
+    staged.write_text(f"{int(port)}\n")
+    os.replace(staged, target)
+
+
 def main():
     token = os.environ.pop("CARBON_JOB_TOKEN", "")
+    port_file = os.environ.get("CARBON_JOB_PORT_FILE")
     serve(
         token=token,
         port=int(os.environ.get("CARBON_JOB_PORT", "8000")),
         seconds=int(os.environ.get("CARBON_JOB_SECONDS", "600")),
         lifetime=int(os.environ.get("CARBON_JOB_LIFETIME", "3600")),
+        root=os.environ.get("CARBON_JOB_ROOT") or None,
+        bind=os.environ.get("CARBON_JOB_BIND", "0.0.0.0"),
+        ready=None if not port_file else (lambda bound: write_port(port_file, bound)),
     )
     return 0
 
