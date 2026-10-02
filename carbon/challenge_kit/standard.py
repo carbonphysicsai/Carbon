@@ -180,16 +180,20 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "Exam gates on the 200 public PRACTICE cases. Scoring "
             "miner-generated cases follows once `generate` is closed.",
         ),
-        "compute": Gap(
-            reason=(
-                "Battery has no GPU research path: its campaign refuses a GPU "
-                "runtime, the GPU lane binds Burgers material, and no rented "
-                "compute provider has a launch path."
+        "compute": Provided(
+            (
+                "carbon.development_session.battery_gpu:gpu_scope",
+                "carbon.battery.research:BatteryPractice",
             ),
-            next_step=(
-                "C-MLP-03 slices 3 and 4: a battery-bound GPU practice path on "
-                "the miner's own GPU, then rented GPU on the miner's account."
-            ),
+            "Setup (Set up your environment, Compute) offers this machine's "
+            "CPU, every miner's default, or its own GPU: setup detects the GPU, "
+            "installs the host device record and verifies the pinned GPU "
+            "worker (scripts/dev/accelerator_worker_image.sh). Battery practice "
+            "then runs on the GPU with JAX_PLATFORMS=cuda, and the feedback "
+            "records the backend observed. GPU practice is for speed only; the "
+            "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
+            "A real practice on a local GPU is the slice's acceptance and needs "
+            "a GPU host. Rented GPU on the miner's account is slice 4.",
         ),
         "model": Provided(
             (

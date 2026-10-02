@@ -92,12 +92,13 @@ reference, so miners get only TRAIN v1 and the 200 PRACTICE cases. Next step:
 (OWNER-MINER-OWN-MACHINE-01) that labels draws from the published population
 with the pinned PyBaMM reference, following the Burgers kit's seed rules.
 
-**Battery `compute` and `agent` gaps (`model` closed by slice 2).** These are the
+**Battery `agent` gap (`model` closed by slice 2, `compute` by slice 3).** These are the
 OWNER-MINER-ENVIRONMENT-01 provisions. The ticket
 `.agent/tickets/C-MLP-03_miner_environment.md` closes them slice by slice:
 - slice 2: `model` (closed in code on 2026-10-02; live acceptance with
   miner-held keys pending);
-- slices 3 and 4: `compute`;
+- slices 3 and 4: `compute` (the miner's own GPU closed it in code on
+  2026-10-02; a real GPU practice and rented GPU, slice 4, follow);
 - slice 5: `agent`.
 
 **Training data for submissions is fixed per Challenge version.** A

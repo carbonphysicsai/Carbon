@@ -589,14 +589,14 @@ class RunnerAdapter:
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
         if "gpu_research" in runtime:
-            from carbon.development_session.gpu_research import declared_gpu_runtime
+            from carbon.development_session.battery_gpu import declared_scope
 
-            # Shape, here. The scope's binding to this campaign's own public
-            # TRAIN material is recomputed inside the campaign once that
-            # material exists; this only refuses a runtime the runner could
-            # never assemble, before the launch is recorded.
+            # Shape, here: battery's own GPU practice scope (C-MLP-03 slice 3),
+            # the only Challenge a launch can choose. The campaign recomputes
+            # the scope from the installed GPU image record; this only refuses
+            # a runtime the runner could never assemble, before the launch.
             try:
-                declared_gpu_runtime(runtime)
+                declared_scope(runtime)
             except ValueError:
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
@@ -759,7 +759,7 @@ class RunnerAdapter:
         if not previous:
             # Refused here, before the registration read, as well as in the
             # body: a choice that cannot run never reaches the chain.
-            self._launch_choice(cfg, request, self._challenge(request))
+            self._launch_choice(cfg, request, self._challenge(request, cfg["runtime"]))
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -819,11 +819,12 @@ class RunnerAdapter:
         return run_id, digest(canonical(fields)), digest(canonical(cfg))
 
     @staticmethod
-    def _challenge(request):
-        """The launch's Challenge, resolved exactly. There is no default: a
-        launch naming none, or an unknown, reserved, deferred, retired or
-        wrong-version Challenge, is refused by its code; nothing falls back to
-        another Challenge."""
+    def _challenge(request, runtime=None):
+        """The launch's Challenge, resolved exactly for the profile's compute
+        (`gpu_research` when the runtime declares GPU practice). There is no
+        default: a launch naming none, or an unknown, reserved, deferred,
+        retired or wrong-version Challenge, or one without that compute, is
+        refused by its code; nothing falls back to another Challenge."""
         if "challenge" not in request and "challenge_version" not in request:
             raise Rejected("challenge_required", 409)
         from carbon.challenge_registry import ResolutionError, resolve
@@ -833,7 +834,11 @@ class RunnerAdapter:
             "version": request.get("challenge_version"),
         }
         try:
-            resolve(challenge["id"], challenge["version"], "cpu_research")
+            resolve(
+                challenge["id"],
+                challenge["version"],
+                "gpu_research" if "gpu_research" in (runtime or {}) else "cpu_research",
+            )
         except ResolutionError as refused:
             raise Rejected(refused.code, 409) from None
         return challenge
@@ -936,7 +941,7 @@ class RunnerAdapter:
         cfg, miner = admitted.profile, admitted.miner
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
-        challenge = self._challenge(request)
+        challenge = self._challenge(request, cfg["runtime"])
         choice = self._launch_choice(cfg, request, challenge)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id

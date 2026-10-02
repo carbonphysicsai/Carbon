@@ -53,8 +53,11 @@ class ChallengeCampaign:
     #: the frozen binding changed. `julia_image` is the host's verified
     #: authored Julia image, or None.
     check_attached: Callable
-    #: (**attach, julia_image) -> (composition, wrapper)
+    #: (**attach, julia_image, gpu_image) -> (composition, wrapper)
     compose: Callable
+    #: (root, runtime) -> the campaign's verified GPU worker image, or None
+    #: when its runtime declares no GPU practice.
+    gpu_image: Callable = lambda root, runtime: None
 
 
 def _manifest_challenge(manifest):
@@ -90,6 +93,7 @@ def _battery():
         refusal_retains_candidate=True,
         check_attached=battery.check_attached,
         compose=battery.compose,
+        gpu_image=battery.host_gpu_image,
     )
 
 

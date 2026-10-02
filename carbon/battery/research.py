@@ -543,14 +543,25 @@ class BatteryPractice:
         seconds=PRACTICE_SECONDS,
         runner=None,
         backend=None,
+        gpu_image=None,
+        device=None,
     ):
+        from carbon.development_session.battery_gpu import BACKENDS, is_gpu_image
         from carbon.development_session.research_carrier import _run
 
         from .challenge import PublicMaterial
 
         self.ledger, self.owner, self.image = ledger, owner, image
         self.root, self.seconds = Path(root), seconds
-        self.backends = image_backends(image, self.root)
+        # GPU practice (C-MLP-03 slice 3): the campaign's verified GPU worker,
+        # on the host's installed device. `device` is for tests; a campaign
+        # reads the installed record on every trial.
+        if gpu_image is not None and not is_gpu_image(gpu_image):
+            raise ValueError("exact pinned GPU worker image required")
+        self.gpu_image, self.device = gpu_image, device
+        self.backends = (
+            BACKENDS if gpu_image is not None else image_backends(image, self.root)
+        )
         self.runner = _run if runner is None else runner
         self.backend = backend or {
             "kind": "ISOLATED_CARRIER",
@@ -591,20 +602,38 @@ class BatteryPractice:
             raise ValueError(
                 f"backend_not_served: {backend} recipes practise in the PyTorch "
                 "worker image (scripts/dev/torch_worker_image.sh)"
+                + (
+                    "; GPU practice serves JAX recipes only"
+                    if self.gpu_image is not None
+                    else ""
+                )
             )
         seed = self._seed(identity)
+        run = {
+            "source": PROGRAM,
+            "image": self.image,
+        }
+        if self.gpu_image is not None:
+            from carbon.development_session.battery_gpu import GPU_PROGRAM
+            from carbon.development_session.research_carrier import MINER_GPU
+
+            run = {
+                "source": GPU_PROGRAM,
+                "image": self.gpu_image,
+                "accelerator": MINER_GPU,
+            }
+            device = self.device or _installed_device()
         worker = self.runner(
             self.ledger,
             owner=self.owner,
             identity=identity,
-            source=PROGRAM,
             files=staged_files(self.root, self.practice, recipe, seed),
-            image=self.image,
             seconds=self.seconds,
             provenance=PROVENANCE,
             extra_resources=(
                 {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
             ),
+            **run,
         )
         snapshot = self.ledger.root / worker["operation"] / "snapshot"
 
@@ -635,11 +664,23 @@ class BatteryPractice:
         # Only the cases Carbon asked for are scored; nothing else is read.
         asked = {c: predictions.get(c) for c in self.practice.case_ids}
         _rows, summary = score_practice(asked, self.practice, self.material, self.root)
+        if self.gpu_image is None:
+            ran = {**self.backend, "image": getattr(self.image, "image_id", None)}
+        else:
+            from carbon.development_session.battery_gpu import backend_record
+
+            observed = checked("runtime.json", 65536)
+            if type(observed) is not dict:
+                raise ValueError("practice result shape differs")
+            ran = {
+                **backend_record(device, observed),
+                "image": self.gpu_image.image_id,
+            }
         result = feedback(
             summary,
             fit,
             recipe=recipe,
-            backend={**self.backend, "image": getattr(self.image, "image_id", None)},
+            backend=ran,
             worker={
                 "operation": worker["operation"],
                 "output_digest": worker.get("output_digest"),
@@ -653,6 +694,19 @@ class BatteryPractice:
             canonical(result),
         )
         return result
+
+
+def _installed_device():
+    """The host's installed GPU device record, read for this trial."""
+    from carbon.reconstruction.worker.accelerator_runtime import host_device
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    try:
+        return host_device()
+    except WorkerFailure:
+        raise ValueError(
+            "no GPU device record is installed on this host; run setup's GPU check"
+        ) from None
 
 
 def image_backends(image, root):

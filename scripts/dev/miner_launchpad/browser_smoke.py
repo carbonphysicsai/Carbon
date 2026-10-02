@@ -1284,6 +1284,9 @@ class SetupChecks:
             "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
         }
 
+    def gpu(self, manifest):
+        raise AssertionError("the smoke's miner checks the CPU, not a GPU")
+
     def agent(self, hotkey, socket_path=None):
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
@@ -1413,6 +1416,31 @@ def setup_journey():
                 wait(
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: inference.'",
+                )
+                # This machine's GPU is offered beside the CPU default, with
+                # its own image field and the plain statement that GPU
+                # practice is for speed only.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-compute-choice').value"
+                    )
+                    == "this-machine-cpu"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-gpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
                 )
                 # A missing image is refused by name, with its build step.
                 session.evaluate(

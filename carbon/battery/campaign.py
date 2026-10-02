@@ -321,11 +321,13 @@ async def prepare_battery(args, *, ledger=None, campaign):
         raise ValueError("analysis/trusted image parent differs")
     declared = frozen["runtime"] if frozen is not None else product.runtime
     julia_image = host_julia_image(root, declared, analysis)
+    gpu_image = host_gpu_image(root, declared)
     runtime = research_runtime(
         declared,
         implementation=implementation,
         images=[image.image_id, analysis.image_id],
         julia_image=julia_image,
+        gpu_image=gpu_image,
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the battery runtime")
@@ -370,6 +372,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             implementation=implementation,
             images=runtime["images"],
             julia_image=julia_image,
+            gpu_image=gpu_image,
         )
     ledger.freeze(manifest)
     composition = None
@@ -381,6 +384,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             analysis=analysis,
             connection=connection,
             julia_image=julia_image,
+            gpu_image=gpu_image,
         )
         sdk = ResearchMinerTools(
             connection=connection,
@@ -428,6 +432,7 @@ def compose(
     julia_image=None,
     runner=None,
     backend=None,
+    gpu_image=None,
 ):
     """The battery composition and the wrapper that authenticates for it.
 
@@ -455,6 +460,7 @@ def compose(
         root=REPOSITORY,
         runner=runner,
         backend=backend,
+        gpu_image=gpu_image,
     )
     composition = make_battery_research_service(
         root=ledger.root / "research-tasks",
@@ -481,12 +487,20 @@ def compose(
     )
 
 
-#: A battery runtime may name these keys and no others. GPU research is not
-#: among them: its scope (`gpu_research.gpu_scope`) binds Burgers' GPU recipe
-#: catalogue and Burgers' public TRAIN cases, and battery has no GPU practice
-#: lane to run it, so a declared GPU scope is refused rather than frozen as a
-#: composition this campaign does not have.
-RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+#: A battery runtime may name these keys and no others. `gpu_research` is
+#: battery's own GPU practice scope (`carbon.development_session.battery_gpu`, C-MLP-03 slice 3);
+#: Burgers' GPU scope binds Burgers material and is refused by its schema.
+RUNTIME_KEYS = frozenset(
+    {"implementation", "images", "authored_research", "gpu_research"}
+)
+
+
+def host_gpu_image(root, declared):
+    """The GPU worker image this campaign's runtime declares, verified against
+    the record installed in the campaign root; None without GPU practice."""
+    from carbon.development_session.battery_gpu import registered_gpu_image
+
+    return registered_gpu_image(root, declared)
 
 
 def host_julia_image(root, declared, analysis):
@@ -508,33 +522,41 @@ def host_julia_image(root, declared, analysis):
     return available_julia_image(root, analysis)
 
 
-def research_runtime(declared, *, implementation, images, julia_image):
+def research_runtime(declared, *, implementation, images, julia_image, gpu_image=None):
     """The runtime this host composes for a battery campaign declaring `declared`.
 
     The research images are research tools only. Nothing here reaches the
-    recipe compiler, practice, the contract digest or a submission.
+    recipe compiler, the contract digest or a submission. A GPU image changes
+    only where practice runs, never what it scores.
     """
     extra = set(declared) - RUNTIME_KEYS
     if extra:
         raise ValueError(
-            "battery has no research composition for "
-            + ", ".join(sorted(extra))
-            + " (GPU research binds Burgers material)"
+            "battery has no research composition for " + ", ".join(sorted(extra))
         )
     runtime = {"implementation": implementation, "images": images}
     if julia_image is not None and "authored_research" in declared:
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(julia_image)]
+    if "gpu_research" in declared:
+        from carbon.development_session.battery_gpu import gpu_scope
+
+        if gpu_image is None:
+            raise ValueError("a GPU practice runtime needs its installed GPU image")
+        runtime["gpu_research"] = [gpu_scope(gpu_image)]
     return runtime
 
 
-def check_attached(manifest, *, implementation, images, julia_image=None):
+def check_attached(
+    manifest, *, implementation, images, julia_image=None, gpu_image=None
+):
     """An attach re-checks the frozen battery binding it serves.
 
     `julia_image` is the host's verified authored Julia image
-    (`host_julia_image`); the frozen runtime must equal, exactly, the one this
-    host composes with it.
+    (`host_julia_image`) and `gpu_image` its verified GPU worker
+    (`host_gpu_image`); the frozen runtime must equal, exactly, the one this
+    host composes with them.
     """
     from carbon.reconstruction.capability_registry import contract_digest
 
@@ -556,6 +578,7 @@ def check_attached(manifest, *, implementation, images, julia_image=None):
         implementation=implementation,
         images=images,
         julia_image=julia_image,
+        gpu_image=gpu_image,
     ):
         raise ValueError("campaign runtime differs from the battery runtime")
 

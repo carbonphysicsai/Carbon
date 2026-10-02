@@ -158,7 +158,11 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
         assert inference[generic]["needs_endpoint"] is True
         assert inference[generic]["pricing"] == "yours to declare (optional)"
     assert inference["engy-chat"]["needs_endpoint"] is False
-    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU]
+    # Slice 3: this machine's CPU is the default; its own GPU is offered
+    # beside it, for practice speed only.
+    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU, "this-machine-gpu"]
+    assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
+    assert "speed only" in offered["compute"][1]["note"]
     assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS]
     for step in ("inference", "compute", "agent"):
         for choice in offered[step]:

@@ -16,9 +16,11 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slices 1 and 2 implemented (engineering evidence only). Slice 2's
-live acceptance (completions with miner-held Chutes and Engy keys, and a
-battery autonomous launch with each) is pending the miner's keys.
+**Status:** slices 1, 2 and 3 implemented (engineering evidence only). Slice
+2's live acceptance (completions with miner-held Chutes and Engy keys, and a
+battery autonomous launch with each) is pending the miner's keys. Slice 3's
+(a real battery practice on a local GPU, and the same recipe accepted by the
+validator) is pending a GPU host.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
   `/api/v1/setup` in the controller and the "Set up your environment" view.
 - Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
@@ -91,6 +93,47 @@ battery autonomous launch with each) is pending the miner's keys.
     so no launch request can point Carbon at a new URL.
   - *Chutes OAuth is not built.* Its scopes, billing and revocation are
     unverified; a key is the only credential.
+- **Slice 3 (the miner's own GPU):** `carbon/development_session/battery_gpu.py` (battery's
+  GPU practice scope and program), the carrier's GPU branch in
+  `research_carrier.py`, `BatteryPractice(gpu_image=...)`, the registry's
+  battery `gpu_research` profile, and setup's "This machine (your GPU)"
+  compute choice; `tests/cpu/test_battery_gpu_practice.py` and the setup
+  browser smoke cover it.
+- **Recorded engineering decisions (slice 3, 2026-10-02):**
+  - *The GPU path is the carrier, not the C03 reconstruction controller.*
+    Battery practice is Carbon's fixed program in the isolated carrier. On a
+    GPU it runs the same way with the miner lane's GPU worker profile:
+    `MINER_HOST_SELF_SERVICE`, role `MINER_RESEARCH`, the device from the
+    installed host device record, `JAX_PLATFORMS=cuda`, the doctor's
+    miner-lane checks, the miner device lease and Carbon's own
+    retained-container check. No grant is needed. Only Carbon's fixed
+    practice program may ask for the GPU; a miner-authored script cannot.
+  - *The worker image is the existing GPU worker.*
+    `scripts/dev/accelerator_worker_image.sh` builds the C03 worker with the
+    CUDA JAX plugin. The battery files are staged byte-identical on every
+    run, so the image needs no battery build of its own. It serves JAX
+    recipes only, and a PyTorch recipe is refused before anything runs.
+  - *The backend is recorded as observed.* The GPU program is the CPU program
+    plus a `runtime.json` the worker writes (`JAX_PLATFORMS`, JAX's default
+    backend, device kinds and count). The feedback carries that, the device
+    record digest and the speed-only note. The CPU program is unchanged, so
+    no existing practice identity moves.
+  - *The device is bound into the request.* A GPU request names the
+    installed device record's digest, so a replaced or withdrawn record is a
+    different request. A CPU request is exactly what it was.
+  - *Setup installs the host record when it can.* It detects the GPU with
+    nvidia-smi and writes `/var/lib/carbon/accelerators/host-device.json`
+    (`this-machine`, `own-machine`) when the controller may. Otherwise it
+    names the `carbon_accelerator.py prepare` command. Several GPUs, or an
+    unknown platform or container runtime, are the miner's to name; setup
+    does not pick for them.
+  - *CPU stays the default.* The GPU is offered beside it, never chosen for
+    the miner (owner, 2026-10-01).
+  - *GPU knowledge stays on the execution side.* Only the execution packages
+    may import the accelerator profile (`test_protected_material_isolation`),
+    and `carbon.battery` holds protected material (exam pools, seeds, truth).
+    So battery's GPU practice code lives in `carbon.development_session`,
+    beside Burgers' GPU lane, and the boundary is not widened.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
