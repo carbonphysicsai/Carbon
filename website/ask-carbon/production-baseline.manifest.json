@@ -123,17 +123,23 @@
   },
   "deployment_target_observed": {
     "worker": "carbonwebsite",
-    "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
-    "live_version_note": "dc4469a7 is the WEB-QA-10-D1 deployment (bundle 48fd4680…), still live when captured on 2026-09-30, and the rollback target for candidate ask-carbon-public-release-2026-09-30.1. Not b694b20f (v2 site) and not f7954cb2 (the pre-WEB-QA-10-D1 version).",
+    "live_version_id": "c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4",
+    "live_version_note": "c12d547a is the WEB-QA-11-D2 deployment (bundle 86f51385…), created 2026-10-02T01:52:41Z with 100 % of traffic, and the rollback target for the next candidate. It replaced dc4469a7 (WEB-QA-10-D1). Live now serves the declared /workbench/ replacement (9a44f683…), so this manifest's workbench/index.html entry (05018e5c…) is the pre-deployment baseline: the next candidate must fold that replacement into a v4 inventory before tools/fetch-live-baseline.mjs can match live.",
     "live_version_capture": {
-      "captured_by": "the owner, running `wrangler deployments status --name carbonwebsite` on their own machine (not this host), 2026-09-30",
-      "recorded_in_repository": "2026-09-30. First relayed by the Workbench session, then confirmed first-hand by the owner in the Ask Carbon session. The wrangler output itself was not supplied to the repository.",
-      "equals_previous_deployed_after_capture": true,
-      "building_host_can_read": false
+      "captured_by": "the operator, from the wrangler deploy output (2026-10-02T01:52Z), re-read with `wrangler deployments status --name carbonwebsite` at 2026-10-02T02:56Z, on the operator's machine (not this host)",
+      "recorded_in_repository": "2026-10-02, relayed by the owner in session. The wrangler output itself was not supplied to the repository.",
+      "equals_previous_deployed_after_capture": false,
+      "building_host_can_read": false,
+      "content_verified": "2026-10-02T10:40-11:10Z from the building host: tools/verify-publication.mjs against the reproduced bundle 86f51385 printed VERIFIED on both hostnames (health active:true, gemma-4-31b-turbo-tee:v1), and 99 of the 100 manifest entries plus the declared workbench/index.html replacement matched live on both hostnames."
     },
     "compatibility_date": "2026-09-12",
     "bindings": [],
     "superseded_rollback_targets": [
+      {
+        "version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+        "was_live_until": "2026-10-02T01:52:41Z",
+        "description": "WEB-QA-10-D1 deployment (bundle 48fd4680…), the rollback target for candidate 2026-09-30.1"
+      },
       {
         "version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc",
         "was_live_until": "after 2026-09-26T16:38Z",
