@@ -90,28 +90,48 @@
         "fluid"
       ],
       "variable_aliases": {
-        "channel_geometry": [
+        "channel_width_mm": [
+          "channel width",
           "channel",
           "geometry",
-          "layout",
+          "layout"
+        ],
+        "fin_width_mm": [
+          "fin width",
           "fin"
         ],
-        "coolant_flow": [
+        "channel_depth_mm": [
+          "channel depth",
+          "depth"
+        ],
+        "flow_lpm_per_kw": [
           "flow rate",
           "coolant flow",
           "mass flow",
           "flow"
         ],
-        "inlet_temperature": [
+        "inlet_c": [
           "inlet temperature",
           "inlet",
           "supply temperature"
         ],
-        "heat_load_map": [
+        "heat_load_w": [
           "heat load",
-          "power map",
-          "heat flux",
           "power"
+        ],
+        "hotspot_ratio": [
+          "hot spot",
+          "hotspot",
+          "power map",
+          "heat flux"
+        ],
+        "hotspot_center_mm": [
+          "hot spot location",
+          "hotspot location"
+        ],
+        "hotspot_width_mm": [
+          "hot spot size",
+          "hotspot size"
         ]
       },
       "evidence": null
