@@ -160,25 +160,25 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
             "(OWNER-PYTORCH-BACKEND-01).",
         ),
-        "generate": Gap(
-            reason=(
-                "No battery challenge kit. The sandbox offers only the fixed "
-                "TRAIN v1 and 200 PRACTICE cases; nothing miner-facing runs the "
-                "pinned PyBaMM reference, so a miner cannot generate new "
-                "training or test data inside Carbon."
+        "generate": Provided(
+            (
+                "carbon.challenge_kit.battery:draw",
+                "carbon.challenge_kit.battery:label",
             ),
-            next_step=(
-                "Build carbon/challenge_kit/battery.py as a command on the "
-                "miner's own machine (OWNER-MINER-OWN-MACHINE-01): uniform "
-                "draws over the published input box from the miner's own seed "
-                "roots, labelled by the pinned PyBaMM reference in the pinned "
-                "truth image, with the Burgers kit's no-official-seed tests."
-            ),
+            "carbon/challenge_kit/battery.py, a command on the miner's own "
+            "machine (OWNER-MINER-OWN-MACHINE-01): uniform draws over the "
+            "published input box with the validator's own rule "
+            "(seeds.draw_inputs), from the miner's own seed roots and mock "
+            "seeding only, labelled by the pinned PyBaMM reference in the "
+            "pinned truth image through the validator's own no-network solve "
+            "run, with typed reference failures. Output has TRAIN v1's shape. "
+            "Not in the research sandbox yet; that is a later, separately "
+            "reviewed step.",
         ),
         "evaluate": Provided(
             ("carbon.battery.practice:score_practice",),
             "Exam gates on the 200 public PRACTICE cases. Scoring "
-            "miner-generated cases follows once `generate` is closed.",
+            "miner-generated cases (from the battery kit) is not yet wired.",
         ),
         "compute": Provided(
             (
