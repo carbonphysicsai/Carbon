@@ -121,7 +121,20 @@
         $("sb-" + type + "-rows").innerHTML = problem[type].length
           ? problem[type].map((row, index) => rowHTML(type, row, index)).join("")
           : `<p class="field-note">No ${type} defined yet.</p>`;
-        options.root.querySelector(`[data-add="${type}"]`).disabled = problem[type].length >= LIMITS[type];
+        const full = problem[type].length >= LIMITS[type];
+        const add = options.root.querySelector(`[data-add="${type}"]`);
+        add.disabled = full;
+        // A disabled control says why, beside it.
+        let note = $("sb-limit-" + type);
+        if (!note) {
+          note = document.createElement("span");
+          note.id = "sb-limit-" + type;
+          note.className = "field-note limit-note";
+          add.after(note);
+          add.setAttribute("aria-describedby", note.id);
+        }
+        note.textContent = full ? `The draft holds at most ${LIMITS[type]} ${type}. Download it and start a narrower one to add more.` : "";
+        note.hidden = !full;
       }
       $("sb-economics-fields").innerHTML =
         E.econKeys.filter((k) => k !== "matchedTiming").map((k) =>
@@ -246,20 +259,21 @@
       return `<div class="plan-route"><p class="eyebrow">Proposed entry point</p><h4>${esc(d.route)}</h4><p>${esc(d.method.claim)}</p></div>` +
         `<h4>The next useful step</h4><p>${esc(d.next)}</p>` +
         (d.contradictions.length ? `<div class="boundary"><strong>Unresolved contradictions.</strong> ${esc(d.contradictions.join(" "))} Downloads keep them visible; this is not an executable challenge.</div>` : "") +
-        `<h4>Review items (${d.gaps.length})</h4><ul class="gap-list">${d.gaps.slice(0, 6).map((g) => `<li><strong>${esc(g.topic)}.</strong> ${esc(g.text)}</li>`).join("")}</ul><p class="field-note">A work list, not a feasibility score.</p>` +
+        `<h4>Review items (${d.gaps.length})</h4><ul class="gap-list">${d.gaps.slice(0, 6).map((g) => `<li><strong>${esc(g.topic)}.</strong> ${esc(g.text)}</li>`).join("")}</ul><p class="field-note">${d.gaps.length} proposed review items. This is a work list, not a feasibility score.</p>` +
         `<h4>Evidence plan</h4><p>${esc(d.method.measure)}</p><ol class="stage-list">${d.evidenceStages.map((s) => `<li><strong>${esc(s.name)}.</strong> ${esc(s.text)}</li>`).join("")}</ol><p class="field-note">${esc(d.referenceBoundary)}</p>` +
         (d.guidance.length ? `<h4>Method and regime review</h4>${d.guidance.map((g) => `<details class="method"><summary>${esc(g.name)} / proposed checklist</summary><p>${esc(g.review)}</p><p><strong>Reference:</strong> ${esc(g.reference)}</p><p><strong>Measurements:</strong> ${esc(g.measure)}</p><p class="field-note">${esc(g.status)}</p></details>`).join("")}` : "") +
         `<div class="boundary"><strong>System and time behavior.</strong> ${esc(d.coupling)} ${esc(d.time)}</div>` +
         `<h4>What you could receive</h4><ul>${d.deliverables.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` +
         `<h4>Compare sensible paths</h4><ul>${d.alternatives.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` +
         `<details class="method"><summary>Scientific interpretation and scoring boundaries</summary><p>Define the target population, evaluation sampling and score weighting as separate choices. A specialist must review reference uncertainty, dependence and the resolution needed to distinguish candidates before selecting a sample count.</p><p>Freeze confirmatory criteria before observing outcomes. Preserve reference and infrastructure failures separately from model failures. No favorable economics can compensate for a failed mandatory physical requirement.</p><p>A customer’s target does not create an official score, approved threshold or scientific result.</p></details>` +
-        `<p class="field-note">${p.outputs.length} outputs, ${p.sources.length} reported sources, ${p.requirements.length} requested criteria. Descriptions and planning rules only: no solver or scientific assessment has run.</p>`;
+        (p.requirements.length ? `<p class="field-note">${p.requirements.length} proposed success criteria. These are requested targets. They are not measured performance or a promise of delivery.</p>` : "") +
+        `<p class="field-note">${p.outputs.length} outputs, ${p.sources.length} reported sources. Descriptions and planning rules. No solver or scientific assessment has run.</p>`;
     }
 
     function renderResults() {
       const p = withWords();
       const derived = E.derive(p);
-      $("sb-map").innerHTML = systemMap(p);
+      $("sb-map").innerHTML = systemMap(p) + '<p class="field-note">Concept diagram. No simulation or feasibility result.</p>';
       $("sb-plan").innerHTML = plan(derived, p);
       $("sb-economics-result").innerHTML = costResult(derived.economics);
     }
@@ -273,8 +287,10 @@
         $("sb-editor-" + button.dataset.step).hidden = !yes;
         if (yes && focus) button.focus();
       });
-      $("sb-previous").disabled = STEPS.indexOf(name) === 0;
-      $("sb-next").disabled = STEPS.indexOf(name) === STEPS.length - 1;
+      const index = STEPS.indexOf(name);
+      $("sb-previous").disabled = index === 0;
+      $("sb-next").disabled = index === STEPS.length - 1;
+      $("sb-step-position").textContent = `Section ${index + 1} of ${STEPS.length}` + (index === 0 ? ": this is the first section." : index === STEPS.length - 1 ? ": this is the last section." : ".");
     }
 
     function renderAtlas() {
