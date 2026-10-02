@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T05:08:23Z"
+  captured_at_utc: "2026-10-02T10:33:54Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "7b481abb53bb6f7c415585fa6267d787e95acc56"
+  authority_snapshot_commit: "73663b3f65efb1dd09332699e6d0fbbed552fbff"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10634,6 +10634,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T04:40:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4B-TARGON-VM"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4b: battery practice on a Targon GPU VM on the miner's own account, reached over SSH (OWNER-C-MLP-03-ANSWERS-01, which also records the C-MLP-03 Mira question as answered by OWNER-GRAPHITE-01). Targon's API runs no container image, so the adapter rents a VM instead. Each trial makes one SSH key on the miner's machine (owner-only, removed at teardown), registers and deploys a VM with that key and the miner's chosen VM image, and starts the pinned GPU worker there once with Docker on the VM's loopback. The controller reaches the job through an SSH local port forward, recorded as job_transport ssh-tunnel. A VM image without Docker or the NVIDIA Container Toolkit is refused by name, and nothing is installed. Teardown deletes the VM and its SSH key and verifies both. Targon documents no idempotency key, end time or per-VM charge: a lost answer is reconciled by the ownership name, and the charge stays unresolved, never estimated. Setup offers Targon with a VM image field, checks the image name, the credits and the price, and rents nothing. Shapes are from docs.targon.com and API v3.7.0, read 2026-10-02 and not run live. A real Targon practice is the acceptance. The battery intake's exposure record is not made here. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T10:33:18Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
