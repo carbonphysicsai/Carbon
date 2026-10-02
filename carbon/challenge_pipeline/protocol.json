@@ -35,9 +35,9 @@
    "work": "Build test suite v1: Track A attack vectors with severity rules, Track B EV1-EV3, exam rotation and sealed pool.",
    "output": "Versioned, pinned suite.",
    "reserved": null,
-   "ticket": null,
-   "status": "todo",
-   "evidence": null
+   "ticket": "CHALLENGE-PROTOCOL-03",
+   "status": "done",
+   "evidence": "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json"
   },
   {
    "step": 4,
