@@ -466,3 +466,41 @@ def test_the_committed_public_pools_are_the_public_draws(tmp_path):
         assert [r["case_id"] for r in pool] == [c["case_id"] for c in drawn[:count]]
         assert all(r["inputs"] == c["inputs"] for r, c in zip(pool, drawn)), name
         assert not any("/home/" in json.dumps(r) for r in pool)
+
+
+def test_the_committed_baseline_report_is_reproduced_on_the_public_pools():
+    np = pytest.importorskip("numpy")
+    from carbon import learned_baseline
+
+    spec = importlib.util.spec_from_file_location(
+        "motor_baselines", REPOSITORY / "scripts/dev/motor/reference/baselines.py"
+    )
+    baselines = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(baselines)
+    report = json.loads((POOLS / "baselines.json").read_text())
+    pools = {
+        name: [
+            json.loads(line)
+            for line in (POOLS / f"{name}.jsonl").read_text().splitlines()
+        ]
+        for name in ("train", "practice")
+    }
+    scales = exam.scales_from_train(pools["train"])
+    assert scales == pytest.approx(report["scales"])
+    practice = report["scores"]["practice"]
+    closed = baselines.score(baselines.closed_form, pools["practice"], scales)
+    assert closed["score"] == pytest.approx(practice["closed_form"]["score"], rel=1e-9)
+    train = [r for r in pools["train"] if r["status"] == "OK"]
+    model = learned_baseline.KernelRidge(
+        baselines._x([r["inputs"] for r in train]),
+        np.array([r["outputs"]["torque_nm"] for r in train]),
+        report["learned"]["length"],
+        report["learned"]["ridge"],
+    )
+    learned = baselines.score(
+        baselines.learned_predictor(model), pools["practice"], scales
+    )
+    assert learned["score"] == pytest.approx(practice["learned"]["score"], rel=1e-6)
+    assert report["learned"]["at_edge"] == []
+    # The private pool leaves only aggregates.
+    assert set(report["calibration"]["private"]) == {"n_references", "gates_hold"}
