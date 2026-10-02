@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-generalize-first-run",
+ "recorded_at": "2026-10-02T21:27:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_{stage,attack,step4_grant,second_challenge}.py, first run after the generalization",
+  "description": "Ran the step 4 tests canonically after stage_profile, the Attacker and its runner began taking the Challenge."
+ },
+ "expected": "All step 4 tests pass once every function takes the Challenge.",
+ "observed": "55 passed and 5 failed: call sites of stage_profile(stage) in the lower half of test_graphite_stage.py still passed no Challenge (TypeError). Fixed, then all passed.",
+ "keep": [
+  "Make the Challenge a required argument, so a forgotten call site fails loudly instead of defaulting to battery."
+ ],
+ "change": [
+  "After changing a signature, grep every call site before the first run."
+ ],
+ "protocol_elements": [
+  "stage profile"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-grant-attacker-only",
+ "recorded_at": "2026-10-02T21:26:30Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "docs/development/graphite/grants/GRAPHITE-GRANT-STEP4.json; CHALLENGE-PROTOCOL-04 PROTO4-D4",
+  "description": "Re-derived the step 4 grant after #504 became the Constructor."
+ },
+ "expected": "The owner's USD 5.00 step 4 grant funds both step 4 blocks.",
+ "observed": "#504's GRAPHITE-GRANT-PHASE3 already funds the Constructor block, and #504's runner refuses a grant whose run cost cannot cover pods. The step 4 grant was re-derived for the 3 Attacker sessions only: USD 1.66 a run, 34 glm-5.2 calls, 8 code runs of at most 600 s, 8,880 s of runtime.",
+ "keep": [
+  "Derive a grant's limits from listed prices and the role's start rung, and pin the derivation in a test."
+ ],
+ "change": [
+  "When two lanes build the same block, settle which grant funds it before deriving limits."
+ ],
+ "protocol_elements": [
+  "grants",
+  "campaign_block"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

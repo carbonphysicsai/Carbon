@@ -17471,6 +17471,25 @@ Item 3 for the constructor campaign is an open question to the owner: #504
 registers its campaign at GRAPHITE-GRANT-PHASE3's ceiling less cleanup
 (ticket, Human-reserved).
 
+**Amendment (2026-10-02): the constructor campaign's ceiling.**
+
+*Owner, verbatim, 2026-10-02*, answering the open question above, put as:
+"Constructor spending cap: you set $5 for the constructor campaign. #504 now
+runs the constructor under its own $15 grant (about $14.75 usable after its
+cleanup reserve). Keep the constructor capped at $5, or let it use #504's
+grant?"
+- "let it use it"
+
+*What it changes.*
+- The Constructor campaign uses #504's GRAPHITE-GRANT-PHASE3 and the campaign
+  ceiling #504's runner registers: that grant's ceiling less cleanup,
+  USD 15.00 − 0.25 = USD 14.75.
+- The USD 5.00 ceiling of item 3 now applies to the Attacker campaign only.
+- The open question above is closed.
+
+*Unchanged.* Items 1 and 2. The step 4 grant, which funds the Attacker block
+only. #504's own files and records: nothing of #504's changes.
+
 ## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-03: the construction ladder is the spine; one generalizable protocol; lessons after every execution; Graphite, not Mira
 
 **Owner, verbatim, in session on 2026-10-02:**

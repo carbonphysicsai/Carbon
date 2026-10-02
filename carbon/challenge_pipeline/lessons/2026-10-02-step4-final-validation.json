@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-final-validation",
+ "recorded_at": "2026-10-02T21:55:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "canonical pytest of tests/cpu/test_graphite*.py, tests/service/test_graphite_miner_path.py and tests/cpu/test_challenge_*.py; ruff; the hub validator and render checks; the pipeline's validate and render --check",
+  "description": "Validated the generalized step 4 branch, with its records, lessons and Hub event, before committing."
+ },
+ "expected": "Every check passes with the records, lessons and Hub event in place.",
+ "observed": "428 passed (60 step 4, 199 other Graphite including the miner path, 169 pipeline and challenge). Ruff clean. The Hub validator passed with 0 errors and one warning (no GITHUB_EVENT_PATH outside CI), and the Hub and pipeline views were current after re-rendering. The lessons log validated.",
+ "keep": [
+  "Re-render the Hub and the pipeline view after adding an event or lessons, then run both --check modes before committing."
+ ],
+ "change": [],
+ "protocol_elements": [
+  "test_run",
+  "lessons log",
+  "hub render"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

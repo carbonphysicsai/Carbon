@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-second-challenge",
+ "recorded_at": "2026-10-02T21:27:20Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_{stage,attack,step4_grant,second_challenge}.py",
+  "description": "Ran the step 4 tests canonically, including a synthetic second Challenge with battery code made to raise."
+ },
+ "expected": "Stage and attack run for a second Challenge without battery code.",
+ "observed": "60 passed. The synthetic Challenge supplies only a Graphite record, an adapter, a pipeline construction block and a suite map; battery's adapter and experiment.admit raise if called, and nothing called them. At Level 4 its participant-code parts are IN_SCOPE and only Level 5 is NOT_RUN.",
+ "keep": [
+  "A second-Challenge fixture that makes battery code raise is the test that the shared modules are neutral."
+ ],
+ "change": [
+  "A real second Challenge needs its own Graphite record, adapter, suite map, committed coverage report and grant before its Attacker block."
+ ],
+ "protocol_elements": [
+  "Challenge record",
+  "Challenge adapter",
+  "suite map",
+  "construction level"
+ ],
+ "proposed_revision": {
+  "target": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md (entry to Test/iterate)",
+  "text": "Before a Challenge's first Graphite campaign it supplies: its Graphite record (carbon/agent_campaign/graphite/challenges/<token>.json: pipeline family, label, coverage report, any vector wording, the Attacker campaign and its grant); its adapter (permission inventory, public identity, admission gate, code-run wall allowance, an out-of-contract recipe); its suite map; and a committed suite coverage report at its recorded construction level."
+ },
+ "status": "PROPOSED"
+}

@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-model-view-not-ported",
+ "recorded_at": "2026-10-02T21:26:20Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/tickets/CHALLENGE-PROTOCOL-04.md, live-session repairs",
+  "description": "Rebuilt step 4 on #504 and checked which of the reference branch's five live-session repairs carry over."
+ },
+ "expected": "The reference branch's five live-session repairs carry over to the rebuild on #504.",
+ "observed": "Four were covered: #504 already had per-role call caps, run-namespaced operation ids and an in-loop miner attach, and the trial cap was ported as the Attacker's code-run cap. The model view, which trims what results reach the model, was not ported: full results reach the model, as they do for #504's Constructor.",
+ "keep": [
+  "Spend stays bounded by the per-call reservation and the run cap, with or without the view."
+ ],
+ "change": [
+  "If the first live Attacker session stops early on the request ceiling, port the model view as the follow-up."
+ ],
+ "protocol_elements": [
+  "campaign_session",
+  "Graphite harness"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

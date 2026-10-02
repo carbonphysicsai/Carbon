@@ -243,7 +243,9 @@ starts on `glm-5.2`, at 680 and 1,500 nanodollars per token (Engy, observed
 
       ⌊ 1.66 / 0.04763648 ⌋ = ⌊ 34.8… ⌋ = 34 calls    (34 × 0.04763648 = 1.6196 ≤ 1.66)
 
-`phase4.ATTACKER_SESSION_TURNS` is 34. It is the run ledger's
+Battery's Attacker campaign record
+(`carbon/agent_campaign/graphite/challenges/battery-fastcharge-ageing-development-v1.json`,
+`attacker_campaign.session_turns`) is 34. It is the run ledger's
 `provider_attempts` cap and the research loop's `max_provider_calls`, #504's
 own mechanism for a role's call cap (GRAPHITE-D26); the shared
 `research_agent_policy.MAX_PROVIDER_CALLS` of 48 is unchanged. 34 calls hold
@@ -255,8 +257,8 @@ after 11 calls, typed `run_cap_reached`. It never spends more.
 **Code runs.** A session starts at most 8 code runs (`phase4.MAX_CODE_RUNS`,
 the research loop's own per-epoch `MAX_RESEARCH_TRIALS`): practice,
 `run_python` or `run_julia`. Each sandbox code run must ask for a wall
-allowance of at most 600 s (`phase4.CODE_RUN_SECONDS`): battery's
-`PRACTICE_SECONDS`, the construction contract envelope's
+allowance of at most 600 s (battery's adapter, `code_run_seconds()`):
+battery's `PRACTICE_SECONDS`, the construction contract envelope's
 `worker_deadline_seconds`, which a practice run already has. Past either
 limit the request is refused before dispatch (PROTO4-D6).
 
@@ -272,6 +274,12 @@ compute that here runs in the owner's battery campaign. This grant holds the
 block to 3 × 1.66 = USD 4.98 of tokens, whatever rung is reached. The first
 live session measures the real figure and replaces these numbers.
 
-**Campaign ceiling.** The attacker campaign's ceiling is USD 5.00, the
-owner's choice of 2026-10-02 (OWNER-CHALLENGE-STEP4-01). So only the grant
-binds.
+**Campaign ceilings.** The attacker campaign's ceiling is USD 5.00, the
+owner's choice of 2026-10-02 (OWNER-CHALLENGE-STEP4-01 item 3), recorded in
+battery's Attacker campaign record (`attacker_campaign.ceiling_usd`). So only
+the grant binds. The constructor campaign is not held to USD 5.00: asked
+whether to keep it there or let it use #504's grant, the owner answered "let
+it use it" (OWNER-CHALLENGE-STEP4-01, second amendment). It runs under
+GRAPHITE-GRANT-PHASE3 at the ceiling #504's runner registers for it, that
+grant's ceiling less cleanup (15.00 − 0.25 = USD 14.75), and this grant does
+not fund it.

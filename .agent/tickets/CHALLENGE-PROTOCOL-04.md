@@ -1,7 +1,9 @@
 # CHALLENGE-PROTOCOL-04 — Phase 1 step 4: battery through Test/iterate with Graphite (Graphite phases 3 and 4)
 
-**Status:** rebuilt on #504 (branch `agent/challenge-protocol-04b`). Nothing
-live has run here, and nothing has been spent.
+**Status:** rebuilt on #504 (branch `agent/challenge-protocol-04b`) and
+generalized: the stage profile, the Attacker and its runner take the
+Challenge as a parameter, and battery is their first instance (see
+Generalization). Nothing live has run here, and nothing has been spent.
 
 **Re-scope (owner, 2026-10-02).** The Graphite lane's #504 (GRAPHITE-01
 phase 3, under OWNER-GRAPHITE-03) builds the same Constructor as this
@@ -26,8 +28,9 @@ The live blocks run on #504's Constructor and this ticket's Attacker:
 **Primary Hub map_ref:** `SYSTEM/DEVELOPMENT-SEQUENCING`, `HUB_UPDATE_REQUIRED`.
 **Affects:** `SYSTEM/AGENT-EXECUTION`.
 **Authority:**
-- OWNER-CHALLENGE-ROADMAP-01 and -02;
-- OWNER-CHALLENGE-STEP4-01 and its amendment;
+- OWNER-CHALLENGE-ROADMAP-01, -02 and -03 (rev 2.2: the construction ladder,
+  one generalizable protocol, lessons after every execution);
+- OWNER-CHALLENGE-STEP4-01 and its two amendments;
 - OWNER-GRAPHITE-01, -02 and -03;
 - OWNER-CHALLENGE-ADMISSION-01;
 - OWNER-DX-03.
@@ -54,10 +57,14 @@ It is Graphite's phase 3 and phase 4:
 
 **Budget.**
 - The Constructor block of 3 sessions runs on #504's runner under
-  `GRAPHITE-GRANT-PHASE3` (USD 15.00 including pods, 3 runs at USD 4.91).
+  `GRAPHITE-GRANT-PHASE3` (USD 15.00 including pods, 3 runs at USD 4.91). Its
+  campaign ceiling is the one #504's runner registers, that grant's ceiling
+  less cleanup (USD 14.75): the owner's answer "let it use it"
+  (OWNER-CHALLENGE-STEP4-01, second amendment).
 - The Attacker block of 3 sessions runs under `GRAPHITE-GRANT-STEP4`:
   USD 5.00 of Engy, 3 runs at a USD 1.66 worst case each, 34 model calls a
-  session on `glm-5.2` (PROTO4-D4).
+  session on `glm-5.2` (PROTO4-D4). Its campaign ceiling is USD 5.00
+  (OWNER-CHALLENGE-STEP4-01 item 3, which now applies to it only).
 - Derivations: `docs/development/graphite/grants/README.md`.
 
 ## Slices (on #504)
@@ -71,8 +78,12 @@ It is Graphite's phase 3 and phase 4:
    re-verification, findings, coverage. `graphite/phase4.py`: the Attacker's
    provider and runner beside #504's Constructor runner.
 3. **Grant and records.** `GRAPHITE-GRANT-STEP4.json` and its derivation;
-   OWNER-CHALLENGE-STEP4-01 and its amendment; this ticket; the Hub event.
-4. **The live blocks** (owner-run, pending). #504's 3 Constructor sessions
+   OWNER-CHALLENGE-STEP4-01 and its amendments; this ticket; the Hub events.
+4. **Generalization** (OWNER-CHALLENGE-ROADMAP-03). Slices 1 and 2 take the
+   Challenge as a parameter and read its specifics from its records; the
+   stage profile records the construction level. Battery's specifics move to
+   its record and adapter, and its behaviour is unchanged (below).
+5. **The live blocks** (owner-run, pending). #504's 3 Constructor sessions
    and this ticket's 3 Attacker sessions. Then the coverage report and the
    iteration logs are committed, and step 4 closes.
 
@@ -83,12 +94,14 @@ It is Graphite's phase 3 and phase 4:
 | 1 Stage | `graphite/stage.py`; `GraphiteProvider(stage_profile=...)` in #504's provider | `test_graphite_stage.py` |
 | 2 Attacker v1 | `graphite/attack.py`: brief, attempts, `reverify`, `analyse`, `coverage`. `graphite/phase4.py`: `AttackerProvider`, `AttackerTools`, `run_session`, the `run`, `coverage` and `log` commands, dry run | `test_graphite_attack.py` |
 | 3 Grant and records | `GRAPHITE-GRANT-STEP4.json`; grants README section; OWNER-CHALLENGE-STEP4-01; Hub event `CHALLENGE-PROTOCOL-04` | `test_graphite_step4_grant.py` |
+| 4 Generalization | `graphite/challenge.py`; `graphite/adapters/battery.py`; `graphite/challenges/battery-fastcharge-ageing-development-v1.json`; the stage profile's construction level and its check in #504's provider's stage hook; Hub event `CHALLENGE-PROTOCOL-04-GENERAL` | `test_graphite_second_challenge.py`, and the slices' tests on battery |
 
 **Dry run, no spend.** `phase4 run --dry-run` runs one Attacker session with
-a scripted model, a synthetic grant and no miner path. Its recipe attempt is
-held by Graphite's own harness (no path attached), so it is counted apart
-from the path's defense. No finding. The coverage report merges with suite
-v1's report under its digest.
+a scripted model, a synthetic copy of the Challenge's grant and no miner
+path. Its recipe attempt is held by Graphite's own harness (no path
+attached), so it is counted apart from the path's defense. No finding. The
+coverage report merges with the Challenge's suite v1 report under the suite
+and map digests, at Level 0.
 
 **Dropped from the reference branch.**
 - `graphite/score.py`, the reference's `phase3.py` and `miner_path.py`, and
@@ -121,11 +134,11 @@ v1's report under its digest.
 ## Working decisions
 
 - **PROTO4-D1. The stage enters through the campaign profile.** A stage
-  profile binds the stage, the permission ledger's bytes and battery's
-  permission inventory (`study.permission_inventory`). Its digest is the
-  campaign's registered profile, so the controller's `profile_not_in_force`
-  check needs no change. The provider, which alone knows the Graphite role,
-  checks the role against the stage's row.
+  profile binds the stage, the permission ledger's bytes and the Challenge's
+  permission inventory (battery's: `study.permission_inventory`). Its digest
+  is the campaign's registered profile, so the controller's
+  `profile_not_in_force` check needs no change. The provider, which alone
+  knows the Graphite role, checks the role against the stage's row.
 - **PROTO4-D2. Step 4 runs at `test_iterate`.**
   - Battery's pipeline record is at `protocol` (Phase 1). The ledger's stages
     are the roadmap's stages.
@@ -156,13 +169,14 @@ v1's report under its digest.
   cannot count delegated miner tools, and battery's `run_python` has no
   Carbon wall limit unless the miner sets one. So `AttackerTools` refuses,
   before dispatch, a ninth code run and any `run_python` or `run_julia`
-  without a wall allowance of at most battery's practice worker's 600 s.
-  Both are counted across resumes. This bounds Graphite's own agent; it is
-  not a limit on miners.
+  without a wall allowance of at most battery's practice worker's 600 s (for
+  any Challenge, its adapter's `code_run_seconds`). Both are counted across
+  resumes. This bounds Graphite's own agent; it is not a limit on miners.
 - **PROTO4-D7. Carbon re-verifies with #504's reconstruction gate.**
-  - A recipe is refused by Carbon when `experiment.admit` refuses it: the
-    gate #504 admits Constructor proposals through. A recipe Carbon rebuilds
-    but #504's pods do not serve (PyTorch) is admitted.
+  - A recipe is refused by Carbon when the Challenge's admission gate
+    refuses it. Battery's is `experiment.admit`, the gate #504 admits
+    Constructor proposals through. A recipe Carbon rebuilds but #504's pods
+    do not serve (PyTorch) is admitted.
   - A refusal by Graphite's own harness (manifest, protected material,
     code-run rules, no path attached) never reached the path. It is counted
     apart, never as the path's defense.
@@ -181,7 +195,107 @@ v1's report under its digest.
   merges. `Phase3Provider` already forwards `stage_profile=`, and the ledger
   admits the Constructor at `test_iterate`, so the Constructor block's
   behavior would not change. Composing the profiles is a follow-up after
-  #504 merges.
+  #504 merges. A proposed revision records it
+  (`lessons/2026-10-02-step4-stage-not-in-constructor-runner.json`).
+- **PROTO4-D9. The stage profile records the construction level.** Rev 2.2
+  makes the construction ladder the spine of Test/iterate.
+  - The profile's `construction_level` is the inventory's profile (`level-N`;
+    battery's is `level-0`), and it must agree with the level the
+    Challenge's pipeline record names (`records/f05.json`, Level 0). If they
+    disagree, no profile is made.
+  - The provider records the level and the Challenge in the session. It
+    refuses, at construction, at start and on resume, a profile whose level
+    differs from the inventory's now (`construction_level_mismatch`), or
+    whose permissions changed at the same level
+    (`stage_permissions_changed`).
+  - The Attacker's rows, iteration log and coverage report state the level.
+    The coverage refuses sessions at different levels and a suite report
+    taken at another level, because evidence stays bound to its level.
+  - Levels above it are listed NOT_RUN. A vector's participant-code part
+    (the suite's `ladder` block: A1, A2 and A4 from Level 4) is carried
+    through from the suite report: NOT_RUN at Level 0, never a pass. A
+    report that scopes it otherwise is refused.
+- **PROTO4-D10. A Challenge is a record, an adapter and the records the
+  pipeline and suite already keep.** The shared modules take the Challenge
+  (or its contract token) and read nothing Challenge-specific from code
+  constants. Battery's literals moved to its Graphite record and its
+  adapter. A record may name only an adapter module under
+  `graphite/adapters/`. The runner's `--challenge` defaults to the Challenge
+  that defines the protocol in Phase 1 (the record whose family is the
+  pipeline's `PROTOCOL_FAMILY`), so the owner's commands are unchanged.
+  `study.permission_inventory()` is untouched: the battery adapter calls it
+  with no argument.
+
+## Generalization
+
+The owner, 2026-10-02: "Make sure everything we have is a generalizable test
+and design protocol that can be adapted to any challenge and improved as we
+go."
+
+**Challenge-neutral** (`carbon/agent_campaign/graphite/`):
+- `stage.py`: the stage profile for any Challenge and its check (ledger,
+  stage, construction level, permissions digest).
+- `challenge.py`: what a Challenge is to Graphite, its record schema
+  (`carbon.graphite.challenge.v1`), its adapter's functions, and the
+  agreement between the inventory's level and the pipeline record's.
+- `attack.py`: the suite v1 vectors' shared wording (`ATTACK_GOALS`, which
+  names no Challenge's backends), the brief, attempt reading, Carbon-side
+  re-verification through the Challenge's gate, findings, and the coverage
+  merge bound to the suite digest and the Challenge's suite map digest.
+- `phase4.py`: the Attacker's provider, tools, controller campaign, session,
+  coverage and dry run, all parameterized by the Challenge; its limits come
+  from the Challenge's records.
+- #504's provider's stage hook: the level and permissions check.
+
+**The battery adapter** (battery's instance, behaviour unchanged):
+- `graphite/challenges/battery-fastcharge-ageing-development-v1.json`:
+  family f05, label "battery", the committed suite coverage report, A1's
+  wording with its contract's backends "(JAX or PyTorch)", and the Attacker
+  campaign: `graphite-step4-attacker`, its workspace and credential
+  reference, GRAPHITE-GRANT-STEP4 and its file, the USD 5.00 ceiling and 34
+  calls a session.
+- `graphite/adapters/battery.py`: the permission inventory
+  (`study.permission_inventory()`), the public identity
+  (`battery.challenge.CHALLENGE`), the admission gate (#504's
+  `experiment.admit`, PROTO4-D7), the code-run wall allowance
+  (`battery.research.PRACTICE_SECONDS`, 600 s) and the dry run's
+  out-of-contract recipe (the scaffold with `transolver`).
+- Its other records, which already existed: the pipeline record
+  (`carbon/challenge_pipeline/records/f05.json`, Level 0), the suite map
+  (`carbon/challenge_pipeline/suite_maps/battery-fastcharge-ageing-development-v1.json`)
+  and the coverage report
+  (`docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json`).
+- Identity was checked by running the pre-generalization Attacker beside
+  the new one: the same brief digest, limits, dry-run grant amounts and
+  verdicts (`lessons/2026-10-02-step4-battery-unchanged.json`).
+
+**What a second Challenge must supply** before its Attacker block:
+1. A pipeline record with a `construction` block naming its contract token
+   and level, reached by the ladder's rules.
+2. A suite map, `carbon/challenge_pipeline/suite_maps/<token>.json`, and a
+   committed suite v1 coverage report run at that level.
+3. A permission inventory whose profile is `level-N`, agreeing with the
+   pipeline record.
+4. An adapter module under `graphite/adapters/` with
+   `permission_inventory`, `public_identity`, `admission_refusals`,
+   `code_run_seconds` and `recipe_outside_contract`. Its admission gate is
+   Carbon's own reconstruction gate for that contract, returning
+   `construction_contract_unrecorded` first when its record is not current.
+5. A Graphite record, `graphite/challenges/<token>.json`, naming the above,
+   any vector wording specific to it, and its Attacker campaign: identities,
+   the grant that funds it (an owner grant, with its derivation), the
+   owner's ceiling and the per-session call cap derived from that grant.
+6. Graphite's ledger admitting the role at `test_iterate`, as it does today
+   for every Challenge.
+
+`tests/cpu/test_graphite_second_challenge.py` runs a synthetic second
+Challenge through all of this with battery's adapter and gate made to raise.
+
+**Lessons.** One entry per execution, under
+`carbon/challenge_pipeline/lessons/2026-10-02-step4-*.json`. Two propose
+protocol revisions, awaiting an owner: compose the stage profile into every
+Graphite runner, and list what a Challenge supplies before its first
+Graphite campaign.
 
 ## Live blocks (owner-run)
 
@@ -196,8 +310,13 @@ python -m carbon.agent_campaign.graphite.phase4 coverage --root ROOT
 python -m carbon.agent_campaign.graphite.phase4 log --root ROOT
 ```
 
+`--challenge` is optional: without it the runner uses battery, the
+Challenge that defines the protocol. The Attacker campaign's ceiling is
+USD 5.00.
+
 The Constructor block runs with #504's `phase3 run` under
-GRAPHITE-GRANT-PHASE3.
+GRAPHITE-GRANT-PHASE3, at the campaign ceiling #504's runner registers
+(USD 14.75), as the owner answered ("let it use it").
 
 ## Human-reserved, fail closed until set
 
@@ -208,12 +327,15 @@ GRAPHITE-GRANT-PHASE3.
   - the reconstruction tolerance.
 - **Process owner.** The permission ledger and the stage mapping, both DRAFT
   until lock.
-- **Owner: the constructor campaign's ceiling.** OWNER-CHALLENGE-STEP4-01
+- **Answered: the constructor campaign's ceiling.** OWNER-CHALLENGE-STEP4-01
   item 3 set USD 5.00 for the constructor campaign, under the step 4 grant.
-  After the re-scope, the Constructor runs on #504 under
-  GRAPHITE-GRANT-PHASE3, and #504 registers its campaign at that grant's
-  ceiling less cleanup (USD 14.75). This ticket changes nothing of #504's.
-  Whether the constructor campaign is held to USD 5.00 is the owner's call.
+  After the re-scope the Constructor runs on #504 under
+  GRAPHITE-GRANT-PHASE3, which registers its campaign at that grant's
+  ceiling less cleanup (USD 14.75). Asked to keep USD 5.00 or let it use
+  #504's grant, the owner answered "let it use it" (2026-10-02, second
+  amendment). USD 5.00 now binds the Attacker campaign only. This ticket
+  changes nothing of #504's.
+- **Any owner: the two proposed protocol revisions** in the lessons log.
 - **Technical owner.** Grading every finding and every coverage report.
 - **Credential.** The Engy key is supplied by the owner in an owner-only
   file. It is never in chat, the repository or logs.

@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-full-regression",
+ "recorded_at": "2026-10-02T21:27:30Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite*.py, tests/service/test_graphite_miner_path.py, tests/cpu/test_challenge_*.py",
+  "description": "Ran #504's Graphite tests, the miner-path service test and the pipeline tests canonically on the generalized branch."
+ },
+ "expected": "#504's tests and the pipeline tests still pass with the stage hook's level check.",
+ "observed": "428 passed in 337 s. #504's unstaged Constructor runner is unaffected: the level and permissions check runs only for a staged provider.",
+ "keep": [
+  "The stage hook stays the only change to #504's provider."
+ ],
+ "change": [],
+ "protocol_elements": [
+  "stage profile",
+  "construction level"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

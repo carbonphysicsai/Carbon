@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-constructor-ceiling",
+ "recorded_at": "2026-10-02T21:27:40Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "stage_gate",
+  "ref": ".agent/DECISIONS.md, OWNER-CHALLENGE-STEP4-01 second amendment",
+  "description": "Put the constructor campaign's ceiling to the owner after #504 became the Constructor, and recorded the answer."
+ },
+ "expected": "The constructor campaign is held to the USD 5.00 ceiling of OWNER-CHALLENGE-STEP4-01 item 3.",
+ "observed": "After the re-scope #504's runner registers the constructor campaign at GRAPHITE-GRANT-PHASE3's ceiling less cleanup (USD 14.75). Asked to keep USD 5.00 or let it use #504's grant, the owner answered \"let it use it\". The USD 5.00 ceiling now applies to the Attacker campaign only.",
+ "keep": [
+  "When a re-scope moves a block under another grant, put its ceiling to the owner and record the verbatim answer in place as an amendment."
+ ],
+ "change": [
+  "Record each campaign's ceiling beside the grant that funds it, in the Challenge's campaign record, so a re-scope shows which ceiling binds."
+ ],
+ "protocol_elements": [
+  "campaign ceilings",
+  "grants"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

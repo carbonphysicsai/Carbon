@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-stage-not-in-constructor-runner",
+ "recorded_at": "2026-10-02T21:26:10Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/tickets/CHALLENGE-PROTOCOL-04.md, PROTO4-D8",
+  "description": "Built the stage profile and Graphite's per-stage enforcement on #504's provider."
+ },
+ "expected": "Every Graphite session in step 4 runs under the stage profile.",
+ "observed": "#504's Constructor runner registers its own Level-0 permission profile (phase3.permission_profile) as the campaign profile and every task's, so a staged provider would refuse its tasks. The stage profile is enforced for the Attacker only; the Constructor block runs unstaged.",
+ "keep": [
+  "A staged provider refuses a task whose profile is not the stage profile's digest; nothing composes profiles silently."
+ ],
+ "change": [
+  "After #504 merges, compose the stage profile with each runner's own permission profile so every Graphite campaign is staged."
+ ],
+ "protocol_elements": [
+  "Graphite's per-stage permission ledger",
+  "Graphite operating rules"
+ ],
+ "proposed_revision": {
+  "target": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md §6 (Graphite's per-stage permission ledger)",
+  "text": "Every Graphite runner registers, as its campaign profile, the stage profile composed with that runner's own permission profile. The controller then enforces the stage and the construction level for every role, not only the Attacker."
+ },
+ "status": "PROPOSED"
+}

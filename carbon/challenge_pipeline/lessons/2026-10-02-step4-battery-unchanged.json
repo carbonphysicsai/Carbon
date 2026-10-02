@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-battery-unchanged",
+ "recorded_at": "2026-10-02T21:27:10Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "attack.py and phase4.py at 5b162e1d3 (loaded from git show) against the generalized working tree",
+  "description": "Ran the pre-generalization Attacker beside the generalized one on battery and compared their outputs."
+ },
+ "expected": "Battery's step 4 behaves exactly as before the generalization.",
+ "observed": "Identical: the Attacker brief (same digest), the session limits (34 calls, 8 code runs, 600 s), the dry-run grant's amounts, and Carbon's verdicts on six attempts (HELD, four FAIL_OPEN, NOT_APPLICABLE). Only the dry-run grant's synthetic id changed.",
+ "keep": [
+  "Prove a refactor keeps behaviour by running the old module from git show beside the new one, not only by passing tests."
+ ],
+ "change": [
+  "Pin what stays stable in a test: test_battery_specifics_come_from_its_record_and_adapter pins battery's limits and wording."
+ ],
+ "protocol_elements": [
+  "Attacker brief",
+  "Attacker limits"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

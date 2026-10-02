@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-plain-venv-cryptography",
+ "recorded_at": "2026-10-02T21:26:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "agent/challenge-protocol-04b, the step 4 rebuild on #504 (874acb735..980066c2c)",
+  "description": "Ran the step 4 tests and their neighbours under the worktree's plain .venv, then canonically."
+ },
+ "expected": "The step 4 tests and their neighbours pass under the worktree's .venv.",
+ "observed": "An unrelated test failed under the plain .venv with ModuleNotFoundError: cryptography. The same test passed in the canonical environment with CI's dependency groups.",
+ "keep": [
+  "Judge a run only in the canonical environment (scripts/dev/canonical.sh) with the dependency groups CI installs."
+ ],
+ "change": [
+  "Use the plain .venv only for lint and the pipeline CLI; never read its test failures as evidence about the code."
+ ],
+ "protocol_elements": [
+  "test_run",
+  "suite map environment_groups"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

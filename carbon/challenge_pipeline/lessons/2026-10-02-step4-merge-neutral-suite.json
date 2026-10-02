@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-merge-neutral-suite",
+ "recorded_at": "2026-10-02T21:26:50Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "merge 5b162e1d3 of agent/challenge-protocol-03 at 34e6a3c1f into agent/challenge-protocol-04b",
+  "description": "Merged the Challenge-neutral suite and its per-Challenge maps, then re-rendered and validated the pipeline and the hub."
+ },
+ "expected": "A clean merge of the Challenge-neutral suite.",
+ "observed": "Clean merge; the pipeline view and the hub were unchanged. The suite now owns per-vector ladder scoping (participant code from Level 4 for A1, A2 and A4) and a suite map per Challenge. A per-vector level table drafted in the Attacker duplicated it and was dropped before commit.",
+ "keep": [
+  "One owner per fact: the Attacker reads the suite's ladder blocks and binds the map digest; it keeps no copy."
+ ],
+ "change": [
+  "Before adding Challenge- or level-specific data to a shared module, check whether the suite or the pipeline already owns it."
+ ],
+ "protocol_elements": [
+  "suite_v1 ladder block",
+  "suite map"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

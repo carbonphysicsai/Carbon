@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-merge-rev22",
+ "recorded_at": "2026-10-02T21:26:40Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "merge 4509d9cc2 of agent/challenge-protocol-03 at 78cdf577b into agent/challenge-protocol-04b",
+  "description": "Merged roadmap rev 2.2 into the step 4 branch and ran the challenge and step 4 tests canonically."
+ },
+ "expected": "Roadmap rev 2.2 (construction ladder, lessons log, level proposals) merges into the step 4 branch.",
+ "observed": "Five conflicts (DECISIONS.md, the hub index and three generated hub files) were resolved by keeping both sides' entries and re-rendering; 82 tests passed. The level proposals (proposals.py) were not on agent/challenge-protocol-03 yet: the merge cascade had reached protocol-02 only, so a second merge followed once it landed.",
+ "keep": [
+  "Take either side of generated hub files and re-render; keep both sides of decision and event entries, events in recorded_at order."
+ ],
+ "change": [
+  "Before merging a cascade branch, check that it holds what the brief expects (git ls-tree), and merge again when the cascade completes rather than reaching past it."
+ ],
+ "protocol_elements": [
+  "merge cascade",
+  "hub render"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
