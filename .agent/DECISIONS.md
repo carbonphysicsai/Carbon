@@ -17101,3 +17101,43 @@ never silent); isolation and evaluator authority (invariants 6 and 7.9).
 
 Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 `.agent/tickets/C-MLP-03_miner_environment.md`.
+
+## 2026-10-02 — OWNER-GRAPHITE-01: build Carbon's own research and testing agent (Graphite) instead of buying Mira; inference on Chutes or Engy; Targon confidential compute later
+
+**Owner, verbatim.**
+1. 2026-10-01, after a vendor meeting was arranged with Autoscience: "My
+   decisions is to build an in-house version give it a name. We will use
+   Targons confidential compute in the future. For now we don't need it.
+   Draft a plan to build a SOTA carbon testing agent the mirrors Mira's
+   system".
+2. 2026-10-02: "We will use chutes or Engy for agent inference again."
+
+**Decision.**
+1. **Graphite.** Carbon builds an in-house agent, named Graphite by the lead
+   session. It mirrors Mira's published loop: literature, experiments on
+   Carbon's model, verification on Carbon's eval, delivery as PRs. It adds an
+   attacker role for Track A admission testing. Plan:
+   `docs/development/GRAPHITE_TESTING_AGENT_PLAN.md`.
+2. **Inference.**
+   - Agent inference runs on Chutes or Engy, through
+     `carbon/development_session/model_provider.py`.
+   - Engy first: its adapters exist.
+   - Chutes once its adapter exists. C-MLP-03 §2 plans it, and Graphite
+     reuses it.
+   - The owner's Engy model ladder of 2026-09-26 applies, cheapest first,
+     escalating one rung only on an observed failure.
+3. **Confidential compute.** Targon's confidential compute is the intended
+   home for future client challenges. It is not needed now and nothing is
+   built for it yet.
+4. **Mira.** The Mira adapter (#475) stays, and keeps refusing every call
+   until a vendor contract exists. A paid Mira comparison is optional and
+   needs its own owner decision.
+
+**Unchanged.**
+- Graphite proposes; Carbon's frozen verifier decides (invariants 7.9 and
+  7.10).
+- No evaluator authority, confirmation material or pod keys reach the agent.
+- Spend runs only under owner grants enforced by the campaign controller.
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
