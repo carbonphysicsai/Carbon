@@ -40,7 +40,7 @@ Bounded DEVELOPMENT implementation and control verification only. Real accepted 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/279a797c2d5bf0a6e33379446f499a142b951334/.agent/tickets/C-W1-D3_development_scoring.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d29a9053003ef8bcccf5e67a3ece920a2311d934/.agent/tickets/C-W1-D3_development_scoring.md)
 - [Exact development rule](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CW1_DEVELOPMENT_SCORING_RULE.md)
 - [Observed results](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CW1_DEVELOPMENT_SCORING_RESULTS.md)
 - [Learning log](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CW1_DEVELOPMENT_SCORING_LEARNING.md)
