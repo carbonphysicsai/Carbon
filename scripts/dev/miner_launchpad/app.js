@@ -598,10 +598,18 @@
       researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice].filter(Boolean).join(" · ") : "not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    // The validator's intake, when the validator runs elsewhere (C-MLP-03
+    // slice 6). Its public facts are read and checked; nothing is signed.
+    const intake = setupField(review, "battery_intake", "Validator intake URL (optional; https, or loopback)");
     const write = el("button", "Write my profile");
     write.disabled = !steps.review?.ready;
     review.append(write);
-    review.addEventListener("submit", async event => { event.preventDefault(); await setupCall("review", {confirm: true}); });
+    review.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {confirm: true};
+      if (intake.value.trim()) request.battery_intake = intake.value.trim();
+      await setupCall("review", request);
+    });
   }
 
   $("onboarding-status").addEventListener("click", () => onboardingCall("status"));

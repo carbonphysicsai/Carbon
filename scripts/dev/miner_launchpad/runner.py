@@ -81,6 +81,10 @@ OPTIONAL_PROFILE_FIELDS = {
     "gpu_image",
     "provider_credentials",
     "model_selection",
+    # The validator's battery intake (OD-7(b)) a frozen candidate is submitted
+    # to when the validator does not run beside the campaign (C-MLP-03 slice
+    # 6): an https URL, or loopback while the intake binds loopback only.
+    "battery_intake",
 }
 
 #: The provider every campaign was pinned to before selection existed. Its key
@@ -124,6 +128,24 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "gpu_research",
     "rented_gpu",
 }
+
+
+def _intake_url(value):
+    """An https URL, or http to this machine's loopback (the intake binds
+    loopback until its exposure is recorded)."""
+    from urllib.parse import urlsplit
+
+    if type(value) is not str or len(value) > 512:
+        return False
+    try:
+        url = urlsplit(value)
+    except ValueError:
+        return False
+    if url.query or url.fragment or not url.hostname:
+        return False
+    return url.scheme == "https" or (
+        url.scheme == "http" and url.hostname in ("127.0.0.1", "localhost")
+    )
 
 
 def review_pin(cfg):
@@ -251,6 +273,8 @@ def validated_profile(cfg):
             "compute_credential is required exactly when the runtime declares "
             "rented_gpu"
         )
+    if "battery_intake" in cfg and not _intake_url(cfg["battery_intake"]):
+        raise ValueError("battery_intake is an https URL or a loopback URL")
     if "provider_credentials" in cfg:
         from carbon.development_session.model_provider import ADAPTERS
 
@@ -1351,6 +1375,7 @@ class RunnerAdapter:
                 product=None,
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
+                battery_intake=cfg.get("battery_intake"),
             )
             credential = self._frozen_credential(cfg, root)
             if credential is not None:
@@ -1470,6 +1495,7 @@ class RunnerAdapter:
                     product=product,
                     research_guidance=task["text"] if task is not None else None,
                     command="run" if creating else "resume",
+                    battery_intake=cfg.get("battery_intake"),
                 )
                 if creating:
                     # The launch's choice freezes into the manifest now.

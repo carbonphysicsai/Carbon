@@ -662,6 +662,11 @@ async def evaluate_candidate(prepared, epoch, record):
     from .deployment import EvaluationUnavailable, evaluate, validator
 
     config = evaluation_config(prepared)
+    intake = getattr(prepared.args, "battery_intake", None)
+    if config is None and intake is not None:
+        # The validator runs elsewhere: submit through its intake, signed by
+        # the miner's own signer (C-MLP-03 slice 6).
+        return await _evaluate_through_intake(prepared, epoch, record, intake)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
     try:
@@ -706,6 +711,43 @@ async def evaluate_candidate(prepared, epoch, record):
         "schema": "carbon.battery.permitted-feedback.v1",
         "epoch": epoch,
         "outcome": outcome,
+        "official_eligible": False,
+        "reward": False,
+    }
+
+
+async def _evaluate_through_intake(prepared, epoch, record, url):
+    """One frozen candidate through the validator's intake; see
+    `remote_submission`. The epoch is consumed only by a verdict."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from .remote_submission import IntakeRefusal, submit_and_wait
+
+    try:
+        status, answer, submission_id = await asyncio.to_thread(
+            submit_and_wait,
+            url,
+            prepared.sdk.connection.miner_key,
+            root=prepared.ledger.root,
+            epoch=epoch,
+            strategy=record["strategy"],
+            contract_digest=record.get("contract_digest")
+            or prepared.manifest["contract_digest"],
+        )
+    except IntakeRefusal as refused:
+        raise OperationRefused(refused.code) from None
+    except OSError:
+        raise OperationRefused("intake_unreachable") from None
+    if answer.get("state") == "FAILED_INFRA_EXHAUSTED":
+        raise OperationRefused("evaluation_failed_infra")
+    from .intake_client import describe
+
+    return {
+        "schema": "carbon.battery.permitted-feedback.v1",
+        "epoch": epoch,
+        "outcome": answer,
+        "via": {"intake": url, "submission_id": submission_id},
+        "description": describe(status, answer),
         "official_eligible": False,
         "reward": False,
     }

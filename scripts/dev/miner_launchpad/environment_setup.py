@@ -820,6 +820,23 @@ class LiveChecks:
         )
         return {"hermes": version, "written": written}
 
+    def intake(self, url: str) -> dict:
+        """Read the validator intake's public facts and check it serves this
+        chain and Challenge. Sends nothing signed and costs nothing."""
+        from carbon.battery import intake_client
+
+        try:
+            facts = intake_client.read_intake(url)
+            intake_client._context(facts)
+            intake_client._challenge(facts)
+        except intake_client.IntakeMismatch:
+            raise SetupRefused(
+                "battery_intake", "intake_serves_another_chain_or_challenge"
+            ) from None
+        except (OSError, ValueError, KeyError, TypeError):
+            raise SetupRefused("battery_intake", "intake_unreachable") from None
+        return {"receiver": facts["receiver"], "snapshot": facts["snapshot"]["id"]}
+
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
         from carbon.chain.external_signer import SignerFailure, connect_signer
 
@@ -1231,12 +1248,26 @@ class EnvironmentSetup:
             raise SetupRefused("review", "profile_invalid") from None
 
     def review(self, value) -> dict:
-        """Write the profile and load it into the controller."""
-        _closed(value, {"confirm"})
+        """Write the profile and load it into the controller.
+
+        `battery_intake`, optional, is the validator's intake a frozen
+        candidate is submitted to when the validator runs elsewhere
+        (C-MLP-03 slice 6); its public facts are checked first.
+        """
+        from scripts.dev.miner_launchpad.runner import _intake_url
+
+        _closed(value, {"confirm"}, {"battery_intake"})
         if value["confirm"] is not True:
             raise SetupRefused("confirm", "review_needs_confirmation")
+        intake = value.get("battery_intake")
+        if intake is not None:
+            if not _intake_url(intake):
+                raise SetupRefused("battery_intake", "intake_url_invalid")
+            self.checks.intake(intake)
         with self.lock:
             cfg = self.profile()
+            if intake is not None:
+                cfg = {**cfg, "battery_intake": intake}
             write_private(self.profile_path, canonical(cfg))
             record = self._record()
             record["profile"] = {"written_at": int(time.time())}

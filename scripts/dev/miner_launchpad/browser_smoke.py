@@ -1300,6 +1300,9 @@ class SetupChecks:
     def hermes(self, document, key):
         raise AssertionError("the smoke's miner uses Carbon's agent")
 
+    def intake(self, url):
+        raise AssertionError("the smoke's validator runs beside the campaign")
+
     def agent(self, hotkey, socket_path=None):
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
