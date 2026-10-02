@@ -708,8 +708,11 @@ def cmd_dispatch(a) -> None:
 #: terminated at once, and the budget check charges every pod at this rate.
 MAX_CPU_RATE = 2.0
 CPU_FLAVORS = ["cpu5c", "cpu3c"]  # compute-optimized, newest first
+#: The cold plate's pinned image. RunPod did not start a pod named by digest
+#: alone (no container after 13 minutes, 2026-10-02); a tag beside the digest
+#: changes nothing about what is pulled, because the digest wins.
 OPENFOAM_IMAGE = (
-    "opencfd/openfoam-default@sha256:"
+    "opencfd/openfoam-default:2512@sha256:"
     "33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
 )
 UBUNTU_IMAGE = (
