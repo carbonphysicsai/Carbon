@@ -328,6 +328,7 @@ def test_primary_navigation_is_the_control_center_and_rehearsal_is_development()
         "Compute",
         "Connections",
         "Wallet & Identity",
+        "Set up your environment",
         "Settings",
     ]
     development = [(vid, label) for vid, label, group in parsed.views if group]

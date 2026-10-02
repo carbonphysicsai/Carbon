@@ -190,7 +190,7 @@ Heavy or domain-specific environments are explicit:
 | Group | Intended owner | Not implied by installation |
 |---|---|---|
 | `science-jax` | A ticket explicitly owning JAX work | Scientific correctness or qualification |
-| `science-torch` | A ticket explicitly owning Torch/NeuralOperator/PhysicsNeMo work | GPU/CUDA support or scientific qualification |
+| `science-torch` | A ticket explicitly owning Torch/NeuralOperator/PhysicsNeMo work, including the battery PyTorch reconstruction backend (RECON-TORCH-01; CI's canonical job installs it and sets `CARBON_REQUIRE_TORCH=1`) | GPU/CUDA support or scientific qualification |
 | `chain` | A ticket explicitly owning Bittensor integration | Network, economic, or production authority |
 
 Use the wrapper so interpreter and lock checks remain consistent:

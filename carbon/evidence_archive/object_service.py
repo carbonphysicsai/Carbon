@@ -174,7 +174,11 @@ def main() -> None:
     parser.add_argument("--tenant-id", required=True)
     args = parser.parse_args()
     server = ObjectServer(("127.0.0.1", args.port), args.root, args.tenant_id)
-    args.ready_file.write_text(str(server.server_port), encoding="ascii")
+    # Publish the port atomically: a reader polling for the file never sees it
+    # created but still empty.
+    pending = args.ready_file.with_name(args.ready_file.name + ".pending")
+    pending.write_text(str(server.server_port), encoding="ascii")
+    os.replace(pending, args.ready_file)
     try:
         server.serve_forever()
     finally:

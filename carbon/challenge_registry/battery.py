@@ -7,7 +7,7 @@ def _versions():
     from importlib.metadata import PackageNotFoundError, version
 
     found = {}
-    for name in ("jax", "jaxlib", "optax", "numpy"):
+    for name in ("jax", "jaxlib", "optax", "numpy", "torch", "neuraloperator"):
         try:
             found[name] = version(name)
         except PackageNotFoundError:
@@ -146,7 +146,15 @@ def describe():
             ),
         },
         "execution": {
-            "backend": "JAX (CPU) through Carbon's battery recipes",
+            "backend": (
+                "JAX (CPU, the default) or PyTorch (CPU), as the recipe's "
+                "`backend` names, through Carbon's battery recipes; each "
+                "recipe is rebuilt in its backend's pinned worker image"
+            ),
+            "backends": {
+                "jax": "every family except fno",
+                "pytorch": "every family; fno (neuraloperator) only here",
+            },
             "environment_pin": battery_contracts()
             .assembly.environment_pins[0]
             .content_digest,
@@ -201,10 +209,11 @@ def describe():
         "exclusion_scope": {
             "submission": (
                 "Submitted constructions rebuild only through Carbon's approved "
-                "JAX runtime. Excluded for battery submissions: PyTorch and "
+                "JAX or PyTorch runtimes, with Carbon's own training code "
+                "(OWNER-PYTORCH-BACKEND-01). Excluded for battery submissions: "
                 "Julia submission or reconstruction backends, miner-supplied "
-                "reference labels, and models that invoke or reuse the PyBaMM "
-                "reference solver."
+                "code, reference labels, and models that invoke or reuse the "
+                "PyBaMM reference solver."
             ),
             "not_excluded": [
                 (

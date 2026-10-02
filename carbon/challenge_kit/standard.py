@@ -42,8 +42,9 @@ PROVISIONS = {
         "entries and why each is gated, so a miner can see what can be tried."
     ),
     "train": (
-        "The validator's own construction runtime (the same pinned JAX "
-        "environment and training code), runnable by the miner."
+        "The validator's own construction runtime (the same pinned backend "
+        "environment - JAX, or PyTorch where the Challenge offers it - and "
+        "training code), runnable by the miner."
     ),
     "generate": (
         "The Challenge's public generator and reference solver, runnable in the "
@@ -53,6 +54,21 @@ PROVISIONS = {
     "evaluate": (
         "Practice scoring with the exam's own gates and metrics, on public or "
         "miner-generated cases, repeatable so a miner can iterate."
+    ),
+    # OWNER-MINER-ENVIRONMENT-01 (2026-09-30): the environment is fully loaded
+    # after registration. Carbon facilitates; the miner's own accounts, keys
+    # and machines provide these, and nothing is hosted by Carbon.
+    "compute": (
+        "A GPU research path on the miner's own or rented hardware, set up "
+        "from the Control Center after registration."
+    ),
+    "model": (
+        "The named inference providers, connectable in setup with the "
+        "miner's own key."
+    ),
+    "agent": (
+        "The named agents, connectable in setup, driving the Challenge's "
+        "research tools."
     ),
 }
 
@@ -133,8 +149,16 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         "research": Provided(("carbon.battery.research:challenge_parts",)),
         "hypothesize": Provided((REGISTRY_EVIDENCE,)),
         "train": Provided(
-            ("carbon.battery.research:implementation_files",),
-            "training.py is published and staged byte-identical in practice.",
+            (
+                "carbon.battery.research:implementation_files",
+                "carbon.battery.practice:staged_files",
+            ),
+            "training.py and the PyTorch trainer (torch_training.py, "
+            "torch_families.py) are published and staged byte-identical in "
+            "practice. Practice runs a recipe in its own backend; PyTorch "
+            "recipes need the PyTorch worker image "
+            "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
+            "(OWNER-PYTORCH-BACKEND-01).",
         ),
         "generate": Gap(
             reason=(
@@ -155,6 +179,41 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             ("carbon.battery.practice:score_practice",),
             "Exam gates on the 200 public PRACTICE cases. Scoring "
             "miner-generated cases follows once `generate` is closed.",
+        ),
+        "compute": Gap(
+            reason=(
+                "Battery has no GPU research path: its campaign refuses a GPU "
+                "runtime, the GPU lane binds Burgers material, and no rented "
+                "compute provider has a launch path."
+            ),
+            next_step=(
+                "C-MLP-03 slices 3 and 4: a battery-bound GPU practice path on "
+                "the miner's own GPU, then rented GPU on the miner's account."
+            ),
+        ),
+        "model": Gap(
+            reason=(
+                "Only the priced Engy and pinned adapters launch, and only from "
+                "a hand-written runner profile; no named inference provider is "
+                "connectable in setup."
+            ),
+            next_step=(
+                "C-MLP-03 slice 2: the named inference providers, connected in "
+                "setup with the miner's own key and checked live."
+            ),
+        ),
+        "agent": Gap(
+            reason=(
+                "Setup offers only Carbon's own autonomous agent. Hermes, the "
+                "other agent OWNER-MINER-ENVIRONMENT-01 names, is not "
+                "connectable in setup."
+            ),
+            next_step=(
+                "C-MLP-03 slice 5: connect Hermes to the Challenge's research "
+                "tools through carbon-mcp. Closing this does not wait on Mira, "
+                "which the decision adds only once verified (which Mira is "
+                "open owner input)."
+            ),
         ),
     },
 }

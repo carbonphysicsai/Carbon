@@ -57,6 +57,7 @@ def test_an_unrecorded_widening_is_refused(copy, monkeypatch):
     """Specimen: widen a live contract without recording it. The same check
     the repository test makes reports exactly that Challenge."""
     token = registry.BATTERY_CHALLENGE
+    before = len(er.records(token, copy))
     _widened(monkeypatch, token)
     assert set(er.unrecorded(copy)) == {token}
     # Recording it is what clears it, and the record names the new digest.
@@ -68,7 +69,7 @@ def test_an_unrecorded_widening_is_refused(copy, monkeypatch):
     )
     assert er.unrecorded(copy) == {} and er.problems(copy) == []
     entry = json.loads(path.read_text())
-    assert entry["sequence"] == 1
+    assert entry["sequence"] == before
     assert entry["contract_digest"] == registry.contract(token).digest
     assert entry["contract_document"]["envelope"]["worker_deadline_seconds"] == 1200
 

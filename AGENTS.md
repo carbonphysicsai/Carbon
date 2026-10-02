@@ -236,7 +236,7 @@ These bind all current Wave-A work.
 14. **A5 scoring does not own frontier/treasury policy.**
 15. **A7 submission lifecycle does not own frontier/treasury state.**
 
-16. **Complete research environments.** Every Challenge's mining environment provides research, hypothesize, train, generate and evaluate (OWNER-RESEARCH-ENVIRONMENT-01); gaps are declared, never silent.
+16. **Complete research environments.** Every Challenge's mining environment provides research, hypothesize, train, generate and evaluate (OWNER-RESEARCH-ENVIRONMENT-01), plus compute, model and agent connected in setup on the miner's own machine and accounts (OWNER-MINER-ENVIRONMENT-01); gaps are declared, never silent.
 
 See `.agent/INVARIANTS.md` for the always-on expanded list.
 

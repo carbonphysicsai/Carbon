@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-03-SLICE-1-ENVIRONMENT-SETUP",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "OWNER-MINER-ENVIRONMENT-01: a registered miner's environment comes with GPU, model and agent connected, set up on their own machine; Carbon hosts nothing new and no key reaches Carbon. Slice 1 of C-MLP-03 adds compute, model and agent to the research environment standard, with battery's three named Gaps. It also adds the Launchpad setup that opens once the onboarding door confirms registration. The steps are Inference, Compute, Agent and Review. They offer only launchable choices, each with its cost basis, and each is checked live with consent and at the miner's cost. Inference API keys go to owner-only files and are never returned or logged. The Agent step asks the miner's own carbon-miner-signer for the registered hotkey through external signing (#445); Carbon takes no hotkey file or password, and every miner defaults to their own machine. Refusals name their field, and a missing image names its build step. The setup writes the runner profile, including the chosen model, and the controller loads it without a restart. Engineering evidence only; nothing is qualified, and no chain write is made.",
+  "primary_detail": ".agent/tickets/C-MLP-03_miner_environment.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-30T23:57:59Z"
+}

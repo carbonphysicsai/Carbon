@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-01T19:16:42Z"
+  captured_at_utc: "2026-10-01T22:41:55Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "5fcdc172549a8f2bf310a3bbff543cef6d1a55d3"
+  authority_snapshot_commit: "3b04cf1aefa838ef905971cd20b88524101e4921"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10445,6 +10445,19 @@ events:
     recorded_at: "2026-09-30T20:30:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-1-ENVIRONMENT-SETUP"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-MINER-ENVIRONMENT-01: a registered miner's environment comes with GPU, model and agent connected, set up on their own machine; Carbon hosts nothing new and no key reaches Carbon. Slice 1 of C-MLP-03 adds compute, model and agent to the research environment standard, with battery's three named Gaps. It also adds the Launchpad setup that opens once the onboarding door confirms registration. The steps are Inference, Compute, Agent and Review. They offer only launchable choices, each with its cost basis, and each is checked live with consent and at the miner's cost. Inference API keys go to owner-only files and are never returned or logged. The Agent step asks the miner's own carbon-miner-signer for the registered hotkey through external signing (#445); Carbon takes no hotkey file or password, and every miner defaults to their own machine. Refusals name their field, and a missing image names its build step. The setup writes the runner profile, including the chosen model, and the controller loads it without a restart. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-09-30T23:57:59Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
     event_id: "BATTERY-EV2-01"
     owner_lane: "technical_lead"
@@ -10473,6 +10486,31 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
+    event_id: "RECON-TORCH-01-PYTORCH-BACKEND-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented RECON-TORCH-01 under OWNER-PYTORCH-BACKEND-01: a battery recipe names its reconstruction backend, jax (the default) or pytorch, and Carbon rebuilds it with its own trainer for that backend, in that backend's pinned worker image, and scores it the same way in one ranking. The battery construction contract gains inference.backend, which realizes model_family.pytorch_backend (moved from excluded to supported), and a PyTorch-only fno family (neuraloperator 2.0 Fourier neural operator over the time grid, float32 only) with an n_modes surface; expansion record 0001 records the widening. carbon/battery/torch_training.py ports every registered optimizer, learning-rate curve, loss, stage and averaging to PyTorch, with deterministic algorithms, explicit generators and fixed threads, and the same prediction format and a pickle-free state. On the validator end the carrier holds one image per backend; the PyTorch worker image is layered on the C-03 image from an exact-hashed science-torch export, and a deployment binds it to its JAX parent and that export. A validator without it answers backend_not_served, which records nothing against the miner, and a worker image that lacks a backend is infrastructure. On the miner end practice runs each recipe in its own backend and the PyTorch worker image is the miner's worker image. CI installs science-torch and requires the PyTorch lane. A determinism harness produces repeat-and-compare evidence. The reproducibility tolerance, the training limit and the image's security acceptance remain the owner's; PyTorch recipes are DEVELOPMENT only, with no reward, frontier or qualification authority."
+    primary_detail: ".agent/tickets/RECON-TORCH-01_pytorch_backend.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-01T19:32:51Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "BATTERY-EV4-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "EV4 and the Problem-C design optimizer ran under a frozen pre-registration (frozen 2026-10-01T20:09:26Z, before any solve), as off-chain public synthetic DEVELOPMENT evidence under the owner's 2026-10-01 approval of RunPod use; spend was USD 2.48 of a USD 15 cap across seven A40 pods, each terminated and verified. 840 decision references (835 OK, 5 typed reference failures) and 100 GPU-reconstructed members (99 eligible; MLP, DeepONet and kNN families). H1 is UNRESOLVED: the proposed decision-aware rule's Kendall tau with decision quality on the 12 verification conditions was 0.262 against the deciding rule's 0.403, a difference of -0.142 with a 95 % paired bootstrap interval of [-0.275, +0.121]; neither rule is shown better. H2 holds: the proposed rule ranks the boundary-optimist control below all 99 eligible members, the deciding rule at or above all of them. H3 finds the blind spot in real models: 56 of 99 eligible members make at least one reference-verified false acceptance, several of them ranked in the top 10 under either rule. Problem C (one two-step fast-charge protocol for 15-35 degC): three of five pre-selected members chose c1 1.0 C with c2 0.7 or 0.675 C, which the reference verified with no in-band violation at 50 points (2-4 unresolved), while the conservative baseline missed the constant-voltage phase within the hour at 15 of 50; two members correctly abstained. The adversarial search verified 29 in-band and 17 out-of-band violations, emitted as findings. No exam rule, reward, weight, chain state or qualification changes."
+    primary_detail: "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T22:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
     event_id: "CHALLENGE-ADMISSION-02"
     owner_lane: "technical_lead"
     status: "active"
@@ -10484,6 +10522,31 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-01T22:40:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "OWNER-BATTERY-CARRYOVER-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented the owner's 2026-10-01 carry-over decision for the battery validator deployment. During testing the owner revises recipes and the construction contract while a deployment runs, and incumbents stay winners. PoolStore.rebind carries a deployment over in place: only the construction contract, recipe implementation, backend images and envelope may change, every earlier identity is kept, and a changed exam rule, public material or seed pin is still refused. The operator runs it as operate upgrade. After an upgrade, a recipe admitted under a recorded earlier contract is recompiled under the current one and each recompile is recorded; one the current contract refuses is closed as contract_revised without stalling the queue behind it; a final whose side the current contract refuses keeps the incumbent; and a digest that matches no recorded identity is still artifact_mismatch. The same decision has PyTorch run with the same standing as JAX, its tolerance, training limit and image analysed in tandem with testing, and names autoscience.io/Mira as C-MLP-03's Mira. Battery stays a DEVELOPMENT, non-paying Challenge; the exam, scoring and qualification are unchanged."
+    primary_detail: "carbon/battery/pool_store.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-01T22:41:55Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "GRAPHITE-01"
+    owner_lane: "technical_lead"
+    status: "active"
+    summary: "OWNER-GRAPHITE-01: Carbon builds its own research and testing agent, Graphite, instead of buying Autoscience Mira. Graphite mirrors Mira's published loop (literature, experiments on Carbon's model, verification on Carbon's frozen eval, delivery as PRs) and adds an attacker role for admission Track A. It is built on Carbon's existing research loop, miner tools, workspace, isolated carrier and model-provider layer, acting through the real miner path. It runs behind the #475 campaign controller, and inference is on Chutes or Engy (Engy first, using the owner's model ladder). Targon confidential compute is the future home for client challenges and is not built now. This is a plan only: nothing is built, no spend is authorised, and no exam rule, evaluator authority or qualification changes."
+    primary_detail: "docs/development/GRAPHITE_TESTING_AGENT_PLAN.md"
+    affects:
+      - "WAVE-C/C-09"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T00:30:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

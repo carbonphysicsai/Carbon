@@ -1,0 +1,1521 @@
+{
+ "authority": "OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01) section 6.1",
+ "catalog_version": "carbon.battery-fastcharge-ageing-recipes.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+ "contract_document": {
+  "capabilities": [
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.knn",
+    "lab_kind": "battery_knn",
+    "realizes": [],
+    "selector": "knn",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.mlp",
+    "lab_kind": "battery_mlp",
+    "realizes": [],
+    "selector": "mlp",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.deeponet",
+    "lab_kind": "battery_deeponet",
+    "realizes": [],
+    "selector": "deeponet",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.fno",
+    "lab_kind": "battery_torch_fno",
+    "realizes": [],
+    "selector": "fno",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.transolver",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.haar_operator",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.gno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.gino",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.foundax_deeponet",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.foundax_fno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.unet1d",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.mgno1d",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.pointnet",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.gnot",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.cgptno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.moegptno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.geofno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.pcno",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "model_family.two_and_three_dimensional",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "authority_boundary_widening"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "model_family.julia_backend",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "authority_boundary_widening"
+   },
+   {
+    "applies_to": [
+     "knn"
+    ],
+    "blocker": "none",
+    "id": "architecture.neighbours",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     64,
+     5
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "architecture.width",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     8,
+     512,
+     256
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "architecture.depth",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     6,
+     3
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "architecture.n_modes",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     61,
+     16
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.deeponet_depth",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     1,
+     6,
+     2
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.basis_functions",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     2,
+     64,
+     16
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp"
+    ],
+    "blocker": "none",
+    "id": "architecture.trajectory_components",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "uint",
+     0,
+     32,
+     0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "architecture.arrhenius_features",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "bool",
+     null,
+     null,
+     false
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.activation",
+    "lab_kind": null,
+    "realizes": [
+     "architecture.activation_normalization_init"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "gelu",
+      "relu",
+      "tanh",
+      "silu",
+      "softplus"
+     ],
+     null,
+     "gelu"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.normalization",
+    "lab_kind": null,
+    "realizes": [
+     "architecture.activation_normalization_init"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "none",
+      "layer_norm"
+     ],
+     null,
+     "none"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet"
+    ],
+    "blocker": "none",
+    "id": "architecture.initialization",
+    "lab_kind": null,
+    "realizes": [
+     "architecture.activation_normalization_init"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "he_normal",
+      "glorot_normal",
+      "lecun_normal"
+     ],
+     null,
+     "he_normal"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.branch_points",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.heads",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.slices",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.expansion",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.wavelet_levels",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.neighborhood_radius",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.latent_points",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "architecture.remat",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "physical_structure.bounded_voltage_head",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "task",
+     "bool",
+     null,
+     null,
+     true
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "physical_structure.ocv_initial_voltage",
+    "lab_kind": null,
+    "realizes": [
+     "physical_structure.hard_initial_condition"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "task",
+     "bool",
+     null,
+     null,
+     true
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "physical_structure.capacity_fade_head",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "task",
+     "bool",
+     null,
+     null,
+     true
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "physical_structure.enforce_mean",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "physical_structure.structure_layers",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "batching.steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     16,
+     20000,
+     6000
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "batching.batch_size",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     8,
+     400,
+     400
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "batching.microbatches",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     1,
+     8,
+     1
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.optimizer_family",
+    "lab_kind": null,
+    "realizes": [
+     "optimizer.lion",
+     "optimizer.lamb",
+     "optimizer.adafactor",
+     "optimizer.radam",
+     "optimizer.nadamw",
+     "optimizer.sgd_momentum",
+     "optimizer.muon",
+     "optimizer.prodigy",
+     "optimizer.schedule_free",
+     "optimizer.sam"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "adam",
+      "lion",
+      "lamb",
+      "adafactor",
+      "radam",
+      "nadamw",
+      "sgd_momentum",
+      "muon",
+      "prodigy",
+      "free_adamw",
+      "sam"
+     ],
+     null,
+     "adam"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.learning_rate",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     1e-05,
+     0.05,
+     0.002
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.weight_decay",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.1,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.weight_decay_mask",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "all",
+      "matrices"
+     ],
+     null,
+     "all"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.clip_norm",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     100.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.beta1",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.9999,
+     0.9
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.beta2",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.99999,
+     0.999
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "optimizer.adam_epsilon",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     1e-12,
+     0.01,
+     1e-08
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "schedule.learning_rate_curve",
+    "lab_kind": null,
+    "realizes": [
+     "schedule.constant",
+     "schedule.piecewise",
+     "schedule.exponential",
+     "schedule.one_cycle",
+     "schedule.sgdr",
+     "schedule.polynomial",
+     "schedule.train_loss_plateau"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "cosine",
+      "constant",
+      "piecewise",
+      "exponential",
+      "one_cycle",
+      "sgdr",
+      "polynomial",
+      "train_loss_plateau"
+     ],
+     null,
+     "cosine"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "schedule.warmup_steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     0,
+     20000,
+     0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "schedule.min_learning_rate_ratio",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     1.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "objective.relative_loss",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "bool",
+     null,
+     null,
+     false
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "objective.time_weighting",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "uniform",
+      "early",
+      "late"
+     ],
+     null,
+     "uniform"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "objective.h1_weight",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "objective.h2_weight",
+    "lab_kind": null,
+    "realizes": [
+     "objective.sobolev"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "objective.spectral_weight",
+    "lab_kind": null,
+    "realizes": [
+     "objective.spectral_weighting"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "objective.pde_weight",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "stages.physics_warmup_steps",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "stages.polish_steps",
+    "lab_kind": null,
+    "realizes": [
+     "stages.explicit_stages"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     0,
+     2000,
+     0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.ensemble_members",
+    "lab_kind": null,
+    "realizes": [
+     "inference.ensembles"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "uint",
+     1,
+     4,
+     1
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.tail_averaging",
+    "lab_kind": null,
+    "realizes": [
+     "inference.weight_averaging"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.9,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.inference_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "params",
+      "ema"
+     ],
+     null,
+     "params"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.ema_decay",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     0.99999,
+     0.99
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.precision",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "float32",
+      "float64"
+     ],
+     null,
+     "float32"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "inference.backend",
+    "lab_kind": null,
+    "realizes": [
+     "model_family.pytorch_backend"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "jax",
+      "pytorch"
+     ],
+     null,
+     "jax"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "inference.final_label_selection",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "prediction.rollout",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "training_data.train_fraction",
+    "lab_kind": null,
+    "realizes": [
+     "training_data.case_count_and_resolution"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.1,
+     1.0,
+     1.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "training_data.important_region_weight",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     10.0,
+     1.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "training_data.curriculum",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "choice",
+     [
+      "none",
+      "low_rate_first",
+      "high_rate_first"
+     ],
+     null,
+     "none"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "mlp",
+     "deeponet",
+     "fno"
+    ],
+    "blocker": "none",
+    "id": "training_data.hard_example_weight",
+    "lab_kind": null,
+    "realizes": [
+     "training_data.hard_example_sampling"
+    ],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "train",
+     "float",
+     0.0,
+     4.0,
+     0.0
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "training_data.exact_symmetry_augmentation",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "owner_decision",
+    "id": "training_data.support_leaving_augmentation",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": "new_comparison_or_resource_regime"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "training_data.label_method",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "training_data.submitted_datasets",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "hybrid.candidate_solver_template",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "hybrid.symbolic_template",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "hybrid.reference_solver_reuse",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "hybrid.composition_graphs",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "model_family.pretrained_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "objective.loss_expressions",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   }
+  ],
+  "catalog_version": "carbon.battery-fastcharge-ageing-recipes.v1",
+  "challenge": {
+   "id": "battery-fastcharge-ageing-development-v1",
+   "version": "1.0"
+  },
+  "envelope": {
+   "batching": "full",
+   "precision": "float32",
+   "train_cases": 400,
+   "worker_cpu": 2,
+   "worker_deadline_seconds": 600,
+   "worker_memory_bytes": 4294967296,
+   "worker_swap_bytes": 0
+  },
+  "identity": "carbon.battery-fastcharge-ageing-development.v1",
+  "lanes": {},
+  "registry_schema": "carbon.construction-capability-registry.v1",
+  "schema": "carbon.challenge-construction-contract.v1"
+ },
+ "contract_identity": "carbon.battery-fastcharge-ageing-development.v1",
+ "contract_version": "1.0",
+ "recorded_on": "2026-10-01",
+ "schema": "carbon.construction-expansion-record.v1",
+ "sequence": 1,
+ "what": "OWNER-PYTORCH-BACKEND-01 (RECON-TORCH-01): a recipe names its reconstruction backend, inference.backend = jax (default) or pytorch, realizing model_family.pytorch_backend, which moves from excluded to supported. Adds the PyTorch-only fno family (neuraloperator 2.0 Fourier neural operator over the time grid) and its n_modes surface; depth also sets FNO Fourier layers. The environment pin becomes the combined JAX + PyTorch backends environment. JAX recipes keep their strategy hashes and numerics; DEVELOPMENT only until the owner sets the PyTorch reproducibility tolerance, training limit and security acceptance."
+}
