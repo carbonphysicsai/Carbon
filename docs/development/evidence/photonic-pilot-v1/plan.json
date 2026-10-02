@@ -1,0 +1,102 @@
+{
+  "batch": "photonic-pilot-v1",
+  "label": "carbon.photonic.pilot-v1",
+  "cases": [
+    {
+      "case_id": "ordinary-1",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 255.87884537880285,
+        "length_um": 4.996357399048659
+      }
+    },
+    {
+      "case_id": "ordinary-2",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 202.8608082512318,
+        "length_um": 4.279617079100383
+      }
+    },
+    {
+      "case_id": "ordinary-3",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 286.44336938286415,
+        "length_um": 5.102212699238636
+      }
+    },
+    {
+      "case_id": "ordinary-4",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 225.6471201940438,
+        "length_um": 3.8284205344320617
+      }
+    },
+    {
+      "case_id": "ordinary-5",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 267.3501848773516,
+        "length_um": 2.037224761521917
+      }
+    },
+    {
+      "case_id": "ordinary-6",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 166.12143411594064,
+        "length_um": 3.904706651482117
+      }
+    },
+    {
+      "case_id": "ordinary-7",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 164.4518212905744,
+        "length_um": 2.8499678796225787
+      }
+    },
+    {
+      "case_id": "ordinary-8",
+      "kind": "ordinary",
+      "inputs": {
+        "gap_nm": 187.57383859910112,
+        "length_um": 5.118284404822131
+      }
+    },
+    {
+      "case_id": "strongest",
+      "kind": "difficult",
+      "inputs": {
+        "gap_nm": 150.0,
+        "length_um": 6.0
+      }
+    },
+    {
+      "case_id": "weakest",
+      "kind": "difficult",
+      "inputs": {
+        "gap_nm": 300.0,
+        "length_um": 1.0
+      }
+    },
+    {
+      "case_id": "short-strong",
+      "kind": "difficult",
+      "inputs": {
+        "gap_nm": 150.0,
+        "length_um": 1.0
+      }
+    },
+    {
+      "case_id": "long-weak",
+      "kind": "difficult",
+      "inputs": {
+        "gap_nm": 300.0,
+        "length_um": 6.0
+      }
+    }
+  ]
+}
