@@ -1107,7 +1107,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["workbench"]
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["c03-worker"]
-    assert 'CARBON_UV_GROUPS: "archive"' in jobs["contract-authority"]
+    assert 'CARBON_UV_GROUPS: "chain archive"' in jobs["contract-authority"]
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
