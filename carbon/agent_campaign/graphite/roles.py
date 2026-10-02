@@ -85,18 +85,82 @@ PROPOSAL_TOOL = {
 }
 
 
+#: The Planner's next-level proposal (GRAPHITE-D30): a typed record that a
+#: card points at a capability outside the recorded construction contract.
+#: It is stored for the owner and widens nothing (`next_level`).
+NEXT_LEVEL = "graphite_propose_next_level"
+#: The construction contract's dimensions (`capability_registry.Dimension`).
+CONTRACT_DIMENSIONS = (
+    "model_family",
+    "architecture",
+    "objective",
+    "optimizer",
+    "schedule",
+    "batching",
+    "stages",
+    "training_data",
+    "physical_structure",
+    "hybrid",
+    "prediction",
+    "inference",
+)
+NEXT_LEVEL_TOOL = {
+    "type": "function",
+    "name": NEXT_LEVEL,
+    "strict": True,
+    "description": (
+        "Record a next-level proposal: a method card points at a capability "
+        "outside the current recorded battery construction contract (a new loss "
+        "form, an architecture family, a data pipeline). Name the capability, "
+        "the source card ids, the contract dimension it falls under, the "
+        "contract's capability id when the contract names it (else an empty "
+        "string), why it is outside the contract, and what Carbon would need to "
+        "reconstruct it. Carbon stores it as PROPOSED for the owner. It widens "
+        "nothing, changes no permission and affects no score."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "capability": {"type": "string"},
+            "source_card_ids": {"type": "array", "items": {"type": "string"}},
+            "contract_dimension": {
+                "type": "string",
+                "enum": list(CONTRACT_DIMENSIONS),
+            },
+            "contract_capability_id": {"type": "string"},
+            "outside_contract_because": {"type": "string"},
+            "reconstruction_needs": {"type": "string"},
+        },
+        "required": [
+            "capability",
+            "source_card_ids",
+            "contract_dimension",
+            "contract_capability_id",
+            "outside_contract_because",
+            "reconstruction_needs",
+        ],
+        "additionalProperties": False,
+    },
+}
+
+
 def _registry():
+    from . import tools as toolbox
+
+    if toolbox.NEXT_LEVEL != NEXT_LEVEL:
+        raise RuntimeError("the toolbox and the registry name the same tool")
     tools = {tool["name"]: tool for tool in MINER_TOOLS}
     tools[SELECT] = SELECTION_TOOL
     for tool in literature.TOOLS:
         tools[tool["name"]] = tool
     tools[PROPOSAL_TOOL["name"]] = PROPOSAL_TOOL
+    tools[NEXT_LEVEL_TOOL["name"]] = NEXT_LEVEL_TOOL
     return tools
 
 
 #: Every tool any role may be given: the closed miner SDK, the loop's
-#: selection tool, the literature tools and Carbon's proposal runner (phase
-#: 3). Nothing else exists to give.
+#: selection tool, the literature tools, Carbon's proposal runner (phase 3)
+#: and the Planner's next-level proposal. Nothing else exists to give.
 TOOL_REGISTRY = _registry()
 MINER_TOOL_NAMES = frozenset(tool["name"] for tool in MINER_TOOLS)
 LITERATURE_TOOL_NAMES = frozenset(tool["name"] for tool in literature.TOOLS)
@@ -149,7 +213,9 @@ PROMPTS = {
 Role: Planner. Pick the next hypothesis from the literature cards and the
 results you are given. Before any run, write the plan: the hypothesis, the
 expected effect and a stopping rule. Finish with a written plan; you run
-nothing yourself.
+nothing yourself. When a card points at a capability outside the recorded
+construction contract, you may record it with graphite_propose_next_level: a
+proposal for the owner, which widens nothing and is never scored.
 """),
     RoleName.CONSTRUCTOR: _prompt("""
 Role: Constructor. Turn the plan you are given into a recipe inside the
@@ -265,6 +331,7 @@ ROLES = {
                 literature.CARD,
                 _RESEARCH + "get_challenge_info",
                 _RESEARCH + "get_interaction_manifest",
+                NEXT_LEVEL,
             ),
             start_model="glm-5.2",
             escalation_kinds=frozenset(
