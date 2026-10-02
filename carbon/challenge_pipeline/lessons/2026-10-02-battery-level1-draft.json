@@ -28,5 +28,10 @@
   "target": "construction_ladder.climb_procedure",
   "text": "Add to step 1: a level opened for Graphite's development campaigns is served as a development-only contract variant held outside the miner-facing registry, pinned by its own digest, read only by Carbon's proposal runner and never by the miner MCP server, the validator or the intake, with a test that each of those refuses its surfaces."
  },
- "status": "PROPOSED"
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-03 item 9: the owner chose \"Dev-only contract variant\" over \"Open to everyone first\""
+ }
 }

@@ -142,11 +142,10 @@ One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
 adopts or declines it; nothing is applied silently.
 
-19 entries: 15 recorded, 2 proposed, 2 adopted, 0 declined.
+19 entries: 15 recorded, 1 proposed, 3 adopted, 0 declined.
 
 **Awaiting a decision:**
 
 | Lesson | Challenge | Target | Proposed revision |
 | --- | --- | --- | --- |
 | 2026-10-02-lessons-regenerate-pipeline-view | protocol | lessons | The committed pipeline view lists only lessons awaiting a decision (PROPOSED) and links to carbon/challenge_pipeline/lessons/ for the rest, without a count. Adding a RECORDED entry then changes no committed file but the entry itself, and parallel branches no longer conflict in the view. |
-| 2026-10-02-battery-level1-draft | battery-fastcharge-ageing-development-v1 | construction_ladder.climb_procedure | Add to step 1: a level opened for Graphite's development campaigns is served as a development-only contract variant held outside the miner-facing registry, pinned by its own digest, read only by Carbon's proposal runner and never by the miner MCP server, the validator or the intake, with a test that each of those refuses its surfaces. |
