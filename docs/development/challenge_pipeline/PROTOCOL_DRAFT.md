@@ -109,9 +109,11 @@ follows. Gaps are named, not filled.
 
 - **Entry.** A signed design packet (gate `design`).
 - **Work.**
-  - **Run the common suite** (step 3 builds v1): Track A's eight attack
-    vectors, Track B's EV1–EV3 and baselines, and any challenge-specific
-    attacks added on top.
+  - **Run the common suite**: Track A's eight attack vectors, Track B's
+    EV1–EV3 and baselines, and any challenge-specific attacks added on top.
+    - Suite v1, a DRAFT, is `carbon/challenge_pipeline/suite_v1.json`.
+    - `python -m carbon.challenge_pipeline suite <challenge>` reports each
+      Track A vector's coverage against the suite's pin.
   - **Fix what breaks, and tune construction rules and scoring.** Repeat
     within the iteration budget (`HUMAN_INPUT`, §7).
   - The admission trigger model applies throughout. Widening needs no
@@ -222,7 +224,7 @@ harness work.
 | Value | Proposed by | Approved by | State |
 | --- | --- | --- | --- |
 | Rubric thresholds: ρ, false-feasible bound, scenario count, regret | science owner, from battery's frozen results (step 6) | process owner | `HUMAN_INPUT` |
-| Test suite v1: attack vectors, severity rules, EV studies | technical owner (Track A), science owner (Track B), step 3 | process owner | `HUMAN_INPUT` |
+| Test suite v1: attack vectors, severity rules, EV studies | technical owner (Track A), science owner (Track B), step 3 | process owner | DRAFT (`suite_v1.json`; severity rules drafted for the technical owner) |
 | Graphite permission ledger and procedure | this draft (§6) | process owner | DRAFT |
 | Exam rotation cadence and sealed-pool size | science owner | process owner | `HUMAN_INPUT`. Battery's rule v1 rotates screening batches of 100, 3 active. |
 | Per-challenge iteration budget and stop-rule values | technical and science owners, from battery's cycle-time baseline (step 7) | process owner | `HUMAN_INPUT` |

@@ -1,11 +1,13 @@
-"""python -m carbon.challenge_pipeline {validate,queue,render} [--check]"""
+"""python -m carbon.challenge_pipeline {validate,queue,render,suite}"""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+from pathlib import Path
 
-from carbon.challenge_pipeline import render
+from carbon.challenge_pipeline import render, suite
 from carbon.challenge_pipeline.roadmap import rank_all
 from carbon.challenge_pipeline.state import load_state, measured_times, stage_of
 
@@ -17,7 +19,18 @@ def main(argv=None):
     sub.add_parser("queue", help="print the priority queue")
     r = sub.add_parser("render", help="write docs/development/CHALLENGE_PIPELINE.md")
     r.add_argument("--check", action="store_true", help="fail if the view is stale")
+    s = sub.add_parser("suite", help="run one challenge's Track A checks (suite v1)")
+    s.add_argument("challenge")
+    s.add_argument("--sandbox", action="store_true", help="include container checks")
+    s.add_argument("--out", type=Path, help="write the coverage report here")
     args = parser.parse_args(argv)
+    if args.command == "suite":
+        report = suite.run(args.challenge, sandbox=args.sandbox)
+        if args.out:
+            args.out.write_text(json.dumps(report, indent=1) + "\n")
+        for vector in report["vectors"]:
+            print(f"{vector['id']} {vector['status']:<17} {vector['name']}")
+        return 0
     families, protocol, _, records = load_state()
     if args.command == "validate":
         print(f"protocol {protocol['state']}; {len(records)} records valid")
