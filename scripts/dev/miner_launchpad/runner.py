@@ -91,8 +91,8 @@ OPTIONAL_PROFILE_FIELDS = {
     "model_selection",
     # Per Challenge (C-MLP-04): {challenge_id: url}, the validator intake a
     # frozen candidate is submitted to when the validator does not run beside
-    # the campaign; an https URL, or loopback while the intake binds loopback
-    # only. And {challenge_id: absolute path}, an operator's own validator
+    # the campaign; an https URL (an exposed intake terminates TLS,
+    # OWNER-INTAKE-EXPOSURE-01), or loopback. And {challenge_id: absolute path}, an operator's own validator
     # deployment for that Challenge.
     "intakes",
     "validators",

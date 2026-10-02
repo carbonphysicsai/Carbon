@@ -32,8 +32,11 @@ read.** One refresher thread reads the metagraph on a fixed period.
 **Exposure.** The listener binds loopback unless the configuration names an
 exposure record that exists in `.agent/DECISIONS.md` - the owner's §4 security
 review decision for this intake, an id of the form
-`OWNER-…INTAKE-EXPOSURE-NN`. Tests are not a security audit; this module
-is security-sensitive (AGENTS §13) and is NOT SECURITY_QUALIFIED.
+`OWNER-…INTAKE-EXPOSURE-NN` - and terminates TLS itself (`tls_cert`,
+`tls_key`). The owner recorded OWNER-INTAKE-EXPOSURE-01 on 2026-10-02 for
+testnet 567 and the routes above; exposing a host stays an operator action.
+Tests are not a security audit; this module is security-sensitive (AGENTS
+§13).
 
 Nothing here scores, qualifies, commits on chain or signs with a key: the
 miner signs; the service key, if configured, belongs to the daemon.
@@ -136,7 +139,9 @@ def require_exposure(config, *, repository):
 
     Only the owner's §4 security review decision may make this host reachable
     from outside, so a public bind names that record and the record must be in
-    `.agent/DECISIONS.md` as a heading. Loopback needs no record.
+    `.agent/DECISIONS.md` as a heading. A public bind also terminates TLS here:
+    the miner client refuses plain HTTP beyond loopback, and behind a TLS
+    proxy every request would share one peer's limits. Loopback needs neither.
     """
     try:
         loopback = ipaddress.ip_address(config["host"]).is_loopback
@@ -152,6 +157,8 @@ def require_exposure(config, *, repository):
     decisions = (Path(repository) / ".agent" / "DECISIONS.md").read_text()
     if not re.search(rf"^## .*\b{re.escape(record)}\b", decisions, re.MULTILINE):
         raise IntakeUnavailable("intake_exposure_unrecorded")
+    if not ("tls_cert" in config and "tls_key" in config):
+        raise IntakeUnavailable("intake_exposure_needs_tls")
 
 
 # --- snapshots ------------------------------------------------------------------
