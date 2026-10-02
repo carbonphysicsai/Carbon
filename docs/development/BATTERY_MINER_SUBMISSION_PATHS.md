@@ -6,10 +6,11 @@ hosted by validator images, but we are testing now … intake has to be
 wherever it needs to be for testnet testing. But ensure we have the design
 right for the mainnet switch." The intake is now **built and tested**
 (`carbon/battery/intake.py`, `carbon/battery/intake_client.py`,
-`tests/cpu/test_battery_intake.py`). It binds loopback only. **Making it
-reachable from outside this host needs the owner's §4 security review
-decision**, recorded as an exposure record, and it is NOT
-SECURITY_QUALIFIED. The brief below the next section is the original
+`tests/cpu/test_battery_intake.py`). It binds loopback unless its
+configuration names the owner's exposure record. **The owner approved that
+exposure on 2026-10-02 (OWNER-INTAKE-EXPOSURE-01)**: testnet 567, the battery
+Challenge, today's routes and limits, with TLS terminated in the intake. The
+brief below the next section is the original
 decision brief, kept as written.
 
 ## The decision, checked against Bittensor
@@ -79,9 +80,10 @@ hash on chain, validators fetch the artifact from a store".
   gets `not_found`, never "exists but not yours".
 
 **What is still missing, and whose it is:**
-- **The exposure decision (owner).** The §4 security review, scoped to the
-  intake: one decision. Until it is recorded the listener refuses a public
-  bind (`intake_exposure_unrecorded`).
+- **The exposure decision (owner): recorded.** OWNER-INTAKE-EXPOSURE-01
+  (2026-10-02). A public bind names it and terminates TLS in the intake, or
+  the listener refuses (`intake_exposure_unrecorded`,
+  `intake_exposure_needs_tls`). Exposing a host stays an operator action.
 - **The commitment reader (Testnet lane, then owner bounds).** Needed at
   mainnet, where several validators must agree on what was submitted. It
   needs the owner's count per day, window, fee cap and expiry.
@@ -93,10 +95,12 @@ hash on chain, validators fetch the artifact from a store".
   proxied deployment terminates TLS in the intake (`tls_cert`/`tls_key`) or
   needs a trusted-proxy header rule first.
 
-## Security status: implemented, NOT SECURITY_QUALIFIED
+## Security status: implemented; exposure approved by the owner
 
-The intake is implemented and tested. It is **not SECURITY_QUALIFIED**, and
-merging it authorizes no exposure. A public listener is AGENTS §13 work:
+The intake is implemented and tested. The owner approved its exposure on
+2026-10-02 (OWNER-INTAKE-EXPOSURE-01), for the recorded scope only, with the
+items below on file and not fixed. Tests hold the gate; they are not a
+security audit. A public listener is AGENTS §13 work:
 untrusted input, authentication and reachability. OD-3 as recorded approves
 a security review of two images, the GPU validator reconstruction image and
 the PyBaMM truth image. It does not cover a listener. The OD-7(b) row's
