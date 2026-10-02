@@ -137,3 +137,18 @@ def backend_record(device, observed):
         "purpose": "speed_only",
         "note": SPEED_ONLY,
     }
+
+
+def remote_backend_record(remote, observed):
+    """What the feedback records about a practice run on the miner's own
+    remote GPU machine (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+    return {
+        "kind": "REMOTE_GPU",
+        "runner": "carbon.compute.remote_runner",
+        "job_transport": remote.get("job_transport"),
+        "container_removed": remote.get("container_removed") is True,
+        "jax_platforms": JAX_PLATFORMS,
+        "observed": observed,
+        "purpose": "speed_only",
+        "note": SPEED_ONLY,
+    }

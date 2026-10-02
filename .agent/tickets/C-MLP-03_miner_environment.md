@@ -22,7 +22,8 @@ rented with the miner's provider key on RunPod, Lium or Targon) were built and
 are **retired** by OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon rents
 no compute, and old profiles, setup requests and frozen campaigns are refused
 with `rented_gpu_retired_connect_your_machine`. Slice 4 is now the miner's own
-remote GPU machine, connected over SSH (LINKONLY-D4); it is not built yet.
+remote GPU machine, connected over SSH (LINKONLY-D4): its library is built
+and tested, and setup and launch do not offer it yet.
 Slice 6's run itself is a person's, on a clean machine
 (`docs/development/FRESH_MINER_JOURNEY.md`). Slice 2's live acceptance (completions with miner-held
 Chutes and Engy keys, and a battery autonomous launch with each) is pending
@@ -238,6 +239,38 @@ pending Hermes and the miner's keys.
     - the trial's teardown is the VM's only end;
     - the charge stays unresolved, never rate x time. The miner's Targon
       console is the record.
+- **Slice 4 (the miner's own GPU machine over SSH, OWNER-MINER-COMPUTE-LINK-ONLY-01):**
+  `carbon/compute/remote_machine.py` (the SSH client, the fixed start and
+  remove scripts, and streaming the worker image),
+  `carbon/compute/remote_runner.py` (the carrier-compatible runner),
+  `BatteryPractice(remote=...)` and the `REMOTE_GPU` backend record;
+  `tests/cpu/test_remote_machine.py` and `test_remote_runner.py` cover it.
+  Setup and launch do not offer it yet; that wiring is next.
+- **Recorded engineering decisions (slice 4, the remote machine, 2026-10-02):**
+  - *The miner's own SSH decides how the machine is reached.* Carbon passes
+    no `-i`, no `IdentitiesOnly`, no known-hosts file of its own and no
+    `accept-new`, so the miner's agent, `~/.ssh/config` and known hosts apply
+    and their key never leaves their machine. `BatchMode=yes`, so nothing
+    prompts. The destination is `[user@]host` or an ssh-config alias and can
+    never be read as an option; the port is passed only when named, so an
+    alias keeps its own.
+  - *One container per trial, by image ID.* A fixed script, run with
+    `bash -s`, starts `carbon-job-<24 hex from the operation>` with `--rm`,
+    `--gpus all` and `-p 127.0.0.1::8000`; the job's environment goes through
+    an owner-only `mktemp` file deleted at once, and `docker port` tells
+    Carbon the host port. An SSH local forward reaches it, so the token and
+    inputs travel inside SSH. The job server ends itself after the job's
+    lifetime and `--rm` removes the container, even if the controller never
+    returns.
+  - *Refused by code, nothing installed.* No Docker 90, no NVIDIA Container
+    Toolkit 91, Docker not usable without sudo 92 (Carbon never holds a sudo
+    password), the worker image not present by ID 93.
+  - *The container is Carbon's to remove; the machine is not.* Removal runs
+    whether the job succeeded or not, only for a name matching
+    `^carbon-job-[0-9a-f]{24}$`, and the record says whether the machine
+    confirmed it.
+  - *The worker is streamed, not pulled.* `docker save <image id> | ssh
+    <destination> docker load`, then the image ID is checked on the machine.
 - **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
   setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
   browser smoke cover it.
