@@ -127,7 +127,7 @@ class Phase3Budget:
         }
 
 
-#: The registered phase-3 session shape (GRAPHITE-D19, derived in
+#: The registered phase-3 session shape (GRAPHITE-D20, derived in
 #: docs/development/graphite/grants/README.md): pod hours per session at the
 #: plan's upper estimate (USD 1-3 of pod time, plan §7), in whole proposals.
 SESSION_POD_MINUTES = 360

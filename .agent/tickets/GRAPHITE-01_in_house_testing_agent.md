@@ -489,7 +489,7 @@ Other changes:
 
 - `roles.py`: the Constructor's manifest gains `graphite_run_proposal`, and
   its prompt names it. No other role has it.
-- `provider.py`: the GRAPHITE-D17 repair (below).
+- `provider.py`: the GRAPHITE-D18 repair (below).
 - `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json`, with its
   arithmetic in the grants README.
 
@@ -512,18 +512,18 @@ Other changes:
 **Engineering decisions** (delegated, recorded under
 `.agent/DELEGATED_DECISION_PROTOCOL.md`; a lead may supersede any):
 
-- **GRAPHITE-D17, provider hooks.** `GraphiteProvider.run` now calls
+- **GRAPHITE-D18, provider hooks.** `GraphiteProvider.run` now calls
   `_epoch` (one research epoch) and `_unresolved` (whether a reservation's
   outcome is unknown). Phase 3 overrides both; phase 1 behaves exactly as
   before. File: `graphite/provider.py`.
-- **GRAPHITE-D18, the miner path.**
+- **GRAPHITE-D19, the miner path.**
   - The real path is the standard miner MCP attachment, not a second
     composition. It holds the campaign lock, checks the owner, and composes
     the Challenge's own research service.
   - Graphite's operation ids are `graphite-<run>-<tool>`, so sessions never
     collide in one miner campaign.
   - File: `graphite/miner_path.py`.
-- **GRAPHITE-D19, pods and the session's shape.**
+- **GRAPHITE-D20, pods and the session's shape.**
   - One proposal is one pod of 30 minutes: start-up 15 (the rented runner's
     900 s), job 10 (the contract's `worker_deadline_seconds`) and export 5
     (pod_control's default).
@@ -536,7 +536,7 @@ Other changes:
   - Only JAX recipes are served, as in the GPU practice lane. A PyTorch recipe
     is refused, typed, and is not a finding.
   - Files: `graphite/pods.py`, `graphite/experiment.py`.
-- **GRAPHITE-D20, the proposal tool and the rebuild check.**
+- **GRAPHITE-D21, the proposal tool and the rebuild check.**
   - The Constructor's `graphite_run_proposal` carries data only.
   - Carbon compares nine fields of what the pod built with its own
     computation (`experiment.REBUILT_FIELDS`). Any difference is a
@@ -546,7 +546,7 @@ Other changes:
   - Findings reach the controller (`phase3.sync_findings`), where they block
     any later expansion.
   - Files: `graphite/roles.py`, `graphite/experiment.py`, `graphite/phase3.py`.
-- **GRAPHITE-D21, the baseline and the frozen rule on development material.**
+- **GRAPHITE-D22, the baseline and the frozen rule on development material.**
   - Each session runs a baseline once, on its first pod. By default this is
     the battery scaffold, the unexecuted template every miner starts from.
   - Each proposal is scored and compared with it by the frozen gates and
@@ -554,7 +554,7 @@ Other changes:
   - The baseline is a provisional engineering default, not the B1 study
     population, which stays science-reserved (plan §9).
   - File: `graphite/phase3.py` (`session_brief`).
-- **GRAPHITE-D22, the stall rule's automation.**
+- **GRAPHITE-D23, the stall rule's automation.**
   - A stall is 5 consecutive scored proposals since the last `IMPROVEMENT`
     that are not an `IMPROVEMENT`.
   - At the limit Carbon records one `BUILD_STALLED_AGAINST_BASELINE`
@@ -563,7 +563,7 @@ Other changes:
     up one rung for its next session.
   - Compile failures are not escalated automatically.
   - Files: `graphite/experiment.py`, `graphite/phase3.py`.
-- **GRAPHITE-D23, delivery.**
+- **GRAPHITE-D24, delivery.**
   - Carbon's rule picks the proposal to bundle: the eligible `IMPROVEMENT`
     with the lowest score. The agent's own selection is recorded beside it.
   - Ablations remove each change from the baseline one at a time, while pods
@@ -573,7 +573,7 @@ Other changes:
   - The clean rebuild checks digests. Numerical reproduction is
     `NOT_JUDGED` with tolerance `HUMAN_INPUT`.
   - File: `graphite/delivery.py`.
-- **GRAPHITE-D24, keys, cancellation and crashes.**
+- **GRAPHITE-D25, keys, cancellation and crashes.**
   - **Keys.** The RunPod key is an owner-only file (pod_control's
     `~/.runpod/api_key`), or `RUNPOD_API_KEY` copied into a 0600 file in a
     fresh 0700 directory and removed on exit.

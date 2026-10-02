@@ -61,7 +61,7 @@ DATA_PATHS = (
 FORBIDDEN_DATA = ("ev4", "confirmation", "private", "secret", "credential", "canary")
 SHIP_TREES = ("carbon", "scripts/dev/exam_design")
 #: Engineering allowances per proposal, each taken from an existing record
-#: (GRAPHITE-D19): the pod's start-up allowance is the rented runner's
+#: (GRAPHITE-D20): the pod's start-up allowance is the rented runner's
 #: (`RentedCompute.startup_seconds`, 900 s); the job's own allowance is the
 #: battery contract's worker deadline (`envelope.worker_deadline_seconds`,
 #: 600 s); the export window is pod_control's default (`--export-minutes 5`).

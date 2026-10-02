@@ -115,7 +115,7 @@ This is engineering arithmetic from recorded prices, not a new price.
 The rate is a ceiling: the runner refuses a pod RunPod offers above it.
 
 **One proposal's pod.** Its lifetime is three allowances, each from an
-existing record (GRAPHITE-D19):
+existing record (GRAPHITE-D20):
 
 - start-up: 15 min, the rented runner's `RentedCompute.startup_seconds` (900 s);
 - the job: 10 min, the battery construction contract's
