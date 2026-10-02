@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "MIRA-GRANT-2026-10-01-01",
+ "provider": "autoscience-mira",
+ "account": "HUMAN_INPUT",
+ "granted_by": "owner",
+ "expires_at": "2026-10-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "25.00",
+ "cleanup_allowance": "1.00",
+ "worst_case_run_cost": "HUMAN_INPUT",
+ "permitted_runs": 4,
+ "max_concurrency": 1,
+ "max_runtime_s": 14400,
+ "max_submissions": 64
+}

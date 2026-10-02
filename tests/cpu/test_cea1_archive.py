@@ -761,3 +761,38 @@ def test_stage_journal_schema_corruption_fails_closed(tmp_path) -> None:
     with pytest.raises(ArchiveFailure) as captured:
         StageJournal(path, CapacityLimits())
     assert captured.value.code is ArchiveCode.STORE
+
+
+def test_object_service_publishes_its_port_atomically(tmp_path, monkeypatch):
+    """A launcher polling for the ready file never reads it created but empty."""
+    from carbon.evidence_archive import object_service
+
+    ready = tmp_path / "ready"
+    seen = []
+
+    def stop_at_once(self):
+        seen.append(ready.read_text(encoding="ascii"))
+
+    monkeypatch.setattr(object_service.ObjectServer, "serve_forever", stop_at_once)
+    original = Path.write_text
+
+    def guarded(self, *args, **kwargs):
+        assert self != ready, "the ready file is written in place"
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", guarded)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "object_service",
+            "--root",
+            str(tmp_path / "objects"),
+            "--ready-file",
+            str(ready),
+            "--tenant-id",
+            "carbon-synthetic-ci",
+        ],
+    )
+    object_service.main()
+    assert seen and seen[0].isdigit() and int(seen[0]) > 0
+    assert not (tmp_path / "ready.pending").exists()
