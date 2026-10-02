@@ -31,6 +31,7 @@ import json
 import os
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -66,9 +67,48 @@ def host_info():
     return info
 
 
+#: Set by --native: the description of the environment the cases run in
+#: directly (a pod started from the pinned image), recorded on every case.
+NATIVE = None
+
+
+def run_native(command, cwd, timeout_s, env=None):
+    """Run a case's commands directly in this environment: a pod started from
+    the pinned reference environment, where no container can be launched.
+    The case gets its own process group, so a timeout kills all of it and
+    nothing else. Returns (exit code, or None on timeout; wall s; stderr tail)."""
+    start = time.monotonic()
+    proc = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        _, err = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        return None, time.monotonic() - start, ""
+    return proc.returncode, time.monotonic() - start, (err or "")[-2000:]
+
+
 def solve(case_dir, name, cpus, timeout_s):
-    """Run the pinned commands in a fresh container. Returns (status, wall_s,
-    detail); status is None when the commands finished (well or badly)."""
+    """Run the pinned commands in a fresh container, or directly under
+    --native. Returns (status, wall_s, detail); status is None when the
+    commands finished (well or badly)."""
+    if NATIVE:
+        script = "set -e; " + "; ".join(openfoam.COMMANDS)
+        try:
+            code, wall, _ = run_native(["bash", "-lc", script], case_dir, timeout_s)
+        except OSError as exc:
+            return "FAILED_INFRA", 0.0, f"native: {exc}"
+        if code is None:
+            return "REFERENCE_TIMEOUT", wall, f"wall limit {timeout_s} s"
+        return None, wall, f"exit {code}"
     script = "set -e; cd /case; " + "; ".join(openfoam.COMMANDS)
     command = [
         "docker",
@@ -147,6 +187,7 @@ def run_case(entry, out, args, batch, lock):
         derived=result["case"]["derived"],
         mesh=result["case"]["mesh"],
         image=openfoam.IMAGE,
+        **({"execution": NATIVE} if NATIVE else {}),
     )
     return _finish(record, out, lock, case_dir, args)
 
@@ -181,7 +222,15 @@ def main(argv=None):
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--timeout-s", type=float, default=3600.0)
     parser.add_argument("--keep", choices=("all", "failed", "none"), default="all")
+    parser.add_argument(
+        "--native",
+        metavar="ENVIRONMENT",
+        help="run each case directly in this environment, described for the record "
+        "(a pod started from the pinned image); no container is launched",
+    )
     args = parser.parse_args(argv)
+    global NATIVE
+    NATIVE = args.native
     plan = json.loads(args.plan.read_text())
     cases = plan["cases"]
     ids = [c["case_id"] for c in cases]

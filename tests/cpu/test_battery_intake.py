@@ -332,10 +332,27 @@ def test_the_listener_binds_loopback_unless_the_exposure_is_recorded(tmp_path):
     decisions.write_text(
         "## 2026-09-30 — OWNER-INTAKE-EXPOSURE-01: expose the battery intake\n"
     )
+    recorded = {**base, "exposure_record": "OWNER-INTAKE-EXPOSURE-01"}
+    # A recorded public bind still terminates TLS in the intake.
+    with pytest.raises(ib.IntakeUnavailable) as refused:
+        ib.require_exposure(recorded, repository=tmp_path)
+    assert refused.value.code == "intake_exposure_needs_tls"
     ib.require_exposure(
-        {**base, "exposure_record": "OWNER-INTAKE-EXPOSURE-01"}, repository=tmp_path
+        {**recorded, "tls_cert": "cert.pem", "tls_key": "key.pem"},
+        repository=tmp_path,
     )
     ib.require_exposure({"host": "127.0.0.1"}, repository=tmp_path)
+
+
+def test_the_repository_records_the_owners_exposure_decision():
+    """OWNER-INTAKE-EXPOSURE-01 is in this repository's decision log."""
+    config = {
+        "host": "0.0.0.0",
+        "exposure_record": "OWNER-INTAKE-EXPOSURE-01",
+        "tls_cert": "cert.pem",
+        "tls_key": "key.pem",
+    }
+    ib.require_exposure(config, repository=REPOSITORY)
 
 
 def test_the_client_has_no_signing_code():

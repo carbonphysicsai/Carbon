@@ -289,8 +289,8 @@
       "id": "chip-cold-plate",
       "title": "AI-chip liquid cold plates",
       "record": {
-        "path": "carbon/challenge_readiness/records/chip-cold-plate.v5.json",
-        "sha256": "sha256:7ca0bb35191e5e441b5d4b1f6ecb13108adb305845601fdf85221f8a2b4e7950"
+        "path": "carbon/challenge_readiness/records/chip-cold-plate.v6.json",
+        "sha256": "sha256:cf852de0556ff6fe1464a4b6a084ff3a48c0a52859f413f235527eb589464ddb"
       },
       "matching": {
         "keywords": [
@@ -559,11 +559,11 @@
         }
       ],
       "maturity": {
-        "baseline": "SELECTED",
+        "baseline": "MEASURED",
         "reference_execution": "PILOTED"
       },
       "recommendation": {
-        "basis": "All 16 pilot cases ran OK with exact checks (mass 6.9e-10, energy 2.1e-6); the r = 2 reference's discretization (about 0.1 K, 0.33 K worst; Delta p within 1.6 %) is about a tenth of the conventional baseline's error (peak -2.6 to +3.8 K, profile RMS up to 5.3 K, Delta p -6 to +9 %), so the exam can separate models.",
+        "basis": "All 16 pilot cases ran OK with exact checks (mass 6.9e-10, energy 2.1e-6); the r = 2 reference's discretization (about 0.1 K, 0.33 K worst; Delta p within 1.6 %) is about a tenth of the conventional baseline's error. The pools are complete (400 TRAIN, 100 PRACTICE, 200 private, all OK) and both baselines are scored through the exam on the private pool: the conventional closed form 0.109 (peak 0.138, profile 0.149, pressure 0.041) and the generic kernel-ridge model 0.105 (0.118, 0.182, 0.016). The conventional model with axial spreading is a strong baseline; the generic learned model barely improves on it and is worse on the profile, so a useful surrogate must beat a physics-aware baseline, not a generic one.",
         "decision": "PROCEED"
       },
       "reviews": {
@@ -594,16 +594,14 @@
         "state": "NOT_STARTED"
       },
       "unresolved": [
-        "The learned baseline is not yet trained; it needs the public TRAIN pool.",
-        "The pools are running on the owner's host: TRAIN 400 and PRACTICE 100 from public draws, and 200 private cases from an operator-held root (commitment sha256:72ae0d2f6cf8b6a7e138aae93e8db986fd07862bf743725cbc4c290d0d433c2b).",
-        "The exam's gates are implemented and tested; its scales and the baselines' scores await the pools.",
+        "The generic learned baseline barely improves on the conventional model (private pool 0.105 against 0.109) and is worse on the profile; a physics-aware learned baseline is untested.",
         "Spanwise heat-map variation, headers and manifolds need a multi-channel domain (about 50x the cost): the recorded v2 expansion.",
         "Heat capacity is held at the inlet temperature (about 0.1 K on the peak, rung 7) to keep the energy check exact.",
         "The inlet undershoot (up to 2.3 K, linearUpwind) is reported, not judged; a bounded scheme is untested.",
         "Miner-path integration is CHALLENGE-COLD-PLATE-02; the registry entry stays RESERVED until then.",
         "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
       ],
-      "next_experiment": "Finish the pools (running), then calibrate the exam on TRAIN and score the closed-form and the kernel-ridge learned baseline on the private pool.",
+      "next_experiment": "Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is prior work for laminar internal flow (f04) and steady conduction (f03): the miner path (CHALLENGE-COLD-PLATE-02) and further design, including a physics-aware learned baseline (a learned correction to the conventional model), wait until the family reaches Prioritize after protocol lock.",
       "tracking": "carbonphysicsai/Carbon#342",
       "reference": {
         "applicability": "The declared box admitted by the population screen; fluid at most 99 C (the coolant model's end) and Re at most 2,000, both checked per case; the periodic interior only (no headers, manifolds, plate edges or spanwise heat maps). Discretization at r = 2: about 0.1 K on the peak for most cases, 0.33 K at the screen edge, and Delta p 0.9 to 1.6 % low (pilot refinements).",

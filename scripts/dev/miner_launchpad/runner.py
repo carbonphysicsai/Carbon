@@ -43,7 +43,6 @@ RETIRED_PROFILE_SCHEMA = "carbon.launchpad.runner-profile.v1"
 PATH_FIELDS = {
     "image_manifest",
     "analysis_image_manifest",
-    "operator_config",
     "api_key_file",
     "miner_public",
     "quarantine_journal",
@@ -54,15 +53,24 @@ PATH_FIELDS = {
 RETIRED_PATH_FIELDS = {
     "miner_password_file": "miner_password_file_retired_start_signer"
 }
-#: Paths a profile may add. `battery_validator` is the operator's battery
-#: validator deployment (`carbon.battery.deployment`, the M3 daemon); without
-#: it a battery submission is refused as evaluation_unavailable, never scored
+#: Paths a profile may add. `battery_validator` is the legacy (C-MLP-03) name
+#: of an operator's validator deployment for the one Challenge it was written
+#: for; a profile now names deployments per Challenge in `validators`. Without
+#: one, a submission is refused as evaluation_unavailable, never scored
 #: another way.
 #: `signer_socket` is where the miner's `carbon-miner-signer` listens, when
 #: not at the path derived from their public hotkey.
 #: `compute_credential` is the miner's rented-GPU provider key file, required
 #: exactly when the runtime declares a rented GPU (C-MLP-03 slice 4).
-OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket", "compute_credential"}
+#: `operator_config` (an operator's own deployment) or `miner_network` (the
+#: chain context and publisher setup reads for a miner, C-MLP-04): exactly one
+#: names the network a campaign talks to.
+NETWORK_PATH_FIELDS = {"operator_config", "miner_network"}
+OPTIONAL_PATH_FIELDS = {
+    "battery_validator",
+    "signer_socket",
+    "compute_credential",
+} | NETWORK_PATH_FIELDS
 
 PROFILE_FIELDS = {
     "schema",
@@ -81,25 +89,92 @@ OPTIONAL_PROFILE_FIELDS = {
     "gpu_image",
     "provider_credentials",
     "model_selection",
-    # The validator's battery intake (OD-7(b)) a frozen candidate is submitted
-    # to when the validator does not run beside the campaign (C-MLP-03 slice
-    # 6): an https URL, or loopback while the intake binds loopback only.
+    # Per Challenge (C-MLP-04): {challenge_id: url}, the validator intake a
+    # frozen candidate is submitted to when the validator does not run beside
+    # the campaign; an https URL (an exposed intake terminates TLS,
+    # OWNER-INTAKE-EXPOSURE-01), or loopback. And {challenge_id: absolute path}, an operator's own validator
+    # deployment for that Challenge.
+    "intakes",
+    "validators",
+    # Legacy names from C-MLP-03, still read exactly as before: the intake and
+    # the validator deployment of the one Challenge they were written for.
     "battery_intake",
 }
+#: The Challenge each legacy per-Challenge field was written for.
+LEGACY_INTAKE, LEGACY_VALIDATOR = "battery_intake", "battery_validator"
 
 #: The provider every campaign was pinned to before selection existed. Its key
 #: is the profile's `api_key_file`, unless `provider_credentials` names one.
 DEFAULT_PROVIDER = "openai-responses"
 
 
-def feedback_modes():
-    """The battery campaign's own feedback modes, read from the campaign code
-    that applies them, so a mode cannot exist in one place and not the other.
-    Validated here, before dispatch. A runtime whose campaign declares none
-    knows only FULL: fail closed, never run a mode it would silently ignore."""
-    from carbon.battery import campaign as battery
+def _legacy_challenge():
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
-    return tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",)))
+    return BATTERY_CHALLENGE
+
+
+def intakes(cfg):
+    """{challenge_id: intake URL} from the profile, with a legacy
+    `battery_intake` read as the intake of the Challenge it was written for."""
+    found = dict(cfg.get("intakes") or {})
+    if LEGACY_INTAKE in cfg:
+        found.setdefault(_legacy_challenge(), cfg[LEGACY_INTAKE])
+    return found
+
+
+def validators(cfg):
+    """{challenge_id: validator deployment path}, with a legacy
+    `battery_validator` path read the same way."""
+    found = {k: Path(v) for k, v in (cfg.get("validators") or {}).items()}
+    if LEGACY_VALIDATOR in cfg["paths"]:
+        found.setdefault(_legacy_challenge(), Path(cfg["paths"][LEGACY_VALIDATOR]))
+    return found
+
+
+def campaign_args(cfg, **fields):
+    """A campaign's arguments from a profile: its paths, and its per-Challenge
+    intakes and validators, from which each campaign reads its own."""
+    return SimpleNamespace(
+        **{k: Path(v) for k, v in cfg["paths"].items() if k != LEGACY_VALIDATOR},
+        intakes=intakes(cfg),
+        validators=validators(cfg),
+        **fields,
+    )
+
+
+def _registered_challenge_ids(values, field):
+    from carbon.challenge_registry import ResolutionError
+    from carbon.challenge_registry.campaigns import campaign_for_id
+
+    if type(values) is not dict:
+        raise ValueError(f"{field} maps Challenge ids to values")
+    for challenge_id in values:
+        try:
+            campaign_for_id(challenge_id)
+        except (ResolutionError, TypeError):
+            raise ValueError(f"{field} names an unregistered Challenge") from None
+
+
+def feedback_modes(challenge=None):
+    """A Challenge's own feedback modes, read from its campaign; with no
+    Challenge, every mode any implemented Challenge offers.
+
+    Read from the campaign code that applies them, so a mode cannot exist in
+    one place and not the other. Validated here, before dispatch. A campaign
+    that declares none knows only FULL: fail closed, never run a mode it would
+    silently ignore."""
+    from carbon.challenge_registry.campaigns import (
+        campaign_for,
+        implemented_campaigns,
+    )
+
+    if challenge is not None:
+        return tuple(campaign_for(challenge).feedback_modes)
+    modes = ["FULL"]
+    for _entry, campaign in implemented_campaigns():
+        modes += [m for m in campaign.feedback_modes if m not in modes]
+    return tuple(modes)
 
 
 #: Image records a campaign's runtime can require, keyed by the profile field
@@ -162,9 +237,12 @@ def chain_registration(cfg):
     """
     from carbon.chain.sdk import BittensorReader
     from carbon.development_session.chain_onboarding import registered_miner
-    from carbon.development_testnet.operator import load_config
+    from carbon.development_session.miner_network import binding
 
-    config = load_config(Path(cfg["paths"]["operator_config"]))
+    config = binding(
+        operator_config=cfg["paths"].get("operator_config"),
+        miner_network=cfg["paths"].get("miner_network"),
+    )
     public = json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())
     return asyncio.run(
         registered_miner(BittensorReader(), config.context, public["hotkey"])
@@ -238,6 +316,8 @@ def validated_profile(cfg):
         or set(cfg["paths"]) - OPTIONAL_PATH_FIELDS != PATH_FIELDS
     ):
         raise ValueError("closed runner inputs required")
+    if len(NETWORK_PATH_FIELDS & set(cfg["paths"])) != 1:
+        raise ValueError("exactly one of operator_config or miner_network required")
     if any(
         type(v) is not str or not Path(v).is_absolute()
         for v in [*cfg["paths"].values(), cfg["campaigns_root"]]
@@ -273,8 +353,19 @@ def validated_profile(cfg):
             "compute_credential is required exactly when the runtime declares "
             "rented_gpu"
         )
-    if "battery_intake" in cfg and not _intake_url(cfg["battery_intake"]):
+    if LEGACY_INTAKE in cfg and not _intake_url(cfg[LEGACY_INTAKE]):
         raise ValueError("battery_intake is an https URL or a loopback URL")
+    if "intakes" in cfg:
+        _registered_challenge_ids(cfg["intakes"], "intakes")
+        if not all(map(_intake_url, cfg["intakes"].values())):
+            raise ValueError("an intake is an https URL or a loopback URL")
+    if "validators" in cfg:
+        _registered_challenge_ids(cfg["validators"], "validators")
+        if any(
+            type(v) is not str or not Path(v).is_absolute()
+            for v in cfg["validators"].values()
+        ):
+            raise ValueError("operator paths must be absolute")
     if "provider_credentials" in cfg:
         from carbon.development_session.model_provider import ADAPTERS
 
@@ -411,7 +502,7 @@ def frozen_provider(root):
 class LaunchChoice:
     """What a launch chose beyond the product admission: the validated model
     selection (built only by `model_provider.select`, with the profile's key
-    file for that provider) and a battery feedback mode. Applied when the
+    file for that provider) and the Challenge's feedback mode. Applied when the
     campaign is first created, never on resume: the manifest is frozen then."""
 
     selection: object = None
@@ -621,22 +712,22 @@ class RunnerAdapter:
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
         if "gpu_research" in runtime:
-            from carbon.development_session.battery_gpu import declared_scope
+            from carbon.challenge_registry.campaigns import declared_gpu
 
-            # Shape, here: battery's own GPU practice scope (C-MLP-03 slice 3),
-            # the only Challenge a launch can choose. The campaign recomputes
-            # the scope from the installed GPU image record; this only refuses
-            # a runtime the runner could never assemble, before the launch.
+            # Shape, here: the GPU practice scope of the Challenge it names,
+            # checked by that Challenge's campaign (C-MLP-04). The campaign
+            # recomputes the scope from the installed GPU image record; this
+            # only refuses a runtime the runner could never assemble.
             try:
-                declared_scope(runtime)
-            except ValueError:
+                declared_gpu(runtime)
+            except (ValueError, KeyError, TypeError, LookupError):
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
         if "rented_gpu" in runtime:
-            from carbon.development_session.battery_gpu import declared_rented
+            from carbon.challenge_registry.campaigns import declared_rented
 
             try:
                 declared_rented(runtime)
-            except (ValueError, KeyError, TypeError):
+            except (ValueError, KeyError, TypeError, LookupError):
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
 
@@ -649,9 +740,17 @@ class RunnerAdapter:
                 "available": True,
                 "profile": cfg["profile_id"],
                 "mode": "LIVE_PRACTICE_RESEARCH",
-                "challenge": "carbon.burgers-autoresearch-development.v1",
+                # The miner chooses the Challenge at launch, from the catalog
+                # (C-MLP-04); a profile binds none.
+                "challenge": "CHOSEN_AT_LAUNCH_FROM_THE_CATALOG",
                 "agent": "carbon-autoresearch",
-                "reasoning": "gpt-5-mini-2025-08-07",
+                # The miner's own setup choice, or the pinned default for a
+                # profile written before setup chose one.
+                "reasoning": (
+                    "{provider_id}:{model_id}".format(**cfg["model_selection"])
+                    if "model_selection" in cfg
+                    else DEFAULT_PROVIDER
+                ),
                 "compute": (
                     "rented-gpu:" + cfg["runtime"]["rented_gpu"][0]["provider"]
                     if "rented_gpu" in cfg["runtime"]
@@ -884,6 +983,12 @@ class RunnerAdapter:
             )
         except ResolutionError as refused:
             raise Rejected(refused.code, 409) from None
+        from carbon.challenge_registry.campaigns import runtime_challenge
+
+        bound = runtime_challenge(runtime)
+        if bound is not None and bound != challenge["id"]:
+            # GPU practice was set up for one Challenge; it never runs another.
+            raise Rejected("gpu_scope_is_for_another_challenge", 409)
         return challenge
 
     @staticmethod
@@ -898,14 +1003,14 @@ class RunnerAdapter:
             select,
         )
         from carbon.development_session.product_campaign import miner_budget
-        from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
         mode = request.get("feedback_mode")
         if mode is not None:
             if type(mode) is not str or mode not in feedback_modes():
                 raise Rejected("invalid_feedback_mode")
-            if (challenge or {}).get("id") != BATTERY_CHALLENGE:
-                raise Rejected("feedback_mode_is_battery_only", 409)
+            if challenge is None or mode not in feedback_modes(challenge):
+                # Each Challenge offers its own modes; FULL is every one's.
+                raise Rejected("feedback_mode_not_offered_by_challenge", 409)
         provider, model = request.get("model_provider"), request.get("model")
         settings = request.get("model_settings")
         from_setup = False
@@ -1366,8 +1471,8 @@ class RunnerAdapter:
             control = CampaignControl(ledger)
             generation = control.acquire()
             ledger.generation = generation
-            args = SimpleNamespace(
-                **{k: Path(v) for k, v in cfg["paths"].items()},
+            args = campaign_args(
+                cfg,
                 root=root,
                 accepted_revision=cfg["accepted_revision"],
                 principal=cfg["principal"],
@@ -1375,7 +1480,6 @@ class RunnerAdapter:
                 product=None,
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
-                battery_intake=cfg.get("battery_intake"),
             )
             credential = self._frozen_credential(cfg, root)
             if credential is not None:
@@ -1486,8 +1590,8 @@ class RunnerAdapter:
                     raise DispatchStopped("unresolved operation")
                 install_research_images(cfg, root)
                 creating = not (root / "campaign-manifest.json").exists()
-                args = SimpleNamespace(
-                    **{k: Path(v) for k, v in cfg["paths"].items()},
+                args = campaign_args(
+                    cfg,
                     root=root,
                     accepted_revision=cfg["accepted_revision"],
                     principal=cfg["principal"],
@@ -1495,7 +1599,6 @@ class RunnerAdapter:
                     product=product,
                     research_guidance=task["text"] if task is not None else None,
                     command="run" if creating else "resume",
-                    battery_intake=cfg.get("battery_intake"),
                 )
                 if creating:
                     # The launch's choice freezes into the manifest now.

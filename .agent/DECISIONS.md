@@ -17142,6 +17142,72 @@ Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
+## 2026-10-02 — OWNER-GRAPHITE-02: start Graphite phase 2 under a USD 9 grant; Constructor stall limit 5; Chutes approved; Mira paused; every widened construction surface ships its reconstruction
+
+**Owner, verbatim, in session on 2026-10-02:**
+1. "Start Graphite phase 2 with full Engy balance. 5 calls (We are using this
+   to TEST construction freedom so we need the ability to reconstruct it no
+   matter what so we can test the scoring and attack vectors that show
+   up....Think this one through, but I don't see how we do that testing
+   without adding reconstruction capabilities alongside construction
+   capabilities. Like for every new phase we need a way to rebuild it.....right?
+   . Yes. No. No stop this work for now."
+2. Asked to clarify, the owner chose: stop Mira only; start Graphite phase 2
+   with the full Engy balance as the grant; a stall limit of 5; the Chutes
+   adapter approved.
+3. Later the same day, replacing "full Engy balance": "grant is $9".
+4. The owner reported adding Engy and Chutes API keys to the environment. The
+   session that built phase 2 cannot see them and made no live call.
+
+**Decision.**
+1. **Phase 2 grant.** The ceiling is **USD 9.00** ("grant is $9",
+   2026-10-02). It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json` in the
+   existing `SpendingGrant` format, provider `graphite`, currency USD.
+   - The owner completed the last two fields the same day: "Expiry
+     12/31/2026 and “Carbon Account”". `expires_at` is
+     `2026-12-31T23:59:59Z`; `account` is `Carbon-Account`, the owner's label
+     hyphenated because the format allows no spaces. The grant now validates.
+   - The other limits are derived, not chosen: the arithmetic is in
+     `docs/development/graphite/grants/README.md`. The run cap is 3,000 calls
+     at the triage settings, so the worst case per run is USD 2.49 and three
+     runs fit the ceiling.
+   - The plan's estimate for phase 2 is under USD 5 of tokens on the cheap
+     rungs for a backfill of a few thousand abstracts (plan §7).
+2. **Constructor stall limit: 5 attempts.** The plan's "registered number of
+   attempts" (§3) is `roles.CONSTRUCTOR_STALL_ATTEMPTS = 5`. A
+   `BUILD_STALLED_AGAINST_BASELINE` observation is refused unless it states at
+   least five attempts (`ladder.Ladder.record_failure`), with a test and a
+   mutation check.
+3. **Chutes adapter: approved.** `model_provider.py` already carries a
+   `chutes` adapter (price read live from its model list). Wiring it into
+   Graphite is a later GRAPHITE-01 item; the phase-2 runner recognises
+   `CHUTES_API_KEY` and refuses it until then.
+4. **Mira paused.** The owner stopped the Mira/Autoscience work for now.
+   `docs/development/mira/README.md` and MIRA-ADMISSION-01 record the pause.
+   No code changes: the Mira adapter keeps refusing every call.
+5. **The reconstruction rule.** Owner direction; the engineering formulation
+   is within delegated authority:
+   - Every Graphite phase that widens what an agent may construct ships, in
+     the same phase, Carbon's reconstruction capability for the widened
+     surface, with tests that Carbon rebuilds it.
+   - A construction Carbon cannot rebuild is refused fail-closed with a typed
+     refusal and recorded as a finding. It is never scored.
+   - Phase 2 (literature) widens no construction surface.
+   - Phase 3 constructs only within the existing recorded construction
+     contract: the `carbon/reconstruction` expansion records, and
+     `tests/cpu/test_battery_construction_contract.py::test_every_surface_changes_what_carbon_rebuilds`.
+   - Each later phase's exit evidence includes its reconstruction path (plan
+     §7).
+
+**Unchanged.**
+- Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
+- Spend runs only under the grant, within its USD 9 ceiling and run limits.
+- Scientific, security and launch qualification stay human-reserved. A
+  method card is the paper's claim as extracted, never Carbon's.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
 
 **Owner, verbatim, in session on 2026-10-01:**
@@ -17240,3 +17306,96 @@ release decision.
   `/workbench/` replacement, now live, into a v4 baseline inventory.
 
 **Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
+
+## 2026-10-02 — OWNER-C-MLP-03-ANSWERS-01: the Mira note stands; build Targon's VM-and-SSH route
+
+**Owner, verbatim, in session on 2026-10-02:** "Approve, Build Targon VM
+route, Security approved". The three answers are, in order:
+1. the slice-5 ticket edit that records the Mira question as answered by
+   OWNER-GRAPHITE-01;
+2. the C-MLP-03 Targon question;
+3. the battery intake's exposure. That needs its own record of the form
+   `OWNER-…INTAKE-EXPOSURE-NN`, made with the listener change it gates; it is
+   not made here.
+
+**Decision.**
+1. **Mira.** The C-MLP-03 ticket records "Mira's connection" as answered.
+   - OWNER-GRAPHITE-01 builds Graphite instead of buying Mira.
+   - The Mira adapter refuses every call until a vendor contract exists
+     (`docs/development/mira/CAPABILITY_REPORT.md`, MIRA-ADMISSION-01, #475).
+2. **Targon.** C-MLP-03 builds a Targon route on the miner's own account:
+   - rent a Targon GPU VM;
+   - reach it over SSH;
+   - run the pinned GPU worker there with Docker.
+
+   Like RunPod and Lium, the route is for research practice only. It has:
+   - the miner's own key;
+   - finite ceilings;
+   - teardown verified;
+   - charges reconciled against the provider.
+
+**Unchanged.** Practice on rented compute is speed only and never evidence.
+No key reaches Carbon. The exam is unchanged.
+
+## 2026-10-02 — OWNER-CONTROL-CENTER-NEUTRAL-01: miners reach the Control Center and choose what to mine; nothing is battery-only
+
+**Owner, verbatim, in session on 2026-10-02**, after the survey of the website
+to Control Center path: "Yeah lets close this gap. we need miners to be able
+to get to the control center and then decide what challenge to mine. Nothing
+should be battery only or batter specific. Lets finish this buildout today".
+
+**Decision.**
+1. **A path from the website to the Control Center.** It is one command on a
+   clean Linux machine (`scripts/install_miner.sh`), and the website has a
+   "Get started" page for it.
+2. **A miner needs nothing an operator holds.** Setup reads the network (the
+   testnet context and its publisher) from the chain, so no operator
+   configuration is required.
+3. **The miner chooses the Challenge in the Control Center.** Everything that
+   differs by Challenge comes from that Challenge's registered campaign, so
+   the Control Center itself is battery-free.
+
+**Unchanged.**
+- Only an IMPLEMENTED Challenge launches. The others are shown with their
+  status and refused with the registry's code.
+- Testnet 567; DEVELOPMENT; no key reaches Carbon.
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/C-MLP-04_challenge_neutral_control_center.md`.
+
+## 2026-10-02 — OWNER-INTAKE-EXPOSURE-01: expose the battery intake beyond loopback
+
+**Owner, verbatim, in session on 2026-10-02**, answering the C-MLP-03
+question "the owner's security record before another machine can submit to
+the battery intake": "Security approved"; and, the same day, "Run the intake
+and ship the new version".
+
+**Decision.**
+1. **The battery intake (OD-7(b), `carbon/battery/intake.py`) may bind
+   beyond loopback.** This is the §4 exposure decision the listener checks for
+   by name. A public bind names `OWNER-INTAKE-EXPOSURE-01` in its
+   configuration's `exposure_record`.
+2. **Scope.** Testnet 567, the battery Challenge, the routes the intake
+   serves today (`GET /carbon/v1/battery/intake`, `POST /carbon/v1/mcp` with
+   `battery_submit` or `battery_status`) and the limits it applies today.
+   Another route, Challenge, network or listener needs its own record.
+3. **The known items stay recorded, not fixed.** Approval was given with the
+   list in `docs/development/BATTERY_MINER_SUBMISSION_PATHS.md` ("For the
+   security review to examine") on file:
+   - one thread per connection before any limit applies;
+   - the peer table reset above 4,096 peers;
+   - one peer behind a proxy;
+   - the listener on the host that holds the validator's private state.
+
+**Recorded engineering decision (executor, same day).** A public bind also
+needs TLS terminated in the intake (`tls_cert` and `tls_key`), or the listener
+refuses with `intake_exposure_needs_tls`. Two reasons:
+- the miner client already refuses plain HTTP to a non-loopback intake;
+- a TLS proxy would make every request one peer.
+
+**Unchanged.**
+- Exposing a host is an operator action. This record permits it and performs
+  none.
+- Engineering evidence is not a security audit. The record is the owner's
+  acceptance; tests only hold the gate.
+- Scientific, reward, LIVE and chain authority are unchanged.

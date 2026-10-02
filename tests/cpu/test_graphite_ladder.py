@@ -12,7 +12,12 @@ from graphite_fixtures import provider, reader_script, spec, started
 from carbon.agent_campaign.graphite import Ladder, LadderError, ScriptedModel
 from carbon.agent_campaign.graphite import ladder as gl
 from carbon.agent_campaign.graphite.model import fail
-from carbon.agent_campaign.graphite.roles import ROLES, FailureKind, RoleName
+from carbon.agent_campaign.graphite.roles import (
+    CONSTRUCTOR_STALL_ATTEMPTS,
+    ROLES,
+    FailureKind,
+    RoleName,
+)
 from carbon.development_session.model_provider import ENGY_LADDER
 
 EVIDENCE = "sha256:" + "e" * 64
@@ -105,7 +110,10 @@ def test_rungs_are_never_skipped(tmp_path):
     seen = [ladder.model(role)]
     for _ in range(len(ENGY_LADDER) - 1):
         failure = ladder.record_failure(
-            role, FailureKind.BUILD_STALLED_AGAINST_BASELINE, EVIDENCE
+            role,
+            FailureKind.BUILD_STALLED_AGAINST_BASELINE,
+            EVIDENCE,
+            attempts=CONSTRUCTOR_STALL_ATTEMPTS,
         )
         _attempt(lambda f=failure: ladder.escalate(role, f))
         seen.append(ladder.model(role))
@@ -144,3 +152,22 @@ def test_a_running_session_keeps_its_model_and_the_next_one_escalates(tmp_path):
 def test_the_ladder_is_the_owner_ladder():
     assert gl.LADDER == ENGY_LADDER
     assert gl.TOP == len(ENGY_LADDER) - 1
+
+
+def test_the_constructor_stall_limit_is_the_registered_five_attempts(tmp_path):
+    """OWNER-GRAPHITE-02: builds count as stalled only over 5 attempts."""
+    assert CONSTRUCTOR_STALL_ATTEMPTS == 5
+    ladder = Ladder(tmp_path / "ladder")
+    role, kind = RoleName.CONSTRUCTOR, FailureKind.BUILD_STALLED_AGAINST_BASELINE
+    for attempts in (None, 0, 1, 4, "5", True):
+        assert _attempt(
+            lambda a=attempts: ladder.record_failure(role, kind, EVIDENCE, attempts=a)
+        ) in (
+            "stall_below_registered_attempts",
+            "attempts_is_a_positive_integer",
+        ), attempts
+    failure = ladder.record_failure(role, kind, EVIDENCE, attempts=5)
+    assert _attempt(lambda: ladder.escalate(role, failure))["to_model"] == (
+        ENGY_LADDER[1]
+    )
+    assert ladder.record_failure(role, kind, EVIDENCE, attempts=9)

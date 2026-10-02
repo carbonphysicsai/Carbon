@@ -41,7 +41,8 @@ def configured_bridge(tmp_path, monkeypatch, *, chain=None):
         "campaigns_root": str(tmp_path / "PRIVATE-SENTINEL-campaigns"),
         "runtime": json.loads(json.dumps(RUNTIME)),
         "paths": {
-            key: str(tmp_path / ("PRIVATE-SENTINEL-" + key)) for key in PATH_FIELDS
+            key: str(tmp_path / ("PRIVATE-SENTINEL-" + key))
+            for key in PATH_FIELDS | {"operator_config"}
         },
         "research_guidance": "Private fixture objective; retain measured feedback.",
     }
