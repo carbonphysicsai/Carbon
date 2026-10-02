@@ -23,7 +23,12 @@
  ],
  "proposed_revision": {
   "target": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md §6 (Graphite's per-stage permission ledger)",
-  "text": "Every Graphite runner registers, as its campaign profile, the stage profile composed with that runner's own permission profile. The controller then enforces the stage and the construction level for every role, not only the Attacker."
+  "text": "Every Graphite runner that acts on a Challenge registers, as its campaign profile and every task's, the stage profile composed with that runner's own permission profile, when it has one: the Constructor's Level-0 permission profile, at the stage profile's level and for its Challenge; the Attacker has none beyond its role's closed tool manifest. The staged provider then refuses, for every such role and not only the Attacker, a role outside the stage's ledger row, a construction level that differs from the inventory's and a changed ledger, and a runner refuses an unstaged provider."
  },
- "status": "PROPOSED"
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-STEP4-01 amendment: \"Yes, yes\""
+ }
 }

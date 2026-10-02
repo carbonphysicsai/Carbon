@@ -17490,6 +17490,27 @@ grant?"
 *Unchanged.* Items 1 and 2. The step 4 grant, which funds the Attacker block
 only. #504's own files and records: nothing of #504's changes.
 
+**Amendment (2026-10-02): two protocol revisions adopted.**
+
+*Owner, verbatim, 2026-10-02*, answering in order the two revisions the
+lessons log proposed (CHALLENGE-PROTOCOL-04):
+- "Yes, yes"
+
+*What each "yes" adopts.*
+1. Every Graphite runner registers, as its campaign profile, the stage
+   profile composed with that runner's own permission profile
+   (`lessons/2026-10-02-step4-stage-not-in-constructor-runner.json`). #504's
+   Constructor block now runs staged like the Attacker: its campaign and
+   tasks carry the stage profile of `test_iterate` composed with its Level-0
+   permission profile, and its runner refuses an unstaged provider
+   (PROTO4-D11). This changes #504's runner, as the ticket lists; for that
+   runner it supersedes the second amendment's "nothing of #504's changes".
+2. The protocol draft lists what a Challenge must supply before its first
+   Graphite campaign (`lessons/2026-10-02-step4-second-challenge.json`;
+   `PROTOCOL_DRAFT.md` §3b).
+
+*Unchanged.* The second amendment's ceilings, and the grants.
+
 ## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-03: the construction ladder is the spine; one generalizable protocol; lessons after every execution; Graphite, not Mira
 
 **Owner, verbatim, in session on 2026-10-02:**

@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-adoption-final-validation",
+ "recorded_at": "2026-10-02T22:12:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "canonical pytest of tests/cpu/test_graphite*.py, tests/service/test_graphite_miner_path.py and tests/cpu/test_challenge_*.py; ruff; the hub validator and render checks; the pipeline's validate and render --check",
+  "description": "Validated the adopted revisions (staged Constructor, protocol draft §3b and §6), the decision amendment, the adopted lessons and the Hub event before committing."
+ },
+ "expected": "Every check passes with both revisions adopted and implemented.",
+ "observed": "436 passed (68 step 4 including 8 for the staged Constructor, 198 other Graphite, 1 miner path, 169 pipeline and challenge). Ruff clean. The Hub validator passed with 0 errors and one warning (no GITHUB_EVENT_PATH outside CI), and the Hub and pipeline views were current after re-rendering. The lessons log validated with no revision awaiting a decision.",
+ "keep": [
+  "When a revision is adopted, record the decision on the lesson, make its text match what was built, and implement it in the same change."
+ ],
+ "change": [],
+ "protocol_elements": [
+  "lessons log",
+  "revision procedure"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -211,6 +211,41 @@ Graphite proposes and runs experiments, but it never writes the contract, an
 expansion record, an acceptance or a grade. A finding stops the climb until
 it is repaired and retested. A level not reached is NOT_RUN, never a pass.
 
+## 3b. Before a Challenge's first Graphite campaign
+
+Graphite's staged campaigns are Challenge-neutral. Before its first one, a
+Challenge supplies its own records, and the shared machinery reads only
+these (OWNER-CHALLENGE-STEP4-01, revision 2; CHALLENGE-PROTOCOL-04,
+Generalization):
+1. **Its pipeline record's construction block**
+   (`carbon/challenge_pipeline/records/<family>.json`). It names the
+   construction contract token and the level reached by the ladder's rules.
+2. **Its suite map and coverage report.** The map is
+   `carbon/challenge_pipeline/suite_maps/<token>.json`. The coverage report
+   is a committed suite v1 run at that level.
+3. **A level-N permission inventory.** Its profile is `level-N`, agreeing
+   with the pipeline record's level. If they disagree, no campaign starts.
+4. **Its adapter**, under `carbon/agent_campaign/graphite/adapters/`, with
+   these functions:
+   - `permission_inventory`;
+   - `public_identity`, the public development Challenge's id and version;
+   - `admission_refusals`, Carbon's own reconstruction gate for the
+     contract;
+   - `code_run_seconds`, the wall allowance of a sandbox code run;
+   - `recipe_outside_contract`, for the dry run.
+5. **Its Graphite record**, `carbon/agent_campaign/graphite/challenges/<token>.json`.
+   It names the pipeline family, a label, the coverage report and any
+   vector wording specific to the Challenge. It also names the Attacker
+   campaign:
+   - its identities;
+   - the grant that funds it. The executor proposes the platform, account,
+     budget, runs and expiry, and the owner approves it (OWNER-GRAPHITE-05);
+   - the owner's ceiling;
+   - the per-session call cap derived from the grant.
+
+Graphite's ledger (§6) must admit the role at the stage. A second Challenge
+adds these records; it never edits the shared modules.
+
 ## 4. Stage 4: Rank for deployment
 
 - **Entry.** A frozen evidence record.
@@ -265,10 +300,24 @@ the capabilities for every construction level. A proposed level opens only by
 the climb procedure (§3a), after the technical owner accepts the proposal, and
 Graphite constructs only within its campaign's recorded level.
 
-**Not yet wired.** The controller does not read this ledger yet. Running
-battery through Test/iterate with Graphite (step 4) needs the controller to
-refuse a role outside its stage's row. That wiring is part of step 3's
-harness work.
+**How it is enforced** (OWNER-CHALLENGE-STEP4-01, revision 1;
+CHALLENGE-PROTOCOL-04). The controller does not read the ledger itself.
+1. Every Graphite runner that acts on a Challenge registers a stage profile
+   as its campaign profile, and every task carries it. The stage profile
+   binds:
+   - the stage and the ledger's bytes;
+   - the Challenge's permission inventory;
+   - its construction level;
+   - the runner's own permission profile, when the runner has one.
+2. For the runners that exist today, that means:
+   - the Constructor's Level-0 profile, at the same level and for the same
+     Challenge;
+   - nothing extra for the Attacker, beyond its role's closed tool manifest.
+3. The staged provider then refuses:
+   - a role outside the stage's row;
+   - a construction level that differs from the inventory's;
+   - a changed ledger.
+4. A runner refuses a provider that has no stage profile.
 
 ## 7. Open values: set during battery, approved at lock
 

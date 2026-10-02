@@ -142,11 +142,4 @@ One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
 adopts or declines it; nothing is applied silently.
 
-25 entries: 21 recorded, 2 proposed, 2 adopted, 0 declined.
-
-**Awaiting a decision:**
-
-| Lesson | Challenge | Target | Proposed revision |
-| --- | --- | --- | --- |
-| 2026-10-02-step4-stage-not-in-constructor-runner | protocol | docs/development/challenge_pipeline/PROTOCOL_DRAFT.md §6 (Graphite's per-stage permission ledger) | Every Graphite runner registers, as its campaign profile, the stage profile composed with that runner's own permission profile. The controller then enforces the stage and the construction level for every role, not only the Attacker. |
-| 2026-10-02-step4-second-challenge | protocol | docs/development/challenge_pipeline/PROTOCOL_DRAFT.md (entry to Test/iterate) | Before a Challenge's first Graphite campaign it supplies: its Graphite record (carbon/agent_campaign/graphite/challenges/<token>.json: pipeline family, label, coverage report, any vector wording, the Attacker campaign and its grant); its adapter (permission inventory, public identity, admission gate, code-run wall allowance, an out-of-contract recipe); its suite map; and a committed suite coverage report at its recorded construction level. |
+27 entries: 23 recorded, 0 proposed, 4 adopted, 0 declined.

@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-step4-constructor-staged-tests",
+ "recorded_at": "2026-10-02T21:59:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite*.py, tests/service/test_graphite_miner_path.py, tests/cpu/test_challenge_*.py after staging #504's Constructor (PROTO4-D11)",
+  "description": "Ran the Graphite, miner-path and challenge tests canonically after composing the stage profile with #504's Level-0 permission profile."
+ },
+ "expected": "#504's Constructor runs staged, its tests pass with the fewest edits, and a staged Constructor refuses another role, another level and a changed ledger.",
+ "observed": "436 passed on the first run, 8 of them new. #504's phase 3 tests, its mutation tests and the miner-path service test pass staged with two test edits: the fixture's provider stages by default, and _opened takes its task profile from campaign_profile.",
+ "keep": [
+  "Compose rather than replace: #504's permission profile stays its own record, nested in the stage profile, so its pins are unchanged and the staged provider's check needs no change."
+ ],
+ "change": [
+  "A fixture default that computes a profile must be evaluated lazily, so a test can pass its own profile while the default would refuse."
+ ],
+ "protocol_elements": [
+  "stage profile",
+  "Graphite's per-stage permission ledger"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

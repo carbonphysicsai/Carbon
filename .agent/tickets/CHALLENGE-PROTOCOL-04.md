@@ -30,8 +30,10 @@ The live blocks run on #504's Constructor and this ticket's Attacker:
 **Authority:**
 - OWNER-CHALLENGE-ROADMAP-01, -02 and -03 (rev 2.2: the construction ladder,
   one generalizable protocol, lessons after every execution);
-- OWNER-CHALLENGE-STEP4-01 and its two amendments;
-- OWNER-GRAPHITE-01, -02 and -03;
+- OWNER-CHALLENGE-STEP4-01 and its three amendments (the third adopts the
+  two protocol revisions: "Yes, yes");
+- OWNER-GRAPHITE-01, -02 and -03; OWNER-GRAPHITE-05 (grants are proposed by
+  the executor and approved by the owner; recorded on another branch);
 - OWNER-CHALLENGE-ADMISSION-01;
 - OWNER-DX-03.
 
@@ -83,7 +85,11 @@ It is Graphite's phase 3 and phase 4:
    Challenge as a parameter and read its specifics from its records; the
    stage profile records the construction level. Battery's specifics move to
    its record and adapter, and its behaviour is unchanged (below).
-5. **The live blocks** (owner-run, pending). #504's 3 Constructor sessions
+5. **The Constructor staged** (revision 1, adopted). #504's Constructor
+   campaign registers the stage profile composed with its own Level-0
+   permission profile, and its runner refuses an unstaged provider
+   (PROTO4-D11).
+6. **The live blocks** (owner-run, pending). #504's 3 Constructor sessions
    and this ticket's 3 Attacker sessions. Then the coverage report and the
    iteration logs are committed, and step 4 closes.
 
@@ -95,6 +101,26 @@ It is Graphite's phase 3 and phase 4:
 | 2 Attacker v1 | `graphite/attack.py`: brief, attempts, `reverify`, `analyse`, `coverage`. `graphite/phase4.py`: `AttackerProvider`, `AttackerTools`, `run_session`, the `run`, `coverage` and `log` commands, dry run | `test_graphite_attack.py` |
 | 3 Grant and records | `GRAPHITE-GRANT-STEP4.json`; grants README section; OWNER-CHALLENGE-STEP4-01; Hub event `CHALLENGE-PROTOCOL-04` | `test_graphite_step4_grant.py` |
 | 4 Generalization | `graphite/challenge.py`; `graphite/adapters/battery.py`; `graphite/challenges/battery-fastcharge-ageing-development-v1.json`; the stage profile's construction level and its check in #504's provider's stage hook; Hub event `CHALLENGE-PROTOCOL-04-GENERAL` | `test_graphite_second_challenge.py`, and the slices' tests on battery |
+| 5 Constructor staged | the stage profile's `runner_profile` (v3); `phase3.staged_profile` and `campaign_profile`; `PROTOCOL_DRAFT.md` §3b and §6; Hub event `CHALLENGE-PROTOCOL-04-STAGED` | `test_graphite_constructor_stage.py`, and #504's phase 3 tests, now staged |
+
+**Changes to #504's files** (PROTO4-D11), all for revision 1:
+- `carbon/agent_campaign/graphite/phase3.py`:
+  - the docstring's "Staged" paragraph;
+  - an import of `stage`;
+  - `STAGE`, `staged_profile()` and `campaign_profile()`;
+  - `run_session` takes its profile from `campaign_profile(provider)`
+    instead of `permission_profile()`;
+  - `command_run` and `dry_run` build the provider with
+    `stage_profile=staged_profile()`.
+  - `permission_profile()`, the campaign identities, the ceiling, the brief
+    and every other record are unchanged.
+- `carbon/agent_campaign/graphite/provider.py`: the stage hook only, as
+  before. It records the Challenge and level, and re-checks the profile on
+  resume.
+- `tests/cpu/graphite_phase3_fixtures.py`: `provider()` stages by default,
+  and `stage_profile=None` gives an unstaged one.
+- `tests/cpu/test_graphite_phase3.py`: `_opened` takes its task profile from
+  `campaign_profile` (one line).
 
 **Dry run, no spend.** `phase4 run --dry-run` runs one Attacker session with
 a scripted model, a synthetic copy of the Challenge's grant and no miner
@@ -155,8 +181,8 @@ and map digests, at Level 0.
   it changes no owner value.
 - **PROTO4-D5. The Attacker runs beside #504's runner, not inside it.**
   - `graphite/phase4.py` reuses #504's provider, controller, miner path,
-    runner helpers and grant loading, and changes none of #504's files
-    except the provider's stage hook.
+    runner helpers and grant loading. It changes none of #504's files except
+    the provider's stage hook; PROTO4-D11 later stages #504's runner.
   - Its store is `DIR/attacker`, so one `DIR` can also hold #504's
     Constructor store.
   - The controller binds one grant to the store. A registry outside the
@@ -194,9 +220,10 @@ and map digests, at Level 0.
   #504's records and tests. That is not a small change to make before #504
   merges. `Phase3Provider` already forwards `stage_profile=`, and the ledger
   admits the Constructor at `test_iterate`, so the Constructor block's
-  behavior would not change. Composing the profiles is a follow-up after
-  #504 merges. A proposed revision records it
-  (`lessons/2026-10-02-step4-stage-not-in-constructor-runner.json`).
+  behavior would not change. Composing the profiles was proposed as a
+  revision (`lessons/2026-10-02-step4-stage-not-in-constructor-runner.json`).
+  The owner adopted it ("Yes, yes"), and PROTO4-D11 supersedes this
+  decision.
 - **PROTO4-D9. The stage profile records the construction level.** Rev 2.2
   makes the construction ladder the spine of Test/iterate.
   - The profile's `construction_level` is the inventory's profile (`level-N`;
@@ -225,6 +252,33 @@ and map digests, at Level 0.
   pipeline's `PROTOCOL_FAMILY`), so the owner's commands are unchanged.
   `study.permission_inventory()` is untouched: the battery adapter calls it
   with no argument.
+- **PROTO4-D11. Every Graphite runner registers the stage profile composed
+  with its own permission profile.** This is revision 1, adopted by the
+  owner (OWNER-CHALLENGE-STEP4-01, third amendment).
+  - The stage profile (now v3) carries a `runner_profile`. It is the
+    runner's own permission profile, or null when the runner has none.
+  - A runner profile must name its level, equal to the stage profile's
+    construction level. If it names a contract, that contract must belong
+    to the profile's Challenge. Its digest is part of the profile's digest.
+  - The Constructor: `phase3.staged_profile()` composes the stage profile of
+    `test_iterate` with #504's `permission_profile()`, Level 0 in the
+    recorded battery contract. `Phase3Provider` is built with it by
+    `command_run` and the dry run.
+  - `run_session` takes the campaign's and every task's profile from
+    `campaign_profile`. That refuses an unstaged provider
+    (`stage_profile_required`) and a permission profile that is no longer
+    the runner's (`runner_profile_changed`).
+  - The staged provider then refuses, for the Constructor as for the
+    Attacker:
+    - a role outside the stage's row;
+    - a level that differs from the inventory's;
+    - a changed ledger.
+  - The Attacker has no permission profile of its own beyond its role's
+    closed tool manifest, which the brief pins. Its runner profile is null.
+  - Phase 2's literature runner acts on no Challenge and stays unstaged
+    (PROTO4-D3).
+  - #504's other behaviour and records are unchanged. Its session records
+    now carry the stage, and its campaign's profile digest is the composite.
 
 ## Generalization
 
@@ -246,6 +300,9 @@ go."
   coverage and dry run, all parameterized by the Challenge; its limits come
   from the Challenge's records.
 - #504's provider's stage hook: the level and permissions check.
+- #504's Constructor runner: staged through `staged_profile` and
+  `campaign_profile` (PROTO4-D11). It is still battery's only Constructor;
+  generalizing it is not this ticket's.
 
 **The battery adapter** (battery's instance, behaviour unchanged):
 - `graphite/challenges/battery-fastcharge-ageing-development-v1.json`:
@@ -269,7 +326,8 @@ go."
   the new one: the same brief digest, limits, dry-run grant amounts and
   verdicts (`lessons/2026-10-02-step4-battery-unchanged.json`).
 
-**What a second Challenge must supply** before its Attacker block:
+**What a second Challenge must supply** before its Attacker block. This is
+revision 2, adopted, and now `PROTOCOL_DRAFT.md` §3b:
 1. A pipeline record with a `construction` block naming its contract token
    and level, reached by the ladder's rules.
 2. A suite map, `carbon/challenge_pipeline/suite_maps/<token>.json`, and a
@@ -281,10 +339,15 @@ go."
    `code_run_seconds` and `recipe_outside_contract`. Its admission gate is
    Carbon's own reconstruction gate for that contract, returning
    `construction_contract_unrecorded` first when its record is not current.
-5. A Graphite record, `graphite/challenges/<token>.json`, naming the above,
-   any vector wording specific to it, and its Attacker campaign: identities,
-   the grant that funds it (an owner grant, with its derivation), the
-   owner's ceiling and the per-session call cap derived from that grant.
+5. A Graphite record, `graphite/challenges/<token>.json`, naming the above
+   and any vector wording specific to it. It also names its Attacker
+   campaign:
+   - its identities;
+   - the grant that funds it. The executor proposes it, with its platform,
+     account, budget, runs and expiry, and the owner approves it
+     (OWNER-GRAPHITE-05). Its derivation is recorded.
+   - the owner's ceiling;
+   - the per-session call cap derived from that grant.
 6. Graphite's ledger admitting the role at `test_iterate`, as it does today
    for every Challenge.
 
@@ -292,10 +355,12 @@ go."
 Challenge through all of this with battery's adapter and gate made to raise.
 
 **Lessons.** One entry per execution, under
-`carbon/challenge_pipeline/lessons/2026-10-02-step4-*.json`. Two propose
-protocol revisions, awaiting an owner: compose the stage profile into every
-Graphite runner, and list what a Challenge supplies before its first
-Graphite campaign.
+`carbon/challenge_pipeline/lessons/2026-10-02-step4-*.json`. Two proposed
+protocol revisions, and the owner adopted both ("Yes, yes",
+OWNER-CHALLENGE-STEP4-01, third amendment):
+- compose the stage profile into every Graphite runner (PROTO4-D11);
+- list what a Challenge supplies before its first Graphite campaign
+  (`PROTOCOL_DRAFT.md` §3b).
 
 ## Live blocks (owner-run)
 
@@ -316,7 +381,15 @@ USD 5.00.
 
 The Constructor block runs with #504's `phase3 run` under
 GRAPHITE-GRANT-PHASE3, at the campaign ceiling #504's runner registers
-(USD 14.75), as the owner answered ("let it use it").
+(USD 14.75), as the owner answered ("let it use it"). It now runs staged at
+`test_iterate` (PROTO4-D11); its command is unchanged.
+
+**Grants.** Both grant files above already exist and are approved. The
+owner no longer authors grants: "stop requiring grants. Just ask for
+platform and budget and propose one" (OWNER-GRAPHITE-05). For any further
+block, the executor proposes a grant: platform, account, budget, runs and
+expiry, with the derived limits. The owner approves it. The runners still
+take the approved grant file as the spend ceiling; no grant code changed.
 
 ## Human-reserved, fail closed until set
 
@@ -333,9 +406,12 @@ GRAPHITE-GRANT-PHASE3, at the campaign ceiling #504's runner registers
   GRAPHITE-GRANT-PHASE3, which registers its campaign at that grant's
   ceiling less cleanup (USD 14.75). Asked to keep USD 5.00 or let it use
   #504's grant, the owner answered "let it use it" (2026-10-02, second
-  amendment). USD 5.00 now binds the Attacker campaign only. This ticket
-  changes nothing of #504's.
-- **Any owner: the two proposed protocol revisions** in the lessons log.
+  amendment). USD 5.00 now binds the Attacker campaign only.
+- **Answered: the two proposed protocol revisions.** Both were adopted
+  ("Yes, yes", third amendment) and are implemented (PROTO4-D11;
+  `PROTOCOL_DRAFT.md` §3b).
+- **Owner: approving any further grant** the executor proposes
+  (OWNER-GRAPHITE-05).
 - **Technical owner.** Grading every finding and every coverage report.
 - **Credential.** The Engy key is supplied by the owner in an owner-only
   file. It is never in chat, the repository or logs.

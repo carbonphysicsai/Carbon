@@ -24,8 +24,13 @@
   "construction level"
  ],
  "proposed_revision": {
-  "target": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md (entry to Test/iterate)",
-  "text": "Before a Challenge's first Graphite campaign it supplies: its Graphite record (carbon/agent_campaign/graphite/challenges/<token>.json: pipeline family, label, coverage report, any vector wording, the Attacker campaign and its grant); its adapter (permission inventory, public identity, admission gate, code-run wall allowance, an out-of-contract recipe); its suite map; and a committed suite coverage report at its recorded construction level."
+  "target": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md §3b (before a Challenge's first Graphite campaign)",
+  "text": "Before a Challenge's first Graphite campaign it supplies: its pipeline record's construction block at its level; its suite map and a committed suite coverage report run at that level; a permission inventory whose profile is level-N, agreeing with the pipeline record; its adapter (permission inventory, public identity, admission gate, code-run wall allowance, an out-of-contract recipe); and its Graphite record (carbon/agent_campaign/graphite/challenges/<token>.json: pipeline family, label, coverage report, any vector wording, and the Attacker campaign with its grant, the owner's ceiling and its call cap)."
  },
- "status": "PROPOSED"
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-STEP4-01 amendment: \"Yes, yes\""
+ }
 }
