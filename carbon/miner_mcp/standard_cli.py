@@ -217,9 +217,13 @@ def _remote(profile):
     None: built by the Challenge's own campaign from the frozen runtime and
     the profile's `remote_machine` (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
     from carbon.challenge_registry.campaigns import campaign_for_manifest
+    from carbon.compute.remote_route import RUNTIME_KEY
 
-    campaign = campaign_for_manifest(profile.manifest)
     runtime = profile.manifest["runtime"]
+    if RUNTIME_KEY not in runtime:
+        # No remote practice: nothing to build, and nothing resolved here.
+        return None
+    campaign = campaign_for_manifest(profile.manifest)
     return campaign.remote_runner(
         runtime,
         profile.document.get("remote_machine"),
