@@ -278,6 +278,6 @@ def test_the_lock_is_step_eight_and_the_process_owners(protocol):
     with pytest.raises(PipelineError, match="not the process owner"):
         validate_protocol(dict(_locked(protocol), lock=SIGNED))
     early = copy.deepcopy(protocol)
-    early["phase_1"][0]["status"] = "done"
+    early["phase_1"][1].update(status="done", evidence=None)
     with pytest.raises(PipelineError, match="done needs its evidence"):
         validate_protocol(early)
