@@ -114,6 +114,9 @@ code; their live acceptance is pending (below).
 - **Output.** The OK records, in TRAIN v1's exact shape.
 - **Needs.** Docker, and network once to fetch the locked wheels. A case
   takes about a minute of one CPU core.
+- **Accepted live (2026-10-02).** On a Linux host with Docker, `generate`
+  verified the overlay in the pinned truth image (pybamm 26.8.0.0, no network)
+  and solved 2 cases OK in about 100 s with 2 workers.
 - **Limits.** Generated data is self-reported research material. It is never
   a grading reference, and submissions are still rebuilt on the pinned TRAIN
   version. It does not run inside the research sandbox yet; that is a later,
