@@ -1,0 +1,20 @@
+{
+  "population": "carbon.photonic-coupler.development-population.v1",
+  "tables": "sha256:ef8ebc8be6f5593b4d64ce211fb47f3eda6137eb21b86088b1f7346116ac12b1",
+  "z_points": 6000,
+  "train": {
+    "label": "carbon.photonic.pools-v1.train",
+    "cases": 1000,
+    "ok": 1000
+  },
+  "practice": {
+    "label": "carbon.photonic.pools-v1.practice",
+    "cases": 200,
+    "ok": 200
+  },
+  "private": {
+    "root_commitment": "sha256:bf1849494ab5a542c2a03d0e4646454a2bba15ebbf9d5db71e391ea9b3885109",
+    "cases": 500,
+    "ok": 500
+  }
+}
