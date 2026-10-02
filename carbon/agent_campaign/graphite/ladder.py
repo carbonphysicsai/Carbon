@@ -12,9 +12,12 @@ The rule, per role (plan §3; OWNER-GRAPHITE-01 item 2):
 There is no path that escalates on success, on an infrastructure failure, or
 on a model's own request: the only input is a typed observation recorded here
 by Carbon, with the digest of its evidence. Whether an outcome *is* such a
-failure (for example "builds stall against the baseline over a registered
-number of attempts") is decided by whoever records it; phase 1 does not
-automate that judgement (GRAPHITE-D6).
+failure is decided by whoever records it; phase 1 does not automate that
+judgement (GRAPHITE-D6). One part of it is registered: a Constructor's builds
+count as stalled against the baseline only over
+`roles.CONSTRUCTOR_STALL_ATTEMPTS` (5, OWNER-GRAPHITE-02) attempts, so a
+`BUILD_STALLED_AGAINST_BASELINE` observation must state an attempt count of at
+least that, and is refused otherwise.
 
 A running session keeps the model it started with; an escalation applies to
 the next session of that role.
@@ -32,7 +35,7 @@ from pathlib import Path
 from carbon.development_session.model_provider import ENGY_LADDER
 
 from ..provider import digest_text
-from .roles import ROLES, FailureKind, RoleName
+from .roles import CONSTRUCTOR_STALL_ATTEMPTS, ROLES, FailureKind, RoleName
 
 LADDER = ENGY_LADDER
 TOP = len(LADDER) - 1
@@ -49,6 +52,11 @@ def _next_rung(current):
     return current + 1
 
 
+def _stalled(attempts):
+    """True when `attempts` reaches the registered stall limit."""
+    return type(attempts) is int and attempts >= CONSTRUCTOR_STALL_ATTEMPTS
+
+
 class Ladder:
     def __init__(self, root):
         root = Path(root)
@@ -59,7 +67,7 @@ class Ladder:
         schema = sqlite3.connect(self.path)
         try:
             schema.executescript("""
-                CREATE TABLE IF NOT EXISTS failures (id TEXT PRIMARY KEY, role TEXT NOT NULL, kind TEXT NOT NULL, evidence TEXT NOT NULL, ordinal INTEGER NOT NULL UNIQUE);
+                CREATE TABLE IF NOT EXISTS failures (id TEXT PRIMARY KEY, role TEXT NOT NULL, kind TEXT NOT NULL, evidence TEXT NOT NULL, ordinal INTEGER NOT NULL UNIQUE, attempts INTEGER);
                 CREATE TABLE IF NOT EXISTS escalations (sequence INTEGER PRIMARY KEY, role TEXT NOT NULL, failure TEXT NOT NULL UNIQUE REFERENCES failures(id), from_rung INTEGER NOT NULL, to_rung INTEGER NOT NULL);
             """)
         finally:
@@ -102,13 +110,24 @@ class Ladder:
         """The model the next session of `role` starts on."""
         return LADDER[self.rung(role)]
 
-    def record_failure(self, role, kind, evidence):
-        """Record one typed research-failure observation; returns its id."""
+    def record_failure(self, role, kind, evidence, *, attempts=None):
+        """Record one typed research-failure observation; returns its id.
+
+        `attempts` is the number of attempts the evidence covers. It is
+        required for a stall, which needs at least the registered
+        `CONSTRUCTOR_STALL_ATTEMPTS`, and is recorded with the observation.
+        """
         spec = self._role(role)
         if type(kind) is not FailureKind:
             raise LadderError("not_a_typed_research_failure")
         if kind not in spec.escalation_kinds:
             raise LadderError("failure_kind_not_for_this_role")
+        if attempts is not None and (type(attempts) is not int or attempts < 1):
+            raise LadderError("attempts_is_a_positive_integer")
+        if kind is FailureKind.BUILD_STALLED_AGAINST_BASELINE and not _stalled(
+            attempts
+        ):
+            raise LadderError("stall_below_registered_attempts")
         digest_text(evidence, "evidence")
         with self._db() as db:
             ordinal = db.execute("SELECT COUNT(*) FROM failures").fetchone()[0]
@@ -119,8 +138,8 @@ class Ladder:
                 ).hexdigest()[:16]
             )
             db.execute(
-                "INSERT INTO failures VALUES(?,?,?,?,?)",
-                (failure_id, role.value, kind.value, evidence, ordinal),
+                "INSERT INTO failures VALUES(?,?,?,?,?,?)",
+                (failure_id, role.value, kind.value, evidence, ordinal, attempts),
             )
         return failure_id
 
