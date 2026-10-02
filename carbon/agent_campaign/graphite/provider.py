@@ -35,6 +35,15 @@ session record is re-verified against the role's prompt digest and tool
 manifest, the model selection and the literature snapshot; any difference
 refuses the run.
 
+**Stage.** A provider built with a `stage_profile` (`stage.py`) runs at one
+stage of the challenge pipeline. It refuses:
+- a role the stage's row of Graphite's permission ledger does not admit;
+- a task whose profile is not the stage profile's digest;
+- a ledger changed under it.
+
+The stage is recorded in the session, and a resumed session whose stage
+changed is refused.
+
 **Authority.** None. Results are data returned to the controller. Nothing
 here grades, scores, rewards or reads confirmation material.
 """
@@ -50,6 +59,7 @@ from dataclasses import dataclass
 from decimal import ROUND_FLOOR, Decimal
 from pathlib import Path
 
+from carbon.challenge_pipeline.graphite_ledger import graphite_may
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import select, selection_from_record
 from carbon.development_session.profile import canonical, digest
@@ -72,6 +82,7 @@ from ..provider import (
     digest_text,
     identifier,
 )
+from . import stage as stages
 from . import tools as toolbox
 from .ladder import Ladder
 from .literature import FIXTURE_INDEX, LiteratureIndex
@@ -228,6 +239,7 @@ class GraphiteProvider:
         miner_tools=None,
         adapter_id="engy-anthropic",
         max_calls_per_run=None,
+        stage_profile=None,
         clock=time.time,
         crash_at=None,
         crash_at_checkpoint=None,
@@ -257,6 +269,11 @@ class GraphiteProvider:
             raise ValueError("max_calls_per_run is a positive integer or None")
         if crash_at is not None and crash_at not in CRASH_POINTS:
             raise ValueError("unknown crash point")
+        if stage_profile is not None:
+            try:
+                stages.check(stage_profile)
+            except ValueError as error:
+                raise ProviderUnavailable(str(error)) from None
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         root.chmod(0o700)
         for name in ("briefs", "runs"):
@@ -266,6 +283,7 @@ class GraphiteProvider:
         self.miner_tools = miner_tools
         self.adapter_id = adapter_id
         self.max_calls_per_run = max_calls_per_run
+        self.stage_profile = stage_profile
         self.clock = clock
         self.crash_at = crash_at
         self.crash_at_checkpoint = crash_at_checkpoint
@@ -314,6 +332,16 @@ class GraphiteProvider:
             "reference_trajectories": 0,
             "reference_invocations": 0,
             "retained_bytes": None,
+        }
+
+    def _stage_record(self):
+        """What the session records of its stage; None without a stage."""
+        if self.stage_profile is None:
+            return None
+        return {
+            "stage": self.stage_profile["stage"],
+            "profile_digest": stages.profile_digest(self.stage_profile),
+            "ledger_digest": self.stage_profile["ledger_digest"],
         }
 
     def _grant_record(self):
@@ -442,6 +470,12 @@ class GraphiteProvider:
         ):
             # The brief was registered against another prompt or manifest.
             raise ProviderUnavailable("brief_role_changed")
+        stage_record = self._stage_record()
+        if stage_record is not None:
+            if spec.profile_digest != stage_record["profile_digest"]:
+                raise ProviderUnavailable("stage_profile_mismatch")
+            if not graphite_may(stage_record["stage"], role.name):
+                raise ProviderUnavailable("role_not_permitted_at_stage")
         rung = self.ladder.rung(role.name)
         model_id = self.ladder.model(role.name)
         selection = self._selection(model_id)
@@ -465,6 +499,7 @@ class GraphiteProvider:
                 "label": self.literature.label,
             },
             "checkout": brief["checkout"],
+            **({"stage": stage_record} if stage_record is not None else {}),
             "grant": self._grant_record(),
             "caps": self.caps(),
             "live_inference": bool(self.model.live),
@@ -610,6 +645,8 @@ class GraphiteProvider:
                 digest(canonical(brief)),
                 {"grant": self._grant_record(), "caps": self.caps()},
             )
+            if opened.get("stage") != self._stage_record():
+                raise SessionMismatch("stage_changed")
         except (SessionMismatch, ValueError) as error:
             code = (
                 error.args[0]
