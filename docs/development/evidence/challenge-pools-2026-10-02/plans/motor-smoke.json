@@ -1,0 +1,36 @@
+{
+ "batch": "motor-smoke-v1",
+ "purpose": "environment smoke test on a RunPod CPU pod: two public TRAIN cases already solved in the local container, re-solved natively for comparison",
+ "source_plan_label": "carbon.motor.pools-v1.train",
+ "population": "carbon.motor.development-population.v1",
+ "cases": [
+  {
+   "case_id": "train-0000",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 3.2706798530600745,
+    "embrace": 0.8749975119563407,
+    "airgap_mm": 0.8304609206210771,
+    "slot_open_deg": 3.6523881839106895,
+    "tooth_mm": 2.667588807291972,
+    "slot_bottom_mm": 35.37695220162885,
+    "current_density_a_mm2": 4.642727533201469,
+    "current_angle_deg": 2.997616385604074
+   }
+  },
+  {
+   "case_id": "train-0001",
+   "kind": "ordinary",
+   "inputs": {
+    "magnet_mm": 1.6202070827036237,
+    "embrace": 0.5876574949089214,
+    "airgap_mm": 0.7816263429334229,
+    "slot_open_deg": 4.90584464244878,
+    "tooth_mm": 4.419814693018713,
+    "slot_bottom_mm": 38.934089529311656,
+    "current_density_a_mm2": 6.299616504501948,
+    "current_angle_deg": 47.454206276415206
+   }
+  }
+ ]
+}
