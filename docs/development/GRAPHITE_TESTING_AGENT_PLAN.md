@@ -1,6 +1,8 @@
 # Graphite: Carbon's in-house research and testing agent (plan)
 
-**Status:** PLAN, 2026-10-02. Nothing in this document is built yet.
+**Status:** PLAN, 2026-10-02. Phase 1 (the harness) is built. Phase 2 (the
+literature layer) is built and has not run live: it waits for the owner to
+complete its grant (OWNER-GRAPHITE-02). Later phases are not built.
 
 - The owner decided on 2026-10-01 to build an in-house agent rather than
   buy Autoscience Mira.
@@ -204,6 +206,19 @@ failure. Graphite keeps that rule per role:
   5. The Planner queries cards, never raw PDFs, unless it asks for one.
 - **Snapshots.** Each session pins an index snapshot digest, so a result can
   be traced to the papers the agent could see.
+- **As built in phase 2.** The modules are in `carbon/agent_campaign/graphite/`.
+  The backfill runs on demand rather than nightly. It has no embeddings yet:
+  `lit_search` is keyword search over the cards.
+  - `literature_fetch.py`: a registered, versioned query set; the arXiv API,
+    at least 3 s between requests; content-addressed pages and records; a
+    hard record cap; typed `FAILED_INFRA` failures.
+  - `method_cards.py`: one Reader call per abstract, which both triages
+    (`relevant`) and extracts. The card shape is closed. Cards are written
+    `UNCHECKED`. Human checks need an interactive confirmation.
+    Deterministic snapshots load into `LiteratureIndex`.
+  - `triage.py`: metering through `research_agent` and the research ledger,
+    under the grant.
+  - `phase2.py`: the runner.
 - **Cost control.** Cheapest rungs for triage and extraction, a stable
   cached prefix, and per-call settlement from the provider's reported charge.
 
@@ -280,11 +295,32 @@ and replace them.
 | **0. Records** | This plan, OWNER-GRAPHITE-01, ticket GRAPHITE-01 | none | Merged plan |
 | **1. Harness** | `GraphiteProvider` behind the #475 controller; sandbox image; allowlisted checkout; tool manifest; a scripted fake model for tests; session records | none | Fake-model tests: lifecycle, crash recovery, caps, cancellation, injection-as-data, mutation tests |
 | **2. Literature layer** | Fetch, triage, method cards, snapshot index | Under USD 5 of tokens on the cheap rungs for a backfill of a few thousand abstracts | Index snapshot; 50 hand-checked method cards |
-| **3. Constructor, Level 0** | Live loop on battery development material through the real miner path | Tokens per session, at about 150 turns with a mostly cached 50K-token prefix: about USD 0.10 on `deepseek-v4-flash-0731`, about USD 2 on `glm-5.2`, about USD 6 on `kimi-k3`. Plus about USD 1-3 of pod time. First block 3 sessions | First end-to-end proposal → run → frozen-rule score → PR → clean rebuild |
-| **4. Attacker** | Red-team role and the eight Track A families | 3 sessions × 20 attempts: about USD 1-20 of tokens depending on rung, plus about USD 7 of compute | Eight-check coverage report with specimens and controls |
-| **5. Optimizer researcher** | Proposals compared against the fixed grid | About USD 1-10 | B3 result |
-| **6. Bake-off** | B1-B4 frozen and run | Sized by the pre-registration; owner approves | Report: retain, change or drop each role and rung |
+| **3. Constructor, Level 0** | Live loop on battery development material through the real miner path | Tokens per session, at about 150 turns with a mostly cached 50K-token prefix: about USD 0.10 on `deepseek-v4-flash-0731`, about USD 2 on `glm-5.2`, about USD 6 on `kimi-k3`. Plus about USD 1-3 of pod time. First block 3 sessions | First end-to-end proposal → run → frozen-rule score → PR → clean rebuild. **Reconstruction path:** every construction stays inside the recorded construction contract, and Carbon rebuilds each one (`carbon/reconstruction` expansion records; `test_battery_construction_contract.py::test_every_surface_changes_what_carbon_rebuilds`) |
+| **4. Attacker** | Red-team role and the eight Track A families | 3 sessions × 20 attempts: about USD 1-20 of tokens depending on rung, plus about USD 7 of compute | Eight-check coverage report with specimens and controls. **Reconstruction path:** Carbon rebuilds every attack construction it scores, and refuses, typed, any it cannot |
+| **5. Optimizer researcher** | Proposals compared against the fixed grid | About USD 1-10 | B3 result. **Reconstruction path:** Carbon reruns each proposal from its record |
+| **6. Bake-off** | B1-B4 frozen and run | Sized by the pre-registration; owner approves | Report: retain, change or drop each role and rung. **Reconstruction path:** B4 (rebuild from the PR alone) |
 | **7. Confidential compute** | Targon-attested execution for client challenges | Deferred (owner, 2026-10-01) | §8 |
+
+**The reconstruction rule (OWNER-GRAPHITE-02).** Graphite exists to test
+construction freedom, so Carbon must be able to rebuild whatever Graphite
+constructs. The rule has three parts:
+
+- A phase that widens what an agent may construct ships, in the same phase,
+  Carbon's reconstruction capability for the widened surface, with tests that
+  Carbon rebuilds it.
+- A construction Carbon cannot rebuild is refused fail-closed, with a typed
+  refusal, and recorded as a finding. It is never scored.
+- So each phase's exit evidence includes its reconstruction path.
+
+Phase 2 widens no construction surface: it reads papers and writes cards.
+Phase 3 constructs only within the existing recorded construction contract.
+
+**Phase 2 grant (OWNER-GRAPHITE-02).**
+
+- The ceiling is USD 9.
+- It is recorded in `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json`,
+  with the derivation in its README. The account and expiry stay
+  `HUMAN_INPUT`, so the grant refuses until the owner fills them.
 
 **Total for phases 1-5:** about USD 10-60 of inference, depending on which
 rungs the roles reach, plus about USD 10-20 of pod time.
@@ -320,11 +356,17 @@ It is not needed now. The design keeps the door open:
 
 | Decision | Owner | Blocks |
 |---|---|---|
-| Per-phase spending grants (token and compute) | Owner | Phases 2-6 |
+| Per-phase spending grants (token and compute). Phase 2: USD 9, decided (OWNER-GRAPHITE-02); its account and expiry are still `HUMAN_INPUT` | Owner | Phases 2-6 (phase 2: the two fields only) |
 | Level-0 study population, reconstruction tolerances, attack budget | Science owner and owner | Phases 3-4 freeze |
 | Attacker model and isolation scope for hostile executables | Security owner | Executable attack families |
 | PB-INV / PB-ADV acceptance policies | Science owner | Pass/fail use of B3 |
-| Whether to run a paid Mira comparison in the bake-off | Owner | B1 vendor arm only |
+| Whether to run a paid Mira comparison in the bake-off (Mira work is paused, OWNER-GRAPHITE-02) | Owner | B1 vendor arm only |
+| A widened construction surface that Carbon cannot yet rebuild | Owner, through the reconstruction rule (§7) | That surface: it is refused and recorded as a finding until its reconstruction ships |
+
+Decided since the plan was written (OWNER-GRAPHITE-02):
+
+- the Constructor's stall limit is 5 attempts (`roles.CONSTRUCTOR_STALL_ATTEMPTS`);
+- the Chutes adapter is approved.
 
 ## 10. Relation to existing work
 
@@ -335,3 +377,8 @@ It is not needed now. The design keeps the door open:
 - **#476** (EV4): its panel, references and optimizer are Graphite's first
   baselines. Its frozen pre-registration is never modified.
 - **#477** (held readiness gate): unaffected.
+- **#468** (construction expansion records) and the battery construction
+  contract: Graphite's constructions stay inside them, and Carbon rebuilds
+  each one. A widened surface ships its reconstruction in the same phase
+  (the reconstruction rule, §7).
+- **Mira** (#475): paused by the owner on 2026-10-02.

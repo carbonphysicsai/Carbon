@@ -17142,6 +17142,71 @@ Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
+## 2026-10-02 — OWNER-GRAPHITE-02: start Graphite phase 2 under a USD 9 grant; Constructor stall limit 5; Chutes approved; Mira paused; every widened construction surface ships its reconstruction
+
+**Owner, verbatim, in session on 2026-10-02:**
+1. "Start Graphite phase 2 with full Engy balance. 5 calls (We are using this
+   to TEST construction freedom so we need the ability to reconstruct it no
+   matter what so we can test the scoring and attack vectors that show
+   up....Think this one through, but I don't see how we do that testing
+   without adding reconstruction capabilities alongside construction
+   capabilities. Like for every new phase we need a way to rebuild it.....right?
+   . Yes. No. No stop this work for now."
+2. Asked to clarify, the owner chose: stop Mira only; start Graphite phase 2
+   with the full Engy balance as the grant; a stall limit of 5; the Chutes
+   adapter approved.
+3. Later the same day, replacing "full Engy balance": "grant is $9".
+4. The owner reported adding Engy and Chutes API keys to the environment. The
+   session that built phase 2 cannot see them and made no live call.
+
+**Decision.**
+1. **Phase 2 grant.** The ceiling is **USD 9.00** ("grant is $9",
+   2026-10-02). It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json` in the
+   existing `SpendingGrant` format, provider `graphite`, currency USD.
+   - `account` and `expires_at` stay `HUMAN_INPUT`, so the grant fails closed
+     (`grant_value_missing`) until the owner fills them.
+   - The other limits are derived, not chosen: the arithmetic is in
+     `docs/development/graphite/grants/README.md`. The run cap is 3,000 calls
+     at the triage settings, so the worst case per run is USD 2.49 and three
+     runs fit the ceiling.
+   - The plan's estimate for phase 2 is under USD 5 of tokens on the cheap
+     rungs for a backfill of a few thousand abstracts (plan §7).
+2. **Constructor stall limit: 5 attempts.** The plan's "registered number of
+   attempts" (§3) is `roles.CONSTRUCTOR_STALL_ATTEMPTS = 5`. A
+   `BUILD_STALLED_AGAINST_BASELINE` observation is refused unless it states at
+   least five attempts (`ladder.Ladder.record_failure`), with a test and a
+   mutation check.
+3. **Chutes adapter: approved.** `model_provider.py` already carries a
+   `chutes` adapter (price read live from its model list). Wiring it into
+   Graphite is a later GRAPHITE-01 item; the phase-2 runner recognises
+   `CHUTES_API_KEY` and refuses it until then.
+4. **Mira paused.** The owner stopped the Mira/Autoscience work for now.
+   `docs/development/mira/README.md` and MIRA-ADMISSION-01 record the pause.
+   No code changes: the Mira adapter keeps refusing every call.
+5. **The reconstruction rule.** Owner direction; the engineering formulation
+   is within delegated authority:
+   - Every Graphite phase that widens what an agent may construct ships, in
+     the same phase, Carbon's reconstruction capability for the widened
+     surface, with tests that Carbon rebuilds it.
+   - A construction Carbon cannot rebuild is refused fail-closed with a typed
+     refusal and recorded as a finding. It is never scored.
+   - Phase 2 (literature) widens no construction surface.
+   - Phase 3 constructs only within the existing recorded construction
+     contract: the `carbon/reconstruction` expansion records, and
+     `tests/cpu/test_battery_construction_contract.py::test_every_surface_changes_what_carbon_rebuilds`.
+   - Each later phase's exit evidence includes its reconstruction path (plan
+     §7).
+
+**Unchanged.**
+- Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
+- Spend runs only under the grant; nothing is spent until the owner fills the
+  grant's `HUMAN_INPUT` fields.
+- Scientific, security and launch qualification stay human-reserved. A
+  method card is the paper's claim as extracted, never Carbon's.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
 
 **Owner, verbatim, in session on 2026-10-01:**

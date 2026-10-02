@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "GRAPHITE-03",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "GRAPHITE-01 phase 2, the Graphite literature layer, is built. The live backfill is pending the owner's grant fields and has spent nothing. carbon/agent_campaign/graphite adds four modules. literature_fetch: an arXiv client for a registered, versioned query set, at least 3 s between requests, bounded retries ending in a typed FAILED_INFRA, content-addressed pages and records, and a hard record cap. method_cards: one Reader call per abstract with a closed request and a closed reply shape, so injection inside an abstract cannot change role, tools, model, budget or status; cards are written UNCHECKED, human checks need an interactive confirmation, and snapshots are deterministic and load into LiteratureIndex. triage: metering and settlement through research_agent on the research ledger, capped per run by the grant. phase2: the runner, which reads ENGY_API_KEY into a 0600 file. A public arXiv sample of 158 abstracts was parsed and dry-run carded without spend. OWNER-GRAPHITE-02 recorded the decisions: a USD 9 grant whose account and expiry stay HUMAN_INPUT, so it fails closed; a Constructor stall limit of 5 attempts, wired into the ladder; Chutes approved; Mira paused; and the rule that any phase widening construction ships Carbon's reconstruction for it in the same phase, refusing and recording a construction Carbon cannot rebuild. Nothing here grades, qualifies or rewards.",
+  "primary_detail": ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md",
+  "affects": [
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T10:45:00Z"
+}
