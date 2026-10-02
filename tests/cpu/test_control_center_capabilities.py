@@ -241,10 +241,10 @@ def test_the_stale_burgers_bridge_entry_is_gone():
     """
     listed = {item["reason"] for item in controller.capability_catalog()["unavailable"]}
     assert "research_bridge_not_implemented" not in listed
-    assert "adapter_not_implemented" in listed
+    assert "integration_interface_unverified" in listed
     ids = {item["id"] for item in controller.INTEGRATIONS}
     assert "carbon-burgers-development" not in ids
-    assert "hermes" in ids
+    assert "mira" in ids
     # Every integration is placed somewhere a miner will meet it.
     assert ids == set(controller.INTEGRATION_PLACEMENT)
 

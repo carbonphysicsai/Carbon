@@ -216,6 +216,10 @@ class Checks:
             "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
         }
 
+    @staticmethod
+    def hermes_files():
+        return ["/fixture/hermes/profiles/carbon/config.yaml"]
+
     def agent(self, hotkey, socket_path=None):
         return {"signing": "fixture"}
 

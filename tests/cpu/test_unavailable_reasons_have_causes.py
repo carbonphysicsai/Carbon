@@ -86,14 +86,27 @@ def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
     assert "targon" in {item["id"] for item in controller.INTEGRATIONS}
 
 
-def test_hermes_has_no_agent_adapter():
-    assert _reason("hermes") == "adapter_not_implemented"
-    pattern = r"hermes"
+def test_hermes_is_configured_in_setup_and_left_the_list():
+    # C-MLP-03 slice 5: setup writes a Hermes profile driving Carbon's MCP
+    # server over stdio. The unavailable entry that said no adapter existed is
+    # gone, and so is its cause.
+    from scripts.dev.miner_launchpad import environment_setup, hermes_setup
+
+    assert "hermes" not in {item["id"] for item in controller.INTEGRATIONS}
+    assert "hermes" in {c["id"] for c in environment_setup.choices()["agent"]}
+    assert callable(hermes_setup.config_document)
+
+
+def test_mira_has_no_verified_interface():
+    # Specimen: the entry is still there, with its reason.
+    assert _reason("mira") == "integration_interface_unverified"
     roots = (ROOT / "carbon", ROOT / "scripts/dev/miner_launchpad")
-    mentions = _importers(pattern, *roots)
-    # Specimen: the list itself names it.
-    assert "scripts/dev/miner_launchpad/controller.py" in mentions
-    assert mentions == ["scripts/dev/miner_launchpad/controller.py"]
+    # Nothing builds a Mira connection anywhere.
+    assert not [
+        path
+        for path in _importers(r"^\s*(def|class) \w*mira", *roots)
+        if "mira" in path.lower()
+    ]
 
 
 def test_the_remote_door_is_built_but_nothing_serves_it():

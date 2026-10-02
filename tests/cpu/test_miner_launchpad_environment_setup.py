@@ -96,6 +96,10 @@ class Checks:
         self.calls.append(("compute", image, analysis))
         return RUNTIME
 
+    @staticmethod
+    def hermes_files():
+        return ["/fixture/hermes/profiles/carbon/config.yaml"]
+
     def agent(self, hotkey, socket_path=None):
         self.calls.append(("agent", hotkey, socket_path))
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
@@ -170,7 +174,8 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     assert {p["id"] for p in rented["providers"]} == {"runpod", "lium"}
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
-    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS]
+    # Slice 5: Hermes beside Carbon's own agent.
+    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS, "hermes"]
     for step in ("inference", "compute", "agent"):
         for choice in offered[step]:
             assert choice["cost_basis"] and choice["live_check"]

@@ -1290,6 +1290,16 @@ class SetupChecks:
     def rented(self, rented, credential, manifest):
         raise AssertionError("the smoke's miner rents no GPU")
 
+    @staticmethod
+    def hermes_files():
+        return [
+            "/home/miner/.hermes/profiles/carbon/config.yaml",
+            "/home/miner/.hermes/profiles/carbon/.env",
+        ]
+
+    def hermes(self, document, key):
+        raise AssertionError("the smoke's miner uses Carbon's agent")
+
     def agent(self, hotkey, socket_path=None):
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
@@ -1481,6 +1491,24 @@ def setup_journey():
                 wait(
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: compute.'",
+                )
+                # Hermes is offered beside Carbon's agent, and names the exact
+                # files it would write; nothing is agreed by default.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'hermes';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-hermes-consent').checked"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('profiles/carbon/config.yaml')"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('hermes -p carbon chat')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
                 )
                 # External signing: the Agent step asks for no hotkey file
                 # and no password; it only asks the miner's signer.

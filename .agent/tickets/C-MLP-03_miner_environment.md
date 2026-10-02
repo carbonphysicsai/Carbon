@@ -16,13 +16,15 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slices 1 to 4 implemented (engineering evidence only), Targon
-excepted (below). Slice 2's live acceptance (completions with miner-held
+**Status:** slices 1 to 5 implemented (engineering evidence only), Targon
+and Mira excepted (below). Slice 2's live acceptance (completions with miner-held
 Chutes and Engy keys, and a battery autonomous launch with each) is pending
 the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
 same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
 real battery practice each on RunPod and Lium from a miner account, teardown
-verified and charges reconciled) is pending the miner's accounts.
+verified and charges reconciled) is pending the miner's accounts. Slice 5's
+(a Hermes-driven battery campaign that practices, freezes and submits) is
+pending Hermes and the miner's keys.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
   `/api/v1/setup` in the controller and the "Set up your environment" view.
 - Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
@@ -173,6 +175,33 @@ verified and charges reconciled) is pending the miner's accounts.
     and it reports no per-workload charge. A VM-and-SSH design would be
     needed; that is an owner decision. Targon stays an unavailable
     integration with that cause.
+- **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
+  setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
+  browser smoke cover it.
+- **Recorded engineering decisions (slice 5, 2026-10-02):**
+  - *Hermes gets a dedicated profile.* Setup writes
+    `<HERMES_HOME>/profiles/carbon/config.yaml` and `.env`, so the miner's own
+    Hermes configuration is never touched. The miner starts it with
+    `hermes -p carbon chat`. Facts read 2026-10-02 from the Hermes Agent docs
+    and repository (v0.21.5).
+  - *Consent is to the exact files.* The Agent step names the files it would
+    write and writes nothing unless the request's consent lists exactly those.
+    The box is unticked by default. The files are written only after the
+    signer has answered, so a refused step leaves Hermes untouched.
+  - *The model is the setup's inference choice.* It is a custom
+    OpenAI-compatible provider whose key is read from the profile's owner-only
+    `.env` (`key_env`), never from the config. Hermes speaks Chat Completions,
+    so the Anthropic-shaped routes are refused by name.
+  - *Carbon's server asks first.* The `mcp_servers.carbon` stdio entry runs
+    `carbon.miner_mcp.standard_cli --configuration <runner profile>` with this
+    checkout's interpreter. `trust: untrusted` makes Hermes ask the miner
+    before every tool that can change anything (launch, practice, freeze,
+    submit).
+  - *Mira is recorded and stopped.* autoscience.ai/mira (read 2026-10-02) is
+    reached through a sales form and documents no tool connection, MCP or
+    otherwise. Per this ticket the slice records that and stops: a network
+    door into a miner's machine is an owner decision. Mira stays an
+    unavailable integration, and the agent provision closes without it.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
@@ -344,3 +373,6 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).
+- **Mira's connection:** it documents none publicly (2026-10-02). Ask
+  Autoscience how Mira reaches a tool server; if only over the network, decide
+  whether a door into the miner's machine is acceptable.
