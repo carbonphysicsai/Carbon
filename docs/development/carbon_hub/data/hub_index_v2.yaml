@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T20:22:36Z"
+  captured_at_utc: "2026-10-02T22:20:29Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "4a1de41005d53efc6599a6d16892968b898f29d9"
+  authority_snapshot_commit: "1ceeab35d92762af1ce17027df497a1df4577180"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10770,6 +10770,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: "C-MLP-03-SLICE-4B-TARGON-VM"
     recorded_at: "2026-10-02T20:22:17Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4-REMOTE-SETUP"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4, remote setup, under the owner's amendment to OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02: \"miners should be able to use whatever they want to run their setup. We are just facilitating and providing wiring and tooling.\"): battery practice runs on any machine or container the miner runs, reached with their own SSH, and Carbon still never creates, stops or bills it. One interface and one result record (transport, image identity, how it was verified, job transport, cleanup) cover two built transports: ssh-docker (a machine with Docker and the NVIDIA Container Toolkit, one job container by image ID) and ssh-container (a container started from the pinned GPU worker with no Docker inside, one job server process on its loopback after its build identity is checked, then stopped and its directory removed; the image build is unchanged). The endpoint transport is designed and not built: it would need a standing job door through a public proxy, which is the owner's security acceptance. Setup offers the miner's own remote machine or container with a live check that runs nothing billable and a consented Send your worker step; the profile keeps where it is (remote_machine) and a campaign freezes how (remote_gpu beside gpu_research), built at both campaign doors by the Challenge's own campaign; push_worker_image.sh uses the miner's own registry login, and MINER_REMOTE_SETUP.md gives provider-neutral steps with per-provider notes, unverified details marked. Practice there is speed only, never evidence; engineering evidence only, nothing is qualified, and a real practice on a miner's setup is the acceptance."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
+    recorded_at: "2026-10-02T22:20:29Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
