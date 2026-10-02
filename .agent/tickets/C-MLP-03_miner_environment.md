@@ -270,9 +270,9 @@ pending Hermes and the miner's keys.
     submission per epoch: its id is recorded (owner-only) the moment the
     intake answers, so a later attempt only asks its status. A refusal or a
     wait that runs out is not a verdict and consumes no epoch.
-  - *An intake is https, or loopback.* The intake binds loopback until the
-    owner's exposure record exists (`OWNER-…INTAKE-EXPOSURE-NN`, the §4
-    security review). This slice reaches an exposed intake when there is one;
+  - *An intake is https, or loopback.* The intake binds loopback unless it
+    names the owner's exposure record, OWNER-INTAKE-EXPOSURE-01 (recorded
+    2026-10-02), and terminates TLS. This slice reaches an exposed intake;
     it does not expose one.
   - *The run is a person's.* The journey needs a clean machine, a registered
     hotkey, the miner's keys and accounts and a reachable validator, none of

@@ -17296,3 +17296,40 @@ should be battery only or batter specific. Lets finish this buildout today".
 - Scientific, security and launch qualification stay human-reserved.
 
 Ticket: `.agent/tickets/C-MLP-04_challenge_neutral_control_center.md`.
+
+## 2026-10-02 — OWNER-INTAKE-EXPOSURE-01: expose the battery intake beyond loopback
+
+**Owner, verbatim, in session on 2026-10-02**, answering the C-MLP-03
+question "the owner's security record before another machine can submit to
+the battery intake": "Security approved"; and, the same day, "Run the intake
+and ship the new version".
+
+**Decision.**
+1. **The battery intake (OD-7(b), `carbon/battery/intake.py`) may bind
+   beyond loopback.** This is the §4 exposure decision the listener checks for
+   by name. A public bind names `OWNER-INTAKE-EXPOSURE-01` in its
+   configuration's `exposure_record`.
+2. **Scope.** Testnet 567, the battery Challenge, the routes the intake
+   serves today (`GET /carbon/v1/battery/intake`, `POST /carbon/v1/mcp` with
+   `battery_submit` or `battery_status`) and the limits it applies today.
+   Another route, Challenge, network or listener needs its own record.
+3. **The known items stay recorded, not fixed.** Approval was given with the
+   list in `docs/development/BATTERY_MINER_SUBMISSION_PATHS.md` ("For the
+   security review to examine") on file:
+   - one thread per connection before any limit applies;
+   - the peer table reset above 4,096 peers;
+   - one peer behind a proxy;
+   - the listener on the host that holds the validator's private state.
+
+**Recorded engineering decision (executor, same day).** A public bind also
+needs TLS terminated in the intake (`tls_cert` and `tls_key`), or the listener
+refuses with `intake_exposure_needs_tls`. Two reasons:
+- the miner client already refuses plain HTTP to a non-loopback intake;
+- a TLS proxy would make every request one peer.
+
+**Unchanged.**
+- Exposing a host is an operator action. This record permits it and performs
+  none.
+- Engineering evidence is not a security audit. The record is the owner's
+  acceptance; tests only hold the gate.
+- Scientific, reward, LIVE and chain authority are unchanged.
