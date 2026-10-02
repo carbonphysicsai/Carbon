@@ -322,9 +322,10 @@ _CREDENTIAL_NEXT = {
         "Make provider_credentials.{id} a regular, owner-only file of at "
         "most 1024 bytes in an owner-only directory."
     ),
-    "model_provider_endpoint_not_launchable": (
-        "This adapter needs your endpoint URL, which a launch does not carry "
-        "yet; choose a provider with a fixed endpoint."
+    "model_provider_endpoint_not_configured": (
+        "This adapter needs your endpoint URL. Choose it under Set up your "
+        "environment, Inference, with your endpoint and its price; a launch "
+        "then uses it."
     ),
 }
 
@@ -355,7 +356,7 @@ def _registered_providers(options, refusal):
                 "configured": reason
                 not in (
                     "model_provider_credential_not_configured",
-                    "model_provider_endpoint_not_launchable",
+                    "model_provider_endpoint_not_configured",
                 ),
                 "basis": "key file metadata from your runner profile; no key read",
             }

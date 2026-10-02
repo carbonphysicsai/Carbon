@@ -350,7 +350,6 @@ def _default_onboarding():
 #: `unavailable` and the Control Center's per-category unavailable entries, so
 #: a reason cannot be corrected in one place and left stale in the other.
 INTEGRATIONS = (
-    {"id": "hermes", "reason": "adapter_not_implemented"},
     {
         # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
         # miner and a planner act on: a wrong one sends someone to build
@@ -399,26 +398,21 @@ INTEGRATIONS = (
         "id": "personal-agent",
         "reason": "remote_door_not_hosted",
     },
+    # Hermes is configured in setup (C-MLP-03 slice 5) and left this list.
+    # Mira is autoscience.ai/mira (owner, 2026-10-01). Read 2026-10-02: access
+    # is a sales form, and nothing public says how Mira connects to tools,
+    # whether over MCP or to a server on the miner's machine. A network door
+    # into a miner's machine would be an owner decision; until Autoscience
+    # documents a route, the interface stays unverified.
     {"id": "mira", "reason": "integration_interface_unverified"},
-    {
-        # Not "no adapter": `openai-compatible-chat` sends to any endpoint
-        # the miner names, Chutes included. What is missing is an adapter
-        # of Chutes' own (its listed models, prices and charge report) and
-        # an exercise of the generic one against Chutes - Carbon has not
-        # run one, so it does not claim that it works.
-        "id": "chutes",
-        "reason": "no_chutes_adapter_generic_chat_adapter_unexercised_against_it",
-    },
-    {
-        "id": "lium",
-        "reason": "provisioning_and_teardown_adapter_not_implemented",
-    },
-    # Approved as a compute provider. `carbon.compute` implements its pod
-    # lifecycle, but no launch path dispatches to it: a campaign runs on this
-    # machine's worker or a host the miner attaches, whatever key is
-    # configured. Configuring a key does not change this reason; wiring
-    # dispatch does, and `test_unavailable_reasons_have_causes` fails then.
-    {"id": "runpod", "reason": "compute_adapter_not_wired_into_launch"},
+    # RunPod and Lium launch from setup on the miner's own account
+    # (C-MLP-03 slice 4). Targon's current API (read 2026-10-02) runs no
+    # container image: its rental workload type answers 410 TYPE_DEPRECATED,
+    # and its VM, bare-metal and sandbox types take no OCI image. Running the
+    # pinned worker there would be a VM-and-SSH design, an owner decision.
+    # `test_unavailable_reasons_have_causes` fails when Targon gains an
+    # adapter.
+    {"id": "targon", "reason": "provider_runs_no_container_image"},
     {
         # Two earlier reasons here were wrong in different ways. The
         # first named a signing wallet adapter, which the key rule
@@ -439,32 +433,23 @@ INTEGRATIONS = (
 
 #: Where each integration is shown in the Control Center, and what to do now.
 INTEGRATION_PLACEMENT = {
-    "hermes": (
-        "agent",
-        "Use Carbon's agent, research manually, or bring your own agent over MCP stdio.",
-    ),
     "personal-agent": (
         "agent",
         "Connect your own MCP client over stdio; it needs no Carbon credential.",
     ),
-    "mira": ("connection", "None today; the interface has not been verified."),
-    "chutes": (
-        "model_provider",
+    "mira": (
+        "connection",
         (
-            "Choose 'Any service implementing OpenAI Chat Completions' with your "
-            "own endpoint and key, declaring the model's price for a spend limit."
+            "None today: Mira publishes no way to connect to tools on your "
+            "machine. Use Hermes or Carbon's agent under Set up your environment."
         ),
     ),
-    "runpod": (
+    "targon": (
         "compute_provider",
         (
-            "Run on this machine's isolated worker, or attach a host you control "
-            "(a RunPod pod you started yourself counts)."
+            "Rent a GPU on RunPod or Lium under Set up your environment, "
+            "Compute, or run on this machine."
         ),
-    ),
-    "lium": (
-        "compute_provider",
-        "Run on this machine's isolated worker, or on a host you already control.",
     ),
     "testnet-registration": (
         "wallet",
@@ -659,9 +644,7 @@ class Handler(BaseHTTPRequestHandler):
                 setup = self.server.setup
                 if setup is None:
                     raise Rejected("setup_unavailable", 409)
-                from scripts.dev.miner_launchpad.environment_setup import choices
-
-                self.reply(200, {**setup.state(), "choices": choices()})
+                self.reply(200, {**setup.state(), "choices": setup.offered()})
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})

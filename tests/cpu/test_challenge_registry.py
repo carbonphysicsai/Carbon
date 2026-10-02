@@ -79,12 +79,15 @@ def test_implemented_is_not_usable_until_the_host_has_it():
     with pytest.raises(challenges.ProfileUnavailable, match="not usable here"):
         challenges.resolve(BATTERY, "1.0", "cpu_research", host=NOTHING)
     challenges.resolve(BATTERY, "1.0", "cpu_research", host=EVERYTHING)
-    (row,) = [
-        p
+    rows = {
+        p["profile"]: p
         for c in challenges.catalog(NOTHING)["challenges"]
         if c["challenge_id"] == BATTERY
         for p in c["profiles"]
-    ]
+    }
+    # CPU practice, and the miner's own GPU for speed (C-MLP-03 slice 3).
+    assert set(rows) == {"cpu_research", "gpu_research"}
+    row = rows["cpu_research"]
     assert row["implemented"] is True and row["usable_here"] is False
     assert set(row["missing_here"]) == set(profile.requirements)
 

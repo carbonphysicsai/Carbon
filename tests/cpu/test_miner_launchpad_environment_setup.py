@@ -33,6 +33,17 @@ TOKEN = "x" * 40
 HOTKEY = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
 KEY = "sk-fixture-never-echoed-0123456789"
 REVISION = "a" * 40
+#: A Chutes price as `model_provider.published_pricing` records it (fixture).
+PUBLISHED = {
+    "unit": "nanodollars per token",
+    "input": 240,
+    "cached_input": 24,
+    "output_including_reasoning": 2200,
+    "source": "provider_published",
+    "reference": "https://llm.chutes.ai/v1/models",
+    "observed": "2026-10-02T00:00:00Z",
+    "note": "fixture: read from the provider's public model list",
+}
 RUNTIME = {
     "implementation": {
         "revision": REVISION,
@@ -69,7 +80,11 @@ class Checks:
     def __init__(self):
         self.calls = []
 
-    def inference(self, provider_id, model_id, credential_file):
+    def published_pricing(self, provider_id, model_id):
+        self.calls.append(("published_pricing", provider_id, model_id))
+        return dict(PUBLISHED)
+
+    def inference(self, provider_id, model_id, credential_file, spec=None):
         self.calls.append(("inference", provider_id, credential_file))
         return {
             "models_source": "fixture",
@@ -80,6 +95,10 @@ class Checks:
     def compute(self, image, analysis):
         self.calls.append(("compute", image, analysis))
         return RUNTIME
+
+    @staticmethod
+    def hermes_files():
+        return ["/fixture/hermes/profiles/carbon/config.yaml"]
 
     def agent(self, hotkey, socket_path=None):
         self.calls.append(("agent", hotkey, socket_path))
@@ -132,14 +151,31 @@ def state(tmp_path):
 
 def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     offered = choices()
-    ids = {c["id"] for c in offered["inference"]}
-    # Generic adapters have no endpoint yet (slice 2); they are not offered.
-    assert (
-        "openai-compatible-chat" not in ids and "openai-compatible-responses" not in ids
-    )
-    assert {"engy-chat", "engy-anthropic", "openai-responses", "anthropic"} <= ids
-    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU]
-    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS]
+    inference = {c["id"]: c for c in offered["inference"]}
+    # Slice 2: Engy's Chat Completions route first and the default, Chutes
+    # with its published prices, and the generic adapters with an endpoint.
+    assert offered["inference"][0]["id"] == "engy-chat"
+    assert [c["id"] for c in offered["inference"] if c["default"]] == ["engy-chat"]
+    assert inference["chutes"]["pricing"] == "published live by the provider"
+    assert inference["chutes"]["model_policy"].startswith("any model id")
+    for generic in ("openai-compatible-chat", "openai-compatible-responses"):
+        assert inference[generic]["needs_endpoint"] is True
+        assert inference[generic]["pricing"] == "yours to declare (optional)"
+    assert inference["engy-chat"]["needs_endpoint"] is False
+    # Slice 3: this machine's CPU is the default; its own GPU is offered
+    # beside it, for practice speed only.
+    # Slice 4: a GPU rented on the miner's own provider account.
+    assert [c["id"] for c in offered["compute"]] == [
+        LOCAL_CPU,
+        "this-machine-gpu",
+        "rented-gpu",
+    ]
+    rented = offered["compute"][2]
+    assert {p["id"] for p in rented["providers"]} == {"runpod", "lium"}
+    assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
+    assert "speed only" in offered["compute"][1]["note"]
+    # Slice 5: Hermes beside Carbon's own agent.
+    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS, "hermes"]
     for step in ("inference", "compute", "agent"):
         for choice in offered[step]:
             assert choice["cost_basis"] and choice["live_check"]
@@ -186,7 +222,17 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
                 "key": KEY,
                 "consent": CONSENT,
             },
-            "provider_id",
+            "endpoint",
+        ),
+        (
+            {
+                "provider_id": "engy-chat",
+                "model_id": "deepseek-v4-flash-0731",
+                "endpoint": "https://example.org/v1/chat/completions",
+                "key": KEY,
+                "consent": CONSENT,
+            },
+            "endpoint",
         ),
         (
             {
@@ -311,7 +357,7 @@ def test_a_missing_image_names_its_field_and_build_step(tmp_path, state):
     with pytest.raises(SetupRefused) as refused:
         setup.compute(
             {
-                "choice": "rented-gpu",
+                "choice": "someone-elses-gpu",
                 "image_manifest": made["worker.json"],
                 "analysis_image_manifest": made["analysis.json"],
             }

@@ -16,7 +16,17 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slice 1 implemented (engineering evidence only).
+**Status:** slices 1 to 5 implemented, and slice 6's engineering seam
+(engineering evidence only), Targon and Mira excepted (below). Slice 6's run
+itself is a person's, on a clean machine
+(`docs/development/FRESH_MINER_JOURNEY.md`). Slice 2's live acceptance (completions with miner-held
+Chutes and Engy keys, and a battery autonomous launch with each) is pending
+the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
+same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
+real battery practice each on RunPod and Lium from a miner account, teardown
+verified and charges reconciled) is pending the miner's accounts. Slice 5's
+(a Hermes-driven battery campaign that practices, freezes and submits) is
+pending Hermes and the miner's keys.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
   `/api/v1/setup` in the controller and the "Set up your environment" view.
 - Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
@@ -64,6 +74,161 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
   - *The operator config is supplied, not generated.* The miner supplies its
     path, and setup validates it for subnet 567. Its content is deployment
     identity and never enters the repository.
+- **Slice 2 (inference):** `model_provider.py` adds the `chutes` adapter and
+  `published_pricing`; setup offers every adapter, Engy Chat Completions
+  first; `tests/cpu/test_miner_inference_providers.py` and the setup browser
+  smoke cover it.
+- **Recorded engineering decisions (slice 2, 2026-10-02):**
+  - *Chutes settles on metered usage.* Whether Chutes reports a charge, and
+    its rate limits, are unverified. Until they are, no charge report is
+    read: spend is the returned usage at the published price, within the
+    reservation rule.
+  - *A live price is recorded with its list and time.* Chutes' per-token
+    prices are read from `GET /v1/models` when the miner quotes. The record
+    keeps the list URL and the UTC time read (`provider_published`), and a
+    launch reuses that record rather than re-reading. USD per million tokens
+    becomes integer nanodollars per token (×1000, rounded). A model the list
+    does not price is refused at setup, not launched at unknown spend.
+  - *Chutes and the generic adapters take a typed model id.* They have no
+    fixed list, so any id the provider serves is accepted; Chutes must price
+    it.
+  - *A generic endpoint is configured only in setup.* An OpenAI-compatible
+    adapter launches only as the setup's own choice, with the endpoint and
+    optional declared price recorded in the profile. Choosing another
+    generic adapter at launch is refused (`model_provider_endpoint_not_configured`),
+    so no launch request can point Carbon at a new URL.
+  - *Chutes OAuth is not built.* Its scopes, billing and revocation are
+    unverified; a key is the only credential.
+- **Slice 3 (the miner's own GPU):** `carbon/development_session/battery_gpu.py` (battery's
+  GPU practice scope and program), the carrier's GPU branch in
+  `research_carrier.py`, `BatteryPractice(gpu_image=...)`, the registry's
+  battery `gpu_research` profile, and setup's "This machine (your GPU)"
+  compute choice; `tests/cpu/test_battery_gpu_practice.py` and the setup
+  browser smoke cover it.
+- **Recorded engineering decisions (slice 3, 2026-10-02):**
+  - *The GPU path is the carrier, not the C03 reconstruction controller.*
+    Battery practice is Carbon's fixed program in the isolated carrier. On a
+    GPU it runs the same way with the miner lane's GPU worker profile:
+    `MINER_HOST_SELF_SERVICE`, role `MINER_RESEARCH`, the device from the
+    installed host device record, `JAX_PLATFORMS=cuda`, the doctor's
+    miner-lane checks, the miner device lease and Carbon's own
+    retained-container check. No grant is needed. Only Carbon's fixed
+    practice program may ask for the GPU; a miner-authored script cannot.
+  - *The worker image is the existing GPU worker.*
+    `scripts/dev/accelerator_worker_image.sh` builds the C03 worker with the
+    CUDA JAX plugin. The battery files are staged byte-identical on every
+    run, so the image needs no battery build of its own. It serves JAX
+    recipes only, and a PyTorch recipe is refused before anything runs.
+  - *The backend is recorded as observed.* The GPU program is the CPU program
+    plus a `runtime.json` the worker writes (`JAX_PLATFORMS`, JAX's default
+    backend, device kinds and count). The feedback carries that, the device
+    record digest and the speed-only note. The CPU program is unchanged, so
+    no existing practice identity moves.
+  - *The device is bound into the request.* A GPU request names the
+    installed device record's digest, so a replaced or withdrawn record is a
+    different request. A CPU request is exactly what it was.
+  - *Setup installs the host record when it can.* It detects the GPU with
+    nvidia-smi and writes `/var/lib/carbon/accelerators/host-device.json`
+    (`this-machine`, `own-machine`) when the controller may. Otherwise it
+    names the `carbon_accelerator.py prepare` command. Several GPUs, or an
+    unknown platform or container runtime, are the miner's to name; setup
+    does not pick for them.
+  - *CPU stays the default.* The GPU is offered beside it, never chosen for
+    the miner (owner, 2026-10-01).
+  - *GPU knowledge stays on the execution side.* Only the execution packages
+    may import the accelerator profile (`test_protected_material_isolation`),
+    and `carbon.battery` holds protected material (exam pools, seeds, truth).
+    So battery's GPU practice code lives in `carbon.development_session`,
+    beside Burgers' GPU lane, and the boundary is not widened.
+- **Slice 4 (rented GPUs):** `carbon/compute/job_server.py` (the one-job
+  server a rented pod runs), `remote_job.py` (its client),
+  `rented_runner.py` (the carrier-compatible runner over `ComputeService`),
+  `lium.py` (Lium adapter), `providers.py`, the RunPod adapter fixes, the
+  battery `rented_gpu` scope, and setup's "A GPU rented on your own provider
+  account". `tests/cpu/test_rented_job.py`, `test_rented_runner.py` and
+  `test_lium_adapter.py` cover it.
+- **Recorded engineering decisions (slice 4, 2026-10-02):**
+  - *A rented pod runs one job, served by Carbon's own fixed server.* The
+    pinned GPU worker's wheel includes `carbon.compute.job_server`; it is the
+    pod's start command. The controller stages the job's public inputs, runs
+    them and fetches the output over HTTP, with a per-job random token. The
+    pod gets the pinned worker, the public inputs and that token. No provider
+    key, hotkey or signer leaves the miner's machine. Runs start
+    asynchronously and are polled, because provider proxies close long
+    requests (RunPod's Cloudflare proxy: 100 s).
+  - *The pinned worker reaches the pod through the miner's own registry.*
+    Carbon publishes no registry. The miner pushes the GPU worker and names
+    it by `repository@sha256` digest. Setup checks that digest is one of the
+    local pinned image's RepoDigests.
+  - *Spend follows the compute layer's existing rules.* A balance is observed
+    and recorded first, the hourly ceiling and deadline bound each pod, and
+    the miner's budget applies. Each trial rents one pod, which is terminated
+    and verified gone whether the job succeeds or not. The provider's own
+    charge is recorded when it reports one; otherwise the record says it is
+    unresolved, never an estimate. A durable job record (owner-only) fixes the
+    request, token and deadline before any provider call, so a restart never
+    sends a different request.
+  - *Provider facts, read 2026-10-02.* RunPod REST v1 (`dockerEntrypoint` /
+    `dockerStartCmd`; billing needs `grouping=podId`, which the adapter now
+    sends) and GraphQL for balance and price. Lium's OpenAPI (`X-API-Key`,
+    executors, one-time templates by digest, rent with an idempotency key and
+    a termination time, per-pod statements).
+  - *Lium jobs travel over plain HTTP.* Lium documents no HTTPS proxy, so the
+    job is reached on the node's IP. The token and public inputs cross
+    unencrypted, and the backend record states `job_transport: http-direct`.
+    Nothing secret is on the pod, and nothing measured there is evidence.
+  - *Targon is not built.* Its current API runs no container image (the
+    rental type answers 410; VM, bare metal and sandbox take no OCI image),
+    and it reports no per-workload charge. A VM-and-SSH design would be
+    needed; that is an owner decision. Targon stays an unavailable
+    integration with that cause.
+- **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
+  setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
+  browser smoke cover it.
+- **Recorded engineering decisions (slice 5, 2026-10-02):**
+  - *Hermes gets a dedicated profile.* Setup writes
+    `<HERMES_HOME>/profiles/carbon/config.yaml` and `.env`, so the miner's own
+    Hermes configuration is never touched. The miner starts it with
+    `hermes -p carbon chat`. Facts read 2026-10-02 from the Hermes Agent docs
+    and repository (v0.21.5).
+  - *Consent is to the exact files.* The Agent step names the files it would
+    write and writes nothing unless the request's consent lists exactly those.
+    The box is unticked by default. The files are written only after the
+    signer has answered, so a refused step leaves Hermes untouched.
+  - *The model is the setup's inference choice.* It is a custom
+    OpenAI-compatible provider whose key is read from the profile's owner-only
+    `.env` (`key_env`), never from the config. Hermes speaks Chat Completions,
+    so the Anthropic-shaped routes are refused by name.
+  - *Carbon's server asks first.* The `mcp_servers.carbon` stdio entry runs
+    `carbon.miner_mcp.standard_cli --configuration <runner profile>` with this
+    checkout's interpreter. `trust: untrusted` makes Hermes ask the miner
+    before every tool that can change anything (launch, practice, freeze,
+    submit).
+  - *Mira is recorded and stopped.* autoscience.ai/mira (read 2026-10-02) is
+    reached through a sales form and documents no tool connection, MCP or
+    otherwise. Per this ticket the slice records that and stops: a network
+    door into a miner's machine is an owner decision. Mira stays an
+    unavailable integration, and the agent provision closes without it.
+- **Slice 6 (the fresh-miner journey):** `carbon/battery/remote_submission.py`,
+  the campaign's intake path, the profile's `battery_intake`, setup's
+  intake check, and the runbook `docs/development/FRESH_MINER_JOURNEY.md`;
+  `tests/cpu/test_battery_remote_submission.py` covers it.
+- **Recorded engineering decisions (slice 6, 2026-10-02):**
+  - *A campaign submits through the validator's intake when the validator
+    runs elsewhere.* The frozen candidate is built by `intake_client`, signed
+    by the miner's own signer (`btauth/1`), and posted to the intake named in
+    the profile. Its status is then asked until there is a verdict. One
+    submission per epoch: its id is recorded (owner-only) the moment the
+    intake answers, so a later attempt only asks its status. A refusal or a
+    wait that runs out is not a verdict and consumes no epoch.
+  - *An intake is https, or loopback.* The intake binds loopback until the
+    owner's exposure record exists (`OWNER-…INTAKE-EXPOSURE-NN`, the §4
+    security review). This slice reaches an exposed intake when there is one;
+    it does not expose one.
+  - *The run is a person's.* The journey needs a clean machine, a registered
+    hotkey, the miner's keys and accounts and a reachable validator, none of
+    which this repository holds. The runbook says what to do and what to
+    record, and closes no Gap.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
@@ -229,5 +394,12 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
 
 ## Owner input
 
+- **Targon:** build a VM-and-SSH route (the pinned worker run with Docker
+  inside a Targon VM, reached over SSH), or leave Targon out until its API
+  runs container images again?
+
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).
+- **Mira's connection:** it documents none publicly (2026-10-02). Ask
+  Autoscience how Mira reaches a tool server; if only over the network, decide
+  whether a door into the miner's machine is acceptable.

@@ -180,40 +180,52 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "Exam gates on the 200 public PRACTICE cases. Scoring "
             "miner-generated cases follows once `generate` is closed.",
         ),
-        "compute": Gap(
-            reason=(
-                "Battery has no GPU research path: its campaign refuses a GPU "
-                "runtime, the GPU lane binds Burgers material, and no rented "
-                "compute provider has a launch path."
+        "compute": Provided(
+            (
+                "carbon.development_session.battery_gpu:gpu_scope",
+                "carbon.battery.research:BatteryPractice",
+                "carbon.compute.rented_runner:RentedRunner",
             ),
-            next_step=(
-                "C-MLP-03 slices 3 and 4: a battery-bound GPU practice path on "
-                "the miner's own GPU, then rented GPU on the miner's account."
-            ),
+            "Setup (Set up your environment, Compute) offers this machine's "
+            "CPU, every miner's default, or its own GPU: setup detects the GPU, "
+            "installs the host device record and verifies the pinned GPU "
+            "worker (scripts/dev/accelerator_worker_image.sh). Battery practice "
+            "then runs on the GPU with JAX_PLATFORMS=cuda, and the feedback "
+            "records the backend observed. GPU practice is for speed only; the "
+            "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
+            "A real practice on a local GPU is the slice's acceptance and needs "
+            "a GPU host. A GPU rented on the miner's own RunPod or Lium "
+            "account runs the same practice (carbon.compute.rented_runner, "
+            "C-MLP-03 slice 4); one real practice on each is its acceptance and "
+            "needs the miner's account. Targon runs no container image today.",
         ),
-        "model": Gap(
-            reason=(
-                "Only the priced Engy and pinned adapters launch, and only from "
-                "a hand-written runner profile; no named inference provider is "
-                "connectable in setup."
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.development_session.model_provider:published_pricing",
             ),
-            next_step=(
-                "C-MLP-03 slice 2: the named inference providers, connected in "
-                "setup with the miner's own key and checked live."
-            ),
+            "Setup (Set up your environment, Inference) connects every adapter "
+            "with the miner's own key and checks it live: Engy (Chat "
+            "Completions by default, or Messages), Chutes at its published "
+            "per-token price, OpenAI, Anthropic, and the OpenAI-compatible "
+            "adapters at the miner's own endpoint and declared price "
+            "(C-MLP-03 slice 2). A live completion through Chutes and Engy "
+            "with miner-held keys is the ticket's acceptance and needs the "
+            "miner's keys.",
         ),
-        "agent": Gap(
-            reason=(
-                "Setup offers only Carbon's own autonomous agent. Hermes, the "
-                "other agent OWNER-MINER-ENVIRONMENT-01 names, is not "
-                "connectable in setup."
+        "agent": Provided(
+            (
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
             ),
-            next_step=(
-                "C-MLP-03 slice 5: connect Hermes to the Challenge's research "
-                "tools through carbon-mcp. Closing this does not wait on Mira, "
-                "which the decision adds only once verified (which Mira is "
-                "open owner input)."
-            ),
+            "Setup offers Carbon's autonomous agent or Hermes Agent (Nous "
+            "Research) on the miner's machine: with consent to the exact files, "
+            "setup writes a Hermes profile with the inference choice as its "
+            "model and Carbon's MCP server over stdio, each changing tool "
+            "asking first (C-MLP-03 slice 5). A Hermes-driven battery campaign "
+            "is the acceptance and needs Hermes and the miner's keys. Mira "
+            "(autoscience.ai) publishes no tool connection, so it is not "
+            "offered.",
         ),
     },
 }

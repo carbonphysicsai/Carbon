@@ -53,45 +53,60 @@ def _importers(pattern, *roots):
 COMPUTE_IMPORT = r"^\s*(from carbon\.compute\b|import carbon\.compute\b)"
 
 
-def test_runpod_is_implemented_but_no_launch_path_dispatches_to_it():
-    assert _reason("runpod") == "compute_adapter_not_wired_into_launch"
-    # The adapter exists: this is not "not implemented".
-    from carbon.compute import runpod
+def test_runpod_and_lium_launch_from_setup_and_left_the_list():
+    # C-MLP-03 slice 4 wired both into launch: battery practice runs on a
+    # rented GPU through `carbon.compute.rented_runner`, on the miner's own
+    # account. Their unavailable entries are gone.
+    from carbon.compute.providers import PROVIDERS
 
-    assert hasattr(runpod, "__file__")
-    # Specimen: the same search finds the importer that really exists.
-    assert "tests/cpu/test_compute_provider.py" in _importers(
-        COMPUTE_IMPORT, ROOT / "tests/cpu"
-    )
-    # The cause: nothing on the launch path reaches it.
-    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) == []
-
-
-def test_chutes_has_no_adapter_of_its_own_but_the_generic_one_reaches_it():
-    assert _reason("chutes").startswith("no_chutes_adapter")
-    ids = set(model_provider.ADAPTERS)
-    # Specimen, and the path the next action names.
-    assert "openai-compatible-chat" in ids
-    assert model_provider.ADAPTERS["openai-compatible-chat"].endpoint is None
-    # The cause.
-    assert not any("chutes" in adapter_id for adapter_id in ids)
+    assert {"runpod", "lium"} <= set(PROVIDERS)
+    listed = {item["id"] for item in controller.INTEGRATIONS}
+    assert not {"runpod", "lium"} & listed
+    # The cause is gone too: the launch path now reaches the compute layer.
+    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) != []
 
 
-def test_lium_has_no_compute_provider():
-    assert _reason("lium") == "provisioning_and_teardown_adapter_not_implemented"
+def test_targon_runs_no_container_image():
+    assert _reason("targon") == "provider_runs_no_container_image"
+    from carbon.compute.providers import PROVIDERS
+
     names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
-    assert "runpod" in names  # specimen
-    assert not any("lium" in name for name in names)
+    assert "lium" in names  # specimen: an adapter that does exist
+    assert not any("targon" in name for name in names)
+    assert "targon" not in PROVIDERS
 
 
-def test_hermes_has_no_agent_adapter():
-    assert _reason("hermes") == "adapter_not_implemented"
-    pattern = r"hermes"
+def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
+    # C-MLP-03 slice 2 added Chutes' own adapter, with the prices it
+    # publishes; the unavailable entry that said it had none is gone.
+    assert "chutes" in model_provider.ADAPTERS
+    assert model_provider.ADAPTERS["chutes"].live_pricing is True
+    assert "chutes" not in {item["id"] for item in controller.INTEGRATIONS}
+    # Specimen: the same search finds an entry that is still there.
+    assert "targon" in {item["id"] for item in controller.INTEGRATIONS}
+
+
+def test_hermes_is_configured_in_setup_and_left_the_list():
+    # C-MLP-03 slice 5: setup writes a Hermes profile driving Carbon's MCP
+    # server over stdio. The unavailable entry that said no adapter existed is
+    # gone, and so is its cause.
+    from scripts.dev.miner_launchpad import environment_setup, hermes_setup
+
+    assert "hermes" not in {item["id"] for item in controller.INTEGRATIONS}
+    assert "hermes" in {c["id"] for c in environment_setup.choices()["agent"]}
+    assert callable(hermes_setup.config_document)
+
+
+def test_mira_has_no_verified_interface():
+    # Specimen: the entry is still there, with its reason.
+    assert _reason("mira") == "integration_interface_unverified"
     roots = (ROOT / "carbon", ROOT / "scripts/dev/miner_launchpad")
-    mentions = _importers(pattern, *roots)
-    # Specimen: the list itself names it.
-    assert "scripts/dev/miner_launchpad/controller.py" in mentions
-    assert mentions == ["scripts/dev/miner_launchpad/controller.py"]
+    # Nothing builds a Mira connection anywhere.
+    assert not [
+        path
+        for path in _importers(r"^\s*(def|class) \w*mira", *roots)
+        if "mira" in path.lower()
+    ]
 
 
 def test_the_remote_door_is_built_but_nothing_serves_it():

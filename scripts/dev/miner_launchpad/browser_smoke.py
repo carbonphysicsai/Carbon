@@ -1255,7 +1255,19 @@ def journey():
 class SetupChecks:
     """Fixture live checks for the setup smoke: they contact nothing."""
 
-    def inference(self, provider_id, model_id, credential_file):
+    def published_pricing(self, provider_id, model_id):
+        return {
+            "unit": "nanodollars per token",
+            "input": 240,
+            "cached_input": 24,
+            "output_including_reasoning": 2200,
+            "source": "provider_published",
+            "reference": "https://llm.chutes.ai/v1/models",
+            "observed": "2026-10-02T00:00:00Z",
+            "note": "fixture",
+        }
+
+    def inference(self, provider_id, model_id, credential_file, spec=None):
         return {
             "models_source": "fixture",
             "models_listed": 1,
@@ -1271,6 +1283,25 @@ class SetupChecks:
             },
             "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
         }
+
+    def gpu(self, manifest):
+        raise AssertionError("the smoke's miner checks the CPU, not a GPU")
+
+    def rented(self, rented, credential, manifest):
+        raise AssertionError("the smoke's miner rents no GPU")
+
+    @staticmethod
+    def hermes_files():
+        return [
+            "/hermes-fixture/profiles/carbon/config.yaml",
+            "/hermes-fixture/profiles/carbon/.env",
+        ]
+
+    def hermes(self, document, key):
+        raise AssertionError("the smoke's miner uses Carbon's agent")
+
+    def intake(self, url):
+        raise AssertionError("the smoke's validator runs beside the campaign")
 
     def agent(self, hotkey, socket_path=None):
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
@@ -1335,6 +1366,40 @@ def setup_journey():
                 assert session.evaluate(
                     "document.getElementById('setup-body').textContent.includes('billed by')"
                 )
+                # Engy's Chat Completions route is the default choice.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-inference-provider_id').value"
+                    )
+                    == "engy-chat"
+                )
+                # Chutes takes any model id it serves, typed, and is quoted
+                # at its published price; it needs no endpoint from the miner.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'chutes';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'Qwen/Qwen3.8-27B-TEE';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')"
+                    " && document.getElementById('setup-inference-endpoint').parentElement.hidden",
+                )
+                # A generic adapter asks for the miner's endpoint before quoting.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'openai-compatible-chat';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'my-model';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-endpoint').parentElement.hidden"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('endpoint')",
+                )
                 session.evaluate(
                     "document.getElementById('setup-inference-provider_id').value = 'engy-chat';"
                     "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
@@ -1368,6 +1433,44 @@ def setup_journey():
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: inference.'",
                 )
+                # This machine's GPU is offered beside the CPU default, with
+                # its own image field and the plain statement that GPU
+                # practice is for speed only.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-compute-choice').value"
+                    )
+                    == "this-machine-cpu"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-gpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')",
+                )
+                # A GPU rented on the miner's own account asks for the
+                # provider, its key, the pushed image and the ceilings.
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'rented-gpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-image_ref').parentElement.hidden"
+                    " && [...document.getElementById('setup-compute-provider').options]"
+                    ".map(o => o.value).join() === 'lium,runpod'",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.getElementById('setup-compute-image_ref').parentElement.hidden"
+                )
                 # A missing image is refused by name, with its build step.
                 session.evaluate(
                     "document.getElementById('setup-compute-image_manifest').value = "
@@ -1391,6 +1494,24 @@ def setup_journey():
                 wait(
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: compute.'",
+                )
+                # Hermes is offered beside Carbon's agent, and names the exact
+                # files it would write; nothing is agreed by default.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'hermes';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-hermes-consent').checked"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('profiles/carbon/config.yaml')"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('hermes -p carbon chat')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
                 )
                 # External signing: the Agent step asks for no hotkey file
                 # and no password; it only asks the miner's signer.

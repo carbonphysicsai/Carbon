@@ -3,8 +3,9 @@
 Owner direction (C-MLP-02): every prebuilt capability is available to every
 campaign whenever wanted. For battery that is authored Julia: a runtime that
 declares its scope freezes it, an attach re-checks it exactly, and the research
-executor's `run_julia` reaches the image. GPU research is refused by name: its
-scope binds Burgers material and battery has no GPU practice lane.
+executor's `run_julia` reaches the image. A GPU runtime must be battery's own
+GPU practice scope (C-MLP-03 slice 3, `tests/cpu/test_battery_gpu_practice.py`);
+Burgers' GPU scope, or anything else, is refused.
 
 Julia is a research tool only. The last tests show that battery's discovery,
 recipe compiler, practice, contract digest and submission fields are the same
@@ -200,9 +201,9 @@ def test_a_declared_scope_without_the_host_record_is_refused(host):
     assert not (host.root / "campaign-manifest.json").exists()
 
 
-def test_a_declared_gpu_runtime_is_refused_by_name(host):
+def test_a_declared_gpu_runtime_that_is_not_battery_s_is_refused(host):
     declared = {**runtime(), "gpu_research": [{"schema": "fixture"}]}
-    with pytest.raises(ValueError, match="gpu_research"):
+    with pytest.raises(ValueError, match="battery GPU practice scope"):
         host.prepare("run", declared)
     assert not (host.root / "campaign-manifest.json").exists()
 

@@ -414,15 +414,41 @@
     const inference = setupStep(body, "inference", "1. Inference", steps.inference);
     const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
     const model = setupField(inference, "model_id", "Model id");
+    // A generic adapter has no endpoint of its own: the miner names it here,
+    // with an optional declared price (nanodollars per token). Without one the
+    // spend is stated as unknown and no money ceiling can be set.
+    const generic = el("div"); generic.dataset.step = "inference"; inference.append(generic);
+    const endpoint = setupField(generic, "endpoint", "Endpoint URL (https, the full completion route)");
+    const priceNote = el("p", "Your price, optional: nanodollars per token, the date you read it and where.", "hint"); generic.append(priceNote);
+    const declared = {};
+    for (const [name, label, type] of [["input_nano", "Input", "number"], ["cached_input_nano", "Cached input", "number"], ["output_nano", "Output (including reasoning)", "number"], ["observed", "Observed (YYYY-MM-DD)", "text"], ["note", "Where this price comes from", "text"]]) {
+      declared[name] = setupField(generic, name, label, type);
+    }
     const key = setupField(inference, "key", "API key (entered once; leave empty to keep the stored key)", "password");
     const inferenceCost = el("div"); inference.append(inferenceCost);
     const describeProvider = () => {
       const choice = offered.inference.find(c => c.id === provider.value);
       inferenceCost.replaceChildren();
       costNote(inferenceCost, choice);
+      if (choice) researchNote(inferenceCost, "Price: " + choice.pricing, "hint");
       const listed = (choice?.models || []).map(m => m.model_id);
-      if (listed.length) researchNote(inferenceCost, "Models: " + listed.join(", ") + " (" + choice.model_policy + ")", "hint");
+      researchNote(inferenceCost, (listed.length ? "Models: " + listed.join(", ") + " (" : "Models: (") + (choice?.model_policy || "") + ")", "hint");
+      generic.hidden = !choice?.needs_endpoint;
       if (!model.value) model.value = (choice?.models || []).find(m => m.default)?.model_id || listed[0] || "";
+    };
+    const inferenceSpec = () => {
+      const choice = offered.inference.find(c => c.id === provider.value);
+      const spec = {provider_id: provider.value, model_id: model.value.trim()};
+      if (!choice?.needs_endpoint) return spec;
+      spec.endpoint = endpoint.value.trim();
+      if (Object.values(declared).some(input => input.value.trim())) {
+        spec.declared_pricing = {};
+        for (const [name, input] of Object.entries(declared)) {
+          const value = input.value.trim();
+          spec.declared_pricing[name] = input.type === "number" && value !== "" && /^\d+$/.test(value) ? Number(value) : value;
+        }
+      }
+      return spec;
     };
     // Consent is to a quoted amount: the server states the check's maximum
     // cost for this model, the miner ticks to agree to that amount, and only
@@ -439,8 +465,9 @@
     const requote = async () => {
       const mine = ++quoting;
       quote = null; agree.checked = false; check.disabled = true; agree.disabled = true;
-      const wanted = {provider_id: provider.value, model_id: model.value.trim()};
+      const wanted = inferenceSpec();
       if (!wanted.model_id) { agreeLabel.textContent = "Choose a model to see what this check costs."; return; }
+      if (wanted.endpoint === "") { agreeLabel.textContent = "Enter your endpoint to see what this check costs."; return; }
       try {
         const answer = await api("/api/v1/setup/quote", wanted, undefined, 15000);
         if (mine !== quoting) return;
@@ -454,13 +481,19 @@
     agree.addEventListener("change", () => { check.disabled = !(agree.checked && quote); });
     provider.addEventListener("change", () => { model.value = ""; describeProvider(); requote(); });
     model.addEventListener("change", requote);
-    if (steps.inference?.checked) { provider.value = steps.inference.provider_id; model.value = steps.inference.model_id; }
+    for (const input of [endpoint, ...Object.values(declared)]) input.addEventListener("change", requote);
+    if (steps.inference?.checked) {
+      provider.value = steps.inference.provider_id; model.value = steps.inference.model_id;
+      endpoint.value = steps.inference.endpoint || "";
+      for (const [name, input] of Object.entries(declared)) input.value = steps.inference.declared_pricing?.[name] ?? "";
+    }
     describeProvider();
     requote();
     inference.addEventListener("submit", async event => {
       event.preventDefault();
       if (!(agree.checked && quote)) return;
-      const request = {provider_id: quote.provider_id, model_id: quote.model_id, consent: {max_cost_nano: quote.max_cost_nano}};
+      // The quote was for this exact spec; any edit since re-quoted it.
+      const request = {...inferenceSpec(), consent: {max_cost_nano: quote.max_cost_nano}};
       if (key.value) request.key = key.value;
       key.value = "";
       await setupCall("inference", request);
@@ -468,26 +501,94 @@
 
     const compute = setupStep(body, "compute", "2. Compute", steps.compute);
     const computeChoice = setupSelect(compute, "choice", "Where research runs", offered.compute.map(c => [c.id, c.display_name]));
-    costNote(compute, offered.compute[0]);
+    const computeCost = el("div"); compute.append(computeCost);
     const image = setupField(compute, "image_manifest", "Worker image manifest (absolute path)");
     const analysis = setupField(compute, "analysis_image_manifest", "Analysis image manifest (absolute path)");
+    // This machine's GPU (C-MLP-03 slice 3): its GPU worker image, and the
+    // plain statement that GPU practice is for speed only.
+    const gpuBox = el("div"); gpuBox.dataset.step = "compute"; compute.append(gpuBox);
+    const gpuImage = setupField(gpuBox, "gpu_image_manifest", "GPU worker image manifest (absolute path)");
+    // A GPU rented on the miner's own account (C-MLP-03 slice 4): the
+    // provider, its key (entered once), the pushed image by digest, the GPU
+    // and the hourly ceilings. Nothing is rented by the check.
+    const rentedBox = el("div"); rentedBox.dataset.step = "compute"; compute.append(rentedBox);
+    const rentedChoice = offered.compute.find(c => c.id === "rented-gpu");
+    const rentedProvider = setupSelect(rentedBox, "provider", "Provider", (rentedChoice?.providers || []).map(p => [p.id, p.display_name]));
+    const rentedKey = setupField(rentedBox, "compute_key", "Provider API key (entered once; leave empty to keep the stored key)", "password");
+    const rentedImage = setupField(rentedBox, "image_ref", "Your pushed GPU worker (repository@sha256:...)");
+    const rentedGpu = setupField(rentedBox, "gpu_type_id", "GPU type (as your provider names it)");
+    const rentedRate = setupField(rentedBox, "max_rate_usd_per_hr", "Most you will pay per hour (USD)", "number");
+    const rentedStorage = setupField(rentedBox, "storage_usd_per_gb_month", "Storage price ceiling (USD per GB-month)", "number");
+    const rentedCloud = setupSelect(rentedBox, "cloud_type", "Cloud", [["SECURE", "Secure"], ["COMMUNITY", "Community"]]);
+    rentedRate.step = rentedStorage.step = "0.01";
+    const describeCompute = () => {
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      computeCost.replaceChildren();
+      costNote(computeCost, choice);
+      if (choice?.note) researchNote(computeCost, choice.note, "hint");
+      gpuBox.hidden = !choice?.needs_gpu_image;
+      rentedBox.hidden = choice?.id !== "rented-gpu";
+    };
+    computeChoice.addEventListener("change", describeCompute);
+    if (steps.compute?.checked && steps.compute.choice) computeChoice.value = steps.compute.choice;
+    describeCompute();
     compute.append(el("button", "Verify on this machine"));
     compute.addEventListener("submit", async event => {
       event.preventDefault();
-      await setupCall("compute", {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()});
+      const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
+      if (!gpuBox.hidden) request.gpu_image_manifest = gpuImage.value.trim();
+      if (!rentedBox.hidden) {
+        request.rented = {
+          provider: rentedProvider.value,
+          image_ref: rentedImage.value.trim(),
+          gpu_type_id: rentedGpu.value.trim(),
+          max_rate_usd_per_hr: Number(rentedRate.value),
+          storage_usd_per_gb_month: Number(rentedStorage.value),
+          cloud_type: rentedCloud.value,
+        };
+        if (rentedKey.value) request.key = rentedKey.value;
+        rentedKey.value = "";
+      }
+      await setupCall("compute", request);
     });
 
     const agent = setupStep(body, "agent", "3. Agent", steps.agent);
     const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
-    costNote(agent, offered.agent[0]);
+    const agentCost = el("div"); agent.append(agentCost);
     researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
     const operator = setupField(agent, "operator_config", "Testnet operator config (absolute path)");
     const socket = setupField(agent, "signer_socket", "Signer socket (optional; leave empty for the default)");
+    // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
+    // without their consent to the exact files, unticked by default.
+    const hermesBox = el("div"); agent.append(hermesBox);
+    const hermesAgree = document.createElement("input");
+    hermesAgree.type = "checkbox"; hermesAgree.id = "setup-agent-hermes-consent"; hermesAgree.checked = false;
+    const hermesLabel = el("label"); hermesLabel.htmlFor = hermesAgree.id;
+    const hermesRow = el("div", undefined, "consent"); hermesRow.append(hermesAgree, hermesLabel);
+    hermesBox.append(hermesRow);
+    const describeAgent = () => {
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      agentCost.replaceChildren();
+      costNote(agentCost, choice);
+      hermesBox.hidden = !choice?.needs_consent_to_write;
+      hermesAgree.checked = false;
+      if (choice?.needs_consent_to_write) {
+        hermesLabel.textContent = "Write my Hermes profile: " + (choice.writes || []).join(", ") + ". Then start it with: " + choice.start;
+      }
+    };
+    agentChoice.addEventListener("change", describeAgent);
+    if (steps.agent?.checked && steps.agent.choice) agentChoice.value = steps.agent.choice;
+    describeAgent();
     agent.append(el("button", "Check my signer"));
     agent.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: agentChoice.value, operator_config: operator.value.trim()};
       if (socket.value.trim()) request.signer_socket = socket.value.trim();
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      if (choice?.needs_consent_to_write) {
+        if (!hermesAgree.checked) { $("setup-result").replaceChildren(setupLine("consent: tick to agree to the files your Hermes profile needs.")); return; }
+        request.consent = {writes: choice.writes};
+      }
       await setupCall("agent", request);
     });
 
@@ -497,10 +598,18 @@
       researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice].filter(Boolean).join(" · ") : "not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    // The validator's intake, when the validator runs elsewhere (C-MLP-03
+    // slice 6). Its public facts are read and checked; nothing is signed.
+    const intake = setupField(review, "battery_intake", "Validator intake URL (optional; https, or loopback)");
     const write = el("button", "Write my profile");
     write.disabled = !steps.review?.ready;
     review.append(write);
-    review.addEventListener("submit", async event => { event.preventDefault(); await setupCall("review", {confirm: true}); });
+    review.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {confirm: true};
+      if (intake.value.trim()) request.battery_intake = intake.value.trim();
+      await setupCall("review", request);
+    });
   }
 
   $("onboarding-status").addEventListener("click", () => onboardingCall("status"));

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-03-SLICE-6-FRESH-MINER",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "C-MLP-03 slice 6: the fresh-miner journey's engineering seam and runbook. When the validator runs elsewhere, a battery campaign now submits its frozen candidate through the validator's intake (OD-7(b)). The candidate is built by intake_client, signed by the miner's own signer (btauth/1) and posted to the intake named in the profile (battery_intake: https, or loopback). The campaign then polls its status until a verdict arrives. Each epoch submits at most once, because the submission id is recorded owner-only and a later attempt only polls. A refusal, or a wait that runs out, consumes no epoch. Setup's review step reads the intake's public facts and checks it serves this chain and Challenge. docs/development/FRESH_MINER_JOURNEY.md is the runbook and record for the clean-machine acceptance run: register, set up, launch, practise on GPU, freeze and submit, verify teardown and reconcile cost. The run is a person's, and it closes no Gap. The intake stays loopback until the owner's exposure record. Engineering evidence only; nothing is qualified, and no chain write is made.",
+  "primary_detail": ".agent/tickets/C-MLP-03_miner_environment.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T02:51:54Z"
+}

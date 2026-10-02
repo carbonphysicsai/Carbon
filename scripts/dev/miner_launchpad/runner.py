@@ -60,7 +60,9 @@ RETIRED_PATH_FIELDS = {
 #: another way.
 #: `signer_socket` is where the miner's `carbon-miner-signer` listens, when
 #: not at the path derived from their public hotkey.
-OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket"}
+#: `compute_credential` is the miner's rented-GPU provider key file, required
+#: exactly when the runtime declares a rented GPU (C-MLP-03 slice 4).
+OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket", "compute_credential"}
 
 PROFILE_FIELDS = {
     "schema",
@@ -79,6 +81,10 @@ OPTIONAL_PROFILE_FIELDS = {
     "gpu_image",
     "provider_credentials",
     "model_selection",
+    # The validator's battery intake (OD-7(b)) a frozen candidate is submitted
+    # to when the validator does not run beside the campaign (C-MLP-03 slice
+    # 6): an https URL, or loopback while the intake binds loopback only.
+    "battery_intake",
 }
 
 #: The provider every campaign was pinned to before selection existed. Its key
@@ -120,7 +126,26 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "authored_research",
     "scientific_tasks",
     "gpu_research",
+    "rented_gpu",
 }
+
+
+def _intake_url(value):
+    """An https URL, or http to this machine's loopback (the intake binds
+    loopback until its exposure is recorded)."""
+    from urllib.parse import urlsplit
+
+    if type(value) is not str or len(value) > 512:
+        return False
+    try:
+        url = urlsplit(value)
+    except ValueError:
+        return False
+    if url.query or url.fragment or not url.hostname:
+        return False
+    return url.scheme == "https" or (
+        url.scheme == "http" and url.hostname in ("127.0.0.1", "localhost")
+    )
 
 
 def review_pin(cfg):
@@ -243,6 +268,13 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
+    if ("rented_gpu" in runtime) != ("compute_credential" in cfg["paths"]):
+        raise ValueError(
+            "compute_credential is required exactly when the runtime declares "
+            "rented_gpu"
+        )
+    if "battery_intake" in cfg and not _intake_url(cfg["battery_intake"]):
+        raise ValueError("battery_intake is an https URL or a loopback URL")
     if "provider_credentials" in cfg:
         from carbon.development_session.model_provider import ADAPTERS
 
@@ -259,7 +291,10 @@ def validated_profile(cfg):
         ):
             raise ValueError("provider_credentials maps provider ids to key files")
     if "model_selection" in cfg:
-        from carbon.development_session.model_provider import ADAPTERS
+        from carbon.development_session.model_provider import (
+            ADAPTERS,
+            ModelSelectionRefused,
+        )
 
         # The miner's setup choice (C-MLP-03): what an autonomous launch that
         # names no provider runs with. It must name a launchable provider whose
@@ -268,15 +303,43 @@ def validated_profile(cfg):
         chosen = cfg["model_selection"]
         if (
             type(chosen) is not dict
-            or set(chosen) != {"provider_id", "model_id"}
+            or not {"provider_id", "model_id"} <= set(chosen)
+            or not set(chosen) <= MODEL_SELECTION_FIELDS
             or chosen["provider_id"] not in ADAPTERS
-            or ADAPTERS[chosen["provider_id"]].endpoint is None
             or chosen["provider_id"] not in (cfg.get("provider_credentials") or {})
             or type(chosen["model_id"]) is not str
             or not 1 <= len(chosen["model_id"]) <= 128
         ):
             raise ValueError("model_selection names a configured provider and model")
+        # Everything else it carries (a generic adapter's endpoint, a declared
+        # or published price) is validated exactly as a launch will use it.
+        try:
+            setup_selection(cfg)
+        except ModelSelectionRefused:
+            raise ValueError("model_selection does not validate") from None
     return cfg
+
+
+#: What a profile's `model_selection` (written by setup) may carry.
+MODEL_SELECTION_FIELDS = frozenset(
+    {"provider_id", "model_id", "endpoint", "declared_pricing", "published_pricing"}
+)
+
+
+def setup_selection(cfg, *, settings=None):
+    """The profile's setup choice as a validated selection, with its key file.
+
+    Raises `ModelSelectionRefused` when it does not validate.
+    """
+    from carbon.development_session.model_provider import select
+
+    chosen = cfg["model_selection"]
+    path = provider_credential(cfg, chosen["provider_id"])
+    return select(
+        credential={"kind": "file", "reference": path or "unset"},
+        settings=settings,
+        **chosen,
+    )
 
 
 def provider_credential(cfg, provider_id):
@@ -359,12 +422,13 @@ class LaunchChoice:
 
     def apply(self, args):
         if self.selection is not None:
-            args.model_selection = {
-                "provider_id": self.selection.provider_id,
-                "model_id": self.selection.model_id,
-            }
-            if self.settings is not None:
-                args.model_selection["settings"] = dict(self.settings)
+            from carbon.development_session.model_provider import selection_spec
+
+            # The whole validated choice travels: a generic adapter's endpoint
+            # and a declared or published price, not only the provider and model.
+            args.model_selection = selection_spec(
+                self.selection, settings=self.settings
+            )
             args.api_key_file = Path(self.selection.credential.reference)
         if self.feedback_mode is not None:
             args.feedback_mode = self.feedback_mode
@@ -557,15 +621,22 @@ class RunnerAdapter:
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
         if "gpu_research" in runtime:
-            from carbon.development_session.gpu_research import declared_gpu_runtime
+            from carbon.development_session.battery_gpu import declared_scope
 
-            # Shape, here. The scope's binding to this campaign's own public
-            # TRAIN material is recomputed inside the campaign once that
-            # material exists; this only refuses a runtime the runner could
-            # never assemble, before the launch is recorded.
+            # Shape, here: battery's own GPU practice scope (C-MLP-03 slice 3),
+            # the only Challenge a launch can choose. The campaign recomputes
+            # the scope from the installed GPU image record; this only refuses
+            # a runtime the runner could never assemble, before the launch.
             try:
-                declared_gpu_runtime(runtime)
+                declared_scope(runtime)
             except ValueError:
+                raise Rejected("research_runtime_interface_unavailable", 409) from None
+        if "rented_gpu" in runtime:
+            from carbon.development_session.battery_gpu import declared_rented
+
+            try:
+                declared_rented(runtime)
+            except (ValueError, KeyError, TypeError):
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
 
@@ -582,9 +653,13 @@ class RunnerAdapter:
                 "agent": "carbon-autoresearch",
                 "reasoning": "gpt-5-mini-2025-08-07",
                 "compute": (
-                    "local-isolated-gpu"
-                    if "gpu_research" in cfg["runtime"]
-                    else "local-isolated-cpu"
+                    "rented-gpu:" + cfg["runtime"]["rented_gpu"][0]["provider"]
+                    if "rented_gpu" in cfg["runtime"]
+                    else (
+                        "local-isolated-gpu"
+                        if "gpu_research" in cfg["runtime"]
+                        else "local-isolated-cpu"
+                    )
                 ),
                 # Registration is read at launch, before anything is recorded.
                 # A budget is the miner's to set at launch or not at all.
@@ -727,7 +802,7 @@ class RunnerAdapter:
         if not previous:
             # Refused here, before the registration read, as well as in the
             # body: a choice that cannot run never reaches the chain.
-            self._launch_choice(cfg, request, self._challenge(request))
+            self._launch_choice(cfg, request, self._challenge(request, cfg["runtime"]))
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -787,11 +862,12 @@ class RunnerAdapter:
         return run_id, digest(canonical(fields)), digest(canonical(cfg))
 
     @staticmethod
-    def _challenge(request):
-        """The launch's Challenge, resolved exactly. There is no default: a
-        launch naming none, or an unknown, reserved, deferred, retired or
-        wrong-version Challenge, is refused by its code; nothing falls back to
-        another Challenge."""
+    def _challenge(request, runtime=None):
+        """The launch's Challenge, resolved exactly for the profile's compute
+        (`gpu_research` when the runtime declares GPU practice). There is no
+        default: a launch naming none, or an unknown, reserved, deferred,
+        retired or wrong-version Challenge, or one without that compute, is
+        refused by its code; nothing falls back to another Challenge."""
         if "challenge" not in request and "challenge_version" not in request:
             raise Rejected("challenge_required", 409)
         from carbon.challenge_registry import ResolutionError, resolve
@@ -801,7 +877,11 @@ class RunnerAdapter:
             "version": request.get("challenge_version"),
         }
         try:
-            resolve(challenge["id"], challenge["version"], "cpu_research")
+            resolve(
+                challenge["id"],
+                challenge["version"],
+                "gpu_research" if "gpu_research" in (runtime or {}) else "cpu_research",
+            )
         except ResolutionError as refused:
             raise Rejected(refused.code, 409) from None
         return challenge
@@ -828,6 +908,7 @@ class RunnerAdapter:
                 raise Rejected("feedback_mode_is_battery_only", 409)
         provider, model = request.get("model_provider"), request.get("model")
         settings = request.get("model_settings")
+        from_setup = False
         if (
             provider is None
             and model is None
@@ -839,6 +920,7 @@ class RunnerAdapter:
             # with it, never with the pinned default and another's key.
             provider = cfg["model_selection"]["provider_id"]
             model = cfg["model_selection"]["model_id"]
+            from_setup = True
         if settings is not None:
             # Settings modify a selection; without a provider nothing uses them.
             if provider is None:
@@ -856,18 +938,29 @@ class RunnerAdapter:
             if request["agent"] != "autonomous":
                 # No agent calls a model; a choice nothing uses is refused.
                 raise Rejected("model_selection_needs_the_autonomous_agent", 409)
-            if ADAPTERS[provider].endpoint is None:
-                raise Rejected("model_provider_endpoint_not_launchable", 409)
+            chosen = cfg.get("model_selection") or {}
+            same_as_setup = from_setup or (
+                chosen.get("provider_id") == provider
+                and chosen.get("model_id") == model
+            )
+            if ADAPTERS[provider].endpoint is None and not same_as_setup:
+                # A generic adapter's endpoint is configured in setup, never
+                # in a launch request.
+                raise Rejected("model_provider_endpoint_not_configured", 409)
             path = provider_credential(cfg, provider)
             refusal = credential_refusal(path)
             if refusal is not None:
                 raise Rejected(refusal, 409)
             try:
-                selection = select(
-                    provider_id=provider,
-                    model_id=model,
-                    credential={"kind": "file", "reference": path},
-                    settings=settings,
+                selection = (
+                    setup_selection(cfg, settings=settings)
+                    if same_as_setup
+                    else select(
+                        provider_id=provider,
+                        model_id=model,
+                        credential={"kind": "file", "reference": path},
+                        settings=settings,
+                    )
                 )
                 budget = miner_budget(request.get("budget"))
                 check_budget(selection, budget.get("ceilings"))
@@ -891,7 +984,7 @@ class RunnerAdapter:
         cfg, miner = admitted.profile, admitted.miner
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
-        challenge = self._challenge(request)
+        challenge = self._challenge(request, cfg["runtime"])
         choice = self._launch_choice(cfg, request, challenge)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
@@ -1055,9 +1148,11 @@ class RunnerAdapter:
         from carbon.development_session.model_provider import ADAPTERS
 
         rows = []
+        configured = (cfg.get("model_selection") or {}).get("provider_id")
         for provider_id, adapter in ADAPTERS.items():
-            if adapter.endpoint is None:
-                reason = "model_provider_endpoint_not_launchable"
+            if adapter.endpoint is None and provider_id != configured:
+                # Launchable once setup configures its endpoint.
+                reason = "model_provider_endpoint_not_configured"
             else:
                 reason = credential_refusal(provider_credential(cfg, provider_id))
             rows.append(
@@ -1280,6 +1375,7 @@ class RunnerAdapter:
                 product=None,
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
+                battery_intake=cfg.get("battery_intake"),
             )
             credential = self._frozen_credential(cfg, root)
             if credential is not None:
@@ -1399,6 +1495,7 @@ class RunnerAdapter:
                     product=product,
                     research_guidance=task["text"] if task is not None else None,
                     command="run" if creating else "resume",
+                    battery_intake=cfg.get("battery_intake"),
                 )
                 if creating:
                     # The launch's choice freezes into the manifest now.
