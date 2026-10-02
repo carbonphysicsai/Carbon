@@ -78,7 +78,8 @@ output, "versioned, pinned suite", is:
 
 Run in the canonical environment with CI's full dependency groups (chain,
 archive, science-jax, science-torch, mcp), at suite digest
-`sha256:6b8255c548e05c0f9e6009bb90852f840d399ddfc1bf35ef153a4d1226f45f84`.
+`sha256:49995abaab8a13dabe827267b8ae8c52592e05856e42d6edd190e71b60923777`. It was re-run after OWNER-CHALLENGE-ROADMAP-02 resolved the admitted backends, which
+changed the suite; the earlier run was at `sha256:6b8255c5…`.
 - **All eight vectors PASS.** Every one of the 70 cited non-container checks
   ran and passed, and no uncited selected test failed.
   - pytest reported 259 passed and 551 deselected. The 259 include

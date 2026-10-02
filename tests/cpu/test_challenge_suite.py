@@ -126,3 +126,16 @@ def test_the_runner_reports_pass_finding_candidate_and_not_run(tmp_path):
         "battery", sandbox=True, suite_path=path, repository=tmp_path
     )
     assert {v["id"]: v["status"] for v in with_sandbox["vectors"]}["A5"] == "PASS"
+
+
+def test_the_committed_coverage_report_is_for_this_suite():
+    """The pin: change the suite and the battery report must be re-run."""
+    report = json.loads(
+        (
+            REPOSITORY
+            / "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json"
+        ).read_text()
+    )
+    assert report["suite_digest"] == suite.digest()
+    assert report["environment"]["missing_groups"] == []
+    assert report["uncited_failures"] == []
