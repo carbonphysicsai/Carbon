@@ -18,8 +18,11 @@ from __future__ import annotations
 
 import numpy as np
 
-LENGTHS = (0.25, 0.5, 1.0, 2.0)
-RIDGES = (1e-8, 1e-6, 1e-4, 1e-2)
+#: The declared grid. Length and ridge trade off along a valley, so the grid
+#: spans both far enough that a Challenge's choice lands inside it; `select`
+#: reports a choice on an edge, since the search there is truncated.
+LENGTHS = (0.25, 0.5, 1.0, 2.0, 4.0, 8.0, 16.0)
+RIDGES = (1e-8, 1e-6, 1e-4, 1e-2, 1e-1, 1.0)
 
 
 def scale(rows, names, bounds):
@@ -54,7 +57,8 @@ class KernelRidge:
 def select(x, y, practice_score, lengths=LENGTHS, ridges=RIDGES):
     """Fit every (length, ridge) on TRAIN and keep the best by
     `practice_score(model)` (lower is better; None means ineligible).
-    Returns the model and the whole grid's scores."""
+    Returns the model, the whole grid's scores and `at_edge`: the
+    hyperparameters whose chosen value is the grid's smallest or largest."""
     grid, best = [], None
     for length in lengths:
         for ridge in ridges:
@@ -69,4 +73,17 @@ def select(x, y, practice_score, lengths=LENGTHS, ridges=RIDGES):
                 best = (score, model, length, ridge)
     if best is None:
         raise ValueError("no hyperparameter gave an eligible model")
-    return best[1], {"length": best[2], "ridge": best[3], "grid": grid}
+    at_edge = [
+        name
+        for name, value, values in (
+            ("length", best[2], lengths),
+            ("ridge", best[3], ridges),
+        )
+        if len(values) > 1 and value in (min(values), max(values))
+    ]
+    return best[1], {
+        "length": best[2],
+        "ridge": best[3],
+        "at_edge": at_edge,
+        "grid": grid,
+    }
