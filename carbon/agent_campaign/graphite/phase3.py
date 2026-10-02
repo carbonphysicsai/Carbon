@@ -56,6 +56,7 @@ from .. import boundaries
 from ..controller import CampaignController, ControllerError
 from ..grant import SpendingGrant
 from ..provider import TaskSpec
+from . import attack
 from . import score as scoring
 from . import stage as stages
 from .model import LiveModel, ModelAccessRefused, ScriptedModel, text, tool
@@ -71,6 +72,8 @@ ROLE_CALL_CAPS = {RoleName.CONSTRUCTOR: 48, RoleName.ATTACKER: 16}
 #: The owner's per-campaign ceiling (OWNER-CHALLENGE-STEP4-01).
 CAMPAIGN_CEILING = "5.00"
 CAMPAIGN = "step4-constructor"
+#: Each role's campaign: one role, one workspace and one credential each.
+CAMPAIGNS = {RoleName.CONSTRUCTOR: CAMPAIGN, RoleName.ATTACKER: "step4-attacker"}
 OBJECTIVE = {
     "objective": (
         "Propose a battery recipe inside the published construction contract. "
@@ -111,25 +114,27 @@ def _bind_store(root, grant):
         marker.chmod(0o600)
 
 
-def _brief():
+def _brief(role=ROLE):
     checkout = boundaries.manifest_digest(
-        boundaries.checkout_manifest(REPOSITORY, boundaries.Role.CONSTRUCTION)
+        boundaries.checkout_manifest(REPOSITORY, ROLES[role].boundary)
     )
+    observation = dict(OBJECTIVE) if role is ROLE else attack.brief_observation()
     return SessionBrief(
-        role=ROLE,
-        initial_observation=dict(OBJECTIVE),
+        role=role,
+        initial_observation=observation,
         checkout_commit=_commit(),
         checkout_manifest_digest=checkout,
     )
 
 
-def _register(control, profile_digest, checkout):
+def _register(control, profile_digest, checkout, role=ROLE):
+    campaign = CAMPAIGNS[role]
     try:
         control.register_campaign(
-            CAMPAIGN,
-            role=ROLES[ROLE].boundary,
-            workspace_id="ws-" + CAMPAIGN,
-            credential_ref="cred-" + CAMPAIGN,
+            campaign,
+            role=ROLES[role].boundary,
+            workspace_id="ws-" + campaign,
+            credential_ref="cred-" + campaign,
             checkout_digest=checkout,
             profile_digest=profile_digest,
             ceiling=CAMPAIGN_CEILING,
@@ -144,8 +149,11 @@ def _log(root, entry):
         stream.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
-async def run_session(root, *, grant, model, miner_tools, key=None, backend=None):
-    """One Constructor session and Carbon's side of it. Returns the log entry."""
+async def run_session(
+    root, *, grant, model, miner_tools, key=None, backend=None, role=ROLE
+):
+    """One session of `role` (Constructor or Attacker) and Carbon's side of
+    it. Returns the log entry."""
     profile = stages.stage_profile(STAGE)
     digest = stages.profile_digest(profile)
     graphite = GraphiteProvider(
@@ -163,15 +171,16 @@ async def run_session(root, *, grant, model, miner_tools, key=None, backend=None
         operator="carbon-operator",
         clock=lambda: datetime.datetime.now(datetime.UTC),
     )
-    session_brief = _brief()
-    _register(control, digest, session_brief.checkout_manifest_digest)
+    session_brief = _brief(role)
+    _register(control, digest, session_brief.checkout_manifest_digest, role)
+    campaign = CAMPAIGNS[role]
     runs = sorted((root / "graphite" / "runs").glob("graphite-*"))
-    key = key or "constructor-" + str(len(runs) + 1)
+    key = key or role.value + "-" + str(len(runs) + 1)
     spec = TaskSpec(
-        campaign_id=CAMPAIGN,
-        role=ROLES[ROLE].boundary.value,
-        workspace_id="ws-" + CAMPAIGN,
-        credential_ref="cred-" + CAMPAIGN,
+        campaign_id=campaign,
+        role=ROLES[role].boundary.value,
+        workspace_id="ws-" + campaign,
+        credential_ref="cred-" + campaign,
         profile_digest=digest,
         instructions_digest=graphite.register_brief(session_brief),
         max_runtime_s=grant.max_runtime_s,
@@ -184,7 +193,7 @@ async def run_session(root, *, grant, model, miner_tools, key=None, backend=None
         "schema": "carbon.graphite.iteration-log.v1",
         "session": key,
         "run_id": run_id,
-        "role": ROLE.value,
+        "role": role.value,
         "stage": STAGE,
         "state": state,
         "failure": graphite._state(run_id)["failure"],
@@ -196,8 +205,12 @@ async def run_session(root, *, grant, model, miner_tools, key=None, backend=None
         "score": None,
         "refused": None,
         "finding": None,
+        "attempts": None,
+        "fail_opens": None,
     }
-    if state == "succeeded":
+    if role is RoleName.ATTACKER:
+        _attacker_side(root, control, graphite, run_id, entry)
+    elif state == "succeeded":
         try:
             selection = scoring.load_selection(graphite._dir(run_id))
             entry["selection"] = {
@@ -226,6 +239,34 @@ async def run_session(root, *, grant, model, miner_tools, key=None, backend=None
                 entry["finding"] = finding_id
     _log(root, entry)
     return entry
+
+
+def _attacker_side(root, control, graphite, run_id, entry):
+    """Carbon's analysis of an Attacker session. Each verified fail-open is a
+    finding; the rows are kept for the coverage report."""
+    rows, fail_opens = attack.analyse(graphite._dir(run_id))
+    path = root / "attacks" / (run_id + ".json")
+    path.parent.mkdir(mode=0o700, exist_ok=True)
+    path.write_text(json.dumps(rows, indent=1, sort_keys=True) + "\n")
+    for row in fail_opens:
+        evidence = json.dumps({"run_id": run_id, **row}, sort_keys=True).encode()
+        control.record_finding(
+            (run_id + "-" + row["identity"])[:120], scoring.FINDING, evidence
+        )
+    entry["attempts"] = len(rows)
+    entry["fail_opens"] = [row["identity"] for row in fail_opens]
+
+
+def write_coverage(root, suite_report):
+    """Merge every Attacker session's rows with a suite v1 coverage report."""
+    rows = []
+    for path in sorted((root / "attacks").glob("*.json")):
+        rows.extend(json.loads(path.read_bytes()))
+    report = attack.coverage(rows, suite_report)
+    (root / "coverage.json").write_text(
+        json.dumps(report, indent=1, sort_keys=True) + "\n"
+    )
+    return report
 
 
 def _backend():
@@ -260,8 +301,19 @@ def session(args, environ=None):
                 text("dry run"),
             ]
         )
+        role = RoleName.ATTACKER if args.role == "attacker" else ROLE
+        if role is RoleName.ATTACKER:
+            model = ScriptedModel(
+                [
+                    tool(
+                        "carbon_research_v2__dry_validate",
+                        {"strategy_json": json.dumps(DRY_RUN_SCRIPT_STRATEGY)},
+                    ),
+                    text("dry run: one attempt"),
+                ]
+            )
         entry = asyncio.run(
-            run_session(root, grant=grant, model=model, miner_tools=None)
+            run_session(root, grant=grant, model=model, miner_tools=None, role=role)
         )
         print(json.dumps({**entry, "dry_run": True}, indent=1, sort_keys=True))
         return 0
@@ -282,7 +334,12 @@ def session(args, environ=None):
 
             async with battery_tools(args.configuration, args.campaign) as (sdk, _):
                 return await run_session(
-                    root, grant=grant, model=model, miner_tools=sdk, key=args.key
+                    root,
+                    grant=grant,
+                    model=model,
+                    miner_tools=sdk,
+                    key=args.key,
+                    role=RoleName.ATTACKER if args.role == "attacker" else ROLE,
                 )
 
         entry = asyncio.run(attached())
@@ -311,8 +368,15 @@ def parser():
     one.add_argument("--campaign")
     one.add_argument("--key")
     one.add_argument("--dry-run", action="store_true")
+    one.add_argument(
+        "--role", choices=("constructor", "attacker"), default="constructor"
+    )
     two = commands.add_parser("log")
     two.add_argument("--root", required=True)
+    three = commands.add_parser("coverage")
+    three.add_argument("--root", required=True)
+    three.add_argument("--suite-report", required=True)
+    three.add_argument("--dry-run", action="store_true")
     return top
 
 
@@ -322,6 +386,12 @@ def main(argv=None):
         if args.dry_run:
             args.credential_env = None
         return session(args)
+    if args.command == "coverage":
+        root = _root(args.root)
+        root = root / "dry-run" if args.dry_run else root
+        suite_report = json.loads(Path(args.suite_report).read_bytes())
+        print(json.dumps(write_coverage(root, suite_report), indent=1, sort_keys=True))
+        return 0
     return log(args)
 
 
