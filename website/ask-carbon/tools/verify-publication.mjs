@@ -10,11 +10,14 @@ import { removeEdgeInjections } from "./fetch-live-baseline.mjs";
 const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
 export const HOSTS = ["carbonphysics.ai", "www.carbonphysics.ai"];
 
-// URL path → staged file. `/` and `/workbench/` are served from their
-// directory index.
+// URL path → staged file. `/`, `/workbench/`, `/miners/` and `/start-mining/`
+// are served from their directory index.
 export const DEFAULT_CHECKS = [
   ["/", "index.html"],
   ["/workbench/", "workbench/index.html"],
+  ["/miners/", "miners/index.html"],
+  ["/start-mining/", "start-mining/index.html"],
+  ["/sitemap.xml", "sitemap.xml"],
   ["/assets/logo-boeing.png", "assets/logo-boeing.png"],
   ["/assets/logo-usaf.png", "assets/logo-usaf.png"],
   ["/assets/og-carbon.png", "assets/og-carbon.png"],

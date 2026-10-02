@@ -381,7 +381,32 @@ Production needs a separate exact owner authorization after the staging report:
   replacement (`9a44f683…`), which the manifest still lists at its
   pre-deployment digest. The next candidate must first fold that replacement
   into a v4 baseline inventory; until then `tools/fetch-live-baseline.mjs`
-  reports 99/100.
+  reports 99/100. *(Done in candidate 2026-10-02.1: manifest v4.)*
+
+> **Candidate 2026-10-02.1: Start mining (built; awaits the owner's approval of
+> the exact bundle).** Bundle `b22f6d1c…`, 106 files, under
+> OWNER-WEBSITE-START-MINING-01. Static only, with four changes against live:
+> - the new page `/start-mining/`;
+> - a "Start mining" link on the homepage's Miners card;
+> - the miner page's hero button, which now reads "Start mining";
+> - `sitemap.xml`.
+>
+> The operator follows
+> [`DEPLOY_PACKAGE_2026_10_02.md`](./DEPLOY_PACKAGE_2026_10_02.md).
+>
+> **Manifest v4.** `production-baseline.manifest.json` v4 records what
+> `c12d547a` serves, including `/workbench/` `9a44f683…`, so
+> `site-replacements.json` no longer lists it. Each entry's
+> `change_since_previous_manifest` says how it differs from v3.
+>
+> **Three ways the integrator changes a page.** Each is reviewed in the
+> repository, pinned by digest and verified after staging:
+> - `--site-replacements` replaces a path the manifest verifies;
+> - `--site-additions` (`site-additions.json`) publishes a path the manifest
+>   does not list, and refuses any it does;
+> - `--homepage-edit NAME` applies a named edit from `HOMEPAGE_EDITS` to the
+>   pinned homepage source after its digest check. Its marker must occur
+>   exactly once.
 
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
