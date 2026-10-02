@@ -44,5 +44,10 @@
    "what": "Motor pilot, 17 of 17 OK",
    "ref": "docs/development/evidence/motor-pilot-v1"
   }
- ]
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "levels": []
+ }
 }

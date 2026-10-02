@@ -44,5 +44,10 @@
    "what": "Photonic pools and baselines",
    "ref": "docs/development/evidence/photonic-pools-v1"
   }
- ]
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "levels": []
+ }
 }

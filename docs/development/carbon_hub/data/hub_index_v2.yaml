@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T14:39:14Z"
+  captured_at_utc: "2026-10-02T18:50:57Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "9e626e6de6adaa23306f21a58fa6d9b9a01934f0"
+  authority_snapshot_commit: "279a797c2d5bf0a6e33379446f499a142b951334"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10746,6 +10746,57 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T16:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-INTAKE-EXPOSURE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-INTAKE-EXPOSURE-01 (2026-10-02): the owner approved exposing the battery intake (OD-7(b), carbon/battery/intake.py) beyond loopback, for testnet 567, the battery Challenge and the routes and limits it serves today; the known items in BATTERY_MINER_SUBMISSION_PATHS.md stay recorded, not fixed. The listener already refused a public bind without an exposure record of this form; it now also refuses one that does not terminate TLS in the intake (intake_exposure_needs_tls), because the miner client refuses plain HTTP beyond loopback and a TLS proxy would make every request one peer. The repository's own record is held by a test. Exposing a host stays an operator action; this record permits it and performs none. Tests hold the gate and are not a security audit; no chain write is made."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T16:05:35Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-POOLS-CLOUD-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Under OWNER-CHALLENGE-DESIGN-01 and the owner's grant of 2026-10-02 (RunPod, public pools only, USD 25 cap), the cold plate's and motor's public TRAIN and PRACTICE cases were solved natively on RunPod CPU pods: 308 cold plate and 149 motor cases, all OK, in about 1.5 hours. The batch runners gain a native mode (same pinned commands, own process group, killed whole on timeout); each pod is the pinned image (OpenFOAM's, or the motor's base with its Dockerfile's SHA-256-checked steps replayed); native agrees with the container (motor bitwise, cold plate 1.7e-13 K). Private plans are refused twice and never leave the owner's host. assemble.py builds each pool from every run that solved it and refuses disagreeing duplicates: cold plate TRAIN 400 and PRACTICE 100, motor TRAIN 150 and PRACTICE 30, none missing. The campaign ledger stays local (it records account balances). Pod wall times are provenance, not reference timings. No qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-POOLS-CLOUD-01.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T16:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CHALLENGE-COLD-PLATE-01 slice 4: the cold plate's pools are complete, all 700 OK (400 TRAIN with 308 solved on a RunPod CPU pod, 100 PRACTICE, 200 private from the operator-held root on the owner's host only). Every gate holds on every reference; the scales come from TRAIN. On the private pool the conventional closed form with axial spreading scores 0.109 and the generic Gaussian-kernel ridge 0.105, worse than the closed form on the profile: the conventional model is a strong baseline, so a useful surrogate must beat a physics-aware one. The learned model's grid was widened before final scoring because its PRACTICE choice sat on the grid edge (D11, with the dry run disclosed); select now reports edge choices. Readiness record v6 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the cold plate is prior work for laminar internal flow and steady conduction. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "adjustment"
+    event_id: "OWNER-CHALLENGE-ROADMAP-03"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Challenge Roadmap rev 2.2 (OWNER-CHALLENGE-ROADMAP-03). The owner found that the pipeline had dropped Challenge Admission section 3's construction ladder, so the ladder becomes the spine of construction iteration. Every Challenge enters Test/iterate at Level 0 and climbs one level at a time by the climb procedure: an expansion record, Carbon's reconstruction with tests, valid and matched adversarial runs under both profiles, ablation, interaction tests, clean-worker rebuilds, and opening to miners only after a person locks the level and validators serve its contract. A miner sends a declarative recipe and the contract digest it was written against, and the validator rebuilds with the reconstruction pinned in its own Carbon version, so a climb is a Carbon release. Levels not reached are NOT_RUN, frozen evidence and leaderboard entries name their level, and battery's Phase 1 includes its first climb, to Level 1. carbon/challenge_pipeline gains ladder.py, each record's construction block (battery at Level 0, OPEN, expansion 0001) and lessons.py: one entry after every execution, and a proposed revision adopted or declined by a named owner, never applied silently. The protocol is Challenge-neutral and improves through recorded revisions. Graphite, not Mira, is the testing agent. Rev 2.1's backend wording is corrected: JAX and PyTorch are where Carbon rebuilds a declarative recipe. No qualification, reward, deployment or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-PIPELINE-01.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T22:30:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
