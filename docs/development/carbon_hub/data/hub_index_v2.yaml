@@ -10548,6 +10548,18 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
+    event_id: "GRAPHITE-02"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "GRAPHITE-01 phase 1, the Graphite harness, with no live inference and no spend. A GraphiteProvider in carbon/agent_campaign/graphite runs behind the #475 campaign controller and drives the existing research loop, with metering, replay without resending and typed failures from research_agent. The loop gained an optional role prompt and closed tool list. Six frozen roles (Planner, Constructor, Attacker, Optimizer researcher, Reader, Writer) each have a prompt recorded by digest, a closed tool manifest and a starting rung on the owner's Engy ladder. Escalation moves one rung, only on a recorded typed research failure, never above the top rung. lit.search and lit.card answer from a synthetic fixture index, and tool output is data. Requests for confirmation or official material get a typed refusal. Session records are deterministic and digested. Per-run caps equal the grant's worst-case run cost. Cancellation is checked at the loop's checkpoints, and a live model needs an exact owner spending grant. Scripted-model tests cover crash recovery at every checkpoint, caps, cancellation, injection-as-data, refusal, escalation and mutation checks. Nothing here grades, qualifies, rewards or spends; the literature layer, Chutes and live sessions remain later phases, each needing an owner grant."
+    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-02T00:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
     event_id: "CHALLENGE-COLD-PLATE-01"
     owner_lane: "technical_lead"
     status: "implemented"
