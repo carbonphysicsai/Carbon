@@ -53,18 +53,27 @@ def _importers(pattern, *roots):
 COMPUTE_IMPORT = r"^\s*(from carbon\.compute\b|import carbon\.compute\b)"
 
 
-def test_runpod_is_implemented_but_no_launch_path_dispatches_to_it():
-    assert _reason("runpod") == "compute_adapter_not_wired_into_launch"
-    # The adapter exists: this is not "not implemented".
-    from carbon.compute import runpod
+def test_runpod_and_lium_launch_from_setup_and_left_the_list():
+    # C-MLP-03 slice 4 wired both into launch: battery practice runs on a
+    # rented GPU through `carbon.compute.rented_runner`, on the miner's own
+    # account. Their unavailable entries are gone.
+    from carbon.compute.providers import PROVIDERS
 
-    assert hasattr(runpod, "__file__")
-    # Specimen: the same search finds the importer that really exists.
-    assert "tests/cpu/test_compute_provider.py" in _importers(
-        COMPUTE_IMPORT, ROOT / "tests/cpu"
-    )
-    # The cause: nothing on the launch path reaches it.
-    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) == []
+    assert {"runpod", "lium"} <= set(PROVIDERS)
+    listed = {item["id"] for item in controller.INTEGRATIONS}
+    assert not {"runpod", "lium"} & listed
+    # The cause is gone too: the launch path now reaches the compute layer.
+    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) != []
+
+
+def test_targon_runs_no_container_image():
+    assert _reason("targon") == "provider_runs_no_container_image"
+    from carbon.compute.providers import PROVIDERS
+
+    names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
+    assert "lium" in names  # specimen: an adapter that does exist
+    assert not any("targon" in name for name in names)
+    assert "targon" not in PROVIDERS
 
 
 def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
@@ -74,14 +83,7 @@ def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
     assert model_provider.ADAPTERS["chutes"].live_pricing is True
     assert "chutes" not in {item["id"] for item in controller.INTEGRATIONS}
     # Specimen: the same search finds an entry that is still there.
-    assert "lium" in {item["id"] for item in controller.INTEGRATIONS}
-
-
-def test_lium_has_no_compute_provider():
-    assert _reason("lium") == "provisioning_and_teardown_adapter_not_implemented"
-    names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
-    assert "runpod" in names  # specimen
-    assert not any("lium" in name for name in names)
+    assert "targon" in {item["id"] for item in controller.INTEGRATIONS}
 
 
 def test_hermes_has_no_agent_adapter():

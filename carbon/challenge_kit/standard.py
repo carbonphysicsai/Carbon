@@ -184,6 +184,7 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             (
                 "carbon.development_session.battery_gpu:gpu_scope",
                 "carbon.battery.research:BatteryPractice",
+                "carbon.compute.rented_runner:RentedRunner",
             ),
             "Setup (Set up your environment, Compute) offers this machine's "
             "CPU, every miner's default, or its own GPU: setup detects the GPU, "
@@ -193,7 +194,10 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "records the backend observed. GPU practice is for speed only; the "
             "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
             "A real practice on a local GPU is the slice's acceptance and needs "
-            "a GPU host. Rented GPU on the miner's account is slice 4.",
+            "a GPU host. A GPU rented on the miner's own RunPod or Lium "
+            "account runs the same practice (carbon.compute.rented_runner, "
+            "C-MLP-03 slice 4); one real practice on each is its acceptance and "
+            "needs the miner's account. Targon runs no container image today.",
         ),
         "model": Provided(
             (

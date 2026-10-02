@@ -470,6 +470,11 @@ async def attached_profile(profile: OperatorProfile):
             cleanup_only=cleanup_only,
             julia_image=_authored_image(profile, analysis),
             gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
+            rented=campaign.rented(
+                profile.root,
+                profile.manifest,
+                (profile.document.get("paths") or {}).get("compute_credential"),
+            ),
         )
         bound = None
         try:

@@ -545,6 +545,7 @@ class BatteryPractice:
         backend=None,
         gpu_image=None,
         device=None,
+        rented=None,
     ):
         from carbon.development_session.battery_gpu import BACKENDS, is_gpu_image
         from carbon.development_session.research_carrier import _run
@@ -559,10 +560,16 @@ class BatteryPractice:
         if gpu_image is not None and not is_gpu_image(gpu_image):
             raise ValueError("exact pinned GPU worker image required")
         self.gpu_image, self.device = gpu_image, device
+        # A rented GPU (C-MLP-03 slice 4): the same GPU program, run by the
+        # miner's `RentedRunner` on their own provider account. It needs the
+        # campaign's GPU worker identity and has no local device record.
+        if rented is not None and gpu_image is None:
+            raise ValueError("rented GPU practice runs the pinned GPU worker")
+        self.rented = rented
         self.backends = (
             BACKENDS if gpu_image is not None else image_backends(image, self.root)
         )
-        self.runner = _run if runner is None else runner
+        self.runner = rented or (_run if runner is None else runner)
         self.backend = backend or {
             "kind": "ISOLATED_CARRIER",
             "carrier": "carbon.development_session.research_carrier",
@@ -622,7 +629,7 @@ class BatteryPractice:
                 "image": self.gpu_image,
                 "accelerator": MINER_GPU,
             }
-            device = self.device or _installed_device()
+            device = None if self.rented else (self.device or _installed_device())
         worker = self.runner(
             self.ledger,
             owner=self.owner,
@@ -667,13 +674,20 @@ class BatteryPractice:
         if self.gpu_image is None:
             ran = {**self.backend, "image": getattr(self.image, "image_id", None)}
         else:
-            from carbon.development_session.battery_gpu import backend_record
+            from carbon.development_session.battery_gpu import (
+                backend_record,
+                rented_backend_record,
+            )
 
             observed = checked("runtime.json", 65536)
             if type(observed) is not dict:
                 raise ValueError("practice result shape differs")
             ran = {
-                **backend_record(device, observed),
+                **(
+                    rented_backend_record(worker["rented"], observed)
+                    if self.rented
+                    else backend_record(device, observed)
+                ),
                 "image": self.gpu_image.image_id,
             }
         result = feedback(

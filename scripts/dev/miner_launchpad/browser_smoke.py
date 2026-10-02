@@ -1287,6 +1287,9 @@ class SetupChecks:
     def gpu(self, manifest):
         raise AssertionError("the smoke's miner checks the CPU, not a GPU")
 
+    def rented(self, rented, credential, manifest):
+        raise AssertionError("the smoke's miner rents no GPU")
+
     def agent(self, hotkey, socket_path=None):
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
 
@@ -1435,12 +1438,25 @@ def setup_journey():
                     "!document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
                     " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')",
                 )
+                # A GPU rented on the miner's own account asks for the
+                # provider, its key, the pushed image and the ceilings.
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'rented-gpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-image_ref').parentElement.hidden"
+                    " && [...document.getElementById('setup-compute-provider').options]"
+                    ".map(o => o.value).join() === 'lium,runpod'",
+                )
                 session.evaluate(
                     "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
                     "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
                 )
                 assert session.evaluate(
                     "document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.getElementById('setup-compute-image_ref').parentElement.hidden"
                 )
                 # A missing image is refused by name, with its build step.
                 session.evaluate(

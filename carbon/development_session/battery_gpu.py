@@ -151,3 +151,79 @@ def backend_record(device, observed):
         "purpose": "speed_only",
         "note": SPEED_ONLY,
     }
+
+
+def rented_backend_record(rented, observed):
+    """What the feedback records about a practice run on a rented GPU."""
+    teardown = rented.get("teardown") or {}
+    return {
+        "kind": "RENTED_GPU",
+        "runner": "carbon.compute.rented_runner",
+        "provider": rented["provider"],
+        "image_ref": rented["image_ref"],
+        "gpu_type_id": rented["gpu_type_id"],
+        "resource_id": rented.get("resource_id"),
+        "rate_usd_per_hr": rented.get("rate_usd_per_hr"),
+        "job_transport": rented.get("job_transport"),
+        "teardown_verified": teardown.get("verified") is True,
+        "provider_charge": teardown.get("charge"),
+        "jax_platforms": JAX_PLATFORMS,
+        "observed": observed,
+        "purpose": "speed_only",
+        "note": SPEED_ONLY,
+    }
+
+
+RENTED_SCHEMA = "carbon.battery.rented-gpu.v1"
+
+
+def rented_scope(compute, image):
+    """The battery rented-GPU scope: the miner's provider choice, bound to the
+    campaign's pinned GPU worker (the image the pod pulls by digest)."""
+    if not is_gpu_image(image):
+        raise ValueError("exact pinned GPU worker image required")
+    return {
+        "schema": RENTED_SCHEMA,
+        **compute.document(),
+        "pinned_image": image.image_id,
+        "purpose": "speed_only",
+        "score": None,
+        "official_eligible": False,
+    }
+
+
+def declared_rented(runtime):
+    """The rented choice a runtime declares, checked for shape; None without one.
+
+    A rented GPU runs the GPU practice program, so it needs the GPU practice
+    scope beside it.
+    """
+    if "rented_gpu" not in runtime:
+        return None
+    declared_scope(runtime)
+    scopes = runtime["rented_gpu"]
+    if (
+        type(scopes) is not list
+        or len(scopes) != 1
+        or type(scopes[0]) is not dict
+        or scopes[0].get("schema") != RENTED_SCHEMA
+        or scopes[0].get("purpose") != "speed_only"
+        or scopes[0].get("official_eligible") is not False
+        or scopes[0].get("score") is not None
+        or scopes[0].get("pinned_image") != runtime["gpu_research"][0].get("image")
+    ):
+        raise ValueError("exact battery rented GPU scope required")
+    return compute_from_scope(scopes[0])
+
+
+def compute_from_scope(scope):
+    from carbon.compute.rented_runner import RentedCompute
+
+    return RentedCompute(
+        provider=scope["provider"],
+        image_ref=scope["image_ref"],
+        gpu_type_id=scope["gpu_type_id"],
+        max_rate_usd_per_hr=scope["max_rate_usd_per_hr"],
+        storage_usd_per_gb_month=scope["storage_usd_per_gb_month"],
+        cloud_type=scope["cloud_type"],
+    )

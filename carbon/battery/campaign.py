@@ -385,6 +385,9 @@ async def prepare_battery(args, *, ledger=None, campaign):
             connection=connection,
             julia_image=julia_image,
             gpu_image=gpu_image,
+            rented=host_rented_runner(
+                root, manifest, getattr(args, "compute_credential", None)
+            ),
         )
         sdk = ResearchMinerTools(
             connection=connection,
@@ -433,6 +436,7 @@ def compose(
     runner=None,
     backend=None,
     gpu_image=None,
+    rented=None,
 ):
     """The battery composition and the wrapper that authenticates for it.
 
@@ -461,6 +465,7 @@ def compose(
         runner=runner,
         backend=backend,
         gpu_image=gpu_image,
+        rented=rented,
     )
     composition = make_battery_research_service(
         root=ledger.root / "research-tasks",
@@ -491,7 +496,7 @@ def compose(
 #: battery's own GPU practice scope (`carbon.development_session.battery_gpu`, C-MLP-03 slice 3);
 #: Burgers' GPU scope binds Burgers material and is refused by its schema.
 RUNTIME_KEYS = frozenset(
-    {"implementation", "images", "authored_research", "gpu_research"}
+    {"implementation", "images", "authored_research", "gpu_research", "rented_gpu"}
 )
 
 
@@ -501,6 +506,41 @@ def host_gpu_image(root, declared):
     from carbon.development_session.battery_gpu import registered_gpu_image
 
     return registered_gpu_image(root, declared)
+
+
+def host_rented_runner(root, manifest, credential):
+    """The rented-GPU practice runner a campaign's frozen runtime declares, on
+    the miner's own provider account; None when it declares no rented GPU.
+
+    `credential` is the miner's provider key file. It stays on this machine:
+    the adapter reads it per request and only into its own request header.
+    """
+    from carbon.development_session.battery_gpu import declared_rented
+
+    compute = declared_rented(manifest["runtime"])
+    if compute is None:
+        return None
+    from carbon.compute.providers import provider_adapter
+    from carbon.compute.rented_runner import RentedRunner
+    from carbon.compute.service import ComputeService
+    from carbon.compute.store import ComputeStore
+
+    if credential is None:
+        raise ValueError(
+            f"a rented {compute.provider} GPU needs your {compute.provider} key file"
+        )
+    store = ComputeStore(root / "compute")
+    campaign_id = manifest["campaign_id"]
+    if store.campaign_status(campaign_id) is None:
+        store.start_campaign(campaign_id)
+    miner = manifest["admission"]["hotkey"]
+    return RentedRunner(
+        compute=compute,
+        service=ComputeService(store, provider_adapter(compute.provider, credential)),
+        tenant=miner,
+        miner=miner,
+        campaign_id=campaign_id,
+    )
 
 
 def host_julia_image(root, declared, analysis):
@@ -545,6 +585,12 @@ def research_runtime(declared, *, implementation, images, julia_image, gpu_image
         if gpu_image is None:
             raise ValueError("a GPU practice runtime needs its installed GPU image")
         runtime["gpu_research"] = [gpu_scope(gpu_image)]
+    if "rented_gpu" in declared:
+        from carbon.development_session.battery_gpu import declared_rented, rented_scope
+
+        # The miner's provider choice, recomposed against this host's GPU
+        # worker: the frozen choice must name the image it actually runs.
+        runtime["rented_gpu"] = [rented_scope(declared_rented(declared), gpu_image)]
     return runtime
 
 

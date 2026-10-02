@@ -60,7 +60,9 @@ RETIRED_PATH_FIELDS = {
 #: another way.
 #: `signer_socket` is where the miner's `carbon-miner-signer` listens, when
 #: not at the path derived from their public hotkey.
-OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket"}
+#: `compute_credential` is the miner's rented-GPU provider key file, required
+#: exactly when the runtime declares a rented GPU (C-MLP-03 slice 4).
+OPTIONAL_PATH_FIELDS = {"battery_validator", "signer_socket", "compute_credential"}
 
 PROFILE_FIELDS = {
     "schema",
@@ -120,6 +122,7 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "authored_research",
     "scientific_tasks",
     "gpu_research",
+    "rented_gpu",
 }
 
 
@@ -243,6 +246,11 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
+    if ("rented_gpu" in runtime) != ("compute_credential" in cfg["paths"]):
+        raise ValueError(
+            "compute_credential is required exactly when the runtime declares "
+            "rented_gpu"
+        )
     if "provider_credentials" in cfg:
         from carbon.development_session.model_provider import ADAPTERS
 
@@ -599,6 +607,13 @@ class RunnerAdapter:
                 declared_scope(runtime)
             except ValueError:
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
+        if "rented_gpu" in runtime:
+            from carbon.development_session.battery_gpu import declared_rented
+
+            try:
+                declared_rented(runtime)
+            except (ValueError, KeyError, TypeError):
+                raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
 
     def preflight(self):
@@ -614,9 +629,13 @@ class RunnerAdapter:
                 "agent": "carbon-autoresearch",
                 "reasoning": "gpt-5-mini-2025-08-07",
                 "compute": (
-                    "local-isolated-gpu"
-                    if "gpu_research" in cfg["runtime"]
-                    else "local-isolated-cpu"
+                    "rented-gpu:" + cfg["runtime"]["rented_gpu"][0]["provider"]
+                    if "rented_gpu" in cfg["runtime"]
+                    else (
+                        "local-isolated-gpu"
+                        if "gpu_research" in cfg["runtime"]
+                        else "local-isolated-cpu"
+                    )
                 ),
                 # Registration is read at launch, before anything is recorded.
                 # A budget is the miner's to set at launch or not at all.
