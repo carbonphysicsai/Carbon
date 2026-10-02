@@ -400,3 +400,35 @@ def test_the_bundled_font_and_wordmark_are_the_websites_own():
         data = (LAUNCHPAD / bundled).read_bytes()
         assert hashlib.sha256(data).hexdigest() == entries[site]["sha256"], bundled
         assert len(data) == entries[site]["bytes"], bundled
+
+
+def test_the_page_loads_nothing_from_the_internet(server):
+    status, headers, page = get(server, "/")
+    assert status == 200
+    policy = headers["Content-Security-Policy"]
+    for directive in ("font-src 'self'", "img-src 'self'", "default-src 'none'"):
+        assert directive in policy
+    assert "http" not in policy
+    for path, kind in (
+        ("/fonts/neue-0.otf", "font/otf"),
+        ("/fonts/neue-1.otf", "font/otf"),
+        ("/brand/brand-2.svg", "image/svg+xml"),
+    ):
+        status, headers, body = get(server, path)
+        assert (status, headers["Content-Type"]) == (200, kind)
+        assert body == (LAUNCHPAD / controller.STATIC[path][0]).read_bytes()
+    # The same host and origin checks as the page itself.
+    assert get(server, "/fonts/neue-0.otf", {"Host": "attacker.example"})[0] == 403
+    style = (LAUNCHPAD / "style.css").read_text()
+    assert "font-family:Montreal" in style.replace(" ", "")
+    for face in ("/fonts/neue-0.otf", "/fonts/neue-1.otf"):
+        assert "url(" + face + ")" in style.replace('"', "")
+    # Nothing on the page is fetched from anywhere else. The one http string in
+    # the script is the SVG namespace, an identifier rather than a request.
+    script = (LAUNCHPAD / "app.js").read_text()
+    for text in (
+        page.decode(),
+        style,
+        script.replace("http://www.w3.org/2000/svg", ""),
+    ):
+        assert not re.search(r"https?://", text)

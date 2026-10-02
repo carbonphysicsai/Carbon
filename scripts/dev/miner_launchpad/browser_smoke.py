@@ -956,7 +956,10 @@ def run():
                             "#overview",
                             "#launch",
                             "#challenges",
+                            "#compute",
                             "#wallet",
+                            "#setup",
+                            "#guide",
                             "#development",
                             campaign_hash,
                         ):
@@ -1417,8 +1420,30 @@ def setup_journey():
                     + json.dumps(hotkey)
                 )
                 click(session, "onboarding-confirm")
-                wait(session, "location.hash === '#setup'")
+                # Confirmed: the wizard opens at its next step, and the
+                # registration step shows done.
+                wait(session, "location.hash === '#setup/inference'")
                 wait(session, "Boolean(document.getElementById('setup-inference-key'))")
+                wait(
+                    session,
+                    "!document.querySelector('[data-step-panel=inference]').hidden"
+                    " && document.getElementById('setup-eyebrow').textContent.includes('Step 3 of 6')",
+                )
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=register] .step-done')"
+                    ".textContent.includes('Registered')"
+                )
+                # Until the Agent step asks it, the signer is not shown done.
+                assert (
+                    session.evaluate(
+                        "document.querySelector('#setup-progress li:first-child').className"
+                    )
+                    == "is-waiting"
+                ), "the signer is checked at the Agent step, not before"
+                assert session.evaluate(
+                    "document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent.includes('check')"
+                )
                 assert session.evaluate(
                     "document.getElementById('setup-body').textContent.includes('billed by')"
                 )
@@ -1489,6 +1514,25 @@ def setup_journey():
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: inference.'",
                 )
+                # The step shows done, and Next opens the following step.
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=inference] .step-done')"
+                    ".textContent.includes('Done')"
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/compute'"
+                    " && !document.querySelector('[data-step-panel=compute]').hidden",
+                )
+                # No typed paths: with nothing built here, setup names the one
+                # command that builds and records the images.
+                assert session.evaluate(
+                    "document.querySelector('form[data-step=compute]').textContent"
+                    '.includes("Carbon hasn\'t found your worker images")'
+                    " && document.querySelector('form[data-step=compute] .copy-line code')"
+                    ".textContent.includes('install_miner.sh --no-start')"
+                )
                 # This machine's GPU is offered beside the CPU default, with
                 # its own image field and the plain statement that GPU
                 # practice is for speed only.
@@ -1524,19 +1568,71 @@ def setup_journey():
                 assert session.evaluate(
                     "!document.querySelector('form[data-step=compute] input[type=password]')"
                 )
+                # Where's your GPU? Each provider card sets the remote choice
+                # and the transport its guide section names (LINKONLY-D10).
+                from scripts.dev.miner_launchpad.environment_setup import REMOTE_GUIDES
+
+                for guide_id, _, transport, _ in REMOTE_GUIDES:
+                    click(session, "setup-where-" + guide_id)
+                    wait(
+                        session,
+                        "document.getElementById('setup-compute-choice').value === 'remote-machine'"
+                        " && document.getElementById('setup-compute-transport').value === "
+                        + json.dumps(transport)
+                        + " && !document.getElementById('setup-guide-panel').hidden",
+                    )
+                # A card shows its guide section, UNVERIFIED marks kept, and
+                # the commands to copy, the destination filled in as typed.
+                click(session, "setup-where-runpod")
+                wait(
+                    session,
+                    "document.getElementById('setup-guide-panel').textContent.includes('RunPod')",
+                )
+                panel = session.evaluate(
+                    "document.getElementById('setup-guide-panel').textContent"
+                )
+                assert "UNVERIFIED" in panel and "ssh-container" in panel, panel[:300]
+                assert session.evaluate(
+                    "document.querySelectorAll('#setup-guide-panel .unverified').length >= 2"
+                )
+                copies = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#setup-guide-panel .copy-line')]"
+                        ".map(l => [l.querySelector('code').textContent,"
+                        " l.querySelector('button').type, l.querySelector('button').textContent]))"
+                    )
+                )
+                assert len(copies) >= 4, copies
+                assert all(
+                    kind == "button" and text == "Copy" for _, kind, text in copies
+                )
+                assert "push_worker_image.sh" in copies[0][0], copies[0]
+                session.evaluate(
+                    "document.getElementById('setup-compute-destination').value = 'root@pod-1';"
+                    "document.getElementById('setup-compute-destination').dispatchEvent(new Event('input'))"
+                )
+                wait(
+                    session,
+                    "[...document.querySelectorAll('#setup-guide-panel .copy-line code')]"
+                    ".some(c => c.textContent === 'ssh -o BatchMode=yes root@pod-1 true')",
+                )
+                # The guide link opens the guide this controller serves.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-guide-link').getAttribute('href')"
+                    )
+                    == "#guide/runpod-pods"
+                )
                 # The miner's own remote setup: the two built transports, and
                 # the endpoint transport shown with why it is not built; the
                 # wiring guide is named.
-                session.evaluate(
-                    "document.getElementById('setup-compute-choice').value = 'remote-machine';"
-                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
-                )
+                click(session, "setup-where-own-server")
                 wait(
                     session,
                     "!document.getElementById('setup-compute-destination').parentElement.hidden"
                     " && !document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
                     " && document.querySelector('form[data-step=compute]').textContent.includes('MINER_REMOTE_SETUP.md')"
-                    " && document.querySelector('form[data-step=compute] button').textContent.includes('my SSH')",
+                    " && document.getElementById('setup-compute-submit').textContent.includes('my SSH')",
                 )
                 transports = session.evaluate(
                     "JSON.stringify([...document.getElementById('setup-compute-transport').options]"
@@ -1547,9 +1643,14 @@ def setup_journey():
                     ["ssh-container", False],
                     ["endpoint", True],
                 ]
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-compute-transport').value"
+                    )
+                    == "ssh-docker"
+                )
                 SENT.clear()
                 session.evaluate(
-                    "document.getElementById('setup-compute-transport').value = 'ssh-docker';"
                     "document.getElementById('setup-compute-image_manifest').value = "
                     + json.dumps(str(miner / "worker.json"))
                     + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
@@ -1563,6 +1664,11 @@ def setup_journey():
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: compute.'"
                     " && Boolean(document.getElementById('setup-send-worker-consent'))",
+                )
+                # Checked, but not done until the worker is there: Next waits.
+                assert session.evaluate(
+                    "document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent.includes('Send your worker')"
                 )
                 # Sending the worker is its own step: nothing is agreed by
                 # default and the consent names the destination and image.
@@ -1600,7 +1706,7 @@ def setup_journey():
                 )
                 wait(
                     session,
-                    "document.getElementById('setup-result').textContent.startsWith('image_manifest: ')"
+                    "document.getElementById('setup-result').textContent.startsWith('image manifest: ')"
                     " && document.getElementById('setup-result').textContent.includes('c03_worker_image.sh')",
                 )
                 session.evaluate(
@@ -1613,6 +1719,12 @@ def setup_journey():
                 wait(
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: compute.'",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/agent'"
+                    " && !document.querySelector('[data-step-panel=agent]').hidden",
                 )
                 # Hermes is offered beside Carbon's agent, and names the exact
                 # files it would write; nothing is agreed by default.
@@ -1653,6 +1765,17 @@ def setup_journey():
                     session,
                     "document.getElementById('setup-result').textContent === 'Checked: agent.'",
                 )
+                # The Agent step asked the signer: step 1 is done only now.
+                wait(
+                    session,
+                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/review'"
+                    " && !document.querySelector('[data-step-panel=review]').hidden",
+                )
                 session.evaluate(
                     "document.querySelector('form[data-step=review]').requestSubmit()"
                 )
@@ -1661,6 +1784,19 @@ def setup_journey():
                     "document.getElementById('setup-result').textContent.startsWith('Profile written and loaded')",
                 )
                 assert attached == [server.setup.profile_path]
+                # Overview: five steps confirmed, and the sixth is the next,
+                # since no campaign is on record yet.
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelectorAll('#getting-started-steps .gs-step.is-done').length === 5",
+                )
+                assert (
+                    session.evaluate(
+                        "document.querySelector('#getting-started-steps .is-current').dataset.step"
+                    )
+                    == "review"
+                )
                 page = session.evaluate("document.documentElement.outerHTML")
                 assert key not in page
                 written = (
@@ -1686,7 +1822,226 @@ def setup_journey():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
+        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, one wizard step at a time with each step done only once checked and the signer done only after the Agent step asked it; each Where's your GPU? card set the transport its guide section names and showed that section, UNVERIFIED marks kept, with its commands to copy; they checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
+    )
+
+
+def fresh_miner():
+    """A brand-new miner lands on the Control Center (LINKONLY-D10): one
+    ordered list with its next step, setup that leads with that step, plain
+    statuses each with the place that fixes it, the remote route beside this
+    machine, and the guide and Carbon's font served by this controller with
+    nothing fetched from anywhere else. Chain and checks are fixtures."""
+    with tempfile.TemporaryDirectory(prefix="carbon-fresh-miner-smoke-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        token = "browser-smoke-session-token-not-a-real-credential"
+        server = controller.Server(
+            controller.Controller(root / "runs.sqlite3"),
+            token,
+            0,
+            onboarding=stub_onboarding(),
+            state_dir=root / "state",
+            setup_checks=SetupChecks(),
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                session.command("Network.enable")
+                load(session, server.origin)
+                connect(session, token)
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelectorAll('#getting-started-steps .gs-step').length === 6",
+                )
+                steps = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#getting-started-steps .gs-step')]"
+                        ".map(s => [s.dataset.step, s.className, s.querySelector('.gs-state').textContent]))"
+                    )
+                )
+                assert [s[0] for s in steps] == [
+                    "signer",
+                    "register",
+                    "inference",
+                    "compute",
+                    "agent",
+                    "review",
+                ], steps
+                # Nothing is confirmed yet, so nothing is done; the signer
+                # comes first and registration is open beside it.
+                assert [s[2] for s in steps] == ["Next", "Next"] + ["Waiting"] * 4
+                assert "is-current" in steps[0][1]
+                primary = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([document.getElementById('overview-primary').textContent,"
+                        " document.getElementById('overview-primary').getAttribute('href')])"
+                    )
+                )
+                assert primary == ["Next: Start your signer", "#setup/signer"], primary
+                # The same step leads in setup, with its command to copy; the
+                # steps after registration are locked until it is confirmed.
+                session.evaluate("document.getElementById('overview-primary').click()")
+                wait(
+                    session,
+                    "location.hash === '#setup/signer'"
+                    " && !document.querySelector('[data-step-panel=signer]').hidden",
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-signer-copy').type === 'button'"
+                    " && document.querySelector('[data-step-panel=signer] code')"
+                    ".textContent.includes('--wallet <your wallet> --hotkey <your hotkey>')"
+                )
+                locked = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#setup-progress button')]"
+                        ".map(b => b.disabled))"
+                    )
+                )
+                assert locked == [False, False, True, True, True, True], locked
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/register'"
+                    " && document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent"
+                    ".includes('Confirm your registration first')",
+                )
+                assert session.evaluate(
+                    "Boolean(document.getElementById('setup-register-confirm'))"
+                    " && document.querySelector('[data-step-panel=register] a[href=\"#wallet\"]') !== null"
+                )
+                # A started signer waits for its check; registration is next.
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelector('#getting-started-steps .is-current').dataset.step === 'register'",
+                )
+                # A hotkey the chain does not read as registered is refused in
+                # place, with where to prepare the registration.
+                goto(session, "#setup/register")
+                session.evaluate(
+                    "document.getElementById('setup-register-address').value = "
+                    + json.dumps("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                    + ";document.getElementById('setup-register-confirm').click()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.includes('Not registered')",
+                )
+                assert session.evaluate("location.hash") == "#setup/register"
+                # Plain statuses: one sentence and the place that fixes it,
+                # with the machine code kept behind Details.
+                goto(session, "#challenges")
+                wait(
+                    session,
+                    "Boolean(document.querySelector('#challenge-catalog .card'))",
+                )
+                fixes = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#challenge-catalog .card')]"
+                        ".filter(c => c.querySelector('.pill').textContent === 'Set up first')"
+                        ".map(c => [c.querySelector('.status-line').textContent,"
+                        " c.querySelector('a.fix').getAttribute('href'),"
+                        " c.querySelector('details:last-of-type').textContent]))"
+                    )
+                )
+                assert fixes, "an implemented Challenge waits on setup"
+                for sentence, href, hidden in fixes:
+                    assert sentence == "Finish setup first." and href == "#setup"
+                    assert "research_profile_not_configured" in hidden
+                visible = session.evaluate(
+                    "[...document.querySelectorAll('#challenge-catalog .status-line')]"
+                    ".map(p => p.textContent).join(' ')"
+                )
+                assert "_" not in visible, visible
+                # Compute: this machine and a GPU run elsewhere, side by side.
+                goto(session, "#compute")
+                wait(
+                    session,
+                    "document.querySelectorAll('#compute-catalog .card').length >= 2",
+                )
+                routes = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#compute-catalog .card')]"
+                        ".map(c => [c.querySelector('h3').textContent,"
+                        " (c.querySelector('a.button') || {}).getAttribute"
+                        " ? c.querySelector('a.button').getAttribute('href') : null]))"
+                    )
+                )
+                assert routes[0] == ["This machine", "#setup"], routes
+                assert routes[1] == [
+                    "A GPU you run elsewhere",
+                    "#setup/compute",
+                ], routes
+                # The guide opens here, read from this checkout.
+                goto(session, "#guide")
+                wait(
+                    session,
+                    "document.getElementById('guide-body').textContent.includes('Per-provider notes')",
+                )
+                assert session.evaluate(
+                    "document.querySelectorAll('#guide-body .unverified').length >= 5"
+                    " && document.getElementById('guide-heading').textContent"
+                    ".startsWith('Practising on your own remote machine')"
+                )
+                # Carbon's font, from this controller.
+                assert session.evaluate(
+                    "document.fonts.ready.then(() => document.fonts.check('600 16px Montreal')"
+                    " && getComputedStyle(document.body).fontFamily.startsWith('Montreal'))"
+                ), "the Montreal face is declared, loaded and used"
+                wait(
+                    session,
+                    "[...document.fonts].some(f => f.family === 'Montreal' && f.status === 'loaded')",
+                )
+                fetched = [
+                    event["params"]["request"]["url"]
+                    for event in session.events
+                    if event["method"] == "Network.requestWillBeSent"
+                ]
+                assert any(
+                    url.endswith("/fonts/neue-0.otf") for url in fetched
+                ), fetched
+                outside = [
+                    url
+                    for url in fetched
+                    if not url.startswith(server.origin + "/")
+                    and not url.startswith(("data:", "blob:"))
+                ]
+                assert not outside, outside
+                for width in (1440, 390):
+                    session.command(
+                        "Emulation.setDeviceMetricsOverride",
+                        {
+                            "width": width,
+                            "height": 900,
+                            "deviceScaleFactor": 1,
+                            "mobile": False,
+                        },
+                    )
+                    for surface in ("#overview", "#setup/signer", "#compute", "#guide"):
+                        goto(session, surface)
+                        assert session.evaluate(
+                            "document.documentElement.scrollWidth <= innerWidth"
+                        ), (width, surface)
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+    print(
+        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and the signer next, setup led with that step and locked the rest until registration, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
     )
 
 
@@ -1694,3 +2049,4 @@ if __name__ == "__main__":
     run()
     journey()
     setup_journey()
+    fresh_miner()
