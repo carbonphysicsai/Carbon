@@ -10745,6 +10745,18 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-10-02T18:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "GRAPHITE-06"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "GRAPHITE-D27: every provider call now has a hard total wall-clock deadline. Twice on 2026-10-02 a live Graphite triage call sat with no response for 26 minutes or more, its operation still RESERVED, because model_provider passed timeout_seconds to urllib, which bounds each socket operation (connect, proxy CONNECT, TLS handshake, each read) and never the whole call; a reply arriving in pieces, each inside the timeout, kept it open. The exchange now runs in a daemon worker joined for timeout_seconds plus a named 10 s margin (130 s for triage); past it the call's TCP and TLS sockets are shut and ProviderDeadlineExceeded is raised, which classifies as UNKNOWN: the full reservation stays, nothing is settled or resent, triage stops RECONCILIATION_REQUIRED and the GRAPHITE-D17 write-off handles it at the next start. It applies to every adapter, since they share one transport; calls inside the deadline are unchanged. Tests use a local HTTPS server that stalls, trickles one byte at a time or never speaks, plus a mutation check. Nothing here grades, qualifies or rewards."
+    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-02T20:50:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
