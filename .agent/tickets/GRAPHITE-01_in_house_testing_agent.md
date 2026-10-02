@@ -844,6 +844,16 @@ python -m carbon.agent_campaign.graphite.phase3 proposals --root "$ROOT"
 Sessions 2 and 3 resume or open with the same snapshot and policy. A
 different one is refused for a session that has already opened.
 
+**Owner decision, 2026-10-02: the first live sessions run on unchecked cards.**
+Asked whether to check cards on the WSL host first or to run with unchecked
+cards, the owner answered "B". So the first live phase-3 sessions run with
+`--allow-unchecked-cards`, on a snapshot taken after the live phase-2 triage
+finishes. Each unchecked card is marked `UNCHECKED` in every tool result and
+in the session record. Because sessions 2 and 3 must keep the policy session
+1 opened with, all three sessions of this grant use it. A proposal citing
+unchecked cards records that status on each source card. People still check
+cards (`phase2 check`); a later grant can run checked-only.
+
 **Limitations.**
 
 - No live session has run, and no snapshot from a live backfill has been
