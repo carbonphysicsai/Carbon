@@ -10671,6 +10671,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T14:00:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "evidence"
+    event_id: "CHALLENGE-PROTOCOL-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Phase 1 step 1 of the Challenge Roadmap is done: battery's state is reconciled into a status record with commit IDs (docs/development/challenge_pipeline/BATTERY_STATUS_2026-10-02.md). Against the roadmap's dated statements: EV1 complete (verification tau 0.165, weak positive; the boundary optimist is a synthetic control); EV2 complete, not running (#457); EV3 still a draft, never run; EV4 and Problem C complete and missing from the roadmap (#476); #458 shows merged but only its core landed (#473), with the readiness gate open in #477/#488; exam rule v1 decides on testnet pool version 3 with no prepared screening batch left. The record maps existing work to the suite's items as inputs for steps 2 and 3, without judging any satisfied. No measurement, qualification or acceptance."
+    primary_detail: ".agent/tickets/CHALLENGE-PROTOCOL-01.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+    supersedes: null
+    recorded_at: "2026-10-02T15:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

@@ -3896,6 +3896,13 @@
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
+        "id": "challenge-pipeline-records",
+        "match_type": "prefix",
+        "path": "docs/development/challenge_pipeline/",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
         "id": "protocol-detail",
         "match_type": "prefix",
         "path": "Design_Specs/",
