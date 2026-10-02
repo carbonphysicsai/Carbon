@@ -65,9 +65,9 @@ def mesh_pairs(by_id, plan):
                 "case_id": case["pairs_with"],
                 "max_abs_nm": max(abs(x - y) for x, y in zip(f, b)),
                 "max_rel_to_peak": max(abs(x - y) for x, y in zip(f, b)) / scale,
-                "mean_rel": (fmean(b) - fmean(f)) / fmean(f)
-                if abs(fmean(f)) > 1e-9
-                else None,
+                "mean_rel": (
+                    (fmean(b) - fmean(f)) / fmean(f) if abs(fmean(f)) > 1e-9 else None
+                ),
                 "ripple_fine_nm": max(f) - min(f),
                 "ripple_base_nm": max(b) - min(b),
             }
@@ -119,9 +119,9 @@ def baseline(ok):
                 "ripple_pk_pk_nm": max(curve) - min(curve),
                 "baseline_mean_nm": predicted,
                 "mean_error_nm": predicted - mean,
-                "mean_error_rel": (predicted - mean) / mean
-                if abs(mean) > 1e-6
-                else None,
+                "mean_error_rel": (
+                    (predicted - mean) / mean if abs(mean) > 1e-6 else None
+                ),
                 "omitted_ripple_rms_nm": math.sqrt(
                     fmean((t - mean) ** 2 for t in curve)
                 ),
