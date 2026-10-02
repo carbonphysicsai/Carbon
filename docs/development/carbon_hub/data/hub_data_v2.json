@@ -2381,6 +2381,27 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "challenge-cold-plate-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-COLD-PLATE",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "challenge-motor-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-MOTOR",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "challenge-photonic-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-PHOTONIC",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "mira-admission-integration",
         "match_type": "exact",
         "path": ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md",
