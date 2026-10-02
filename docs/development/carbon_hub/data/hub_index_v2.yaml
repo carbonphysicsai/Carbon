@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T14:39:14Z"
+  captured_at_utc: "2026-10-02T16:05:38Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "9e626e6de6adaa23306f21a58fa6d9b9a01934f0"
+  authority_snapshot_commit: "1783d3de8c9510bfe649c78889c2a121ca470055"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10696,6 +10696,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T10:57:26Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-INTAKE-EXPOSURE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-INTAKE-EXPOSURE-01 (2026-10-02): the owner approved exposing the battery intake (OD-7(b), carbon/battery/intake.py) beyond loopback, for testnet 567, the battery Challenge and the routes and limits it serves today; the known items in BATTERY_MINER_SUBMISSION_PATHS.md stay recorded, not fixed. The listener already refused a public bind without an exposure record of this form; it now also refuses one that does not terminate TLS in the intake (intake_exposure_needs_tls), because the miner client refuses plain HTTP beyond loopback and a TLS proxy would make every request one peer. The repository's own record is held by a test. Exposing a host stays an operator action; this record permits it and performs none. Tests hold the gate and are not a security audit; no chain write is made."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T16:05:35Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
