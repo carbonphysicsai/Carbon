@@ -129,9 +129,10 @@ class Job:
                 shutil.copyfile(item, work / item.name)
         started = time.monotonic()
         try:
-            with (self.root / "stdout.txt").open("wb") as stdout, (
-                self.root / "stderr.txt"
-            ).open("wb") as stderr:
+            with (
+                (self.root / "stdout.txt").open("wb") as stdout,
+                (self.root / "stderr.txt").open("wb") as stderr,
+            ):
                 completed = subprocess.run(
                     [sys.executable, "-I", str(self.input / PROGRAM)],
                     cwd=work,
