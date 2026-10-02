@@ -2416,6 +2416,13 @@
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
+        "id": "challenge-readiness-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/CHALLENGE-READINESS",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "mira-admission-integration",
         "match_type": "exact",
         "path": ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md",
