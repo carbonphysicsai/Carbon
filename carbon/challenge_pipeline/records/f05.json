@@ -15,7 +15,7 @@
  "regret": null,
  "n": null,
  "k": null,
- "notes": "Defines the protocol (Phase 1). Its status record comes from Phase 1 step 1 (CHALLENGE-PROTOCOL-01).",
+ "notes": "Defines the protocol (Phase 1). Status reconciled 2026-10-02 (step 1): EV1, EV2 and EV4 complete; EV3 a draft; #458's readiness gate open in #477/#488; exam rule v1 deciding.",
  "at": "2026-10-02",
  "gates": {
   "scope": null,
@@ -25,7 +25,7 @@
   "deploy": null
  },
  "evidence": {
-  "status": null,
+  "status": "docs/development/challenge_pipeline/BATTERY_STATUS_2026-10-02.md",
   "brief": null,
   "design_packet": null,
   "timing": null,

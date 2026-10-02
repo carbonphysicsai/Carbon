@@ -18,8 +18,8 @@
    "output": "Battery status record with commit IDs.",
    "reserved": null,
    "ticket": "CHALLENGE-PROTOCOL-01",
-   "status": "in_progress",
-   "evidence": null
+   "status": "done",
+   "evidence": "docs/development/challenge_pipeline/BATTERY_STATUS_2026-10-02.md"
   },
   {
    "step": 2,
