@@ -10634,6 +10634,18 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T04:40:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-MOTOR-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Under OWNER-CHALLENGE-DESIGN-01, the electric motor (#344) gains a DEVELOPMENT reference service and a pilot. Because the ONELAB benchmark's model files carry no licence, carbon/motor/ is Carbon's own: a Gmsh geometry of the GRUCAD 8-pole, 24-slot surface-PM frame and a GetDP magnetostatic formulation, run in a SHA-256-pinned image with no network. Rotor and stator meet on a uniform mid-airgap circle, so rotation is exact and ripple cannot be remeshing noise; the iron is a declared Brauer law with vacuum permeability in parallel; torque is Arkkio's Maxwell stress, which matches virtual work to 0.03 % under saturation. A case is eight inputs (magnet, embrace, airgap, slot opening, tooth, slot depth, current density, current angle) and one output, the torque at 60 angles over the 15 degree period. The 17-case pilot ran 17 of 17 OK: periodicity within 6.3e-5, the 2,880-node mesh within 0.26 % of peak, 0.25 degree sampling within 8e-5 of peak of the 0.125 degree curve, and identical torque wherever two cases share a mesh and angle; the textbook surface-PM model over-predicts mean torque by 5 to 26 % and omits up to 0.82 N m RMS of ripple. The exam (motoring-mean and paired-repeat gates; TRAIN-normalized mean-torque and ripple-shape errors) and a shared Gaussian-kernel ridge learned baseline are implemented and tested; 150 TRAIN, 30 PRACTICE and 60 private cases (operator-held root) are running on the owner's host. Readiness record v3 waits in CHALLENGE-READINESS-RELAY-01. Every value is a provisional DEVELOPMENT value; the registry entry stays RESERVED until the miner path (CHALLENGE-MOTOR-02); no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-MOTOR-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T08:15:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
