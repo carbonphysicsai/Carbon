@@ -41,7 +41,9 @@ def test_invalid_guidance_fails_before_admission(tmp_path, text):
         "accepted_revision": REVISION,
         "campaigns_root": str(tmp_path / "campaigns"),
         "runtime": RUNTIME,
-        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+        "paths": {
+            key: str(tmp_path / key) for key in PATH_FIELDS | {"operator_config"}
+        },
         "research_guidance": text,
     }
     path.write_bytes(canonical(cfg))

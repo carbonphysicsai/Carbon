@@ -141,7 +141,10 @@ def prepare(root, monkeypatch, *, budget=None):
         "profile_id": "fixture-profile",
         "principal": "operator-alice",
         "enabled": True,
-        "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
+        "paths": {
+            name: str(root / (name + ".json"))
+            for name in PATH_FIELDS | {"operator_config"}
+        },
         "accepted_revision": runtime["implementation"]["revision"],
         "campaigns_root": str(campaigns),
         "runtime": runtime,

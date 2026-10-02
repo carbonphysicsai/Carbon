@@ -156,7 +156,9 @@ def test_a_profile_naming_a_password_file_is_refused_by_name(tmp_path):
         "accepted_revision": "a" * 40,
         "campaigns_root": str(tmp_path / "campaigns"),
         "runtime": {},
-        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+        "paths": {
+            key: str(tmp_path / key) for key in PATH_FIELDS | {"operator_config"}
+        },
     }
     cfg["paths"]["miner_password_file"] = str(tmp_path / "password")
     with pytest.raises(Rejected) as retired:
