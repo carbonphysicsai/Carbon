@@ -16,8 +16,10 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slices 1 to 5 implemented (engineering evidence only), Targon
-and Mira excepted (below). Slice 2's live acceptance (completions with miner-held
+**Status:** slices 1 to 5 implemented, and slice 6's engineering seam
+(engineering evidence only), Targon and Mira excepted (below). Slice 6's run
+itself is a person's, on a clean machine
+(`docs/development/FRESH_MINER_JOURNEY.md`). Slice 2's live acceptance (completions with miner-held
 Chutes and Engy keys, and a battery autonomous launch with each) is pending
 the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
 same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
@@ -207,6 +209,26 @@ pending Hermes and the miner's keys.
     otherwise. Per this ticket the slice records that and stops: a network
     door into a miner's machine is an owner decision. Mira stays an
     unavailable integration, and the agent provision closes without it.
+- **Slice 6 (the fresh-miner journey):** `carbon/battery/remote_submission.py`,
+  the campaign's intake path, the profile's `battery_intake`, setup's
+  intake check, and the runbook `docs/development/FRESH_MINER_JOURNEY.md`;
+  `tests/cpu/test_battery_remote_submission.py` covers it.
+- **Recorded engineering decisions (slice 6, 2026-10-02):**
+  - *A campaign submits through the validator's intake when the validator
+    runs elsewhere.* The frozen candidate is built by `intake_client`, signed
+    by the miner's own signer (`btauth/1`), and posted to the intake named in
+    the profile. Its status is then asked until there is a verdict. One
+    submission per epoch: its id is recorded (owner-only) the moment the
+    intake answers, so a later attempt only asks its status. A refusal or a
+    wait that runs out is not a verdict and consumes no epoch.
+  - *An intake is https, or loopback.* The intake binds loopback until the
+    owner's exposure record exists (`OWNER-…INTAKE-EXPOSURE-NN`, the §4
+    security review). This slice reaches an exposed intake when there is one;
+    it does not expose one.
+  - *The run is a person's.* The journey needs a clean machine, a registered
+    hotkey, the miner's keys and accounts and a reachable validator, none of
+    which this repository holds. The runbook says what to do and what to
+    record, and closes no Gap.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
