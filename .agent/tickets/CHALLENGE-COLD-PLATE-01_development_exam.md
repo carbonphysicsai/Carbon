@@ -132,7 +132,13 @@ below is a provisional DEVELOPMENT value with its basis beside it.
    package reference against the rungs.
 2. `carbon/cold_plate/` `domain`, `analytic`, `openfoam`, `analysis` and
    `population`, plus `scripts/dev/cold_plate/reference/`, with tests.
-3. The pilot, and a readiness record update.
+3. The pilot. Its readiness record, v5 (PILOTED, PROCEED), is held for one
+   batched relay with the motor and photonic records
+   (CHALLENGE-READINESS-RELAY-01).
+   - **Why it is held.** The Pilot Designer relays each Challenge's latest
+     record, and the owner-approved Ask Carbon release pins the Pilot
+     Designer's bytes. So a record bump needs an Ask Carbon candidate
+     reconciliation, and one is better than three.
 4. Pools, the exam (gates, feasibility, scores), baselines, and the readiness
    record.
 

@@ -72,26 +72,12 @@ def test_the_summary_keeps_reference_and_infrastructure_failures_apart():
 
 def test_no_scoped_challenge_claims_evidence_it_does_not_have():
     records = committed()
-    for cid in ("electric-motor-magnetics",):
+    for cid in ("chip-cold-plate", "electric-motor-magnetics"):
         s = readiness.summary(records[cid])
         assert s["cases_ok"] == 0
         assert s["reference_execution"] == "SCOPED"
         assert s["recommendation"] == "NONE"
         assert len(s["cost_items_unknown"]) == 7
-
-
-def test_the_cold_plate_record_counts_its_pilot_from_the_records():
-    """CHALLENGE-COLD-PLATE-01: PILOTED with 20 OK cases (rung 7 and the
-    pilot) and two REFERENCE_INVALID diagnostics, recounted from records."""
-    s = readiness.summary(committed()["chip-cold-plate"])
-    assert s["reference_execution"] == "PILOTED"
-    assert (s["cases_ok"], s["reference_failures"], s["infrastructure_failures"]) == (
-        20,
-        2,
-        0,
-    )
-    assert s["recommendation"] == "PROCEED"
-    assert s["limits_awaiting_approval"] == s["limits_declared"] == 7
 
 
 def _mutated(cid, change):
@@ -114,46 +100,38 @@ def _set(path, value):
 REFUSALS = [
     # missing evidence promoted to a pass
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("maturity", "reference_execution"), "PILOTED"),
         "maturity_without_evidence",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("recommendation", "decision"), "PROCEED"),
         "recommendation_without_evidence",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("recommendation", "decision"), "NARROW"),
         "recommendation_without_evidence",
     ),
     # unsupported units and versions
-    (
-        "electric-motor-magnetics",
-        _set(("outputs", 0, "unit"), "celsius"),
-        "unsupported_unit",
-    ),
+    ("chip-cold-plate", _set(("outputs", 0, "unit"), "celsius"), "unsupported_unit"),
     (BATTERY, _set(("limits", 0, "unit"), "percent"), "unsupported_unit"),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("schema",), "carbon.challenge-readiness.v1"),
         "unsupported_schema",
     ),
-    (
-        "electric-motor-magnetics",
-        _set(("record_version",), 0),
-        "unsupported_record_version",
-    ),
-    ("electric-motor-magnetics", _set(("status",), "QUALIFIED"), "unsupported_status"),
+    ("chip-cold-plate", _set(("record_version",), 0), "unsupported_record_version"),
+    ("chip-cold-plate", _set(("status",), "QUALIFIED"), "unsupported_status"),
     # identities
     (
-        "electric-motor-magnetics",
-        _set(("challenge_id",), "electric-motor-magneticss"),
+        "chip-cold-plate",
+        _set(("challenge_id",), "chip-cold-plates"),
         "unknown_challenge",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("tracking",), "carbonphysicsai/Carbon#999"),
         "tracking_mismatch",
     ),
@@ -171,11 +149,7 @@ REFUSALS = [
     (BATTERY, _set(("pilots", 0, "outcomes", "PROBABLY_FINE"), 1), "unknown_outcome"),
     (BATTERY, _set(("pilots", 0, "outcomes"), {}), "pilot_without_cases"),
     # unknown is not zero
-    (
-        "electric-motor-magnetics",
-        _set(("costs", 0, "usd"), 0),
-        "unknown_cost_with_amount",
-    ),
+    ("chip-cold-plate", _set(("costs", 0, "usd"), 0), "unknown_cost_with_amount"),
     (BATTERY, _set(("costs", 0, "evidence"), None), "measured_cost_without_evidence"),
     (BATTERY, _set(("costs", 0, "usd"), None), "cost_amount_required"),
     # proposed is not approved
@@ -185,28 +159,28 @@ REFUSALS = [
         "approved_limit_without_scientific_approval",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("population", "approved"), "anything"),
         "approved_population_not_supported",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("reviews", "security"), {"state": "APPROVED", "authority": None}),
         "approval_without_authority",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("reviews", "launch"), {"state": "APPROVED", "authority": "OWNER-X"}),
         "launch_approved_before_other_reviews",
     ),
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         _set(("reviews", "customer"), {"state": "NOT_STARTED", "authority": "OWNER-X"}),
         "authority_without_approval",
     ),
     # the training budget study (OWNER-TRAINING-BUDGET-STUDY-01)
     (
-        "electric-motor-magnetics",
+        "chip-cold-plate",
         lambda d: d.pop("training_budget_study"),
         "exact_keys_required",
     ),
@@ -291,9 +265,9 @@ def test_the_table_command_renders_and_refuses_an_invalid_directory(tmp_path, ca
     assert main(["table"]) == 0
     table = capsys.readouterr().out
     assert BATTERY in table and "PROCEED" in table and "DEFER" in table
-    bad = copy.deepcopy(committed()["electric-motor-magnetics"])
+    bad = copy.deepcopy(committed()["chip-cold-plate"])
     bad["maturity"]["reference_execution"] = "CAMPAIGN_COMPLETE"
-    (tmp_path / "electric-motor-magnetics.v1.json").write_text(json.dumps(bad))
+    (tmp_path / "chip-cold-plate.v1.json").write_text(json.dumps(bad))
     assert main(["table", "--records", str(tmp_path)]) == 2
     assert json.loads(capsys.readouterr().out)["refused"] == (
         "maturity_without_evidence"
@@ -301,8 +275,8 @@ def test_the_table_command_renders_and_refuses_an_invalid_directory(tmp_path, ca
 
 
 def test_a_record_must_live_under_its_own_name(tmp_path):
-    document = committed()["electric-motor-magnetics"]
-    (tmp_path / "motor.json").write_text(json.dumps(document))
+    document = committed()["chip-cold-plate"]
+    (tmp_path / "cold-plate.json").write_text(json.dumps(document))
     with pytest.raises(readiness.ReadinessError) as refused:
         readiness.load_all(tmp_path)
     assert refused.value.code == "record_filename_mismatch"

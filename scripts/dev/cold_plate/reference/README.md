@@ -223,4 +223,5 @@ already narrowed:
 - discretization is about a tenth of the baseline's error;
 - the conventional method leaves a measurable margin for a learned model.
 
-The open items are in the readiness record.
+The open items are listed in the ticket. The readiness record carries them
+once it is relayed (CHALLENGE-READINESS-RELAY-01).
