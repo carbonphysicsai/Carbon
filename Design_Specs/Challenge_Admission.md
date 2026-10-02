@@ -14,6 +14,19 @@ are internal. Results may be archived and keep their meaning under the rule and
 permissions they were produced with (invariant 10). Mainnet iteration is a
 separate, undecided rule; nothing here transfers to it.
 
+**Combined run (OWNER-ADMISSION-COMBINED-01, 2026-10-02).** Tracks A and B
+now run as one admission test per Challenge and ladder rung. It has one
+study sheet, one panel (legitimate and attack constructions together), one
+fresh confirmation set and one ledger. Score tuning and the design optimizer
+run inside it: Mode X belongs to the attack side, Mode D to the value side.
+The run reports three separate verdicts:
+- construction integrity;
+- adversarial score;
+- value.
+
+Any one fails the rung, and none compensates for another. The sections below
+still define each track's checks.
+
 **Review moves from every change to every finding.** Permission expansion
 needs no review in advance; every expansion is recorded (§6.1); a finding
 escalates and is never suppressed (§6.2); the review is of the state reached,
