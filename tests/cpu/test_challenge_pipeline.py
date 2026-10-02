@@ -58,7 +58,6 @@ def _locked(protocol):
         state="LOCKED",
         version="1.0",
         suite_version="suite-v1",
-        reference_hardware="reference-host",
         lock={"by": "Fitz", "on": "2026-10-02", "ref": "OWNER-EXAMPLE-LOCK"},
     )
     for step in locked["phase_1"]:
@@ -241,18 +240,19 @@ def test_results_and_timings_need_their_evidence(protocol, battery):
     ids, locked = {"f05", "f04"}, _locked(protocol)
     with pytest.raises(PipelineError, match="frozen run"):
         validate_record(dict(battery, rho=0.5), protocol, ids)
+    bare = dict(protocol, reference_hardware=None, reference_hardware_approval=None)
     with pytest.raises(PipelineError, match="no reference hardware"):
-        validate_record(dict(battery, p50s=5.0, hw="owner host"), protocol, ids)
+        validate_record(dict(battery, p50s=5.0, hw="owner host"), bare, ids)
     flow = dict(battery, family="f04", stage="queued")
     with pytest.raises(PipelineError, match="off the reference hardware"):
         validate_record(dict(flow, p50s=5.0, hw="owner host"), locked, ids)
     with pytest.raises(PipelineError, match="timing evidence"):
-        validate_record(dict(flow, p50s=5.0, hw="reference-host"), locked, ids)
+        validate_record(dict(flow, p50s=5.0, hw="runpod-cpu5c-16vcpu"), locked, ids)
     evidence = dict(
         battery["evidence"], timing="carbon/challenge_pipeline/protocol.json"
     )
     validate_record(
-        dict(flow, p50s=5.0, hw="reference-host", evidence=evidence), locked, ids
+        dict(flow, p50s=5.0, hw="runpod-cpu5c-16vcpu", evidence=evidence), locked, ids
     )
     with pytest.raises(PipelineError, match="not in the repository"):
         validate_record(
@@ -281,3 +281,13 @@ def test_the_lock_is_step_eight_and_the_process_owners(protocol):
     early["phase_1"][0]["status"] = "done"
     with pytest.raises(PipelineError, match="done needs its evidence"):
         validate_protocol(early)
+
+
+def test_the_reference_hardware_is_the_technical_owners_approval(protocol):
+    assert protocol["reference_hardware"] == "runpod-cpu5c-16vcpu"
+    validate_protocol(protocol)
+    for approval in (None, dict(SIGNED, by="Fitz"), dict(SIGNED, by="Ryan", ref=" ")):
+        with pytest.raises(PipelineError):
+            validate_protocol(dict(protocol, reference_hardware_approval=approval))
+    with pytest.raises(PipelineError, match="hardware it approves"):
+        validate_protocol(dict(protocol, reference_hardware=None))

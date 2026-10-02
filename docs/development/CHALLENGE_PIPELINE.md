@@ -13,8 +13,10 @@ from it. Network activation stays a separate owner decision.
 ## Protocol
 
 **Phase 1: battery defines the protocol.** It is not locked, so no other
-family has entered the pipeline. Suite version, reference hardware and the
-protocol version are set during Phase 1 and approved at lock.
+family has entered the pipeline. The suite and protocol versions are set
+during Phase 1 and approved at lock.
+
+**Reference timing hardware** (`runpod-cpu5c-16vcpu`, approved by Ryan on 2026-10-02, OWNER-CHALLENGE-ROADMAP-02): RunPod CPU pod, flavor cpu5c with no fallback, 16 vCPU, the challenge's pinned image; each timing study records the CPU model it ran on.
 
 | Step | Work | Output | Ticket | Status |
 | --- | --- | --- | --- | --- |
