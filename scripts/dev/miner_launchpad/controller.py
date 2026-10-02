@@ -34,6 +34,13 @@ STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
+    # Carbon's wordmark and the website's Montreal font, served from this
+    # controller so the page loads nothing from the internet. The font files
+    # are the website's own (their digests are the website baseline
+    # manifest's); the owner's licence covers bundling them (2026-10-02).
+    "/brand/brand-2.svg": ("brand/brand-2.svg", "image/svg+xml"),
+    "/fonts/neue-0.otf": ("fonts/neue-0.otf", "font/otf"),
+    "/fonts/neue-1.otf": ("fonts/neue-1.otf", "font/otf"),
 }
 
 
@@ -579,7 +586,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         )
         self.end_headers()
         self.wfile.write(body)
@@ -635,6 +642,16 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path.startswith("/api/v1/guide/"):
+                # The wiring guide, read from this checkout and rendered by
+                # the page: nothing is fetched from the internet. Only the
+                # named guides are read.
+                from scripts.dev.miner_launchpad import guide
+
+                name = self.path.removeprefix("/api/v1/guide/")
+                if name not in guide.GUIDES:
+                    raise Rejected("guide_not_found", 404)
+                self.reply(200, guide.document(name))
             elif self.path == "/api/v1/setup":
                 # Authenticated: the page shows the miner's own choices.
                 self.check(authenticated=True)

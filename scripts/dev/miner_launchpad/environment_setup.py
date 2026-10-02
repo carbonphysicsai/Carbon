@@ -39,7 +39,9 @@ Only launchable choices are offered.
   setup they run (the decision's amendment, LINKONLY-D5 to D9). Setup
   reaches it with the miner's own SSH, checks what practice needs there and
   starts nothing; for a machine with Docker, sending the pinned worker is its
-  own step, with consent to the destination and the image.
+  own step, with consent to the destination and the image. Its "Where's your
+  GPU?" cards (LINKONLY-D10) set the transport for each setup the wiring
+  guide covers and show that setup's notes and commands from the guide.
 - Agent (slice 5) offers Carbon's autonomous agent or Hermes.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
@@ -51,7 +53,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -80,6 +84,30 @@ LOCAL_GPU = "this-machine-gpu"
 REMOTE = "remote-machine"
 #: The wiring guide setup names for it.
 REMOTE_GUIDE = "docs/development/MINER_REMOTE_SETUP.md"
+#: Where a miner's GPU can be beyond this machine, as setup's "Where's your
+#: GPU?" cards show it (LINKONLY-D10): each setup the wiring guide covers, the
+#: transport it takes and its section there. A machine or VM with Docker is
+#: reached as `ssh-docker`; a container rental as `ssh-container`. These are
+#: notes for the miner's own accounts: Carbon calls no provider API and
+#: starts, stops and bills none of them (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+REMOTE_GUIDES = (
+    ("runpod", "RunPod", "ssh-container", "RunPod pods"),
+    ("lium", "Lium", "ssh-container", "Lium (Bittensor subnet 51)"),
+    ("targon", "Targon", "ssh-docker", "Targon VMs (Bittensor subnet 4)"),
+    ("vast", "Vast.ai", "ssh-container", "Vast.ai"),
+    ("lambda", "Lambda", "ssh-docker", "Lambda"),
+    ("own-server", "My own server / workstation", "ssh-docker", "Your own workstation"),
+)
+#: A command a provider documents for the miner's own machine, as the guide
+#: quotes it.
+GUIDE_COMMANDS = {
+    "lambda": (
+        (
+            "On the instance: run docker without sudo, then log in again",
+            'sudo adduser "$(id -un)" docker',
+        ),
+    ),
+}
 #: The retired choice of a GPU rented with the miner's provider key (C-MLP-03
 #: slices 4 and 4b), refused by name (OWNER-MINER-COMPUTE-LINK-ONLY-01).
 RETIRED_RENTED_GPU = retired.RENTED_CHOICE
@@ -306,8 +334,85 @@ def _closed(value, required, optional=frozenset()):
         raise SetupRefused(extra[0], "unknown_field")
 
 
-def choices() -> dict:
-    """What each step offers: only what launches today, each with its cost."""
+def signer_command() -> str:
+    """How the miner starts their signer, from this controller's environment
+    when it holds the signer, otherwise by name."""
+    binary = Path(sys.executable).with_name("carbon-miner-signer")
+    name = shlex.quote(str(binary)) if binary.is_file() else "carbon-miner-signer"
+    return name + " --wallet <your wallet> --hotkey <your hotkey>"
+
+
+def guide_commands(guide_id, transport, gpu_manifest=None) -> list[dict]:
+    """The commands a miner runs for one remote setup, each to copy.
+
+    `<destination>` is the SSH destination the miner types in setup; the page
+    fills it in. A container rental pulls the worker image from a registry the
+    miner controls, so its first command is the push helper, with the GPU
+    worker setup found when there is one (otherwise the helper builds it).
+    """
+    commands = []
+    if transport == "ssh-container":
+        push = shlex.quote(str(REPO / "scripts/dev/push_worker_image.sh"))
+        if gpu_manifest:
+            push += " --manifest " + shlex.quote(str(gpu_manifest))
+        commands.append(
+            {
+                "label": "Push your worker image to a registry you control "
+                "(after your own docker login)",
+                "command": push + " <registry>/<you>/carbon-gpu-worker",
+            }
+        )
+    commands += [
+        {"label": "Load your SSH key into your agent", "command": "ssh-add"},
+        {
+            "label": "Connect once by hand to accept the host key",
+            "command": "ssh <destination>",
+            "destination": True,
+        },
+        {
+            "label": "Check it answers without a prompt, as Carbon will",
+            "command": "ssh -o BatchMode=yes <destination> true",
+            "destination": True,
+        },
+    ]
+    for label, command in GUIDE_COMMANDS.get(guide_id, ()):
+        commands.append({"label": label, "command": command})
+    return commands
+
+
+def remote_guides(gpu_manifest=None) -> dict:
+    """The "Where's your GPU?" cards beyond this machine, from the guide.
+
+    Each card carries its transport, its section of the wiring guide as text
+    data (UNVERIFIED marks included) and its commands. When this checkout has
+    no guide, the cards keep their transport and commands and show no steps.
+    """
+    from scripts.dev.miner_launchpad import guide
+
+    document = guide.document("remote-setup")
+    parsed = document["blocks"]
+    return {
+        "source": document["source"],
+        "notes": guide.section(parsed, "Per-provider notes", nested=False) or [],
+        "cards": [
+            {
+                "id": guide_id,
+                "display_name": name,
+                "transport": transport,
+                "anchor": guide.slug(heading),
+                "steps": guide.section(parsed, heading) or [],
+                "commands": guide_commands(guide_id, transport, gpu_manifest),
+            }
+            for guide_id, name, transport, heading in REMOTE_GUIDES
+        ],
+    }
+
+
+def choices(gpu_manifest=None) -> dict:
+    """What each step offers: only what launches today, each with its cost.
+
+    `gpu_manifest`, when setup has found the GPU worker, goes into the remote
+    cards' push command."""
     from carbon.development_session.model_provider import ADAPTERS
 
     inference = []
@@ -411,6 +516,8 @@ def choices() -> dict:
                 ),
                 "note": SPEED_ONLY_NOTE,
                 "guide": REMOTE_GUIDE,
+                # The "Where's your GPU?" cards, from the guide (LINKONLY-D10).
+                "guides": remote_guides(gpu_manifest),
             },
         ],
         "agent": [
@@ -1099,6 +1206,9 @@ class EnvironmentSetup:
             "registered_hotkey": record.get("hotkey"),
             # The images the installer built here, for setup to fill in.
             "installed": installed.read(self.root.parent),
+            # Each image setup fills in, where it was found, or the one
+            # command that builds it (LINKONLY-D10: no typed paths).
+            "images": installed.found(self.root.parent, REPO),
             "steps": {
                 "inference": _public(
                     record.get("inference"),
@@ -1375,7 +1485,13 @@ class EnvironmentSetup:
 
     def offered(self) -> dict:
         """What each step offers, with the exact files a Hermes choice writes."""
-        value = choices()
+        from scripts.dev.miner_launchpad import installed
+
+        found = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
+        value = choices(gpu_manifest=found["path"])
+        # How the miner starts their signer: the first step, before setup can
+        # ask it anything (the Agent step's check confirms it).
+        value["signer"] = {"command": signer_command(), "checked_by": "agent"}
         # The Challenges a frozen candidate can be submitted to through a
         # validator's intake, each named in review (C-MLP-04).
         value["intake_challenges"] = intake_challenges()
