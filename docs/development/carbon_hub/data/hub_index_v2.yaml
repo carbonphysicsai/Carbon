@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T02:14:26Z"
+  captured_at_utc: "2026-10-02T02:40:34Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "d3ac1e126cbd07683099cf1f81eb7e32fb220615"
+  authority_snapshot_commit: "cf097f9b32c05fd5c77dfe41f176d73a726d8e65"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10559,6 +10559,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T02:14:02Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4-RENTED-GPU"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4: battery practice on a GPU rented on the miner's own RunPod or Lium account. A rented pod runs one job. The pinned GPU worker, pushed by the miner to a registry of their own and named by digest, starts Carbon's fixed job server (carbon.compute.job_server). The controller, on the miner's machine, stages the job's public inputs, runs them and fetches the output with a per-job token, so no provider key, hotkey or signer leaves that machine. RentedRunner has the carrier's signature. It provisions through ComputeService: balance observed first, hourly ceiling and deadline bound, the miner's budget applied, an ownership tag on the resource, and a durable job record so a restart never resends a different request. It terminates and verifies every pod, and records the provider's own charge when one is reported. A Lium adapter is added, and the RunPod adapter now sends the start command and reads per-pod charges. Setup offers the rented GPU with its live balance and price check, which rents nothing. Lium jobs travel over plain HTTP, as recorded. Targon runs no container image today, so it stays unavailable with that cause, and a VM-and-SSH route is an owner decision. Real practices on each provider are the acceptance. Engineering evidence only; nothing is qualified, and no chain write is made."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T02:28:50Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
