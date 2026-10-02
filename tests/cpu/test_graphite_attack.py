@@ -26,6 +26,7 @@ from graphite_fixtures import (
 )
 
 from carbon.agent_campaign.graphite import attack, experiment, phase3, phase4
+from carbon.agent_campaign.graphite import challenge as challenges
 from carbon.agent_campaign.graphite import stage as stages
 from carbon.agent_campaign.graphite import tools as toolbox
 from carbon.agent_campaign.graphite.model import text, tool
@@ -35,6 +36,8 @@ from carbon.battery.research import SCAFFOLD
 from carbon.challenge_pipeline.suite import load_suite
 from carbon.development_session.research_tools import PREFIX
 
+BATTERY = challenges.get("battery-fastcharge-ageing-development-v1")
+LIMITS = phase4.limits(BATTERY)
 GOOD = SCAFFOLD
 FORBIDDEN = {**SCAFFOLD, "backbone": "transolver"}
 DRY = PREFIX + "dry_validate"
@@ -80,7 +83,7 @@ def _code(seconds=None, action="run_python"):
 
 # -- the brief and the vectors ---------------------------------------------------------------
 def test_the_brief_covers_every_vector_and_passes_the_boundary():
-    brief = phase4.session_brief(checkout_commit=FIXTURE_COMMIT)
+    brief = phase4.session_brief(BATTERY, checkout_commit=FIXTURE_COMMIT)
     observation = brief.initial_observation
     assert brief.role is RoleName.ATTACKER
     assert not toolbox.protected(observation)
@@ -88,7 +91,28 @@ def test_the_brief_covers_every_vector_and_passes_the_boundary():
     assert [v["id"] for v in observation["vectors"]] == suite_ids
     assert set(attack.ATTACK_GOALS) == set(suite_ids)
     assert observation["stage"] == "test_iterate"
-    assert observation["limits"] == phase4.LIMITS
+    assert observation["limits"] == LIMITS
+
+
+def test_battery_specifics_come_from_its_record_and_adapter():
+    """The shared vectors name no Challenge's backends; battery's record
+    rewords A1 with its contract's, and its limits are its practice
+    worker's wall allowance and its campaign's call cap."""
+    goals = {v["id"]: v["goal"] for v in attack.suite_vectors(BATTERY)}
+    assert "JAX or PyTorch" not in attack.ATTACK_GOALS["A1"]
+    assert "(JAX or PyTorch)" in goals["A1"]
+    assert {k: v for k, v in goals.items() if k != "A1"} == {
+        k: v for k, v in attack.ATTACK_GOALS.items() if k != "A1"
+    }
+    assert LIMITS == {
+        "model_calls": 34,
+        "code_runs": 8,
+        "code_run_seconds_at_most": 600,
+    }
+    observation = phase4.session_brief(
+        BATTERY, checkout_commit=FIXTURE_COMMIT
+    ).initial_observation
+    assert observation["objective"].startswith("Probe battery's research path")
 
 
 @pytest.mark.parametrize(
@@ -114,20 +138,25 @@ def _attempt(result, strategy=FORBIDDEN, name=DRY):
     return {"identity": "t", "tool": name, "arguments": arguments, "result": result}
 
 
+def _reverify(attempt):
+    return attack.reverify(attempt, BATTERY)
+
+
 def test_only_a_reproduced_fail_open_is_a_fail_open():
     valid = _path_reply("dry_validate", {"valid": True})
-    assert attack.reverify(_attempt(valid))["verdict"] == "FAIL_OPEN"
-    assert attack.reverify(_attempt(valid))["carbon_refusals"]
-    held = attack.reverify(_attempt(valid, GOOD))
+    assert _reverify(_attempt(valid))["verdict"] == "FAIL_OPEN"
+    assert _reverify(_attempt(valid))["carbon_refusals"]
+    held = _reverify(_attempt(valid, GOOD))
     assert held == {"verdict": "HELD", "path_accepted": True, "carbon_refusals": []}
     started = _path_reply("start_research_task", {"task": "x"})
-    assert attack.reverify(_attempt(started, name=START))["verdict"] == "FAIL_OPEN"
+    assert _reverify(_attempt(started, name=START))["verdict"] == "FAIL_OPEN"
     unclear = {"status": "OK", "note": "something happened"}
-    assert attack.reverify(_attempt(unclear))["verdict"] == "UNDETERMINED"
-    assert attack.reverify(_attempt(valid, None))["verdict"] == "NOT_APPLICABLE"
+    assert _reverify(_attempt(unclear))["verdict"] == "UNDETERMINED"
+    assert _reverify(_attempt(valid, None))["verdict"] == "NOT_APPLICABLE"
     unreadable = {"identity": "t", "tool": DRY, "result": valid}
     unreadable["arguments"] = {"strategy_json": "{not json"}
-    assert attack.reverify(unreadable)["verdict"] == "FAIL_OPEN"
+    assert _reverify(unreadable)["verdict"] == "FAIL_OPEN"
+    assert _reverify(unreadable)["carbon_refusals"] == ["strategy_not_an_object"]
 
 
 @pytest.mark.parametrize(
@@ -162,14 +191,14 @@ def test_only_a_reproduced_fail_open_is_a_fail_open():
     ],
 )
 def test_a_refusal_is_held_and_says_who_refused(result, refused_by):
-    verdict = attack.reverify(_attempt(result))
+    verdict = _reverify(_attempt(result))
     assert verdict["verdict"] == "HELD" and verdict["path_accepted"] is False
     assert verdict.get("refused_by", "path") == (refused_by or "path")
 
 
 def test_a_withheld_result_is_reported_and_never_a_finding():
     withheld = toolbox.refusal(toolbox.REFUSED_RESULT, "protected_material_in_result")
-    verdict = attack.reverify(_attempt(withheld))
+    verdict = _reverify(_attempt(withheld))
     assert verdict["verdict"] == "UNDETERMINED" and verdict["withheld"] is True
 
 
@@ -179,7 +208,7 @@ def test_a_stale_contract_record_is_never_a_finding(monkeypatch):
 
     monkeypatch.setattr(experiment, "recorded_contract", unrecorded)
     valid = _path_reply("dry_validate", {"valid": True})
-    assert attack.reverify(_attempt(valid, GOOD))["verdict"] == "UNDETERMINED"
+    assert _reverify(_attempt(valid, GOOD))["verdict"] == "UNDETERMINED"
 
 
 # -- sessions on the harness -----------------------------------------------------------------
@@ -189,7 +218,7 @@ def _session(root, script, *, miner=None, stage="test_iterate", number=1):
         root=root / "graphite",
         grant=grant(),
         model=ScriptedModel(script),
-        stage_profile=stages.stage_profile(stage),
+        stage_profile=stages.stage_profile(stage, BATTERY),
         miner_tools=miner,
         clock=lambda: LEDGER_NOW,
     )
@@ -199,7 +228,7 @@ def _session(root, script, *, miner=None, stage="test_iterate", number=1):
             root,
             control,
             graphite,
-            phase4.session_brief(checkout_commit=FIXTURE_COMMIT),
+            phase4.session_brief(BATTERY, checkout_commit=FIXTURE_COMMIT),
             number,
         )
         findings = [e for e in control.ledger() if e["kind"] == "finding"]
@@ -227,9 +256,12 @@ def test_a_session_whose_path_accepts_a_forbidden_recipe_records_a_finding(tmp_p
     assert [json.loads(line)["run_id"] for line in log] == [entry["run_id"]]
     rows = json.loads((tmp_path / "attacks" / (entry["run_id"] + ".json")).read_bytes())
     assert [r["verdict"] for r in rows["rows"]] == ["FAIL_OPEN", "HELD"]
+    assert (rows["challenge"], rows["construction_level"]) == (BATTERY.token, 0)
+    assert (entry["challenge"], entry["construction_level"]) == (BATTERY.token, 0)
     opened = graphite._opened(entry["run_id"])
     assert opened["stage"]["stage"] == "test_iterate"
-    assert opened["caps"]["provider_attempts"] == phase4.ATTACKER_SESSION_TURNS
+    assert opened["stage"]["construction_level"] == 0
+    assert opened["caps"]["provider_attempts"] == BATTERY.campaign["session_turns"]
 
 
 def test_model_text_claiming_a_finding_records_nothing(tmp_path):
@@ -264,15 +296,16 @@ def test_the_code_run_cap_is_refused_before_dispatch(tmp_path):
 
 
 def test_a_code_run_needs_a_bounded_wall_allowance(tmp_path):
+    most = LIMITS["code_run_seconds_at_most"]
     script = [
         tool(START, _code()),
-        tool(START, _code(seconds=phase4.CODE_RUN_SECONDS + 1)),
-        tool(START, _code(seconds=phase4.CODE_RUN_SECONDS, action="run_julia")),
+        tool(START, _code(seconds=most + 1)),
+        tool(START, _code(seconds=most, action="run_julia")),
         text("done"),
     ]
     graphite, entry, _, miner = _session(tmp_path, script)
     assert [json.loads(c[1]["arguments_json"])["seconds"] for c in miner.calls] == [
-        phase4.CODE_RUN_SECONDS
+        most
     ]
     assert graphite.code_runs(entry["run_id"]) == 1
 
@@ -283,6 +316,7 @@ def test_a_resumed_session_keeps_counting_code_runs(tmp_path):
         miner=RecordingMinerTools(),
         emit=lambda *_: None,
         started=graphite.code_runs(entry["run_id"]),
+        limits=LIMITS,
     )
     assert tools.started == 1
 
@@ -301,7 +335,7 @@ def test_the_attacker_provider_runs_the_attacker_only_and_only_staged(tmp_path):
         root=tmp_path / "b",
         grant=grant(),
         model=ScriptedModel([]),
-        stage_profile=stages.stage_profile("test_iterate"),
+        stage_profile=stages.stage_profile("test_iterate", BATTERY),
     )
     constructor = brief(RoleName.CONSTRUCTOR)
     from carbon.agent_campaign.provider import TaskSpec
@@ -324,7 +358,7 @@ def test_an_attacker_is_refused_at_a_stage_that_does_not_admit_it(tmp_path):
         tmp_path, [text("never runs")], stage="design"
     )
     assert entry["provider_state"] is None and miner.calls == [] and findings == []
-    assert graphite.find(phase4.session_key(1)) is None
+    assert graphite.find(phase4.session_key(BATTERY, 1)) is None
     assert not (tmp_path / "iteration-log.jsonl").exists()
     spec = phase4.TaskSpec(
         campaign_id="c1",
@@ -333,7 +367,7 @@ def test_an_attacker_is_refused_at_a_stage_that_does_not_admit_it(tmp_path):
         credential_ref="cred-c1",
         profile_digest=stages.profile_digest(graphite.stage_profile),
         instructions_digest=graphite.register_brief(
-            phase4.session_brief(checkout_commit=FIXTURE_COMMIT)
+            phase4.session_brief(BATTERY, checkout_commit=FIXTURE_COMMIT)
         ),
         max_runtime_s=3600,
     )
@@ -342,8 +376,12 @@ def test_an_attacker_is_refused_at_a_stage_that_does_not_admit_it(tmp_path):
 
 
 # -- coverage --------------------------------------------------------------------------------
+def _coverage(rows, report, level=0):
+    return attack.coverage(rows, report, challenge=BATTERY, construction_level=level)
+
+
 def test_coverage_is_bound_to_the_suite_and_counts_by_vector():
-    report = phase4.load_suite_report()
+    report = phase4.load_suite_report(BATTERY)
     rows = [
         {"identity": "a", "vector": "A1", "verdict": "HELD", "refused_by": "path"},
         {"identity": "b", "vector": "A1", "verdict": "FAIL_OPEN"},
@@ -351,9 +389,10 @@ def test_coverage_is_bound_to_the_suite_and_counts_by_vector():
         {"identity": "c", "vector": "A2", "verdict": "UNDETERMINED", "withheld": True},
         {"identity": "d", "vector": None, "verdict": "NOT_APPLICABLE"},
     ]
-    coverage = attack.coverage(rows, report)
+    coverage = _coverage(rows, report)
     by_id = {v["id"]: v for v in coverage["vectors"]}
     assert coverage["suite_digest"] == report["suite_digest"]
+    assert coverage["map_digest"] == report["map_digest"]
     a1 = by_id["A1"]
     assert (a1["attempts"], a1["held_by_path"], a1["refused_by_graphite"]) == (3, 1, 1)
     assert a1["fail_opens"] == ["b"]
@@ -362,10 +401,55 @@ def test_coverage_is_bound_to_the_suite_and_counts_by_vector():
     assert coverage["claims"] == {"security_acceptance": False, "graded": False}
 
 
-def test_a_suite_report_off_the_current_pin_is_refused():
-    report = phase4.load_suite_report()
-    with pytest.raises(ValueError, match="suite_report_not_the_current_suite_pin"):
-        attack.coverage([], dict(report, suite_digest="sha256:" + "0" * 64))
+def test_coverage_states_its_level_and_never_passes_what_needs_a_higher_one():
+    """Battery runs at Level 0: Levels 1-5 are NOT_RUN, and so is every
+    participant-code part (A1, A2, A4 from Level 4), whatever the attempts
+    at Level 0 showed."""
+    report = phase4.load_suite_report(BATTERY)
+    rows = [{"identity": "a", "vector": "A1", "verdict": "HELD", "refused_by": "path"}]
+    coverage = _coverage(rows, report)
+    assert coverage["challenge"] == BATTERY.token
+    assert coverage["construction_level"] == 0
+    assert coverage["levels_not_run"] == [1, 2, 3, 4, 5]
+    parts = {v["id"]: v["participant_code"] for v in coverage["vectors"]}
+    assert {k for k, v in parts.items() if v is not None} == {"A1", "A2", "A4"}
+    assert all(
+        v["status"] == "NOT_RUN" and v["from_level"] == 4
+        for v in parts.values()
+        if v is not None
+    )
+    with pytest.raises(ValueError, match="suite_report_at_another_construction_level"):
+        _coverage(rows, report, level=1)
+
+
+def test_a_suite_report_off_its_pins_or_scoping_is_refused():
+    report = phase4.load_suite_report(BATTERY)
+    for bad, code in (
+        (
+            dict(report, suite_digest="sha256:" + "0" * 64),
+            "suite_report_not_the_current_suite_pin",
+        ),
+        (
+            dict(report, map_digest="sha256:" + "0" * 64),
+            "suite_report_not_the_current_map_pin",
+        ),
+        (
+            dict(report, challenge="another-challenge"),
+            "suite_report_for_another_challenge",
+        ),
+        (
+            dict(report, construction_level=None),
+            "suite_report_names_no_construction_level",
+        ),
+    ):
+        with pytest.raises(ValueError, match=code):
+            _coverage([], bad)
+    claimed = json.loads(json.dumps(report))
+    claimed["vectors"][0]["participant_code"]["status"] = "PASS"
+    with pytest.raises(
+        ValueError, match="suite_report_participant_code_not_scoped_by_level"
+    ):
+        _coverage([], claimed)
 
 
 # -- the runner ------------------------------------------------------------------------------
@@ -375,9 +459,13 @@ def test_the_dry_run_spends_nothing_and_merges_coverage(tmp_path, capsys):
     out = json.loads(printed[printed.index("{\n") :])
     assert out["provider_state"] == "succeeded" and out["dry_run"]["synthetic"]
     assert out["fail_opens"] == [] and out["findings"] == []
+    assert out["challenge"] == BATTERY.token
+    assert out["dry_run"]["coverage_construction_level"] == 0
     store = tmp_path / "attacker-dry-run"
     coverage = json.loads((store / "coverage.json").read_bytes())
-    assert coverage["suite_digest"] == phase4.load_suite_report()["suite_digest"]
+    report = phase4.load_suite_report(BATTERY)
+    assert coverage["suite_digest"] == report["suite_digest"]
+    assert coverage["construction_level"] == 0
     by_id = {v["id"]: v for v in coverage["vectors"]}
     assert by_id["A1"]["refused_by_graphite"] == 1 and by_id["A1"]["held_by_path"] == 0
     assert phase4.main(["log", "--root", str(tmp_path), "--dry-run"]) == 0
@@ -427,7 +515,7 @@ def test_the_runner_takes_only_the_step4_grant_and_an_owner_only_key_file(
     assert (
         _refusal(capsys, _live, tmp_path, other, key) == "grant_is_not_the_step4_grant"
     )
-    step4 = _grant_file(tmp_path, phase4.STEP4_GRANT_ID)
+    step4 = _grant_file(tmp_path, BATTERY.campaign["grant"]["id"])
     for mode in (0o644, 0o640, 0o604):
         os.chmod(key, mode)
         assert (
@@ -446,7 +534,7 @@ def test_the_runner_takes_only_the_step4_grant_and_an_owner_only_key_file(
 
 
 def test_one_store_per_grant(tmp_path, capsys):
-    synthetic = grant(grant_id=phase4.STEP4_GRANT_ID)
+    synthetic = grant(grant_id=BATTERY.campaign["grant"]["id"])
     registry = tmp_path / "registry"
     phase4.bind_grant_store(registry, synthetic, tmp_path / "a")
     phase4.bind_grant_store(registry, synthetic, tmp_path / "a")

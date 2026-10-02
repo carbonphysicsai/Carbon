@@ -36,14 +36,17 @@ manifest, the model selection and the literature snapshot; any difference
 refuses the run.
 
 **Stage.** A provider built with a `stage_profile` (`stage.py`) runs at one
-stage of the challenge pipeline (CHALLENGE-PROTOCOL-04). It refuses:
+stage of the challenge pipeline, for one Challenge at one construction level
+(CHALLENGE-PROTOCOL-04). It refuses:
 - a role the stage's row of Graphite's permission ledger does not admit;
 - a task whose profile is not the stage profile's digest;
-- a ledger changed under it.
+- a ledger changed under it;
+- a session whose recorded construction level, or permissions, differ from
+  the Challenge's permission inventory now (PROTO4-D9).
 
-The stage is recorded in the session, and a resumed session whose stage
-changed is refused. Without a stage profile the provider behaves exactly as
-before, and its session record carries no stage (PROTO4-D3).
+The stage and level are recorded in the session, and a resumed session whose
+stage changed is refused. Without a stage profile the provider behaves
+exactly as before, and its session record carries no stage (PROTO4-D3).
 
 **Authority.** None. Results are data returned to the controller. Nothing
 here grades, scores, rewards or reads confirmation material.
@@ -348,6 +351,8 @@ class GraphiteProvider:
             return None
         return {
             "stage": self.stage_profile["stage"],
+            "challenge": self.stage_profile["challenge"],
+            "construction_level": self.stage_profile["construction_level"],
             "profile_digest": stages.profile_digest(self.stage_profile),
             "ledger_digest": self.stage_profile["ledger_digest"],
         }
@@ -659,6 +664,13 @@ class GraphiteProvider:
             )
             if opened.get("stage") != self._stage_record():
                 raise SessionMismatch("stage_changed")
+            if self.stage_profile is not None:
+                try:
+                    # The recorded level and permissions against the
+                    # Challenge's inventory now.
+                    stages.check(self.stage_profile)
+                except ValueError as error:
+                    raise SessionMismatch(str(error)) from None
         except (SessionMismatch, ValueError) as error:
             code = (
                 error.args[0]
