@@ -515,8 +515,13 @@ def test_expansion_is_recorded_bound_to_the_construction_record(tmp_path):
         permissions="sha256:" + "e" * 64,
         operator="carbon-operator",
     )
-    assert entry["version"].startswith(
-        "battery-fastcharge-ageing-development-v1/0000 sha256:"
+    from carbon.reconstruction import expansion_record
+
+    newest = expansion_record.records("battery-fastcharge-ageing-development-v1")[-1]
+    assert entry[
+        "version"
+    ] == "battery-fastcharge-ageing-development-v1/{:04d} {}".format(
+        newest["sequence"], newest["contract_digest"]
     )
     assert controller.current_profile() == "sha256:" + "e" * 64
 

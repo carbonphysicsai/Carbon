@@ -1,7 +1,7 @@
 {
  "authority": "the capability manifest, not the planning label",
  "challenge": "battery-fastcharge-ageing-development-v1",
- "construction_contract_digest": "sha256:4eec5824d3b8b1387ac53f26441685a95696be4ab85e552308198c387ea71b45",
+ "construction_contract_digest": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
  "envelope": {
   "batching": "full",
   "precision": "float32",
@@ -16,7 +16,6 @@
   "architecture.expansion",
   "architecture.heads",
   "architecture.latent_points",
-  "architecture.n_modes",
   "architecture.neighborhood_radius",
   "architecture.remat",
   "architecture.slices",
@@ -27,7 +26,6 @@
   "hybrid.symbolic_template",
   "inference.final_label_selection",
   "model_family.cgptno",
-  "model_family.fno",
   "model_family.foundax_deeponet",
   "model_family.foundax_fno",
   "model_family.geofno",
@@ -41,7 +39,6 @@
   "model_family.pcno",
   "model_family.pointnet",
   "model_family.pretrained_weights",
-  "model_family.pytorch_backend",
   "model_family.transolver",
   "model_family.two_and_three_dimensional",
   "model_family.unet1d",
@@ -76,6 +73,12 @@
    "surface": null
   },
   {
+   "applies_to": null,
+   "id": "model_family.fno",
+   "planning_level": 0,
+   "surface": null
+  },
+  {
    "applies_to": [
     "knn"
    ],
@@ -92,7 +95,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "architecture.width",
    "planning_level": 0,
@@ -106,7 +110,8 @@
   },
   {
    "applies_to": [
-    "mlp"
+    "mlp",
+    "fno"
    ],
    "id": "architecture.depth",
    "planning_level": 0,
@@ -116,6 +121,20 @@
     1,
     6,
     3
+   ]
+  },
+  {
+   "applies_to": [
+    "fno"
+   ],
+   "id": "architecture.n_modes",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "uint",
+    1,
+    61,
+    16
    ]
   },
   {
@@ -163,7 +182,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "architecture.arrhenius_features",
    "planning_level": 0,
@@ -236,7 +256,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "physical_structure.bounded_voltage_head",
    "planning_level": 0,
@@ -251,7 +272,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "physical_structure.ocv_initial_voltage",
    "planning_level": 0,
@@ -266,7 +288,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "physical_structure.capacity_fade_head",
    "planning_level": 0,
@@ -281,7 +304,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "batching.steps",
    "planning_level": 2,
@@ -296,7 +320,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "batching.batch_size",
    "planning_level": 2,
@@ -311,7 +336,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "batching.microbatches",
    "planning_level": 2,
@@ -326,7 +352,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.optimizer_family",
    "planning_level": 2,
@@ -353,7 +380,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.learning_rate",
    "planning_level": 2,
@@ -368,7 +396,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.weight_decay",
    "planning_level": 2,
@@ -383,7 +412,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.weight_decay_mask",
    "planning_level": 2,
@@ -401,7 +431,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.clip_norm",
    "planning_level": 2,
@@ -416,7 +447,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.beta1",
    "planning_level": 2,
@@ -431,7 +463,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.beta2",
    "planning_level": 2,
@@ -446,7 +479,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "optimizer.adam_epsilon",
    "planning_level": 2,
@@ -461,7 +495,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "schedule.learning_rate_curve",
    "planning_level": 2,
@@ -485,7 +520,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "schedule.warmup_steps",
    "planning_level": 2,
@@ -500,7 +536,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "schedule.min_learning_rate_ratio",
    "planning_level": 2,
@@ -515,7 +552,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "objective.relative_loss",
    "planning_level": 1,
@@ -530,7 +568,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "objective.time_weighting",
    "planning_level": 1,
@@ -549,7 +588,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "objective.h1_weight",
    "planning_level": 1,
@@ -564,7 +604,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "objective.h2_weight",
    "planning_level": 1,
@@ -579,7 +620,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "objective.spectral_weight",
    "planning_level": 1,
@@ -594,7 +636,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "stages.polish_steps",
    "planning_level": 2,
@@ -609,7 +652,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "inference.ensemble_members",
    "planning_level": 5,
@@ -624,7 +668,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "inference.tail_averaging",
    "planning_level": 5,
@@ -639,7 +684,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "inference.inference_weights",
    "planning_level": 5,
@@ -657,7 +703,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "inference.ema_decay",
    "planning_level": 5,
@@ -672,7 +719,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "inference.precision",
    "planning_level": 5,
@@ -685,6 +733,25 @@
     ],
     null,
     "float32"
+   ]
+  },
+  {
+   "applies_to": [
+    "mlp",
+    "deeponet",
+    "fno"
+   ],
+   "id": "inference.backend",
+   "planning_level": 5,
+   "surface": [
+    "train",
+    "choice",
+    [
+     "jax",
+     "pytorch"
+    ],
+    null,
+    "jax"
    ]
   },
   {
@@ -702,7 +769,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "training_data.important_region_weight",
    "planning_level": 2,
@@ -717,7 +785,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "training_data.curriculum",
    "planning_level": 2,
@@ -736,7 +805,8 @@
   {
    "applies_to": [
     "mlp",
-    "deeponet"
+    "deeponet",
+    "fno"
    ],
    "id": "training_data.hard_example_weight",
    "planning_level": 2,
