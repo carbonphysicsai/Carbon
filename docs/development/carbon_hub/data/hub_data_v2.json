@@ -2381,6 +2381,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "mira-admission-integration",
+        "match_type": "exact",
+        "path": ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "graphite-agent",
         "match_type": "exact",
         "path": ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md",
