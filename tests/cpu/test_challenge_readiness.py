@@ -57,31 +57,88 @@ def test_pilot_counts_are_rederived_from_the_retained_runner_records():
 def test_the_summary_keeps_reference_and_infrastructure_failures_apart():
     records = committed()
     battery = readiness.summary(records[BATTERY])
-    photonic = readiness.summary(records["photonic-coupler"])
+    cold_plate = readiness.summary(records["chip-cold-plate"])
     assert battery["cases_ok"] >= 2604
     assert (battery["reference_failures"], battery["infrastructure_failures"]) == (
         0,
         4,
     )
-    assert (photonic["reference_failures"], photonic["infrastructure_failures"]) == (
-        13,
-        16,
+    assert (
+        cold_plate["reference_failures"],
+        cold_plate["infrastructure_failures"],
+    ) == (2, 0)
+
+
+@pytest.mark.parametrize(
+    ("cid", "ok", "reference_failures", "limits"),
+    [
+        # CHALLENGE-COLD-PLATE-01: rung 7 and the pilot; two REFERENCE_INVALID
+        # diagnostics (the cp-varying fluid, invalid by design).
+        ("chip-cold-plate", 20, 2, 7),
+        ("electric-motor-magnetics", 17, 0, 4),  # CHALLENGE-MOTOR-01
+        ("photonic-coupler", 12, 0, 5),  # CHALLENGE-PHOTONIC-01
+    ],
+)
+def test_each_challenge_design_record_counts_its_pilot_from_the_records(
+    cid, ok, reference_failures, limits
+):
+    s = readiness.summary(committed()[cid])
+    assert s["reference_execution"] == "PILOTED"
+    assert (s["cases_ok"], s["reference_failures"], s["infrastructure_failures"]) == (
+        ok,
+        reference_failures,
+        0,
     )
-    assert photonic["recommendation"] == "DEFER"
+    assert s["recommendation"] == "PROCEED"
+    assert s["limits_awaiting_approval"] == s["limits_declared"] == limits
 
 
-def test_no_scoped_challenge_claims_evidence_it_does_not_have():
-    records = committed()
-    for cid in ("chip-cold-plate", "electric-motor-magnetics"):
-        s = readiness.summary(records[cid])
-        assert s["cases_ok"] == 0
-        assert s["reference_execution"] == "SCOPED"
-        assert s["recommendation"] == "NONE"
-        assert len(s["cost_items_unknown"]) == 7
+UNPILOTED = "unpiloted"
+
+
+def _unpiloted():
+    """The cold plate's committed record with its evidence taken away: the
+    shape of a Challenge that has not piloted. Refusals that promote missing
+    evidence start from it, now that every committed record has a pilot."""
+    document = copy.deepcopy(committed()["chip-cold-plate"])
+    document["pilots"] = []
+    document["maturity"] = {"baseline": "NOT_STARTED", "reference_execution": "SCOPED"}
+    document["recommendation"] = {
+        "decision": "NONE",
+        "basis": "No reference pilot has run.",
+    }
+    document["costs"] = [
+        {
+            "item": c["item"],
+            "basis": "unknown",
+            "usd": None,
+            "unit": "USD",
+            "evidence": None,
+        }
+        for c in document["costs"]
+    ]
+    document["limits"] = []
+    return document
+
+
+def test_no_challenge_claims_evidence_it_does_not_have():
+    for document in committed().values():
+        s = readiness.summary(document)
+        if s["reference_execution"] != "SCOPED" or s["recommendation"] != "NONE":
+            assert s["cases_ok"] > 0, s["challenge_id"]
+    specimen = _unpiloted()
+    readiness.validate(specimen)
+    s = readiness.summary(specimen)
+    assert (s["cases_ok"], s["reference_execution"], s["recommendation"]) == (
+        0,
+        "SCOPED",
+        "NONE",
+    )
+    assert len(s["cost_items_unknown"]) == 7
 
 
 def _mutated(cid, change):
-    document = copy.deepcopy(committed()[cid])
+    document = _unpiloted() if cid == UNPILOTED else copy.deepcopy(committed()[cid])
     readiness.validate(copy.deepcopy(document))  # the specimen passes
     change(document)
     return document
@@ -100,38 +157,38 @@ def _set(path, value):
 REFUSALS = [
     # missing evidence promoted to a pass
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("maturity", "reference_execution"), "PILOTED"),
         "maturity_without_evidence",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("recommendation", "decision"), "PROCEED"),
         "recommendation_without_evidence",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("recommendation", "decision"), "NARROW"),
         "recommendation_without_evidence",
     ),
     # unsupported units and versions
-    ("chip-cold-plate", _set(("outputs", 0, "unit"), "celsius"), "unsupported_unit"),
+    (UNPILOTED, _set(("outputs", 0, "unit"), "celsius"), "unsupported_unit"),
     (BATTERY, _set(("limits", 0, "unit"), "percent"), "unsupported_unit"),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("schema",), "carbon.challenge-readiness.v1"),
         "unsupported_schema",
     ),
-    ("chip-cold-plate", _set(("record_version",), 0), "unsupported_record_version"),
-    ("chip-cold-plate", _set(("status",), "QUALIFIED"), "unsupported_status"),
+    (UNPILOTED, _set(("record_version",), 0), "unsupported_record_version"),
+    (UNPILOTED, _set(("status",), "QUALIFIED"), "unsupported_status"),
     # identities
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("challenge_id",), "chip-cold-plates"),
         "unknown_challenge",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("tracking",), "carbonphysicsai/Carbon#999"),
         "tracking_mismatch",
     ),
@@ -149,7 +206,7 @@ REFUSALS = [
     (BATTERY, _set(("pilots", 0, "outcomes", "PROBABLY_FINE"), 1), "unknown_outcome"),
     (BATTERY, _set(("pilots", 0, "outcomes"), {}), "pilot_without_cases"),
     # unknown is not zero
-    ("chip-cold-plate", _set(("costs", 0, "usd"), 0), "unknown_cost_with_amount"),
+    (UNPILOTED, _set(("costs", 0, "usd"), 0), "unknown_cost_with_amount"),
     (BATTERY, _set(("costs", 0, "evidence"), None), "measured_cost_without_evidence"),
     (BATTERY, _set(("costs", 0, "usd"), None), "cost_amount_required"),
     # proposed is not approved
@@ -159,28 +216,28 @@ REFUSALS = [
         "approved_limit_without_scientific_approval",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("population", "approved"), "anything"),
         "approved_population_not_supported",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("reviews", "security"), {"state": "APPROVED", "authority": None}),
         "approval_without_authority",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("reviews", "launch"), {"state": "APPROVED", "authority": "OWNER-X"}),
         "launch_approved_before_other_reviews",
     ),
     (
-        "chip-cold-plate",
+        UNPILOTED,
         _set(("reviews", "customer"), {"state": "NOT_STARTED", "authority": "OWNER-X"}),
         "authority_without_approval",
     ),
     # the training budget study (OWNER-TRAINING-BUDGET-STUDY-01)
     (
-        "chip-cold-plate",
+        UNPILOTED,
         lambda d: d.pop("training_budget_study"),
         "exact_keys_required",
     ),
@@ -264,8 +321,8 @@ def test_importing_evidence_starts_nothing_and_opens_no_connection(
 def test_the_table_command_renders_and_refuses_an_invalid_directory(tmp_path, capsys):
     assert main(["table"]) == 0
     table = capsys.readouterr().out
-    assert BATTERY in table and "PROCEED" in table and "DEFER" in table
-    bad = copy.deepcopy(committed()["chip-cold-plate"])
+    assert all(cid in table for cid in committed()) and "PROCEED" in table
+    bad = _unpiloted()
     bad["maturity"]["reference_execution"] = "CAMPAIGN_COMPLETE"
     (tmp_path / "chip-cold-plate.v1.json").write_text(json.dumps(bad))
     assert main(["table", "--records", str(tmp_path)]) == 2

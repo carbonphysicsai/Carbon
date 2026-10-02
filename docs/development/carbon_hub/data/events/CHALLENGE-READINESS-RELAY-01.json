@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "CHALLENGE-READINESS-RELAY-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "The three challenge-design readiness records are published together: chip-cold-plate v5 (PILOTED, PROCEED; pools running), electric-motor-magnetics v3 (PILOTED, PROCEED; pools running) and photonic-coupler v4 (PILOTED, baselines MEASURED, PROCEED). Each pilot is recounted from its committed records by the tests; every limit is a proposed DEVELOPMENT value and none is approved. The readiness schema gains the units L/min/kW, deg and A/mm^2. They travel together because the Pilot Designer relays each Challenge's latest record and the owner-approved Ask Carbon release pins the Pilot Designer's bytes: one Workbench rebuild (aliases moved to each record's new design variables) and one Ask Carbon candidate reconciliation, by that lane, instead of three (decision RELAY-D1). No qualification, reward or LIVE authority.",
+  "primary_detail": ".agent/tickets/CHALLENGE-READINESS-RELAY-01.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T09:45:00Z"
+}
