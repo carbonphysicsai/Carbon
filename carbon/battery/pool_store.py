@@ -52,6 +52,10 @@ SUBMISSION_STATES = (
     "FAILED_INFRA",  # infrastructure; retryable, never a score
     "FAILED_INFRA_EXHAUSTED",  # infrastructure, retry cap reached; parked
 )
+#: Identity fields a deployment may carry over in place (`PoolStore.rebind`).
+CARRY_OVER_KEYS = frozenset(
+    {"contract_digest", "implementation_digest", "backend", "envelope"}
+)
 DDL = """
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batches(
@@ -228,6 +232,67 @@ class PoolStore:
         with self.db() as db:
             row = db.execute("SELECT value FROM meta WHERE key='identities'").fetchone()
         return json.loads(row[0]) if row else None
+
+    def rebind(self, identities, *, decision):
+        """Carry this deployment over to new identities (OWNER-BATTERY-CARRYOVER-01).
+
+        Only what testing revises may change: the construction contract, the
+        recipe implementation, the backend images and the envelope. The exam
+        rule, the public material and the seed pin may not; a change to any of
+        them still needs a new deployment. Every earlier identity is kept, in
+        order, so a submission admitted under one of them is recognisably
+        carried over rather than tampered with.
+        """
+        with self.transaction() as db:
+            row = db.execute("SELECT value FROM meta WHERE key='identities'").fetchone()
+            if row is None:
+                raise StateError("not_bound")
+            old = json.loads(row[0])
+            changed = sorted(
+                k for k in set(old) | set(identities) if old.get(k) != identities.get(k)
+            )
+            if not changed:
+                return {"changed": []}
+            fixed = sorted(set(changed) - CARRY_OVER_KEYS)
+            if fixed:
+                raise StateError("identities_not_carryable", ",".join(fixed))
+            history = db.execute(
+                "SELECT value FROM meta WHERE key='identity_history'"
+            ).fetchone()
+            history = json.loads(history[0]) if history else []
+            history.append(old)
+            db.execute(
+                "INSERT OR REPLACE INTO meta VALUES('identity_history', ?)",
+                (canonical(history),),
+            )
+            db.execute(
+                "UPDATE meta SET value=? WHERE key='identities'",
+                (canonical(identities),),
+            )
+            self._event(
+                db,
+                "rebound",
+                {
+                    "changed": changed,
+                    "decision": decision,
+                    "from": old,
+                    "to": identities,
+                },
+            )
+            return {"changed": changed}
+
+    def identity_history(self):
+        """Every identity this deployment was carried over from, oldest first."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT value FROM meta WHERE key='identity_history'"
+            ).fetchone()
+        return json.loads(row[0]) if row else []
+
+    def note(self, kind, body):
+        """Append one event to the deployment's audit trail."""
+        with self.transaction() as db:
+            self._event(db, kind, body)
 
     # --- batches and references ---------------------------------------------
 

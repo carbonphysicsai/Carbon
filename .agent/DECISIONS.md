@@ -17004,3 +17004,140 @@ COMPONENT PROSPECTIVELY, AND KEEP BOTH RANKINGS REPORTED."
    USD 0, and several days of host time. **Not run without approval.**
 5. **B5: not exam qualification.** Exploratory engineering evidence. MQ-008 is
    untouched, and whether the exam is adequate remains open.
+
+## 2026-10-01 — OWNER-PYTORCH-BACKEND-01: PyTorch is a reconstruction backend on both the miner and validator ends
+
+**Authority.** The owner, in session on 2026-10-01, after a request from
+Harshdeep to build PyTorch capabilities into the validator image:
+
+- "I guess we can let the reconstruction environment be an option in the
+  construction contract right? Then we rebuild in that because they chose it
+  and its predictions are still scorable against something trained in JAX."
+- "We need to add it in its full capacity to both the miner and validator end.
+  Let's start that now."
+
+**Decision.**
+1. **The construction contract names its reconstruction backend.** A recipe
+   may choose `jax` (the default, and the meaning of every recipe written
+   before this decision) or `pytorch`. The validator rebuilds the recipe in
+   the backend it names, with Carbon's own trainer for that backend. Miners
+   still submit recipes, never code.
+2. **Scoring is unchanged and backend-blind.** The exam scores predictions
+   against the reference. A PyTorch-built model and a JAX-built model are
+   scored by the same rule, on the same cases, in the same ranking.
+3. **Full capacity, both ends.** PyTorch is provided in the validator's
+   reconstruction image and in the miner's research environment
+   (OWNER-RESEARCH-ENVIRONMENT-01), including PyTorch-only families such as
+   neuraloperator and PhysicsNeMo.
+
+**Supersedes.**
+- OWNER-BATTERY-TESTNET-02 (2026-09-25), "Only JAX for validation", for the
+  PyTorch backend only. Julia backends, per-submission labels and PyBaMM
+  reference reuse stay excluded.
+- The `pytorch_backend` exclusion in `carbon/reconstruction/capability_registry.py`
+  and the PyTorch clause of battery's published exclusion scope. Both change
+  prospectively, under a new contract version.
+
+**Unchanged.**
+- The exam, scoring rule, references, thresholds and qualification.
+- Historical evidence keeps its meaning (invariant 10). Recipes and results
+  recorded before this decision are JAX results and are never reinterpreted.
+- Invariants 6 and 7.9: miner-controlled workloads stay isolated, and a backend
+  choice grants no evaluator authority.
+
+**Human-reserved, and fail closed until set** (AGENTS.md §3, §13):
+- the PyTorch backend's reproducibility tolerance, from its own determinism
+  study;
+- the training limit for PyTorch recipes, from the training budget study
+  (OWNER-TRAINING-BUDGET-STUDY-01);
+- security acceptance of the PyTorch worker image.
+Until those are set, a PyTorch recipe is admitted and rebuilt in DEVELOPMENT
+only; it carries no LIVE, reward or frontier authority.
+
+Ticket: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`.
+
+## 2026-10-01 — OWNER-BATTERY-CARRYOVER-01: testing revises recipes in place; PyTorch runs like JAX; Mira is autoscience.io/Mira
+
+**Authority.** The owner, in session on 2026-10-01, answering the open items of
+RECON-TORCH-01 and C-MLP-03:
+
+1. "we are modifying the recipes during testing. so incumbents can stay winners
+   because it doesn't matter that isn't the point of the testing right now."
+2. "No. Run PyTorch full up like JAX and we will analyze the results as we
+   test. We will do that work in tandem."
+3. "Approve that download.pytorch.org now. ALLOW ALL DOMAINS. No more
+   restrictions." (The session environment's network access, set by the
+   owner.)
+4. "Autoscience.io/Mira is the MIRA I want."
+
+**Decision.**
+1. **Carry-over across recipe and contract revisions.** A battery deployment
+   is carried over in place to a revised construction contract, recipe
+   implementation, backend images or envelope (`operate upgrade`,
+   `PoolStore.rebind`). The incumbent, retained models, scores and pool stay;
+   incumbents stay winners. A recipe admitted under a recorded earlier
+   contract is recompiled under the current one and each recompile is
+   recorded (`recompiled` events); one the current contract refuses is closed
+   as `contract_revised` and never scored, and a final whose side the current
+   contract refuses keeps the incumbent. A changed exam rule, public material
+   or seed pin is still refused and still needs a new deployment.
+2. **PyTorch runs with the same standing as JAX.** OWNER-PYTORCH-BACKEND-01's
+   "human-reserved, fail closed until set" holds are withdrawn: the PyTorch
+   reproducibility tolerance, its training limit and its image's acceptance
+   are analysed in tandem with testing, not set in advance. PyTorch recipes
+   carry exactly the authority JAX recipes carry on the same Challenge,
+   nothing more: battery remains a DEVELOPMENT, non-paying Challenge, and
+   nothing here flips LIVE (invariant 5).
+3. **Network.** The session environment has full outbound access. Building an
+   image inside this session still must not bake the session proxy's
+   credentials into an image; canonical images are built in CI or on the
+   owner's host.
+4. **Mira.** C-MLP-03 slice 5's Mira is Mira at autoscience.io
+   (autoscience.io/Mira). This answers the ticket's "Which Mira?".
+
+**Unchanged.** The exam, scoring rule, references, thresholds and
+qualification; historical evidence keeps its meaning (a recompile is recorded,
+never silent); isolation and evaluator authority (invariants 6 and 7.9).
+
+Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
+`.agent/tickets/C-MLP-03_miner_environment.md`.
+
+## 2026-10-02 — OWNER-GRAPHITE-01: build Carbon's own research and testing agent (Graphite) instead of buying Mira; inference on Chutes or Engy; Targon confidential compute later
+
+**Owner, verbatim.**
+1. 2026-10-01, after a vendor meeting was arranged with Autoscience: "My
+   decisions is to build an in-house version give it a name. We will use
+   Targons confidential compute in the future. For now we don't need it.
+   Draft a plan to build a SOTA carbon testing agent the mirrors Mira's
+   system".
+2. 2026-10-02: "We will use chutes or Engy for agent inference again."
+
+**Decision.**
+1. **Graphite.** Carbon builds an in-house agent, named Graphite by the lead
+   session. It mirrors Mira's published loop: literature, experiments on
+   Carbon's model, verification on Carbon's eval, delivery as PRs. It adds an
+   attacker role for Track A admission testing. Plan:
+   `docs/development/GRAPHITE_TESTING_AGENT_PLAN.md`.
+2. **Inference.**
+   - Agent inference runs on Chutes or Engy, through
+     `carbon/development_session/model_provider.py`.
+   - Engy first: its adapters exist.
+   - Chutes once its adapter exists. C-MLP-03 §2 plans it, and Graphite
+     reuses it.
+   - The owner's Engy model ladder of 2026-09-26 applies, cheapest first,
+     escalating one rung only on an observed failure.
+3. **Confidential compute.** Targon's confidential compute is the intended
+   home for future client challenges. It is not needed now and nothing is
+   built for it yet.
+4. **Mira.** The Mira adapter (#475) stays, and keeps refusing every call
+   until a vendor contract exists. A paid Mira comparison is optional and
+   needs its own owner decision.
+
+**Unchanged.**
+- Graphite proposes; Carbon's frozen verifier decides (invariants 7.9 and
+  7.10).
+- No evaluator authority, confirmation material or pod keys reach the agent.
+- Spend runs only under owner grants enforced by the campaign controller.
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
