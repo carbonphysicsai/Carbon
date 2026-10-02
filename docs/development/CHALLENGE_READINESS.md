@@ -32,7 +32,7 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
 |---|---|---|---|---|---|---|---|---|
 | battery-fastcharge-ageing-development-v1 | CAMPAIGN_COMPLETE | MEASURED | 2631 | 0 / 4 | startup, cleanup | 3 / 3 | 0 of 5 | PROCEED |
 | chip-cold-plate | PILOTED | SELECTED | 20 | 2 / 0 | startup, reconstruction, inference, finalist, cleanup | 7 / 7 | 0 of 5 | PROCEED |
-| electric-motor-magnetics | PILOTED | SELECTED | 17 | 0 / 0 | startup, reconstruction, inference, finalist, cleanup | 4 / 4 | 0 of 5 | PROCEED |
+| electric-motor-magnetics | PILOTED | MEASURED | 17 | 0 / 0 | startup, reconstruction, inference, finalist, cleanup | 4 / 4 | 0 of 5 | PROCEED |
 | photonic-coupler | PILOTED | MEASURED | 12 | 0 / 0 | startup, reconstruction, inference, finalist, cleanup | 5 / 5 | 0 of 5 | PROCEED |
 
 **How to read it:**
@@ -51,7 +51,8 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
 ## Provenance: what in each record is evidence, and what is a placeholder
 
 Audited 2026-09-27, and updated 2026-10-02 by CHALLENGE-READINESS-RELAY-01
-for cold plate v5, motor v3 and photonics v4. Every path a record cites
+for cold plate v5, motor v3 and photonics v4, then by CHALLENGE-MOTOR-01
+slice 4 for motor v4. Every path a record cites
 resolves on `main`. The
 registry identity (`challenge_id`, `tracking`) is enforced by the validator.
 
@@ -73,7 +74,7 @@ Kinds of field:
 | Limits | proposed OD-2 DEVELOPMENT values; none approved | seven proposed DEVELOPMENT values; none approved | four proposed DEVELOPMENT values; none approved | five proposed DEVELOPMENT values; none approved |
 | Population | proposed; none approved | proposed | proposed | proposed |
 | Reviews | none approved; security IN_REVIEW, where OD-3 covers the testnet images only | none started | none started | none started |
-| Recommendation | PROCEED, on verified counts | PROCEED, on the pilot's verified counts | PROCEED, on the pilot's verified counts | PROCEED, on the pilot's verified counts; both baselines scored on the private pool |
+| Recommendation | PROCEED, on verified counts | PROCEED, on the pilot's verified counts | PROCEED, on the pilot's verified counts; both baselines scored on the private pool | PROCEED, on the pilot's verified counts; both baselines scored on the private pool |
 
 **Corrections made by this audit** (v1 to v2; v1 remains in git history):
 - **Battery finalist cost (USD 0.29).** `measured` → `estimated`. It is
@@ -85,6 +86,15 @@ Kinds of field:
   check is not a cold-plate pilot.
 
 ## Order of work
+
+From 2026-10-02 the Challenge Roadmap governs the order
+(OWNER-CHALLENGE-ROADMAP-01, `Design_Specs/Challenge_Roadmap.md`):
+- battery defines the protocol;
+- families then enter one pipeline in three-factor priority order;
+- the cold plate, motor and photonic designs are prior work for their
+  families.
+
+The order below is the earlier one.
 
 Owner decision, 2026-09-26:
 1. **Battery.** It proceeds as a launch Challenge.
