@@ -1,0 +1,31 @@
+{
+  "population": "carbon.cold-plate.development-population.v1",
+  "train": {
+    "label": "carbon.cold-plate.pools-v1.train",
+    "batch": "cold-plate-train-v1",
+    "cases": 400,
+    "ok": 400,
+    "solved": {
+      "owner host, pinned container": 92,
+      "RunPod CPU pod, native": 308
+    }
+  },
+  "practice": {
+    "label": "carbon.cold-plate.pools-v1.practice",
+    "batch": "cold-plate-practice-v1",
+    "cases": 100,
+    "ok": 100,
+    "solved": {
+      "owner host, pinned container": 100
+    }
+  },
+  "private": {
+    "root_commitment": "sha256:72ae0d2f6cf8b6a7e138aae93e8db986fd07862bf743725cbc4c290d0d433c2b",
+    "batch": "cold-plate-private-v1",
+    "cases": 200,
+    "ok": 200,
+    "solved": {
+      "owner host, pinned container": 200
+    }
+  }
+}
