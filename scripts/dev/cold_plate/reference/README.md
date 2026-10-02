@@ -20,7 +20,20 @@ population or production claim.
 python scripts/dev/cold_plate/reference/pilot_plan.py PLAN.json
 python scripts/dev/cold_plate/reference/run_batch.py PLAN.json --out DIR [--parallel 10] [--timeout-s 14400] [--keep all|failed|none]
 python scripts/dev/cold_plate/reference/pilot_report.py DIR [--json OUT]
+python scripts/dev/cold_plate/reference/pool_plan.py OUTDIR --root ROOT_FILE [--train 400] [--practice 100] [--private 200]
+python -m scripts.dev.challenge_pools.assemble PLAN.json --first N --records RUN/records.jsonl ... --out POOL.jsonl
+python scripts/dev/cold_plate/reference/baselines.py --train DIR --practice DIR --private DIR --out REPORT.json
 ```
+
+- **`pool_plan.py`** writes the public TRAIN and PRACTICE plans, and the
+  private plan.
+  - The private plan is drawn from an operator-held root and written
+    owner-only, outside the repository. Only its commitment is published.
+- **`assemble.py`** builds a pool from every run that solved its cases.
+  Those runs can be on the owner's host or natively on a RunPod CPU pod
+  (CHALLENGE-POOLS-CLOUD-01).
+- **`baselines.py`** calibrates the exam on TRAIN and scores the conventional
+  and learned baselines. Its report holds aggregates only.
 
 `run_batch.py` gives each case its own container:
 - the pinned image, with no network and a two-CPU cap;
@@ -225,3 +238,17 @@ already narrowed:
 
 The open items are listed in the ticket. The readiness record carries them
 once it is relayed (CHALLENGE-READINESS-RELAY-01).
+
+## Pools and baselines (2026-10-02)
+
+**Pools.** All 700 cases are OK: 400 TRAIN, 100 PRACTICE and 200 private.
+Their evidence is in `docs/development/evidence/cold-plate-pools-v1/`.
+
+**Baselines** on the private pool, scored through the exam (lower is
+better):
+- the conventional closed form, with axial spreading, scores 0.109;
+- the generic kernel-ridge model scores 0.105, and is worse on the profile.
+
+So the conventional model is a strong baseline, and a useful surrogate has to
+beat a physics-aware one. The ticket's slice 4 section has the full table and
+the dry-run disclosure.

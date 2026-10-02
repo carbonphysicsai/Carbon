@@ -16,6 +16,8 @@
   "on": "2026-10-02",
   "ref": "OWNER-CHALLENGE-ROADMAP-02"
  },
+ "construction_ladder": "Design_Specs/Challenge_Admission.md §3 levels 0-5; every Challenge starts at Level 0 and climbs one level at a time by the climb procedure in carbon/challenge_pipeline/ladder.py (OWNER-CHALLENGE-ROADMAP-03)",
+ "lessons": "carbon/challenge_pipeline/lessons/: one entry after every execution; a proposed revision is adopted or declined by a named owner, never applied silently (OWNER-CHALLENGE-ROADMAP-03)",
  "lock": null,
  "phase_1": [
   {
@@ -47,8 +49,8 @@
   },
   {
    "step": 4,
-   "work": "Run battery through Test/iterate with Graphite: attack, fix, re-score; tune construction and scoring until results stop improving or the iteration budget runs out.",
-   "output": "Iteration log.",
+   "work": "Run battery through Test/iterate with Graphite at construction Level 0: attack, fix, re-score; tune construction and scoring within Level 0 until results stop improving or the iteration budget runs out. Then climb to Level 1 by the climb procedure, as its worked example.",
+   "output": "Iteration log with a lessons entry for every execution, and battery's Level 1 climb record.",
    "reserved": null,
    "ticket": null,
    "status": "todo",
@@ -83,7 +85,7 @@
   },
   {
    "step": 8,
-   "work": "Fitz approves. Protocol v1.0 is locked.",
+   "work": "Fitz approves. Protocol v1.0 is locked, with every lesson proposed for it adopted or declined.",
    "output": "The process package, versioned.",
    "reserved": "The process owner approves the lock.",
    "ticket": null,
