@@ -10836,6 +10836,19 @@ events:
     recorded_at: "2026-10-02T21:40:00Z"
   -
     map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "decision"
+    event_id: "CHALLENGE-PROTOCOL-04-STAGED"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The owner adopted both protocol revisions proposed by step 4's lessons (\"Yes, yes\", OWNER-CHALLENGE-STEP4-01 third amendment), and both are implemented. First, every Graphite runner that acts on a Challenge registers the stage profile composed with its own permission profile. #504's Constructor campaign and tasks now carry the stage profile of test_iterate composed with #504's Level-0 permission profile. A staged Constructor is refused for a role outside the stage's ledger row, a construction level that differs from the inventory's, and a changed ledger; its runner refuses an unstaged provider and a stale permission profile; and #504's other behaviour and records are unchanged. The Attacker has no permission profile of its own beyond its role's manifest. Second, the protocol draft lists what a Challenge supplies before its first Graphite campaign: its pipeline construction block, its suite map and coverage report at its level, a level-N inventory, its adapter, and its Graphite record with its campaign, grant, owner ceiling and call cap. Grants are now proposed by the executor and approved by the owner (OWNER-GRAPHITE-05); no grant code changed. No live session, no spend. Not scientific or security qualification."
+    primary_detail: ".agent/tickets/CHALLENGE-PROTOCOL-04.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T22:00:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
     event_type: "adjustment"
     event_id: "OWNER-CHALLENGE-ROADMAP-03"
     owner_lane: "technical_lead"
