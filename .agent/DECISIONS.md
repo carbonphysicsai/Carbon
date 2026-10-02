@@ -17256,6 +17256,257 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
 
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-01: the Challenge Roadmap rev 2.0 is Carbon's standing challenge development pipeline
+
+**Owner, verbatim, in session on 2026-10-02**, attaching the Challenge
+Roadmap rev 2.0 (status "Direction approved"; process approver Fitz,
+technical Ryan, science Harshdeep): "Implement this as our standing
+challenge develop pipeline and roadmap we need to build out and execute."
+
+**Decision.**
+1. **One pipeline.** Every in-house challenge goes through Prioritize,
+   Design, Test/iterate and Rank for deployment, under one common test
+   suite, in the roadmap's priority order. The roadmap's text is
+   `Design_Specs/Challenge_Roadmap.md`. Its family data, frequency and value
+   labels and estimates are transcribed exactly into
+   `carbon/challenge_pipeline/families.json`, with the source page's SHA-256.
+2. **Machinery.** `carbon/challenge_pipeline/` ports the page's arithmetic
+   (queue, false-feasible bound, leaderboard) and holds the versioned state:
+   the protocol, the rubric and one record per family. The generated view is
+   `docs/development/CHALLENGE_PIPELINE.md`. The page's shared store stays
+   the owners' interactive view, with the same record fields.
+3. **Phase 1 starts now.** Battery defines the protocol through the
+   roadmap's eight steps, one ticket per step (`CHALLENGE-PROTOCOL-01` for
+   step 1, and so on as each opens). No other family enters the pipeline
+   before the process owner locks the protocol (step 8). The code refuses a
+   record that says otherwise.
+4. **Gates are the named owners' acts.**
+   - Scope and Design are signed by the science owner, Track A by the
+     technical owner, and Track B by the science owner.
+   - The lock, the rubric and deployments are approved by the process owner.
+   - A record carries a sign-off only with the decision or review that made
+     it. The executor never writes one on an owner's behalf.
+5. **The rubric is unset.** Its thresholds (rank agreement, false-feasible
+   bound, scenario count, optional regret) stay null until the science owner
+   proposes them from battery's results and the process owner approves them
+   at lock. The open critical and high limits start at zero, as §05's gate
+   states.
+6. **Solve times enter the queue only from the reference hardware.** That
+   hardware is chosen during Phase 1 and approved at lock. The pre-protocol
+   timings of the cold plate, motor and photonic coupler were taken on other
+   hosts, so they do not re-rank the queue.
+
+**How it meets earlier decisions.**
+- **OWNER-CHALLENGE-ADMISSION-01 (amended): `NO_CONFLICT`.**
+  - The roadmap's Tracks A and B are that protocol's tracks.
+  - Its trigger model (expand freely, escalate on a finding) governs
+    iteration before freeze. The roadmap adds the common suite, the freeze
+    rule and the leaderboard.
+  - §2 holds: the pipeline is internal and never mainnet, and miners see only
+    the final optimized version.
+  - A stage, a queue position or a leaderboard place is not a qualification
+    gate (§2.1, §7).
+- **OWNER-CHALLENGE-DESIGN-01: superseded for sequencing.**
+  - The three challenges designed under it are prior work for their
+    families: the cold plate for f02, f03 and f04; the motor for f09; the
+    photonic coupler for f06 and f14. Each family's pipeline record links
+    the work.
+  - They enter the pipeline at Prioritize, in queue order, after lock. Their
+    readiness records stand unchanged and are not leaderboard entries.
+  - Working decision ROADMAP-D1: the slices already in flight finish and are
+    recorded. Those are the cold plate and motor public pools (already
+    computed on the paid pods), their baselines, and the readiness relay
+    (#493). The compute is spent and the evidence is prior work. No further
+    design starts on the three until their family reaches Prioritize.
+  - The alternative, stopping mid-slice, was rejected: it would waste paid
+    results and leave the prior work unrecorded.
+- **OWNER-LAUNCH-PORTFOLIO-01: the deployment criterion is superseded by the
+  owner's later direction.**
+  - Rev 2.0 settles that deployment goes to the challenges with the cleanest
+    attack results and the closest score-to-value match, picked by the
+    process owner from the leaderboard.
+  - The portfolio's families stay in the queue at their ranked positions.
+  - Battery goes first because it defines the protocol.
+- **Customer pilots, Workbench intake and the Pilot Designer route:
+  `NO_CONFLICT`.** The roadmap puts them outside this plan. They are not
+  cancelled, and their decisions are unchanged.
+- **OWNER-GRAPHITE-01: `NO_CONFLICT`.**
+  - Graphite is the roadmap's Graphite. Its controller, per-stage permission
+    ledger and operating procedure are Phase 1 work, locked at step 8.
+  - Graphite still proposes, and the frozen verifier decides.
+- **OWNER-TRAINING-BUDGET-STUDY-01: unchanged.** A challenge's training
+  budget study belongs to its Design construction contract.
+- **OWNER-PYTORCH-BACKEND-01: `NEW_OWNER_DECISION_REQUIRED`.**
+  - Roadmap §03 (Track A, admission) rejects "non-JAX executables". §06
+    says Carbon "accepts and rebuilds only JAX-runnable submissions".
+  - OWNER-PYTORCH-BACKEND-01 (2026-10-01) lets a construction contract name
+    `pytorch`, rebuilt in DEVELOPMENT only until its reserved values are
+    set.
+  - The smallest decision needed is which governs pipeline challenges:
+    either JAX only, or recipes in any backend the construction contract
+    supports.
+  - Until the owner decides, the roadmap text stands as written, runtime
+    behavior is unchanged, and suite v1's admission vector (Phase 1 step 3)
+    keeps the backend set as an explicit open parameter. Nothing else waits
+    on it.
+
+**Unchanged.**
+- AGENTS.md §3 and §5: scientific, security and launch qualification, LIVE,
+  reward, frontier and chain authority stay human-reserved.
+- Network activation stays a separate owner decision.
+- Testnet 567 only, and spending only under owner grants.
+- No population, threshold, tolerance or rubric value is set by the executor.
+
+Ticket: `.agent/tickets/CHALLENGE-PIPELINE-01.md`.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-02: both backends, the step 4 grant, the reference hardware, and who builds Graphite phases 3-4
+
+**Owner, in session on 2026-10-02**, answering OWNER-CHALLENGE-ROADMAP-01's
+open questions: "1. Both 2. $5 Engy 3. Approved and it needs my approval
+only". Then, asked who builds step 4 and which grant account to use: this
+session builds it, and the phase 2 grant's account and expiry are reused.
+
+**Decision.**
+1. **Both backends.**
+   - Pipeline challenges admit recipes in any backend the construction
+     contract supports: JAX and PyTorch (OWNER-PYTORCH-BACKEND-01).
+   - This resolves ROADMAP-01's `NEW_OWNER_DECISION_REQUIRED`.
+   - Track A vector 1 still rejects executables outside the contract's
+     backends, and disguised executable content.
+   - Roadmap rev 2.1 amends §03 and §06.
+   - PyTorch stays DEVELOPMENT-only until OWNER-PYTORCH-BACKEND-01's reserved
+     values are set.
+2. **Step 4 grant.** For Phase 1 step 4 (Graphite through Test/iterate on
+   battery):
+   - USD 5.00, Engy inference only;
+   - account `Carbon-Account`, expiring 2026-12-31;
+   - no pods: reconstructions run on the owner's host at no marginal spend.
+
+   The grant file is completed in step 4's ticket, from these values.
+3. **Reference timing hardware: approved by the technical owner alone.** It
+   is a RunPod CPU pod:
+   - flavor `cpu5c`, with no fallback flavor;
+   - 16 vCPU;
+   - each challenge's pinned image.
+
+   The label is `runpod-cpu5c-16vcpu`. Each timing study records the CPU model
+   it ran on, because the earlier pool pods fell back to other flavors and
+   other processors (EPYC 9655P and 4564P). This value leaves the
+   lock-approved list. Roadmap rev 2.1 moves it, and the protocol records the
+   technical owner's approval.
+4. **Graphite phases 3-4 are Phase 1 step 4.**
+   - This session builds Graphite's Level 0 constructor loop on battery
+     (phase 3) and the attacker for Track A's eight vectors (phase 4).
+   - They are built under the challenge roadmap and GRAPHITE-01's plan
+     together, including OWNER-GRAPHITE-02's reconstruction rule.
+   - The GRAPHITE-01 lane continues from phase 5.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No pod or other spend beyond this grant.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-03: the construction ladder is the spine; one generalizable protocol; lessons after every execution; Graphite, not Mira
+
+**Owner, verbatim, in session on 2026-10-02:**
+- "I'm nervous about this. The goal is to start with where we are and slowly
+  add more construction capabilities. At one point we had 5 well defined and
+  generalizable stages for increasing construction freedom and it sounds like
+  none of that made it here. Not happy."
+- To the proposed fix: "Yes. Fix this."
+- "The plan is to use GRAPHITE not Mira for this testing. Ignore all
+  autoscience and Mira talk and replace it with our graphite agent."
+- "Make sure everything we have is a generalizable test and design protocol
+  that can be adapted to any challenge and improved as we go. Note lessons
+  learned after every execution."
+
+**What went wrong (classified IMPLEMENTATION_LAG).**
+- Roadmap rev 2.0/2.1 and its pipeline package (PR 498) carried no
+  construction ladder. It is defined in `Design_Specs/Challenge_Admission.md`
+  §3 (Levels 0-5), and expansion records (#468) and Graphite's plan rely on
+  it. Stage 3 said only "tune construction rules".
+- Rev 2.1's backend wording ("executables outside the construction contract's
+  backends") read as executable submissions, which is Level 4-5 freedom.
+- The executor built the roadmap without reconciling it against Admission §3.
+  The owner caught it before merge, and PR 498's auto-merge was stopped.
+
+**Decision (roadmap rev 2.2, PR 498).**
+1. **The construction ladder is the spine of construction iteration.**
+   - Every Challenge enters Test/iterate at Level 0 and climbs one level at a
+     time by the climb procedure. That procedure requires:
+     - an expansion record;
+     - Carbon's reconstruction for the level, with tests (OWNER-GRAPHITE-02);
+     - valid constructions under the previous and expanded profiles;
+     - matched adversarial budgets;
+     - ablation and interaction tests;
+     - clean-worker rebuilds.
+   - A level opens to miners only after a person locks it and validators serve
+     its contract.
+   - Levels not reached are NOT_RUN, never a pass. A level opened for
+     Graphite's development campaigns is never opened to miners to gather
+     acceptance data. A finding stops further climbing.
+   - Design exits with a Level 0 contract Carbon rebuilds.
+   - Frozen evidence and leaderboard entries name their level, and a climb is
+     a new frozen run.
+   - Machinery: `carbon/challenge_pipeline/ladder.py`, and each record's
+     `construction` block.
+2. **Battery's Phase 1 includes its first climb.** Step 4 tests Level 0 and
+   then climbs to Level 1 as the climb procedure's worked example.
+   - This is the executor's recommended scope, presented with the fix that the
+     owner approved with "Yes. Fix this."
+   - The record states battery's actual difference from the ladder. Its Level 0
+     already admits registered menus the ladder labels 1, 2 and 5. Custom loss
+     expressions (Level 1 proper) are excluded, and nothing exists at Level 3.
+3. **How a validator knows how to build a construction** (the owner's question
+   of the same day, recorded in the roadmap).
+   - A miner sends a declarative recipe and the contract digest it was written
+     against.
+   - The validator rebuilds with the contract and reconstruction pinned in its
+     own Carbon version, and refuses a digest it does not serve.
+   - So a climb is a Carbon release: a new contract version, the
+     reconstruction code and a validator update.
+4. **One generalizable protocol, improved as we go.**
+   - The protocol is Challenge-neutral. Each Challenge supplies its own
+     records and the shared machinery reads them; battery is the first
+     instance, not the design.
+   - After every execution, a lessons entry is written
+     (`carbon/challenge_pipeline/lessons/`, one file per entry).
+   - A lesson that should change the protocol is a proposed revision until a
+     named owner adopts or declines it: before lock, any of the three owners;
+     after lock, the process owner. Nothing changes silently.
+   - The lessons log and revision procedure are lock items.
+5. **Graphite, not Mira, is the testing agent.**
+   - The roadmap says no external research agent takes Graphite's role.
+   - The Mira handoff is re-issued as a Graphite handoff and implemented under
+     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-04).
+6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
+   rebuilds a declarative recipe. Executable participant code starts at
+   Level 4.
+7. **Graphite proposes every level's capabilities** (owner, same day: "I want
+   graphite to propose capabilities for every construction level").
+   - For every Challenge and every level 0-5, Graphite writes a level proposal
+     (`carbon/challenge_pipeline/proposals/<challenge>/level-<n>.json`,
+     validated by `proposals.py`) stating:
+     - each capability, what it adds and its bounds;
+     - its research basis;
+     - the reconstruction work it needs;
+     - its attack surface;
+     - what the level leaves out.
+   - The construction contract owner accepts or declines each proposal. A
+     level above 0 is reached only with an accepted one, which is the climb
+     procedure's first step.
+   - Graphite never writes the contract or an expansion record.
+   - Battery's Level 0 predates proposals and names none.
+   - This adopts the lessons log's first proposed revision
+     (`2026-10-02-level-proposal-step`), broadened by the owner to every level.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No spend.
+
 ## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
 
 **Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
