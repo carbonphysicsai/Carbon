@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T18:50:57Z"
+  captured_at_utc: "2026-10-02T20:10:32Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "279a797c2d5bf0a6e33379446f499a142b951334"
+  authority_snapshot_commit: "5d24eb26f6d7430ae0b7ea1b4f70517e90002de2"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10733,6 +10733,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T16:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-MINER-COMPUTE-LINK-ONLY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon never creates, stops, terminates, bills or reads the balance of rented compute with a miner's provider key; a miner rents and stops their own machines, and Carbon only connects to one the miner already runs. C-MLP-03 slices 4 and 4b (RunPod, Lium and a Targon VM rented per practice trial) are retired: the provider-API layer under carbon/compute (adapters, provisioning service and store, accounting, admission, reconciler and its CLI, rented_runner), setup's rented-GPU choice and its live balance and price check, the battery rented_gpu scope and the rented campaign hooks were removed; job_server and remote_job stay. An old profile, setup request or frozen campaign is refused by name (rented_gpu_retired_connect_your_machine), never translated into another runtime, and a frozen one is refused before any network or SSH call; setup deletes Carbon's stored copy of the provider key and tells the miner to revoke it. The replacement is the miner's own GPU machine over SSH with Docker and the NVIDIA Container Toolkit; container-only rentals are an open owner question. Supersedes OWNER-MINER-ENVIRONMENT-01 section 2's rented compute and OWNER-C-MLP-03-ANSWERS-01 section 2. Operator scripts on the operator's own RunPod account are unchanged. Engineering evidence only; nothing is qualified and no chain write is made."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: "C-MLP-03-SLICE-4-RENTED-GPU"
+    recorded_at: "2026-10-02T20:01:19Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
