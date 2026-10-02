@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Bounded Strategy capture and canonical A7 identity construction.
 
 This public A7-owned seam detaches hostile values, preserves A2 as the first

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery exam's frozen calibration (OD-2).
 
 The tolerances and TRAIN scales the exam-design campaign froze, pinned by the

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The Engineering Value Contract: one versioned, machine-readable decision.
 
 Schema `carbon.engineering-value-contract.v1`. The contract records:

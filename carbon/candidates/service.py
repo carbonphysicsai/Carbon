@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """One existing A7/A8/A6 fixture lifecycle, with durable intent and projection."""
 
 from carbon.fees import FeeOperationKey, SubmissionService, SubmissionState

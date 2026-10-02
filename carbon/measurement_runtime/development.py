@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Versioned derived DEVELOPMENT measurements; historical C-05 is unchanged.
 
 Operators consume validated arrays inside the evaluator. No result is itself an

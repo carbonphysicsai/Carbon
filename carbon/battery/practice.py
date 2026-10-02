@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery practice: a miner's recipe trained in the isolated worker, scored by Carbon.
 
 A practice trial is a research task, not an evaluation. It has three parts:

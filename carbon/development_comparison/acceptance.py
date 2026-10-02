@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted DEVELOPMENT admission, derived reports and lifecycle readback.
 
 The registration is controller-owned, outside the miner. It grants no provider,

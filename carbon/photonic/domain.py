@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The photonic coupler test Challenge's interface as plain data (#345).
 
 The exam-design campaign's coupler family, fixed (`scripts/dev/exam_design/

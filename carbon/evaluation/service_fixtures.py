@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Deterministic TEST_ONLY reference-service fixtures for B-E2."""
 
 from __future__ import annotations

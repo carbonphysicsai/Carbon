@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Runnable, non-qualifying B-E4 development-pilot orchestration.
 
 The module contains the bounded provider wire adapter, deterministic offline

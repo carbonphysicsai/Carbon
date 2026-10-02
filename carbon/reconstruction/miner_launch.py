@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Start, stop and clean up a miner-lane accelerator run on this host.
 
 A miner rents compute from a provider through the launchpad and approves a

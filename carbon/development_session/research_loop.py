@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Finite, durable model-backed research epoch; no numerical or chain shortcuts.
 
 The selected recipe is frozen here. A separate trusted controller performs the

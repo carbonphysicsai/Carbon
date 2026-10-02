@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Which cores and how much memory this host gives one worker.
 
 The device identity problem was solved once already: one laptop's GPU used to be

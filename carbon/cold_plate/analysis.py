@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Read a solved cold plate reference case back into the Challenge's outputs.
 
 `analyze_case` returns the outputs at the final write (`domain.OUTPUTS`), the

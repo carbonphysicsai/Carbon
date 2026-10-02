@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """PROPOSED development-only local GPU diagnostic plan. No dispatch authority.
 
 This module validates a *proposed* bounded diagnostic run plan against exactly

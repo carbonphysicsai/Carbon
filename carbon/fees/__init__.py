@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Bounded A7 submission identity, lifecycle, and isolated fee ledger.
 
 This package is fixture-capable and process-local.  It provides no durable

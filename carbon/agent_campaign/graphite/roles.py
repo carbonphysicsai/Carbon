@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Graphite's six roles: prompt, closed tool manifest and starting rung.
 
 Plan §3. Each role is a frozen record. Its prompt is recorded by digest; its

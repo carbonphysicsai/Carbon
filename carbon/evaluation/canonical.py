@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Closed canonical identity for the B-04 reference/truth runtime.
 
 The codec wraps B-02A's audited primitive/ref codecs while owning a separate

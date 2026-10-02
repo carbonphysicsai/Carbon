@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery construction contracts, compiled through the one B-02B compiler.
 
 The same compiler and issue codes as Burgers, with the battery contract from

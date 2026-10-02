@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Nominal values for Carbon's public/synthetic DEVELOPMENT testnet profile."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Carbon's battery training loop in PyTorch (OWNER-PYTORCH-BACKEND-01).
 
 The PyTorch sibling of `training`: a recipe whose `backend` setting is

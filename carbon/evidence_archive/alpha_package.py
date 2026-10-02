@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Offline validator for the unprovisioned C-EA1 AWS deployment package."""
 
 from __future__ import annotations

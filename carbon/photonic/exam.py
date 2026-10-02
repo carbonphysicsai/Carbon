@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The photonic coupler DEVELOPMENT exam: case typing, gates, score, aggregate.
 
 In the shape of `carbon.cold_plate.exam`, kept apart the same way:

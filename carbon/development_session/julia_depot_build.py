@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Build, verify, reuse and adopt the authored-Julia depot.
 
 The operational half of `julia_depot`: nothing here decides what the depot

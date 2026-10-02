@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery reference: the pinned PyBaMM configuration (truth, M2).
 
 Promoted unchanged from `scripts/dev/exam_design/battery_reference.py` (KEEP):

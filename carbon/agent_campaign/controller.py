@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The durable campaign controller: Carbon supervises the external agent.
 
 `carbon.miner_mcp.agent_connection` serves the protocol and deliberately does

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Two exact public cases through existing Julia controller, tasks and ledger.
 
 The operator grants the ordered cases prospectively. This finite comparison has

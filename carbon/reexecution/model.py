@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """C-10 DEVELOPMENT re-execution bindings and outcomes.
 
 These values describe a validator-integrity observation over two C-07

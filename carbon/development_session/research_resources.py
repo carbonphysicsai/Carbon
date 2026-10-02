@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Reuse B-02C/B-07E static inspection; runtime admission stays in C-03/ledger.
 
 B-02C currently types metadata as non-production fixture authority. This class

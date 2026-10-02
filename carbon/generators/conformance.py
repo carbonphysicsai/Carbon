@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Protected, fact-only conformance records for the B-03 fixture runtime.
 
 The module records reached milestones and exact identity comparisons.  It owns

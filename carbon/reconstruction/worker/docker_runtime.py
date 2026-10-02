@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Docker/OCI mechanism for the single-host C-03 DEVELOPMENT profile."""
 
 from __future__ import annotations

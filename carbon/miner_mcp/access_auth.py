@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Cloudflare Access fronts the remote MCP door; Carbon decides what it grants.
 
 Decision CARBON-D-MCP-REMOTE-AUTH. Carbon runs no authorization server, issues

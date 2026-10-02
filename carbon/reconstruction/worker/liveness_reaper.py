@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Detached reaper for one exact miner-lane launch that has no deadline.
 
 A miner's own research runs with no Carbon time limit, so the deadline

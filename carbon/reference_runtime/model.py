@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Role-explicit Burgers reference algorithms for C-04 DEVELOPMENT evidence.
 
 The numerical implementations in this module are qualification candidates.  A

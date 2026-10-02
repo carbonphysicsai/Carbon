@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Host admission and exclusive ownership for the existing C-03 controller.
 
 This module neither issues grants nor schedules work. It reuses operator-private

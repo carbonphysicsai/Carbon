@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """AWS provider adapters for the unprovisioned C-EA1 private-alpha package.
 
 The module contains no default credentials, account, region, or network action.

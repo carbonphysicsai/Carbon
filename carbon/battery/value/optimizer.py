@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Problem C: one two-step fast-charge protocol that is safe across 15-35 °C.
 
 Use case (lead amendment 2026-10-01, before any EV4 solve, from EV2's public

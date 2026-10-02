@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """C-EA1 journal, PostgreSQL catalogue, encryption, and object-store adapters."""
 
 from __future__ import annotations

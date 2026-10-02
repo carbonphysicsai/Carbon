@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Real isolated reconstruction and evaluator-owned measurement of a frozen cohort."""
 
 from __future__ import annotations

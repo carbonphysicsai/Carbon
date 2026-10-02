@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Lium adapter (Bittensor subnet 51), on the miner's own account.
 
 Request shapes are from Lium's live OpenAPI (https://lium.io/api/openapi.json,

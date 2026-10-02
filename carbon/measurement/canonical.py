@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Strict canonical JSON profile for implemented B-05 authoring objects."""
 
 from __future__ import annotations

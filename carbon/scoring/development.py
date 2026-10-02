@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Owner-delegated, non-paying DEVELOPMENT scalar and comparison rule.
 
 This is a new result family in the existing scoring owner, not an A5 fixture

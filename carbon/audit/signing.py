@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Externally supplied Ed25519 DEVELOPMENT signing boundary for C-06."""
 
 from __future__ import annotations

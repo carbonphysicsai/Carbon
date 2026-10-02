@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """EV4's pre-registered hypotheses, computed from an engineering-value result.
 
 The contract fixes everything here before any solve

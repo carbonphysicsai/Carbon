@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Finite trusted autoresearch controller. No public-network write capability.
 
 run creates one new campaign; resume reuses its exact immutable inputs. Unknown

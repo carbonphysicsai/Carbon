@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery research environment behind Carbon's shared MCP operations.
 
 A miner reaches battery through the same twelve B-07 research operations as

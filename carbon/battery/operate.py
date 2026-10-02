@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The operator's commands for a battery validator deployment (M3).
 
     python -m carbon.battery.operate <command> --config DEPLOYMENT.json ...

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Disposable loopback-only immutable object service for C-EA1 integration tests."""
 
 from __future__ import annotations

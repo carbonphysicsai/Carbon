@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fail-closed representation of the proposed B-E4 autonomous-agent pilot.
 
 This module validates a design artifact.  It contains no provider client,

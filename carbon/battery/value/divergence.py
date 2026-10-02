@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Score-value divergence: the condition a run emits, not a judgement.
 
 OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01) §3.2: an attack vector is

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Versioned public workspace tasks behind B-07's existing twelve operations.
 
 The legacy provider does not execute the new task kind. This explicit D4

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Coherent in-process B-07C mock execution over registered resolved plans."""
 
 from __future__ import annotations

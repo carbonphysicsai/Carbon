@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery truth service: pinned reference solves with typed failures.
 
 WRAPS the exam-design pod runner's per-case pattern

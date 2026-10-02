@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Exact immutable nested models for the B-02B construction contract.
 
 This module owns the closed value vocabulary shared by assembly, catalog,

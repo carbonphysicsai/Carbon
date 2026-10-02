@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery validator daemon (M3): admission, screening and finalist comparison.
 
 It implements the approved battery exam (OWNER-BATTERY-TESTNET-01, OD-2), with

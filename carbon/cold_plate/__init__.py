@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """AI-chip liquid cold plate DEVELOPMENT Challenge (#342).
 
 A straight-microchannel copper cold plate cooled by PG25, under the

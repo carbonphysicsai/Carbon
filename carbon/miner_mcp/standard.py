@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Object-valued adapter for a trusted, requester-bound research SDK.
 
 This is a transport-neutral boundary, not an MCP server or an authentication

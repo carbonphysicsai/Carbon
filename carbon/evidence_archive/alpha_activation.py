@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fail-closed activation predicates for C-EA1's provider-backed alpha archive.
 
 This module can describe and verify a rehearsal package.  It cannot issue an

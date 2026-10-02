@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """How a miner connects their own agent to Carbon's MCP server, and a check.
 
 A miner may bring any MCP-capable agent - their own client, their own model,

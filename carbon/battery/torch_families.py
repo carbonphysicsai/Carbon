@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery families only the PyTorch backend rebuilds (OWNER-PYTORCH-BACKEND-01).
 
 Each builds a `torch_training.Network`: a flat, ordered list of tensors and an

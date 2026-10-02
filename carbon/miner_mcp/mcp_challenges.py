@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The MCP door onto Carbon's Challenge registry: list and describe.
 
 Open tier, like onboarding: a miner decides which Challenge to research before

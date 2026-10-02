@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery DEVELOPMENT exam: gates, score, pools and the frozen comparison.
 
 Promoted from `scripts/dev/exam_design/{gates,scoring,exam}.py` (KEEP the

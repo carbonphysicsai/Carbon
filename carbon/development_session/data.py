@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Evaluator-owned C-AUTH1 generation and isolated C-04 TRAIN label preparation."""
 
 from __future__ import annotations

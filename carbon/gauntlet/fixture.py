@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Closed B-E4 extension of the existing synthetic construction fixture.
 
 This module registers inert B-02B catalog data only.  It supplies no default

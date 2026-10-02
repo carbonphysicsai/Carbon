@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Durable validator state for the battery exam (M3).
 
 One owner-only SQLite file holds everything the screening pool and the

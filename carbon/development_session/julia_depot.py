@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The precompiled authored-Julia package depot, built from Julia inputs only.
 
 The depot is the expensive part of the authored Julia image: every pinned

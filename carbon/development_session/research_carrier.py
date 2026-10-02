@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Isolated public-research carrier reusing C-03 mechanisms and output parser.
 
 No API accepts host mounts, Docker options, credentials or protected inputs.

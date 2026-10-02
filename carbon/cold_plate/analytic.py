@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A closed-form microchannel model of the cold plate: the conventional method.
 
 #342 asks for an analytical baseline beside the learned one. This is the

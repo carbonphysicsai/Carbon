@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Protected prospective policy graph for the bounded B-04 runtime.
 
 This module owns policy structure only.  It selects no solver, tolerance,

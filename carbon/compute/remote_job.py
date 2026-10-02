@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The controller's side of one rented job (C-MLP-03 slice 4).
 
 `RemoteJob` drives `carbon.compute.job_server` on a rented pod from the

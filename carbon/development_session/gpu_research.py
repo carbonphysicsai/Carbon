@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Opt-in public TRAIN diagnostics through the existing GPU C03 controller.
 
 Scope construction grants nothing. What admits work is the campaign grant plus

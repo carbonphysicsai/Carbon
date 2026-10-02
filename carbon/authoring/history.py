@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Create-only exact-ref history for B-02A scientific authoring artifacts."""
 
 from __future__ import annotations

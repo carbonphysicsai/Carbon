@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fixed real DEVELOPMENT practice program; no synthetic metric substitution.
 
 Executed only in the isolated research carrier, separately from miner scripts.

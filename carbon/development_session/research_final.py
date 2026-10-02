@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted fresh-cohort binding for the existing C-03/C-05/C-07 final path.
 
 No agent tool constructs this object or supplies its private root. The research

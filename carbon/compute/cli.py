@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Command line: ``python -m carbon.compute reconcile --root ROOT --runpod-key-file F``.
 
 The reconciler runs on the controller host (or any operator machine holding a

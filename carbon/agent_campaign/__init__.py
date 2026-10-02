@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Supervised external research-agent campaigns for internal admission testing.
 
 OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01): an internal development

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fail-closed B-05 projection onto the unchanged A5 input vocabulary."""
 
 from __future__ import annotations

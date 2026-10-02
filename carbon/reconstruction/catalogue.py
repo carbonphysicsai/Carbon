@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Prospective discovery of registered DEVELOPMENT reconstruction implementations.
 
 This catalogue describes code, not host availability, grants, scientific

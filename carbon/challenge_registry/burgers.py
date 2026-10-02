@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The Burgers adapter: a description over the existing, unchanged Burgers path.
 
 Nothing about Burgers research or evaluation moves here. This reads the

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Pinned MCP 2.2.0 stdio transport for an operator-bound research adapter.
 
 The trusted launcher supplies the already admitted adapter. This module has no

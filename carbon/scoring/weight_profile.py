@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Versioned DEVELOPMENT weight profiles that may give a leg zero weight.
 
 The core Score Pack (`pack.py`) requires three strictly positive weights,

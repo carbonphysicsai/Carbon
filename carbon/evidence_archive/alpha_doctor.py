@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Safe configuration doctor for the prospective C-EA1 alpha profile."""
 
 from __future__ import annotations

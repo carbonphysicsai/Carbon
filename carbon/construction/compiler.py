@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Deterministic fail-closed compiler from Strategy v1 to inert construction data."""
 
 from __future__ import annotations

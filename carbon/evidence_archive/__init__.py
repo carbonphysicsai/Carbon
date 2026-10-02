@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """C-EA1 archive runtime and fail-closed alpha deployment preparation."""
 
 from .alpha_activation import (

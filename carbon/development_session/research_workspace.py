@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Miner-owned files; no host path, arbitrary mount, or evaluator handle.
 
 File contents are untrusted. Only the isolated research carrier may execute them.

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A miner's side of the battery intake: build, send and poll. It never signs.
 
 The miner signs in its own tooling. Carbon holds no key, so this module has

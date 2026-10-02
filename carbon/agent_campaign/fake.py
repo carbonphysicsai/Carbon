@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A deterministic in-process research-agent provider for tests and dry runs.
 
 A test double, never a research agent: it runs nothing, spends nothing real and

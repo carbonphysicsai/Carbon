@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Challenge entries, resolution and discovery documents.
 
 Each entry names one Challenge and version, its lifecycle status and its

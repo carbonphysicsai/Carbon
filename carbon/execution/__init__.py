@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """C1 durable execution admission and queue ownership.
 
 This package journals private execution bindings.  It does not execute a

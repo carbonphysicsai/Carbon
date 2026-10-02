@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery practice on the miner's own GPU (C-MLP-03 slice 3).
 
 The same practice as the CPU carrier, on a GPU: the same compiled recipe, the

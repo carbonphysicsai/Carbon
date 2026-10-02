@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """python -m carbon.challenge_readiness table|validate [--records DIR]"""
 
 from __future__ import annotations

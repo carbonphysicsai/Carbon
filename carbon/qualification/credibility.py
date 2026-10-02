@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """B-E3 credibility crosswalk over exact B-06 evidence identities."""
 
 from __future__ import annotations

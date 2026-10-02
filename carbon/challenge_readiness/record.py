@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """One versioned readiness record per launch-portfolio Challenge (#347).
 
 A readiness record makes the Challenges comparable for readiness and cost.

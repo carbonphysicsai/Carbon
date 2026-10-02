@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Challenge-bounded training support, excluding B-02B's R_strategy."""
 
 from __future__ import annotations

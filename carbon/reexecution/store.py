@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Durable C-10 association journal over C-01/C-06/C-07 owner records."""
 
 from __future__ import annotations

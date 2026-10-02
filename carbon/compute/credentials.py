@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Provider credentials: file-backed, owner-only, never printable.
 
 The key file checks follow ``carbon.development_session.agent`` (not a symlink,

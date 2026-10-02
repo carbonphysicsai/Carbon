@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Audience-safe B-03 generation projections.
 
 The protected generator result is deliberately not a public identity surface.

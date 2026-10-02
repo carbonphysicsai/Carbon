@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Metered use of the miner's selected model provider; no hosted tools.
 
 All request history and schemas count toward admission. Successful replay loads

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Checked testnet publisher for the exact DEVELOPMENT intent family."""
 
 from carbon.chain.publisher import VerifiedWeightPublisher

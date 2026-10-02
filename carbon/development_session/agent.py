@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Data-only Responses agent with a closed Carbon tool surface and spend gate.
 
 The remote model has no terminal, filesystem, repository, wallet, evaluator or

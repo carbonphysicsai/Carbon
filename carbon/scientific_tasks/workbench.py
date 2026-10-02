@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Private Workbench view over the same admitted public Julia research task.
 
 An authenticated host installs a resolver for reviewed draft records. Request

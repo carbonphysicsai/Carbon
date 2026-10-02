@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Exact shared wire values for ``carbon_research_v2``.
 
 The records in this module are protocol vocabulary only.  They do not execute

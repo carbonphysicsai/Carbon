@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Immutable PriorPack storage, authorization history, and offline projection.
 
 This module owns B-07D1's private persistence and validation semantics.  It

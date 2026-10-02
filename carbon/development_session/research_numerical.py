@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Metered invocation of the existing C-05 v3 derived-measurement owner."""
 
 from __future__ import annotations

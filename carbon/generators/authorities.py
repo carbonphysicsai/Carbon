@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Nominal B-03 authority boundaries and fixture execution capability.
 
 Raw callbacks and Boolean verdicts are intentionally absent.  The concrete

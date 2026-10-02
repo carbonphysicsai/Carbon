@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Operator onboarding for an accelerator host, on any machine.
 
 Everything here is host-side and provider-independent. There is no per-vendor

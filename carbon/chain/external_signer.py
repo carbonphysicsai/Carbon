@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Carbon's side of the miner's local signer: a payload out, a signature in.
 
 Carbon never opens a key file, reads a password or builds a signer from key

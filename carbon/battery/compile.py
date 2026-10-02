@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Compile a battery strategy into the exact recipe Carbon rebuilds.
 
 B-02B resolves the strategy against the battery catalog; the backend rules

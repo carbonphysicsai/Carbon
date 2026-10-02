@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The one registered Julia diagnostic behind the existing C-04 request API.
 
 Trusted miner, Workbench and validator compositions may select this instrument

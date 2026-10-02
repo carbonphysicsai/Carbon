@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Per-Challenge submission admission: "can I submit this?" for every Challenge.
 
 Strategy schema 1.0's `dry_validate` stays the structural, registry-free layer

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Owner-facing local doctor/status/reconciliation commands for C-03."""
 
 from __future__ import annotations

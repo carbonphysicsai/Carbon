@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Exact resolved training-only sampling policy for B-02B.
 
 The policy is inert identity data.  It contains registered abstract purposes,

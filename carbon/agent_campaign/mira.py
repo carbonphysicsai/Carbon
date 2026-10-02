@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The Autoscience Mira adapter: planned artifact handoff, live execution BLOCKED.
 
 Mira is Autoscience Mira, https://www.autoscience.ai/mira (owner answer

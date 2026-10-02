@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Carbon's battery recipe implementations (KEEP the campaign math, WRAP it).
 
 Promoted from `scripts/dev/exam_design/recipes.py`. The campaign's recipes

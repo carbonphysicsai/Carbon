@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Versioned design-search requests, proposal commitments and verified results.
 
 Handoff §11-12, as a **separate later experiment** (`EXPERIMENT`): it wraps the

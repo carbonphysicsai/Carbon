@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The MCP door onto the shared miner operations table.
 
 Every operation in `scripts.dev.miner_launchpad.operations.OPERATIONS` becomes

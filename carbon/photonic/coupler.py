@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A symmetric silicon directional coupler by local supermodes (#345).
 
 **The model, declared.** Two identical silicon strips (width w, height h) in

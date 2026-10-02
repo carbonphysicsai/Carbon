@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Read-only runtime compatibility probe for the pinned Bittensor SDK.
 
 Carbon publishes through `bittensor==11.1.0` (`sdk.SDK_VERSION`). The SDK

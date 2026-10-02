@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """`GraphiteProvider`: Carbon's own research agent behind the campaign controller.
 
 It implements the #475 provider contract (`..provider.ResearchAgentProvider`)

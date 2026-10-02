@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Injected R0/R1/R2 and staged-evidence fixture harnesses."""
 
 from __future__ import annotations

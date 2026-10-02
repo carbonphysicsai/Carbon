@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The research environment standard (OWNER-RESEARCH-ENVIRONMENT-01).
 
 Owner rule, 2026-09-27: "the research environment MUST be enabled with

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Authored Julia analysis image and existing-carrier admission.
 
 A campaign admits this language when its frozen runtime declares the exact

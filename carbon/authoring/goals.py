@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Bounded goal-driven challenge authoring for supported development templates.
 
 Compilation in this module creates a content-addressed development proposal.  It

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery submission intake: how a miner's machine reaches the validator.
 
 OD-7(b). A miner signs a `battery_submit` message with its own hotkey, in its
