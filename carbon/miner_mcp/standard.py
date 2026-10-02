@@ -326,6 +326,18 @@ class ResearchToolAdapter:
         """Operator-selected identity; never supplied by a transport caller."""
         return self._principal
 
+    def in_process_sdk(self) -> ResearchMinerTools:
+        """The bound SDK, for Carbon's own in-process agents.
+
+        Graphite (CHALLENGE-PROTOCOL-04) is such an agent: it speaks the SDK's
+        tool names directly. It is the same binding this adapter checks: no
+        new grant, and no other owner. No transport reaches it, because
+        `create_stdio_server` serves `call`. Task shutdown stays with this
+        adapter.
+        """
+        self._check_binding()
+        return self._sdk
+
     def _check_binding(self):
         sdk = self._sdk
         if (
