@@ -589,7 +589,7 @@ class RunnerAdapter:
         if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
         if "gpu_research" in runtime:
-            from carbon.battery.gpu import declared_scope
+            from carbon.development_session.battery_gpu import declared_scope
 
             # Shape, here: battery's own GPU practice scope (C-MLP-03 slice 3),
             # the only Challenge a launch can choose. The campaign recomputes

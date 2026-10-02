@@ -93,7 +93,7 @@ validator) is pending a GPU host.
     so no launch request can point Carbon at a new URL.
   - *Chutes OAuth is not built.* Its scopes, billing and revocation are
     unverified; a key is the only credential.
-- **Slice 3 (the miner's own GPU):** `carbon/battery/gpu.py` (battery's
+- **Slice 3 (the miner's own GPU):** `carbon/development_session/battery_gpu.py` (battery's
   GPU practice scope and program), the carrier's GPU branch in
   `research_carrier.py`, `BatteryPractice(gpu_image=...)`, the registry's
   battery `gpu_research` profile, and setup's "This machine (your GPU)"
@@ -129,6 +129,11 @@ validator) is pending a GPU host.
     does not pick for them.
   - *CPU stays the default.* The GPU is offered beside it, never chosen for
     the miner (owner, 2026-10-01).
+  - *GPU knowledge stays on the execution side.* Only the execution packages
+    may import the accelerator profile (`test_protected_material_isolation`),
+    and `carbon.battery` holds protected material (exam pools, seeds, truth).
+    So battery's GPU practice code lives in `carbon.development_session`,
+    beside Burgers' GPU lane, and the boundary is not widened.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on

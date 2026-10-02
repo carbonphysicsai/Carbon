@@ -47,8 +47,8 @@ from test_miner_inference_providers import (
 )
 
 from carbon.battery import campaign as battery
-from carbon.battery import gpu
 from carbon.battery.practice import PROGRAM
+from carbon.development_session import battery_gpu as gpu
 from carbon.development_session import research_carrier
 from carbon.development_session.profile import canonical
 from carbon.reconstruction import onboarding

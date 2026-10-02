@@ -264,7 +264,7 @@ def _well_formed_gpu_scope():
     what this exercises is the review and runner path, which check shape and
     must stop claiming the composition is unavailable once the shape is right.
     """
-    from carbon.battery.gpu import SCOPE_SCHEMA
+    from carbon.development_session.battery_gpu import SCOPE_SCHEMA
 
     return {
         "schema": SCOPE_SCHEMA,

@@ -21,9 +21,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from carbon.battery.practice import PROGRAM
 from carbon.development_session.profile import canonical, digest
-
-from .practice import PROGRAM
 
 SCOPE_SCHEMA = "carbon.battery.gpu-practice.scope.v1"
 #: The operator-installed record naming the GPU worker image; the runner
