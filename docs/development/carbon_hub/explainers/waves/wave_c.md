@@ -80,8 +80,8 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/5799895d1147a8df8ecefeae98c7eae22fa60ebc/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/5799895d1147a8df8ecefeae98c7eae22fa60ebc/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/5799895d1147a8df8ecefeae98c7eae22fa60ebc/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/a935f51b0c0edd4fb49922d29a9262c1e88e95da/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/a935f51b0c0edd4fb49922d29a9262c1e88e95da/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/a935f51b0c0edd4fb49922d29a9262c1e88e95da/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.
