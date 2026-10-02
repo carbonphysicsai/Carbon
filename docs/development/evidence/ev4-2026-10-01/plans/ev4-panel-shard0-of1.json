@@ -1,0 +1,13 @@
+{
+ "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+ "phase": "value_panel",
+ "shard": 0,
+ "shards": 1,
+ "ship": [
+  "carbon",
+  "docs/development/evidence/exam-design-2026-09-24/datasets/train-v1.jsonl.gz",
+  "docs/development/evidence/exam-design-2026-09-24/ocv_table.json",
+  "docs/development/evidence/exam-design-2026-09-24/prepare.json",
+  "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
+ ]
+}
