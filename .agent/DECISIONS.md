@@ -17407,6 +17407,42 @@ session builds it, and the phase 2 grant's account and expiry are reused.
 - Testnet 567 only.
 - No pod or other spend beyond this grant.
 
+## 2026-10-02 — OWNER-CHALLENGE-STEP4-01: what a finding is, attacker code in the sandbox, and campaign ceilings
+
+**Owner, in session on 2026-10-02**, answering three questions before
+Graphite's first live sessions (CHALLENGE-PROTOCOL-04). The answers were
+selected from the options offered:
+- findings: "Only fail-opens";
+- attacker executables: "Yes, in the sandbox";
+- campaign ceilings: "$5 each".
+
+**Decision.**
+1. **A finding is a reproduced fail-open.**
+   - What counts: an attempt the defense accepted that it should have
+     refused, reproduced by Carbon outside the agent.
+   - What does not count: a refusal at intake. That is the defense working;
+     it is recorded but is not a finding.
+   - Model text claiming a finding records nothing.
+   - A finding stops construction widening and escalates
+     (OWNER-CHALLENGE-ADMISSION-01 §3.3), and is graded by the technical
+     owner.
+2. **The attacker may run code, in the sandbox only.**
+   - Workspace tasks, `run_python` and `run_julia` run in the existing
+     research worker: Docker, no network, a pinned image built from the
+     checkout (OWNER-MINER-OWN-MACHINE-01).
+   - This is the owner's security decision for internal development. It is
+     not security acceptance of the sandbox.
+   - OWNER-GRAPHITE-02's reconstruction rule holds: an attack construction
+     Carbon cannot rebuild is refused, typed, recorded as a finding, and
+     never scored.
+3. **Campaign ceilings are USD 5.00 each,** for the constructor and attacker
+   campaigns, so only the USD 5.00 step 4 grant binds.
+
+**Unchanged.** The step 4 grant (OWNER-CHALLENGE-ROADMAP-02). No pods. Testnet
+567 only. Human-reserved values: the science owner's development scoring set,
+incumbent, comparison margin and reconstruction tolerance. Comparisons are
+reported without a margin until those are set.
+
 ## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
 
 **Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
