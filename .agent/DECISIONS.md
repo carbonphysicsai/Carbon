@@ -17223,15 +17223,20 @@ release decision.
 - So the candidate record, its approval (WEB-QA-11-D2) and production are
   untouched, and nothing is deployed.
 
-**Observed while verifying.**
-- Production serves bundle `86f51385` on both hostnames: the Pilot Designer
-  `be64f8b9…`, `/workbench/` `9a44f683…`, and every Ask Carbon asset at its
-  pinned digest.
-- The WEB-QA-11-D2 deployment is therefore live, but its version ids are not
-  yet in the repository. The baseline manifest still names `dc4469a7` as the
-  rollback target.
-- The operator's step-8 report (`DEPLOY_PACKAGE_2026_10_01.md`) is still needed
-  before the next certification. Until it arrives, `integrate-static` cannot
-  be told that live has moved.
+**The WEB-QA-11-D2 deployment, recorded.**
+- The operator deployed bundle `86f51385` as `carbonwebsite`
+  `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` on 2026-10-02 at 01:52:41Z, with
+  100 % of traffic, replacing `dc4469a7`.
+- Capture: the operator's wrangler deploy output, re-read with
+  `wrangler deployments status` at 02:56Z, and relayed by the owner in
+  session.
+- From this host, `tools/verify-publication.mjs` against the reproduced bundle
+  is VERIFIED on both hostnames: Pilot Designer `be64f8b9…`, `/workbench/`
+  `9a44f683…`, health `active:true` with `gemma-4-31b-turbo-tee:v1`.
+- The manifest's rollback target is now `c12d547a`, and `dc4469a7` is
+  superseded. The candidate is `OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED`.
+- The `ask-carbon-public` version ids were not supplied.
+- **The next candidate has one prerequisite.** It must first fold the
+  `/workbench/` replacement, now live, into a v4 baseline inventory.
 
 **Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.

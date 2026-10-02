@@ -371,6 +371,18 @@ Production needs a separate exact owner authorization after the staging report:
 > repository expects the static rollback target `dc4469a7…`; the id captured at
 > deploy time wins.
 
+**Deployed 2026-10-02.**
+- The operator deployed bundle `86f51385…` as `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`
+  at 01:52:41Z, with 100 % of traffic, replacing `dc4469a7`. `c12d547a` is now
+  the manifest's rollback target.
+- `tools/verify-publication.mjs` against the reproduced bundle is VERIFIED on
+  both hostnames.
+- **The next candidate has one prerequisite.** Live now serves the `/workbench/`
+  replacement (`9a44f683…`), which the manifest still lists at its
+  pre-deployment digest. The next candidate must first fold that replacement
+  into a v4 baseline inventory; until then `tools/fetch-live-baseline.mjs`
+  reports 99/100.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:
