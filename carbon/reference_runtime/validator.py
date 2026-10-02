@@ -1,7 +1,3 @@
-# Copyright (c) 2026 Carbon Physics AI, Inc.
-# SPDX-License-Identifier: MIT
-# Full license text: see LICENSE at the repository root.
-
 """Resource-bounded native validator for one C-04 output snapshot."""
 
 from __future__ import annotations

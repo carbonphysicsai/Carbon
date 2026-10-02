@@ -1,7 +1,3 @@
-# Copyright (c) 2026 Carbon Physics AI, Inc.
-# SPDX-License-Identifier: MIT
-# Full license text: see LICENSE at the repository root.
-
 """Opening-anchored review diagnostic, never retirement or reward reweighting."""
 
 from dataclasses import dataclass

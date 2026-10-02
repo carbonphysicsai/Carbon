@@ -1,7 +1,3 @@
-# Copyright (c) 2026 Carbon Physics AI, Inc.
-# SPDX-License-Identifier: MIT
-# Full license text: see LICENSE at the repository root.
-
 """Closed bridge for a native Julia Burgers refinement instrument.
 
 This is a worker utility, not an admission API or sandbox. The caller must

@@ -1,7 +1,3 @@
-# Copyright (c) 2026 Carbon Physics AI, Inc.
-# SPDX-License-Identifier: MIT
-# Full license text: see LICENSE at the repository root.
-
 """Narrow 11.1.0 publication extension; SDK policy and execute remain in control."""
 
 import asyncio
