@@ -25,14 +25,18 @@ nothing.
 
 **Refusals name the field** they are about, so the page can point at it.
 
-Only launchable choices are offered. Inference (slice 2) offers every provider
-adapter: Engy's Chat Completions route first, Chutes with the prices it
-publishes, the fixed OpenAI and Anthropic APIs, and the generic OpenAI-shaped
-adapters with the miner's own endpoint and, optionally, their declared price.
-Compute (slice 3) offers this machine's CPU, every miner's default, and this
-machine's own GPU for practice speed. Rented GPUs and other agents are later
-slices (4 and 5); until each lands, the research environment standard names it
-as a Gap rather than this page offering something that would not run.
+Only launchable choices are offered.
+- Inference (C-MLP-03 slice 2) offers every provider adapter: Engy's Chat
+  Completions route first, Chutes with the prices it publishes, the fixed
+  OpenAI and Anthropic APIs, and the generic OpenAI-shaped adapters with the
+  miner's own endpoint and, optionally, their declared price.
+- Compute (slices 3, 4 and 4b) offers this machine's CPU, every miner's
+  default, this machine's own GPU for practice speed, and a GPU rented on the
+  miner's own RunPod, Lium or Targon account.
+- Agent (slice 5) offers Carbon's autonomous agent or Hermes.
+- The network (C-MLP-04) is read from the chain: Carbon's testnet and its
+  publisher, the hotkey at UID 0. A miner names no operator configuration;
+  only an operator running Carbon's own deployment does.
 """
 
 from __future__ import annotations
@@ -45,8 +49,8 @@ import threading
 import time
 from pathlib import Path
 
-from carbon.compute.providers import PROVIDERS
-from carbon.development_session.battery_gpu import SPEED_ONLY as SPEED_ONLY_NOTE
+from carbon.compute.providers import PROVIDERS, VM_PROVIDERS
+from carbon.development_session.gpu_practice import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
 from scripts.dev.miner_launchpad.hermes_setup import START
@@ -82,7 +86,7 @@ PUSH_STEP = (
 #: The host device record setup installs names this machine and provider.
 GPU_RECORD_ID = "this-machine"
 GPU_PROVIDER = "own-machine"
-#: Carbon's autonomous battery agent, running in this controller's process
+#: Carbon's autonomous research agent, running in this controller's process
 #: on this machine.
 AUTONOMOUS = "carbon-autonomous"
 #: Hermes Agent on the miner's machine, driving Carbon's MCP server over stdio
@@ -363,6 +367,8 @@ def choices() -> dict:
                 "display_name": "This machine (your GPU)",
                 "default": False,
                 "needs_gpu_image": True,
+                # GPU practice is set up for one Challenge (C-MLP-04).
+                "for_challenges": gpu_challenges(),
                 "cost_basis": "Your own machine: nothing is rented or billed.",
                 "live_check": (
                     "Everything the CPU check does, then detects your GPU with "
@@ -377,8 +383,15 @@ def choices() -> dict:
                 "display_name": "A GPU rented on your own provider account",
                 "default": False,
                 "needs_gpu_image": True,
+                "for_challenges": gpu_challenges(rented=True),
                 "providers": [
-                    {"id": name, "display_name": display}
+                    {
+                        "id": name,
+                        "display_name": display,
+                        # A VM provider (Targon) boots a VM image the miner
+                        # names, and runs the pinned worker in it over SSH.
+                        "vm": name in VM_PROVIDERS,
+                    }
                     for name, (display, _factory) in sorted(PROVIDERS.items())
                 ],
                 "cost_basis": (
@@ -399,7 +412,7 @@ def choices() -> dict:
         "agent": [
             {
                 "id": AUTONOMOUS,
-                "display_name": "Carbon's autonomous battery agent",
+                "display_name": "Carbon's autonomous research agent",
                 "cost_basis": (
                     "Runs on this machine. It spends only through your "
                     "inference choice, within the finite ceilings you set at "
@@ -636,10 +649,10 @@ class LiveChecks:
             "images": [image.image_id, analysis.image_id],
         }
 
-    def gpu(self, gpu_manifest: Path) -> dict:
+    def gpu(self, gpu_manifest: Path, campaign=None) -> dict:
         """Detect this machine's GPU, install its device record, and verify
         the GPU worker image and container runtime. Nothing leaves the host."""
-        from carbon.development_session.battery_gpu import gpu_scope, is_gpu_image
+        from carbon.development_session.gpu_practice import is_gpu_image
         from carbon.reconstruction import onboarding
         from carbon.reconstruction.host_inventory import (
             HOST_DEVICE_RECORD,
@@ -724,22 +737,21 @@ class LiveChecks:
             raise SetupRefused("gpu", "gpu_host_not_ready:" + ",".join(blockers))
         record = HostDeviceRecord.load(root)
         return {
-            "scope": gpu_scope(image),
+            # The chosen Challenge's own GPU practice scope (C-MLP-04).
+            "scope": campaign.gpu_scope(image),
             "device_kind": record.device_kind,
             "record_digest": record.digest,
         }
 
-    def rented(self, rented: dict, credential_file: Path, gpu_manifest: Path) -> dict:
+    def rented(
+        self, rented: dict, credential_file: Path, gpu_manifest: Path, campaign=None
+    ) -> dict:
         """Read the miner's balance and the GPU's price with their key, and
         check the pushed image is their pinned GPU worker. Rents nothing."""
         from carbon.compute.errors import ComputeError
         from carbon.compute.providers import provider_adapter
         from carbon.compute.rented_runner import RentedCompute
-        from carbon.development_session.battery_gpu import (
-            gpu_scope,
-            is_gpu_image,
-            rented_scope,
-        )
+        from carbon.development_session.gpu_practice import is_gpu_image
         from carbon.reconstruction.worker.docker_runtime import (
             DockerCLI,
             load_image_identity,
@@ -772,8 +784,18 @@ class LiveChecks:
             raise SetupRefused(
                 "image_ref", "image_ref_is_not_your_gpu_worker", next_step=PUSH_STEP
             )
-        adapter = provider_adapter(compute.provider, credential_file)
+        adapter = provider_adapter(
+            compute.provider,
+            credential_file,
+            # The check rents nothing, so no VM key is ever written here.
+            state_dir=credential_file.parent / "vm-keys",
+            vm_image=compute.vm_image,
+        )
         try:
+            if compute.vm_image is not None and compute.vm_image not in (
+                adapter.vm_images()
+            ):
+                raise SetupRefused("vm_image", "vm_image_not_offered")
             balance = adapter.read_balance()
             offers = adapter.offers(
                 [compute.gpu_type_id], gpu_count=1, cloud_type=compute.cloud_type
@@ -788,8 +810,9 @@ class LiveChecks:
         if offer.usd_per_hr > compute.max_rate_usd_per_hr:
             raise SetupRefused("max_rate_usd_per_hr", "price_above_your_ceiling")
         return {
-            "scope": rented_scope(compute, image),
-            "gpu_scope": gpu_scope(image),
+            # The chosen Challenge's own scopes (C-MLP-04).
+            "scope": campaign.rented_scope(compute, image),
+            "gpu_scope": campaign.gpu_scope(image),
             "balance_usd": balance.balance_usd,
             "balance_source": balance.source,
             "offer_usd_per_hr": offer.usd_per_hr,
@@ -824,21 +847,20 @@ class LiveChecks:
         )
         return {"hermes": version, "written": written}
 
-    def intake(self, url: str) -> dict:
-        """Read the validator intake's public facts and check it serves this
-        chain and Challenge. Sends nothing signed and costs nothing."""
-        from carbon.battery import intake_client
+    def intake(self, url: str, campaign=None) -> dict:
+        """Read the validator intake's public facts and check, through the
+        Challenge's own campaign, that it serves this chain and Challenge.
+        Sends nothing signed and costs nothing."""
+        from carbon.challenge_registry.campaigns import IntakeMismatch
 
         try:
-            facts = intake_client.read_intake(url)
-            intake_client._context(facts)
-            intake_client._challenge(facts)
-        except intake_client.IntakeMismatch:
+            facts = campaign.intake_check(url)
+        except IntakeMismatch:
             raise SetupRefused(
-                "battery_intake", "intake_serves_another_chain_or_challenge"
+                "intakes", "intake_serves_another_chain_or_challenge"
             ) from None
         except (OSError, ValueError, KeyError, TypeError):
-            raise SetupRefused("battery_intake", "intake_unreachable") from None
+            raise SetupRefused("intakes", "intake_unreachable") from None
         return {"receiver": facts["receiver"], "snapshot": facts["snapshot"]["id"]}
 
     def agent(self, hotkey: str, socket_path: Path | None = None) -> dict:
@@ -849,6 +871,20 @@ class LiveChecks:
         except SignerFailure as failure:
             raise SetupRefused("signer", failure.code, next_step=SIGNER_STEP) from None
         return {"signing": "carbon-miner-signer holds the registered hotkey"}
+
+    def network(self) -> tuple[dict, int]:
+        """Carbon's testnet context and its publisher (the hotkey at UID 0),
+        read from a finalized snapshot: what a miner's campaign talks to,
+        without an operator file (C-MLP-04)."""
+        from carbon.chain.models import ChainFailure
+        from carbon.chain.sdk import BittensorReader
+        from carbon.development_session import miner_network
+
+        try:
+            bound, block = miner_network.resolve(BittensorReader())
+        except (ChainFailure, miner_network.NetworkUnavailable):
+            raise SetupRefused("network", "network_unreadable") from None
+        return miner_network.document(bound, block), block
 
     @staticmethod
     def operator_config(path: Path) -> None:
@@ -861,6 +897,55 @@ class LiveChecks:
             raise SetupRefused("operator_config", "operator_config_invalid") from None
         if config.netuid != CARBON_NETUID:
             raise SetupRefused("operator_config", "operator_config_not_subnet_567")
+
+
+def _gpu_campaign(challenge, rented):
+    """The campaign of the Challenge GPU practice is set up for, or a refusal
+    naming the field. Only an IMPLEMENTED Challenge whose campaign offers GPU
+    (and, for a rented GPU, rented) practice qualifies (C-MLP-04)."""
+    from carbon.challenge_registry import ResolutionError, resolve
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.challenge_registry.registry import GPU_RESEARCH
+
+    if (
+        type(challenge) is not dict
+        or set(challenge) != {"id", "version"}
+        or not all(type(v) is str for v in challenge.values())
+    ):
+        raise SetupRefused("challenge", "challenge_id_and_version_required")
+    try:
+        resolve(challenge["id"], challenge["version"], GPU_RESEARCH)
+        campaign = campaign_for(challenge)
+    except ResolutionError as refused:
+        raise SetupRefused("challenge", refused.code) from None
+    if campaign.gpu_scope is None or (rented and campaign.rented_scope is None):
+        raise SetupRefused("challenge", "challenge_offers_no_gpu_practice")
+    return campaign
+
+
+def gpu_challenges(*, rented=False) -> list[dict]:
+    """The implemented Challenges whose campaigns offer GPU practice."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+    from carbon.challenge_registry.registry import GPU_RESEARCH
+
+    return [
+        {"id": entry.challenge_id, "version": entry.version, "title": entry.title}
+        for entry, campaign in implemented_campaigns()
+        if GPU_RESEARCH in {p.name for p in entry.profiles}
+        and campaign.gpu_scope is not None
+        and (not rented or campaign.rented_scope is not None)
+    ]
+
+
+def intake_challenges() -> list[dict]:
+    """The implemented Challenges whose campaigns submit through an intake."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+
+    return [
+        {"id": entry.challenge_id, "version": entry.version, "title": entry.title}
+        for entry, campaign in implemented_campaigns()
+        if campaign.intake_check is not None
+    ]
 
 
 class EnvironmentSetup:
@@ -913,9 +998,13 @@ class EnvironmentSetup:
     def state(self) -> dict:
         record = self._record()
         done = {name: name in record for name in STEPS[:-1]}
+        from scripts.dev.miner_launchpad import installed
+
         return {
             "schema": SETUP_SCHEMA,
             "registered_hotkey": record.get("hotkey"),
+            # The images the installer built here, for setup to fill in.
+            "installed": installed.read(self.root.parent),
             "steps": {
                 "inference": _public(
                     record.get("inference"),
@@ -1037,7 +1126,7 @@ class EnvironmentSetup:
         _closed(
             value,
             {"choice", "image_manifest", "analysis_image_manifest"},
-            {"gpu_image_manifest", "rented", "key"},
+            {"gpu_image_manifest", "rented", "key", "challenge"},
         )
         if value["choice"] not in (LOCAL_CPU, LOCAL_GPU, RENTED_GPU):
             raise SetupRefused("choice", "compute_not_offered")
@@ -1048,16 +1137,31 @@ class EnvironmentSetup:
             )
         if rented:
             choice = value["rented"]
-            if type(choice) is not dict or set(choice) != RENTED_FIELDS:
+            if type(choice) is not dict or set(choice) - {"vm_image"} != RENTED_FIELDS:
                 raise SetupRefused("rented", "rented_choice_invalid")
             if choice["provider"] not in PROVIDERS:
                 raise SetupRefused("provider", "compute_provider_not_offered")
+            if (choice["provider"] in VM_PROVIDERS) != ("vm_image" in choice):
+                raise SetupRefused(
+                    "vm_image",
+                    (
+                        "field_required"
+                        if choice["provider"] in VM_PROVIDERS
+                        else "vm_image_is_for_a_vm_provider"
+                    ),
+                )
         gpu = value["choice"] in (LOCAL_GPU, RENTED_GPU)
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
                 "gpu_image_manifest",
                 "field_required" if gpu else "gpu_image_is_for_the_gpu_choice",
             )
+        if gpu != ("challenge" in value):
+            raise SetupRefused(
+                "challenge",
+                "field_required" if gpu else "challenge_is_for_the_gpu_choice",
+            )
+        campaign = _gpu_campaign(value["challenge"], rented) if gpu else None
         paths = {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
@@ -1080,6 +1184,10 @@ class EnvironmentSetup:
                 "balance": "not applicable: your own machine",
             }
             step = {"choice": value["choice"], "paths": paths}
+            if gpu:
+                # GPU practice is set up for one Challenge, the miner's choice.
+                step["challenge"] = dict(value["challenge"])
+                check["challenge"] = value["challenge"]["id"]
             if rented:
                 provider = value["rented"]["provider"]
                 credential = self.root / "keys" / (provider + ".compute-key")
@@ -1087,7 +1195,9 @@ class EnvironmentSetup:
                     write_private(credential, _secret(value["key"], "key"))
                 elif not credential.exists():
                     raise SetupRefused("key", "field_required")
-                found = self.checks.rented(value["rented"], credential, Path(gpu_image))
+                found = self.checks.rented(
+                    value["rented"], credential, Path(gpu_image), campaign=campaign
+                )
                 runtime = {
                     **runtime,
                     "gpu_research": [found["gpu_scope"]],
@@ -1102,12 +1212,17 @@ class EnvironmentSetup:
                     stock=found["stock"],
                     ceiling_usd_per_hr=value["rented"]["max_rate_usd_per_hr"],
                     note=SPEED_ONLY_NOTE,
+                    **(
+                        {"vm_image": value["rented"]["vm_image"]}
+                        if "vm_image" in value["rented"]
+                        else {}
+                    ),
                 )
                 return self._step(
                     "compute", {**step, "runtime": runtime, "check": check}
                 )
             if gpu:
-                detected = self.checks.gpu(Path(gpu_image))
+                detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
                 runtime = {**runtime, "gpu_research": [detected["scope"]]}
                 step["gpu_image"] = gpu_image
                 check.update(
@@ -1121,6 +1236,9 @@ class EnvironmentSetup:
     def offered(self) -> dict:
         """What each step offers, with the exact files a Hermes choice writes."""
         value = choices()
+        # The Challenges a frozen candidate can be submitted to through a
+        # validator's intake, each named in review (C-MLP-04).
+        value["intake_challenges"] = intake_challenges()
         for choice in value["agent"]:
             if choice["id"] == HERMES:
                 choice["writes"] = self.checks.hermes_files()
@@ -1162,13 +1280,17 @@ class EnvironmentSetup:
     def agent(self, value) -> dict:
         from carbon.chain.models import CARBON_NETUID
 
-        _closed(value, {"choice", "operator_config"}, {"signer_socket", "consent"})
+        # `operator_config` is for an operator running Carbon's own deployment;
+        # a miner names none, and setup reads the network itself (C-MLP-04).
+        _closed(value, {"choice"}, {"operator_config", "signer_socket", "consent"})
         if value["choice"] not in (AUTONOMOUS, HERMES):
             raise SetupRefused("choice", "agent_not_offered")
         if value["choice"] == AUTONOMOUS and "consent" in value:
             raise SetupRefused("consent", "nothing_to_consent_to")
-        operator = _absolute(value["operator_config"], "operator_config")
-        self.checks.operator_config(operator)
+        operator = None
+        if value.get("operator_config"):
+            operator = _absolute(value["operator_config"], "operator_config")
+            self.checks.operator_config(operator)
         socket_path = (
             _absolute(value["signer_socket"], "signer_socket")
             if value.get("signer_socket")
@@ -1197,7 +1319,19 @@ class EnvironmentSetup:
                 self.root / "miner-public.json",
                 canonical({"netuid": CARBON_NETUID, "hotkey": record["hotkey"]}),
             )
-            paths = {"miner_public": str(public), "operator_config": str(operator)}
+            paths = {"miner_public": str(public)}
+            if operator is not None:
+                paths["operator_config"] = str(operator)
+            else:
+                network, block = self.checks.network()
+                paths["miner_network"] = str(
+                    write_private(self.root / "miner-network.json", canonical(network))
+                )
+                check = {
+                    **check,
+                    "publisher": network["publisher_hotkey"],
+                    "network_block": block,
+                }
             if socket_path is not None:
                 paths["signer_socket"] = str(socket_path)
             return self._step(
@@ -1254,24 +1388,44 @@ class EnvironmentSetup:
     def review(self, value) -> dict:
         """Write the profile and load it into the controller.
 
-        `battery_intake`, optional, is the validator's intake a frozen
-        candidate is submitted to when the validator runs elsewhere
-        (C-MLP-03 slice 6); its public facts are checked first.
+        `intakes`, optional, maps a Challenge id to the validator intake a
+        frozen candidate of that Challenge is submitted to when its validator
+        runs elsewhere (C-MLP-03 slice 6, per Challenge since C-MLP-04). Each
+        intake's public facts are checked first, by that Challenge's own
+        campaign. A legacy `battery_intake` is read as the intake of the
+        Challenge it was written for.
         """
-        from scripts.dev.miner_launchpad.runner import _intake_url
+        from carbon.challenge_registry import ResolutionError
+        from carbon.challenge_registry.campaigns import campaign_for_id
+        from scripts.dev.miner_launchpad.runner import (
+            LEGACY_INTAKE,
+            _intake_url,
+            _legacy_challenge,
+        )
 
-        _closed(value, {"confirm"}, {"battery_intake"})
+        _closed(value, {"confirm"}, {"intakes", LEGACY_INTAKE})
         if value["confirm"] is not True:
             raise SetupRefused("confirm", "review_needs_confirmation")
-        intake = value.get("battery_intake")
-        if intake is not None:
-            if not _intake_url(intake):
-                raise SetupRefused("battery_intake", "intake_url_invalid")
-            self.checks.intake(intake)
+        intakes = value.get("intakes", {})
+        if type(intakes) is not dict:
+            raise SetupRefused("intakes", "intakes_map_challenge_ids_to_urls")
+        intakes = dict(intakes)
+        if LEGACY_INTAKE in value:
+            intakes.setdefault(_legacy_challenge(), value[LEGACY_INTAKE])
+        for challenge_id, url in intakes.items():
+            if not _intake_url(url):
+                raise SetupRefused("intakes", "intake_url_invalid")
+            try:
+                campaign = campaign_for_id(challenge_id)
+            except (ResolutionError, TypeError):
+                raise SetupRefused("intakes", "challenge_not_implemented") from None
+            if campaign.intake_check is None:
+                raise SetupRefused("intakes", "challenge_has_no_intake")
+            self.checks.intake(url, campaign=campaign)
         with self.lock:
             cfg = self.profile()
-            if intake is not None:
-                cfg = {**cfg, "battery_intake": intake}
+            if intakes:
+                cfg = {**cfg, "intakes": intakes}
             write_private(self.profile_path, canonical(cfg))
             record = self._record()
             record["profile"] = {"written_at": int(time.time())}

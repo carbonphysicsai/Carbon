@@ -17142,6 +17142,72 @@ Tickets: `.agent/tickets/RECON-TORCH-01_pytorch_backend.md`,
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
+## 2026-10-02 — OWNER-GRAPHITE-02: start Graphite phase 2 under a USD 9 grant; Constructor stall limit 5; Chutes approved; Mira paused; every widened construction surface ships its reconstruction
+
+**Owner, verbatim, in session on 2026-10-02:**
+1. "Start Graphite phase 2 with full Engy balance. 5 calls (We are using this
+   to TEST construction freedom so we need the ability to reconstruct it no
+   matter what so we can test the scoring and attack vectors that show
+   up....Think this one through, but I don't see how we do that testing
+   without adding reconstruction capabilities alongside construction
+   capabilities. Like for every new phase we need a way to rebuild it.....right?
+   . Yes. No. No stop this work for now."
+2. Asked to clarify, the owner chose: stop Mira only; start Graphite phase 2
+   with the full Engy balance as the grant; a stall limit of 5; the Chutes
+   adapter approved.
+3. Later the same day, replacing "full Engy balance": "grant is $9".
+4. The owner reported adding Engy and Chutes API keys to the environment. The
+   session that built phase 2 cannot see them and made no live call.
+
+**Decision.**
+1. **Phase 2 grant.** The ceiling is **USD 9.00** ("grant is $9",
+   2026-10-02). It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json` in the
+   existing `SpendingGrant` format, provider `graphite`, currency USD.
+   - The owner completed the last two fields the same day: "Expiry
+     12/31/2026 and “Carbon Account”". `expires_at` is
+     `2026-12-31T23:59:59Z`; `account` is `Carbon-Account`, the owner's label
+     hyphenated because the format allows no spaces. The grant now validates.
+   - The other limits are derived, not chosen: the arithmetic is in
+     `docs/development/graphite/grants/README.md`. The run cap is 3,000 calls
+     at the triage settings, so the worst case per run is USD 2.49 and three
+     runs fit the ceiling.
+   - The plan's estimate for phase 2 is under USD 5 of tokens on the cheap
+     rungs for a backfill of a few thousand abstracts (plan §7).
+2. **Constructor stall limit: 5 attempts.** The plan's "registered number of
+   attempts" (§3) is `roles.CONSTRUCTOR_STALL_ATTEMPTS = 5`. A
+   `BUILD_STALLED_AGAINST_BASELINE` observation is refused unless it states at
+   least five attempts (`ladder.Ladder.record_failure`), with a test and a
+   mutation check.
+3. **Chutes adapter: approved.** `model_provider.py` already carries a
+   `chutes` adapter (price read live from its model list). Wiring it into
+   Graphite is a later GRAPHITE-01 item; the phase-2 runner recognises
+   `CHUTES_API_KEY` and refuses it until then.
+4. **Mira paused.** The owner stopped the Mira/Autoscience work for now.
+   `docs/development/mira/README.md` and MIRA-ADMISSION-01 record the pause.
+   No code changes: the Mira adapter keeps refusing every call.
+5. **The reconstruction rule.** Owner direction; the engineering formulation
+   is within delegated authority:
+   - Every Graphite phase that widens what an agent may construct ships, in
+     the same phase, Carbon's reconstruction capability for the widened
+     surface, with tests that Carbon rebuilds it.
+   - A construction Carbon cannot rebuild is refused fail-closed with a typed
+     refusal and recorded as a finding. It is never scored.
+   - Phase 2 (literature) widens no construction surface.
+   - Phase 3 constructs only within the existing recorded construction
+     contract: the `carbon/reconstruction` expansion records, and
+     `tests/cpu/test_battery_construction_contract.py::test_every_surface_changes_what_carbon_rebuilds`.
+   - Each later phase's exit evidence includes its reconstruction path (plan
+     §7).
+
+**Unchanged.**
+- Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
+- Spend runs only under the grant, within its USD 9 ceiling and run limits.
+- Scientific, security and launch qualification stay human-reserved. A
+  method card is the paper's claim as extracted, never Carbon's.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
 
 **Owner, verbatim, in session on 2026-10-01:**
@@ -17189,57 +17255,6 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
-
-## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
-
-**Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
-blocker". This is an engineering change under that direction. It is not a
-release decision.
-
-**The blocker.**
-- `tools/integrate-static.mjs` read the Pilot Designer from the Workbench's
-  working copy, `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`.
-- `tests/bundle-guard.test.mjs` held the candidate's `pilot_html_sha256` to
-  that file.
-- So any Workbench rebuild failed canonical until a new candidate was
-  re-derived and approved. A rebuild happens for every relayed readiness
-  record (CHALLENGE-READINESS-RELAY-01), not only for Pilot Designer work.
-
-**The change.**
-- The release ships `website/ask-carbon/release/pilot-designer.html`, a
-  committed snapshot. The guard holds `pilot_html_sha256` to the snapshot.
-- A new guard test fails if the integrator reads a Pilot Designer from outside
-  the Ask Carbon tree.
-- Shipping a newer Pilot Designer is now an explicit release step: copy the
-  preview over the snapshot, then re-derive the candidate (`OPERATIONS.md`).
-
-**What does not change.**
-- The snapshot is byte-identical to the approved and live Pilot Designer
-  (`be64f8b9…`).
-- Rebuilt with the snapshot against a baseline re-fetched from both hostnames
-  (100/100), the integrator reproduces the approved bundle
-  `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a`, 105
-  files, exactly.
-- So the candidate record, its approval (WEB-QA-11-D2) and production are
-  untouched, and nothing is deployed.
-
-**The WEB-QA-11-D2 deployment, recorded.**
-- The operator deployed bundle `86f51385` as `carbonwebsite`
-  `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` on 2026-10-02 at 01:52:41Z, with
-  100 % of traffic, replacing `dc4469a7`.
-- Capture: the operator's wrangler deploy output, re-read with
-  `wrangler deployments status` at 02:56Z, and relayed by the owner in
-  session.
-- From this host, `tools/verify-publication.mjs` against the reproduced bundle
-  is VERIFIED on both hostnames: Pilot Designer `be64f8b9…`, `/workbench/`
-  `9a44f683…`, health `active:true` with `gemma-4-31b-turbo-tee:v1`.
-- The manifest's rollback target is now `c12d547a`, and `dc4469a7` is
-  superseded. The candidate is `OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED`.
-- The `ask-carbon-public` version ids were not supplied.
-- **The next candidate has one prerequisite.** It must first fold the
-  `/workbench/` replacement, now live, into a v4 baseline inventory.
-
-**Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
 
 ## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-01: the Challenge Roadmap rev 2.0 is Carbon's standing challenge development pipeline
 
@@ -17343,3 +17358,158 @@ challenge develop pipeline and roadmap we need to build out and execute."
 - No population, threshold, tolerance or rubric value is set by the executor.
 
 Ticket: `.agent/tickets/CHALLENGE-PIPELINE-01.md`.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-02: both backends, the step 4 grant, the reference hardware, and who builds Graphite phases 3-4
+
+**Owner, in session on 2026-10-02**, answering OWNER-CHALLENGE-ROADMAP-01's
+open questions: "1. Both 2. $5 Engy 3. Approved and it needs my approval
+only". Then, asked who builds step 4 and which grant account to use: this
+session builds it, and the phase 2 grant's account and expiry are reused.
+
+**Decision.**
+1. **Both backends.**
+   - Pipeline challenges admit recipes in any backend the construction
+     contract supports: JAX and PyTorch (OWNER-PYTORCH-BACKEND-01).
+   - This resolves ROADMAP-01's `NEW_OWNER_DECISION_REQUIRED`.
+   - Track A vector 1 still rejects executables outside the contract's
+     backends, and disguised executable content.
+   - Roadmap rev 2.1 amends §03 and §06.
+   - PyTorch stays DEVELOPMENT-only until OWNER-PYTORCH-BACKEND-01's reserved
+     values are set.
+2. **Step 4 grant.** For Phase 1 step 4 (Graphite through Test/iterate on
+   battery):
+   - USD 5.00, Engy inference only;
+   - account `Carbon-Account`, expiring 2026-12-31;
+   - no pods: reconstructions run on the owner's host at no marginal spend.
+
+   The grant file is completed in step 4's ticket, from these values.
+3. **Reference timing hardware: approved by the technical owner alone.** It
+   is a RunPod CPU pod:
+   - flavor `cpu5c`, with no fallback flavor;
+   - 16 vCPU;
+   - each challenge's pinned image.
+
+   The label is `runpod-cpu5c-16vcpu`. Each timing study records the CPU model
+   it ran on, because the earlier pool pods fell back to other flavors and
+   other processors (EPYC 9655P and 4564P). This value leaves the
+   lock-approved list. Roadmap rev 2.1 moves it, and the protocol records the
+   technical owner's approval.
+4. **Graphite phases 3-4 are Phase 1 step 4.**
+   - This session builds Graphite's Level 0 constructor loop on battery
+     (phase 3) and the attacker for Track A's eight vectors (phase 4).
+   - They are built under the challenge roadmap and GRAPHITE-01's plan
+     together, including OWNER-GRAPHITE-02's reconstruction rule.
+   - The GRAPHITE-01 lane continues from phase 5.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No pod or other spend beyond this grant.
+
+## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
+
+**Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
+blocker". This is an engineering change under that direction. It is not a
+release decision.
+
+**The blocker.**
+- `tools/integrate-static.mjs` read the Pilot Designer from the Workbench's
+  working copy, `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`.
+- `tests/bundle-guard.test.mjs` held the candidate's `pilot_html_sha256` to
+  that file.
+- So any Workbench rebuild failed canonical until a new candidate was
+  re-derived and approved. A rebuild happens for every relayed readiness
+  record (CHALLENGE-READINESS-RELAY-01), not only for Pilot Designer work.
+
+**The change.**
+- The release ships `website/ask-carbon/release/pilot-designer.html`, a
+  committed snapshot. The guard holds `pilot_html_sha256` to the snapshot.
+- A new guard test fails if the integrator reads a Pilot Designer from outside
+  the Ask Carbon tree.
+- Shipping a newer Pilot Designer is now an explicit release step: copy the
+  preview over the snapshot, then re-derive the candidate (`OPERATIONS.md`).
+
+**What does not change.**
+- The snapshot is byte-identical to the approved and live Pilot Designer
+  (`be64f8b9…`).
+- Rebuilt with the snapshot against a baseline re-fetched from both hostnames
+  (100/100), the integrator reproduces the approved bundle
+  `86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a`, 105
+  files, exactly.
+- So the candidate record, its approval (WEB-QA-11-D2) and production are
+  untouched, and nothing is deployed.
+
+**The WEB-QA-11-D2 deployment, recorded.**
+- The operator deployed bundle `86f51385` as `carbonwebsite`
+  `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` on 2026-10-02 at 01:52:41Z, with
+  100 % of traffic, replacing `dc4469a7`.
+- Capture: the operator's wrangler deploy output, re-read with
+  `wrangler deployments status` at 02:56Z, and relayed by the owner in
+  session.
+- From this host, `tools/verify-publication.mjs` against the reproduced bundle
+  is VERIFIED on both hostnames: Pilot Designer `be64f8b9…`, `/workbench/`
+  `9a44f683…`, health `active:true` with `gemma-4-31b-turbo-tee:v1`.
+- The manifest's rollback target is now `c12d547a`, and `dc4469a7` is
+  superseded. The candidate is `OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED`.
+- The `ask-carbon-public` version ids were not supplied.
+- **The next candidate has one prerequisite.** It must first fold the
+  `/workbench/` replacement, now live, into a v4 baseline inventory.
+
+**Reversible.** Point `PILOT_DESIGNER` back at the Workbench preview.
+
+## 2026-10-02 — OWNER-C-MLP-03-ANSWERS-01: the Mira note stands; build Targon's VM-and-SSH route
+
+**Owner, verbatim, in session on 2026-10-02:** "Approve, Build Targon VM
+route, Security approved". The three answers are, in order:
+1. the slice-5 ticket edit that records the Mira question as answered by
+   OWNER-GRAPHITE-01;
+2. the C-MLP-03 Targon question;
+3. the battery intake's exposure. That needs its own record of the form
+   `OWNER-…INTAKE-EXPOSURE-NN`, made with the listener change it gates; it is
+   not made here.
+
+**Decision.**
+1. **Mira.** The C-MLP-03 ticket records "Mira's connection" as answered.
+   - OWNER-GRAPHITE-01 builds Graphite instead of buying Mira.
+   - The Mira adapter refuses every call until a vendor contract exists
+     (`docs/development/mira/CAPABILITY_REPORT.md`, MIRA-ADMISSION-01, #475).
+2. **Targon.** C-MLP-03 builds a Targon route on the miner's own account:
+   - rent a Targon GPU VM;
+   - reach it over SSH;
+   - run the pinned GPU worker there with Docker.
+
+   Like RunPod and Lium, the route is for research practice only. It has:
+   - the miner's own key;
+   - finite ceilings;
+   - teardown verified;
+   - charges reconciled against the provider.
+
+**Unchanged.** Practice on rented compute is speed only and never evidence.
+No key reaches Carbon. The exam is unchanged.
+
+## 2026-10-02 — OWNER-CONTROL-CENTER-NEUTRAL-01: miners reach the Control Center and choose what to mine; nothing is battery-only
+
+**Owner, verbatim, in session on 2026-10-02**, after the survey of the website
+to Control Center path: "Yeah lets close this gap. we need miners to be able
+to get to the control center and then decide what challenge to mine. Nothing
+should be battery only or batter specific. Lets finish this buildout today".
+
+**Decision.**
+1. **A path from the website to the Control Center.** It is one command on a
+   clean Linux machine (`scripts/install_miner.sh`), and the website has a
+   "Get started" page for it.
+2. **A miner needs nothing an operator holds.** Setup reads the network (the
+   testnet context and its publisher) from the chain, so no operator
+   configuration is required.
+3. **The miner chooses the Challenge in the Control Center.** Everything that
+   differs by Challenge comes from that Challenge's registered campaign, so
+   the Control Center itself is battery-free.
+
+**Unchanged.**
+- Only an IMPLEMENTED Challenge launches. The others are shown with their
+  status and refused with the registry's code.
+- Testnet 567; DEVELOPMENT; no key reaches Carbon.
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/C-MLP-04_challenge_neutral_control_center.md`.

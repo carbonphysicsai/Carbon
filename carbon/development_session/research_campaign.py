@@ -588,7 +588,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
             SelectionTransport(selection)
     if grant is not None and grant["provider"] != selection.provider_id:
         raise ValueError("the grant names a different model provider")
-    config = load_config(args.operator_config)
+    if getattr(args, "operator_config", None) is not None:
+        config = load_config(args.operator_config)
+    else:
+        from .miner_network import binding_for
+
+        config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")

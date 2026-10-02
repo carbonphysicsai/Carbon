@@ -26,8 +26,9 @@ LAUNCH_PROFILE = "cpu_research"
 NO_PROFILE = {
     "reason": "research_profile_not_configured",
     "next_action": (
-        "Restart the controller with --research-profile <your runner profile v2>. "
-        "Launching needs only your subnet registration, read at launch."
+        "Finish Set up your environment (after Wallet & Identity confirms your "
+        "registration): the profile it writes loads at once. Launching needs "
+        "only your subnet registration, read at launch."
     ),
 }
 
@@ -123,6 +124,53 @@ def _tools(description):
     }
 
 
+def _provisions(challenge_id):
+    """The research environment the Challenge declares (OWNER-RESEARCH-
+    ENVIRONMENT-01): each provision provided, or a named gap. None when the
+    Challenge declares none yet (a reserved or deferred one)."""
+    from carbon.challenge_kit.standard import ENVIRONMENTS, Gap, Retired
+
+    table = ENVIRONMENTS.get(challenge_id)
+    if table is None:
+        return None
+    if isinstance(table, Retired):
+        return {"retired": table.decision}
+    return {
+        name: (
+            {"status": "gap", "reason": status.reason, "next_step": status.next_step}
+            if isinstance(status, Gap)
+            else {"status": "provided", "note": status.note}
+        )
+        for name, status in table.items()
+    }
+
+
+def _setup_offers(entry):
+    """What setup and launch offer for an implemented Challenge, read from its
+    own campaign; nothing for one that cannot be launched."""
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.challenge_registry.registry import GPU_RESEARCH, IMPLEMENTED
+
+    none = {"gpu": False, "rented_gpu": False, "intake": False, "feedback_modes": []}
+    if entry["status"] != IMPLEMENTED:
+        return none
+    try:
+        campaign = campaign_for(
+            {"id": entry["challenge_id"], "version": entry["version"]}
+        )
+    except Exception:  # noqa: BLE001 - a Challenge without a campaign offers nothing
+        return none
+    gpu = GPU_RESEARCH in {p["profile"] for p in entry["profiles"]} and (
+        campaign.gpu_scope is not None
+    )
+    return {
+        "gpu": gpu,
+        "rented_gpu": gpu and campaign.rented_scope is not None,
+        "intake": campaign.intake_check is not None,
+        "feedback_modes": list(campaign.feedback_modes),
+    }
+
+
 def _challenges(profile_state, host):
     from carbon.challenge_registry import catalog, describe
     from carbon.challenge_registry.registry import (
@@ -148,6 +196,20 @@ def _challenges(profile_state, host):
             "implemented": entry["status"] == IMPLEMENTED,
             "usable_here": bool(profile and profile["usable_here"]),
             "missing_here": list(profile["missing_here"]) if profile else [],
+            # Everything the miner weighs when choosing what to mine
+            # (C-MLP-04): every execution profile, the research provisions,
+            # and what setup offers for this Challenge.
+            "profiles": [
+                {
+                    "profile": p["profile"],
+                    "summary": p["summary"],
+                    "usable_here": p["usable_here"],
+                    "missing_here": list(p["missing_here"]),
+                }
+                for p in entry["profiles"]
+            ],
+            "provisions": _provisions(entry["challenge_id"]),
+            "setup_offers": _setup_offers(entry),
         }
         refusal = None
         if entry["status"] == RESERVED:

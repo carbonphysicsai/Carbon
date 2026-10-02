@@ -15,6 +15,7 @@ battery, run in priority order across 26 simulation families.
 
 | Rev | Date | Change |
 | --- | --- | --- |
+| 2.1 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-02): admission and rebuilds accept every backend the construction contract supports (JAX and PyTorch); the reference timing hardware is approved by the technical owner alone and is a RunPod CPU pod, flavor cpu5c, 16 vCPU. |
 | 2.0 | 10-02 | Rebuilt around one pipeline: Prioritize → Design → Test/iterate → Rank for deployment. Battery defines the protocol with Graphite. In-house challenges only; customer track, Workbench and commercial gates removed. Deployment leaderboard added. |
 | 1.1 | 10-02 | Current solve time added as a third, equally weighted ranking factor. |
 | 1.0 | 10-02 | First proposal: 26-family ranking, contracts, test tracks, gates. |
@@ -99,7 +100,10 @@ tracks engineering value.
 - Graphite permission ledger and operating procedure.
 - Exam rotation cadence and sealed-pool size.
 - Per-challenge iteration budget and stop rules.
-- Reference timing hardware.
+
+The reference timing hardware is approved by the technical owner alone
+(rev 2.1): a RunPod CPU pod, flavor `cpu5c`, 16 vCPU, each challenge's pinned
+image.
 
 ---
 
@@ -241,7 +245,8 @@ place of the shared ones.
 ### Track A: construction, reconstruction and attack
 
 1. **Admission:** reject undeclared inputs, unsupported recipes, pretrained
-   payloads, non-JAX executables and disguised executable content.
+   payloads, executables outside the construction contract's backends (JAX
+   or PyTorch) and disguised executable content.
 2. **Execution isolation:** block unauthorized filesystem, network, process,
    credential and cross-job access.
 3. **Protected-data separation:** test whether a producer can observe or
@@ -371,7 +376,7 @@ challenge. Enter Track A and B results from the frozen run only.
 | Engineering decision | The user, design and control variables, objective, constraints and consequence of error the challenge represents. |
 | Scope and data | Geometry topology, numeric bounds, units, material provenance, boundary and initial conditions, output locations, time or frequency grids. |
 | Reference | Exact solver build, discretization, tolerances, hardware, deterministic settings, refinement evidence, failed-case policy, measured p50/p95 solve time. |
-| Construction | JAX-runnable recipe, permitted declarations and methods, authorized data, build resources, seeds, dependencies, reconstruction and artifact identity. Launchpad reference build identical to the validator pin. |
+| Construction | A recipe runnable in a backend the construction contract supports (JAX or PyTorch), permitted declarations and methods, authorized data, build resources, seeds, dependencies, reconstruction and artifact identity. Launchpad reference build identical to the validator pin. |
 | Evidence | Physical gates, normalized errors, critical regions, uncertainty treatment, decision tests, disclosure budget, rotation cadence, anchor set, sealed pool. |
 | Deployment record | Supported inputs and outputs, latency budget, version pinning and requalification triggers. |
 
@@ -410,8 +415,9 @@ new version.
 
 ### Construction and solver access
 
-Carbon accepts and rebuilds only JAX-runnable submissions, and the validator
-pin carries the JAX tooling every rebuild needs. Launchpad ships the pinned
+Carbon accepts and rebuilds only submissions runnable in a backend the
+construction contract supports (JAX or PyTorch), and the validator
+pin carries the tooling every rebuild needs. Launchpad ships the pinned
 reference solver for each active challenge so miners can generate their own
 training and test data; they never see exam cases or the sealed pool. Keeping
 that build identical to the validator's is part of Design. OpenFOAM,

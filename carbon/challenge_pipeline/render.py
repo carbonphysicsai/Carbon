@@ -65,8 +65,18 @@ def render():
     else:
         out += [
             "**Phase 1: battery defines the protocol.** It is not locked, so no other",
-            "family has entered the pipeline. Suite version, reference hardware and the",
-            "protocol version are set during Phase 1 and approved at lock.",
+            "family has entered the pipeline. The suite and protocol versions are set",
+            "during Phase 1 and approved at lock.",
+        ]
+    if protocol.get("reference_hardware"):
+        approval = protocol["reference_hardware_approval"]
+        out += [
+            "",
+            (
+                f"**Reference timing hardware** (`{protocol['reference_hardware']}`, approved "
+                f"by {approval['by']} on {approval['on']}, {approval['ref']}): "
+                f"{protocol['reference_hardware_spec']}."
+            ),
         ]
     out += [
         "",
