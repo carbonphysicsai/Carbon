@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T18:50:57Z"
+  captured_at_utc: "2026-10-02T20:11:32Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "279a797c2d5bf0a6e33379446f499a142b951334"
+  authority_snapshot_commit: "3f64932084472afd6d1fa78e8542b76d46b1fb2f"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10733,6 +10733,31 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T16:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CHALLENGE-COLD-PLATE-01 slice 4: the cold plate's pools are complete, all 700 OK (400 TRAIN with 308 solved on a RunPod CPU pod, 100 PRACTICE, 200 private from the operator-held root on the owner's host only). Every gate holds on every reference; the scales come from TRAIN. On the private pool the conventional closed form with axial spreading scores 0.109 and the generic Gaussian-kernel ridge 0.105, worse than the closed form on the profile: the conventional model is a strong baseline, so a useful surrogate must beat a physics-aware one. The learned model's grid was widened before final scoring because its PRACTICE choice sat on the grid edge (D11, with the dry run disclosed); select now reports edge choices. Readiness record v6 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the cold plate is prior work for laminar internal flow and steady conduction. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 (2026-10-02) starts battery Track A (construction integrity, Challenge_Admission.md section 3) at Level 0. carbon/battery/track_a.py registers four families: recipe surface, recipe forgery, mandatory failure and rebuild identity. Each family has attacks against the real boundary, a vulnerable specimen showing the detector can fire, and a valid control. The first run held all 37 attacks, every specimen fired and all 4 controls passed. The existing divergence detector emitted 12 conditions on EV2 and 42 on EV4, retained and escalated, never suppressed. Worker isolation and resource accounting are reused evidence from the pinned C-03 service lane, mapped per check. Battery-specific worker attacks against the pinned image are the next slice, in CI. GRAPHITE-01 phase 4 drives agent-generated attempts through the same harness. Attack budget, study population, tolerances, threat-model approval and the lock reviewer stay HUMAN_INPUT. Not a security audit, acceptance or qualification."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:51:46Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

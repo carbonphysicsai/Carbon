@@ -313,7 +313,19 @@ python -m carbon.challenge_readiness validate --require-admission
 python -m carbon.battery.value.audit --results docs/development/evidence/ev1-2026-09-25/results.json
 python -m carbon.battery.value.divergence --results docs/development/evidence/ev2-2026-10-01/results.json
 python -m pytest tests/cpu/test_challenge_admission.py tests/cpu/test_engineering_value_audit.py tests/cpu/test_challenge_readiness.py tests/cpu/test_admission_divergence.py
+python -m carbon.battery.track_a run --out DIR
 ```
+
+`carbon.battery.track_a` (CI-BATTERY-L0-01) is battery's Level 0 Track A
+harness:
+- registered attacks against the real boundary;
+- a vulnerable specimen per family, showing the detector can fire;
+- a valid control per family;
+- the attempt ledger, and a coverage map of here, reused and untested
+  surfaces.
+
+Like the divergence command, it exits 1 when any condition fires. It chooses
+no threshold, budget or acceptance.
 
 The two `carbon.challenge_readiness` commands describe the readiness-record
 wiring that lands with #458; until then `--require-admission` does not exist and
