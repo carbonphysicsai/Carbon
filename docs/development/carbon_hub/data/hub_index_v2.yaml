@@ -10796,6 +10796,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T18:00:00Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "adjustment"
+    event_id: "CHALLENGE-PROTOCOL-04"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Phase 1 step 4 of the Challenge Roadmap is re-scoped and rebuilt on #504 (owner, 2026-10-02): the Graphite lane's #504 lands as the Constructor, and this ticket keeps only what it alone had. Built, not yet run live: Graphite's per-stage enforcement (a stage profile of the permission ledger is the campaign profile; a staged provider refuses a role outside its stage's row, another profile, a changed ledger and a resumed session whose stage changed; an unstaged provider is unchanged); the Attacker v1 beside #504's runner, whose suspected fail-opens Carbon re-checks with #504's reconstruction gate, recording only reproduced fail-opens as findings and merging the results with test suite v1's coverage report under its digest; and the step 4 grant, re-derived to fund the 3 Attacker sessions (USD 5.00, USD 1.66 a run, 34 calls, 8 code runs of at most 600 s) while #504's phase 3 grant funds the Constructor block. OWNER-CHALLENGE-STEP4-01 records what a finding is, attacker code in the sandbox and the campaign ceilings; the constructor campaign's ceiling after the re-scope is an open owner question. No live session, no spend. Not scientific or security qualification."
+    primary_detail: ".agent/tickets/CHALLENGE-PROTOCOL-04.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T21:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
