@@ -295,7 +295,7 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
         env:
-          CARBON_UV_GROUPS: "archive"
+          CARBON_UV_GROUPS: "chain archive"
         run: ./scripts/dev/bootstrap.sh
       - name: Run contract-authority acceptance
         env:
