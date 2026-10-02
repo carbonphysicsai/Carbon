@@ -26,6 +26,12 @@ drive everything with a scripted model.
   fetch for a registered query set, the Reader's method-card extraction
   under a grant, human checks, deterministic snapshots that `literature`
   serves, and the runner (`python -m carbon.agent_campaign.graphite.phase2`).
+- `miner_path`, `experiment`, `pods`, `pod_phase`, `delivery`, `phase3`
+  (phase 3, the Constructor at Level 0): the real miner path, Carbon's
+  proposal runner (reconstruction gate, one pod per proposal, independent
+  rebuild check, frozen-rule score, stall rule), the pods, the PR-ready
+  bundle with its clean rebuild, and the runner
+  (`python -m carbon.agent_campaign.graphite.phase3`).
 - `provider`: `GraphiteProvider`, a second provider behind the #475 campaign
   controller. It drives the existing research loop
   (`carbon.development_session.research_loop`) with metering, replay and

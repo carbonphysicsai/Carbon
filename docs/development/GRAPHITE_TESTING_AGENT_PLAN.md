@@ -322,6 +322,16 @@ Phase 3 constructs only within the existing recorded construction contract.
   with the derivation in its README. The owner completed the account
   (`Carbon-Account`) and expiry (2026-12-31) on 2026-10-02.
 
+**Phase 3 grant (OWNER-GRAPHITE-03).**
+
+- The ceiling is USD 15, and it includes RunPod pod time: the owner's words
+  were "$15 runpod included". One grant covers both kinds of spend.
+- It is recorded in `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json`,
+  with the derivation in its README. Each of the 3 runs is capped at USD 4.91:
+  USD 2.96 for 12 thirty-minute pods and USD 1.95 for tokens.
+- Phase 3 is built (GRAPHITE-01, phase 3 delivery). Its first block of 3
+  live sessions is pending.
+
 **Total for phases 1-5:** about USD 10-60 of inference, depending on which
 rungs the roles reach, plus about USD 10-20 of pod time.
 
@@ -367,6 +377,9 @@ Decided since the plan was written (OWNER-GRAPHITE-02):
 
 - the Constructor's stall limit is 5 attempts (`roles.CONSTRUCTOR_STALL_ATTEMPTS`);
 - the Chutes adapter is approved.
+
+Decided since (OWNER-GRAPHITE-03): phase 3's grant is USD 15, RunPod pod time
+included.
 
 ## 10. Relation to existing work
 
