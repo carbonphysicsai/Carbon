@@ -63,8 +63,8 @@ CONSTRAINT_QUANTITIES = {
 
 #: Decision-case id prefixes and model panels a contract may name. EV1's
 #: contract omits both and gets "ev1" (its case ids and panel are unchanged).
-CASE_PREFIXES = ("ev1", "ev2")
-PANELS = ("ev1", "ev2")
+CASE_PREFIXES = ("ev1", "ev2", "ev4")
+PANELS = ("ev1", "ev2", "ev4")
 
 
 class ContractError(ValueError):
@@ -151,6 +151,24 @@ def validate(document):
         ids.append(profile["id"])
     if len(set(ids)) != len(ids):
         raise ContractError("profile_duplicate")
+    # Optional, added for EV4: the pre-registered paired comparison (H1).
+    paired = document["acceptance"].get("paired_comparison")
+    if paired is not None:
+        from .scoring import CONTROL
+
+        rules = {CONTROL, *ids}
+        if paired.get("proposed_rule") not in rules or paired.get(
+            "deciding_rule"
+        ) not in rules - {paired.get("proposed_rule")}:
+            raise ContractError("paired_comparison", "two distinct declared rules")
+        if (
+            paired.get("split") != "verification"
+            or type(paired.get("replicates")) is not int
+            or paired["replicates"] < 1
+            or type(paired.get("rng_seed")) is not int
+            or not 0 < paired.get("level", 0) < 1
+        ):
+            raise ContractError("paired_comparison", "split, replicates, seed, level")
     if document["data_scope"]["classification"] != "PUBLIC_SYNTHETIC":
         # Client studies need the private execution route; this public runner
         # never accepts client material (GOAL-WORKBENCH-15 E8).

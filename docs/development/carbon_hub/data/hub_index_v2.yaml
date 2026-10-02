@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T00:55:00Z"
+  captured_at_utc: "2026-10-02T02:01:48Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "f1ccd8a5fb9b139b07158bc9df389d94efe0c0cc"
+  authority_snapshot_commit: "6f09f9d7fe38d5788d3d8225c8b8fe2c80464ad4"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10495,6 +10495,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-01T19:32:51Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "BATTERY-EV4-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "EV4 and the Problem-C design optimizer ran under a frozen pre-registration (frozen 2026-10-01T20:09:26Z, before any solve), as off-chain public synthetic DEVELOPMENT evidence under the owner's 2026-10-01 approval of RunPod use; spend was USD 2.48 of a USD 15 cap across seven A40 pods, each terminated and verified. 840 decision references (835 OK, 5 typed reference failures) and 100 GPU-reconstructed members (99 eligible; MLP, DeepONet and kNN families). H1 is UNRESOLVED: the proposed decision-aware rule's Kendall tau with decision quality on the 12 verification conditions was 0.262 against the deciding rule's 0.403, a difference of -0.142 with a 95 % paired bootstrap interval of [-0.275, +0.121]; neither rule is shown better. H2 holds: the proposed rule ranks the boundary-optimist control below all 99 eligible members, the deciding rule at or above all of them. H3 finds the blind spot in real models: 56 of 99 eligible members make at least one reference-verified false acceptance, several of them ranked in the top 10 under either rule. Problem C (one two-step fast-charge protocol for 15-35 degC): three of five pre-selected members chose c1 1.0 C with c2 0.7 or 0.675 C, which the reference verified with no in-band violation at 50 points (2-4 unresolved), while the conservative baseline missed the constant-voltage phase within the hour at 15 of 50; two members correctly abstained. The adversarial search verified 29 in-band and 17 out-of-band violations, emitted as findings. No exam rule, reward, weight, chain state or qualification changes."
+    primary_detail: "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T22:30:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
