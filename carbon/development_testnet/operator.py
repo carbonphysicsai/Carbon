@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Read-only preflight for the bounded public/synthetic DEVELOPMENT testnet."""
 
 from __future__ import annotations

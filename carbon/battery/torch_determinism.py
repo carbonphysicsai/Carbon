@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Repeat-and-compare evidence for the PyTorch backend (RECON-TORCH-01).
 
 The owner sets the PyTorch backend's reproducibility tolerance

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Battery fast-charge and ageing DEVELOPMENT Challenge (OWNER-BATTERY-TESTNET-01).
 
 `carbon.battery-fastcharge-ageing-development.v1`: non-paying, public/synthetic

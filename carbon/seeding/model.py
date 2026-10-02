@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Typed, immutable values for Carbon's A4 seeding boundary."""
 
 from __future__ import annotations

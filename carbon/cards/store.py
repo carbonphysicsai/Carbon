@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Process-local insert-only storage and bounded A6 card projection."""
 
 from __future__ import annotations

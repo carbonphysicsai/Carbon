@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Operator-installed LOCAL DEVELOPMENT approval. Deliberately not a strict grant.
 
 This record exists because the strict accelerator contract cannot be satisfied on

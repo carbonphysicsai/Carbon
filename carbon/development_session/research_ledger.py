@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Durable campaign accounting; unknown consumption keeps its reservation.
 
 Trusted controller only. Never mounted into a miner worker. Integer units avoid

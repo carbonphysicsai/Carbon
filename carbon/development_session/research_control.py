@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Durable cooperative campaign control in the existing resource ledger.
 
 Pause is between bounded operations, not training-checkpoint resume. A stop or

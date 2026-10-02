@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The model panel: reconstructed campaign recipes and labelled controls.
 
 **Reconstructed members.** These are the exam-design campaign's recipes,

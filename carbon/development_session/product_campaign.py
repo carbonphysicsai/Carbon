@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A campaign a miner launches from a product surface (C-MLP-02-D11).
 
 Registration is the only admission gate, so a launch is built from a

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Content binding for the post-calibration B-E4 owner proposal.
 
 This is deliberately a review-artifact schema.  Parsing one of these files

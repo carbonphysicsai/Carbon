@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A full-vector finite-difference mode solver for dielectric waveguides.
 
 Carbon's own implementation of the standard 2D Yee-grid FDFD eigenproblem for

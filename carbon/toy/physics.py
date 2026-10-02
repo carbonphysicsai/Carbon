@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Shared fixture-only toy semantics for B-07C, B-07F, and B-E4.
 
 The values in this module are deterministic engineering fixtures.  They are

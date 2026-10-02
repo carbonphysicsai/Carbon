@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fail-closed C-EA1 profile preparation for Carbon alpha evidence.
 
 The existing :class:`EvidenceArchive` remains closed to its accepted synthetic

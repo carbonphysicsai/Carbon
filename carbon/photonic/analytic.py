@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The photonic coupler's closed-form baseline: the effective index method.
 
 The textbook two-step reduction of the strip pair (e.g. Okamoto,

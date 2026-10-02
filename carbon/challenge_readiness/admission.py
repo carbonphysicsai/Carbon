@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Evidence completeness for the two challenge-admission studies.
 
 OWNER-CHALLENGE-ADMISSION-01 as amended on 2026-10-01: an internal development

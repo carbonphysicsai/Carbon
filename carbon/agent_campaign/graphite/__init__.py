@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Graphite: Carbon's in-house research and testing agent (GRAPHITE-01, phase 1).
 
 OWNER-GRAPHITE-01 (2026-10-02). Internal development tooling under

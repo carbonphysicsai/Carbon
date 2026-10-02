@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A battery campaign: the shared campaign machinery bound to battery.
 
 `research_campaign.prepare` routes here when the frozen manifest (or the

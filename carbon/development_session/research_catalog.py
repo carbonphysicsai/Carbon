@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Prospective D4 recipe catalog, compiled by B-02B and executed by C-02.
 
 This does not mutate the historical supervised-development.v2 catalog.

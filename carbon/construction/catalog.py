@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Challenge-bound candidate assembly and parameter catalog contracts.
 
 The values in this module are inert identity documents.  Validation is

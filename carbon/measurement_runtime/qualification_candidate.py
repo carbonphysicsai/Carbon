@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """D-05 prerequisite harness over C-05 public DEVELOPMENT measurements.
 
 The harness separates reconstruction and finite-case variability and measures

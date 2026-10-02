@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """`python -m carbon.agent_campaign`: capabilities, grant template, study sheet."""
 
 from __future__ import annotations

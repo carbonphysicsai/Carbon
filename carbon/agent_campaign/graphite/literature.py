@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The literature layer's tool interface over a synthetic fixture index.
 
 Phase 1 has no fetch, triage or extraction (plan §4, phase 2). It has the

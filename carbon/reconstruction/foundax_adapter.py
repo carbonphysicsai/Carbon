@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Pinned Foundax 0.2.0 FNO adapter for bounded C-02 development use.
 
 The adapter owns training, explicit Carbon RNG consumption and a closed NPZ

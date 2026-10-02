@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Lazy wrapper for the optional NVIDIA PhysicsNeMo backend."""
 
 from importlib import import_module

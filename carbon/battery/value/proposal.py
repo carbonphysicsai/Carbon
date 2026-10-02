@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The decision-aware exam rule, registered as a prospective proposal.
 
 OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01 (2026-10-01): "propose the

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Dispatch adapter for one approved battery OD-4a all-burn publication.
 
 SECURITY-SENSITIVE (AGENTS.md §13). Owner-reviewed 2026-09-28, NOT

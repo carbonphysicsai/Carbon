@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Logical state transport inside already admitted public research workers.
 
 This is not an admission or artifact-authentication API. The research controller

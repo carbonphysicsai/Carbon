@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Honest Burgers causal contracts compiled through the existing B-02B owner.
 
 The registry's nominal FIXTURE origin means unqualified DEVELOPMENT authority;

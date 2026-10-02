@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted single-campaign admission, separate from D4's original authority.
 
 This record grants no resources by being present: only an explicitly approved,

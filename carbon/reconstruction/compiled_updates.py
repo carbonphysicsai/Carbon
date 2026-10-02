@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Opt-in DEVELOPMENT experiment over the unchanged registered JAX update.
 
 This worker-only helper is not selected by an existing execution profile. The

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """What determines the numbers, as distinct from what happens to be installed.
 
 `environment()` records the installed software: versions, backend, platform. That

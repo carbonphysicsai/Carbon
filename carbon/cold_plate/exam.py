@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The cold plate DEVELOPMENT exam: case typing, gates, score and aggregate.
 
 Built in the shape of `carbon.battery.exam`, and kept apart the same way:

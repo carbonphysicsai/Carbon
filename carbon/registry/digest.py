@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Safe SHA-256 verification for challenge-registry artifact bindings."""
 
 from __future__ import annotations

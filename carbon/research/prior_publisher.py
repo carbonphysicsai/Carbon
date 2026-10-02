@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """B-07D2 deterministic synthetic-only PriorPack fixture publisher."""
 
 from __future__ import annotations

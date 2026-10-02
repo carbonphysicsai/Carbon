@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery Challenge's interface as plain data: constants and TRAIN arrays.
 
 Numpy only, with no Carbon imports, so the exact bytes of this module, the

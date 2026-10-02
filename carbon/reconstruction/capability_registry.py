@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The construction capability registry: one source for what a miner may submit.
 
 Owner direction OWNER-CONSTRUCTION-DECLARATIVE-01: Carbon widens construction

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Getting a miner registered on the subnet, without ever touching their key.
 
 A miner arrives with no Carbon account, no registration and whatever compute

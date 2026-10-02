@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The battery truth environment: the pinned study image plus its PyBaMM overlay.
 
 The truth image (`truth.TRUTH_IMAGE`) is a base image pinned by digest. PyBaMM

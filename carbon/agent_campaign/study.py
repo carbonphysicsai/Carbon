@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The Level-0 study sheet and permission inventory for the battery challenge.
 
 Handoff §7 and `Design_Specs/Challenge_Admission.md` §2: before any counted

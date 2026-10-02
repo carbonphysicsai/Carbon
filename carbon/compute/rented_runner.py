@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Carbon's fixed practice program on a rented GPU (C-MLP-03 slice 4).
 
 `RentedRunner` has the carrier's call signature (`research_carrier._run`), so

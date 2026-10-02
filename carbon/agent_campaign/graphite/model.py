@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Model access for a Graphite session: scripted for tests, live only under a grant.
 
 The research loop calls a *transport*: one closed Responses-shaped request in,

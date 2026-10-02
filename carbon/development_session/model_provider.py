@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The model provider a miner chooses for Carbon's research agent.
 
 The provider is the **miner's** choice (owner decision, 2026-09-26). Carbon

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Closed miner SDK: readable arguments, existing authenticated v2 operations.
 
 Only the trusted supervisor holds this object. The model receives schemas and

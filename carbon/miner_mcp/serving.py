@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """What the research server needs to survive a real client.
 
 Four production gaps, and one principle shared with `mcp_onboarding`: a record

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Read-only diagnostic of retained EV1/EV2 evidence, without rescoring it.
 
 Usage: python -m carbon.battery.value.audit --results results.json [--out audit.json]

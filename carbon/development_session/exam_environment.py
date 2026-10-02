@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """What a validator runs the exam under, published for miners to read.
 
 A miner submits a declarative training strategy, not a trained checkpoint. The

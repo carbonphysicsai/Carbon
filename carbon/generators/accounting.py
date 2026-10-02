@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Exact B-03 attempt, successor, and intended-population accounting.
 
 This module has no retry loop and accepts no caller-provided execution flags,

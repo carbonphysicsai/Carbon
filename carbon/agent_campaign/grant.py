@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The owner's spending grant: no grant, no dispatch.
 
 Handoff §15: before paid execution, bind the provider/account, permitted runs,

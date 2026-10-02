@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Deterministic fixture-only reference graph and nominal runners for B-04.
 
 The graph below is conspicuous test material.  It performs no scientific

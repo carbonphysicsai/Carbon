@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Start, stop and clean up a validator-lane reconstruction on this host.
 
 C-CORE-19 made `VALIDATOR_RECONSTRUCTION` admissible on a GPU and then recorded,

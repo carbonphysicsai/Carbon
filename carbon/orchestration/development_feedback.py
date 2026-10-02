@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Prospective C-07 disclosure amendment for complete DEVELOPMENT cohorts.
 
 Only aggregate normalized observations leave this owner. No labels, raw values,

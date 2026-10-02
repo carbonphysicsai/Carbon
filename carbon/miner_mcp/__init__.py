@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Authenticated DEVELOPMENT composition over NET-2, A9, and C-07."""
 
 from .model import (

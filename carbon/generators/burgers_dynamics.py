@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Deterministic public-development cases for Burgers Dynamics V1.
 
 This is a law-preserving generator only.  It accepts an already derived mock

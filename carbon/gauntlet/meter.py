@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Deterministic fixture-policy accounting for B-E4 preflight diagnostics.
 
 The unit in this module is a versioned semantic operation performed by one of

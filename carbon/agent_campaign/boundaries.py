@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Execution and information boundaries for external research-agent sessions.
 
 Handoff §6: separate workspaces and credentials for the agent's legitimate

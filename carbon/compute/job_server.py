@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The one-job server a rented GPU pod runs (C-MLP-03 slice 4).
 
 A rented box receives the pinned worker image and one job's public inputs,

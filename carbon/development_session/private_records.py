@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Private, bounded, canonical operator records.
 
 Shared by the development grant path and the product surfaces, which is why it

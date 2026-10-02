@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Private B-07B research execution and evidence records.
 
 These values are deliberately absent from the v2 wire registry.  Only the

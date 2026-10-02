@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The cold plate Challenge's interface as plain data.
 
 Numpy only, with no Carbon imports, so the exact bytes can later be staged into

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Immutable Challenge-bound B-06 Validation Dossier records."""
 
 from __future__ import annotations

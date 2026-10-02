@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Offline-only executable pieces of the proposed B-E4 pilot contract.
 
 Nothing in this module can contact a provider, approve the proposal, authorize

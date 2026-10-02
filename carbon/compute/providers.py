@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The rented-GPU providers a miner can choose, by name (C-MLP-03 slice 4).
 
 Each is a `ComputeProvider` on the miner's own account, built from the

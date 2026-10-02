@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Narrow, current-constructor adapters for A7's A4/A5 boundary."""
 
 from __future__ import annotations

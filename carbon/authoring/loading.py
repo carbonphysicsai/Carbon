@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted loading and structural-origin composition for B-02A artifacts.
 
 Authored bytes do not carry provenance, fixture status, qualification, or LIVE

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Complete-graph resolution and the one-way B-02A-to-A3 verifier adapter."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Separate miner analysis image: permitted lab code, no evaluator modules.
 
 The parent supplies pinned numerical dependencies. The Carbon package is

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted C-05 controller over the exact C-03 Docker boundary."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Nominal C-06 DEVELOPMENT evidence and receipt values.
 
 These values commit to already-produced public-development evidence. They

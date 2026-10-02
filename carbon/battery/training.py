@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Carbon's general battery training loop (JAX and optax, the pinned stack).
 
 The campaign recipe at its defaults keeps its own written-out loop in

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """B-07E exact static inspection and fail-closed resource forecasting.
 
 This module implements the two existing B-07S provider seams.  It deliberately

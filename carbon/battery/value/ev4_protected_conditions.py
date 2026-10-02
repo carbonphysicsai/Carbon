@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """EV4's conditions: material an external research agent must never receive.
 
 EV4 runs under a frozen pre-registration (`BATTERY_ENGINEERING_VALUE_EV4.md`,

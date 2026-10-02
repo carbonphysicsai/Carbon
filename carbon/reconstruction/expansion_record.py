@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Every change to a construction contract is recorded (OWNER-CHALLENGE-ADMISSION-01 §6.1).
 
 The owner amended OWNER-CHALLENGE-ADMISSION-01 on 1 October 2026. Widening what

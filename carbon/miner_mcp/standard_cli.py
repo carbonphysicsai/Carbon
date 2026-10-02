@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Serve an existing Carbon research campaign over standard MCP stdio.
 
 The miner supplies their private runner profile (v2) and names one of their

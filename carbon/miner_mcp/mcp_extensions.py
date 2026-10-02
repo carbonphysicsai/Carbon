@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Negotiated MCP Tasks view of Carbon's existing durable research operations.
 
 No task store or execution state lives here. The trusted adapter owns admission,

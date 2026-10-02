@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """EV1: the fixed-candidate engineering-value experiment, as one operator path.
 
     python -m carbon.battery.value run    --root DIR [--contract PATH] [--workers N]

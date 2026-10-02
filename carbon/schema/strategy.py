@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Pure validation for Carbon Strategy schema version 1.0.
 
 This module validates an inert declarative document. It deliberately does not

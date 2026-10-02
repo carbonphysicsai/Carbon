@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """A campaign's Challenge-specific behaviour, reached only through the registry.
 
 The research path is one workflow. What differs by Challenge - how a campaign

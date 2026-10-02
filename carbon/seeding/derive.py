@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Stateless RFC 5869 derivation for the separate A4 seed contexts."""
 
 from __future__ import annotations

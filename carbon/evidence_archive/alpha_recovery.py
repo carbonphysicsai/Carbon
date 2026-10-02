@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fail-closed recovery-watermark verification for the C-EA1 AWS package.
 
 The types bind a test-owned provider rehearsal to the complete acknowledged

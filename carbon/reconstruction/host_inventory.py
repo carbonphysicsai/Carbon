@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """What one host's accelerator *is*, kept out of the source tree.
 
 Carbon's accelerator workload profile describes what the work needs: a backend,

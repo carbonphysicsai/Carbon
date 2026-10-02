@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Compatibility delegates for A7 Strategy identity and evaluation binding.
 
 The public Strategy-only boundary lives in :mod:`carbon.fees.strategy_identity`.

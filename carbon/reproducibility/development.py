@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The owner's DEVELOPMENT qualification of R1 for four GPU parts.
 
 Authority: Amendment 10 to `docs/development/TWO_HOST_STUDY_ACCEPTANCE.md`,

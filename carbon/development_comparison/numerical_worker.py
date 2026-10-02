@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Fixed evaluator-owned numerical diagnostics; input carries no credentials."""
 
 from __future__ import annotations

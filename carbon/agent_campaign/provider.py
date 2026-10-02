@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """The provider-independent research-agent adapter contract.
 
 These are **proposed Carbon-side operations**, not endpoints any vendor is

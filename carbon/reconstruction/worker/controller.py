@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Trusted C-03 controller for one exact C-01 attempt/replica."""
 
 from __future__ import annotations

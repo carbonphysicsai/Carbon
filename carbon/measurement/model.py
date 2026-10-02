@@ -1,3 +1,7 @@
+# Copyright (c) 2026 Carbon Physics AI, Inc.
+# SPDX-License-Identifier: MIT
+# Full license text: see LICENSE at the repository root.
+
 """Immutable B-05 measurement, evidence, and uncertainty-policy records."""
 
 from __future__ import annotations
