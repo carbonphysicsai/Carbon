@@ -17684,3 +17684,26 @@ further formula search on EV2 until the review decides.
 
 **Unchanged.** The deciding testnet rule. Track A at Level 0 stays
 INCONCLUSIVE (OWNER-TRACK-A-L0-02 item 6).
+
+## 2026-10-02 — OWNER-EV4-REGEN-01: regenerate EV4's panel predictions and rerun SR-1, SR-2 and SR-3 on EV4
+
+**Authority.** The owner, 2026-10-02: "Approve step 1, regenerate EV4
+predictions and rerun". This is step 1 of the TRACK-B-STUCK-01
+recommendation.
+
+1. **Regeneration.**
+   - EV4's own panel plan
+     (`docs/development/evidence/ev4-2026-10-01/plans/ev4-panel-shard0-of1.json`)
+     runs at EV4's own code ref (`b92e90ef`), on one A40 pod with EV4's
+     settings (`--jax-platform cuda,cpu --pinned-xla`).
+   - It uses its own pod campaign, `ev4-regen`, with a USD 5 ceiling inside
+     OWNER-TRACK-A-L0-02's USD 25 cap, and termination verified.
+2. **Verification.**
+   - Each regenerated file is checked against EV4's committed
+     `predictions.sha256`.
+   - A file that matches is EV4's own predictions.
+   - A file that differs is reported as a regeneration difference. It is
+     used only as a labelled new panel, never as EV4's.
+3. **Rerun.** SR-1, SR-2 and SR-3 run on EV4 under their frozen
+   pre-registrations' selection and outcome rules, with no new formula. EV4
+   was SR-1's primary data and is the replication data for SR-2 and SR-3.
