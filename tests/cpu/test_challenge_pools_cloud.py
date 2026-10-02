@@ -109,3 +109,52 @@ def test_the_motor_pod_installs_exactly_what_the_motor_image_pins():
     assert cold["image"].split("@")[1] == openfoam.IMAGE.split("@")[1]
     assert "challenge-pools" in pod_control.CAMPAIGNS
     assert pod_control.CAMPAIGNS["challenge-pools"]["ceiling_usd"] == 25.0
+
+
+def _write(path, records):
+    path.write_text("".join(json.dumps(r) + "\n" for r in records))
+    return path
+
+
+def test_a_pool_is_assembled_in_plan_order_preferring_ok_records(tmp_path):
+    assemble = _load("assemble", "scripts/dev/challenge_pools/assemble.py")
+    plan = {"cases": [{"case_id": f"train-{i:04d}"} for i in range(4)]}
+    local = _write(
+        tmp_path / "local.jsonl",
+        [
+            {"case_id": "train-0001", "status": "OK", "outputs": {"t": [1.0]}},
+            {"case_id": "train-0002", "status": "REFERENCE_TIMEOUT"},
+        ],
+    )
+    pod = _write(
+        tmp_path / "pod.jsonl",
+        [
+            {"case_id": "train-0000", "status": "OK", "outputs": {"t": [0.5]}},
+            # The same case again, with only analysis round-off: kept once.
+            {"case_id": "train-0001", "status": "OK", "outputs": {"t": [1.0 + 1e-13]}},
+            {"case_id": "train-0002", "status": "OK", "outputs": {"t": [2.0]}},
+            {"case_id": "train-0009", "status": "OK", "outputs": {"t": [9.0]}},
+        ],
+    )
+    records, missing, summary = assemble.assemble(plan, 3, [local, pod])
+    assert [r["case_id"] for r in records] == ["train-0000", "train-0001", "train-0002"]
+    assert missing == [] and summary["outcomes"] == {"OK": 3}
+    assert records[1]["assembled_from"] == str(local)
+    assert records[2]["assembled_from"] == str(pod)  # OK replaces the timeout
+    _, missing, _ = assemble.assemble(plan, 4, [local, pod])
+    assert missing == ["train-0003"]
+
+
+def test_disagreeing_ok_records_are_refused_not_chosen_between(tmp_path):
+    assemble = _load("assemble2", "scripts/dev/challenge_pools/assemble.py")
+    plan = {"cases": [{"case_id": "train-0000"}]}
+    a = _write(
+        tmp_path / "a.jsonl",
+        [{"case_id": "train-0000", "status": "OK", "outputs": {"t": [1.0]}}],
+    )
+    b = _write(
+        tmp_path / "b.jsonl",
+        [{"case_id": "train-0000", "status": "OK", "outputs": {"t": [1.1]}}],
+    )
+    with pytest.raises(ValueError, match="disagree"):
+        assemble.assemble(plan, 1, [a, b])
