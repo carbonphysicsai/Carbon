@@ -19,7 +19,7 @@ protocol version are set during Phase 1 and approved at lock.
 | Step | Work | Output | Ticket | Status |
 | --- | --- | --- | --- | --- |
 | 1 | Reconcile battery's current state: contract, EV1-EV3 results, PR 458 status, current exam batch. | Battery status record with commit IDs. | CHALLENGE-PROTOCOL-01 | done |
-| 2 | Write the four stage definitions, with battery as the worked example: entry criteria, work, Graphite's permissions, output artifact and exit gate for each stage. | Protocol draft. | – | todo |
+| 2 | Write the four stage definitions, with battery as the worked example: entry criteria, work, Graphite's permissions, output artifact and exit gate for each stage. | Protocol draft. | CHALLENGE-PROTOCOL-02 | done |
 | 3 | Build test suite v1: Track A attack vectors with severity rules, Track B EV1-EV3, exam rotation and sealed pool. | Versioned, pinned suite. | – | todo |
 | 4 | Run battery through Test/iterate with Graphite: attack, fix, re-score; tune construction and scoring until results stop improving or the iteration budget runs out. | Iteration log. | – | todo |
 | 5 | Freeze and run the final evidence: pinned suite, battery's sealed pool, no changes during the run. | Frozen evidence record and the first leaderboard entry. | – | todo |

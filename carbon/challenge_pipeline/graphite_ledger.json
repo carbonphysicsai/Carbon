@@ -1,0 +1,19 @@
+{
+ "schema": "carbon.challenge-pipeline.graphite-ledger.v1",
+ "status": "DRAFT",
+ "protocol": "docs/development/challenge_pipeline/PROTOCOL_DRAFT.md",
+ "roles_source": "carbon.agent_campaign.graphite.roles.RoleName",
+ "stages": {
+  "prioritize": {"roles": ["reader", "planner", "writer"], "compute": "none"},
+  "design": {"roles": ["reader", "planner", "constructor", "writer"], "compute": "design studies under the stage's grant"},
+  "test_iterate": {"roles": ["planner", "constructor", "attacker", "optimizer_researcher", "reader", "writer"], "compute": "iteration runs under the stage's grant, before freeze only"},
+  "frozen_run": {"roles": [], "compute": "Carbon evaluation only"},
+  "rank": {"roles": ["writer"], "compute": "none"}
+ },
+ "never": [
+  "read or write the sealed pool",
+  "edit the pinned harness or a frozen record",
+  "hold a grade, a gate or evaluator authority",
+  "receive official seeds, confirmation references or private validator state"
+ ]
+}
