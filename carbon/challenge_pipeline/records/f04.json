@@ -44,5 +44,10 @@
    "what": "Cold plate pilot, 16 of 16 OK",
    "ref": "docs/development/evidence/cold-plate-pilot-v1"
   }
- ]
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "levels": []
+ }
 }

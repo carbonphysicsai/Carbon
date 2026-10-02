@@ -6,7 +6,7 @@ battery, run in priority order across 26 simulation families.
 | Field | Value |
 | --- | --- |
 | Document | Challenge Roadmap |
-| Revision | 2.0 |
+| Revision | 2.2 |
 | Date (UTC) | 2026-10-02 |
 | Status | Direction approved |
 | Process approver | Fitz |
@@ -15,6 +15,7 @@ battery, run in priority order across 26 simulation families.
 
 | Rev | Date | Change |
 | --- | --- | --- |
+| 2.2 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-03): the construction ladder (Challenge Admission §3, Levels 0-5) is the spine of construction iteration; every Challenge starts at Level 0 and climbs one level at a time, and battery's Phase 1 includes its first climb. The protocol is Challenge-neutral and improves through recorded revisions, with a lessons entry after every execution. Graphite is the testing agent. Corrects rev 2.1's backend wording: JAX and PyTorch are where Carbon rebuilds a declarative recipe, not executable submissions. |
 | 2.1 | 10-02 | Owner amendments (OWNER-CHALLENGE-ROADMAP-02): admission and rebuilds accept every backend the construction contract supports (JAX and PyTorch); the reference timing hardware is approved by the technical owner alone and is a RunPod CPU pod, flavor cpu5c, 16 vCPU. |
 | 2.0 | 10-02 | Rebuilt around one pipeline: Prioritize → Design → Test/iterate → Rank for deployment. Battery defines the protocol with Graphite. In-house challenges only; customer track, Workbench and commercial gates removed. Deployment leaderboard added. |
 | 1.1 | 10-02 | Current solve time added as a third, equally weighted ranking factor. |
@@ -33,7 +34,8 @@ battery, run in priority order across 26 simulation families.
   into `carbon/challenge_pipeline/families.json`, with the page's SHA-256.
 - **Machinery.** `carbon/challenge_pipeline/` ports the page's arithmetic
   (queue, false-feasible bound, leaderboard) and holds the pipeline's
-  versioned state: the protocol, the rubric and one record per family. The
+  versioned state: the protocol, the rubric, one record per family with its
+  construction level (`ladder.py`), and the lessons log (`lessons/`). The
   page's shared store remains the owners' interactive view, with the same
   record fields; the repository copy is the versioned one.
 - **Generated view.** `docs/development/CHALLENGE_PIPELINE.md`, regenerated
@@ -56,7 +58,8 @@ deploy in order of how cleanly they survive attack and how closely their score
 tracks engineering value.
 
 - **Phase 1. Battery defines the protocol.** Stage definitions, test suite
-  v1, rubric and Graphite procedure, built and proven on battery.
+  v1, rubric, the construction ladder's climb procedure and Graphite
+  procedure, built and proven on battery.
 - **Protocol lock.** Fitz approves.
 - **Phase 2. Every challenge, in priority order.** Same stages, same suite.
   Ranked on the deployment leaderboard as each one finishes testing.
@@ -67,6 +70,34 @@ tracks engineering value.
 | 2 | Design | Pin the solver, write the plan, build the data. Measure real solve time. | Exit: challenge has solver, plan and data. Harshdeep signs. |
 | 3 | Test / iterate | Attack suite and score-to-value tests; optimize construction and scoring; final run on the frozen suite. Iterate, then freeze. | Exit: tested, construction and scoring optimized. Ryan and Harshdeep sign. |
 | 4 | Rank for deployment | Rubric gates, then order by score-to-value match and attack cleanliness. | Output: leaderboard position. Fitz picks deployments. |
+
+### Start where we are; add construction freedom slowly.
+
+Construction freedom grows one level at a time on the construction ladder
+(Challenge Admission §3, `carbon/challenge_pipeline/ladder.py`). Every
+challenge enters Test/iterate at Level 0, its pinned recipe and registered
+operations. It climbs only by the climb procedure in §02, and only after the
+level below is tested. A level Carbon cannot yet rebuild is NOT_RUN, never a
+pass.
+
+### Generalizable, and improved as we go.
+
+The protocol is Challenge-neutral. Battery is its first instance, never its
+design. Each challenge supplies its own records and the shared machinery reads
+them:
+- its brief and design packet;
+- its construction contract, with the contract's map onto the ladder;
+- its expansion records;
+- its campaign and readiness record.
+
+After every execution, a lessons entry records what ran, what happened
+against what was expected, what to keep and what to change
+(`carbon/challenge_pipeline/lessons/`). An execution is a test run, a campaign
+session, a pod run, a ladder climb, an optimizer pilot, a coverage run or a
+stage gate. A lesson that should change the protocol is a proposed revision.
+A named owner adopts or declines it, and an adopted revision becomes a
+recorded change: a roadmap revision, a protocol version or a suite version.
+Nothing changes silently.
 
 ### Who does what
 
@@ -98,6 +129,8 @@ tracks engineering value.
   and regret.
 - Test suite v1: attack vectors, severity rules, EV studies.
 - Graphite permission ledger and operating procedure.
+- The construction ladder's climb procedure, proven on battery's first climb.
+- The lessons log and how a proposed revision is adopted.
 - Exam rotation cadence and sealed-pool size.
 - Per-challenge iteration budget and stop rules.
 
@@ -125,9 +158,12 @@ building on them.
    for each stage. Output: protocol draft.
 3. **Build test suite v1.** Track A attack vectors with severity rules, Track
    B EV1–EV3, exam rotation and sealed pool. Output: versioned, pinned suite.
-4. **Run battery through Test/iterate with Graphite.** Attack, fix, re-score;
-   tune construction and scoring until results stop improving or the
-   iteration budget runs out. Output: iteration log.
+4. **Run battery through Test/iterate with Graphite at Level 0, then climb
+   once.** Attack, fix, re-score; tune construction and scoring within
+   Level 0 until results stop improving or the iteration budget runs out.
+   Then climb to Level 1 by the climb procedure, as its worked example.
+   Output: iteration log, a lessons entry for every execution, and battery's
+   Level 1 climb record.
 5. **Freeze and run the final evidence.** Pinned suite, battery's sealed
    pool, no changes during the run. Output: frozen evidence record and the
    first leaderboard entry.
@@ -135,13 +171,14 @@ building on them.
    is achievable and meaningful. Output: rubric v1, entered in §05.
 7. **Record cost and calendar time for every stage.** Output: cycle-time
    baseline for planning throughput.
-8. **Fitz approves. Protocol v1.0 is locked.** Output: the process package
-   below, versioned.
+8. **Fitz approves. Protocol v1.0 is locked,** with every lesson proposed for
+   it adopted or declined. Output: the process package below, versioned.
 
 ### What gets locked
 
 Stage definitions · Challenge brief template · Design packet template · Test
 suite v1 · Deployment rubric v1 · Graphite procedure and permission ledger ·
+Construction ladder and climb procedure · Lessons log and revision procedure ·
 Iteration budget and stop rules · Cycle-time baseline.
 
 ### Plan for one revision after challenge 2
@@ -150,7 +187,8 @@ Battery solves in seconds on an electrochemical model with no meshing.
 Laminar internal flow, first in the queue after battery, needs 3D geometry and
 meshing, OpenFOAM references that take minutes to an hour, and failed-solve
 handling. Treat the second challenge as a conformance run: keep the stages
-and suite as locked, record where they strain, and expect protocol v1.1. A
+and suite as locked, record where they strain in the lessons log, and expect
+protocol v1.1 from the revisions those lessons propose. A
 change that alters the suite creates suite v2, and challenges already on the
 leaderboard re-run on it before they are compared.
 
@@ -176,22 +214,28 @@ leaderboard re-run on it before they are compared.
 - **Work.** Pin the reference build. Analytical controls and refinement.
   30-case feasibility panel. Measure p50/p95 solve time on the reference
   hardware. Case generator; splits by whole geometry, trajectory or regime;
-  rotating exam batches and a sealed pool. Construction contract and cheap
-  baselines.
+  rotating exam batches and a sealed pool. Construction contract at Level 0
+  (each capability mapped onto the ladder, Carbon's reconstruction for it and
+  the first expansion record) and cheap baselines.
 - **Graphite.** Sets up and runs reference, refinement and timing studies;
   drafts the generator, splits and construction contract.
 - **Output.** Design packet; measured solve time entered in §05.
-- **Exit.** Challenge has solver, plan and data. Harshdeep signs.
+- **Exit.** Challenge has solver, plan, data and a Level 0 construction
+  contract Carbon rebuilds. Harshdeep signs.
 
 #### Stage 3: Test / iterate
 
 - **Entry.** Signed design packet.
-- **Work.** Run the suite. Fix what breaks. Tune construction rules and
-  scoring. Repeat within the iteration budget. Freeze, then run the pinned
-  suite on the sealed pool.
+- **Work.** At the challenge's current construction level: run the suite, fix
+  what breaks, and tune construction rules and scoring within that level.
+  Climb one level at a time by the climb procedure. Repeat within the
+  iteration budget. Freeze at a recorded level, then run the pinned suite on
+  the sealed pool.
 - **Graphite.** Attacks construction and exams (Track A), runs development EV
-  studies, proposes construction and scoring changes. Before freeze only.
-- **Output.** Frozen evidence record; results entered in §05.
+  studies, proposes construction and scoring changes and the next level.
+  Before freeze only.
+- **Output.** Frozen evidence record naming its construction level; results
+  entered in §05.
 - **Exit.** Tested, construction and scoring optimized. Ryan signs Track A,
   Harshdeep signs Track B.
 
@@ -204,22 +248,75 @@ leaderboard re-run on it before they are compared.
 - **Exit.** Fitz picks deployments. Network activation stays a separate owner
   decision.
 
+### Construction ladder
+
+The levels are Challenge Admission §3's. Each adds to the one below.
+
+| Level | Adds |
+| --- | --- |
+| 0 | The challenge's current recipe and registered operations |
+| 1 | Custom loss expressions using a bounded operation set |
+| 2 | Training schedules, optimisers and permitted TRAIN sampling |
+| 3 | Training-time numerical routines such as preconditioners |
+| 4 | New architectures exporting through a constrained inference interface |
+| 5 | Custom inference in an independently isolated execution stage |
+
+The challenge's permission manifest is the authority. The level is its label.
+Where today's Level 0 already admits a surface the ladder places higher, the
+record says so rather than hiding it.
+
+**Climb procedure, for every level above 0:**
+1. Record the changed contract and permissions as an expansion record.
+2. Ship Carbon's reconstruction for the new level, with a test that Carbon
+   rebuilds it.
+3. Run valid constructions under the previous and the expanded profile.
+4. Run matched adversarial budgets under both profiles.
+5. Remove the new permission and repeat the comparison (ablation).
+6. Test interactions with earlier permissions (combined-permission attacks).
+7. Reconstruct promising valid submissions on clean workers.
+8. Open the level to miners only after a person locks it, and only once
+   validators serve the new contract.
+
+**How a validator knows how to build a construction.** A miner never sends
+build instructions. A submission is a declarative recipe plus the digest of
+the construction contract it was written against. The validator rebuilds it
+with the reconstruction code pinned in its own Carbon version, and refuses a
+digest it does not serve. Climbing a level is therefore a Carbon release,
+made of three parts:
+- the contract's new version;
+- the reconstruction code;
+- a validator update.
+
+Levels 4 and 5 are where a submission carries participant code. They need
+isolated execution, so they stay NOT_RUN until that isolation and its
+reconstruction exist.
+
+**Rules.**
+- A finding stops further climbing until it is repaired and retested.
+- A level that is not implemented is NOT_RUN, never a pass.
+- A level opened for Graphite's development campaigns is never opened to
+  miners to gather acceptance data.
+- Frozen evidence and leaderboard entries name the level they were taken at.
+
 ### Freeze rule
 
 Before freeze, Graphite and the team can change anything: construction rules,
 scoring, the exam design, the suite's challenge-specific attacks. At freeze,
-the suite version, harness code, scoring and sealed pool are pinned, and only
-the run on those feeds the leaderboard. A change after freeze creates a new
-challenge version and a new frozen run.
+the suite version, harness code, scoring, sealed pool and construction level
+are pinned, and only the run on those feeds the leaderboard. A change after
+freeze, including a climb to the next level, creates a new challenge version
+and a new frozen run. Earlier evidence stays bound to its level.
 
 ### Graphite operating rules
 
+- Graphite is Carbon's own research and testing agent. No external research
+  agent takes its role.
 - Runs through a controller with a per-stage permission ledger; every action
-  lands in the iteration log.
+  lands in the iteration log, and every execution gets a lessons entry.
 - Never reads or writes the sealed pool, and never edits the pinned harness or
   a frozen record.
-- May propose wider construction freedom. Test any permission change as a
-  separate experiment before admitting it.
+- Constructs only within the campaign's recorded construction level. May
+  propose the next level, which opens only by the climb procedure.
 - Its outputs are drafts until a named owner signs the stage gate.
 
 ### Stop rules
@@ -245,8 +342,11 @@ place of the shared ones.
 ### Track A: construction, reconstruction and attack
 
 1. **Admission:** reject undeclared inputs, unsupported recipes, pretrained
-   payloads, executables outside the construction contract's backends (JAX
-   or PyTorch) and disguised executable content.
+   payloads, any surface above the challenge's recorded construction level,
+   executable content at a level that admits none (submissions are
+   declarative below Level 4; Carbon rebuilds the recipe in a backend the
+   construction contract supports, JAX or PyTorch) and disguised executable
+   content.
 2. **Execution isolation:** block unauthorized filesystem, network, process,
    credential and cross-job access.
 3. **Protected-data separation:** test whether a producer can observe or
@@ -262,6 +362,14 @@ place of the shared ones.
    provenance and disagreement between workers; quarantine unresolved grades.
 8. **Adaptive exposure:** test memorization, repeated-query feedback against a
    rotating batch, and cross-case leakage; enforce the disclosure budget.
+
+Track A runs at every implemented construction level with the same
+legitimate panel and attack budget, plus single-permission ablations and
+combined-permission attacks. A vector that needs a level the challenge has
+not reached is NOT_RUN at that level, never a pass. Shared infrastructure
+evidence may be reused across challenges only with matching pins and a
+recorded applicability analysis (Challenge Admission §3).
+Challenge-specific score exploitation and integration tests always run.
 
 Ryan grades each open finding critical, high, medium or low and records the
 open count at freeze. A clean run does not prove resistance to unrestricted
@@ -358,12 +466,19 @@ bound (%), minimum independent scenarios, maximum regret (%, optional),
 maximum open critical, maximum open high, and the rubric version. They are in
 `carbon/challenge_pipeline/rubric.json`.
 
-A challenge record holds its stage and solve time (stage, measured p50 and
-p95 wall time, cases timed, hardware), its attack results (suite version and
-open critical, high, medium and low findings at freeze) and its
-score-to-value results (rank agreement ρ, regret, independent scenarios and
-false-feasible events). Saving replaces the earlier record for that
-challenge. Enter Track A and B results from the frozen run only.
+A challenge record holds:
+- its stage and solve time: stage, measured p50 and p95 wall time, cases
+  timed and hardware;
+- its construction level and each level's state;
+- its attack results: suite version, and the open critical, high, medium and
+  low findings at freeze;
+- its score-to-value results: rank agreement ρ, regret, independent
+  scenarios and false-feasible events.
+
+Saving replaces the earlier record for that challenge. Enter Track A and B
+results from the frozen run only. A leaderboard entry is a challenge at a
+version and a construction level. Climbing a level makes a new frozen run,
+and the challenge re-enters at its new level.
 
 ---
 
@@ -376,7 +491,7 @@ challenge. Enter Track A and B results from the frozen run only.
 | Engineering decision | The user, design and control variables, objective, constraints and consequence of error the challenge represents. |
 | Scope and data | Geometry topology, numeric bounds, units, material provenance, boundary and initial conditions, output locations, time or frequency grids. |
 | Reference | Exact solver build, discretization, tolerances, hardware, deterministic settings, refinement evidence, failed-case policy, measured p50/p95 solve time. |
-| Construction | A recipe runnable in a backend the construction contract supports (JAX or PyTorch), permitted declarations and methods, authorized data, build resources, seeds, dependencies, reconstruction and artifact identity. Launchpad reference build identical to the validator pin. |
+| Construction | The construction contract at Level 0, each capability mapped onto the ladder, with Carbon's reconstruction for it and the first expansion record; the backends Carbon rebuilds recipes in (JAX or PyTorch); permitted declarations and methods, authorized data, build resources, seeds, dependencies, reconstruction and artifact identity. Launchpad reference build identical to the validator pin. |
 | Evidence | Physical gates, normalized errors, critical regions, uncertainty treatment, decision tests, disclosure budget, rotation cadence, anchor set, sealed pool. |
 | Deployment record | Supported inputs and outputs, latency budget, version pinning and requalification triggers. |
 
@@ -389,9 +504,10 @@ challenge. Enter Track A and B results from the frozen run only.
 3. **Decision reliance:** evidence that remaining errors are acceptable for a
    named engineering decision.
 
-In-house challenges launch at level 1 with an explicit synthetic scope. A
-score that matches the reference 1:1 is only as good as the reference, so
-claims name the level reached. A reference comparison alone does not
+In-house challenges launch at credibility level 1 with an explicit synthetic
+scope. These are the reference's credibility levels, not construction levels.
+A score that matches the reference 1:1 is only as good as the reference, so
+claims name the credibility level reached. A reference comparison alone does not
 establish certification or real-world safety.
 
 ### Reference budget and timing
@@ -415,9 +531,12 @@ new version.
 
 ### Construction and solver access
 
-Carbon accepts and rebuilds only submissions runnable in a backend the
-construction contract supports (JAX or PyTorch), and the validator
-pin carries the tooling every rebuild needs. Launchpad ships the pinned
+Carbon accepts and rebuilds only submissions within the challenge's recorded
+construction level. Below Level 4 a submission is a declarative recipe and
+the digest of the contract it was written against. Carbon rebuilds it in a
+backend the construction contract supports (JAX or PyTorch), and the
+validator pin carries the contract and the reconstruction code every rebuild
+needs. Launchpad ships the pinned
 reference solver for each active challenge so miners can generate their own
 training and test data; they never see exam cases or the sealed pool. Keeping
 that build identical to the validator's is part of Design. OpenFOAM,

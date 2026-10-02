@@ -1,0 +1,30 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-level-proposal-step",
+ "recorded_at": "2026-10-02T20:49:22Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/challenge_pipeline/ladder.py CLIMB_PROCEDURE",
+  "description": "Walked the climb procedure against the owner's question of who fills each Challenge's contract at each level."
+ },
+ "expected": "The procedure names who proposes a level's surface for a Challenge and who accepts it.",
+ "observed": "It starts at recording the changed contract. Nothing records the proposed surface, its research basis or the contract owner's acceptance. The ladder is generic, but each Challenge's map onto it is not.",
+ "keep": [
+  "Graphite proposes and never writes the contract or an expansion record.",
+  "Experiments decide whether a level holds; a person locks it."
+ ],
+ "change": [
+  "Add a written level proposal before the contract changes."
+ ],
+ "protocol_elements": [
+  "construction_ladder.climb_procedure",
+  "graphite.permissions"
+ ],
+ "proposed_revision": {
+  "target": "construction_ladder.climb_procedure",
+  "text": "Add step 0, the level proposal. For one Challenge and one level it states the capabilities to admit, mapped onto the ladder, with their bounds; the research behind them (Graphite's method cards and experiments on development material); the reconstruction work each needs; and the expected attack surface. Graphite or an engineer drafts it, and the construction contract owner (the technical owner) accepts it before step 1 records the contract change."
+ },
+ "status": "PROPOSED"
+}
