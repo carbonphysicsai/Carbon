@@ -1,0 +1,44 @@
+{
+ "batch": "cold-plate-smoke-v1",
+ "purpose": "environment smoke test on a RunPod CPU pod: two public TRAIN cases already solved in the local container, re-solved natively for comparison",
+ "source_plan_label": "carbon.cold-plate.pools-v1.train",
+ "population": "carbon.cold-plate.development-population.v1",
+ "cases": [
+  {
+   "case_id": "train-0000",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21697464212979164,
+    "fin_width_mm": 0.38119306872973735,
+    "channel_depth_mm": 2.890866973730578,
+    "flow_lpm_per_kw": 1.7880007330097487,
+    "inlet_c": 31.016946990160015,
+    "heat_load_w": 1437.7392931069712,
+    "hotspot_ratio": 1.8691362303625871,
+    "hotspot_center_mm": 15.629333373612646,
+    "hotspot_width_mm": 3.1086966253704107
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0001",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3051521417983118,
+    "fin_width_mm": 0.336770665233823,
+    "channel_depth_mm": 1.66926058914599,
+    "flow_lpm_per_kw": 1.7596165303416138,
+    "inlet_c": 38.221328458624654,
+    "heat_load_w": 1249.0050412739565,
+    "hotspot_ratio": 1.710974767509168,
+    "hotspot_center_mm": 6.692584228673014,
+    "hotspot_width_mm": 2.0530978458086033
+   },
+   "options": {
+    "iterations": 2000
+   }
+  }
+ ]
+}

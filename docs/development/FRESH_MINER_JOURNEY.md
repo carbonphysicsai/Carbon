@@ -33,9 +33,10 @@ the fields in [Record](#record).
     `h100-small`.
 - **The validator.** Either it runs on this machine (`battery_validator` in
   the profile), or it runs elsewhere and you have its intake URL.
-  - **Today the intake binds loopback only.** It needs the owner's exposure
-    record (`OWNER-…INTAKE-EXPOSURE-NN`) before another machine can reach it.
-  - **Until that record exists,** run the validator on this machine, or
+  - **The intake's exposure is approved** (OWNER-INTAKE-EXPOSURE-01): an
+    operator's public intake names that record and serves https. Give setup
+    its `https://` URL under Review.
+  - **Until an operator exposes one,** run the validator on this machine, or
     tunnel to its loopback yourself.
 
 ## Steps

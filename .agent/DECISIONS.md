@@ -17513,3 +17513,116 @@ should be battery only or batter specific. Lets finish this buildout today".
 - Scientific, security and launch qualification stay human-reserved.
 
 Ticket: `.agent/tickets/C-MLP-04_challenge_neutral_control_center.md`.
+
+## 2026-10-02 — OWNER-INTAKE-EXPOSURE-01: expose the battery intake beyond loopback
+
+**Owner, verbatim, in session on 2026-10-02**, answering the C-MLP-03
+question "the owner's security record before another machine can submit to
+the battery intake": "Security approved"; and, the same day, "Run the intake
+and ship the new version".
+
+**Decision.**
+1. **The battery intake (OD-7(b), `carbon/battery/intake.py`) may bind
+   beyond loopback.** This is the §4 exposure decision the listener checks for
+   by name. A public bind names `OWNER-INTAKE-EXPOSURE-01` in its
+   configuration's `exposure_record`.
+2. **Scope.** Testnet 567, the battery Challenge, the routes the intake
+   serves today (`GET /carbon/v1/battery/intake`, `POST /carbon/v1/mcp` with
+   `battery_submit` or `battery_status`) and the limits it applies today.
+   Another route, Challenge, network or listener needs its own record.
+3. **The known items stay recorded, not fixed.** Approval was given with the
+   list in `docs/development/BATTERY_MINER_SUBMISSION_PATHS.md` ("For the
+   security review to examine") on file:
+   - one thread per connection before any limit applies;
+   - the peer table reset above 4,096 peers;
+   - one peer behind a proxy;
+   - the listener on the host that holds the validator's private state.
+
+**Recorded engineering decision (executor, same day).** A public bind also
+needs TLS terminated in the intake (`tls_cert` and `tls_key`), or the listener
+refuses with `intake_exposure_needs_tls`. Two reasons:
+- the miner client already refuses plain HTTP to a non-loopback intake;
+- a TLS proxy would make every request one peer.
+
+**Unchanged.**
+- Exposing a host is an operator action. This record permits it and performs
+  none.
+- Engineering evidence is not a security audit. The record is the owner's
+  acceptance; tests only hold the gate.
+- Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
+
+**Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
+amount (USD 15 suggested) and whether RunPod pod time is inside it or
+separate, the owner answered: "$15 runpod included". The owner then said:
+"Start phase 3 build in parallel".
+
+**Decision.**
+1. **Phase 3 grant.** The ceiling is **USD 15.00**, and it covers both Engy
+   tokens and RunPod pod time under one grant. It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json` in the
+   existing `SpendingGrant` format: provider `graphite`, currency USD.
+   - `account` (`Carbon-Account`) and `expires_at` (`2026-12-31T23:59:59Z`)
+     are the phase-2 grant's. The owner set both for phase 2
+     (OWNER-GRAPHITE-02), and phase 3 reuses them.
+   - `permitted_runs` is 3, the plan's first block of 3 sessions (plan §7).
+   - The other limits are derived, not chosen. The arithmetic is in
+     `docs/development/graphite/grants/README.md`:
+     - the pod price is the EV4 tooling's (`pod_control.MAX_RATE` USD 0.49 an
+       hour, which the EV4 ledger records as RunPod's `costPerHr`, plus 20 GB
+       of disk);
+     - `cleanup_allowance` is pod_control's `CLEANUP_RESERVE_USD`, USD 0.25,
+       and covers pod termination;
+     - `worst_case_run_cost` is USD 4.91 a run: 2.96 for 12 thirty-minute
+       pods and 1.95 for tokens;
+     - `max_runtime_s` is 27,360, `max_concurrency` is 1 and
+       `max_submissions` is 3.
+   - One ceiling covers both kinds of spend:
+     - the controller reserves each run's worst case;
+     - inside a run, every model call is reserved before dispatch and every
+       pod before launch, against the same run cap;
+     - each settles from the provider's reported charge;
+     - an unknown outcome keeps its full reservation.
+2. **Build in parallel.** Phase 3 is built now, without spend. The live
+   sessions run later, in a session that has `ENGY_API_KEY` and
+   `RUNPOD_API_KEY`.
+
+**Unchanged.**
+- Phase 3 constructs only inside the recorded battery construction contract
+  (the reconstruction rule, OWNER-GRAPHITE-02). Level 0 widens nothing.
+- Graphite proposes; Carbon's frozen rule decides (invariants 7.9 and 7.10).
+- No official, protected or EV4 confirmation material reaches the agent or a
+  pod.
+- Reconstruction tolerances and the Level-0 study population stay
+  science-reserved (plan §9).
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.

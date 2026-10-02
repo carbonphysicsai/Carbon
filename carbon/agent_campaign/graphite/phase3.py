@@ -1,0 +1,912 @@
+"""GRAPHITE-01 phase 3: the Constructor at Level 0, and its runner.
+
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR \
+        --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
+        (--credential-file PATH | --credential-env ENGY_API_KEY) \
+        (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
+        --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA [--session N]
+    python -m carbon.agent_campaign.graphite.phase3 run --root DIR --dry-run
+    python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
+    python -m carbon.agent_campaign.graphite.phase3 reconcile --root DIR --grant G \
+        (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) --code-ref SHA
+    python -m carbon.agent_campaign.graphite.phase3 status --root DIR
+    python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
+
+One session is one run of the Constructor behind the #475 campaign controller,
+under one owner grant that covers both its model calls and its pods
+(OWNER-GRAPHITE-03: "$15 runpod included"):
+
+1. the controller reserves the grant's `worst_case_run_cost` for the run and
+   refuses a run past `permitted_runs` or the ceiling (tokens and pods
+   together, as the provider reports both);
+2. `Phase3Provider` drives the research loop with the Constructor's prompt and
+   closed tools. Its miner tools go through the real miner path
+   (`miner_path.attach`, the standard miner MCP door) to a battery DEVELOPMENT
+   campaign; its proposals go to Carbon's runner (`experiment`), which admits
+   each one through the reconstruction gate, runs it on a pod, checks the
+   pod's build against Carbon's own, and scores it by the frozen rule;
+3. inside the run, every model call is reserved before dispatch (the research
+   ledger, capped at the run's token share) and every pod before launch (the
+   pod ledger, against the run's combined cap); each settles from the
+   provider's reported charge, and an unknown outcome keeps its reservation;
+4. after the loop, Carbon bundles the session's best improvement, with
+   ablations, as a PR-ready directory, and rebuilds it from the bundle alone;
+5. findings (an unrebuildable proposal, a rebuild mismatch) are recorded on
+   the controller, where they stop any later expansion.
+
+`DIR` is a private directory outside the repository. Nothing here opens a
+pull request, writes under `docs/`, or touches chain state.
+
+**Credentials.** The Engy key as phase 2 takes it (`--credential-env
+ENGY_API_KEY` copies it into a 0600 file in a fresh 0700 directory, removed on
+exit). The RunPod key as the pod tooling keeps it: an owner-only file
+(`~/.runpod/api_key` for `pod_control`); `--runpod-key-env RUNPOD_API_KEY`
+copies the variable the same way. Neither key is printed, logged or given to
+the agent.
+
+`--dry-run` runs the whole session with a scripted model, a scripted pod
+account and a recording miner tool, under a synthetic grant, writing only
+under `DIR/dry-run`. Carbon's admission, frozen-rule scoring, comparison,
+bundle and clean rebuild are real; the predictions are SYNTHETIC.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import contextlib
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+from decimal import Decimal
+from pathlib import Path
+
+from carbon.development_session.data import write_once
+from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_loop import run_epoch
+
+from .. import boundaries
+from ..grant import SpendingGrant
+from ..provider import (
+    ProviderUnavailable,
+    RunStatus,
+    TaskSpec,
+)
+from . import delivery as deliver_
+from . import experiment as ex
+from . import tools as toolbox
+from .ladder import LadderError
+from .provider import (
+    EPOCH,
+    NANO_PER_USD,
+    OWNER,
+    GraphiteLedger,
+    GraphiteProvider,
+    RunCapReached,
+    SessionBrief,
+)
+from .roles import (
+    CONSTRUCTOR_SESSION_TURNS,
+    CONSTRUCTOR_STALL_ATTEMPTS,
+    PROPOSE,
+    ROLES,
+    RoleName,
+)
+
+REPOSITORY = Path(__file__).resolve().parents[3]
+CAMPAIGN = "graphite-phase3"
+OPERATOR = "graphite-phase3-runner"
+WORKSPACE = "graphite-phase3-workspace"
+CREDENTIAL_REF = "graphite-phase3-engy"
+PROFILE_SCHEMA = "carbon.graphite.phase3.permission-profile.v1"
+_TERMINAL = ("succeeded", "failed", "cancelled")
+
+
+# -- the Constructor's tools ---------------------------------------------------------------
+class Phase3Tools:
+    """What the Constructor's toolbox delegates to: the proposal tool goes to
+    Carbon's runner; every miner SDK tool goes to the real miner path."""
+
+    def __init__(self, *, experiment, miner):
+        self.experiment, self.miner = experiment, miner
+
+    async def call(self, name, arguments, identity):
+        if name == PROPOSE:
+            # A pod runs for minutes: off the event loop, so the miner path's
+            # own tasks keep running. A process death still propagates.
+            return await asyncio.to_thread(
+                self.experiment.propose_tool, arguments, identity
+            )
+        if self.miner is None:
+            return toolbox.refusal(
+                toolbox.UNAVAILABLE,
+                "miner_path_not_attached",
+                reason="This session has no miner campaign attached; nothing ran.",
+            )
+        return await self.miner.call(name, arguments, identity)
+
+
+# -- the provider --------------------------------------------------------------------------
+class Phase3Ledger(GraphiteLedger):
+    """The run's research ledger, held to the run's combined cap: a model call
+    is reserved only while tokens committed, plus pods committed, plus the
+    call's own reservation stay within the grant's worst-case run cost. A
+    replayed call (already reserved) is never refused."""
+
+    def __init__(self, root, *, clock, cancelled, crash, admits):
+        super().__init__(root, clock=clock, cancelled=cancelled, crash=crash)
+        self._admits = admits
+
+    def _reserve(self, identity, **kwargs):
+        nano = (kwargs.get("resources") or {}).get("provider_nanodollars") or 0
+        if nano and not self._admits(identity, nano):
+            raise RunCapReached("run_cap_tokens_plus_pods")
+        return super()._reserve(identity, **kwargs)
+
+
+class Phase3Provider(GraphiteProvider):
+    """`GraphiteProvider` for the Constructor's Level-0 sessions.
+
+    Adds, per run: the pod runner and its ledger, the real miner path, the
+    combined token-and-pod spend, pod termination on cancellation and after a
+    crash, delivery, and the stall rule's escalation.
+    """
+
+    def __init__(
+        self,
+        *,
+        root,
+        grant,
+        model,
+        pods,
+        miner_attach=None,
+        miner_tools=None,
+        scorer=None,
+        repository=REPOSITORY,
+        randomness=os.urandom,
+        **kwargs,
+    ):
+        if type(grant) is not SpendingGrant:
+            raise ProviderUnavailable("spending_grant_required")
+        try:
+            self.budget = ex.phase3_budget(grant)
+        except ex.BudgetRefused as refused:
+            raise ProviderUnavailable(refused.code) from None
+        kwargs.setdefault("max_calls_per_run", CONSTRUCTOR_SESSION_TURNS)
+        super().__init__(
+            root=root, grant=grant, model=model, miner_tools=miner_tools, **kwargs
+        )
+        self.pods, self.miner_attach = pods, miner_attach
+        self.scorer, self.repository, self.randomness = scorer, repository, randomness
+
+    # -- configuration ---------------------------------------------------------------------
+    def caps(self):
+        caps = super().caps()
+        caps["provider_nanodollars"] = ex.usd_to_nano(self.budget.token_allowance_usd)
+        return caps
+
+    def _grant_record(self):
+        return {**super()._grant_record(), "phase3_budget": self.budget.record()}
+
+    def _manifest(self, opened):
+        return {**super()._manifest(opened), "implementation": "graphite-phase3"}
+
+    def start(self, spec, idempotency_key):
+        if type(spec) is TaskSpec and self.find(idempotency_key) is None:
+            brief = self._brief(spec.instructions_digest)
+            if brief is not None:
+                if brief["role"] != RoleName.CONSTRUCTOR.value:
+                    raise ProviderUnavailable("phase3_runs_the_constructor_only")
+                observation = brief["initial_observation"]
+                check_observation(observation)
+        return super().start(spec, idempotency_key)
+
+    # -- the run's experiment ----------------------------------------------------------------
+    def experiment(self, run_id):
+        opened = self._opened(run_id)
+        brief = self._brief(opened["brief"]["digest"])
+        return ex.Experiment(
+            root=self._dir(run_id) / "experiment",
+            run_id=run_id,
+            pods=self.pods,
+            budget=self.budget,
+            baseline=brief["initial_observation"]["baseline_strategy"],
+            token_committed=lambda: self._tokens_usd(run_id),
+            cancelled=lambda: self._state(run_id)["cancel_requested"],
+            ladder=self.ladder,
+            emit=lambda event_id, body: self._emit(run_id, event_id, body),
+            scorer=self.scorer or self._frozen_rule,
+            repository=self.repository,
+            clock=self.clock,
+            randomness=self.randomness,
+        )
+
+    def _frozen_rule(self):
+        """The frozen rule, loaded once per provider (its material is pinned)."""
+        if getattr(self, "_rule", None) is None:
+            self._rule = ex.FrozenRule(self.repository)
+        return self._rule
+
+    def _ledger(self, run_id):
+        return Phase3Ledger(
+            self._dir(run_id) / "ledger",
+            clock=self.clock,
+            cancelled=lambda: self._state(run_id)["cancel_requested"],
+            crash=self._checkpoint_crash,
+            admits=lambda identity, nano: self._admits_call(run_id, identity, nano),
+        )
+
+    def _admits_call(self, run_id, identity, nano):
+        if any(call["identity"] == identity for call in self._calls(run_id)):
+            return True  # a replay reserves nothing new
+        committed = self._tokens_usd(run_id) + self.experiment(run_id).pod_committed()
+        return committed + Decimal(nano) / NANO_PER_USD <= self.budget.run_cap_usd
+
+    def _tokens_usd(self, run_id):
+        settled, pending = GraphiteProvider._spend(self, run_id)
+        return Decimal(settled + pending) / NANO_PER_USD
+
+    def _spend(self, run_id):
+        settled, pending = GraphiteProvider._spend(self, run_id)
+        pods = self.experiment(run_id).ledger.committed()
+        return (
+            settled + ex.usd_to_nano(pods[0]),
+            pending + ex.usd_to_nano(pods[1]),
+        )
+
+    def _unresolved(self, run_id):
+        experiment = self.experiment(run_id)
+        return (
+            super()._unresolved(run_id)
+            or bool(experiment.ledger.live())
+            or bool(experiment.interrupted())
+        )
+
+    def status(self, run_id):
+        status = super().status(run_id)
+        if status.workers_terminated and self.experiment(run_id).ledger.live():
+            # A pod not verified gone is a worker that may still run.
+            return RunStatus(status.state, status.worker_ids, False)
+        return status
+
+    def request_cancel(self, run_id):
+        """Ask a running worker, in this process or another, to stop: it
+        terminates its pod and finishes cancelled at its next checkpoint."""
+        state = self._state(run_id)
+        if state["state"] in _TERMINAL:
+            return state["state"]
+        self._set_state(run_id, cancel_requested=True)
+        self._emit(run_id, "cancel-requested", {"kind": "cancel_requested"})
+        return "cancel_requested"
+
+    def cancel(self, run_id):
+        state = self._state(run_id)
+        if state["state"] not in _TERMINAL and run_id not in self._active:
+            # No worker here: terminate whatever pods the run left first.
+            self.experiment(run_id).reconcile()
+        return super().cancel(run_id)
+
+    def run(self, run_id):
+        state = self._state(run_id)
+        if state["state"] not in _TERMINAL:
+            experiment = self.experiment(run_id)
+            experiment.reconcile()
+            if experiment.ledger.live():
+                return self._finish(
+                    run_id, "failed", {"code": "pod_termination_unverified"}, None
+                )
+        return super().run(run_id)
+
+    @contextlib.asynccontextmanager
+    async def _attached(self, run_id):
+        if self.miner_attach is None:
+            yield self.miner_tools
+            return
+        async with self.miner_attach(session=run_id.removeprefix("graphite-")) as tools:
+            yield tools
+
+    async def _epoch(self, run_id, ledger, role, brief, selection):
+        experiment = self.experiment(run_id)
+        async with self._attached(run_id) as miner:
+            sdk = toolbox.GraphiteToolbox(
+                role=role,
+                literature_index=self.literature,
+                emit=lambda event_id, body: self._emit(run_id, event_id, body),
+                miner_tools=Phase3Tools(experiment=experiment, miner=miner),
+            )
+            report = await run_epoch(
+                ledger,
+                owner=OWNER,
+                epoch=EPOCH,
+                sdk=sdk,
+                credential_file=None,
+                initial_observation=brief["initial_observation"],
+                transport=self.model.transport_for(selection),
+                provider=selection,
+                instructions=role.prompt,
+                tools=role.tool_schemas(),
+                max_provider_calls=CONSTRUCTOR_SESSION_TURNS,
+            )
+        if report["status"] != "RECONCILIATION_REQUIRED":
+            self._deliver(run_id, experiment, report)
+        self._escalate_on_stall(run_id, experiment)
+        return report
+
+    def _deliver(self, run_id, experiment, report):
+        path = self._dir(run_id) / "delivery.json"
+        if path.exists():
+            return json.loads(path.read_bytes())
+        selection = None
+        if report.get("status") == "SELECTED":
+            selection = {"strategy_digest": digest(canonical(report["strategy"]))}
+        outcome = deliver_.deliver(
+            experiment, self._dir(run_id) / "delivery", selection=selection
+        )
+        write_once(path, canonical(outcome))
+        return outcome
+
+    def _escalate_on_stall(self, run_id, experiment):
+        """The stall rule's one-rung escalation, consuming the run's recorded
+        observation; it applies to the Constructor's next session."""
+        observation = experiment.stall_observation()
+        path = self._dir(run_id) / "escalation.json"
+        if observation is None or path.exists():
+            return
+        try:
+            result = self.ladder.escalate(
+                RoleName.CONSTRUCTOR, observation["failure_id"]
+            )
+        except LadderError as refused:
+            result = {"escalated": False, "reason": refused.code}
+        write_once(path, canonical(result))
+
+    def session_record(self, run_id, *, final=None, failure=None):
+        record = super().session_record(run_id, final=final, failure=failure)
+        experiment = self.experiment(run_id)
+        extra = {"phase3": experiment.summary()}
+        for name in ("delivery", "escalation"):
+            path = self._dir(run_id) / (name + ".json")
+            extra[name] = json.loads(path.read_bytes()) if path.exists() else None
+        return {**record, **extra}
+
+
+def check_observation(observation):
+    """A phase-3 brief serves the battery DEVELOPMENT Challenge only, with a
+    baseline Carbon can rebuild."""
+    from carbon.battery.challenge import CHALLENGE
+
+    challenge = observation.get("challenge") or {}
+    if challenge != {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}:
+        raise ProviderUnavailable("phase3_serves_battery_development_only")
+    try:
+        ex.admit(observation.get("baseline_strategy"), 0)
+    except (ex.Unrebuildable, ex.NotServed):
+        raise ProviderUnavailable("baseline_not_rebuildable") from None
+
+
+# -- briefs, profile and the controller ------------------------------------------------------
+def session_brief(*, checkout_commit, budget, baseline=None, repository=REPOSITORY):
+    """The Constructor's brief: public battery development material only."""
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.battery.research import SCAFFOLD
+
+    baseline = SCAFFOLD if baseline is None else baseline
+    contract = ex.recorded_contract()
+    manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
+    observation = {
+        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "level": 0,
+        "construction_contract": contract,
+        "baseline_strategy": baseline,
+        "objective": (
+            "Propose battery TrainingStrategy recipes that beat the baseline under "
+            "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
+            "rebuilds each proposal; you see development feedback only."
+        ),
+        "proposal_tool": PROPOSE,
+        "pods_per_session": budget.max_pods,
+        "pods_note": "The baseline uses the first pod of the session.",
+        "stall_limit": CONSTRUCTOR_STALL_ATTEMPTS,
+        "instructions": (
+            "Read the Challenge and its construction contract with the miner tools, "
+            "validate and compile before proposing, then propose with "
+            + PROPOSE
+            + ". Select a recipe only with evidence, or stop and say why."
+        ),
+    }
+    return SessionBrief(
+        role=RoleName.CONSTRUCTOR,
+        initial_observation=observation,
+        checkout_commit=checkout_commit,
+        checkout_manifest_digest=boundaries.manifest_digest(manifest),
+    )
+
+
+def permission_profile():
+    """Level 0: the recorded battery construction contract, widened by nothing."""
+    document = {
+        "schema": PROFILE_SCHEMA,
+        "level": 0,
+        "construction_contract": ex.recorded_contract(),
+        "surface": "declarative TrainingStrategy inside the recorded contract",
+        "widens": [],
+    }
+    return document, digest(canonical(document))
+
+
+def controller_for(root, provider, grant, clock=None):
+    from ..controller import CampaignController
+
+    kwargs = {} if clock is None else {"clock": clock}
+    return CampaignController(
+        root=Path(root) / "controller",
+        provider=provider,
+        grant=grant,
+        operator=OPERATOR,
+        **kwargs,
+    )
+
+
+def ensure_campaign(control, *, checkout_digest, profile_digest):
+    if CAMPAIGN in control.budget()["campaigns"]:
+        return
+    grant = control.grant
+    control.register_campaign(
+        CAMPAIGN,
+        role=ROLES[RoleName.CONSTRUCTOR].boundary,
+        workspace_id=WORKSPACE,
+        credential_ref=CREDENTIAL_REF,
+        checkout_digest=checkout_digest,
+        profile_digest=profile_digest,
+        ceiling=str(grant.monetary_ceiling - grant.cleanup_allowance),
+    )
+
+
+def session_key(number):
+    return f"graphite-phase3-session-{number}"
+
+
+def sync_findings(control, provider, run_id):
+    ids = []
+    for finding in provider.experiment(run_id).findings():
+        control.record_finding(
+            finding["id"], finding["condition"], canonical(finding["evidence"])
+        )
+        ids.append(finding["id"])
+    return ids
+
+
+def run_session(control, provider, brief, number):
+    """Launch (or resume) session `number` under the controller and run it."""
+    if type(number) is not int or not 1 <= number <= control.grant.permitted_runs:
+        raise ValueError("session is 1 .. the grant's permitted runs")
+    _document, profile = permission_profile()
+    ensure_campaign(
+        control, checkout_digest=brief.checkout_manifest_digest, profile_digest=profile
+    )
+    spec = TaskSpec(
+        campaign_id=CAMPAIGN,
+        role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
+        workspace_id=WORKSPACE,
+        credential_ref=CREDENTIAL_REF,
+        profile_digest=profile,
+        instructions_digest=provider.register_brief(brief),
+        max_runtime_s=control.grant.max_runtime_s,
+    )
+    key = session_key(number)
+    control.recover()
+    phase = control.launch(spec, key)
+    run_id = provider.run_id_for(key)
+    final = provider.run(run_id) if provider.find(key) is not None else None
+    phase = control.poll(key)
+    findings = sync_findings(control, provider, run_id) if final else []
+    return {
+        "session": number,
+        "run_id": run_id,
+        "provider_state": final,
+        "controller_phase": phase,
+        "findings": findings,
+        "budget": control.budget(),
+        "summary": provider.experiment(run_id).summary() if final else None,
+        "delivery": _read(provider._dir(run_id) / "delivery.json"),
+    }
+
+
+def _read(path):
+    return json.loads(path.read_bytes()) if path.exists() else None
+
+
+# -- the runner ----------------------------------------------------------------------------
+class RunnerRefused(SystemExit):
+    def __init__(self, code):
+        print(json.dumps({"status": "REFUSED", "reason_code": code}))
+        super().__init__(2)
+
+
+def _root(value):
+    root = Path(value).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise RunnerRefused("root_must_be_outside_the_repository")
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    return root
+
+
+def load_grant(path):
+    from ..grant import GrantError
+
+    try:
+        return SpendingGrant.from_document(json.loads(Path(path).read_bytes()))
+    except (OSError, ValueError) as error:
+        code = (
+            "grant_refused: " + str(error)
+            if type(error) is GrantError
+            else ("grant_unreadable")
+        )
+        raise RunnerRefused(code) from None
+
+
+@contextlib.contextmanager
+def secret_file(*, path=None, env=None, environ=os.environ, names=()):
+    """A key file reference: `path` as given (it must exist), or a 0600 copy
+    of the environment variable `env` in a fresh 0700 directory, removed on
+    exit (GRAPHITE-D16). The value is never printed."""
+    if (path is None) == (env is None):
+        raise RunnerRefused("one_of_key_file_or_key_env_required")
+    if path is not None:
+        candidate = Path(path).expanduser()
+        if not candidate.is_file():
+            raise RunnerRefused("key_file_missing")
+        yield str(candidate)
+        return
+    if env not in names:
+        raise RunnerRefused("key_env_not_recognised")
+    value = environ.get(env)
+    if not value or not value.strip():
+        raise RunnerRefused("key_env_empty")
+    directory = tempfile.mkdtemp(prefix="graphite-key-")
+    try:
+        os.chmod(directory, 0o700)
+        target = Path(directory) / "key"
+        descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w") as stream:
+            stream.write(value.strip())
+        yield str(target)
+    finally:
+        shutil.rmtree(directory, ignore_errors=True)
+
+
+def runpod_key_status(path):
+    """The RunPod key file must be owner-only (the compute layer's rule)."""
+    from carbon.compute import CredentialStatus, FileCredentialProvider
+
+    return FileCredentialProvider(Path(path)).status() is CredentialStatus.CONFIGURED
+
+
+def check_code_ref(ref, repository=REPOSITORY):
+    """The pod fetches code at `ref`, and Carbon pins staged files from this
+    checkout: the ref must be this checkout's HEAD, pushed, and clean."""
+    from scripts.dev.exam_design.runpod import pod_control
+
+    if type(ref) is not str or len(ref) != 40:
+        raise RunnerRefused("code_ref_must_be_a_40_hex_commit")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(repository), *args],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    if git("rev-parse", "HEAD").stdout.strip() != ref:
+        raise RunnerRefused("code_ref_is_not_this_checkout_head")
+    if git("status", "--porcelain", "--", "carbon", "scripts/dev/exam_design").stdout:
+        raise RunnerRefused("shipped_code_has_uncommitted_changes")
+    if not pod_control.ref_is_pushed(ref):
+        raise RunnerRefused("code_ref_not_pushed")
+
+
+def _install_cancel(provider, run_id):
+    """SIGINT/SIGTERM ask the worker to stop: it terminates its pod first."""
+
+    def handler(_signum, _frame):
+        provider.request_cancel(run_id)
+
+    for name in ("SIGINT", "SIGTERM"):
+        signal.signal(getattr(signal, name), handler)
+
+
+def command_run(args):
+    if args.dry_run:
+        return dry_run(_root(args.root))
+    root = _root(args.root)
+    grant = load_grant(args.grant)
+    if grant.provider != "graphite":
+        raise RunnerRefused("grant_provider_must_be_graphite")
+    if args.miner_profile is None or args.miner_campaign is None:
+        raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
+    from . import miner_path
+    from .model import LiveModel, ModelAccessRefused
+    from .phase2 import credential_file
+    from .pods import RunPodPods
+
+    with contextlib.ExitStack() as stack:
+        engy = stack.enter_context(
+            credential_file(path=args.credential_file, env=args.credential_env)
+        )
+        runpod = stack.enter_context(
+            secret_file(
+                path=args.runpod_key_file,
+                env=args.runpod_key_env,
+                names=("RUNPOD_API_KEY",),
+            )
+        )
+        if not runpod_key_status(runpod):
+            raise RunnerRefused("runpod_key_file_must_be_owner_only")
+        check_code_ref(args.code_ref)
+        try:
+            model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
+        except ModelAccessRefused as refused:
+            raise RunnerRefused(refused.code) from None
+        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+
+        def attach(*, session):
+            return miner_path.attach(
+                args.miner_profile, args.miner_campaign, session=session
+            )
+
+        provider = Phase3Provider(
+            root=root / "graphite",
+            grant=grant,
+            model=model,
+            pods=pods,
+            miner_attach=attach,
+        )
+        control = controller_for(root, provider, grant)
+        try:
+            budget = provider.budget
+            brief = session_brief(checkout_commit=args.code_ref, budget=budget)
+            _install_cancel(provider, provider.run_id_for(session_key(args.session)))
+            result = run_session(control, provider, brief, args.session)
+        finally:
+            control.close()
+    print(json.dumps(result, indent=1, default=str))
+    return 0 if result["provider_state"] == "succeeded" else 4
+
+
+def command_cancel(args):
+    root = _root(args.root)
+    run_id = GraphiteProvider.run_id_for(session_key(args.session))
+    state_path = root / "graphite" / "runs" / run_id / "state.json"
+    if not state_path.exists():
+        raise RunnerRefused("unknown_session")
+    state = json.loads(state_path.read_bytes())
+    if state["state"] in _TERMINAL:
+        print(json.dumps({"session": args.session, "state": state["state"]}))
+        return 0
+    state["cancel_requested"] = True
+    temporary = state_path.with_name("state.json.tmp")
+    temporary.write_bytes(canonical(state))
+    temporary.chmod(0o600)
+    os.replace(temporary, state_path)
+    print(json.dumps({"session": args.session, "state": "cancel_requested"}))
+    return 0
+
+
+def command_reconcile(args):
+    root = _root(args.root)
+    grant = load_grant(args.grant)
+    from .model import ScriptedModel
+    from .pods import RunPodPods
+
+    with secret_file(
+        path=args.runpod_key_file, env=args.runpod_key_env, names=("RUNPOD_API_KEY",)
+    ) as runpod:
+        pods = RunPodPods(root=root / "pods", key_file=runpod, code_ref=args.code_ref)
+        # Reconciliation makes no model call: a scripted model with no script.
+        provider = Phase3Provider(
+            root=root / "graphite", grant=grant, model=ScriptedModel([]), pods=pods
+        )
+        report = {}
+        for run in sorted((root / "graphite" / "runs").glob("graphite-*")):
+            if (run / "session-open.json").is_file():
+                report[run.name] = provider.experiment(run.name).reconcile()
+    print(json.dumps(report, indent=1))
+    live = any(
+        r.get("terminated") is not True for rows in report.values() for r in rows
+    )
+    return 4 if live else 0
+
+
+def command_status(args):
+    root = Path(args.root).expanduser().resolve()
+    out = {}
+    for run in sorted((root / "graphite" / "runs").glob("graphite-*")):
+        state = _read(run / "state.json")
+        ledger = ex.PodLedger(run / "experiment" / "pod-ledger.jsonl", time.time)
+        settled, pending = ledger.committed()
+        out[run.name] = {
+            "state": state,
+            "pods_settled_usd": str(settled),
+            "pods_pending_usd": str(pending),
+            "pods_live": [p["intent_id"] for p in ledger.live()],
+            "delivery": _read(run / "delivery.json"),
+            "escalation": _read(run / "escalation.json"),
+        }
+    print(json.dumps(out, indent=1))
+    return 0
+
+
+def command_rebuild(args):
+    result = deliver_.clean_rebuild(Path(args.bundle))
+    print(json.dumps(result, indent=1))
+    return 0 if result["status"] == "REBUILT" else 4
+
+
+# -- the dry run ---------------------------------------------------------------------------
+DRY_RUN_GRANT = {
+    "schema": "carbon.agent-campaign.spending-grant.v1",
+    "grant_id": "graphite-phase3-dry-run-synthetic",
+    "provider": "graphite",
+    "account": "dry-run-no-account",
+    "granted_by": "nobody-dry-run",
+    "expires_at": "2099-01-01T00:00:00Z",
+    "currency": "USD",
+    "monetary_ceiling": "15.00",
+    "cleanup_allowance": "0.25",
+    "worst_case_run_cost": "4.91",
+    "permitted_runs": 3,
+    "max_concurrency": 1,
+    "max_runtime_s": 39600,
+    "max_submissions": 3,
+}
+
+
+class DryRunMiner:
+    """Answers every miner tool with a fixed DRY RUN record; runs nothing."""
+
+    async def call(self, name, arguments, identity):
+        return {"status": "OK", "dry_run": True, "operation": name, "ran": False}
+
+
+def dry_run_script(baseline):
+    import copy
+
+    from .model import text, tool
+
+    better = copy.deepcopy(baseline)
+    better["parameters"]["width"] = 128
+    unrebuildable = {**baseline, "backbone": "transolver"}
+    prefix = "carbon_research_v2__"
+    return [
+        tool(prefix + "get_challenge_info", {}),
+        tool(
+            PROPOSE,
+            {
+                "strategy_json": json.dumps(unrebuildable),
+                "hypothesis": "an operator family outside the contract",
+                "expected_effect": "Carbon refuses it, typed",
+            },
+        ),
+        tool(
+            PROPOSE,
+            {
+                "strategy_json": json.dumps(better),
+                "hypothesis": "a wider MLP fits the trajectories better",
+                "expected_effect": "a lower frozen-rule score than the baseline",
+            },
+        ),
+        text("DRY RUN: the scripted Constructor stops here."),
+    ]
+
+
+def dry_run(root):
+    from carbon.battery.research import SCAFFOLD
+
+    from .model import ScriptedModel
+    from .pods import ScriptedPods, Step, synthetic_outputs
+
+    root = root / "dry-run"
+    if root.exists():
+        shutil.rmtree(root)
+    root.mkdir(mode=0o700)
+    grant = SpendingGrant.from_document(DRY_RUN_GRANT)
+    pods = ScriptedPods(
+        steps=[
+            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
+            Step(outputs=synthetic_outputs(0.4), charge="0.20"),
+            Step(outputs=synthetic_outputs(1.0), charge="0.20"),
+        ]
+    )
+    provider = Phase3Provider(
+        root=root / "graphite",
+        grant=grant,
+        model=ScriptedModel(dry_run_script(SCAFFOLD)),
+        pods=pods,
+        miner_tools=DryRunMiner(),
+        randomness=lambda n: b"\x00" * n,
+    )
+    control = controller_for(root, provider, grant)
+    try:
+        brief = session_brief(checkout_commit="0" * 40, budget=provider.budget)
+        result = run_session(control, provider, brief, 1)
+    finally:
+        control.close()
+    result["dry_run"] = {
+        "synthetic": True,
+        "note": "scripted model, scripted pods and SYNTHETIC predictions; "
+        "admission, scoring, comparison, bundle and clean rebuild are Carbon's own",
+        "pods_launched": len(pods.launched),
+        "pods_alive": sorted(pods.alive),
+    }
+    print(json.dumps(result, indent=1, default=str))
+    return 0 if result["provider_state"] == "succeeded" else 4
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(prog="graphite.phase3")
+    sub = parser.add_subparsers(dest="command", required=True)
+    run = sub.add_parser("run")
+    run.add_argument("--root", required=True)
+    run.add_argument("--dry-run", action="store_true")
+    run.add_argument("--grant")
+    credential = run.add_mutually_exclusive_group()
+    credential.add_argument("--credential-file")
+    credential.add_argument("--credential-env")
+    runpod = run.add_mutually_exclusive_group()
+    runpod.add_argument("--runpod-key-file")
+    runpod.add_argument("--runpod-key-env")
+    run.add_argument("--miner-profile")
+    run.add_argument("--miner-campaign")
+    run.add_argument("--code-ref")
+    run.add_argument("--session", type=int, default=1)
+    cancel = sub.add_parser("cancel")
+    cancel.add_argument("--root", required=True)
+    cancel.add_argument("--session", type=int, required=True)
+    reconcile = sub.add_parser("reconcile")
+    reconcile.add_argument("--root", required=True)
+    reconcile.add_argument("--grant", required=True)
+    key = reconcile.add_mutually_exclusive_group(required=True)
+    key.add_argument("--runpod-key-file")
+    key.add_argument("--runpod-key-env")
+    reconcile.add_argument("--code-ref", required=True)
+    status = sub.add_parser("status")
+    status.add_argument("--root", required=True)
+    rebuild = sub.add_parser("rebuild")
+    rebuild.add_argument("--bundle", required=True)
+    args = parser.parse_args(argv)
+    if args.command == "run" and not args.dry_run:
+        missing = [
+            name
+            for name, value in (
+                ("--grant", args.grant),
+                (
+                    "--credential-file or --credential-env",
+                    args.credential_file or args.credential_env,
+                ),
+                (
+                    "--runpod-key-file or --runpod-key-env",
+                    args.runpod_key_file or args.runpod_key_env,
+                ),
+                ("--code-ref", args.code_ref),
+            )
+            if not value
+        ]
+        if missing:
+            raise RunnerRefused("required: " + ", ".join(missing))
+    return {
+        "run": command_run,
+        "cancel": command_cancel,
+        "reconcile": command_reconcile,
+        "status": command_status,
+        "rebuild": command_rebuild,
+    }[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
