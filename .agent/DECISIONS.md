@@ -17399,3 +17399,37 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
 - Engineering evidence is not a security audit. The record is the owner's
   acceptance; tests only hold the gate.
 - Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — CI-BATTERY-L0-01: battery Track A starts at Level 0 with a registered harness; GRAPHITE phase 4 drives it
+
+**Authority.** The owner, in session on 2026-10-02: "Start the
+construction-integrity attack tests for battery as long as no one else has.
+Communicate with all lanes". Working decision under delegated engineering
+authority. The lanes were notified in #41 (owner), #42 (SciML/technical lead)
+and #504 (GRAPHITE-01).
+
+1. **Claim.** No PR, issue or branch had started battery Track A. All eight
+   Level 0 checks were `NOT_RUN`.
+2. **Split.**
+   - This ticket builds the instrument (`carbon/battery/track_a.py`). Each
+     family has registered attacks, a vulnerable specimen showing the
+     detector can fire, and a valid control measuring wrongful rejection.
+   - GRAPHITE-01 phase 4 drives agent-generated attempts through the same
+     detectors and ledger, rather than building its own.
+3. **Level 0 only.** Recipes are declarative. Executable-code families are
+   `NOT_RUN` for this profile, never passed. No level is opened to collect
+   data.
+4. **Nothing reserved is chosen.** These stay HUMAN_INPUT:
+   - the attack budget;
+   - the study population;
+   - reconstruction tolerances;
+   - threat-model approval;
+   - the Track A lock reviewer.
+
+   No family state is ever an acceptance. Track A stays `IN_PROGRESS` at
+   most, and #477 is untouched.
+5. **Findings are emitted, never suppressed.**
+   - The divergence detector's conditions on the retained EV2 results (12)
+     and EV4 results (42) are retained with the run.
+   - They escalate under §3.3, and should be entered in the readiness record
+     when the v3 wiring (#477) lands.

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T20:11:03Z"
+  captured_at_utc: "2026-10-02T20:11:32Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "c813f21b97449cee40820bf5895ce18bc51952e7"
+  authority_snapshot_commit: "3f64932084472afd6d1fa78e8542b76d46b1fb2f"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10735,19 +10735,6 @@ events:
     recorded_at: "2026-10-02T16:30:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "adjustment"
-    event_id: "BATTERY-CHALLENGE-KIT-01"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "Battery challenge kit (carbon/challenge_kit/battery.py, 2026-10-02) closes the battery generate gap (OWNER-RESEARCH-ENVIRONMENT-01). It is a command on the miner's own machine (OWNER-MINER-OWN-MACHINE-01 item 4). It draws uniformly over the published input box with the validator's own rule (seeds.draw_inputs), from the miner's own 32-byte seed roots in mock seeding only; a test shows its draws equal the validator's for the same bytes. It labels them with the pinned PyBaMM reference in the pinned truth image, through the validator's own no-network, read-only solve run, keeping typed reference failures, and writes the OK records in TRAIN v1's shape. Tests show it names no official seeding, private root, batch or journal, and is not shipped into the research sandbox. Generated data is self-reported research material, never a grading reference; submissions are still rebuilt on the pinned TRAIN version. Semantic decontamination (constitution 7.2) stays open with the MQ-008 holder. Live acceptance passed: on a Linux host with Docker, generate verified the overlay in the pinned truth image (pybamm 26.8.0.0, no network) and solved 2 cases OK."
-    primary_detail: "docs/development/RESEARCH_ENVIRONMENT_STANDARD.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: null
-    recorded_at: "2026-10-02T19:06:19Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
     event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
     owner_lane: "technical_lead"
@@ -10758,6 +10745,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 (2026-10-02) starts battery Track A (construction integrity, Challenge_Admission.md section 3) at Level 0. carbon/battery/track_a.py registers four families: recipe surface, recipe forgery, mandatory failure and rebuild identity. Each family has attacks against the real boundary, a vulnerable specimen showing the detector can fire, and a valid control. The first run held all 37 attacks, every specimen fired and all 4 controls passed. The existing divergence detector emitted 12 conditions on EV2 and 42 on EV4, retained and escalated, never suppressed. Worker isolation and resource accounting are reused evidence from the pinned C-03 service lane, mapped per check. Battery-specific worker attacks against the pinned image are the next slice, in CI. GRAPHITE-01 phase 4 drives agent-generated attempts through the same harness. Attack budget, study population, tolerances, threat-model approval and the lock reviewer stay HUMAN_INPUT. Not a security audit, acceptance or qualification."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:51:46Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
