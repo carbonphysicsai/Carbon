@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+  "event_type": "evidence",
+  "event_id": "CHALLENGE-PROTOCOL-03",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Phase 1 step 3 of the Challenge Roadmap is done: test suite v1 (DRAFT) registers Track A's eight attack vectors, each citing the existing checks that exercise it (77 tests by node id, grouped generic, battery and sandbox) and its known gaps, with the admission protocol's construction checks cross-referenced; draft severity rules for the technical owner; Track B's EV1, EV2, EV3 and baselines with what each requires; the metrics; and the exam rotation and sealed-pool registration. The suite is pinned by digest, and a runner reports each vector's coverage (PASS, FINDING_CANDIDATE or NOT_RUN, never graded) against that pin, the commit and the dependency groups. Battery's first run in the canonical environment with CI's full groups: all eight vectors PASS on their 70 non-container checks; container checks NOT_RUN by default; the listed gaps stay open and are step 4's work list. The disclosure budget, anchor set, sealed-pool size and reconstruction tolerance stay HUMAN_INPUT; the admitted backends stay an open owner question. Not security acceptance.",
+  "primary_detail": ".agent/tickets/CHALLENGE-PROTOCOL-03.md",
+  "affects": [
+    "SYSTEM/DEVELOPMENT-SEQUENCING",
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T18:00:00Z"
+}
