@@ -23,9 +23,14 @@ the fields in [Record](#record).
 - **A registered hotkey on subnet 567.** Register it in your own wallet;
   Wallet & Identity prepares the unsigned call.
 - **Your inference key** for Engy (Chat Completions) or Chutes.
-- **For a rented GPU,** a RunPod or Lium key on your own account, with a
-  balance. For Lium, scope the key to `read`, `rent` and `manage`, plus
-  `billing` if you want charges read, and give it a budget.
+- **For a rented GPU,** a RunPod, Lium or Targon key on your own account,
+  with a balance.
+  - For Lium, scope the key to `read`, `rent` and `manage`, plus `billing` if
+    you want charges read, and give it a budget.
+  - Targon rents a VM, which this machine reaches over SSH, so it needs an
+    OpenSSH client here. It also needs a Targon VM image with Docker and the
+    NVIDIA Container Toolkit; the GPU type is Targon's VM type, such as
+    `h100-small`.
 - **The validator.** Either it runs on this machine (`battery_validator` in
   the profile), or it runs elsewhere and you have its intake URL.
   - **Today the intake binds loopback only.** It needs the owner's exposure
@@ -56,7 +61,7 @@ the fields in [Record](#record).
    - this machine's GPU (setup installs the host device record or names the
      `prepare` command);
    - a GPU rented on your account (provider, key, pushed image, GPU type,
-     ceilings).
+     ceilings; for Targon, also the VM image).
 
    Record the check: the device, or the balance and offer price.
 6. **Agent.** Choose Carbon's autonomous agent or Hermes.
@@ -76,13 +81,15 @@ the fields in [Record](#record).
    Record two practices.
 10. **Freeze and submit.** Record the submission and its verdict. When the
     validator runs elsewhere, also record the intake URL and the submission id.
-11. **Verify teardown.** Each rented trial terminates its own pod. In your
-    provider's console, confirm none remains. Run
+11. **Verify teardown.** Each rented trial terminates its own pod or VM. In
+    your provider's console, confirm none remains. For Targon, also confirm
+    no `carbon-…` SSH key remains. Run
     `python -m carbon.compute reconcile` (RunPod) to adopt and terminate any
     orphan. Record the list's state.
 12. **Reconcile cost.** For each rented resource, compare the provider's own
     charge (or its console statement) with the hourly rate times the time it
-    ran. Record any difference; never replace a missing charge with an
+    ran. Targon reports no per-VM charge, so its console statement is the
+    only record. Record any difference; never replace a missing charge with an
     estimate.
 
 ## Record

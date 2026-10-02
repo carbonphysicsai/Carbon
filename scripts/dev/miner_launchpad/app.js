@@ -521,6 +521,15 @@
     const rentedStorage = setupField(rentedBox, "storage_usd_per_gb_month", "Storage price ceiling (USD per GB-month)", "number");
     const rentedCloud = setupSelect(rentedBox, "cloud_type", "Cloud", [["SECURE", "Secure"], ["COMMUNITY", "Community"]]);
     rentedRate.step = rentedStorage.step = "0.01";
+    // A VM provider (Targon, C-MLP-03 slice 4b) boots a VM image you name and
+    // runs your pushed worker in it with Docker, reached over SSH.
+    const vmBox = el("div"); vmBox.dataset.step = "compute"; rentedBox.append(vmBox);
+    const rentedVm = setupField(vmBox, "vm_image", "VM image (needs Docker and the NVIDIA Container Toolkit)");
+    researchNote(vmBox, "The GPU type is the provider's VM type, such as h100-small. Each trial rents one VM, signs in with a key made for it, runs your worker over SSH and deletes the VM. The provider reports no per-VM charge, so its console statement is the record.", "hint");
+    const isVm = () => (rentedChoice?.providers || []).some(p => p.id === rentedProvider.value && p.vm);
+    const describeVm = () => { vmBox.hidden = !isVm(); };
+    rentedProvider.addEventListener("change", describeVm);
+    describeVm();
     const describeCompute = () => {
       const choice = offered.compute.find(c => c.id === computeChoice.value);
       computeCost.replaceChildren();
@@ -546,6 +555,7 @@
           storage_usd_per_gb_month: Number(rentedStorage.value),
           cloud_type: rentedCloud.value,
         };
+        if (isVm()) request.rented.vm_image = rentedVm.value.trim();
         if (rentedKey.value) request.key = rentedKey.value;
         rentedKey.value = "";
       }

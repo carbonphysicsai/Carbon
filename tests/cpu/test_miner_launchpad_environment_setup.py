@@ -171,7 +171,12 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
         "rented-gpu",
     ]
     rented = offered["compute"][2]
-    assert {p["id"] for p in rented["providers"]} == {"runpod", "lium"}
+    # Slice 4b: Targon, a VM reached over SSH, names a VM image.
+    assert {p["id"]: p["vm"] for p in rented["providers"]} == {
+        "runpod": False,
+        "lium": False,
+        "targon": True,
+    }
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
     # Slice 5: Hermes beside Carbon's own agent.

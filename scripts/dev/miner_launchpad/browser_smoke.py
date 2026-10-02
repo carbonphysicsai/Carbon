@@ -1461,7 +1461,18 @@ def setup_journey():
                     session,
                     "!document.getElementById('setup-compute-image_ref').parentElement.hidden"
                     " && [...document.getElementById('setup-compute-provider').options]"
-                    ".map(o => o.value).join() === 'lium,runpod'",
+                    ".map(o => o.value).join() === 'lium,runpod,targon'"
+                    " && document.getElementById('setup-compute-vm_image').parentElement.hidden",
+                )
+                # Targon is a VM over SSH (slice 4b): it asks for a VM image.
+                session.evaluate(
+                    "document.getElementById('setup-compute-provider').value = 'targon';"
+                    "document.getElementById('setup-compute-provider').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-vm_image').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('over SSH')",
                 )
                 session.evaluate(
                     "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
