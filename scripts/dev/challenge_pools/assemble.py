@@ -14,8 +14,9 @@ any outcome.
 - **A case with no record is reported missing, and the pool is not silently
   shortened.** The tool fails unless --allow-missing is given.
 
-Each assembled record carries `assembled_from`, the source it came from. The
-summary prints counts per outcome and per source.
+Each assembled record carries `assembled_from`, the source it came from,
+relative to the sources' common directory: a pool is committed, and a host
+path never is. The summary prints counts per outcome and per source.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from pathlib import Path
 
@@ -45,7 +47,9 @@ def assemble(plan, first, sources):
     """(records in plan order, missing case ids, summary)."""
     wanted = [c["case_id"] for c in plan["cases"][:first]]
     chosen = {}
+    base = os.path.commonpath([str(Path(s).resolve().parent) for s in sources])
     for source in sources:
+        label = os.path.relpath(Path(source).resolve(), base)
         for line in Path(source).read_text().splitlines():
             if not line.strip():
                 continue
@@ -53,7 +57,7 @@ def assemble(plan, first, sources):
             case_id = record["case_id"]
             if case_id not in wanted:
                 continue
-            record = {**record, "assembled_from": str(source)}
+            record = {**record, "assembled_from": label}
             held = chosen.get(case_id)
             if held is None or (held["status"] != "OK" and record["status"] == "OK"):
                 chosen[case_id] = record

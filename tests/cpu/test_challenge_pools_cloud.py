@@ -139,8 +139,18 @@ def test_a_pool_is_assembled_in_plan_order_preferring_ok_records(tmp_path):
     records, missing, summary = assemble.assemble(plan, 3, [local, pod])
     assert [r["case_id"] for r in records] == ["train-0000", "train-0001", "train-0002"]
     assert missing == [] and summary["outcomes"] == {"OK": 3}
-    assert records[1]["assembled_from"] == str(local)
-    assert records[2]["assembled_from"] == str(pod)  # OK replaces the timeout
+    # Sources are named relative to their common directory, never by host path.
+    assert records[1]["assembled_from"] == "local.jsonl"
+    assert records[2]["assembled_from"] == "pod.jsonl"  # OK replaces the timeout
+    nested = tmp_path / "run" / "out"
+    nested.mkdir(parents=True)
+    moved = _write(
+        nested / "records.jsonl",
+        [{"case_id": "train-0003", "status": "OK", "outputs": {}}],
+    )
+    records, _, summary = assemble.assemble(plan, 4, [local, moved])
+    assert records[-1]["assembled_from"] == "run/out/records.jsonl"
+    assert not any(str(tmp_path) in key for key in summary["sources"])
     _, missing, _ = assemble.assemble(plan, 4, [local, pod])
     assert missing == ["train-0003"]
 
