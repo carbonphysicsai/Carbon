@@ -83,13 +83,12 @@ about USD 0.73 expected. Derivation: `docs/development/graphite/grants/README.md
 
 | Slice | Code | Tests |
 | --- | --- | --- |
-| 1 Records, grant, stage | ; ;  | ,  |
-| 2 Live-session repairs | ; per-role call caps; run-namespaced identities; trial cap; model view with the full result kept |  |
-| 3 Miner path | ;  | : a scripted session practices and selects on battery's real path |
-| 4 Carbon-side scoring | : contract check, compile, rebuild, clean rebuild, development score, incumbent comparison |  |
-| 5 Runner | : , , Code coverage for Python, version 7.3.1 with C extension.  Use 'coverage help' for help.
-Full documentation is at https://coverage.readthedocs.io/en/7.3.1; dry run |  |
-| 6 Attacker v1 | : brief, attempts, re-verification, findings, coverage |  |
+| 1 Records, grant, stage | `graphite/stage.py`; `GraphiteProvider(stage_profile=...)`; `GRAPHITE-GRANT-STEP4.json` | `test_graphite_stage.py`, `test_graphite_step4_grant.py` |
+| 2 Live-session repairs | `run_async`; per-role call caps; run-namespaced identities; trial cap; model view with the full result kept | `test_graphite_live.py` |
+| 3 Miner path | `graphite/miner_path.py`; `ResearchToolAdapter.in_process_sdk` | `tests/service/test_graphite_battery_path.py`: a scripted session practices and selects on battery's real path |
+| 4 Carbon-side scoring | `graphite/score.py`: contract check, compile, rebuild, clean rebuild, development score, incumbent comparison | `test_graphite_score.py` |
+| 5 Runner | `graphite/phase3.py`: `session`, `log` and `coverage` commands; dry run | `test_graphite_phase3_runner.py` |
+| 6 Attacker v1 | `graphite/attack.py`: brief, attempts, re-verification, findings, coverage | `test_graphite_attack.py` |
 
 **Dry runs, no spend.**
 - **Constructor.** A scripted KNN selection was rebuilt identically and
