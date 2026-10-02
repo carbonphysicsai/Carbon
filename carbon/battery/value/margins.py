@@ -137,6 +137,39 @@ def verified_predictions(directory, manifest):
     return out
 
 
+def content_verified_predictions(directory, results, contract, repository="."):
+    """Every member's predictions, each checked by content: its recomputed
+    exam components (E, E_important, decision score, eligibility) must equal
+    the components the result recorded, exactly. For regenerated files whose
+    bytes differ only in wall-clock fields, so their byte digests cannot
+    match (OWNER-EV4-REGEN-01)."""
+    store, case_ids, _ = sc.scoring_set(repository)
+    out = {}
+    for path in sorted(Path(directory).glob("*.json.gz")):
+        document = sc.load_predictions(path)
+        member = document["member"]
+        got = sc.components(document["predictions"], case_ids, store, contract)
+        want = results["components"][member]
+        same = (
+            got["eligible"] == want["eligible"]
+            and got["E"] == want["E"]
+            and got["E_important"] == want["E_important"]
+            and (got.get("decision") or {}).get("score")
+            == (want.get("decision") or {}).get("score")
+        )
+        if not same:
+            raise ValueError("regenerated predictions differ in content: " + member)
+        out[member] = document["predictions"]
+    expected = {
+        m
+        for m, row in results["summary"]["members"].items()
+        if row["kind"] != "SYNTHETIC_CONTROL"
+    }
+    if set(out) != expected:
+        raise ValueError("regenerated predictions do not cover the panel")
+    return out
+
+
 def with_margins(results, contract, predictions, repository="."):
     """A copy of `results` whose components carry `m`, and every SR-2
     profile in `rule_scores`."""
@@ -237,13 +270,19 @@ def outcome(rows, chosen, h1, band):
     ), checks
 
 
-def run(predictions_dir, root=".", *, dataset=None, contract_path=None):
+def run(predictions_dir, root=".", *, dataset=None, contract_path=None, verify="bytes"):
     root = Path(root)
     dataset = dataset or PRIMARY
     evidence = root / "docs/development/evidence" / dataset
     results_path = evidence / "results.json"
     contract = json.loads((root / (contract_path or PRIMARY_CONTRACT)).read_text())
-    predictions = verified_predictions(predictions_dir, evidence / "predictions.sha256")
+    predictions = (
+        verified_predictions(predictions_dir, evidence / "predictions.sha256")
+        if verify == "bytes"
+        else content_verified_predictions(
+            predictions_dir, json.loads(results_path.read_text()), contract, root
+        )
+    )
     results = with_margins(
         json.loads(results_path.read_text()), contract, predictions, root
     )
@@ -274,6 +313,7 @@ def run(predictions_dir, root=".", *, dataset=None, contract_path=None):
         "outcome": decision,
         "outcome_checks": checks,
         "dataset": dataset,
+        "prediction_verification": verify,
         "ev2" if dataset == "ev2-2026-10-01" else "rows": rows,
         "ev4_replication": (
             "NOT_RUN: predictions not retained; regenerate and verify first"
@@ -294,9 +334,14 @@ def main(argv=None):
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--dataset", help="evidence directory name (default EV2)")
     parser.add_argument("--contract", help="decision contract path (default EV2's)")
+    parser.add_argument("--verify", choices=("bytes", "content"), default="bytes")
     args = parser.parse_args(argv)
     report = run(
-        args.predictions, ".", dataset=args.dataset, contract_path=args.contract
+        args.predictions,
+        ".",
+        dataset=args.dataset,
+        contract_path=args.contract,
+        verify=args.verify,
     )
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(report, sort_keys=True, indent=1))

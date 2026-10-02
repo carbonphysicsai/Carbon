@@ -126,7 +126,7 @@ def choose(rows):
     return chosen, admissible
 
 
-def run(predictions_dir, root=".", *, dataset=None, contract_path=None):
+def run(predictions_dir, root=".", *, dataset=None, contract_path=None, verify="bytes"):
     root = Path(root)
     dataset = dataset or margins.PRIMARY
     evidence = root / "docs/development/evidence" / dataset
@@ -134,8 +134,12 @@ def run(predictions_dir, root=".", *, dataset=None, contract_path=None):
     contract = json.loads(
         (root / (contract_path or margins.PRIMARY_CONTRACT)).read_text()
     )
-    predictions = margins.verified_predictions(
-        predictions_dir, evidence / "predictions.sha256"
+    predictions = (
+        margins.verified_predictions(predictions_dir, evidence / "predictions.sha256")
+        if verify == "bytes"
+        else margins.content_verified_predictions(
+            predictions_dir, json.loads(results_path.read_text()), contract, root
+        )
     )
     results, n_near, n_all = with_near(
         json.loads(results_path.read_text()), contract, predictions, root
@@ -176,6 +180,7 @@ def run(predictions_dir, root=".", *, dataset=None, contract_path=None):
         "outcome": decision,
         "outcome_checks": checks,
         "dataset": dataset,
+        "prediction_verification": verify,
         "ev2" if dataset == "ev2-2026-10-01" else "rows": rows,
         "ev4_replication": (
             "NOT_RUN: predictions not retained; regenerate and verify first"
@@ -196,9 +201,14 @@ def main(argv=None):
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--dataset", help="evidence directory name (default EV2)")
     parser.add_argument("--contract", help="decision contract path (default EV2's)")
+    parser.add_argument("--verify", choices=("bytes", "content"), default="bytes")
     args = parser.parse_args(argv)
     report = run(
-        args.predictions, ".", dataset=args.dataset, contract_path=args.contract
+        args.predictions,
+        ".",
+        dataset=args.dataset,
+        contract_path=args.contract,
+        verify=args.verify,
     )
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(report, sort_keys=True, indent=1))
