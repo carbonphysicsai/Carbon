@@ -12,8 +12,8 @@ in the campaign root) the moment the intake answers, and a later attempt for
 the same epoch only asks for its status. Nothing here scores, holds a key or
 reaches the chain: the signer signs, the validator evaluates.
 
-Exposure is not this module's: the intake binds loopback until the owner's
-security review records its exposure (`OWNER-…INTAKE-EXPOSURE-NN`).
+Exposure is not this module's: an operator exposes the intake under the
+owner's record (OWNER-INTAKE-EXPOSURE-01), over TLS.
 """
 
 from __future__ import annotations
