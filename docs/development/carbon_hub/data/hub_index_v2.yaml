@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T02:01:48Z"
+  captured_at_utc: "2026-10-01T22:41:55Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "6f09f9d7fe38d5788d3d8225c8b8fe2c80464ad4"
+  authority_snapshot_commit: "3b04cf1aefa838ef905971cd20b88524101e4921"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10497,6 +10497,18 @@ events:
     recorded_at: "2026-10-01T19:32:51Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "MIRA-ADMISSION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Provider-independent supervision of an external research agent (first: Autoscience Mira) for internal admission testing under OWNER-CHALLENGE-ADMISSION-01 as amended; internal development only, never mainnet, not a qualification gate. A durable campaign controller persists intent and reserves worst-case spend before dispatch, reconciles ambiguous dispatch instead of retrying, enforces owner-supplied grant and per-campaign ceilings and limits outside the agent, halts on unknown state or usage, verifies cancellation, records findings that stop expansion, and keeps a hash-chained attempt ledger; tested against a fake provider with crash recovery and mutation checks. Separate roles, workspaces and credentials with an allowlisted research checkout and canaries. A versioned design-search commitment layer serves a separate development experiment and refuses EV4 material. The Mira adapter refuses every call because its integration contract is unverified (capability report and owner inquiry), so live Mira execution is BLOCKED; the Level-0 study sheet is prepared, not frozen or executed; no campaign has run and no evidence is accepted."
+    primary_detail: ".agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-01T20:41:29Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "decision"
     event_id: "BATTERY-EV4-01"
     owner_lane: "technical_lead"
@@ -10533,19 +10545,6 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T00:30:00Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "adjustment"
-    event_id: "C-MLP-03-SLICE-2-INFERENCE"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "C-MLP-03 slice 2: inference in setup. The model provider layer adds a Chutes adapter (subnet 64, Chat Completions, the miner's bearer key). Its per-token prices are read from Chutes' public model list and recorded with that list and the UTC time read. A model Chutes does not price is refused at setup, and spend settles on metered usage at the published price, because a Chutes charge report is unverified. Setup now offers every adapter, with Engy's Chat Completions route as the default. Chutes and the OpenAI-compatible adapters take a typed model id. The OpenAI-compatible adapters launch only as the setup's own choice, with the miner's endpoint and optional declared price in the profile, so no launch request can name a new URL. Chutes leaves the unavailable list, and battery's research-environment model provision is Provided. Live completions with miner-held Chutes and Engy keys remain the slice's acceptance. Engineering evidence only; nothing is qualified, and no chain write is made."
-    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: null
-    recorded_at: "2026-10-02T00:38:15Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
