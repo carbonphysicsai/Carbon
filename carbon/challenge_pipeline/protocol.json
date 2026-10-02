@@ -9,7 +9,13 @@
  "state": "DEFINING",
  "version": null,
  "suite_version": null,
- "reference_hardware": null,
+ "reference_hardware": "runpod-cpu5c-16vcpu",
+ "reference_hardware_spec": "RunPod CPU pod, flavor cpu5c with no fallback, 16 vCPU, the challenge's pinned image; each timing study records the CPU model it ran on",
+ "reference_hardware_approval": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-02"
+ },
  "lock": null,
  "phase_1": [
   {

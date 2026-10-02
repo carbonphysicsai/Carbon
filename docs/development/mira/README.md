@@ -6,6 +6,12 @@ internal admission testing" (2026-10-01), under OWNER-CHALLENGE-ADMISSION-01 as
 amended. This is internal development: not mainnet, not a qualification gate,
 and not permission to deploy.
 
+**Paused (2026-10-02).** The owner stopped the Mira/Autoscience work for now
+(OWNER-GRAPHITE-02: "No stop this work for now", clarified as "stop Mira
+only"). Nothing below is being pursued: no inquiry is sent and no grant field
+is filled. The code stays as built, and the Mira adapter keeps refusing every
+call. Carbon's own agent, Graphite (GRAPHITE-01), continues.
+
 **State.** Code built and tested against a fake provider. No integration with
 Mira has been demonstrated, no campaign has run, and no evidence has been
 accepted. Live Mira execution is **BLOCKED** (see Blockers).

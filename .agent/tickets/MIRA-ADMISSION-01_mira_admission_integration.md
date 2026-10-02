@@ -15,6 +15,9 @@ EV4, its contract, panel or optimizer. No score, rule, permission or
 qualification change.
 **Status:** implementation; bounded engineering completion conditional on
 required CI and normal merge under OWNER-DX-03.
+**Paused by the owner, 2026-10-02** (OWNER-GRAPHITE-02: "stop Mira only").
+No further Mira work, vendor contact or grant completion until the owner
+resumes it. No code changed: the adapter keeps refusing every call.
 
 ## Definition of done
 

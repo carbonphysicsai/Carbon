@@ -12,7 +12,8 @@ copy is the versioned one. Each file is validated against the roadmap's rules
 - **Results come from the frozen run.** Track A and B results need the frozen
   evidence record they came from.
 - **Solve time is measured on the reference hardware.** A measured p50 needs
-  the protocol's reference hardware and the timing evidence.
+  the protocol's reference hardware, which the technical owner approves, and
+  the timing evidence.
 - **The rubric is unset until it is approved.** Thresholds need the process
   owner's approval; the open critical and high limits start at the roadmap's
   zero.
@@ -107,6 +108,17 @@ def validate_protocol(protocol):
     if protocol["state"] not in ("DEFINING", "LOCKED"):
         raise PipelineError("protocol: state is DEFINING or LOCKED")
     locked = protocol["state"] == "LOCKED"
+    # The technical owner alone approves the reference timing hardware
+    # (OWNER-CHALLENGE-ROADMAP-02); it is not a lock item.
+    if protocol.get("reference_hardware"):
+        _sign_off(
+            protocol.get("reference_hardware_approval"),
+            "technical",
+            owners,
+            "reference hardware",
+        )
+    elif protocol.get("reference_hardware_approval") is not None:
+        raise PipelineError("protocol: an approval needs the hardware it approves")
     if locked:
         _sign_off(protocol["lock"], "process", owners, "protocol lock")
         for key in ("version", "suite_version", "reference_hardware"):

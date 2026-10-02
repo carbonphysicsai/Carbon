@@ -255,6 +255,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.chain.external_signer import miner_signer
     from carbon.chain.models import CARBON_NETUID
     from carbon.development_session.data import write_once
+    from carbon.development_session.miner_network import binding_for
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
@@ -271,7 +272,6 @@ async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.development_session.research_report import report
     from carbon.development_session.research_tools import ResearchMinerTools
     from carbon.development_session.service import LocalMinerConnection
-    from carbon.development_testnet.operator import load_config
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 
     root = args.root
@@ -331,7 +331,9 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the battery runtime")
-    config = load_config(args.operator_config)
+    # The operator configuration where an operator runs one, otherwise the
+    # miner's own network file (C-MLP-04): the chain context and publisher.
+    config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")
@@ -536,7 +538,16 @@ def host_rented_runner(root, manifest, credential):
     miner = manifest["admission"]["hotkey"]
     return RentedRunner(
         compute=compute,
-        service=ComputeService(store, provider_adapter(compute.provider, credential)),
+        service=ComputeService(
+            store,
+            provider_adapter(
+                compute.provider,
+                credential,
+                # A VM provider's per-VM SSH keys stay in the campaign root.
+                state_dir=root / "compute" / "vm-keys",
+                vm_image=compute.vm_image,
+            ),
+        ),
         tenant=miner,
         miner=miner,
         campaign_id=campaign_id,
@@ -636,8 +647,21 @@ def is_battery(manifest):
 
 
 def evaluation_config(prepared):
-    """The operator's validator deployment for this campaign, or None."""
-    return getattr(prepared.args, "battery_validator", None)
+    """The operator's validator deployment for this campaign, or None.
+
+    Read from the profile's per-Challenge `validators` (C-MLP-04), or from a
+    profile's legacy `battery_validator` path, interpreted as before."""
+    found = (getattr(prepared.args, "validators", None) or {}).get(
+        CHALLENGE.challenge_id
+    )
+    return found or getattr(prepared.args, "battery_validator", None)
+
+
+def _intake(prepared):
+    """The validator intake for this Challenge: the profile's per-Challenge
+    `intakes` (C-MLP-04), or a legacy `battery_intake`."""
+    found = (getattr(prepared.args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
+    return found or getattr(prepared.args, "battery_intake", None)
 
 
 async def evaluate_candidate(prepared, epoch, record):
@@ -662,7 +686,7 @@ async def evaluate_candidate(prepared, epoch, record):
     from .deployment import EvaluationUnavailable, evaluate, validator
 
     config = evaluation_config(prepared)
-    intake = getattr(prepared.args, "battery_intake", None)
+    intake = _intake(prepared)
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).

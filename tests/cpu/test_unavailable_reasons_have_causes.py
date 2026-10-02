@@ -66,14 +66,16 @@ def test_runpod_and_lium_launch_from_setup_and_left_the_list():
     assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) != []
 
 
-def test_targon_runs_no_container_image():
-    assert _reason("targon") == "provider_runs_no_container_image"
-    from carbon.compute.providers import PROVIDERS
+def test_targon_launches_from_setup_as_a_vm_and_left_the_list():
+    # C-MLP-03 slice 4b (OWNER-C-MLP-03-ANSWERS-01): Targon runs no container
+    # image, so its adapter rents a VM and runs the pinned worker in it over
+    # SSH. The unavailable entry that said so is gone, and so is its cause.
+    from carbon.compute.providers import PROVIDERS, VM_PROVIDERS
 
     names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
-    assert "lium" in names  # specimen: an adapter that does exist
-    assert not any("targon" in name for name in names)
-    assert "targon" not in PROVIDERS
+    assert {"lium", "targon"} <= names
+    assert "targon" in PROVIDERS and "targon" in VM_PROVIDERS
+    assert "targon" not in {item["id"] for item in controller.INTEGRATIONS}
 
 
 def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
@@ -83,7 +85,7 @@ def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
     assert model_provider.ADAPTERS["chutes"].live_pricing is True
     assert "chutes" not in {item["id"] for item in controller.INTEGRATIONS}
     # Specimen: the same search finds an entry that is still there.
-    assert "targon" in {item["id"] for item in controller.INTEGRATIONS}
+    assert "mira" in {item["id"] for item in controller.INTEGRATIONS}
 
 
 def test_hermes_is_configured_in_setup_and_left_the_list():
