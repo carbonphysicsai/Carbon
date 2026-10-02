@@ -35,6 +35,11 @@ Only launchable choices are offered.
   (OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU choice of slices 4 and
   4b is refused by name, and Carbon's stored copy of its provider key is
   deleted the next time compute is set up.
+- Compute also offers the miner's own remote machine or container, any
+  setup they run (the decision's amendment, LINKONLY-D5 to D9). Setup
+  reaches it with the miner's own SSH, checks what practice needs there and
+  starts nothing; for a machine with Docker, sending the pinned worker is its
+  own step, with consent to the destination and the image.
 - Agent (slice 5) offers Carbon's autonomous agent or Hermes.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
@@ -68,6 +73,13 @@ LOCAL_CPU = "this-machine-cpu"
 #: slice 3). Research and practice run there; the validator rebuilds on its
 #: own pinned backend and resources.
 LOCAL_GPU = "this-machine-gpu"
+#: The miner's own remote machine or container, reached over their own SSH,
+#: for practice speed only (OWNER-MINER-COMPUTE-LINK-ONLY-01, amended
+#: 2026-10-02: any setup the miner runs). Carbon never starts, stops or
+#: bills it.
+REMOTE = "remote-machine"
+#: The wiring guide setup names for it.
+REMOTE_GUIDE = "docs/development/MINER_REMOTE_SETUP.md"
 #: The retired choice of a GPU rented with the miner's provider key (C-MLP-03
 #: slices 4 and 4b), refused by name (OWNER-MINER-COMPUTE-LINK-ONLY-01).
 RETIRED_RENTED_GPU = retired.RENTED_CHOICE
@@ -373,6 +385,33 @@ def choices() -> dict:
                 ),
                 "note": SPEED_ONLY_NOTE,
             },
+            {
+                "id": REMOTE,
+                "display_name": "Your own remote machine or container",
+                "default": False,
+                "needs_gpu_image": True,
+                "needs_remote": True,
+                # Remote practice is set up for one Challenge whose campaign
+                # offers it (Challenge-neutral, LINKONLY-D9).
+                "for_challenges": remote_challenges(),
+                "transports": remote_transports(),
+                "cost_basis": (
+                    "A machine or container you run on your own account: you "
+                    "start, stop and pay for it. Carbon never starts, stops or "
+                    "bills it, and asks for no provider key."
+                ),
+                "live_check": (
+                    "Everything the CPU check does, then reaches your setup "
+                    "with your own SSH (your agent, config and known hosts) "
+                    "and checks what practice needs there: Docker, the NVIDIA "
+                    "Container Toolkit, Docker without sudo and your GPU "
+                    "worker by image ID on a machine; the pinned worker and "
+                    "its build identity in a container. It starts nothing and "
+                    "installs nothing."
+                ),
+                "note": SPEED_ONLY_NOTE,
+                "guide": REMOTE_GUIDE,
+            },
         ],
         "agent": [
             {
@@ -423,10 +462,19 @@ class LiveChecks:
     """
 
     def __init__(
-        self, *, opener=None, repo: Path = REPO, host_root=None, hermes_home=None
+        self,
+        *,
+        opener=None,
+        repo: Path = REPO,
+        host_root=None,
+        hermes_home=None,
+        ssh=None,
     ):
         self.opener = opener
         self.repo = repo
+        # The miner's own ssh client (`remote_machine.SSHClient` unless a test
+        # names a double): it reaches their remote setup and nothing else.
+        self.ssh = ssh
         # Where Hermes keeps its profiles (`HERMES_HOME` or ~/.hermes).
         self.hermes_home = hermes_home
         # Where the host device record lives (`HOST_ROOT` unless a test names
@@ -708,6 +756,71 @@ class LiveChecks:
             "record_digest": record.digest,
         }
 
+    def _remote(self, gpu_manifest: Path, machine):
+        """The pinned GPU worker and the transport to the miner's setup."""
+        from carbon.compute.remote_transport import transport_for
+        from carbon.development_session.gpu_practice import is_gpu_image
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+        try:
+            image = load_image_identity(gpu_manifest)
+        except Exception:  # noqa: BLE001 - never echo a local path or error.
+            image = None
+        if not is_gpu_image(image):
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_image_unverified",
+                next_step=BUILD_STEPS["gpu_image_manifest"],
+            )
+        options = {} if self.ssh is None else {"ssh": self.ssh}
+        return image, transport_for(machine, **options)
+
+    @staticmethod
+    def _remote_refused(refused):
+        return SetupRefused(
+            REMOTE_FIELDS.get(refused.code, "remote"),
+            refused.code,
+            next_step=refused.next_step,
+        )
+
+    def remote(self, gpu_manifest: Path, machine, campaign) -> dict:
+        """Reach the miner's remote setup with their own SSH and check what
+        practice needs there. Starts nothing, installs nothing, costs
+        nothing (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+        from carbon.compute.remote_machine import RemoteMachineError
+        from carbon.compute.remote_route import remote_scope
+
+        image, transport = self._remote(gpu_manifest, machine)
+        try:
+            check = transport.check(image)
+        except RemoteMachineError as refused:
+            raise self._remote_refused(refused) from None
+        return {
+            # The chosen Challenge's own GPU practice scope, and remote
+            # practice beside it over the miner's transport.
+            "scope": campaign.gpu_scope(image),
+            "remote_scope": remote_scope(
+                campaign.key.challenge_id, image, machine.transport
+            ),
+            "check": check,
+        }
+
+    def send_worker(self, gpu_manifest: Path, machine, image_id: str) -> str:
+        """Stream the pinned GPU worker `image_id` to the miner's machine with
+        Docker, and check it arrived by image ID: "present" or "sent"."""
+        from carbon.compute.remote_machine import RemoteMachineError
+
+        image, transport = self._remote(gpu_manifest, machine)
+        if image.image_id != image_id:
+            # Rebuilt since the check: the miner agreed to send another image.
+            raise SetupRefused(
+                "gpu_image_manifest", "gpu_image_changed_since_the_check"
+            )
+        try:
+            return transport.send(image)
+        except RemoteMachineError as refused:
+            raise self._remote_refused(refused) from None
+
     def hermes_files(self) -> list[str]:
         """The exact files a Hermes choice writes, for the miner's consent."""
         from scripts.dev.miner_launchpad.hermes_setup import (
@@ -824,6 +937,100 @@ def gpu_challenges() -> list[dict]:
     ]
 
 
+def remote_challenges() -> list[dict]:
+    """The implemented Challenges whose campaigns offer GPU practice on the
+    miner's own remote setup."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+    from carbon.challenge_registry.registry import GPU_RESEARCH
+
+    return [
+        {"id": entry.challenge_id, "version": entry.version, "title": entry.title}
+        for entry, campaign in implemented_campaigns()
+        if GPU_RESEARCH in {p.name for p in entry.profiles}
+        and campaign.gpu_scope is not None
+        and campaign.remote_worker is not None
+    ]
+
+
+def remote_transports() -> list[dict]:
+    """How Carbon can reach the miner's remote setup: the two built
+    transports, and the endpoint transport with why it is not built."""
+    from carbon.compute.remote_transport import (
+        ENDPOINT,
+        ENDPOINT_NEXT_STEP,
+        ENDPOINT_NOT_BUILT,
+        SSH_CONTAINER,
+        SSH_DOCKER,
+    )
+
+    return [
+        {
+            "id": SSH_DOCKER,
+            "available": True,
+            "display_name": "A machine with Docker, over SSH",
+            "summary": (
+                "Docker and the NVIDIA Container Toolkit, and your SSH user "
+                "runs docker without sudo. Each practice trial runs one job "
+                "container from your GPU worker, by image ID, then removes it."
+            ),
+            "send_worker": True,
+        },
+        {
+            "id": SSH_CONTAINER,
+            "available": True,
+            "display_name": "A container from the pinned worker, over SSH",
+            "summary": (
+                "A container you started from the pinned GPU worker image "
+                "(push it with scripts/dev/push_worker_image.sh), with SSH "
+                "into it and no Docker inside. Each practice trial runs one "
+                "job process there after checking the worker's build "
+                "identity, then stops it."
+            ),
+            "send_worker": False,
+        },
+        {
+            "id": ENDPOINT,
+            "available": False,
+            "display_name": "A job endpoint you expose",
+            "reason": ENDPOINT_NOT_BUILT,
+            "next_step": ENDPOINT_NEXT_STEP,
+        },
+    ]
+
+
+def _remote_machine(value):
+    """The miner's remote setup from a setup request, or a refusal naming
+    the field."""
+    from carbon.compute.remote_machine import RemoteMachineError, checked_destination
+    from carbon.compute.remote_transport import BUILT, RemoteMachine
+
+    if type(value) is not dict:
+        raise SetupRefused("remote", "closed_setup_request_required")
+    _closed(value, {"transport", "destination"}, {"port"})
+    try:
+        return RemoteMachine.from_document(value)
+    except RemoteMachineError as refused:
+        raise SetupRefused(
+            "transport", refused.code, next_step=refused.next_step
+        ) from None
+    except ValueError:
+        if value["transport"] not in BUILT:
+            raise SetupRefused("transport", "remote_transport_not_offered") from None
+        try:
+            checked_destination(value["destination"])
+        except ValueError:
+            raise SetupRefused("destination", "ssh_destination_invalid") from None
+        raise SetupRefused("port", "ssh_port_invalid") from None
+
+
+#: Which field a refusal from the miner's remote setup is about.
+REMOTE_FIELDS = {
+    "ssh_unreachable": "destination",
+    "ssh_timed_out": "destination",
+    "worker_identity_mismatch": "gpu_image_manifest",
+}
+
+
 def intake_challenges() -> list[dict]:
     """The implemented Challenges whose campaigns submit through an intake."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
@@ -904,7 +1111,10 @@ class EnvironmentSetup:
                         "check",
                     ),
                 ),
-                "compute": _public(record.get("compute"), ("choice", "check")),
+                "compute": _public(
+                    record.get("compute"),
+                    ("choice", "challenge", "remote_machine", "check"),
+                ),
                 "agent": _public(record.get("agent"), ("choice", "check")),
                 "review": {
                     "ready": "hotkey" in record and all(done.values()),
@@ -1037,11 +1247,14 @@ class EnvironmentSetup:
         _closed(
             value,
             {"choice", "image_manifest", "analysis_image_manifest"},
-            {"gpu_image_manifest", "challenge"},
+            {"gpu_image_manifest", "challenge", "remote"},
         )
-        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU):
+        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU, REMOTE):
             raise SetupRefused("choice", "compute_not_offered")
-        gpu = value["choice"] == LOCAL_GPU
+        # The remote choice runs the GPU practice program too, on the miner's
+        # own setup: it needs the GPU worker and the Challenge as well.
+        gpu = value["choice"] in (LOCAL_GPU, REMOTE)
+        remote = value["choice"] == REMOTE
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -1052,7 +1265,15 @@ class EnvironmentSetup:
                 "challenge",
                 "field_required" if gpu else "challenge_is_for_the_gpu_choice",
             )
+        if remote != ("remote" in value):
+            raise SetupRefused(
+                "remote",
+                "field_required" if remote else "remote_is_for_the_remote_choice",
+            )
         campaign = _gpu_campaign(value["challenge"]) if gpu else None
+        if remote and campaign.remote_worker is None:
+            raise SetupRefused("challenge", "challenge_offers_no_remote_practice")
+        machine = _remote_machine(value["remote"]) if remote else None
         paths = {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
@@ -1079,18 +1300,78 @@ class EnvironmentSetup:
                 # GPU practice is set up for one Challenge, the miner's choice.
                 step["challenge"] = dict(value["challenge"])
                 check["challenge"] = value["challenge"]["id"]
+                step["gpu_image"] = gpu_image
+            if value["choice"] == LOCAL_GPU:
                 detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
                 runtime = {**runtime, "gpu_research": [detected["scope"]]}
-                step["gpu_image"] = gpu_image
                 check.update(
                     gpu=detected["device_kind"],
                     device_record=detected["record_digest"],
                     gpu_image=detected["scope"]["image"],
                     note=SPEED_ONLY_NOTE,
                 )
+            if remote:
+                found = self.checks.remote(Path(gpu_image), machine, campaign)
+                runtime = {
+                    **runtime,
+                    "gpu_research": [found["scope"]],
+                    "remote_gpu": [found["remote_scope"]],
+                }
+                # Where it is stays in the profile, never in a campaign.
+                step["remote_machine"] = machine.document()
+                check.update(
+                    remote=found["check"],
+                    gpu_image=found["scope"]["image"],
+                    balance="not applicable: your own setup, never billed by Carbon",
+                    note=SPEED_ONLY_NOTE,
+                )
+                if found["check"].get("worker_image") == "missing":
+                    check["next_step"] = "send your worker"
             if self._forget_compute_keys():
                 check["retired_compute_key"] = COMPUTE_KEY_REMOVED
             return self._step("compute", {**step, "runtime": runtime, "check": check})
+
+    def send_worker(self, value) -> dict:
+        """Send the pinned GPU worker to the miner's own machine with Docker.
+
+        A step of its own, with consent: the request must name the
+        destination (and port) and the worker's image ID exactly as the
+        checked compute step records them, so a page that changed either
+        sends nothing. It streams `docker save <image id> | ssh <destination>
+        docker load` over the miner's own SSH, checks the image ID arrived,
+        and may take minutes. Nothing else is sent, and nothing is started.
+        """
+        from carbon.compute.remote_transport import SSH_DOCKER, RemoteMachine
+
+        _closed(value, {"consent"})
+        with self.lock:
+            record = self._record()
+            compute = record.get("compute") or {}
+            if compute.get("choice") != REMOTE:
+                raise SetupRefused("compute", "step_not_checked")
+            machine = RemoteMachine.from_document(compute["remote_machine"])
+            if machine.transport != SSH_DOCKER:
+                raise SetupRefused("transport", "send_worker_is_for_ssh_docker")
+            image_id = compute["runtime"]["remote_gpu"][0]["image"]
+            expected = {
+                "destination": machine.destination,
+                **({"port": machine.port} if machine.port is not None else {}),
+                "image": image_id,
+            }
+            if value["consent"] != {"send": expected}:
+                raise SetupRefused(
+                    "consent", "consent_must_name_the_destination_and_image"
+                )
+            sent = self.checks.send_worker(
+                Path(compute["gpu_image"]), machine, image_id
+            )
+            check = dict(compute["check"])
+            check["remote"] = {**check["remote"], "worker_image": "present"}
+            check["worker"] = sent
+            check.pop("next_step", None)
+            record["compute"] = {**compute, "check": check}
+            self._save(record)
+        return self.state()
 
     def offered(self) -> dict:
         """What each step offers, with the exact files a Hermes choice writes."""
@@ -1236,6 +1517,13 @@ class EnvironmentSetup:
             "campaigns_root": str(campaigns),
             "runtime": compute["runtime"],
             **({"gpu_image": compute["gpu_image"]} if "gpu_image" in compute else {}),
+            # Where the miner's remote setup is: the profile's, never a
+            # campaign's (LINKONLY-D9).
+            **(
+                {"remote_machine": compute["remote_machine"]}
+                if "remote_machine" in compute
+                else {}
+            ),
             "provider_credentials": {inference["provider_id"]: key},
             "model_selection": {
                 "provider_id": inference["provider_id"],

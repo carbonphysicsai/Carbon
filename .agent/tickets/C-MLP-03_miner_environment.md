@@ -290,8 +290,8 @@ pending Hermes and the miner's keys.
     Center.
 
   `tests/cpu/test_remote_transport.py`, `test_remote_route.py`,
-  `test_push_worker_image.py`, the setup tests and the setup browser smoke
-  cover it.
+  `test_push_worker_image.py`, `test_miner_remote_setup.py`, the setup tests
+  and the setup browser smoke cover it.
 - **Recorded engineering decisions (slice 4, remote setup, 2026-10-02):**
   - *Container-only rentals are supported (owner).* The miner chooses any
     setup; Carbon wires it (LINKONLY-D5).
@@ -306,12 +306,13 @@ pending Hermes and the miner's keys.
   - *A container job is a process Carbon can find again.* One trial runs as:
     1. `mkdir -m 700 /tmp/carbon-job-<24 hex>`;
     2. the environment through an owner-only file the starting shell deletes;
-    3. `setsid` so the server outlives the SSH session, its pid recorded;
+    3. `setsid`, so the server outlives the SSH session;
     4. its port read back from the file.
 
-    Cleanup stops only a process group whose environment names that
-    directory, then removes the directory. The record says whether the
-    container confirmed both.
+    Cleanup stops only processes whose environment names that directory
+    (the server and the program it runs), killing any that ignore TERM, then
+    removes the directory. The record says whether the container confirmed
+    both.
   - *The endpoint transport is not built* (LINKONLY-D7). It is refused by
     name, and its design waits for the owner's security acceptance.
   - *The address is the profile's, the transport is the campaign's*

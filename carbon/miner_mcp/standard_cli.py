@@ -212,6 +212,21 @@ def _authored_image(profile, analysis):
     return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
 
 
+def _remote(profile):
+    """The campaign's practice runner on the miner's own remote setup, or
+    None: built by the Challenge's own campaign from the frozen runtime and
+    the profile's `remote_machine` (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+    campaign = campaign_for_manifest(profile.manifest)
+    runtime = profile.manifest["runtime"]
+    return campaign.remote_runner(
+        runtime,
+        profile.document.get("remote_machine"),
+        campaign.gpu_image(profile.root, runtime),
+    )
+
+
 def _gpu_image(root, runtime, role_root):
     """One resolver, shared with the campaign runner that now also composes this."""
     from carbon.development_session.gpu_research import registered_gpu_image
@@ -441,6 +456,10 @@ async def attached_profile(profile: OperatorProfile):
         # authenticated owner is known to be the registered one. The
         # connection's session files already exist from launch.
         connection, image, analysis, _ = _runtime(profile)
+        # Practice on the miner's own remote setup, from their profile: a
+        # machine that does not match the frozen campaign is refused here,
+        # before any request; nothing is reached until a trial runs.
+        remote = None if cleanup_only else _remote(profile)
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
             raise ValueError("authenticated campaign owner changed")
@@ -479,6 +498,7 @@ async def attached_profile(profile: OperatorProfile):
             cleanup_only=cleanup_only,
             julia_image=_authored_image(profile, analysis),
             gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
+            remote=remote,
         )
         bound = None
         try:

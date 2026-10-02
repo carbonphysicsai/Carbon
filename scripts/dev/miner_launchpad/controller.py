@@ -310,12 +310,20 @@ def research_compute_choices() -> list:
         {
             "id": "attach-existing-remote",
             "available": True,
+            # OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02: any setup
+            # the miner runs, connected over their own SSH (LINKONLY-D5).
+            "transports": ["ssh-docker", "ssh-container"],
             "requires": [
-                "A_HOST_YOU_ALREADY_CONTROL",
-                "CARBON_ACCELERATOR_PREPARE_RUN_ON_THAT_HOST",
+                "A_MACHINE_OR_CONTAINER_YOU_RUN",
+                "SSH_FROM_THIS_MACHINE_WITHOUT_A_PROMPT",
+                "PINNED_GPU_WORKER_IMAGE",
             ],
-            "not_required": ["CARBON_HELD_PROVIDER_CREDENTIALS"],
-            "summary": "A compatible machine you already have, anywhere. Carbon does not provision or bill it, and never terminates a resource this campaign does not own.",
+            "not_required": [
+                "CARBON_HELD_PROVIDER_CREDENTIALS",
+                "CARBON_HELD_REGISTRY_CREDENTIALS",
+                "A_SUDO_PASSWORD",
+            ],
+            "summary": "Your own GPU machine (Docker and the NVIDIA Container Toolkit) or a container you started from the pinned worker, anywhere, reached with your own SSH. Set it up under Set up your environment, Compute. Carbon never starts, stops or bills it.",
         },
         {
             "id": "external-byo",
@@ -706,6 +714,7 @@ class Handler(BaseHTTPRequestHandler):
                     "quote",
                     "inference",
                     "compute",
+                    "send_worker",
                     "agent",
                     "review",
                 }:

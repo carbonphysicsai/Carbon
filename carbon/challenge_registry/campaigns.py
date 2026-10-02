@@ -53,7 +53,8 @@ class ChallengeCampaign:
     #: the frozen binding changed. `julia_image` is the host's verified
     #: authored Julia image, or None.
     check_attached: Callable
-    #: (**attach, julia_image, gpu_image) -> (composition, wrapper)
+    #: (**attach, julia_image, gpu_image, remote) -> (composition, wrapper);
+    #: `remote` is `remote_runner`'s runner, or None.
     compose: Callable
     #: (root, runtime) -> the campaign's verified GPU worker image, or None
     #: when its runtime declares no GPU practice.

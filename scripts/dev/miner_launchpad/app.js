@@ -357,9 +357,9 @@
     catch (_) { setupState = null; }
     renderSetup();
   }
-  async function setupCall(step, body) {
+  async function setupCall(step, body, timeout = 60000) {
     try {
-      const result = await api("/api/v1/setup/" + step, body, undefined, 60000);
+      const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
@@ -518,21 +518,55 @@
     gpuImage.value = installed.gpu_image_manifest || "";
     // GPU practice is set up for one Challenge you choose (C-MLP-04).
     const gpuChallenge = setupSelect(gpuBox, "challenge", "Challenge to practise on the GPU", []);
+    // Your own remote machine or container (OWNER-MINER-COMPUTE-LINK-ONLY-01,
+    // amended 2026-10-02): you start, stop and pay for it; Carbon reaches it
+    // with your own SSH and never starts, stops or bills it.
+    const remoteBox = el("div"); remoteBox.dataset.step = "compute"; compute.append(remoteBox);
+    const transport = setupSelect(remoteBox, "transport", "How Carbon reaches it", []);
+    const transportNote = el("div"); remoteBox.append(transportNote);
+    const destination = setupField(remoteBox, "destination", "SSH destination (user@host, or your ssh-config alias)");
+    const sshPort = setupField(remoteBox, "port", "SSH port (optional; leave empty for your ssh config's)", "number");
+    researchNote(remoteBox, "Make `ssh <destination>` work from this machine without a prompt first: your key in your agent, the host key in your known hosts. Carbon passes no key and installs nothing.", "hint");
+    const describeTransport = () => {
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      const chosen = (choice?.transports || []).find(t => t.id === transport.value);
+      transportNote.replaceChildren();
+      if (chosen?.summary) researchNote(transportNote, chosen.summary, "hint");
+    };
+    transport.addEventListener("change", describeTransport);
+    const computeButton = el("button", "Verify on this machine");
     const describeCompute = () => {
       const choice = offered.compute.find(c => c.id === computeChoice.value);
       computeCost.replaceChildren();
       costNote(computeCost, choice);
       if (choice?.note) researchNote(computeCost, choice.note, "hint");
+      if (choice?.guide) researchNote(computeCost, "Wiring guide, with notes per provider: " + choice.guide, "hint");
       gpuBox.hidden = !choice?.needs_gpu_image;
+      remoteBox.hidden = !choice?.needs_remote;
+      computeButton.textContent = choice?.needs_remote ? "Check my setup over my SSH" : "Verify on this machine";
       const forChallenges = choice?.for_challenges || [];
       const previous = gpuChallenge.value;
       gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
       if ([...gpuChallenge.options].some(option => option.value === previous)) gpuChallenge.value = previous;
+      // Only what is built can be chosen; the endpoint transport says why not.
+      const previousTransport = transport.value;
+      transport.replaceChildren(...(choice?.transports || []).map(item => {
+        const option = el("option", item.display_name + (item.available ? "" : " · not built: " + words(item.reason)));
+        option.value = item.id; option.disabled = !item.available; return option;
+      }));
+      if ([...transport.options].some(option => option.value === previousTransport && !option.disabled)) transport.value = previousTransport;
+      describeTransport();
     };
     computeChoice.addEventListener("change", describeCompute);
     if (steps.compute?.checked && steps.compute.choice) computeChoice.value = steps.compute.choice;
     describeCompute();
-    compute.append(el("button", "Verify on this machine"));
+    const checkedMachine = steps.compute?.remote_machine;
+    if (checkedMachine) {
+      transport.value = checkedMachine.transport; destination.value = checkedMachine.destination;
+      sshPort.value = checkedMachine.port ?? "";
+      describeTransport();
+    }
+    compute.append(computeButton);
     compute.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
@@ -540,8 +574,40 @@
         request.gpu_image_manifest = gpuImage.value.trim();
         if (gpuChallenge.value) request.challenge = JSON.parse(gpuChallenge.value);
       }
+      if (!remoteBox.hidden) {
+        request.remote = {transport: transport.value, destination: destination.value.trim()};
+        if (sshPort.value.trim()) request.remote.port = Number(sshPort.value.trim());
+      }
       await setupCall("compute", request);
     });
+
+    // Send your worker: a machine with Docker that does not hold the pinned
+    // GPU worker yet. Nothing is sent without consent to that destination and
+    // that image, unticked by default; it streams over your own SSH.
+    const remoteCheck = steps.compute?.check?.remote;
+    if (checkedMachine && checkedMachine.transport === "ssh-docker" && remoteCheck?.worker_image === "missing") {
+      const send = setupStep(body, "send_worker", "2b. Send your worker", {checked: false});
+      const workerImage = steps.compute.check.gpu_image;
+      const target = checkedMachine.destination + (checkedMachine.port ? " (port " + checkedMachine.port + ")" : "");
+      researchNote(send, "Your machine does not hold the pinned GPU worker. Carbon can stream it there over your own SSH (docker save | ssh docker load) and check its image ID. It can take minutes.", "hint");
+      const sendAgree = document.createElement("input");
+      sendAgree.type = "checkbox"; sendAgree.id = "setup-send-worker-consent"; sendAgree.checked = false;
+      const sendLabel = el("label", "Send the pinned GPU worker " + workerImage + " to " + target + "."); sendLabel.htmlFor = sendAgree.id;
+      const sendRow = el("div", undefined, "consent"); sendRow.append(sendAgree, sendLabel);
+      send.append(sendRow);
+      const sendButton = el("button", "Send my worker"); sendButton.disabled = true;
+      sendAgree.addEventListener("change", () => { sendButton.disabled = !sendAgree.checked; });
+      send.append(sendButton);
+      send.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!sendAgree.checked) return;
+        const consent = {destination: checkedMachine.destination, image: workerImage};
+        if (checkedMachine.port) consent.port = checkedMachine.port;
+        sendButton.disabled = true;
+        $("setup-result").replaceChildren(setupLine("Sending your worker over your SSH. This can take minutes."));
+        await setupCall("send_worker", {consent: {send: consent}}, 3600000);
+      });
+    }
 
     const agent = setupStep(body, "agent", "3. Agent", steps.agent);
     const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
@@ -589,7 +655,7 @@
     const review = setupStep(body, "review", "4. Review", {checked: steps.review?.profile_written});
     for (const [name, label] of [["inference", "Inference"], ["compute", "Compute"], ["agent", "Agent"]]) {
       const state = steps[name] || {};
-      researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice].filter(Boolean).join(" · ") : "not checked yet"));
+      researchNote(review, label + ": " + (state.checked ? [state.provider_id, state.model_id, state.choice, state.remote_machine?.transport].filter(Boolean).join(" · ") : "not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
     // A validator's intake, when a Challenge's validator runs elsewhere
@@ -961,7 +1027,7 @@
       row("Research environment", Object.entries(entry.provisions).map(([name, state]) => name + (state.status === "gap" ? ": gap (" + state.reason + ")" : ": provided")).join(" · "));
     }
     const offers = entry.setup_offers || {};
-    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
+    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.remote_gpu ? "GPU practice on your own remote machine or container" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
     parent.append(grid);
   }
   function renderAgentCatalog() {

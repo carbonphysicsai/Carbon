@@ -1288,6 +1288,48 @@ class SetupChecks:
         raise AssertionError("the smoke's miner checks the CPU, not a GPU")
 
     @staticmethod
+    def _gpu_image():
+        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        value = "sha256:" + "9" * 64
+        return WorkerImageIdentity(
+            image_id=value,
+            config_digest=value,
+            source_tree_digest="sha256:" + "a" * 64,
+            wheel_digest="sha256:" + "b" * 64,
+            lock_digest=GPU_PROFILE.environment_lock_digest,
+            base_image_digest="sha256:" + "1" * 64,
+            build_recipe_digest="sha256:" + "d" * 64,
+            entrypoint_digest="sha256:" + "e" * 64,
+        )
+
+    def remote(self, manifest, machine, campaign):
+        """The miner's own machine with Docker, reached by fixture: it holds
+        no worker yet, so the page offers to send it."""
+        from carbon.compute.remote_route import remote_scope
+
+        image = self._gpu_image()
+        return {
+            "scope": campaign.gpu_scope(image),
+            "remote_scope": remote_scope(
+                campaign.key.challenge_id, image, machine.transport
+            ),
+            "check": {
+                "transport": machine.transport,
+                "reached": True,
+                "docker": "usable without sudo",
+                "nvidia_container_toolkit": "present",
+                "worker_image": "missing",
+                "image_verified_by": "image-id",
+            },
+        }
+
+    def send_worker(self, manifest, machine, image_id):
+        SENT.append((machine.destination, image_id))
+        return "sent"
+
+    @staticmethod
     def hermes_files():
         return [
             "/hermes-fixture/profiles/carbon/config.yaml",
@@ -1321,6 +1363,10 @@ class SetupChecks:
         return miner_network.document(bound, 7), 7
 
 
+#: What "Send your worker" was asked to send: (destination, image ID).
+SENT = []
+
+
 def setup_journey():
     """After registration a person sets up inference, compute and agent in a
     real browser, and the profile is written and loaded without a restart.
@@ -1337,7 +1383,7 @@ def setup_journey():
         root.chmod(0o700)
         miner = root / "miner"
         miner.mkdir(mode=0o700)
-        for name in ("worker.json", "analysis.json", "operator.json"):
+        for name in ("worker.json", "analysis.json", "operator.json", "gpu.json"):
             (miner / name).write_text("{}")
         onboarding = BrowserOnboarding(
             reader=StubReader(
@@ -1465,18 +1511,78 @@ def setup_journey():
                     ".some(o => JSON.parse(o.value).id === 'battery-fastcharge-ageing-development-v1')",
                 )
                 # Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01):
-                # only this machine's CPU and GPU are offered, and nothing
-                # asks for a provider key.
+                # this machine's CPU and GPU are offered, and the miner's own
+                # remote machine or container; nothing asks for a provider
+                # key.
                 assert (
                     session.evaluate(
                         "[...document.getElementById('setup-compute-choice').options]"
                         ".map(o => o.value).join()"
                     )
-                    == "this-machine-cpu,this-machine-gpu"
+                    == "this-machine-cpu,this-machine-gpu,remote-machine"
                 )
                 assert session.evaluate(
                     "!document.querySelector('form[data-step=compute] input[type=password]')"
                 )
+                # The miner's own remote setup: the two built transports, and
+                # the endpoint transport shown with why it is not built; the
+                # wiring guide is named.
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'remote-machine';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-destination').parentElement.hidden"
+                    " && !document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('MINER_REMOTE_SETUP.md')"
+                    " && document.querySelector('form[data-step=compute] button').textContent.includes('my SSH')",
+                )
+                transports = session.evaluate(
+                    "JSON.stringify([...document.getElementById('setup-compute-transport').options]"
+                    ".map(o => [o.value, o.disabled]))"
+                )
+                assert json.loads(transports) == [
+                    ["ssh-docker", False],
+                    ["ssh-container", False],
+                    ["endpoint", True],
+                ]
+                SENT.clear()
+                session.evaluate(
+                    "document.getElementById('setup-compute-transport').value = 'ssh-docker';"
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "worker.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.getElementById('setup-compute-gpu_image_manifest').value = "
+                    + json.dumps(str(miner / "gpu.json"))
+                    + ";document.getElementById('setup-compute-destination').value = 'miner@gpu-box';"
+                    "document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: compute.'"
+                    " && Boolean(document.getElementById('setup-send-worker-consent'))",
+                )
+                # Sending the worker is its own step: nothing is agreed by
+                # default and the consent names the destination and image.
+                assert session.evaluate(
+                    "!document.getElementById('setup-send-worker-consent').checked"
+                    " && document.querySelector('form[data-step=send_worker] button').disabled"
+                    " && document.querySelector('label[for=setup-send-worker-consent]')"
+                    ".textContent.includes('miner@gpu-box')"
+                )
+                assert SENT == []
+                session.evaluate(
+                    "document.getElementById('setup-send-worker-consent').click();"
+                    "document.querySelector('form[data-step=send_worker]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: send_worker.'"
+                    " && !document.getElementById('setup-send-worker-consent')",
+                )
+                assert SENT == [("miner@gpu-box", SetupChecks._gpu_image().image_id)]
                 session.evaluate(
                     "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
                     "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
@@ -1580,7 +1686,7 @@ def setup_journey():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers and images were fixtures."
+        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
     )
 
 

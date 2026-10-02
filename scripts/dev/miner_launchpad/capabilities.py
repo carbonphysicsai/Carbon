@@ -151,7 +151,7 @@ def _setup_offers(entry):
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.challenge_registry.registry import GPU_RESEARCH, IMPLEMENTED
 
-    none = {"gpu": False, "intake": False, "feedback_modes": []}
+    none = {"gpu": False, "remote_gpu": False, "intake": False, "feedback_modes": []}
     if entry["status"] != IMPLEMENTED:
         return none
     try:
@@ -165,6 +165,10 @@ def _setup_offers(entry):
     )
     return {
         "gpu": gpu,
+        # GPU practice on the miner's own remote machine or container
+        # (OWNER-MINER-COMPUTE-LINK-ONLY-01): offered by the Challenge's own
+        # campaign, never assumed.
+        "remote_gpu": gpu and campaign.remote_worker is not None,
         "intake": campaign.intake_check is not None,
         "feedback_modes": list(campaign.feedback_modes),
     }
@@ -467,14 +471,29 @@ def _compute(cfg, options, refusal, host):
     lanes = {"cpu": {"availability": "configured"} if cfg else local}
     for lane, state in ((options or {}).get("research_lanes") or {}).items():
         lanes[lane] = state
+    runtime = (cfg or {}).get("runtime", {})
+    if "remote_gpu" in runtime:
+        # GPU practice on the miner's own remote machine or container. This
+        # controller still runs its trusted worker locally, so this machine's
+        # Docker is still needed.
+        transport = cfg["remote_machine"]["transport"]
+        choice = {
+            "id": "remote-machine",
+            "label": "Your own remote machine or container · " + transport,
+            "lane": "remote-gpu",
+            "transport": transport,
+            "started_stopped_and_billed_by": "you; Carbon never does",
+        }
+    else:
+        choice = {
+            "id": "local-isolated-worker",
+            "label": "This machine · isolated Docker worker",
+            "lane": "gpu" if "gpu_research" in runtime else "cpu",
+        }
     return {
         "choices": [
             {
-                "id": "local-isolated-worker",
-                "label": "This machine · isolated Docker worker",
-                "lane": (
-                    "gpu" if cfg and "gpu_research" in cfg.get("runtime", {}) else "cpu"
-                ),
+                **choice,
                 "lanes": lanes,
                 "host_facts": sorted(host.facts),
                 **local,

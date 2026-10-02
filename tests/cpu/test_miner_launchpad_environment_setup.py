@@ -214,8 +214,13 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     assert inference["engy-chat"]["needs_endpoint"] is False
     # Slice 3: this machine's CPU is the default; its own GPU is offered
     # beside it, for practice speed only. Carbon rents no compute
-    # (OWNER-MINER-COMPUTE-LINK-ONLY-01), so no rented GPU is offered.
-    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU, "this-machine-gpu"]
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01), so no rented GPU is offered; the
+    # miner's own remote machine or container is (its amendment).
+    assert [c["id"] for c in offered["compute"]] == [
+        LOCAL_CPU,
+        "this-machine-gpu",
+        "remote-machine",
+    ]
     assert not any("providers" in c for c in offered["compute"])
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
