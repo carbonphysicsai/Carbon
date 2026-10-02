@@ -10708,6 +10708,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T10:57:26Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "GRAPHITE-04"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "GRAPHITE-01 phase 2 resumes after a lost call. Container restarts killed the live triage mid-call, leaving one call with an unknown outcome (ledger state RESERVED) and the run stopped RECONCILIATION_REQUIRED; smoke-1, full-1 and full-2 used all three permitted runs for 101 cards and 1 rejection, USD 0.086 booked. The OWNER-GRAPHITE-02 amendment (\"Raise runs, add resume fix (Recommended)\") raises GRAPHITE-GRANT-PHASE2 to 40 runs with the USD 9 ceiling and the USD 2.49 per-run worst case unchanged, and triage runs in chunks of about 300 calls. GRAPHITE-D17: at every start, triage writes off each RESERVED call in any run's ledger with a typed provider_outcome_unknown rejection naming the run and operation, so no run resends it, and the run continues. The reservation stays booked in its ledger and keeps counting against the run cap and the grant; nothing is settled or deleted. A call that ends with an unknown outcome still stops its run RECONCILIATION_REQUIRED, and the write-off waits for the next start. The run summary reports written_off_unknown. Scripted-model tests and a mutation check cover it. Nothing here grades, qualifies or rewards."
+    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-02T18:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

@@ -313,7 +313,8 @@ Nothing from that sample is committed.
 - `tests/cpu/test_graphite_literature_fetch.py`
 - `tests/cpu/test_graphite_method_cards.py`
 - `tests/cpu/test_graphite_phase2_runner.py`
-- `tests/cpu/test_graphite_phase2_mutations.py`: nine protections.
+- `tests/cpu/test_graphite_phase2_mutations.py`: ten protections (the tenth,
+  the GRAPHITE-D17 write-off, added by the 2026-10-02 amendment).
 - The stall-limit test in `tests/cpu/test_graphite_ladder.py`.
 
 **Engineering decisions** (delegated, recorded under
@@ -361,6 +362,52 @@ Nothing from that sample is committed.
   - `CHUTES_API_KEY` is recognised and refused until Graphite wires the
     Chutes adapter.
   - File: `graphite/phase2.py`.
+- **GRAPHITE-D17, writing off a call with an unknown outcome** (2026-10-02,
+  under the OWNER-GRAPHITE-02 amendment "Raise runs, add resume fix
+  (Recommended)").
+  - The problem. A container restart kills the process mid-call. The call
+    stays `RESERVED` in its run's ledger with its full reservation, because
+    the provider may have received and charged it. Before this change, every
+    later start of that run stopped `RECONCILIATION_REQUIRED` again, because
+    `request_model` refuses to resend that call. So a run could not continue,
+    and a new run would have sent the same record again under a new ledger.
+  - The fix. At the start of every run, new or resumed,
+    `Backfill.write_off_unknown` scans the ledgers of all runs for operations
+    in state `RESERVED`. It maps each one back to its raw record: the id is
+    `card-` plus `address[7:47]`, with `-rlN` on a rate-limit retry. It
+    writes a typed rejection for that record through
+    `CardStore.put_rejection`: code `provider_outcome_unknown`, with the run
+    id, the operation id and the reservation. `pending()` then skips the
+    record, so no run resends it.
+  - Money. The ledger is not touched. The operation stays `RESERVED` with
+    its full reservation, so the run's money cap, `committed_nano()` and the
+    grant gate keep counting it. Nothing is settled, refunded or deleted.
+  - The ledger allows it. A backfill ledger is frozen with the development
+    CLI's own manifest schema (`research_ledger.VERSION`), which is not a
+    controlled campaign. The "unknown provider metering; reconcile before
+    dispatch" refusal applies only to controlled campaigns, so the ledger
+    admits new operations beside a `RESERVED` one, and its cap arithmetic
+    includes the `RESERVED` reservation. Only a resend of the same id is
+    refused ("provider outcome uncertain"). The write-off makes sure that
+    resend never happens.
+  - Idempotent. A record that already has a card or a rejection is left as
+    it is. For example, a record stuck in one run may already have been
+    carded by a later run. Rejections are written once, with no timestamp.
+  - Fail closed. A `RESERVED` operation that maps to no record in the raw
+    store refuses the run (`unresolved_operation_unmapped`) before anything
+    is written or sent.
+  - The stop is still visible. A call that ends with an unknown outcome
+    during a run still stops that run `RECONCILIATION_REQUIRED`: a crash, a
+    transient server error, or any other failure whose outcome is unknown. The
+    write-off happens only at the next start. Calls written off at the start
+    do not turn a later typed stop (for example `PROVIDER_REJECTED`) into
+    `RECONCILIATION_REQUIRED`.
+  - The run summary carries `written_off_unknown`: the number of records
+    written off at this start.
+  - Tests: `tests/cpu/test_graphite_method_cards.py`. The mutation case
+    `unknown_call_write_off` in `tests/cpu/test_graphite_phase2_mutations.py`
+    shows that without the scan a new run resends the call.
+  - File: `graphite/triage.py`.
 
 **Running phase 2 live** (the grant is complete as of 2026-10-02):
 
@@ -381,9 +428,30 @@ python -m carbon.agent_campaign.graphite.phase2 check --root "$ROOT" \
 resumes the same run, and a different `--run-id` opens a new one under the
 grant.
 
+**Running in chunks** (OWNER-GRAPHITE-02 amendment, 2026-10-02). The grant
+permits 40 runs. Triage in chunks of about 300 calls, one run id per chunk:
+
+```
+python -m carbon.agent_campaign.graphite.phase2 triage --root "$ROOT" \
+    --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE2.json \
+    --credential-env ENGY_API_KEY --run-id chunk-NN --max-calls 300
+```
+
+If the container restarts mid-call, rerun the same command with the same
+`--run-id` and `--max-calls`. A different `--max-calls` changes the run record
+and is refused (`run_record_mismatch`). The rerun writes off the one call with
+an unknown outcome (GRAPHITE-D17), reports it in `written_off_unknown`, and
+continues with the remaining records. A chunk that ends `STOPPED_CAP` on
+`provider_attempts` has used its 300 calls; the next chunk takes a new run id.
+
 **Limitations.**
 
-- No live inference has run, so token use and cost are estimates.
+- Live triage has run (`smoke-1`, `full-1`, `full-2`: 101 cards and 1
+  rejection; see the OWNER-GRAPHITE-02 amendment). Engy reports no
+  `x_engy.charged_micro`, so every call keeps its full reservation as
+  booked spend (USD 0.086 booked against about USD 0.007 estimated).
+- A call written off under GRAPHITE-D17 is never retried, so its record has
+  no card. Retrying those records would need a new owner decision.
 - `lit_search` is keyword search; there are no embeddings.
 - The backfill runs on demand, not nightly.
 - The Chutes adapter is not wired into Graphite.
