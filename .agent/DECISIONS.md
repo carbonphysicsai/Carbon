@@ -17641,3 +17641,46 @@ prospectively.
 **Unchanged.** Internal development only: not mainnet, not a qualification
 gate. Every existing invariant, and the deciding testnet rule, until a
 candidate passes confirmation and its own approval.
+
+## 2026-10-02 — OWNER-SR3-NEAR-01: "near the decision boundary" is the published important region
+
+**Authority.** The owner, in session on 2026-10-02: "Use the important region
+band as 'near' and build SR-3".
+
+**Decision.** For score tuning (SR-3 and later), a case is near the decision
+boundary when the reference is in the published important region,
+`carbon.battery.domain.is_important`:
+- the reference plating margin is within `PLATING_BAND_V` (5 mV) of zero;
+  or
+- the reference peak temperature is at or above `T_IMPORTANT_C` (55 °C).
+
+These are the existing published DEVELOPMENT values (OD-2), reused
+unchanged. No new number is introduced. On the retained scoring set, 311 of
+1,588 cases are near: 221 by plating and 90 by temperature.
+
+**Unchanged.** The deciding testnet rule and the published important-region
+definition itself. A score built on it stays a proposal until confirmation
+and its own approval.
+
+## 2026-10-02 — TRACK-B-STUCK-01: the STUCK trigger fires for battery score tuning; full Track B review
+
+**Basis.** `Challenge_Admission.md` §4.2: a full review happens at `STUCK`,
+which is three consecutive studies with no progress. SR-1, SR-2 and SR-3
+(`docs/development/evidence/sr{1,2,3}-2026-10-02/`) each ended NO_PROMOTION
+under their pre-registered rules. The condition is emitted, not concluded
+(§6.2).
+
+**What the review examines.** The three pre-registrations, results and
+code, and the recommendation in the SR-3 evidence README:
+1. rerun the three studies on EV4's 99 members after regenerating and
+   verifying its predictions, at about USD 1-3 inside OWNER-TRACK-A-L0-02's
+   cap;
+2. then confirm the best candidate once, on fresh conditions, in EV5;
+3. meanwhile, use an SR-1 ratio that catches the boundary optimist as an
+   admissibility check, not as a ranking rule.
+
+**Reviewers.** The SciML/technical lead (#42), then the owner (#41). No
+further formula search on EV2 until the review decides.
+
+**Unchanged.** The deciding testnet rule. Track A at Level 0 stays
+INCONCLUSIVE (OWNER-TRACK-A-L0-02 item 6).
