@@ -799,9 +799,7 @@ def freeze(confirmation_commitment, repository=REPOSITORY):
     committed text (LF line endings), never on a converted checkout."""
     root = Path(repository)
     existing = [
-        path
-        for path in (CONTRACT, PLANS, FREEZE_MANIFEST)
-        if (root / path).exists()
+        path for path in (CONTRACT, PLANS, FREEZE_MANIFEST) if (root / path).exists()
     ]
     if existing:
         raise cr.CombinedRunError("already_frozen", blockers=existing)
