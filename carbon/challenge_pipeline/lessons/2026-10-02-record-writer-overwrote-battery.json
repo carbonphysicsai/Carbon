@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-record-writer-overwrote-battery",
+ "recorded_at": "2026-10-02T20:27:14Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/challenge_pipeline/records/f05.json",
+  "description": "Scripted the construction block into every pipeline record."
+ },
+ "expected": "Every existing record gains a construction block and keeps everything else.",
+ "observed": "The script wrote battery's record as if new and replaced its notes and EV1, EV2, EV4 and admission prior work. The diff review caught it; the record was restored from git.",
+ "keep": [
+  "Read the full diff of every record before committing."
+ ],
+ "change": [
+  "Record writers merge into the existing record and refuse to replace one; never assume a record file is new."
+ ],
+ "protocol_elements": [
+  "pipeline.records"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

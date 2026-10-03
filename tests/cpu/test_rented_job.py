@@ -1,8 +1,9 @@
-"""The one-job server a rented pod runs, and the controller's client.
+"""The one-job server a remote worker container runs, and the controller's
+client.
 
 The server runs in-process on 127.0.0.1 here. The program, the token checks,
 the stage-once rule, the carrier's working-directory layout and the bounded,
-flat-file archives are all real; only the pod around them is absent.
+flat-file archives are all real; only the container around them is absent.
 """
 
 from __future__ import annotations
@@ -144,9 +145,16 @@ def test_archives_are_bounded():
         job_server.unpack(job_server.pack({"a": b"x" * 2048}), 64)
 
 
-def test_a_rented_job_is_reached_over_https():
-    with pytest.raises(ValueError, match="https"):
-        RemoteJob("http://pod.example.org:8000", new_token())
+def test_a_remote_job_is_reached_over_https_or_a_local_tunnel():
+    # Plain HTTP to another host is refused, with no flag to allow it: the
+    # only plain-HTTP route is this machine's end of an SSH port forward.
+    for url in ("http://pod.example.org:8000", "http://10.0.0.5:8000"):
+        with pytest.raises(ValueError, match="https"):
+            RemoteJob(url, new_token())
+    with pytest.raises(TypeError):
+        RemoteJob("http://pod.example.org:8000", new_token(), plain_http=True)
+    RemoteJob("https://pod.example.org", new_token())
+    RemoteJob("http://127.0.0.1:41000", new_token())
 
 
 def test_the_server_refuses_to_start_without_a_job_token():
