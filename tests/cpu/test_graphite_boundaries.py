@@ -348,6 +348,8 @@ def test_a_live_model_is_bound_to_its_grant_and_the_engy_ladder(tmp_path):
 
 
 def test_several_tool_calls_in_one_turn_stop_the_session(tmp_path):
+    """A role other than the Constructor keeps the loop's historical rule
+    (GRAPHITE-D33): such a turn stops the session."""
     model = ScriptedModel(
         [
             tools(
@@ -361,6 +363,33 @@ def test_several_tool_calls_in_one_turn_stop_the_session(tmp_path):
     assert graphite.session_record(run_id)["outcome"]["failure"]["code"] == (
         "harness_error"
     )
+
+
+def test_a_constructor_turn_with_several_tool_calls_runs_only_the_first(tmp_path):
+    """GRAPHITE-D33 (owner, 2026-10-03): the Constructor runs under the loop's
+    `PARALLEL_CALLS` rule, so the first call runs and the rest are refused."""
+    miner = RecordingMinerTools()
+    model = ScriptedModel(
+        [
+            tools(
+                tool(PREFIX + "get_challenge_info", {}),
+                tool(PREFIX + "get_interaction_manifest", {}),
+            ),
+            text("done"),
+        ]
+    )
+    graphite, run_id = started(
+        tmp_path / "graphite", model, role=RoleName.CONSTRUCTOR, miner_tools=miner
+    )
+    assert graphite.run(run_id) == "succeeded"
+    assert [call[0] for call in miner.calls] == [PREFIX + "get_challenge_info"]
+    refused = [
+        json.loads(item["output"])
+        for item in model.requests[1]["input"]
+        if item.get("type") == "function_call_output"
+        and item["call_id"] == "script-001-1"
+    ]
+    assert [r["status"] for r in refused] == ["REFUSED_NOT_RUN"]
 
 
 def test_a_session_brief_is_typed():

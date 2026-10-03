@@ -740,6 +740,24 @@ Other changes:
     (`test_graphite_operator_runpod.py`), and phase 3's live-backend test.
   - Files: `scripts/dev/exam_design/runpod/operator_compute/`,
     `graphite/pods.py`, `graphite/phase3.py`.
+- **GRAPHITE-D33, the Constructor's parallel-call rule** (owner approval,
+  2026-10-03; recorded in `.agent/decisions/2026-10-03-GRAPHITE-D33.md`).
+  - Live session 1 (`graphite-913bf1889a6db2d1`) ended `harness_error` on
+    turn 1: the model returned three tool calls despite
+    `parallel_tool_calls: false`, and Graphite ran the loop under the
+    historical rule.
+  - The Constructor now runs under the loop's existing `PARALLEL_CALLS`
+    (`roles.PARALLEL_RULES`, passed by `GraphiteProvider._epoch` and
+    `Phase3Provider._epoch`). The first call runs, the rest are refused and
+    journalled, and three such turns in a row stop the session `STOPPED`.
+    Other roles keep the historical rule.
+  - The Constructor's prompt states the rule
+    (`research_agent_policy.one_call_per_turn`), and the dry run opens with
+    live session 1's three-call turn.
+  - `operation_id` needed no change: the miner path supplies it, and `{}` is
+    the exact argument set of the three tools.
+  - Files: `graphite/roles.py`, `graphite/provider.py`, `graphite/phase3.py`,
+    `development_session/research_agent_policy.py`.
 
 **Running phase 3 live** (the later session; the grant expires 2026-12-31):
 

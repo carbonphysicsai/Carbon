@@ -40,6 +40,17 @@ MAX_PROVIDER_CALLS = 48
 MAX_RESEARCH_TRIALS = 8
 
 
+def one_call_per_turn(unit="epoch"):
+    """`PARALLEL_CALLS` as an agent is told it. `unit` names what stops: the
+    epoch here, the session for a Graphite role (GRAPHITE-D33)."""
+    return (
+        "One tool call per turn. If you return several, only the first runs; "
+        "every other one is answered REFUSED_NOT_RUN and did not happen. After "
+        f"{PARALLEL_CALLS['consecutive_limit']} consecutive turns with several "
+        f"calls, the {unit} stops."
+    )
+
+
 def operating_rules():
     """Every operating rule an agent can otherwise only discover by breaking
     it, built from the values that enforce each one
@@ -48,12 +59,7 @@ def operating_rules():
     limits = strategy_limits()
     default = DEFAULT_SELECTION.settings.max_input_tokens
     rules = (
-        (
-            "One tool call per turn. If you return several, only the first runs; "
-            "every other one is answered REFUSED_NOT_RUN and did not happen. After "
-            f"{PARALLEL_CALLS['consecutive_limit']} consecutive turns with several "
-            "calls, the epoch stops."
-        ),
+        one_call_per_turn(),
         (
             f"Budget. This epoch allows {MAX_PROVIDER_CALLS} model calls, and every "
             "turn spends one, whatever it does, including a refused call. Starting a "

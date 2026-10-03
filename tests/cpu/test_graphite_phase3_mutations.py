@@ -116,6 +116,14 @@ MUTATIONS = {
         lambda m: m.setattr(phase3, "CONSTRUCTOR_SESSION_TURNS", 151),
         lambda tmp: t3.test_a_constructor_session_makes_up_to_150_model_calls(tmp),
     ),
+    # A turn with several tool calls runs the first and refuses the rest
+    # (GRAPHITE-D33); without the rule it ends the run harness_error.
+    "constructor_parallel_rule": (
+        lambda m: m.setattr(phase3, "PARALLEL_RULES", {}),
+        lambda tmp: t3.test_a_turn_with_several_tool_calls_runs_the_first_and_refuses_the_rest(
+            tmp
+        ),
+    ),
     # The pod runs only the build Carbon pinned.
     "pod_runs_only_the_pinned_build": (
         lambda m: m.setattr(pod_phase, "pinned", lambda record, expected: True),
