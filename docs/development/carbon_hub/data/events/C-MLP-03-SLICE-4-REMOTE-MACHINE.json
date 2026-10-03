@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-03-SLICE-4-REMOTE-MACHINE",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "C-MLP-03 slice 4, rebuilt under OWNER-MINER-COMPUTE-LINK-ONLY-01 (LINKONLY-D4): battery practice can run on a GPU machine the miner runs, reached over SSH with Docker and the NVIDIA Container Toolkit; the library is built and setup does not offer it yet. carbon.compute.remote_machine drives the system ssh with the miner's own agent, config and known hosts (no -i, no IdentitiesOnly, no Carbon known_hosts, no accept-new, BatchMode) to a [user@]host or alias destination that can never be an option. A fixed script refuses by code when Docker (90), the NVIDIA Container Toolkit (91), Docker without sudo (92) or the pinned worker by image ID (93) is missing, installs nothing, and starts one carbon-job-<24 hex> container with --rm, the GPUs and the job port on the machine's loopback, its environment through a deleted temporary file; only such containers are ever removed, and the worker image is streamed with docker save | ssh docker load and checked by ID. carbon.compute.remote_runner reserves the trial, writes the owner-only job record, starts the container, reaches the job server through an SSH port forward and always closes the tunnel and removes the container, recording whether the machine confirmed it; BatteryPractice records the REMOTE_GPU backend. Carbon never starts, stops or bills the machine. Engineering evidence only; a real practice on a miner's machine is the acceptance, and nothing is qualified.",
+  "primary_detail": ".agent/tickets/C-MLP-03_miner_environment.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": "C-MLP-03-SLICE-4B-TARGON-VM",
+  "recorded_at": "2026-10-02T20:22:17Z"
+}

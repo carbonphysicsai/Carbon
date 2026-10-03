@@ -162,4 +162,5 @@ than pinning it separately. Both gates passed before publication: all ten layers
 of the base worker image preserved unchanged, and the image reproduced the
 expected weights digest.
 
-Total spend: approximately **USD 5.10** against a USD 30 ceiling.
+Total spend stayed within the ceiling; the figures are kept in private
+operator records.

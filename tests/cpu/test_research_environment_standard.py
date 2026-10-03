@@ -103,14 +103,21 @@ def test_a_retired_record_stays_readable(challenge, provision, status):
     test_provided_evidence_imports_and_gaps_are_named(challenge, provision, status)
 
 
-def test_retired_is_never_a_gap():
+def test_retired_is_never_a_gap(monkeypatch):
     """A gap is work owed; retired is work no longer owed. The two cannot be
     confused: a retired Challenge is absent from gaps(), is not a
     per-provision status, and cannot be built holding a gap."""
     report = standard.gaps()
     assert "burgers-dynamics-v1" not in report
-    # Specimen: gaps() does report a real open gap.
-    assert "generate" in report["battery-fastcharge-ageing-development-v1"]
+    # Specimen: gaps() does report an open gap on an offered Challenge.
+    battery = standard.ENVIRONMENTS["battery-fastcharge-ageing-development-v1"]
+    monkeypatch.setitem(
+        standard.ENVIRONMENTS,
+        "fixture-challenge",
+        {**battery, "generate": standard.Gap("r", "n")},
+    )
+    assert "generate" in standard.gaps()["fixture-challenge"]
+    monkeypatch.undo()
     burgers = standard.ENVIRONMENTS["burgers-dynamics-v1"]
     assert type(burgers) is standard.Retired
     assert standard.Retired not in standard.Status.__args__

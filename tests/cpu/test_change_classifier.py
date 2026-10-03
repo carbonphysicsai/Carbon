@@ -238,6 +238,13 @@ def test_empty_manifest_retains_full_image_acceptance() -> None:
         ("tests/service/test_c10_reexecution_service.py", True),
         ("scripts/dev/c10_development_reexecution.sh", True),
         ("docs/development/c04_public_reference_campaign_v1.json", True),
+        ("carbon/battery/worker.py", True),
+        ("carbon/battery/practice.py", True),
+        ("carbon/development_session/research_carrier.py", True),
+        ("tests/service/test_battery_track_a_service.py", True),
+        ("tests/service/battery_container_runner.py", True),
+        ("carbon/battery/training.py", False),
+        ("carbon/battery/track_a.py", False),
         ("carbon/reconstruction/service.py", False),
         (".agent/tickets/C-03_isolated_reconstruction_worker.md", False),
     ),
@@ -246,14 +253,14 @@ def test_c03_service_lane_is_exactly_scoped(path: str, required: bool) -> None:
     assert classify_paths([path]).c03_worker_required is required
 
 
-def test_runtime_source_still_requires_real_canonical_and_hub_success() -> None:
+def test_runtime_source_still_requires_real_canonical_success() -> None:
     statuses = {name: "skipped" for name in JOB_NAMES}
-    for name in ("preflight", "canonical", "hub_validation"):
+    for name in ("preflight", "canonical"):
         statuses[name] = "success"
     assert not gate_failures(
         ChangeScope.RUNTIME_FULL, statuses, dev_image_required=False
     )
-    for name in ("preflight", "canonical", "hub_validation"):
+    for name in ("preflight", "canonical"):
         for bad in ("skipped", "failure", "cancelled", ""):
             broken = dict(statuses, **{name: bad})
             assert gate_failures(
@@ -262,6 +269,20 @@ def test_runtime_source_still_requires_real_canonical_and_hub_success() -> None:
     assert gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required=True)
     with pytest.raises(ValueError, match="bool"):
         gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required="false")
+
+
+def test_the_retired_hub_is_no_merge_requirement() -> None:
+    """The owner retired the Development Hub as a merge requirement
+    (2026-10-03): no scope requires it, and a Hub result is not a gate input."""
+    assert "hub_validation" not in JOB_NAMES
+    assert all("hub_validation" not in jobs for jobs in REQUIRED_JOBS.values())
+    statuses = {name: "skipped" for name in JOB_NAMES}
+    statuses.update(preflight="success", canonical="success")
+    assert gate_failures(
+        ChangeScope.RUNTIME_FULL,
+        dict(statuses, hub_validation="success"),
+        dev_image_required=False,
+    ) == ("unknown job result: hub_validation",)
 
 
 def test_development_measurements_skip_unrelated_service_campaign_not_shared_owners():

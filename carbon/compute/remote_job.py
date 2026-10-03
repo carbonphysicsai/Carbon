@@ -1,12 +1,12 @@
-"""The controller's side of one rented job (C-MLP-03 slice 4).
+"""The controller's side of one remote job.
 
-`RemoteJob` drives `carbon.compute.job_server` on a rented pod from the
-miner's own machine: wait for it, stage the inputs once, run, poll, fetch the
-output once. The job token is the only thing it presents; no provider key
-leaves the adapter, and no key of the miner's ever reaches the pod.
+`RemoteJob` drives `carbon.compute.job_server` on a machine the miner runs,
+from the miner's own controller: wait for it, stage the inputs once, run,
+poll, fetch the output once. The job token is the only thing it presents; no
+key of the miner's ever reaches the job.
 
 Every response body is bounded and every archive is flat files only, so a
-pod can return nothing but the job's own output files.
+job can return nothing but its own output files.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from collections.abc import Callable
 
 from .job_server import MAX_OUTPUT_BYTES, MAX_STAGE_BYTES, PROGRAM, pack, unpack
 
-#: Polls are short: provider HTTP proxies close long requests, so a run is
+#: Polls are short: proxies and tunnels may close long requests, so a run is
 #: started asynchronously and its state read until it ends.
 POLL_SECONDS = 5.0
 
@@ -53,7 +53,7 @@ def _urllib(method, url, *, body, headers, timeout):
 
 
 class RemoteJob:
-    """One job on one rented pod, addressed by its base URL and token."""
+    """One job on one remote machine, addressed by its base URL and token."""
 
     def __init__(
         self,
@@ -64,19 +64,16 @@ class RemoteJob:
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         cancelled: Callable[[], bool] = lambda: False,
-        plain_http: bool = False,
     ):
-        # HTTPS unless the provider documents no other route (Lium: the node's
-        # IP, plain HTTP), which the caller states and the record carries.
-        allowed = ("https://", "http://127.0.0.1:") + (
-            ("http://",) if plain_http else ()
-        )
-        if not base_url.startswith(allowed):
-            raise ValueError("a rented job is reached over https")
+        # HTTPS, or this machine's loopback: the local end of an SSH port
+        # forward, so the token and inputs travel inside SSH. Plain HTTP to
+        # another host is refused.
+        if not base_url.startswith(("https://", "http://127.0.0.1:")):
+            raise ValueError("a remote job is reached over https or a local tunnel")
         self.base, self.token = base_url.rstrip("/"), token
         self.transport, self.clock, self.sleep = transport, clock, sleep
         # The campaign's stop: checked between polls, so a stopped campaign
-        # ends the job and its caller tears the pod down.
+        # ends the job and its caller removes the job's container.
         self.cancelled = cancelled
 
     def _call(self, method, path, body=None, *, authorized=True, timeout=60):

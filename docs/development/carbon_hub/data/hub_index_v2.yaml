@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T18:50:57Z"
+  captured_at_utc: "2026-10-03T12:12:26Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "279a797c2d5bf0a6e33379446f499a142b951334"
+  authority_snapshot_commit: "81585c14d26ea94a6bafb2a72aa40bfafb4da926"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10709,6 +10709,31 @@ events:
     supersedes: null
     recorded_at: "2026-10-02T10:57:26Z"
   -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "decision"
+    event_id: "CHALLENGE-PIPELINE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The Challenge Roadmap rev 2.0 (owner-approved 2026-10-02) becomes Carbon's standing challenge development pipeline (OWNER-CHALLENGE-ROADMAP-01): Prioritize, Design, Test/iterate and Rank for deployment, one common test suite, 26 families in three-factor priority order. Its text is Design_Specs/Challenge_Roadmap.md; its families are transcribed exactly into carbon/challenge_pipeline/, which ports the roadmap page's queue, false-feasible bound and leaderboard and validates the protocol, rubric and per-family records against the roadmap's rules (no family past queued before protocol lock, each stage behind its named owner's sign-off, results only from a frozen run, solve times only from the reference hardware, rubric thresholds unset until approved). Phase 1 starts: battery defines the protocol in eight steps. The cold plate, motor and photonic coupler become prior work for their families. Open owner question: roadmap §03/§06 say JAX-only, OWNER-PYTORCH-BACKEND-01 admits PyTorch recipes; suite v1's admission vector keeps the backend set open until decided. No qualification, reward, deployment or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-PIPELINE-01.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T14:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "GRAPHITE-05"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "GRAPHITE-01 phase 3, the Constructor at Level 0, is built; its live sessions have not run and nothing was spent. OWNER-GRAPHITE-03 sets one USD 15 grant covering both Engy tokens and RunPod pod time (\"$15 runpod included\"), recorded as GRAPHITE-GRANT-PHASE3 with derived limits: 3 runs of at most USD 4.91, each split into 2.96 of pods (12 thirty-minute A40 pods at pod_control's 0.49 an hour plus disk) and 1.95 of tokens, with pod_control's 0.25 cleanup reserve. The Constructor's miner tools now reach a battery development campaign through the standard miner adapter, so phase 1's unconnected miner path is connected. Its proposals go to Carbon's runner. The runner refuses, records as a finding and never scores anything outside the recorded battery construction contract. It runs each admitted proposal on one EV4-style pod with a hash-pinned code ship, a pinned build and verified termination, and checks the pod's build against Carbon's own; a mismatch is a finding. It scores proposals by the battery exam's frozen gates, score and paired comparison on public PRACTICE, and records the ladder's stall observation after 5 non-improving attempts. It bundles the best improvement with ablations as a PR-ready directory and rebuilds it from the bundle alone. Every model call and pod is reserved before use against one run cap and settled from the provider's charge. Scripted tests and mutation checks cover the whole loop, and nothing here grades, qualifies or rewards."
+    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    affects:
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-10-02T14:00:00Z"
+  -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "OWNER-INTAKE-EXPOSURE-01"
@@ -10736,27 +10761,234 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
-    event_id: "GRAPHITE-04"
+    event_id: "CHALLENGE-MOTOR-01-POOLS"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "GRAPHITE-01 phase 2 resumes after a lost call. Container restarts killed the live triage mid-call, leaving one call with an unknown outcome (ledger state RESERVED) and the run stopped RECONCILIATION_REQUIRED; smoke-1, full-1 and full-2 used all three permitted runs for 101 cards and 1 rejection, USD 0.086 booked. The OWNER-GRAPHITE-02 amendment (\"Raise runs, add resume fix (Recommended)\") raises GRAPHITE-GRANT-PHASE2 to 40 runs with the USD 9 ceiling and the USD 2.49 per-run worst case unchanged, and triage runs in chunks of about 300 calls. GRAPHITE-D17: at every start, triage writes off each RESERVED call in any run's ledger with a typed provider_outcome_unknown rejection naming the run and operation, so no run resends it, and the run continues. The reservation stays booked in its ledger and keeps counting against the run cap and the grant; nothing is settled or deleted. A call that ends with an unknown outcome still stops its run RECONCILIATION_REQUIRED, and the write-off waits for the next start. The run summary reports written_off_unknown. Scripted-model tests and a mutation check cover it. Nothing here grades, qualifies or rewards."
-    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    summary: "CHALLENGE-MOTOR-01 slice 4: the motor's pools are complete (150 TRAIN and 30 PRACTICE, all OK, 149 solved on a RunPod CPU pod; 60 private from the operator-held root on the owner's host only, 59 OK and 1 REFERENCE_INVALID on the reference's periodicity check, charged to the reference). Both baselines are scored through the exam on the private pool: textbook closed form 0.463 (mean torque 0.165, ripple shape 0.761), Gaussian-kernel ridge 0.214 (0.038, 0.391), its hyperparameters chosen on PRACTICE inside a widened declared grid (D11). Readiness record v4 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the motor is prior work for the magnetostatics family. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-MOTOR-01_development_exam.md"
     affects:
-      - "WAVE-C/C-09"
+      - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
-    recorded_at: "2026-10-02T18:00:00Z"
+    recorded_at: "2026-10-02T19:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "BATTERY-CHALLENGE-KIT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Battery challenge kit (carbon/challenge_kit/battery.py, 2026-10-02) closes the battery generate gap (OWNER-RESEARCH-ENVIRONMENT-01). It is a command on the miner's own machine (OWNER-MINER-OWN-MACHINE-01 item 4). It draws uniformly over the published input box with the validator's own rule (seeds.draw_inputs), from the miner's own 32-byte seed roots in mock seeding only; a test shows its draws equal the validator's for the same bytes. It labels them with the pinned PyBaMM reference in the pinned truth image, through the validator's own no-network, read-only solve run, keeping typed reference failures, and writes the OK records in TRAIN v1's shape. Tests show it names no official seeding, private root, batch or journal, and is not shipped into the research sandbox. Generated data is self-reported research material, never a grading reference; submissions are still rebuilt on the pinned TRAIN version. Semantic decontamination (constitution 7.2) stays open with the MQ-008 holder. Live acceptance passed: on a Linux host with Docker, generate verified the overlay in the pinned truth image (pybamm 26.8.0.0, no network) and solved 2 cases OK."
+    primary_detail: "docs/development/RESEARCH_ENVIRONMENT_STANDARD.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:06:19Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
-    event_id: "GRAPHITE-06"
+    event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "GRAPHITE-D27: every provider call now has a hard total wall-clock deadline. Twice on 2026-10-02 a live Graphite triage call sat with no response for 26 minutes or more, its operation still RESERVED, because model_provider passed timeout_seconds to urllib, which bounds each socket operation (connect, proxy CONNECT, TLS handshake, each read) and never the whole call; a reply arriving in pieces, each inside the timeout, kept it open. The exchange now runs in a daemon worker joined for timeout_seconds plus a named 10 s margin (130 s for triage); past it the call's TCP and TLS sockets are shut and ProviderDeadlineExceeded is raised, which classifies as UNKNOWN: the full reservation stays, nothing is settled or resent, triage stops RECONCILIATION_REQUIRED and the GRAPHITE-D17 write-off handles it at the next start. It applies to every adapter, since they share one transport; calls inside the deadline are unchanged. Tests use a local HTTPS server that stalls, trickles one byte at a time or never speaks, plus a mutation check. Nothing here grades, qualifies or rewards."
-    primary_detail: ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md"
+    summary: "CHALLENGE-COLD-PLATE-01 slice 4: the cold plate's pools are complete, all 700 OK (400 TRAIN with 308 solved on a RunPod CPU pod, 100 PRACTICE, 200 private from the operator-held root on the owner's host only). Every gate holds on every reference; the scales come from TRAIN. On the private pool the conventional closed form with axial spreading scores 0.109 and the generic Gaussian-kernel ridge 0.105, worse than the closed form on the profile: the conventional model is a strong baseline, so a useful surrogate must beat a physics-aware one. The learned model's grid was widened before final scoring because its PRACTICE choice sat on the grid edge (D11, with the dry run disclosed); select now reports edge choices. Readiness record v6 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the cold plate is prior work for laminar internal flow and steady conduction. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md"
     affects:
-      - "WAVE-C/C-09"
+      - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
-    recorded_at: "2026-10-02T20:50:00Z"
+    recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 (2026-10-02) starts battery Track A (construction integrity, Challenge_Admission.md section 3) at Level 0. carbon/battery/track_a.py registers four families: recipe surface, recipe forgery, mandatory failure and rebuild identity. Each family has attacks against the real boundary, a vulnerable specimen showing the detector can fire, and a valid control. The first run held all 37 attacks, every specimen fired and all 4 controls passed. The existing divergence detector emitted 12 conditions on EV2 and 42 on EV4, retained and escalated, never suppressed. Worker isolation and resource accounting are reused evidence from the pinned C-03 service lane, mapped per check. Battery-specific worker attacks against the pinned image are the next slice, in CI. GRAPHITE-01 phase 4 drives agent-generated attempts through the same harness. Attack budget, study population, tolerances, threat-model approval and the lock reviewer stay HUMAN_INPUT. Not a security audit, acceptance or qualification."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:51:46Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "POD-LEDGER-PRIVATE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The repository is public, so RunPod pod accounting and limits leave it (owner decisions of 2026-10-02). pod_control.py had committed each campaign's full ledger (the account balance on every dispatch, committed spend, the cap and each pod's rate) and carried each campaign's ceiling and the balance floor in source. Every ledger event now goes to a private ledger under ~/.runpod/accounting/ and, as an allow-listed projection (pod ids, code refs, image, plans, times, export digests), to the repository; rates and host machine ids stay private. The budget reads the private ledger and refuses when the repository holds a row it lacks, and recording a termination is never refused. Ceilings and the floor come from the operator's ~/.runpod/campaigns.json, without which nothing that spends runs. Figures print only with --show-accounting. The exam-design, EV4 and ev4-regen ledgers are migrated row for row, and a test refuses any committed ledger field outside the allow-list. Balance lines and spend totals in narrative documents are redacted; frozen pre-registration sections, pinned records and historical Hub events are unchanged. History is not rewritten (owner decision): a rewrite would re-identify every later commit that evidence cites, so figures already committed are treated as disclosed. No scientific, qualification, reward or LIVE authority changes."
+    primary_detail: ".agent/tickets/POD-LEDGER-PRIVATE-01.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T20:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-MINER-COMPUTE-LINK-ONLY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon never creates, stops, terminates, bills or reads the balance of rented compute with a miner's provider key; a miner rents and stops their own machines, and Carbon only connects to one the miner already runs. C-MLP-03 slices 4 and 4b (RunPod, Lium and a Targon VM rented per practice trial) are retired: the provider-API layer under carbon/compute (adapters, provisioning service and store, accounting, admission, reconciler and its CLI, rented_runner), setup's rented-GPU choice and its live balance and price check, the battery rented_gpu scope and the rented campaign hooks were removed; job_server and remote_job stay. An old profile, setup request or frozen campaign is refused by name (rented_gpu_retired_connect_your_machine), never translated into another runtime, and a frozen one is refused before any network or SSH call; setup deletes Carbon's stored copy of the provider key and tells the miner to revoke it. The replacement is the miner's own GPU machine over SSH with Docker and the NVIDIA Container Toolkit; container-only rentals are an open owner question. Supersedes OWNER-MINER-ENVIRONMENT-01 section 2's rented compute and OWNER-C-MLP-03-ANSWERS-01 section 2. Operator scripts on the operator's own RunPod account are unchanged. Engineering evidence only; nothing is qualified and no chain write is made."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: "C-MLP-03-SLICE-4-RENTED-GPU"
+    recorded_at: "2026-10-02T20:01:19Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4, rebuilt under OWNER-MINER-COMPUTE-LINK-ONLY-01 (LINKONLY-D4): battery practice can run on a GPU machine the miner runs, reached over SSH with Docker and the NVIDIA Container Toolkit; the library is built and setup does not offer it yet. carbon.compute.remote_machine drives the system ssh with the miner's own agent, config and known hosts (no -i, no IdentitiesOnly, no Carbon known_hosts, no accept-new, BatchMode) to a [user@]host or alias destination that can never be an option. A fixed script refuses by code when Docker (90), the NVIDIA Container Toolkit (91), Docker without sudo (92) or the pinned worker by image ID (93) is missing, installs nothing, and starts one carbon-job-<24 hex> container with --rm, the GPUs and the job port on the machine's loopback, its environment through a deleted temporary file; only such containers are ever removed, and the worker image is streamed with docker save | ssh docker load and checked by ID. carbon.compute.remote_runner reserves the trial, writes the owner-only job record, starts the container, reaches the job server through an SSH port forward and always closes the tunnel and removes the container, recording whether the machine confirmed it; BatteryPractice records the REMOTE_GPU backend. Carbon never starts, stops or bills the machine. Engineering evidence only; a real practice on a miner's machine is the acceptance, and nothing is qualified."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: "C-MLP-03-SLICE-4B-TARGON-VM"
+    recorded_at: "2026-10-02T20:22:17Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-ADMISSION-COMBINED-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-TRACK-A-L0-02 and OWNER-ADMISSION-COMBINED-01 (2026-10-02). The owner approved battery Track A's Level 0 values (threat model, USD 25 attack budget, 120+4 confirmation batch, reconstruction tolerances, review roles), frozen in a study sheet. The Level 0 lock waits on a scoring rule that stops ranking the boundary-optimist control at or above real models (route a), so the state is INCONCLUSIVE. Construction, attack and value now run as one admission test per ladder rung: one sheet, one panel (legitimate and attack constructions together), one confirmation set and one ledger. Score tuning, GRAPHITE and the design optimizer (Mode X attack, Mode D value) run inside it, with three separate verdicts that never compensate. SR-1, pre-registered before computing, tested 66 weighted-geometric ratios of accuracy, important-region robustness and decision agreement offline on EV2 and EV4. Outcome NO_PROMOTION: 27 ratios catch the optimist; the chosen sr-a0.5-r0.1-g0.4 ranks real models no worse (EV4 verification tau 0.412 vs 0.403, delta UNRESOLVED) but leaves real-model score-value divergence unchanged (7 vs 7). The next candidate needs new information. No testnet rule changed; not a qualification."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR1.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:10:05Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "adjustment"
+    event_id: "OWNER-CHALLENGE-ROADMAP-03"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Challenge Roadmap rev 2.2 (OWNER-CHALLENGE-ROADMAP-03). The owner found that the pipeline had dropped Challenge Admission section 3's construction ladder, so the ladder becomes the spine of construction iteration. Every Challenge enters Test/iterate at Level 0 and climbs one level at a time by the climb procedure: an expansion record, Carbon's reconstruction with tests, valid and matched adversarial runs under both profiles, ablation, interaction tests, clean-worker rebuilds, and opening to miners only after a person locks the level and validators serve its contract. A miner sends a declarative recipe and the contract digest it was written against, and the validator rebuilds with the reconstruction pinned in its own Carbon version, so a climb is a Carbon release. Levels not reached are NOT_RUN, frozen evidence and leaderboard entries name their level, and battery's Phase 1 includes its first climb, to Level 1. carbon/challenge_pipeline gains ladder.py, each record's construction block (battery at Level 0, OPEN, expansion 0001) and lessons.py: one entry after every execution, and a proposed revision adopted or declined by a named owner, never applied silently. The protocol is Challenge-neutral and improves through recorded revisions. Graphite, not Mira, is the testing agent. Rev 2.1's backend wording is corrected: JAX and PyTorch are where Carbon rebuilds a declarative recipe. No qualification, reward, deployment or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-PIPELINE-01.md"
+    affects:
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T22:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "SR-2-MARGIN-COMPONENT"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "SR-2 (2026-10-02), score tuning inside the combined admission test (OWNER-ADMISSION-COMBINED-01). A margin-aware leg m is the decision contract's cost-weighted margin error in band units on plating and peak temperature: optimism at the false-acceptance cost, pessimism at the missed-opportunity cost. It was pre-registered before computing and tested in 286 weighted-geometric profiles over accuracy, important-region robustness, decision agreement and m, offline on EV2 with its 15 prediction files verified against committed digests. Outcome NO_PROMOTION. m measures what it was built for: the boundary optimist overstates margins by 1.6 bands, the real MLPs by 0.5-0.7. Averaged over all scoring cases it does not track decision quality (verification tau 0.243 against g's 0.309), and no m-weighted profile is chosen. The next candidate weights margin error toward the decision boundary, which needs a science-lead value. EV4 replication NOT_RUN (predictions not retained). STUCK count 2 of 3. No testnet rule changed."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR2.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:37:58Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "SR-3-NEAR-MARGIN"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "SR-3 (2026-10-02, OWNER-SR3-NEAR-01): SR-2's cost-weighted margin error restricted to the published important region (311 of 1,588 scoring cases), pre-registered and tested in 286 profiles offline on EV2's verified predictions. Outcome NO_PROMOTION. n sharpens the safety signal (the boundary optimist overstates near-limit margins by 2.41 bands, real MLPs 0.58-0.97) but tracks decisions worse (verification tau 0.177 against g's 0.309). Across SR-1 to SR-3, EV2's development and verification conditions disagree about which rule is best, so with 14 members selection does not transfer: the limit is the evidence, not the formula. Three consecutive non-progressing studies fire the STUCK trigger (TRACK-B-STUCK-01): full Track B review by the SciML lead and the owner. The recommendation is to rerun SR-1 to SR-3 on EV4's 99 members after regenerating and verifying their predictions (about USD 1-3), then confirm once in EV5. No testnet rule changed."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR3.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:47:38Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "EV4-REGEN-SR-RERUN"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-EV4-REGEN-01 (2026-10-02). EV4's 100 panel predictions were regenerated from EV4's own plan at its code ref on one A40 pod (about USD 0.22, termination verified, ev4-regen campaign with a USD 5 ceiling inside the USD 25 cap). They were content-verified: every member's recomputed exam components equal EV4's recorded ones exactly; byte digests differ only in wall-clock fields. SR-2 and SR-3 reran on 99 members under their frozen rules: NO_PROMOTION for both. The larger panel reverses EV2: the margin legs rank models far better than decision agreement (m 0.388, n 0.366, g 0.262), but no profile beats the deciding rule beyond noise (best 0.420 vs 0.403). The deciding rule's 7 verification divergence conditions are 2 constructed controls, 3 kNN self-orderings and 2 real near-ties, so the pre-registered count cannot show real-model gains. Recommendation to the TRACK-B-STUCK-01 review: keep the deciding rule for ranking, add a separate optimism-near-limits admissibility gate with a science-set threshold, report real-member divergence separately in future studies, and confirm once in EV5."
+    primary_detail: "docs/development/evidence/sr-ev4-2026-10-02/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T23:44:17Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01-S3"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 slice 3 (2026-10-03): battery Track A at the worker boundary. A new registered family, staged_bytes, stages reconstruction, inference and practice files while validator-private canaries (a private root, a hidden batch's references and labels) sit beside them, then scans every staged byte; a leaky-stager specimen shows the detector fires, and the control holds the staged names to the published allow-list. A new service test runs a real battery practice through the isolated carrier in the pinned C-03 worker image with the same canaries planted on the host, then scans every byte the run left behind; it runs in CI's C-03 service lane. That lane now also triggers on the battery worker boundary (battery worker.py, practice.py, the research carrier and the battery service tests), which battery changes previously skipped. The classifier digest pin is updated as hygiene. Surface-edge resource recipes remain open. Not a security audit."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:10:45Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "ADMISSIBILITY-OPTIMISM-GATE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "TRACK-B-STUCK-01 outcome (2026-10-03; owner approval, SciML lead approval reported by the owner). The deciding rule stays for ranking. A near-limit optimism admissibility gate is built in carbon/battery/value/admissibility.py and is INACTIVE: its cutoff THRESHOLD_BANDS is None (HUMAN_INPUT, SciML/technical lead), so no score changes. Evidence for the cutoff: at the boundary optimist's 2.41 bands, 13/99 EV4 real members (verification loss 2.05 vs 0.55) and 2/14 EV2 members (1.38 vs 0.34) sit at or above it. Mean optimism cannot catch the localized sign-error control (0.46, below every real member). Value-study scope only; the testnet rule is unchanged."
+    primary_detail: "docs/development/evidence/admissibility-optimism-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:13:53Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "REAL-DIVERGENCE-REPORT"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "TRACK-B-STUCK-01 follow-up, prospective only. carbon/battery/value/real_divergence.py splits each score-value divergence condition into constructed-control, within-family and across-family real-model pairs. Classed totals equal every frozen study's committed counts; nothing is rescored. EV4 verification: the deciding rule has 1 across-family real divergence (plus 4 within-family, 2 control). The SR-2 and SR-3 margin-aware candidates have 5 and 6, so they make real-model divergence worse, which supports keeping the deciding rule. The localized sign-error control outranks 95-98 of 99 real members under every rule; no rule or mean-optimism gate catches it, so it needs its own measurement (a science decision). Recommendation: EV5 pre-registers across-family real-member divergence as its criterion."
+    primary_detail: "docs/development/evidence/real-divergence-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:16:26Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "EV5-PREREG-DRAFT"
+    owner_lane: "technical_lead"
+    status: "proposed"
+    summary: "EV5 pre-registration DRAFT (not frozen; nothing dispatches): the battery Level 0 combined admission run under OWNER-ADMISSION-COMBINED-01. It confirms once, on fresh conditions, the TRACK-B-STUCK-01 outcome: the deciding rule versus the SR-2 candidate for ranking (across-family real-member divergence as the criterion), the near-limit optimism gate at the SciML lead's cutoff, Track A attack constructions scored like real ones, and a sealed 120+4-case confirmation set, with three separate verdicts. Cost estimate from EV4's measured pod times: about USD 2.8 (option A, no in-run agents; proposed cap USD 6), inside the USD 25 L0 cap. Freeze is blocked on the gate cutoff (SciML lead) and the owner's spend approval."
+    primary_detail: "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:18:43Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "STALE-DOCS-OPTIMIZER-PROGRAMME"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Documentation lag repaired. DESIGN_OPTIMIZER_SCOPE.md said 'scoped, not built', but the design optimizer was built (carbon/battery/value/optimizer.py) and run once as EV4's Problem C under its frozen pre-registration; the status now says so, and records which section 4 gaps EV4 fixed (K = 50, the Mode X condition grid) and which remain unset (PB-INV and PB-ADV policy values). BATTERY_TESTNET_PROGRAMME_STATE.md: EV4, SR-1..3, the battery kit and the Track A harness move to Done; new open rows for the inactive optimism gate (cutoff from the SciML lead), the EV5 draft (owner spend), Track A Level 0 (INCONCLUSIVE until the value precondition) and the localized sign-error measurement gap."
+    primary_detail: "docs/development/BATTERY_TESTNET_PROGRAMME_STATE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:20:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-MERGE-HYGIENE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Standing merge-hygiene rules for every agent (OWNER-MERGE-HYGIENE-01, 2026-10-03), after one green PR (#504) had to merge main seven times in a night, every conflict in generated Hub files or the append-only decision log. Part A, in force now: generated Hub files are never hand-edited and their conflicts are resolved by taking main's version and re-rendering; decision-log conflicts keep both sides, main's first; main is merged only just before the final push; a green PR is merged at once; and every agent defers to an open PR labelled merge-priority whose CI is running or green. Part B, switched on by the MERGE-HYGIENE-01 ticket: PRs commit no generated Hub outputs, and decisions are one file each, enforced by CI. A merge queue stays a separate owner decision. No scientific, security or delivery rule changed."
+    primary_detail: "docs/development/MERGE_HYGIENE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T12:01:26Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

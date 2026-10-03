@@ -1090,6 +1090,14 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
     )
+    # Eight shards share the canonical command; ci.sh owns what each runs.
+    assert "fail-fast: false" in jobs["canonical"]
+    assert "shard: [0, 1, 2, 3, 4, 5, 6, 7]" in jobs["canonical"]
+    assert "CARBON_CI_SHARD: ${{ matrix.shard }}/8" in jobs["canonical"]
+    assert "grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh" in jobs["canonical"]
+    # The retired Hub runs only while the protected gate still names it.
+    assert "hub_required == 'true'" in jobs["hub-validation"]
+    assert "# HUB-RETIREMENT BEGIN" in jobs["merge-gate"]
     assert _inline_run_commands(jobs["dev-image"]) == (
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
     )

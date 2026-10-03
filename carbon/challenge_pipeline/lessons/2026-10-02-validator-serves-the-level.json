@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-validator-serves-the-level",
+ "recorded_at": "2026-10-02T20:36:18Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/battery/daemon.py, carbon/reconstruction/challenge_contracts.py",
+  "description": "Traced how a validator learns to rebuild a construction, for the owner's question."
+ },
+ "expected": "The climb procedure says how a new level reaches the validators.",
+ "observed": "Miners send a declarative recipe plus the contract digest it was written against; the validator rebuilds with the reconstruction pinned in its own Carbon version and refuses a digest it does not serve. The climb procedure did not say validators must serve the new contract before miners use a level.",
+ "keep": [
+  "The digest check: a level the validators do not serve is refused by name."
+ ],
+ "change": [
+  "The climb procedure's last step opens a level to miners only after a person locks it and validators serve its contract."
+ ],
+ "protocol_elements": [
+  "construction_ladder.climb_procedure"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
