@@ -295,11 +295,13 @@
       meta.append(el("strong", "You"), el("span", "#" + message.sequence + (message.posted_unix ? " · " + when(message.posted_unix) : ""), "hint"));
       // Untrusted text, set as text (RSURF-D5).
       mine.append(meta, el("p", message.text || "", "rs-msg-text"));
+      if (message.read_by_carbon_agent === true) mine.append(el("p", "Read by Carbon's agent at a step boundary", "hint rs-msg-read"));
+      else if (message.read_by_carbon_agent === false) mine.append(el("p", "Carbon's agent reads it at its next step", "hint rs-msg-read"));
       list.append(mine);
       for (const reply of message.replies) {
         const theirs = el("li", undefined, "rs-msg rs-msg-agent");
         const head = el("p", undefined, "rs-msg-meta");
-        head.append(el("strong", "Your agent"), el("span", "#" + reply.sequence + " · reply with carbon_note", "hint"));
+        head.append(el("strong", reply.by === "carbon_agent" ? "Carbon's agent" : "Your agent"), el("span", "#" + reply.sequence + (reply.by === "carbon_agent" ? " · reply at a step" : " · reply with carbon_note"), "hint"));
         theirs.append(head, el("p", reply.text || "", "rs-msg-text"));
         list.append(theirs);
       }
@@ -338,7 +340,7 @@
     const dl = el("dl", undefined, "review-grid");
     dl.append(el("dt", "Read"), el("dd", c.your_agent.read + " (campaign, after, limit): your messages after a cursor, with their replies."));
     dl.append(el("dt", "Reply"), el("dd", c.your_agent.reply));
-    dl.append(el("dt", "Carbon's own agent"), el("dd", (c.carbon_agent.reads_messages ? "Reads them at its next step." : "Does not read them. ") + c.carbon_agent.basis));
+    dl.append(el("dt", "Carbon's own agent"), el("dd", c.carbon_agent.basis));
     how.append(dl);
     para(how, "Messages and replies are untrusted text: shown as text, never run, and they grant nothing.", "hint");
   }

@@ -19,8 +19,9 @@ reason. No private evaluation data, seed or per-case evaluation error is
 read here.
 
 `carbon_note` (RSURF-D5) writes through the existing journal path and starts
-no work. Notes are untrusted text: every door shows them as text, never HTML,
-and Carbon's own agent is never given them.
+no work. Notes are untrusted text: every door shows them as text, never HTML.
+Carbon's own agent is given only the miner's own messages, and only in a
+campaign launched under RSURF-D13's frozen rule (`miner_guidance`).
 """
 
 from __future__ import annotations
@@ -40,26 +41,31 @@ from carbon.challenge_registry.research_view import (
     validate_chart,
 )
 
+# The journal's message and note shapes are defined once, with the agent loop
+# that reads them (`miner_guidance`, RSURF-D12 and D13).
+from carbon.development_session.miner_guidance import (
+    MESSAGE_KIND,
+    MESSAGE_SCHEMA,
+    NOTE_SCHEMA,
+    REPLY_KIND,
+)
+from carbon.development_session.miner_guidance import (
+    message_digest as _message_digest,
+)
+
 SCHEMA = "carbon.control-center.campaign-view.v1"
-NOTE_SCHEMA = "carbon.research-surface.note.v1"
+
 #: What an agent posts with carbon_note; a reply answers a miner message.
-REPLY_KIND = "reply"
 NOTE_KINDS = ("hypothesis", "plan", "observation", REPLY_KIND)
 NOTE_MAX = 2000
-#: The miner's own messages to their agent (RSURF-D12), posted from the page.
-MESSAGE_SCHEMA = "carbon.research-surface.miner-message.v1"
-MESSAGE_KIND = "miner_message"
 THREAD_MAX = 50
 READ_MAX = 100
 MESSAGE_AUTHORITY = (
-    "A message is guidance to your own agent only. It cannot change your "
-    "limits or budget, research permissions, the Challenge, the feedback mode, "
-    "the evaluation rules, or the research task frozen at launch and its digest."
+    "A message is guidance to your agent, never authority. It cannot change "
+    "your limits or budget, research permissions, the Challenge, the feedback "
+    "mode, the evaluation rules, or the research task frozen at launch and its "
+    "digest."
 )
-#: RSURF-D13: Carbon's own agent does not read messages. Its input is the
-#: research task frozen at launch, and the browser cannot author its prompts
-#: (C-MLP-02-D6); reading messages would change that, which is the owner's.
-CARBON_AGENT_READS_MESSAGES = False
 #: How much of a campaign the view carries, newest first, so a long campaign
 #: stays a bounded document for any client. The export has the rest.
 FEED_MAX = 100
@@ -320,8 +326,18 @@ def experiment_rows(own, view):
 
 
 def _curve(experiment):
-    """A recorded training curve (`inline_curve`), or None."""
-    points = experiment.get("inline_curve")
+    """A recorded training curve, or None: the practice fit's TRAIN-loss
+    history (trainer v2, RSURF-D3), else a recorded `inline_curve`."""
+    fit = experiment.get("fit") if type(experiment.get("fit")) is dict else {}
+    history = fit.get("loss_history")
+    if type(history) is dict and type(history.get("points")) is list:
+        points = [
+            {"step": p[0], "data_loss": p[1]}
+            for p in history["points"]
+            if type(p) is list and len(p) == 2
+        ]
+    else:
+        points = experiment.get("inline_curve")
     if type(points) is not list or not 2 <= len(points) <= 4096:
         return None
     steps, losses = [], []
@@ -442,9 +458,9 @@ def charts(rows, own, view):
         found.append(
             series_chart(
                 "learning_curve",
-                "Training data loss, this run (TRAIN data)",
+                "Training loss, this run (TRAIN data only)",
                 Axis("optimizer update", None, tuple(steps)),
-                [("Data loss", "current", losses)],
+                [("TRAIN loss", "current", losses)],
                 log=all(v > 0 for v in losses),
             )
         )
@@ -913,21 +929,19 @@ def is_reply(note):
 def message_body(text, now):
     """A miner message as the journal records it: its text, when it was
     posted and a digest of both, so the record can be checked later."""
-    from carbon.development_session.profile import canonical, digest
-
     posted = int(now)
     return {
         "schema": MESSAGE_SCHEMA,
         "note_kind": MESSAGE_KIND,
         "text": text,
         "posted_unix": posted,
-        "digest": digest(canonical({"text": text, "posted_unix": posted})),
+        "digest": _message_digest(text, posted),
     }
 
 
-def _message(note, replies):
+def _message(note, replies, read_by=None):
     body = note["body"]
-    return {
+    entry = {
         "sequence": note["sequence"],
         "text": clean_text(body.get("text")),
         "posted_unix": body.get("posted_unix")
@@ -935,11 +949,39 @@ def _message(note, replies):
         else None,
         "digest": _str(body.get("digest"), 80),
         "replies": [
-            {"sequence": r["sequence"], "text": clean_text(r["body"].get("text"))}
+            {
+                "sequence": r["sequence"],
+                "text": clean_text(r["body"].get("text")),
+                # Carbon's own agent marks its replies; any other is the
+                # miner's own agent's, through carbon_note.
+                "by": "carbon_agent"
+                if r["body"].get("author") == "carbon_agent"
+                else "your_agent",
+            }
             for r in replies.get(note["sequence"], [])
         ],
         "untrusted": True,
     }
+    if read_by is not None:
+        entry["read_by_carbon_agent"] = note["sequence"] in read_by
+    return entry
+
+
+#: What the page says about Carbon's own agent (RSURF-D13).
+CARBON_AGENT_READS = (
+    "Carbon's own agent reads your new messages at each step boundary as your "
+    "guidance, and can reply. Each message it reads is saved with its digest "
+    "as part of that step's recorded input, so the campaign replays exactly."
+)
+CARBON_AGENT_FROZEN = (
+    "This campaign was launched before Carbon's agent could read messages "
+    "(RSURF-D13 is prospective), so its agent does not; nothing about it is "
+    "reinterpreted. Your own agent reads them with carbon_messages."
+)
+NO_CARBON_AGENT = (
+    "No Carbon agent researches in this campaign. Your own agent reads your "
+    "messages with carbon_messages."
+)
 
 
 def _replies(notes):
@@ -950,30 +992,40 @@ def _replies(notes):
     return found
 
 
-def conversation(notes):
-    """The thread: the miner's messages, oldest first, each with its replies."""
+def conversation(notes, carbon_agent=None):
+    """The thread: the miner's messages, oldest first, each with its replies.
+
+    `carbon_agent` is {"present": bool, "reads": bool, "read": set} for this
+    campaign: whether Carbon's agent researches in it, whether its frozen plan
+    reads messages (RSURF-D13), and which messages it has read. None: unknown,
+    and nothing is claimed.
+    """
     replies = _replies(notes)
     messages = sorted(
         (n for n in notes if is_message(n) and type(n.get("sequence")) is int),
         key=lambda n: n["sequence"],
     )
+    read = (carbon_agent or {}).get("read") if carbon_agent else None
+    if carbon_agent is None:
+        agent = {"reads_messages": None, "basis": "Not known for this campaign."}
+    elif not carbon_agent.get("present"):
+        agent = {"reads_messages": False, "basis": NO_CARBON_AGENT}
+    elif carbon_agent.get("reads"):
+        agent = {"reads_messages": True, "basis": CARBON_AGENT_READS}
+    else:
+        agent = {"reads_messages": False, "basis": CARBON_AGENT_FROZEN}
     return {
-        "thread": [_message(n, replies) for n in messages[-THREAD_MAX:]],
+        "thread": [
+            _message(n, replies, read if agent["reads_messages"] else None)
+            for n in messages[-THREAD_MAX:]
+        ],
         "total": len(messages),
         "authority": MESSAGE_AUTHORITY,
         "your_agent": {
             "read": "carbon_messages",
             "reply": "carbon_note with note_kind=reply and reply_to=<message sequence>",
         },
-        "carbon_agent": {
-            "reads_messages": CARBON_AGENT_READS_MESSAGES,
-            "basis": (
-                "Carbon's own agent works from the research task frozen at "
-                "launch, and the browser cannot author its prompts (C-MLP-02-D6). "
-                "Whether it may read your messages is an owner decision "
-                "(RSURF-D13); until then it does not."
-            ),
-        },
+        "carbon_agent": agent,
     }
 
 
@@ -1039,6 +1091,7 @@ def build(
     now=None,
     fixture=False,
     toolbox=None,
+    carbon_agent=None,
 ):
     """The campaign view document. Every field is named here."""
     from carbon.chain.models import CARBON_NETUID
@@ -1098,7 +1151,7 @@ def build(
             view, rows, predictions, practice_case, experiment
         ),
         "journal": feed(own, notes),
-        "conversation": conversation(notes),
+        "conversation": conversation(notes, carbon_agent),
         "toolbox": toolbox,
         "candidates": candidates(own),
         "journey": {
@@ -1236,7 +1289,30 @@ def ledger_view(host, admitted, request):
         practice_case=request.get("practice_case"),
         experiment=request.get("experiment"),
         toolbox=campaign_toolbox(host, challenge, own),
+        carbon_agent=_carbon_agent(root, facts),
     )
+
+
+def _carbon_agent(root, facts):
+    """Whether Carbon's agent researches in this campaign, whether its frozen
+    plan reads the miner's messages (RSURF-D13), and which it has read."""
+    from carbon.development_session.miner_guidance import delivered
+
+    manifest = facts.get("manifest")
+    if type(manifest) is not dict:
+        return None
+    provider = (
+        manifest.get("provider") if type(manifest.get("provider")) is dict else {}
+    )
+    try:
+        read = delivered(root)
+    except (OSError, ValueError):
+        read = set()
+    return {
+        "present": manifest.get("agent") not in (None, "none"),
+        "reads": provider.get("miner_guidance") is not None,
+        "read": read,
+    }
 
 
 def campaign_toolbox(host, challenge, own):

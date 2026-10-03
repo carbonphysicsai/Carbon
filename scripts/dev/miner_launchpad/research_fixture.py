@@ -157,11 +157,14 @@ class FixtureRunner:
                 asked = sequence
                 body = message_body(text, self.created - 3600 + sequence * 60)
             else:
+                # Carbon's own agent read the message at a step and replied
+                # (RSURF-D13), as the fixture's campaign is an agent one.
                 body = {
                     "schema": NOTE_SCHEMA,
                     "note_kind": "reply",
                     "text": text,
                     "reply_to": asked,
+                    "author": "carbon_agent",
                 }
             self.notes.append({"sequence": sequence, "body": body})
         self.notes.sort(key=lambda n: n["sequence"])
@@ -283,6 +286,11 @@ class FixtureRunner:
             now=self.clock(),
             fixture=True,
             toolbox=self.toolbox(),
+            carbon_agent={
+                "present": True,
+                "reads": True,
+                "read": {30, 44},
+            },
         )
 
     def toolbox(self):
@@ -335,6 +343,25 @@ class FixtureRunner:
                         "final_loss": round(0.02 * score, 6),
                         "n_params": 12000 * (1 + run % 3),
                         "train_s": 40.0 + 6 * run,
+                        # A synthetic TRAIN-loss history in trainer v2's
+                        # recorded shape (RSURF-D3), so the renderer has one
+                        # to draw. Synthetic: not a real run's loss.
+                        "loss_history": {
+                            "trainer": "carbon.battery.trainer.v2",
+                            "updates": 2000,
+                            "objective": "synthetic fixture loss, not a run",
+                            "points": [
+                                [
+                                    step,
+                                    round(
+                                        0.9 * math.exp(-step / (260 + 40 * run))
+                                        + 0.004 * score,
+                                        6,
+                                    ),
+                                ]
+                                for step in range(0, 2001, 125)
+                            ],
+                        },
                     },
                     "backend": {
                         "kind": EVIDENCE,
@@ -342,19 +369,6 @@ class FixtureRunner:
                         if self.backbones[run - 1] == "fno"
                         else "fixture-worker-image",
                     },
-                    # A synthetic learning curve, so the renderer has one to
-                    # draw. Real battery practice records none (RSURF-D3).
-                    "inline_curve": [
-                        {
-                            "step": step,
-                            "data_loss": round(
-                                0.9 * math.exp(-step / (260 + 40 * run))
-                                + 0.004 * score,
-                                6,
-                            ),
-                        }
-                        for step in range(0, 2001, 125)
-                    ],
                     "accepted_improvement": False,
                     "adaptively_seen": True,
                 }

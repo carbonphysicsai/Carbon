@@ -6,7 +6,8 @@
 - A miner message is one journal entry posted from the page. It cannot touch
   the frozen manifest, budget, task or feedback mode, and no MCP tool posts
   one. Agents read messages with carbon_messages and reply with carbon_note.
-- Carbon's own agent does not read messages (RSURF-D13).
+- The page says whether Carbon's own agent reads them: only a campaign
+  launched under RSURF-D13's frozen rule does (tests/cpu/test_miner_guidance.py).
 """
 
 from __future__ import annotations
@@ -187,8 +188,9 @@ def test_the_page_posts_a_message_and_an_agent_replies(served):
         )
     )
     thread = host.view_document()["conversation"]["thread"]
+    # An MCP agent's reply is the miner's own agent's.
     assert thread[-1]["replies"] == [
-        {"sequence": sequence + 1, "text": "Running it now."}
+        {"sequence": sequence + 1, "text": "Running it now.", "by": "your_agent"}
     ]
     # A reply must answer a miner message; other notes name none.
     from scripts.dev.miner_launchpad.operations import perform
@@ -240,7 +242,9 @@ def test_messages_page_by_cursor():
     first = cv.messages_since(notes, {"limit": 2})
     assert [m["text"] for m in first["messages"]] == ["m1", "m2"]
     assert first["more"] is True and first["next_cursor"] == 4
-    assert first["messages"][0]["replies"] == [{"sequence": 3, "text": "r1"}]
+    assert first["messages"][0]["replies"] == [
+        {"sequence": 3, "text": "r1", "by": "your_agent"}
+    ]
     second = cv.messages_since(notes, {"after": first["next_cursor"], "limit": 2})
     assert [m["text"] for m in second["messages"]] == ["m3", "m4"]
     last = cv.messages_since(notes, {"after": 8})
@@ -373,20 +377,88 @@ def test_a_message_reaches_only_its_owners_product_campaign(tmp_path):
     assert refused.value.code == "retired_grant_campaign"
 
 
-def test_carbons_own_agent_does_not_read_messages():
-    """RSURF-D13 fails closed: C-MLP-02-D6 freezes the agent's task at launch
-    and keeps the browser from authoring its prompts."""
-    assert cv.CARBON_AGENT_READS_MESSAGES is False
-    doc = cv.conversation(_notes(1))
-    assert doc["carbon_agent"]["reads_messages"] is False
-    assert "C-MLP-02-D6" in doc["carbon_agent"]["basis"]
-    import inspect
+def test_the_conversation_says_what_carbons_agent_does():
+    """RSURF-D13 (owner, 2026-10-03), prospective: Carbon's agent reads the
+    miner's messages only in a campaign whose frozen plan carries the rule,
+    and the page says which case this campaign is."""
+    notes = _notes(2)
+    unknown = cv.conversation(notes)
+    assert unknown["carbon_agent"]["reads_messages"] is None
+    assert "read_by_carbon_agent" not in unknown["thread"][0]
+    agentless = cv.conversation(
+        notes, {"present": False, "reads": False, "read": set()}
+    )
+    assert agentless["carbon_agent"] == {
+        "reads_messages": False,
+        "basis": cv.NO_CARBON_AGENT,
+    }
+    before = cv.conversation(notes, {"present": True, "reads": False, "read": set()})
+    assert before["carbon_agent"]["basis"] == cv.CARBON_AGENT_FROZEN
+    assert "read_by_carbon_agent" not in before["thread"][0]
+    reads = cv.conversation(notes, {"present": True, "reads": True, "read": {2}})
+    assert reads["carbon_agent"] == {
+        "reads_messages": True,
+        "basis": cv.CARBON_AGENT_READS,
+    }
+    assert [m["read_by_carbon_agent"] for m in reads["thread"]] == [True, False]
+    # Carbon's agent marks its replies; nothing else can claim them.
+    notes[1]["body"]["author"] = "carbon_agent"
+    shown = cv.conversation(notes, {"present": True, "reads": True, "read": {2}})
+    assert shown["thread"][0]["replies"][0]["by"] == "carbon_agent"
+    assert shown["thread"][1]["replies"][0]["by"] == "your_agent"
 
-    from carbon.development_session import research_agent, research_loop
 
-    for module in (research_agent, research_loop):
-        source = inspect.getsource(module)
-        assert "miner-message" not in source and "miner_message" not in source
+def test_the_view_reads_which_messages_carbons_agent_was_given(tmp_path):
+    from carbon.development_session import miner_guidance
+    from carbon.development_session.profile import canonical
+
+    epoch = tmp_path / "epoch-1"
+    epoch.mkdir()
+    (epoch / ("epoch-1-provider-000" + miner_guidance.RECORD_SUFFIX)).write_bytes(
+        canonical(
+            {
+                "schema": miner_guidance.RECORD_SCHEMA,
+                "cursor_after": 4,
+                "messages": [{"sequence": 2}, {"sequence": 4}],
+            }
+        )
+    )
+    manifest = {
+        "agent": "carbon-autoresearch",
+        "provider": {"miner_guidance": miner_guidance.RULE},
+    }
+    assert cv._carbon_agent(tmp_path, {"manifest": manifest}) == {
+        "present": True,
+        "reads": True,
+        "read": {2, 4},
+    }
+    # A campaign frozen before the amendment, and one with no Carbon agent.
+    older = {"agent": "carbon-autoresearch", "provider": {"agent": "autonomous"}}
+    assert cv._carbon_agent(tmp_path, {"manifest": older})["reads"] is False
+    assert (
+        cv._carbon_agent(tmp_path, {"manifest": {"agent": "none"}})["present"] is False
+    )
+    assert cv._carbon_agent(tmp_path, {}) is None
+
+
+def test_the_learning_curve_reads_the_recorded_train_loss_history():
+    history = {
+        "trainer": "carbon.battery.trainer.v2",
+        "points": [[0, 0.9], [10, 0.5], [20, 0.2]],
+    }
+    assert cv._curve({"fit": {"loss_history": history}}) == (
+        [0, 10, 20],
+        [0.9, 0.5, 0.2],
+    )
+    inline = [{"step": 0, "data_loss": 1.0}, {"step": 5, "data_loss": 0.5}]
+    assert cv._curve({"inline_curve": inline}) == ([0, 5], [1.0, 0.5])
+    # Malformed or too short: no curve, never a guessed one.
+    for fit in (
+        {"loss_history": {"points": [[0, 0.9]]}},
+        {"loss_history": {"points": [[5, 0.9], [1, 0.5]]}},
+        {"loss_history": {"points": [[0, -1.0], [1, 0.5]]}},
+    ):
+        assert cv._curve({"fit": fit}) is None
 
 
 def test_replies_are_plain_text_in_the_view():
