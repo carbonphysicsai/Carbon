@@ -38,15 +38,26 @@ python -m carbon.miner_mcp.standard_cli \
 
 - the four `carbon_onboarding_*` tools, reading Carbon's testnet;
 - one tool per miner operation - `carbon_launch` (with `agent` `autonomous`
-  or `none`), `carbon_observe`, `carbon_practice`, `carbon_freeze_candidate`,
-  `carbon_submit`, `carbon_halt`, `carbon_resume` - generated from the same
-  operations table (`scripts/dev/miner_launchpad/operations.py`) as the
-  browser's `/api/v1/operations` routes, with the same gates in the same order
-  over the same campaign records;
+  or `none`; setup's names `carbon-autonomous` and `own-agent` are accepted
+  as the same choices), `carbon_observe`, `carbon_practice`,
+  `carbon_freeze_candidate`, `carbon_submit`, `carbon_halt`, `carbon_resume` -
+  generated from the same operations table
+  (`scripts/dev/miner_launchpad/operations.py`) as the browser's
+  `/api/v1/operations` routes, with the same gates in the same order over the
+  same campaign records. Their schemas state each field's closed values as
+  enums and mark launch's `challenge` and `challenge_version` required.
+  Launch's `idempotency_key` is optional on this door: omitted, the server
+  generates `mcp-<32 hex>` and returns it as `idempotency_key`; send your own
+  to make a retry after a lost response replay instead of launching a second
+  campaign;
 - `carbon_attach_campaign` and `carbon_detach_campaign`, which bind this
   session to one campaign for the deeper research tools (workspace,
   `run_python`, Julia). Attaching holds the campaign's ownership lock, so
-  practice, freeze and submit answer `campaign_busy` until you detach.
+  practice, freeze, submit, resume and halt `action=reconcile` on that
+  campaign answer `campaign_busy` up front until you detach; observe,
+  campaign view, messages, note and run output keep working. One attach or
+  detach runs at a time (`attachment_busy`), and a detach is refused while
+  this session's research calls are in flight (`research_calls_in_flight`).
 
 Registration admits every operation that starts or extends work; observe and
 halt only read or withdraw, so a miner can always see and stop their own
@@ -84,10 +95,16 @@ Two limitations worth knowing before building on this:
   `chain_onboarding.carbon_testnet_context` (subnet 567), so `status` and
   `confirm` answer from public chain state; `confirm` names what registration
   unlocks - the launch operation - rather than claiming an environment opened.
-- **The pinned SDK sends no list-changed notification.** A client sees the
-  registered tier on its next `tools/list`, not before. This is a property of
-  the SDK, not of how attachment is implemented: its own `add_tool` has no
-  notification path either.
+- **List changes are announced by this server, best effort.** The pinned
+  SDK's own `add_tool` sends nothing, so the open-tier server advertises
+  `listChanged` for tools, resources and prompts on its handshake, and every
+  call that adds or removes tools announces it (`open_tier.announce`): as
+  `notifications/tools/list_changed` (and the resources and prompts
+  equivalents) on a handshake-era session, and on the `subscriptions/listen`
+  stream of a 2026-07-28 client. Whether a client re-lists is the client's,
+  so each such result also names the tools in `tools_added` and reports
+  `list_changed_announced`; a client that ignores notifications sees the new
+  tools on its next `tools/list`.
 
 ## Automate setup with your agent
 
@@ -116,8 +133,13 @@ python -m carbon.miner_mcp.standard_cli            # add --state-dir if the Cont
   `carbon_setup_status`, `carbon_setup_signer` and `carbon_setup_begin` are in
   the open tier. The later steps appear once setup has confirmed the
   registration; launch and the research operations once `carbon_setup_review`
-  writes the runner profile, in the same session. A result that adds tools
-  lists them in `tools_added`: list the tools again.
+  writes the runner profile, in the same session, and at once in a session
+  that reconnects after review. A result that adds tools lists them in
+  `tools_added` (the server also announces the change): list the tools
+  again. At the launch step, `next.call.in_this_session` says whether
+  `carbon_launch` is in this session; when it is not, `next.call` says
+  why - the written profile did not load here (call `carbon_setup_review`
+  again), or a reconnect command with your profile and state directory.
 - **The miner's own steps.** Starting the signer and signing the registration
   answer a closed `human_action_required` result with the exact instruction
   or command. Nothing here accepts, returns or logs a private key, seed
@@ -170,11 +192,46 @@ parameter for them and no call site can supply one. The principal is a
 binding, so a record cannot attribute a call to a caller-named identity even by
 mistake. Records go wherever the operator injects them, and nowhere by default.
 
-**Refusals** carry a stable slug and the next usable step, for example
-`OPERATIONAL_STOP; dispatch_may_have_occurred=false; next_action=...`. The slug
-is the adapter's own enum value so it cannot drift, and the next action is fixed
-text per slug rather than a provider message, because provider text is how
-unbounded internal detail reaches an external wire.
+**Refusals** carry a stable slug and the next usable step. The slug is the
+adapter's own enum value so it cannot drift, and the next action is fixed text
+per slug rather than a provider message, because provider text is how
+unbounded internal detail reaches an external wire. Arguments that do not
+match a tool's schema are refused first by the MCP SDK's own validation
+message; every refusal after that is one of the forms below, after the SDK's
+`Error executing tool <name>: ` prefix.
+
+- Research tools, and a negotiated Tasks start, answer one line:
+  `CODE; dispatch_may_have_occurred=true|false; [field=<schema field>;]
+  next_action=...`. `field` is only ever a field the schema declares, never a
+  key the caller invented. `dispatch_may_have_occurred=false` is reported only
+  where it is a fact: a typed pre-dispatch refusal, a signer failure before
+  any signature, or a refusal raised at one of the two sites that run before
+  anything is signed - the operation-id binding of a numerical start, and the
+  campaign's admission check. Those sites have their own codes:
+  `CAMPAIGN_ELAPSED_BUDGET_REACHED` (the campaign's time limit - the elapsed
+  budget set at launch or a development grant's expiry - is reached, or the
+  host clock moved backwards), `CAMPAIGN_ADMISSION_STOPPED` (paused, stopped,
+  completed, awaiting reconciliation, or its control taken by another
+  holder) and `OPERATION_ID_REUSED` (the operation_id already names a
+  different numerical start). Any other failure there is an
+  `OPERATIONAL_STOP` that started nothing; the same text raised anywhere
+  else keeps the conservative `dispatch_may_have_occurred=true`.
+- The operation, attach and setup tools answer closed JSON:
+  `{"error": <code>, "field": <field to correct, when one is to blame>,
+  "next_step": ...}`.
+
+A registered pre-dispatch correction from the research SDK (a
+`REJECTED_BEFORE_DISPATCH` result with `correction_code`, `field` and
+`correction`) reaches the client in this wire's object terms (`arguments.name`,
+not `arguments_json.name`), and only when the adapter can rebuild its exact
+text from the registered code and field.
+
+**Results.** A research result over 1 MiB is cut to fit rather than refused:
+its largest strings and lists are shortened, never below 1024 characters or
+16 elements, and a `truncation` record names each cut (`cut`, the first 16;
+`cut_total`). Only a value over 16 MiB, or one that cannot be cut to fit, is
+`INVALID_RESULT`. `carbon_run_output` returns a run's raster images as MCP
+image content; the JSON names each by its content index.
 
 **Capacity.** Concurrent calls are bounded, and waiting for capacity has a
 deadline: exceeding it returns `CAPACITY_UNAVAILABLE` with
@@ -196,11 +253,22 @@ Read `carbon://research/v1/capabilities` and
 structured results with text fallback. Clients do not supply the principal or
 wrap arguments in undocumented JSON strings.
 
-Choose one stable `operation_id` per intended operation, retain it across
-reconnects, and use the returned task identity for status/result/cancel. Reusing
-an identity with changed inputs is a conflict. Polling and display do not create
-another numerical attempt. A client may propose hypotheses and stop within its
-grant; no second proposal or improvement is required.
+`operation_id` is optional on every research tool. Omitted, the server
+generates `mcp-auto-<32 hex>` and returns it as `operation_id`; its schema
+states the bounds (16 to 114 letters, digits, `.`, `_`, `:` or `-`). What it
+does depends on the tool. On `start_research_task` it is the task's
+idempotency key: send your own and retain it across reconnects, and the same
+id with the same arguments returns the original task instead of starting
+another; a changed request under a used id is a conflict, refused as
+`OPERATION_ID_REUSED` before anything starts for a numerical start (practice,
+`run_python`, `run_julia`). On `cancel_research_task` it is the cancellation's
+identity: omitted, it is `mcp-cancel-<task_id>`, the identity `tasks/cancel`
+uses too, so a retried cancel is accepted again; a task holds one
+cancellation identity, so a cancel under a different id while the first is
+pending is refused. Other tools only record it. Use the returned task
+identity for status/result/cancel. Polling and display do not create another
+numerical attempt. A client may propose hypotheses and stop within its
+campaign's own limits; no second proposal or improvement is required.
 
 Python `mcp==2.2.0` and TypeScript `@modelcontextprotocol/client==2.0.0` are the
 tested independent client implementations. Versioned start/status/result/cancel
@@ -221,7 +289,19 @@ nor reconnecting redispatches uncertain work or consumes another trial.
 
 Use `tasks/cancel` with the same ID to request domain cancellation. Its empty
 acknowledgement is an intent, not proof of allocation release. Poll for observed
-state and retain unresolved accounting. `tasks/update` accepts typed responses
+state and retain unresolved accounting.
+
+A failed `tasks/get` or `tasks/cancel` is a JSON-RPC error. `-32602
+TASK_NOT_FOUND; retry=false; next_action=...` means this campaign holds no
+task with that ID: an unknown ID and another miner's task are deliberately
+indistinguishable. Every other failure is `-32603 <CODE>; retry=true|false;
+next_action=...` under its own code, and never claims the task is missing:
+`retry=true` only where the same observation may succeed later (a stopped or
+slow signer, a campaign not admitting, an operational stop), and `retry=false`
+for the rest - among them `INVALID_RESULT` (the task's state could not be put
+on the wire; after a cancel it may already be accepted, so do not start the
+task again), `OWNER_BINDING`, and `OBSERVATION_LIMIT_REACHED` (the provider's
+bound on observing one task; `get_research_result` still reads it). `tasks/update` accepts typed responses
 but requests no client approval/grant values; responses to nonexistent input
 requests are ignored after ownership checks. These verbs require the extension
 on each request; HTTP clients must send `Mcp-Name: <taskId>` and the correct

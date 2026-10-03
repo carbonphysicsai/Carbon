@@ -24,13 +24,15 @@ and tearing down their connection at that moment would be both a poor first
 experience and a state-loss hazard, at precisely the point they have just done
 the one irreversible thing. So attachment mutates a live server.
 
-One limitation, measured rather than assumed: **the pinned SDK sends no
-list-changed notification.** A client sees the registered tier on its next
-`tools/list`, not before. This is not a consequence of how attachment is
-implemented here - the SDK's own `add_tool` has no notification path either, and
-`MCPServer` exposes no such mechanism. A client that caches its tool list
-indefinitely will not see the new tools until it re-lists. Worth knowing before
-a front door is built on this; not worth working around inside the SDK.
+**Growing the surface is announced (LP-PROD-B).** The SDK's own `add_tool`
+sends nothing, so this server announces each change itself (`announce`): to a
+handshake-era client as `notifications/tools/list_changed` (and the resources
+and prompts equivalents where those change) on its session, and to a
+2026-07-28 client on its `subscriptions/listen` stream. The server advertises
+`listChanged` for all three (`ListChangingServer`), so a client that honours
+the capability re-lists at once. Announcing is best effort and never fails the
+call that grew the surface; every such result also names the tools it added,
+and says to list them again, for a client that ignores notifications.
 
 What this does not do: decide *when* to attach. That is the caller's, because
 the trigger differs by front door - an operator supplying a profile, a
@@ -39,6 +41,8 @@ capability and refuses to guess the policy.
 """
 
 from __future__ import annotations
+
+import functools
 
 OPEN_TIER = "carbon.mcp.open-tier.v1"
 
@@ -59,6 +63,80 @@ class CampaignAlreadyAttached(RuntimeError):
     """One server, one campaign. A second would need its own ownership lock."""
 
 
+@functools.cache
+def _list_changing_server():
+    """`MCPServer` that advertises list changes on its stdio handshake.
+
+    The SDK's stdio runner builds its initialization options with no
+    notification options, so a handshake-era client is told the lists never
+    change and may ignore the notifications `announce` sends. This runner is
+    the SDK's own `run_stdio_async`, with the three `listChanged` flags set
+    because this server's lists do change. (A 2026-07-28 client derives them
+    from `subscriptions/listen`, which the SDK serves already.)
+    """
+    from mcp.server import MCPServer
+    from mcp.server.lowlevel.server import NotificationOptions
+    from mcp.server.stdio import stdio_server
+
+    class ListChangingServer(MCPServer):
+        def initialization_options(self):
+            """The handshake this server offers: listChanged for all three."""
+            return self._lowlevel_server.create_initialization_options(
+                NotificationOptions(
+                    prompts_changed=True, resources_changed=True, tools_changed=True
+                )
+            )
+
+        async def run_stdio_async(self) -> None:
+            async with stdio_server() as (read_stream, write_stream):
+                await self._lowlevel_server.run(
+                    read_stream, write_stream, self.initialization_options()
+                )
+
+    return ListChangingServer
+
+
+async def announce(ctx, *, tools=True, resources=False, prompts=False):
+    """Tell the connected client which of its lists changed; best effort.
+
+    Both eras, because a call does not say which one its client speaks: the
+    session notification reaches a handshake-era client (the SDK drops it for
+    a 2026-07-28 one), and the subscription bus reaches a 2026-07-28 client's
+    `subscriptions/listen` stream (and nobody else). Returns whether anything
+    was sent. Never raises: the surface already changed, and the result names
+    the change for a client that misses the notification.
+    """
+    if ctx is None:
+        return False
+    sent = False
+    try:
+        session = ctx.request_context.session
+    except (ValueError, AttributeError):  # outside a request: no session
+        session = None
+    for wanted, notify, publish in (
+        (tools, "send_tool_list_changed", "notify_tools_changed"),
+        (resources, "send_resource_list_changed", "notify_resources_changed"),
+        (prompts, "send_prompt_list_changed", "notify_prompts_changed"),
+    ):
+        if not wanted:
+            continue
+        for target, method in ((session, notify), (ctx, publish)):
+            send = getattr(target, method, None)
+            if send is not None:
+                sent = await _quietly(send) or sent
+    return sent
+
+
+async def _quietly(send):
+    """One notification; whether it went. A closed stream, an unserved bus or
+    an era that drops it is not the caller's failure."""
+    try:
+        await send()
+    except Exception:  # noqa: BLE001 - a notification never fails the call
+        return False
+    return True
+
+
 def create_open_tier_server(
     *, reader=None, context=None, guard=None, sink=None, host_facts=None, **settings
 ):
@@ -68,8 +146,6 @@ def create_open_tier_server(
     `chain_onboarding.carbon_testnet_context` the browser door uses - so
     `status` and `confirm` answer from public chain state on either door.
     """
-    from mcp.server import MCPServer
-
     from carbon.development_session.exam_environment import exam_environment
     from carbon.miner_mcp.mcp_challenges import (
         make_challenge_tools,
@@ -77,7 +153,7 @@ def create_open_tier_server(
     )
     from carbon.miner_mcp.mcp_onboarding import make_onboarding_tools
 
-    server = MCPServer(
+    server = _list_changing_server()(
         "Carbon Onboarding",
         version="1.0.0",
         instructions=(
@@ -136,7 +212,13 @@ def create_open_tier_server(
 
 
 def attach_campaign(
-    server, adapter, *, guard=None, workbench=None, authorize_workbench=None
+    server,
+    adapter,
+    *,
+    guard=None,
+    workbench=None,
+    authorize_workbench=None,
+    capacity=None,
 ):
     """Add the registered tier to a running server, without restarting it.
 
@@ -156,6 +238,12 @@ def attach_campaign(
     it did rather than assuming. The SDK version is already pinned and asserted
     elsewhere; if a future version changes the registry, that check fails loudly
     instead of quietly admitting laxer tools.
+
+    Extensions cannot be added to a server a client has initialized, so the
+    reference's Tasks extension does not come across; its catalogue is told
+    the live server's extensions instead, and so never lists Tasks where they
+    are not offered. `capacity`, when given, bounds and counts the attached
+    tools' calls, so the attachment can refuse to detach under one in flight.
     """
     from carbon.miner_mcp.standard_server import _create_server
 
@@ -170,6 +258,8 @@ def attach_campaign(
         guard=guard,
         workbench=workbench,
         authorize_workbench=authorize_workbench,
+        capacity=capacity,
+        served_extensions=tuple(getattr(server, "_extensions", ())),
     )
 
     added = []

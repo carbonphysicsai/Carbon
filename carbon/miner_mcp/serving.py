@@ -113,7 +113,124 @@ NEXT_ACTION = {
         "This server is at its concurrent-call bound. Nothing was dispatched. "
         "Retry the same operation_id shortly."
     ),
+    # Pre-dispatch stops (LP-PROD-B): each names the limit, says nothing
+    # started, and gives the step that lets a retry succeed.
+    AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED.value: (
+        "This campaign's time limit is reached: the elapsed budget set at "
+        "launch, or a development grant's expiry - or the host clock moved "
+        "backwards. Nothing was dispatched, so there is nothing to reconcile. "
+        "If the clock moved, correct it; otherwise this campaign admits no "
+        "more research, and a new campaign (with a larger elapsed budget, or "
+        "none) continues it."
+    ),
+    AdapterCode.CAMPAIGN_ADMISSION_STOPPED.value: (
+        "This campaign is not admitting work right now: it is paused, stopped, "
+        "completed or awaiting reconciliation, or another holder took its "
+        "control. Nothing was dispatched. Check its state (carbon_observe where "
+        "offered, or the Control Center) and resume or reconcile it. If this "
+        "session is attached to the campaign, call carbon_detach_campaign "
+        "first, resume or reconcile, then attach again (carbon_attach_campaign) "
+        "- an attachment whose control another holder took also needs that "
+        "fresh attach, or a restart of a server started with --campaign. Then "
+        "retry the same operation_id."
+    ),
+    AdapterCode.OPERATION_ID_REUSED.value: (
+        "This operation_id already names a different request in this campaign, "
+        "so this one was refused before anything started. Nothing was "
+        "dispatched. To repeat the earlier request, send it unchanged with the "
+        "same operation_id; for a new request use a new operation_id, or omit "
+        "it and the server generates one."
+    ),
+    AdapterCode.TASK_NOT_FOUND.value: (
+        "This campaign holds no task with that id; an id from another campaign "
+        "or another miner is indistinguishable from an unknown one. Nothing "
+        "changed. Use the taskId (task_id) your start returned."
+    ),
+    AdapterCode.OBSERVATION_LIMIT_REACHED.value: (
+        "This task has been observed through tasks/get as many times as the "
+        "task provider allows, so tasks/get on it is refused from now on. "
+        "Nothing changed. Read its state with get_research_result (its own "
+        "poll_sequence) or in the campaign's view."
+    ),
 }
+
+#: How each code reads on a task observation (tasks/get, tasks/cancel): only
+#: these mean the task itself is unavailable - an unknown id, or another
+#: miner's, which the provider cannot tell apart either. One answer for both,
+#: so there is no oracle. Nothing else is folded in: a failure that reached
+#: the caller's own task (a result this server will not forward) or the
+#: server's binding says nothing about whether the task exists.
+TASK_UNAVAILABLE = frozenset(
+    {
+        AdapterCode.TASK_NOT_FOUND.value,
+        AdapterCode.INVALID_ARGUMENT.value,
+    }
+)
+
+#: The codes after which the same observation may succeed without the client
+#: changing it: a transient stop, or a signer the miner can start or answer.
+#: Every other failed observation is `retry=false` - fail closed, so a new
+#: code never invites a polling loop by default.
+OBSERVATION_RETRYABLE = frozenset(
+    {
+        AdapterCode.OPERATIONAL_STOP.value,
+        AdapterCode.CAMPAIGN_ADMISSION_STOPPED.value,
+        AdapterCode.SIGNER_NOT_RUNNING.value,
+        AdapterCode.SIGNER_REFUSED.value,
+        AdapterCode.SIGNER_TIMEOUT.value,
+        "CAPACITY_UNAVAILABLE",
+    }
+)
+
+#: The next action for a task observation that failed without saying anything
+#: about the task: observing changes nothing, so retrying is safe.
+OBSERVATION_RETRY = (
+    "This observation did not complete and changed nothing; retry it. If it "
+    "keeps failing, the campaign needs reconciliation through its operator."
+)
+
+#: Next actions that differ on a task observation. A result this server will
+#: not forward may come after a cancellation was accepted, so it never says
+#: nothing changed, and never invites starting the task again.
+OBSERVATION_ACTION = {
+    AdapterCode.OPERATIONAL_STOP.value: OBSERVATION_RETRY,
+    AdapterCode.INVALID_RESULT.value: (
+        "The task's current state could not be put on this wire. Do not take "
+        "this as the task being gone or stopped - a cancellation may already "
+        "have been accepted - and do not start it again. Check it in the "
+        "campaign's view (the Control Center, or carbon_campaign_view where "
+        "offered) and report it with its taskId."
+    ),
+}
+
+
+def observation_action(code: str) -> str:
+    """The fixed next action for a failed task observation. A task has no
+    operation_id to retry, so the plain tools' wording is restated for it."""
+    if code in OBSERVATION_ACTION:
+        return OBSERVATION_ACTION[code]
+    action = NEXT_ACTION.get(code)
+    if action is None:
+        return OBSERVATION_RETRY
+    return action.replace(" with the same operation_id", "").replace(
+        "the same operation_id", "this observation"
+    )
+
+
+def refusal(code: str, *, dispatch_may_have_occurred: bool, field=None) -> str:
+    """The one refusal line every research door sends: a stable code, whether
+    anything may have started, the field when one is to blame, and the fixed
+    next action for the code. Never a provider message or a caller's value;
+    `field` is only ever a name from a server-side schema."""
+    parts = [
+        code,
+        "dispatch_may_have_occurred=" + str(dispatch_may_have_occurred).lower(),
+    ]
+    if field is not None:
+        parts.append("field=" + field)
+    parts.append("next_action=" + NEXT_ACTION[code])
+    return "; ".join(parts)
+
 
 #: Reported outcomes. Closed, so a record cannot carry free text describing what
 #: a caller supplied.
@@ -206,6 +323,9 @@ class Capacity:
         self.queue_deadline = queue_deadline
         self.budget = budget
         self._semaphore = None
+        #: Calls holding capacity now: what an attachment waits on before it
+        #: lets a detach pull the campaign out from under them.
+        self.in_flight = 0
 
     def _gate(self):
         # Built on first use: an asyncio primitive must bind to the loop that
@@ -220,9 +340,11 @@ class Capacity:
             await asyncio.wait_for(self._gate().acquire(), self.queue_deadline)
         except TimeoutError:
             return False
+        self.in_flight += 1
         return True
 
     def release(self):
+        self.in_flight -= 1
         self._gate().release()
 
     def overran(self, duration_ms: int) -> bool:

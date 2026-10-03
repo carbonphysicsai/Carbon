@@ -3,6 +3,13 @@
 No task store or execution state lives here. The trusted adapter owns admission,
 current authorized projection and supervised cleanup. Optional SDK imports occur
 only when the standard server factory is called.
+
+Refusals read exactly as the plain tools' do (`serving.refusal`): the adapter's
+own closed code, whether anything may have started, the field to blame for an
+invalid argument, and the fixed next action (LP-PROD-B). A task observation
+tells "this task is unavailable" (unknown, or not yours: one answer for both)
+apart from "this observation failed" by JSON-RPC error code, and says whether
+the same observation is worth retrying (`observation_error`).
 """
 
 from __future__ import annotations
@@ -12,7 +19,12 @@ import re
 from datetime import UTC, datetime, timedelta
 
 from carbon.development_session.research_tools import PREFIX
-from carbon.miner_mcp.standard import AdapterFailure, ResearchToolRequest
+from carbon.miner_mcp import serving
+from carbon.miner_mcp.standard import (
+    AdapterCode,
+    AdapterFailure,
+    ResearchToolRequest,
+)
 
 TASKS_EXTENSION = "io.modelcontextprotocol/tasks"
 PROTOCOL_VERSIONS = frozenset({"2026-07-28"})
@@ -81,7 +93,49 @@ def task_projection(result, *, detailed):
     return task
 
 
-def make_tasks_extension(adapter, *, guard, validate_start):
+#: JSON-RPC error codes for a failed task observation: the task itself is
+#: unavailable (invalid params), or this observation failed (internal error).
+TASK_UNAVAILABLE_ERROR = -32602
+OBSERVATION_FAILED_ERROR = -32603
+
+
+def observation_error(code):
+    """(JSON-RPC code, message) for a failed tasks/get or tasks/cancel.
+
+    One answer for every way the task can be unavailable - unknown, or
+    another miner's - so the two cannot be told apart (`-32602
+    TASK_NOT_FOUND`). Every other failure keeps its own code (`-32603`): it
+    says nothing about whether the task exists, so it is never reported as a
+    missing task, which could send an agent to start its running work again.
+    `retry=true` only for the codes after which the same observation may
+    succeed (`serving.OBSERVATION_RETRYABLE`: a stopped signer, a campaign not
+    admitting, a dropped registration read); an observation changes nothing,
+    and a cancellation reuses one cancellation identity. Everything else -
+    a result this server will not forward, the server's binding, a spent
+    limit - is `retry=false`.
+    """
+    if code in serving.TASK_UNAVAILABLE:
+        return TASK_UNAVAILABLE_ERROR, (
+            "TASK_NOT_FOUND; retry=false; next_action="
+            + serving.NEXT_ACTION[AdapterCode.TASK_NOT_FOUND.value]
+        )
+    retry = "true" if code in serving.OBSERVATION_RETRYABLE else "false"
+    return OBSERVATION_FAILED_ERROR, (
+        code + "; retry=" + retry + "; next_action=" + serving.observation_action(code)
+    )
+
+
+def invalid_field(error, fields):
+    """The schema field a validation error is about, or None: only a name
+    this server declared, never a key the caller invented."""
+    for detail in error.errors():
+        location = detail.get("loc") or ()
+        if location and location[0] in fields:
+            return location[0]
+    return None
+
+
+def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
     from mcp.server.extension import Extension, MethodBinding
     from mcp.server.mcpserver import require_client_extension
     from mcp.shared.exceptions import MCPError
@@ -115,14 +169,21 @@ def make_tasks_extension(adapter, *, guard, validate_start):
                 if cancel
                 else adapter.observe_task(params.task_id)
             )
+        except AdapterFailure as failure:
+            # Never foreign task existence, paths or controller errors: only
+            # the closed code, read as unavailable or as worth a retry.
+            raise MCPError(*observation_error(failure.code.value)) from None
+        try:
             projected = task_projection(result, detailed=True)
             if projected is None or projected["taskId"] != params.task_id:
-                raise ValueError("unavailable task")
+                raise ValueError("unprojectable task")
             return projected
-        except (AdapterFailure, ValueError, KeyError, TypeError, OverflowError):
-            # Do not reveal foreign task existence, paths or controller errors.
+        except (ValueError, KeyError, TypeError, OverflowError):
+            # The adapter answered for this campaign's own task, so it is not
+            # a missing task; on a cancel the cancellation has already run.
+            # INVALID_RESULT, retry=false, and never "nothing changed".
             raise MCPError(
-                -32602, "Task unavailable; reconcile through the operator"
+                *observation_error(AdapterCode.INVALID_RESULT.value)
             ) from None
 
     class ResearchTasks(Extension):
@@ -164,30 +225,49 @@ def make_tasks_extension(adapter, *, guard, validate_start):
             ):
                 return await call_next(ctx)
             check(ctx)
-            try:
-                arguments = validate_start(params.arguments)
-            except ValidationError:
+
+            def refused(text):
                 return {
                     "resultType": "complete",
-                    "content": [{"type": "text", "text": "INVALID_ARGUMENTS"}],
+                    "content": [{"type": "text", "text": text}],
                     "isError": True,
                 }
+
+            try:
+                arguments = validate_start(params.arguments or {})
+            except ValidationError as error:
+                # Named the way the plain tool would be, with the one field to
+                # correct when the schema can name it; nothing was dispatched.
+                return refused(
+                    serving.refusal(
+                        AdapterCode.INVALID_ARGUMENT.value,
+                        dispatch_may_have_occurred=False,
+                        field=invalid_field(error, fields),
+                    )
+                )
             identity = arguments.pop("operation_id")
             try:
                 result = await adapter.start_task(
                     ResearchToolRequest("start_research_task", identity, arguments)
                 )
+            except AdapterFailure as failure:
+                # The adapter's own code - SIGNER_NOT_RUNNING, NO_CAMPAIGN,
+                # OPERATION_ID_REUSED ... - and its honest dispatch flag.
+                return refused(
+                    serving.refusal(
+                        failure.code.value,
+                        dispatch_may_have_occurred=failure.dispatch_may_have_occurred,
+                    )
+                )
+            try:
                 return task_projection(result, detailed=False) or tool_result(result)
-            except (AdapterFailure, ValueError, KeyError, TypeError, OverflowError):
-                return {
-                    "resultType": "complete",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "OPERATIONAL_STOP; reconcile before retry",
-                        }
-                    ],
-                    "isError": True,
-                }
+            except (ValueError, KeyError, TypeError, OverflowError):
+                # The start returned, so the task may exist: never "nothing ran".
+                return refused(
+                    serving.refusal(
+                        AdapterCode.INVALID_RESULT.value,
+                        dispatch_may_have_occurred=True,
+                    )
+                )
 
     return ResearchTasks()
