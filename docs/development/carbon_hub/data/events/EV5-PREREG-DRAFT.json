@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "EV5-PREREG-DRAFT",
+  "owner_lane": "technical_lead",
+  "status": "planned",
+  "summary": "EV5 pre-registration DRAFT (not frozen; nothing dispatches): the battery Level 0 combined admission run under OWNER-ADMISSION-COMBINED-01. It confirms once, on fresh conditions, the TRACK-B-STUCK-01 outcome: the deciding rule versus the SR-2 candidate for ranking (across-family real-member divergence as the criterion), the near-limit optimism gate at the SciML lead's cutoff, Track A attack constructions scored like real ones, and a sealed 120+4-case confirmation set, with three separate verdicts. Cost estimate from EV4's measured pod times: about USD 2.8 (option A, no in-run agents; proposed cap USD 6), inside the USD 25 L0 cap. Freeze is blocked on the gate cutoff (SciML lead) and the owner's spend approval.",
+  "primary_detail": "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-03T02:18:43Z"
+}
