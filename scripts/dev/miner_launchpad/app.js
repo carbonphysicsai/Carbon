@@ -2557,7 +2557,7 @@
   window.CarbonControlCenter = {
     api, el, pill, details, link, message,
     state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch}),
-    challengeEntry, agentEntry, selectedProvider, describeComposition,
+    challengeEntry, agentEntry, selectedProvider, describeComposition, journey,
     launch: launchResearch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },

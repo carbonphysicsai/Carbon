@@ -714,11 +714,16 @@
     if ("elapsed_seconds" in budget) parts.push(budget.elapsed_seconds + " s elapsed");
     for (const [name, cap] of Object.entries(budget.ceilings || {})) parts.push(words(name) + " ≤ " + cap);
     const problem = CC.launchProblem();
+    // Agent first, as setup is: who researches decides whether Inference
+    // applies. Your own agent (own-agent) uses its own model and skips it,
+    // as does a launch that calls no model.
+    const j = CC.journey ? CC.journey() : null;
+    const skipsInference = Boolean(j?.skipped?.inference) || Boolean(agent && !agent.uses_model);
     const cards = [
       {id: "challenge", title: "Challenge", value: entry ? entry.title + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
-      {id: "agent", title: "Agent", value: agent ? agent.label : steps.agent?.checked ? choiceName("agent", steps.agent.choice) : "Not chosen", note: agent ? (agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : "Who researches and submits", href: "#setup/agent"},
+      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
-    if (!agent || agent.uses_model) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
+    if (!skipsInference) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
     cards.push(
       {id: "compute", title: "Compute", value: steps.compute?.checked ? choiceName("compute", steps.compute.choice) : (s.caps.compute?.choices?.[0]?.label || "Not checked"), note: "Your machine, or your own remote one", href: "#setup/compute"},
       {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own campaign ledger. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
