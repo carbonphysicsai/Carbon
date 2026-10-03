@@ -87,6 +87,41 @@ MECHANISM = "BURNED_REGISTRATION"
 COST_BASIS = "SUBNET_RECYCLE_PARAMETER"
 COST_VALUE = "NOT_READ"
 
+#: The registration as a command the miner runs in their own terminal, with
+#: the Bittensor CLI if that is their tooling (LP-PROD-E). A template only:
+#: the names in angle brackets are the miner's own wallet and hotkey names,
+#: which Carbon never asks for. Carbon runs nothing, signs nothing and reads
+#: no cost; btcli shows the cost and asks before anything is sent.
+REGISTER_COMMAND = (
+    "btcli subnet register --netuid {netuid} --network {network} "
+    "--wallet.name <your wallet name> --wallet.hotkey <your hotkey name>"
+)
+#: The Bittensor CLI's own name for the network an endpoint serves.
+BTCLI_NETWORKS = {"wss://test.finney.opentensor.ai:443": "test"}
+
+
+def register_command(context) -> dict[str, object]:
+    """The registration `prepare` describes, as the command a miner runs.
+
+    Written for `context`: the network is btcli's name for the context's
+    endpoint, or the endpoint itself. Nothing here runs it, and the only
+    inputs are the public subnet and endpoint.
+    """
+    network = BTCLI_NETWORKS.get(context.endpoint, context.endpoint)
+    return {
+        "text": REGISTER_COMMAND.format(netuid=CARBON_NETUID, network=network),
+        "tool": "btcli (the Bittensor CLI), if that is your wallet tooling",
+        "fill_in": ["<your wallet name>", "<your hotkey name>"],
+        "run_in": (
+            "your own terminal. btcli shows the cost and asks you to confirm; "
+            "your wallet asks for its own password there, never Carbon."
+        ),
+        "verified": (
+            "UNVERIFIED: Carbon has not run this command. Check it with "
+            "`btcli subnet register --help` for your btcli version."
+        ),
+    }
+
 
 class OnboardingFailure(Exception):
     """Closed, actionable failure. Never carries a provider message or a key."""
@@ -464,13 +499,18 @@ async def prepare(reader, context, address: object) -> dict[str, object]:
             "shown_by": "your wallet, before you confirm",
         },
         "execute_in": "your own wallet tooling",
+        # The same registration as a command to run in that tooling
+        # (LP-PROD-E): a template, never run here.
+        "command": register_command(context),
         "carbon_did_not": [
             "sign this",
             "hold or request any key, seed phrase or mnemonic",
             "submit anything to the chain",
+            "run this command or read its cost",
         ],
         "next_action": (
-            "Execute this registration in your own tooling, then call confirm."
+            "Execute this registration in your own tooling, for example the "
+            "command above, then call confirm."
         ),
     }
 
