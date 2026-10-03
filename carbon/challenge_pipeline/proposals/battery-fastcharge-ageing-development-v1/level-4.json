@@ -17,5 +17,10 @@
   "hybrid.reference_solver_reuse is excluded by the contract (trigger: evidence_design_change): hybrids reusing the PyBaMM reference are not permitted because validation is JAX-only.",
   "Level 4 would need isolation: An independently isolated execution stage capable of running custom JAX architecture code \u2014 hybrid physics-plus-learned-correction models, symbolic expression evaluators, and learned time-steppers \u2014 while exporting predictions through a constrained inference interface that enforces the same output contract (voltage and temperature trajectories over the 30 s grid, plating margin, capacity) as the registered model families. The stage must block access to the PyBaMM reference solver, external data, pretrained weights, and the file system beyond the recipe and TRAIN data.; and reconstruction: Carbon must design and build, before this level can open: (1) a constrained inference interface that custom architectures export through, with the same trajectory and scalar output shapes as the registered model families, pinned in Carbon's worker image; (2) a registered JAX cell-model template (for example a single-particle or equivalent reduced-order model) with a learned correction pathway; (3) a registered symbolic expression template system with coefficient fitting via the permitted optimizers; (4) a rollout time-stepper architecture for the 30 s battery grid with error-controlled training. Each needs a validator reconstruction test proving Carbon can rebuild it from a declarative recipe against the contract digest."
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }

@@ -258,5 +258,10 @@
   "training_data.label_method is excluded (evidence_design_change): per-submission reference labels are not permitted; the reference is PyBaMM and validation is JAX-only.",
   "training_data.submitted_datasets is excluded (external_data_or_learned_state): uploaded datasets or miner-chosen seeds are not permitted; only the seeded TRAIN v1 subset is available."
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }

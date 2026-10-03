@@ -69,7 +69,7 @@ with an accepted proposal.
 
 | Contract | L0 | L1 | L2 | L3 | L4 | L5 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `battery-fastcharge-ageing-development-v1` | PROPOSED | PROPOSED | PROPOSED | PROPOSED | PROPOSED | PROPOSED |
+| `battery-fastcharge-ageing-development-v1` | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED |
 
 ## Priority queue
 

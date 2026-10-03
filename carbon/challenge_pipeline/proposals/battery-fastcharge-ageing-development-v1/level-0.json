@@ -551,5 +551,10 @@
   "training_data.submitted_datasets: excluded \u2014 uploaded datasets or miner-chosen seeds (trigger: external_data_or_learned_state)",
   "Level 3 has nothing in today's contract"
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }

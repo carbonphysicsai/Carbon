@@ -80,5 +80,10 @@
   "objective.pde_weight is left at research_only because no candidate-side governing equation is registered for the DFN battery model; adding a PDE residual loss would require a registered JAX-compatible DFN residual, which does not exist yet",
   "objective.loss_expressions is excluded because it would allow miners to submit loss functions as code or expressions, opening an executable-submission attack surface that the construction contract does not permit at this level"
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }

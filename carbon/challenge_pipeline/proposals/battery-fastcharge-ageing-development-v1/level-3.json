@@ -16,5 +16,10 @@
   "stages.physics_warmup_steps, the only training-stage numerical ramp considered for the Challenge, is research_only at level 2 because 'it ramps a PDE residual battery does not have'; this removes the main candidate for a level-3 numerical routine.",
   "The optimiser-adjacent literature cards (arxiv-2501.16371v6 for SSBFGS/SSBroyden, arxiv-2602.16167v1 for SpecMuon) concern optimiser-family extensions that would belong to level 2's optimizer.optimizer_family, not to level-3 training-time numerical routines such as preconditioners, and the contract owner has not registered them as capabilities."
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }

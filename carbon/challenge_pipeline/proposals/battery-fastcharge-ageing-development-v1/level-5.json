@@ -98,5 +98,10 @@
   "Ensemble members are capped at 4 to keep reconstruction cost bounded; larger ensembles would require a new Challenge or owner decision",
   "Tail averaging is capped at 0.9 of the final updates to ensure the averaged window retains a meaningful connection to the converged trajectory; averaging the entire run would conflate early and late training regimes"
  ],
- "status": "PROPOSED"
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
 }
