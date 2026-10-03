@@ -13,13 +13,18 @@ Commands:
   truth container (read-only on the validator);
 - ``ingest``: ingest the truth container's records file for a batch;
 - ``open``: open the pool once three screening batches are complete;
-- ``run``: advance every queued submission and open finalist comparison;
+- ``run``: advance every queued submission and open finalist comparison.
+  With ``--every SECONDS`` it is the long-lived validator daemon a service
+  supervises (LP-PROD-G): one pass per period, each under the writer lock
+  for its own duration only, one JSON line per pass, and SIGTERM ends it
+  after the pass in flight;
 - ``upgrade``: carry the deployment over to this checkout's contract,
   recipe implementation and images in place (OWNER-BATTERY-CARRYOVER-01).
   The incumbent, retained models, scores and pool stay; a recipe admitted
   under an earlier contract is recompiled under the current one, and each
   recompile is recorded. A changed exam rule, public material or seed pin is
-  refused: those still need a new deployment;
+  refused: those still need a new deployment. The binding it writes is the
+  one a writable start makes (`serving_identities`), pinned images included;
 - ``truth-materialize`` / ``truth-verify``: build the PyBaMM overlay from its
   hash-locked wheels and verify the pinned version inside the pinned image,
   with no network (`truth_env`). The solve itself runs in that image
@@ -39,7 +44,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import signal
 import sys
+import threading
+import time
 from pathlib import Path
 
 from .deployment import (
@@ -180,27 +188,132 @@ def init(config_path, *, repository=REPOSITORY):
 CARRY_OVER_DECISION = "OWNER-BATTERY-CARRYOVER-01"
 
 
+def serving_identities(config_path, *, repository=REPOSITORY):
+    """The identities a writable start of this deployment binds.
+
+    Computed without starting, recovering, locking or reaching Docker. A
+    read-only build runs `DirectBackend`, because it never evaluates, so its
+    own `identities()` name the trusted in-process backend. A carrier
+    deployment serves through its pinned worker images instead: this names
+    them exactly as `CarrierBackend` does. `upgrade` binds this and the
+    service preflight compares it with the stored binding, so neither ever
+    writes or expects the read-only backend for a carrier deployment (which
+    would make every later start refuse `identities_changed`).
+
+    Raises `EvaluationUnavailable("evaluation_config_image")` for a manifest
+    that cannot be read as a pinned worker image identity.
+    """
+    from .worker import CarrierBackend
+
+    config = load_config(config_path)
+    identities = validator(
+        config_path, repository=repository, readonly=True
+    ).identities()
+    if config["backend"] == "carrier":
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+        from carbon.reconstruction.worker.model import WorkerFailure
+
+        try:
+            image = load_image_identity(Path(config["image_manifest"]))
+            torch_image = (
+                load_image_identity(Path(config["torch_image_manifest"]))
+                if config.get("torch_image_manifest")
+                else None
+            )
+        except WorkerFailure:
+            raise EvaluationUnavailable("evaluation_config_image") from None
+        carrier = CarrierBackend(None, image, torch_image=torch_image, root=repository)
+        identities["backend"] = dict(carrier.identity)
+    return identities
+
+
 def upgrade(config_path):
     """Rebind a deployment to this checkout's identities, in place."""
     from .pool_store import StateError
 
     load_config(config_path)
     target = validator(config_path, repository=REPOSITORY, readonly=True)
+    identities = serving_identities(config_path)
     with writer(target):
         try:
-            result = target.store.rebind(
-                target.identities(), decision=CARRY_OVER_DECISION
-            )
+            result = target.store.rebind(identities, decision=CARRY_OVER_DECISION)
         except StateError as refused:
             raise EvaluationUnavailable("upgrade_" + refused.code) from None
     return {**result, "decision": CARRY_OVER_DECISION}
 
 
+#: `run --every` refuses a shorter period: an engineering bound, so a
+#: misconfigured service cannot spin on the deployment's writer lock.
+MIN_EVERY_S = 5.0
+DAEMON_SERVICE = "battery-validator-daemon"
+
+
+def _line(out, event, **fields):
+    """One structured log line: UTC time, service, event and counts only."""
+    record = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "service": DAEMON_SERVICE,
+        "event": event,
+        **fields,
+    }
+    print(json.dumps(record, sort_keys=True), file=out, flush=True)
+
+
+def run_every(config_path, every, *, stop=None, out=None, repository=REPOSITORY):
+    """`run`, long-lived: advance the queue once per `every` seconds.
+
+    Each pass is exactly one `run` (`run_pending` under the writer lock, held
+    for that pass only), so the intake's worker, a campaign's submit and
+    every operator command interleave with it. An exception inside a pass is
+    infrastructure: its type is logged, never its content, and the next pass
+    retries. A deployment that cannot be built is a configuration state:
+    `EvaluationUnavailable` propagates, and the caller exits 2 so a
+    supervisor does not restart into the same refusal. Returns the number of
+    passes made once `stop` is set.
+    """
+    out = sys.stdout if out is None else out
+    stop = threading.Event() if stop is None else stop
+    if not every >= MIN_EVERY_S:
+        raise EvaluationUnavailable("run_every_too_short")
+    load_config(config_path)
+    target = validator(config_path, repository=repository)
+    _line(out, "started", every_s=every)
+    passes = 0
+    while not stop.is_set():
+        try:
+            with writer(target):
+                advanced = target.run_pending()
+                status = target.status()
+        except Exception as failure:  # noqa: BLE001 - infrastructure, retried
+            _line(out, "pass_failed", type=type(failure).__name__)
+        else:
+            pool = status["pool"]
+            _line(
+                out,
+                "pass",
+                advanced=len(advanced),
+                pending=status["pending"],
+                open_finals=status["open_finals"],
+                pool=None if pool is None else pool["status"],
+            )
+        passes += 1
+        stop.wait(every)
+    _line(out, "stopped", passes=passes)
+    return passes
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.operate")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("init", "status", "batches", "recover", "open", "run", "upgrade"):
+    for name in ("init", "status", "batches", "recover", "open", "upgrade"):
         sub.add_parser(name).add_argument("--config", required=True)
+    run = sub.add_parser("run")
+    run.add_argument("--config", required=True)
+    run.add_argument(
+        "--every",
+        type=float,
+        help="stay running: one pass every SECONDS (at least 5) until SIGTERM",
+    )
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--config", required=True)
     prepare.add_argument("--role", required=True)
@@ -239,6 +352,16 @@ def main(argv=None):
         print(json.dumps(result, sort_keys=True, indent=2))
         return 0
 
+    if args.command == "run" and args.every is not None:
+        stop = threading.Event()
+        for number in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(number, lambda *_: stop.set())
+        try:
+            run_every(args.config, args.every, stop=stop)
+        except EvaluationUnavailable as unavailable:
+            print(json.dumps({"unavailable": unavailable.code}))
+            return 2
+        return 0
     if args.command == "upgrade":
         try:
             result = upgrade(args.config)
