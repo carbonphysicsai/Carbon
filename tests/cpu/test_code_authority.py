@@ -1063,6 +1063,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "canonical",
         "dev-image",
         "c03-worker",
+        "julia-service",
         "workbench",
         "contract-authority",
         "hub-validation",
@@ -1079,6 +1080,19 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
     assert _yaml_scalar(jobs["c03-worker"], "needs") == "preflight"
+    assert (
+        _yaml_scalar(jobs["julia-service"], "name")
+        == "Authored-Julia isolated service acceptance"
+    )
+    assert _yaml_scalar(jobs["julia-service"], "needs") == "preflight"
+    # The C-03 controls and the authored-Julia suite run in parallel under one
+    # condition, and the Merge gate requires both or neither.
+    assert _yaml_scalar(jobs["julia-service"], "if") == _yaml_scalar(
+        jobs["c03-worker"], "if"
+    )
+    assert '"${{ needs.julia-service.result }}" == success' in jobs["merge-gate"]
+    assert '"${{ needs.julia-service.result }}" == skipped' in jobs["merge-gate"]
+    assert "julia-service," in jobs["merge-gate"]
     assert (
         _yaml_scalar(jobs["workbench"], "name")
         == "Workbench release and application acceptance"
@@ -1105,9 +1119,15 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
+    )
+    assert _inline_run_commands(jobs["julia-service"]) == (
+        "./scripts/dev/bootstrap.sh",
         "bash ./scripts/dev/julia_worker_image.sh",
         "bash ./scripts/dev/julia_worker_service.sh",
     )
+    assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["julia-service"]
+    assert "GHCR_READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in jobs["julia-service"]
+    assert "./scripts/dev/c03_worker.sh doctor" in jobs["c03-worker"]
     assert _inline_run_commands(jobs["workbench"]) == (
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/workbench_worker_checks.sh",
@@ -1181,9 +1201,9 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
     assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 8
-    assert workflow.count("fetch-depth: 0") == 9
-    assert workflow.count("persist-credentials: false") == 10
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 9
+    assert workflow.count("fetch-depth: 0") == 10
+    assert workflow.count("persist-credentials: false") == 11
     assert "Install pinned uv" not in jobs["preflight"]
     assert "github.event.pull_request.draft == false" in jobs["preflight"]
     assert "dev_image_required == 'true'" in jobs["dev-image"]
