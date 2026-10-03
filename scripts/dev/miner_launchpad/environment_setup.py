@@ -127,6 +127,15 @@ AUTONOMOUS = "carbon-autonomous"
 #: Hermes Agent on the miner's machine, driving Carbon's MCP server over stdio
 #: (C-MLP-03 slice 5).
 HERMES = "hermes"
+#: The miner's own agent, any MCP client (OWNER-MINER-SETUP-AGENT-FIRST-01):
+#: it brings its own model, so setup's Inference step is skipped for it.
+OWN_AGENT = "own-agent"
+#: The agents that call a model chosen in setup's Inference step: Carbon's own
+#: agent, and Hermes' ready-made profile, which is written with that model.
+USES_SETUP_MODEL = (AUTONOMOUS, HERMES)
+#: Where a profile points its model key when no Inference step was taken: no
+#: file is there, so Carbon's agent stays unavailable and nothing reads it.
+NO_MODEL_KEY = "no-model.key"
 
 #: The order inference choices are offered in; the first is the default
 #: (Engy's Chat Completions route, C-MLP-03 slice 2).
@@ -380,6 +389,123 @@ def guide_commands(guide_id, transport, gpu_manifest=None) -> list[dict]:
     return commands
 
 
+#: The Control Center's state directory when none is named (controller.main).
+DEFAULT_STATE_DIR = Path.home() / ".carbon" / "development-launchpad"
+#: Where each client's MCP configuration was read, 2026-10-02. Nothing here
+#: was run against the client: each snippet says so (UNVERIFIED).
+CLIENT_DOCS = {
+    "claude-code": "code.claude.com/docs/en/mcp",
+    "codex": "learn.chatgpt.com/docs/extend/mcp (Codex CLI)",
+    "hermes": "hermes-agent.nousresearch.com/docs/user-guide/features/mcp",
+}
+
+
+def mcp_connect(state_dir=None) -> dict:
+    """How the miner's own agent connects: one command, and a snippet per
+    client from that client's public documentation (OWNER-MINER-SETUP-AGENT-
+    FIRST-01).
+
+    The server starts with no runner profile: the open tier and setup, over
+    the same setup records as this Control Center. The checkout must be on
+    the import path (its `scripts` package), so each snippet names it.
+    """
+    python = sys.executable
+    args = ["-m", "carbon.miner_mcp.standard_cli"]
+    if state_dir is not None and Path(state_dir) != DEFAULT_STATE_DIR:
+        args += ["--state-dir", str(state_dir)]
+    repo = str(REPO)
+    command = " ".join(shlex.quote(part) for part in [python, *args])
+    quoted = lambda value: json.dumps(value)
+    claude = {
+        "mcpServers": {
+            "carbon": {"command": python, "args": args, "env": {"PYTHONPATH": repo}}
+        }
+    }
+    toml = (
+        "[mcp_servers.carbon]\n"
+        f"command = {quoted(python)}\n"
+        f"args = {json.dumps(args)}\n"
+        f"cwd = {quoted(repo)}\n"
+        "tool_timeout_sec = 1800\n"
+    )
+    yaml = (
+        "mcp_servers:\n"
+        "  carbon:\n"
+        f"    command: {quoted(python)}\n"
+        f"    args: {json.dumps(args)}\n"
+        f"    cwd: {quoted(repo)}\n"
+        "    timeout: 1800\n"
+    )
+    not_run = "UNVERIFIED: Carbon has not run this client against the server."
+    return {
+        "command": command,
+        "cwd": repo,
+        "note": (
+            "Run it from your Carbon checkout. With no runner profile it serves "
+            "the open tier and setup; once setup writes your profile, the same "
+            "session gains launch and the research operations."
+        ),
+        "clients": [
+            {
+                "id": "claude-code",
+                "name": "Claude Code",
+                "source": CLIENT_DOCS["claude-code"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "Add it",
+                        "text": "claude mcp add --transport stdio --env "
+                        + shlex.quote("PYTHONPATH=" + repo)
+                        + " carbon -- "
+                        + command,
+                    },
+                    {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
+                ],
+                "unverified": [
+                    not_run,
+                    (
+                        "UNVERIFIED: how Claude Code bounds a long tool call; "
+                        "Send your worker can take minutes."
+                    ),
+                ],
+            },
+            {
+                "id": "codex",
+                "name": "Codex",
+                "source": CLIENT_DOCS["codex"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "Add it",
+                        "text": "codex mcp add carbon --env "
+                        + shlex.quote("PYTHONPATH=" + repo)
+                        + " -- "
+                        + command,
+                    },
+                    {"label": "Or in ~/.codex/config.toml", "text": toml},
+                ],
+                "unverified": [not_run],
+            },
+            {
+                "id": "hermes",
+                "name": "Hermes Agent",
+                "source": CLIENT_DOCS["hermes"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "In ~/.hermes/config.yaml, then /reload-mcp in Hermes",
+                        "text": yaml,
+                    }
+                ],
+                "unverified": [
+                    not_run,
+                    (
+                        "UNVERIFIED: whether `hermes mcp add` takes your own "
+                        "command; its documentation shows presets."
+                    ),
+                ],
+            },
+        ],
+    }
+
+
 def remote_guides(gpu_manifest=None) -> dict:
     """The "Where's your GPU?" cards beyond this machine, from the guide.
 
@@ -534,6 +660,23 @@ def choices(gpu_manifest=None) -> dict:
                     "holds and checks it is the registered one. Carbon never "
                     "sees your key or password. No network, no cost."
                 ),
+                "uses_setup_model": True,
+            },
+            {
+                "id": OWN_AGENT,
+                "display_name": "Your own agent, over MCP",
+                "cost_basis": (
+                    "Your agent runs where you run it, with its own model, "
+                    "billed by its own provider. Carbon bills nothing."
+                ),
+                "live_check": (
+                    "Asks your running carbon-miner-signer which hotkey it "
+                    "holds and checks it is the registered one. Carbon never "
+                    "sees your key or password. No network, no cost."
+                ),
+                "uses_setup_model": False,
+                "skips": {"inference": "your agent uses its own model"},
+                "connect": mcp_connect(),
             },
             {
                 "id": HERMES,
@@ -552,6 +695,9 @@ def choices(gpu_manifest=None) -> dict:
                 ),
                 "needs_consent_to_write": True,
                 "start": START,
+                # Its ready-made profile is written with setup's model, so
+                # Inference stays; the files are written once it is known.
+                "uses_setup_model": True,
             },
         ],
         "not_yet_offered": (
@@ -1162,7 +1308,7 @@ class EnvironmentSetup:
         self.onboarding = onboarding
         self.checks = checks or LiveChecks()
         self.attach = attach
-        self.lock = threading.Lock()
+        self.lock = _SetupLock(self.root)
 
     # -- storage
 
@@ -1198,7 +1344,13 @@ class EnvironmentSetup:
 
     def state(self) -> dict:
         record = self._record()
-        done = {name: name in record for name in STEPS[:-1]}
+        # Inference is needed only by an agent that calls setup's model.
+        needed = [
+            name
+            for name in STEPS[:-1]
+            if name != "inference" or _needs_inference(record)
+        ]
+        done = {name: name in record for name in needed}
         from scripts.dev.miner_launchpad import installed
 
         return {
@@ -1342,24 +1494,48 @@ class EnvironmentSetup:
         )
 
     def inference(self, value) -> dict:
+        """Check the model with the miner's key, at their cost, on consent.
+
+        The key arrives one of two ways: pasted once on the loopback page
+        (`key`), written here to an owner-only file; or as `model_key_file`, the
+        absolute path to an owner-only file the miner made, which an agent
+        names and Carbon references without copying it. The MCP door accepts
+        only the path (`setup_operations`).
+        """
         _closed(
             value,
             {"provider_id", "model_id", "consent"},
-            {"key", "endpoint", "declared_pricing"},
+            {"key", "model_key_file", "endpoint", "declared_pricing"},
         )
+        if "key" in value and "model_key_file" in value:
+            raise SetupRefused("model_key_file", "key_or_model_key_file_not_both")
         provider = self._inference_choice(value)
-        credential_file = self.root / "keys" / (provider + ".key")
+        stored = self.root / "keys" / (provider + ".key")
+        named = (
+            _owner_only_key_file(value["model_key_file"])
+            if "model_key_file" in value
+            else None
+        )
+        credential_file = named or stored
         spec = self._spec(provider, value)
         _consented(
             value, check_quote(provider, value["model_id"], credential_file, spec)
         )
         with self.lock:
-            if "hotkey" not in self._record():
+            record = self._record()
+            if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
             if "key" in value:
-                write_private(credential_file, _secret(value["key"], "key"))
-            elif not credential_file.exists():
-                raise SetupRefused("key", "field_required")
+                write_private(stored, _secret(value["key"], "key"))
+            elif named is None:
+                # Neither given: the file named or written before, if any.
+                previous = (record.get("inference") or {}).get("credential_file")
+                if previous and record["inference"].get("provider_id") == provider:
+                    credential_file = _owner_only_key_file(previous)
+                elif not stored.exists():
+                    raise SetupRefused(
+                        "model_key_file", "field_required", next_step=KEY_FILE_STEP
+                    )
             check = self.checks.inference(
                 provider, value["model_id"], credential_file, spec
             )
@@ -1368,6 +1544,7 @@ class EnvironmentSetup:
                 {
                     "provider_id": provider,
                     "model_id": value["model_id"],
+                    "credential_file": str(credential_file),
                     **spec,
                     "check": check,
                 },
@@ -1542,7 +1719,20 @@ class EnvironmentSetup:
         for choice in value["agent"]:
             if choice["id"] == HERMES:
                 choice["writes"] = self.checks.hermes_files()
+            if choice["id"] == OWN_AGENT:
+                # The command for this controller's own setup records.
+                choice["connect"] = mcp_connect(self.root.parent)
         return value
+
+    def _hermes_consent(self, value) -> None:
+        """The miner's consent must name exactly the files Hermes' profile
+        writes."""
+        consent = value.get("consent")
+        if (
+            type(consent) is not dict
+            or consent.get("writes") != self.checks.hermes_files()
+        ):
+            raise SetupRefused("consent", "consent_must_name_the_files")
 
     def _hermes_document(self, value):
         """The Hermes profile for this setup's inference choice, or a refusal.
@@ -1551,12 +1741,7 @@ class EnvironmentSetup:
         """
         from scripts.dev.miner_launchpad import hermes_setup
 
-        consent = value.get("consent")
-        if (
-            type(consent) is not dict
-            or consent.get("writes") != self.checks.hermes_files()
-        ):
-            raise SetupRefused("consent", "consent_must_name_the_files")
+        self._hermes_consent(value)
         inference = self._record().get("inference")
         if inference is None:
             raise SetupRefused("inference", "step_not_checked")
@@ -1574,18 +1759,32 @@ class EnvironmentSetup:
             runner_profile=self.profile_path,
             repo=REPO,
         )
-        key = (self.root / "keys" / (inference["provider_id"] + ".key")).read_text()
+        key = Path(self._credential(inference)).read_text()
         return document, key
 
+    def _credential(self, inference) -> str:
+        """The key file the checked inference step used: the one the miner
+        named, or the one written from the page."""
+        return inference.get("credential_file") or str(
+            self.root / "keys" / (inference["provider_id"] + ".key")
+        )
+
     def agent(self, value) -> dict:
+        """Who researches (setup step 3): Carbon's agent, the miner's own agent
+        over MCP, or Hermes with its ready-made profile. Each asks the miner's
+        signer which hotkey it holds and reads the network.
+
+        Hermes' profile is written with setup's model: at once when Inference
+        is already checked, otherwise at Review, on the consent given here.
+        """
         from carbon.chain.models import CARBON_NETUID
 
         # `operator_config` is for an operator running Carbon's own deployment;
         # a miner names none, and setup reads the network itself (C-MLP-04).
         _closed(value, {"choice"}, {"operator_config", "signer_socket", "consent"})
-        if value["choice"] not in (AUTONOMOUS, HERMES):
+        if value["choice"] not in (AUTONOMOUS, OWN_AGENT, HERMES):
             raise SetupRefused("choice", "agent_not_offered")
-        if value["choice"] == AUTONOMOUS and "consent" in value:
+        if value["choice"] != HERMES and "consent" in value:
             raise SetupRefused("consent", "nothing_to_consent_to")
         operator = None
         if value.get("operator_config"):
@@ -1600,8 +1799,16 @@ class EnvironmentSetup:
             record = self._record()
             if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
-            hermes = self._hermes_document(value) if value["choice"] == HERMES else None
+            hermes = None
+            if value["choice"] == HERMES:
+                if "inference" in record:
+                    hermes = self._hermes_document(value)
+                else:
+                    # Written at Review, once the model is checked.
+                    self._hermes_consent(value)
             check = self.checks.agent(record["hotkey"], socket_path)
+            if value["choice"] == HERMES and hermes is None:
+                check = {**check, "hermes_profile": "written at review"}
             if hermes is not None:
                 # Written only after the signer answered, so a refused setup
                 # leaves the miner's Hermes untouched.
@@ -1644,11 +1851,13 @@ class EnvironmentSetup:
         from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
         record = self._record()
-        for step in ("inference", "compute", "agent"):
-            if step not in record:
+        # Inference only for an agent that calls setup's model; the miner's
+        # own agent brings its own (OWNER-MINER-SETUP-AGENT-FIRST-01).
+        for step in ("agent", "inference", "compute"):
+            if step not in record and (step != "inference" or _needs_inference(record)):
                 raise SetupRefused(step, "step_not_checked")
         inference, compute, agent = (
-            record[s] for s in ("inference", "compute", "agent")
+            record.get(s) for s in ("inference", "compute", "agent")
         )
         if compute.get("choice") == RETIRED_RENTED_GPU or retired.declares_rented(
             compute.get("runtime")
@@ -1658,7 +1867,11 @@ class EnvironmentSetup:
             raise SetupRefused(
                 "compute", retired.RENTED_GPU_RETIRED, next_step=retired.NEXT_STEP
             )
-        key = str(self.root / "keys" / (inference["provider_id"] + ".key"))
+        key = (
+            self._credential(inference)
+            if inference
+            else str(self.root / "keys" / NO_MODEL_KEY)
+        )
         campaigns = _private_dir(self.root / "campaigns")
         cfg = {
             "schema": PROFILE_SCHEMA,
@@ -1684,8 +1897,10 @@ class EnvironmentSetup:
                 if "remote_machine" in compute
                 else {}
             ),
-            "provider_credentials": {inference["provider_id"]: key},
-            "model_selection": {
+        }
+        if inference:
+            cfg["provider_credentials"] = {inference["provider_id"]: key}
+            cfg["model_selection"] = {
                 "provider_id": inference["provider_id"],
                 "model_id": inference["model_id"],
                 **{
@@ -1693,8 +1908,7 @@ class EnvironmentSetup:
                     for k in ("endpoint", "declared_pricing", "published_pricing")
                     if k in inference
                 },
-            },
-        }
+            }
         try:
             return validated_profile(cfg)
         except ValueError:
@@ -1741,12 +1955,108 @@ class EnvironmentSetup:
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
-            write_private(self.profile_path, canonical(cfg))
             record = self._record()
+            agent = record["agent"]
+            if agent.get("check", {}).get("hermes_profile") == "written at review":
+                # Hermes chosen before the model: its profile now, on the
+                # consent to these exact files given at the Agent step.
+                written = self.checks.hermes(
+                    *self._hermes_document(
+                        {"consent": {"writes": self.checks.hermes_files()}}
+                    )
+                )
+                agent["check"] = {
+                    **agent["check"],
+                    **written,
+                    "hermes_profile": "carbon",
+                    "start": START,
+                    "tools_ask_first": True,
+                }
+            write_private(self.profile_path, canonical(cfg))
             record["profile"] = {"written_at": int(time.time())}
             self._save(record)
         attached = self.attach(self.profile_path) if self.attach is not None else False
         return {**self.state(), "attached": attached}
+
+
+def _needs_inference(record) -> bool:
+    """Whether setup's Inference step is part of this miner's path: yes until
+    an agent is chosen, and for an agent that calls setup's model."""
+    agent = record.get("agent")
+    return agent is None or agent.get("choice") in USES_SETUP_MODEL
+
+
+class _SetupLock:
+    """One writer at a time over the setup records, in this process and in any
+    other door onto them: the browser's controller and a miner's MCP server
+    read and write the same files (OWNER-MINER-SETUP-AGENT-FIRST-01)."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.thread = threading.Lock()
+        self.handle = None
+
+    def __enter__(self):
+        import fcntl
+
+        self.thread.acquire()
+        try:
+            _private_dir(self.root)
+            self.handle = os.open(
+                self.root / "setup.lock",
+                os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+            fcntl.flock(self.handle, fcntl.LOCK_EX)
+        except BaseException:
+            if self.handle is not None:
+                os.close(self.handle)
+                self.handle = None
+            self.thread.release()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+
+        try:
+            fcntl.flock(self.handle, fcntl.LOCK_UN)
+            os.close(self.handle)
+        finally:
+            self.handle = None
+            self.thread.release()
+
+
+def _owner_only_key_file(value) -> Path:
+    """A model key file the miner made: an absolute path to a regular file,
+    not a link, owned by this user, with no group or other access. Its
+    content is not read here; only its own provider ever receives it."""
+    path = _absolute(value, "model_key_file")
+    try:
+        stat = path.lstat()
+    except OSError:
+        raise SetupRefused(
+            "model_key_file", "model_key_file_not_found", next_step=KEY_FILE_STEP
+        ) from None
+    import stat as kinds
+
+    if (
+        not kinds.S_ISREG(stat.st_mode)
+        or stat.st_uid != os.getuid()
+        or stat.st_mode & 0o077
+        or not 1 <= stat.st_size <= 1024
+    ):
+        raise SetupRefused(
+            "model_key_file", "model_key_file_not_owner_only", next_step=KEY_FILE_STEP
+        )
+    return path
+
+
+#: How a miner makes a key file an agent may name (never the key itself).
+KEY_FILE_STEP = (
+    "put your model key alone in a file only you can read, for example: "
+    "umask 077 && cat > ~/.carbon/model.key, then give its absolute path"
+)
 
 
 def _public(step, fields):

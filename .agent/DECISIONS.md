@@ -17624,7 +17624,7 @@ authority).**
   doors apply the same gates in the same order, and a parity test fails if
   they drift.
   - The doors differ in one declared way: the browser may paste a model key
-    once (`key`). The MCP door takes `key_file` only.
+    once (`key`). The MCP door takes `model_key_file` only.
   - Both doors write the same records under the Control Center's state
     directory, behind a file lock (`setup.lock`). Each door sees the other's
     progress: the page re-reads setup every few seconds.
@@ -17657,7 +17657,7 @@ authority).**
   tool accepts, returns or logs a private key, seed phrase, mnemonic or
   password.
 - **AGENTFIRST-D5, the model key is a file the miner made.** An agent passes
-  `key_file`, an absolute path to a regular file, not a link, owned by the same
+  `model_key_file`, an absolute path to a regular file, not a link, owned by the same
   user, with no group or other access. Carbon references it by path and never
   copies it. A key passed as a value is refused on the MCP door
   (`key_must_be_a_file_on_this_door`).

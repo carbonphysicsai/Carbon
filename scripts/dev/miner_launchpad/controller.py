@@ -652,13 +652,38 @@ class Handler(BaseHTTPRequestHandler):
                 if name not in guide.GUIDES:
                     raise Rejected("guide_not_found", 404)
                 self.reply(200, guide.document(name))
-            elif self.path == "/api/v1/setup":
-                # Authenticated: the page shows the miner's own choices.
-                self.check(authenticated=True)
+            elif self.path in ("/api/v1/setup", "/api/v1/setup/status"):
+                # Authenticated: the page shows the miner's own choices, and
+                # the status an agent loops on, from the same table and records
+                # as the MCP door (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                from scripts.dev.miner_launchpad import setup_operations
+
                 setup = self.server.setup
                 if setup is None:
                     raise Rejected("setup_unavailable", 409)
-                self.reply(200, {**setup.state(), "choices": setup.offered()})
+                if (
+                    self.server.research_runner is None
+                    and setup.attach is not None
+                    and setup.state()["steps"]["review"]["profile_written"]
+                    and setup.profile_path.is_file()
+                ):
+                    # Written by the miner's agent over MCP: load it here too,
+                    # as this page's own review would.
+                    with contextlib.suppress(Exception):
+                        setup.attach(setup.profile_path)
+                runner = self.server.research_runner
+                status = setup_operations.status(
+                    setup,
+                    door=setup_operations.HTTP,
+                    campaigns=len(runner.recent()) if runner else None,
+                )
+                if self.path.endswith("/status"):
+                    self.reply(200, status)
+                else:
+                    self.reply(
+                        200,
+                        {**setup.state(), "choices": setup.offered(), "status": status},
+                    )
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -725,21 +750,18 @@ class Handler(BaseHTTPRequestHandler):
                 raise Rejected("incomplete_body")
             value = parse_json(body)
             if self.path.startswith("/api/v1/setup/"):
+                # Every setup step, generated from the one table the MCP door
+                # also serves: the same gates in the same order.
+                from scripts.dev.miner_launchpad import setup_operations
+
                 action = self.path.removeprefix("/api/v1/setup/")
-                if action not in {
-                    "signer",
-                    "begin",
-                    "quote",
-                    "inference",
-                    "compute",
-                    "send_worker",
-                    "agent",
-                    "review",
-                }:
+                if action not in setup_operations.SETUP_OPERATIONS:
                     raise Rejected("unknown_setup_step", 404)
                 if self.server.setup is None:
                     raise Rejected("setup_unavailable", 409)
-                result = getattr(self.server.setup, action)(value)
+                result = setup_operations.perform(
+                    self.server.setup, action, value, door=setup_operations.HTTP
+                )
             elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:

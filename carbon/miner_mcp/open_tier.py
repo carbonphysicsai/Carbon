@@ -193,6 +193,39 @@ def attach_campaign(
     return tuple(added)
 
 
+def attach_operations(server, host, attachment, *, guard=None):
+    """Add the registered tier's operations to a running server.
+
+    Setup's review writes the miner's runner profile mid-session
+    (OWNER-MINER-SETUP-AGENT-FIRST-01). What `serve_operations` builds at
+    start from a profile - one tool per miner operation over `host`, and
+    attach/detach - is added here to the live server instead, by the same
+    insertion `attach_campaign` uses and with the same strictness check, so
+    the agent goes on to launch without reconnecting. There is no campaign
+    yet, so `attach_campaign` itself is not the call: once one is launched,
+    the attach tool added here reaches it.
+
+    Returns the names added; a name already present is left as it is.
+    """
+    from carbon.miner_mcp.mcp_operations import (
+        make_attachment_tools,
+        make_operation_tools,
+    )
+
+    added = []
+    target = server._tool_manager._tools
+    for tool in [
+        *make_operation_tools(host, guard=guard),
+        *make_attachment_tools(attachment, guard=guard),
+    ]:
+        if tool.name in target:
+            continue
+        _assert_strict(tool.name, tool)
+        target[tool.name] = tool
+        added.append(tool.name)
+    return tuple(added)
+
+
 def _assert_strict(name: str, tool) -> None:
     """An attached tool must be as strict as a constructor-registered one.
 

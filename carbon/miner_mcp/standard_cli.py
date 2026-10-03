@@ -552,7 +552,53 @@ async def serve(configuration: Path, campaign: str, *, cleanup_only=False):
         await create_stdio_server(adapter).run_async()
 
 
-async def serve_operations(configuration: Path):
+def _setup_door(server, state_dir=None, *, operations=True):
+    """Miner setup on this live server, over the Control Center's own setup
+    records (OWNER-MINER-SETUP-AGENT-FIRST-01): status and the open-tier
+    steps now, the later steps once registration is confirmed, and, when
+    `operations`, the registered tier once review writes the profile.
+
+    Returns the door and what it attached (`host`, `attachment`) for the
+    caller to close.
+    """
+    from carbon.miner_mcp.mcp_setup import SetupDoor
+    from scripts.dev.miner_launchpad.environment_setup import (
+        DEFAULT_STATE_DIR,
+        EnvironmentSetup,
+    )
+    from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
+
+    held = {}
+    setup = EnvironmentSetup(
+        Path(state_dir) if state_dir is not None else DEFAULT_STATE_DIR,
+        onboarding=BrowserOnboarding(),
+    )
+
+    def attach(profile):
+        from carbon.miner_mcp.mcp_operations import Attachment
+        from carbon.miner_mcp.open_tier import attach_operations
+        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+        host = RunnerAdapter.for_profile(profile)
+        attachment = Attachment(server, profile)
+        names = attach_operations(server, host, attachment)
+        held.update(host=host, attachment=attachment)
+        door.count = lambda: len(host.recent())
+        return names
+
+    door = SetupDoor(server, setup, attach_operations=attach if operations else None)
+    door.install()
+    return door, held
+
+
+async def _release(held):
+    if "attachment" in held:
+        await held["attachment"].detach()
+    if "host" in held:
+        held["host"].close()
+
+
+async def serve_operations(configuration: Path, state_dir=None):
     """A miner's own client with their runner profile: the whole journey.
 
     Onboarding (the open tier, reading Carbon's testnet), every operation in
@@ -588,6 +634,9 @@ async def serve_operations(configuration: Path):
     tools = server._tool_manager._tools
     for tool in [*make_operation_tools(host), *make_attachment_tools(attachment)]:
         tools[tool.name] = tool
+    # Setup too, over the same records: the operations are already here.
+    door, _ = _setup_door(server, state_dir, operations=False)
+    door.count = lambda: len(host.recent())
     try:
         # A raw MCPServer: stdio is `run_stdio_async`. (The `run_async` of
         # `create_stdio_server` belongs to its wrapper, not to this class.)
@@ -597,8 +646,8 @@ async def serve_operations(configuration: Path):
         host.close()
 
 
-async def serve_open_tier():
-    """Serve the open tier alone: no profile, no grant, no campaign, no lock.
+async def serve_open_tier(state_dir=None):
+    """Serve the open tier: no profile, no grant, no campaign, no lock.
 
     Deliberately not a degraded version of `serve`. It takes no ownership lock
     because it owns nothing, and it reconciles nothing because it consumes
@@ -608,6 +657,13 @@ async def serve_open_tier():
     Onboarding reads Carbon's own testnet by default - the same context the
     browser door uses (`chain_onboarding.carbon_testnet_context`) - so `status`
     and `confirm` answer from public chain state on either door.
+
+    Setup rides on it (OWNER-MINER-SETUP-AGENT-FIRST-01): status, the signer
+    check and the registration confirmation from the start, the later steps
+    once registration is confirmed, and the registered tier's operations once
+    review writes the profile, all in this one session. Setup writes only its
+    own records under `state_dir` (the Control Center's, by default); it
+    creates no campaign and touches no ledger.
     """
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
@@ -615,7 +671,12 @@ async def serve_open_tier():
     # `run_async` - the wrapper method of `create_stdio_server` - so the bare
     # open tier failed as soon as a client connected; its test replaced this
     # function and so never ran it.
-    await create_open_tier_server().run_stdio_async()
+    server = create_open_tier_server()
+    _, held = _setup_door(server, state_dir)
+    try:
+        await server.run_stdio_async()
+    finally:
+        await _release(held)
 
 
 def main(argv=None):
@@ -639,6 +700,15 @@ def main(argv=None):
         action="store_true",
         help="Observe/cancel retained owned tasks; cannot start research",
     )
+    parser.add_argument(
+        "--state-dir",
+        type=Path,
+        help=(
+            "Where setup's records live: the Control Center's state directory "
+            "(default ~/.carbon/development-launchpad), so the page and your "
+            "agent share one setup."
+        ),
+    )
     args = parser.parse_args(argv)
     if args.configuration is None and (args.cleanup_only or args.campaign):
         parser.error("--campaign and --cleanup-only need your runner profile")
@@ -646,11 +716,19 @@ def main(argv=None):
         parser.error("--cleanup-only needs the --campaign to clean up")
     try:
         if args.configuration is None:
-            asyncio.run(serve_open_tier())
+            asyncio.run(
+                serve_open_tier()
+                if args.state_dir is None
+                else serve_open_tier(state_dir=args.state_dir)
+            )
         elif not args.campaign:
             # With a profile and no campaign: every operation, including
             # launching one. A miner's own client needs nothing Carbon issues.
-            asyncio.run(serve_operations(args.configuration))
+            asyncio.run(
+                serve_operations(args.configuration)
+                if args.state_dir is None
+                else serve_operations(args.configuration, state_dir=args.state_dir)
+            )
         else:
             asyncio.run(
                 serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)
