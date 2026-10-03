@@ -529,8 +529,11 @@ Other changes:
     (pod_control's default).
   - A session has 12 pods (360 minutes, the plan's upper estimate of USD 3).
   - The pods use EV4's pinned image, A40 Secure, the 0.49 rate ceiling and
-    disk price, the 0.25 cleanup reserve and the 2.00 balance floor, all
-    read from `pod_control`.
+    disk price and the 0.25 cleanup reserve, all read from `pod_control`. The
+    account balance floor is the operator's private configuration
+    (`~/.runpod/campaigns.json`, `balance_floor_usd`, POD-LEDGER-PRIVATE-01),
+    read only at launch and never recorded; without it a launch refuses
+    before any provider call.
   - Lifecycle, ownership tags, lost-create recovery and verified termination
     come from the operator RunPod layer (GRAPHITE-D32; it was `carbon.compute`
     until OWNER-MINER-COMPUTE-LINK-ONLY-01 removed that).

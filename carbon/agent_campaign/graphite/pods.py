@@ -107,13 +107,44 @@ def prices():
         "disk_usd_per_hr": disk,
         "hourly_usd": rate + disk,
         "cleanup_reserve_usd": Decimal(str(pod_control.CLEANUP_RESERVE_USD)),
-        "balance_floor_usd": Decimal(str(pod_control.BALANCE_FLOOR)),
         "basis": (
             "scripts/dev/exam_design/runpod/pod_control.py: MAX_RATE, DISK_GB, "
-            "DISK_USD_PER_GB_MONTH, CLEANUP_RESERVE_USD, BALANCE_FLOOR; the EV4 "
-            "ledger records costPerHr 0.49 on each pod it created"
+            "DISK_USD_PER_GB_MONTH, CLEANUP_RESERVE_USD; the EV4 ledger records "
+            "costPerHr 0.49 on each pod it created. The account balance floor is "
+            "operator configuration, never committed (POD-LEDGER-PRIVATE-01): "
+            "`operator_balance_floor`"
         ),
     }
+
+
+def operator_balance_floor():
+    """The account balance floor from the operator's private configuration,
+    `~/.runpod/campaigns.json` (`balance_floor_usd`), the file pod_control's
+    `operator_limits` reads (POD-LEDGER-PRIVATE-01). Read only when a pod is
+    about to be launched, and never recorded. A missing or invalid value
+    refuses the launch: nothing spends under a floor nobody set."""
+    import math
+
+    from scripts.dev.exam_design.runpod import pod_control
+
+    path = Path(pod_control.STATE_DIR) / pod_control.OPERATOR_CONFIG
+    try:
+        floor = json.loads(path.read_text()).get("balance_floor_usd")
+    except (OSError, ValueError, AttributeError):
+        floor = None
+    if (
+        not isinstance(floor, (int, float))
+        or isinstance(floor, bool)
+        or not math.isfinite(floor)
+        or floor < 0
+    ):
+        raise PodFailure(
+            "launch",
+            "no balance_floor_usd in the operator configuration "
+            "(~/.runpod/campaigns.json)",
+            executed=False,
+        )
+    return Decimal(str(floor))
 
 
 def cents_up(amount):
@@ -276,6 +307,7 @@ class RunPodPods:
         sleep=time.sleep,
         http=None,
         transport=None,
+        balance_floor=operator_balance_floor,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -292,6 +324,7 @@ class RunPodPods:
         self.economics = prices()
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
+        self.balance_floor = balance_floor
         self.http = http or _https_get
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -384,7 +417,7 @@ class RunPodPods:
         try:
             balance, _ = self.service.observe_balance(self.CAMPAIGN)
             cost = pod_reservation(job.minutes, economics["hourly_usd"])
-            if Decimal(str(balance)) - cost < economics["balance_floor_usd"]:
+            if Decimal(str(balance)) - cost < self.balance_floor():
                 raise PodFailure(
                     "launch", "balance would fall below the floor", executed=False
                 )
