@@ -86,7 +86,9 @@ def controller(root, graphite):
 
 
 def brief(graphite):
-    return phase3.session_brief(checkout_commit="1" * 40, budget=graphite.budget)
+    return phase3.session_brief(
+        checkout_commit="1" * 40, budget=graphite.budget, literature=graphite.literature
+    )
 
 
 def session(root, script, pods, number=1, **kw):
@@ -104,6 +106,44 @@ def run_id(number=1):
     from carbon.agent_campaign.graphite.provider import GraphiteProvider
 
     return GraphiteProvider.run_id_for(phase3.session_key(number))
+
+
+def card(n):
+    """The card id of synthetic phase-2 fixture entry `n`."""
+    return f"arxiv-2610.{n:05d}v1"
+
+
+def snapshot_file(root, *, count=3, verdicts=None, abstracts=None):
+    """A written phase-2 snapshot of `count` synthetic cards, with each
+    `{number: verdict}` recorded as a person's check before the snapshot."""
+    from graphite_phase2_fixtures import backfill, entry, replies, scripted, seed
+
+    from carbon.agent_campaign.graphite import method_cards as mc
+    from carbon.agent_campaign.graphite.literature_fetch import QUERY_SET
+
+    root = Path(root)
+    abstracts = abstracts or {}
+    raw = seed(
+        root, *(entry(n, abstract=abstracts.get(n)) for n in range(1, count + 1))
+    )
+    job = backfill(root, raw, scripted(replies(count)))
+    job.run("run-1")
+    for number, verdict in sorted((verdicts or {}).items()):
+        cid = card(number)
+        mc.record_human_check(
+            job.cards,
+            cid,
+            checker="Ryan",
+            verdict=verdict,
+            note="",
+            confirm=lambda prompt, cid=cid: cid,
+            now="2026-10-02T12:00:00Z",
+        )
+    _index, document = mc.snapshot(
+        job.cards, job.raw, label="test-snapshot", query_set_digest=QUERY_SET.digest
+    )
+    address = mc.write_snapshot(job.cards, document)
+    return job.cards.root / "snapshots" / (address[7:] + ".json")
 
 
 __all__ = [

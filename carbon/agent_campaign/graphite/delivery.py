@@ -16,6 +16,10 @@ one.
   has pods left. An ablation Carbon cannot rebuild is recorded as such. When
   the proposal changes the model family, a field-by-field ablation is
   undefined and none is run.
+- **Next-level proposals.** The bundle carries the run's PROPOSED
+  next-level records (`next-level-proposals.json`, GRAPHITE-D30), possibly
+  none. They are requests for the owner: the rebuild ignores them and they
+  widen nothing.
 - **The write-up** is generated from the records, so it claims nothing the
   records do not show. No model writes it in phase 3.
 - **Clean rebuild** (`clean_rebuild`) reads the bundle alone: every file is
@@ -37,7 +41,8 @@ from carbon.development_session.profile import canonical, digest
 
 from . import experiment as ex
 
-BUNDLE_SCHEMA = "carbon.graphite.phase3.pr-bundle.v1"
+#: v2 adds `next-level-proposals.json` (GRAPHITE-D30).
+BUNDLE_SCHEMA = "carbon.graphite.phase3.pr-bundle.v2"
 REBUILD_SCHEMA = "carbon.graphite.phase3.clean-rebuild.v1"
 FILES = (
     "strategy.json",
@@ -49,6 +54,7 @@ FILES = (
     "run-log.jsonl",
     "WRITEUP.md",
     "REBUILD.md",
+    "next-level-proposals.json",
 )
 NUMERICAL = {
     "status": "NOT_JUDGED",
@@ -102,7 +108,7 @@ def _strategy(experiment, pid):
     return json.loads((folder / "intent.json").read_bytes())["strategy"]
 
 
-def deliver(experiment, directory, *, selection=None):
+def deliver(experiment, directory, *, selection=None, proposals=()):
     """Ablate and bundle the session's best improvement; returns the outcome.
 
     Idempotent: every ablation is an experiment record and every bundle file
@@ -165,6 +171,15 @@ def deliver(experiment, directory, *, selection=None):
             record, baseline_record, results, undefined, selection
         ).encode(),
         "REBUILD.md": rebuild_text(pid).encode(),
+        "next-level-proposals.json": canonical(
+            {
+                "proposals": list(proposals),
+                "note": (
+                    "PROPOSED next-level records for the owner; none widens the "
+                    "construction contract or affects a score"
+                ),
+            }
+        ),
     }
     for name in FILES:
         write_once(folder / name, bodies[name])
@@ -191,6 +206,7 @@ def deliver(experiment, directory, *, selection=None):
         "bundle": str(folder),
         "manifest_digest": digest(canonical(manifest)),
         "clean_rebuild": check,
+        "next_level_proposals": [p["proposal_id"] for p in proposals],
     }
 
 

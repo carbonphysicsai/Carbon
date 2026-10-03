@@ -46,6 +46,7 @@ from graphite_phase3_fixtures import (
     provider,
     run_id,
     session,
+    snapshot_file,
     steps,
     text,
     tool,
@@ -1173,6 +1174,7 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
     with pytest.raises(SystemExit):
         phase3.main(["run", "--root", root])
     assert "--grant" in _refusal(capsys)
+    snapshot = snapshot_file(tmp_path / "lit", count=1, verdicts={1: "CORRECT"})
     base = [
         "run",
         "--root",
@@ -1183,6 +1185,8 @@ def test_the_runner_refuses_without_an_exact_grant_and_credentials(
         "p",
         "--miner-campaign",
         "c",
+        "--literature-snapshot",
+        str(snapshot),
     ]
     with pytest.raises(SystemExit):
         phase3.main(

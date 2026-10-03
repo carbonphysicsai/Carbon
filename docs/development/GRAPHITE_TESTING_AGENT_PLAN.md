@@ -219,6 +219,23 @@ failure. Graphite keeps that rule per role:
   - `triage.py`: metering through `research_agent` and the research ledger,
     under the grant.
   - `phase2.py`: the runner.
+- **As built for phase 3** (GRAPHITE-D28 to D31).
+  - A live phase-3 session reads a frozen phase-2 snapshot
+    (`--literature-snapshot`) and refuses to run without one. Only the dry
+    run serves the synthetic fixture.
+  - The session record pins the snapshot file's digest, the offer policy
+    and the offered cards. A resume with another snapshot or policy is
+    refused.
+  - Snapshots record each card's check status. By default a session is
+    offered only cards a person checked `CORRECT`.
+    `--allow-unchecked-cards` adds unchecked cards, marked `UNCHECKED` in
+    every tool result.
+  - No checked card means an empty index, stated in the session record.
+    Nothing falls back to the fixture.
+  - The Planner and the Constructor may record a **next-level proposal**
+    (`graphite_propose_next_level`) when a card points at a capability
+    outside the recorded construction contract. It is a typed `PROPOSED`
+    record for the owner, and it widens nothing.
 - **Cost control.** Cheapest rungs for triage and extraction, a stable
   cached prefix, and per-call settlement from the provider's reported charge.
 
@@ -315,6 +332,19 @@ constructs. The rule has three parts:
 Phase 2 widens no construction surface: it reads papers and writes cards.
 Phase 3 constructs only within the existing recorded construction contract.
 
+A card may point beyond that contract, for example to a new loss form, an
+architecture family or a data pipeline. The Planner then records a
+next-level proposal (GRAPHITE-D30), which names:
+
+- the capability;
+- its source cards;
+- the contract dimension and entry it falls outside;
+- what Carbon would need to reconstruct it.
+
+A proposal never widens the surface, records an expansion, changes a
+permission or affects a score. Widening a level stays an owner decision
+under this rule.
+
 **Phase 2 grant (OWNER-GRAPHITE-02).**
 
 - The ceiling is USD 9.
@@ -333,6 +363,11 @@ Phase 3 constructs only within the existing recorded construction contract.
   150 turns" (the owner, 2026-10-02: "up the plan to 150"; GRAPHITE-D26).
 - Phase 3 is built (GRAPHITE-01, phase 3 delivery). Its first block of 3
   live sessions is pending.
+- A live session reads a checked phase-2 snapshot (`--literature-snapshot`;
+  GRAPHITE-D28). Before the live block, people check cards with
+  `phase2 check` and make a new snapshot. Without checked cards the
+  session's literature is empty, unless the owner opts in to unchecked
+  cards.
 
 **Total for phases 1-5:** about USD 10-60 of inference, depending on which
 rungs the roles reach, plus about USD 10-20 of pod time.

@@ -691,3 +691,205 @@ What each argument is:
 - science-reserved, unchanged (plan §9): the reconstruction tolerances,
   which would let a clean rebuild judge a retrained model's numbers, and the
   Level-0 study population and held-out confirmation for B1.
+
+### Phase 3 literature follow-up (2026-10-02)
+
+**Owner approval.** The owner answered "Yes" to the proposed follow-up: phase-3
+sessions read the real phase-2 method cards, offered checked cards by default,
+and the Planner records next-level proposals that widen nothing.
+
+**The gap it closes.** `GraphiteProvider` defaulted to `FIXTURE_INDEX`, the
+three synthetic phase-1 cards, so phase-3 sessions never saw a phase-2 card.
+
+**Built** (conditional closeout: it takes effect when its PR passes automated
+acceptance and merges, after #504). No live model was called, no pod was
+started, no key was read and nothing was spent.
+
+- `phase3 run --literature-snapshot PATH` loads a frozen phase-2 snapshot.
+  - The session record's `literature` block pins the snapshot file's digest
+    (its address), the snapshot's index digest and label, the offer policy,
+    the number of offered cards, any unchecked card offered, and the digest
+    of the offered set.
+  - A resume whose snapshot or policy differs is refused before anything is
+    touched (`phase3.check_resume`, reason
+    `literature_snapshot_changed_since_the_session_opened`). The provider
+    also refuses it on its own: the run ends `session_record_mismatch` /
+    `literature_snapshot_changed` before any model call.
+  - Without the flag, a live run is refused
+    (`live_run_needs_a_literature_snapshot`). The dry run keeps the phase-1
+    fixture, and its record says so (`source.kind:
+    PHASE1_SYNTHETIC_FIXTURE`).
+- **Checked cards by default.**
+  - Snapshots are now `carbon.graphite.literature-snapshot.v2`. Each records
+    `card_status`, every indexed card's check status at snapshot time, which
+    must agree with the card's own provenance text.
+  - A session is offered only cards whose latest check of that exact card is
+    `CORRECT` (`HUMAN_CHECKED_CORRECT`).
+  - `--allow-unchecked-cards` also offers `UNCHECKED` cards. `lit_search` and
+    `lit_card` then mark each result's `check_status`, an unchecked card
+    carries an `UNCHECKED` note, and the session record lists the unchecked
+    cards offered.
+  - A card a person rejected never entered the snapshot. A card naming
+    protected material is withheld from the snapshot, and the index refuses
+    one.
+  - With no checked card, the index is empty. Every literature result says
+    `index_empty`, and the session record and `phase3 status` carry
+    `empty: true` and a note. Nothing falls back to the fixture.
+  - A v1 snapshot still loads; its cards count as `UNCHECKED`.
+- **Next-level proposals.**
+  - New module `graphite/next_level.py`, and a new closed tool
+    `graphite_propose_next_level`. The Planner and the Constructor are the
+    only roles that hold it.
+  - The arguments are checked:
+    - the capability (1 to 300 characters);
+    - 1 to 8 source card ids, each offered to this session;
+    - a contract dimension from `capability_registry.Dimension`;
+    - the contract's capability id, which must exist in that dimension and
+      must not be `rebuildable_development`, or an empty string when the
+      contract does not name the capability;
+    - why it is outside the contract;
+    - what Carbon would need to reconstruct it.
+  - The record carries the recorded battery contract (`challenge`,
+    `contract_digest`, `record_sequence`), the cited entry's status, the
+    source cards with their check status, and the literature digest.
+  - Its status is `PROPOSED`. It is written once under
+    `runs/<run>/next-level/`, at most 8 per run, and carries an authority
+    block saying it widens nothing.
+  - `phase3 proposals --root DIR` lists them. A run's bundle
+    (`carbon.graphite.phase3.pr-bundle.v2`) carries the run's proposals in
+    `next-level-proposals.json`, and the clean rebuild ignores them.
+  - A proposal never widens the construction surface, never calls
+    `record_expansion`, never writes an expansion record, and never changes
+    a permission profile, a role's tools or a score.
+- **The Constructor's brief** lists the offered cards (id, title, check
+  status), at most 100. The Constructor holds `lit_card` only, so the brief is
+  how it learns which ids exist. Phase 3 refuses a brief whose literature is
+  not the session's own.
+
+**Tests.**
+
+- `tests/cpu/test_graphite_phase3_literature.py`: 21 tests:
+  - snapshot status recording, and `phase2 snapshot` naming the file and its
+    count of CORRECT cards;
+  - checked-only filtering;
+  - v1 snapshots;
+  - a forged status;
+  - protected cards withheld;
+  - the policy invariant;
+  - snapshot pinning in the session record;
+  - unchecked opt-in marking;
+  - the empty index in the record and in `status`;
+  - the fixture recorded for a dry run;
+  - a stale brief refused;
+  - the resume refusal at the runner and in the provider;
+  - the runner's literature refusals;
+  - a dry run with a snapshot;
+  - proposal validation, writing and listing;
+  - the Planner-only tool;
+  - a proposal never changing the contract, permissions or score (bundle
+    included);
+  - the Constructor refused the tool;
+  - injected card text triggering no proposal and no tool change.
+- `tests/cpu/test_graphite_phase3_literature_mutations.py`: 7 protections,
+  each switched off in turn:
+  - the checked-only filter;
+  - unchecked marking;
+  - digest pinning in the provider;
+  - digest pinning in the runner;
+  - a cited capability outside the contract;
+  - a planted widening when a proposal is written;
+  - the Planner-only manifest.
+- `tests/cpu/test_graphite_phase3.py`: the runner-refusal test now passes a
+  snapshot.
+
+**Engineering decisions** (delegated, recorded under
+`.agent/DELEGATED_DECISION_PROTOCOL.md`; a lead may supersede any):
+
+- **GRAPHITE-D28, snapshot pinning and no live fixture.**
+  - Of the two approved options, a live `phase3 run` without
+    `--literature-snapshot` is refused, and the dry run keeps the fixture.
+  - Why: a paid session on three synthetic cards spends the grant on a
+    literature layer that is not there. That is the gap this follow-up
+    closes, and a silent default would reopen it. The dry run spends
+    nothing, so it keeps the fixture and records it.
+  - The pin is the snapshot file's own digest (its content address) plus the
+    offer policy and the offered set. So a re-made snapshot, a later check or
+    a changed flag is a different literature, refused on resume.
+  - File: `graphite/phase3.py`, `graphite/provider.py`,
+    `graphite/literature.py`.
+- **GRAPHITE-D29, check status in the snapshot.**
+  - The snapshot records each card's status when it is made, so a session
+    pins checks as well as cards, and the snapshot file stays the one thing
+    copied to the run host.
+  - A check made after the snapshot reaches a session only through a new
+    snapshot.
+  - The recorded status must agree with the card's provenance text, which
+    the index digest already covers.
+  - Only `CORRECT` counts as checked. `EXTRACTION_ERROR` and `NOT_RELEVANT`
+    cards never enter a snapshot.
+  - Files: `graphite/method_cards.py`, `graphite/literature.py`,
+    `graphite/tools.py`.
+- **GRAPHITE-D30, next-level proposals.**
+  - The contract a proposal is checked against is the recorded battery
+    construction contract (Level 0's), from `experiment.recorded_contract`.
+  - The Planner and the Constructor hold the tool. The Planner's came with
+    the approved design. The Constructor's was added on 2026-10-02 on the
+    owner's instruction ("Yes add it"). Phase 3 runs the Constructor, so a
+    phase-3 session can now write proposals itself. Every other role is
+    refused at the manifest.
+  - A Constructor's proposal follows the same rules as the Planner's: it is
+    validated, write-once and `PROPOSED`, and it widens nothing. The record
+    carries `role: constructor`.
+  - Files: `graphite/next_level.py`, `graphite/roles.py`, `graphite/tools.py`,
+    `graphite/provider.py`, `graphite/delivery.py`, `graphite/phase3.py`.
+- **GRAPHITE-D31, the Constructor's catalogue.** The brief lists up to 100
+  offered cards. The rest stay readable by id, and the count not listed is
+  stated. File: `graphite/phase3.py`.
+
+**Running phase 3 live with the literature** (replaces the `run` line above):
+
+```
+# Where the phase-2 root is ($P2ROOT): a person checks cards, then snapshots.
+python -m carbon.agent_campaign.graphite.phase2 cards --root "$P2ROOT" --unchecked
+python -m carbon.agent_campaign.graphite.phase2 check --root "$P2ROOT" \
+    --card arxiv-XXXX.XXXXXvN --checker NAME --verdict CORRECT
+python -m carbon.agent_campaign.graphite.phase2 snapshot --root "$P2ROOT"
+# -> {"snapshot": "sha256:<HEX>", ...}; the file is
+#    $P2ROOT/backfill/cards/snapshots/<HEX>.json. Copy it unrenamed: its name
+#    is its digest, and phase 3 refuses a file whose name does not match.
+python -m carbon.agent_campaign.graphite.phase3 run --root "$ROOT" \
+    --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
+    --credential-env ENGY_API_KEY --runpod-key-env RUNPOD_API_KEY \
+    --miner-profile PROFILE.json --miner-campaign CAMPAIGN_ID \
+    --code-ref "$REF" --session 1 \
+    --literature-snapshot "$SNAPSHOTS/<HEX>.json"     # [--allow-unchecked-cards]
+python -m carbon.agent_campaign.graphite.phase3 proposals --root "$ROOT"
+```
+
+Sessions 2 and 3 resume or open with the same snapshot and policy. A
+different one is refused for a session that has already opened.
+
+**Owner decision, 2026-10-02: the first live sessions run on unchecked cards.**
+Asked whether to check cards on the WSL host first or to run with unchecked
+cards, the owner answered "B". So the first live phase-3 sessions run with
+`--allow-unchecked-cards`, on a snapshot taken after the live phase-2 triage
+finishes. Each unchecked card is marked `UNCHECKED` in every tool result and
+in the session record. Because sessions 2 and 3 must keep the policy session
+1 opened with, all three sessions of this grant use it. A proposal citing
+unchecked cards records that status on each source card. People still check
+cards (`phase2 check`); a later grant can run checked-only.
+
+**Limitations.**
+
+- No live session has run, and no snapshot from a live backfill has been
+  checked by people yet. Until one is, the default run is offered an empty
+  index.
+- Keyword search only; no embeddings.
+- The human check is a guard, not authentication (GRAPHITE-D14).
+- None of this is scientific, security or production qualification.
+
+**Open owner decisions** (none blocks the build):
+
+- acting on any proposal: widening a level is the owner's decision under the
+  reconstruction rule, and ships with Carbon's reconstruction of the widened
+  surface.
