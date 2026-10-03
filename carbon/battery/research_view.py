@@ -34,11 +34,12 @@ LABELS = {
     "capacity_ah": "Capacity at checkpoints",
 }
 LEARNING_CURVE = {
-    "recorded": False,
+    "recorded": True,
     "basis": (
-        "Battery practice records only the final training loss: the optimizer "
-        "runs inside the pinned worker program, and recording a loss history "
-        "would change that program. It waits for an owner decision (RSURF-D3)."
+        "Practice on trainer v2 records up to 64 points of the trainer's own "
+        "loss on TRAIN data (RSURF-D3). Runs before trainer v2, "
+        "k-nearest-neighbour recipes, which do not train, and an L-BFGS polish "
+        "have none."
     ),
 }
 

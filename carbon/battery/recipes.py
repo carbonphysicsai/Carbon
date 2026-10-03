@@ -318,6 +318,11 @@ class MLP:
 
         steps, lr0, wd = self.steps, self.lr, self.wd
         b1, b2, eps = 0.9, 0.999, 1e-8
+        from .training import keep_history, recording_history, take_history
+
+        # Trainer v2 (RSURF-D3): fixed at trace time. Off, this traces the
+        # written-out loop exactly as before.
+        recording = recording_history()
 
         @jax.jit
         def train(p, xx, yy):
@@ -326,7 +331,10 @@ class MLP:
 
             def step(c, i):
                 p, m, v = c
-                g = jax.grad(loss)(p, xx, yy)
+                if recording:
+                    value, g = jax.value_and_grad(loss)(p, xx, yy)
+                else:
+                    g = jax.grad(loss)(p, xx, yy)
                 lr = lr0 * 0.5 * (1 + jnp.cos(jnp.pi * i / steps))
                 m = jax.tree_util.tree_map(lambda a, b: b1 * a + (1 - b1) * b, m, g)
                 v = jax.tree_util.tree_map(lambda a, b: b2 * a + (1 - b2) * b * b, v, g)
@@ -344,29 +352,37 @@ class MLP:
                     m,
                     v,
                 )
-                return (p, m, v), None
+                return (p, m, v), (value if recording else None)
 
-            (p, m, v), _ = jax.lax.scan(
+            (p, m, v), values = jax.lax.scan(
                 step, (p, m, v), jnp.arange(steps, dtype=jnp.float32)
             )
+            if recording:
+                return p, loss(p, xx, yy), values
             return p, loss(p, xx, yy)
 
         t0 = time.perf_counter()
         compiled = train.lower(params, f, z).compile()
         t1 = time.perf_counter()
-        p, final = compiled(params, f, z)
+        out = compiled(params, f, z)
+        p, final = out[0], out[1]
         p = jax.block_until_ready(p)
         t2 = time.perf_counter()
+        if recording:
+            keep_history(enumerate(np.asarray(out[2]).tolist()), steps)
         self.params = [(np.asarray(w), np.asarray(b)) for w, b in p]
         self._net = net
         blob = b"".join(w.tobytes() + b.tobytes() for w, b in self.params)
-        return {
-            "compile_s": t1 - t0,
-            "train_s": t2 - t1,
-            "final_loss": float(final),
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": int(sum(w.size + b.size for w, b in self.params)),
-        }
+        return _with_history(
+            {
+                "compile_s": t1 - t0,
+                "train_s": t2 - t1,
+                "final_loss": float(final),
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": int(sum(w.size + b.size for w, b in self.params)),
+            },
+            take_history(),
+        )
 
     def _network(self, jax, dtype, n_in, n_out):
         """(init, apply) for this family, in the requested precision."""
@@ -469,13 +485,18 @@ class MLP:
             )
         self.params, self._apply = params, apply
         blob = b"".join(a.tobytes() for a in leaves)
-        return {
-            "compile_s": 0.0,
-            "train_s": time.perf_counter() - t0,
-            "final_loss": final,
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": int(sum(a.size for a in leaves)),
-        }
+        from .training import take_history
+
+        return _with_history(
+            {
+                "compile_s": 0.0,
+                "train_s": time.perf_counter() - t0,
+                "final_loss": final,
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": int(sum(a.size for a in leaves)),
+            },
+            take_history(),
+        )
 
     def predict(self, x):
         if self.backend == "pytorch":
@@ -522,17 +543,28 @@ class Ensemble:
             stats.append(m.fit(d, structure, seed=seed * 1000 + i))
             self.members.append(m)
         blob = "".join(s["params_sha256"] for s in stats).encode()
-        return {
-            "compile_s": sum(s["compile_s"] for s in stats),
-            "train_s": sum(s["train_s"] for s in stats),
-            "final_loss": float(np.mean([s["final_loss"] for s in stats])),
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": sum(s["n_params"] for s in stats),
-        }
+        history = stats[0].get("loss_history")
+        return _with_history(
+            {
+                "compile_s": sum(s["compile_s"] for s in stats),
+                "train_s": sum(s["train_s"] for s in stats),
+                "final_loss": float(np.mean([s["final_loss"] for s in stats])),
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": sum(s["n_params"] for s in stats),
+            },
+            None if history is None else {**history, "member": f"1 of {self.k}"},
+        )
 
     def predict(self, x):
         outs = [m.predict(x) for m in self.members]
         return {k: np.mean([o[k] for o in outs], axis=0) for k in outs[0]}
+
+
+def _with_history(stats, history):
+    """Fit statistics, with trainer v2's TRAIN-loss history when recorded."""
+    if history is not None:
+        stats["loss_history"] = history
+    return stats
 
 
 def build(family, settings):

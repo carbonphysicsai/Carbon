@@ -184,7 +184,8 @@ def test_battery_declares_its_outputs_from_its_io_description():
     # Battery's own disclosure contract allows its public practice detail.
     assert view.per_case.allowed
     assert len(view.case_ids()) == 200
-    assert view.learning_curve["recorded"] is False
+    # Trainer v2 records a TRAIN-loss history in practice (RSURF-D3).
+    assert view.learning_curve["recorded"] is True
 
 
 def test_a_synthetic_second_challenge_draws_every_kind_through_the_same_code():

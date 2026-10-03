@@ -34,6 +34,52 @@ import numpy as np
 ACTIVATIONS = ("gelu", "relu", "tanh", "silu", "softplus")
 SAM_RHO = 0.05
 
+#: Trainer v2 (RSURF-D3, owner, 2026-10-03): practice may record a capped
+#: history of the trainer's own loss on TRAIN data, for the learning curve. It
+#: is off unless a caller turns it on, and only the practice program does. The
+#: validator's reconstruction never turns it on, so every trainer traces and
+#: computes exactly what it did before; recording reads a value the loop
+#: already computes and changes no update.
+TRAINER_VERSION = "carbon.battery.trainer.v2"
+HISTORY_POINTS = 64
+_HISTORY = {"enabled": False, "taken": None}
+
+
+def record_training_history(enabled=True):
+    """Turn the TRAIN-loss history on (practice) or off (the default)."""
+    _HISTORY["enabled"] = bool(enabled)
+    _HISTORY["taken"] = None
+
+
+def recording_history():
+    return _HISTORY["enabled"]
+
+
+def keep_history(pairs, updates):
+    """Keep at most HISTORY_POINTS evenly spaced (update, loss) points of one
+    fit, from (update index, loss) pairs; non-finite losses are dropped."""
+    if not _HISTORY["enabled"]:
+        return
+    pairs = [(int(i), float(v)) for i, v in pairs]
+    if len(pairs) > HISTORY_POINTS:
+        last = len(pairs) - 1
+        picks = sorted(
+            {round(k * last / (HISTORY_POINTS - 1)) for k in range(HISTORY_POINTS)}
+        )
+        pairs = [pairs[k] for k in picks]
+    _HISTORY["taken"] = {
+        "trainer": TRAINER_VERSION,
+        "updates": int(updates),
+        "objective": "the trainer's own loss on TRAIN data; an L-BFGS polish is not included",
+        "points": [[i, v] for i, v in pairs if np.isfinite(v)],
+    }
+
+
+def take_history():
+    """The history the last fit recorded, once; None when off or none."""
+    value, _HISTORY["taken"] = _HISTORY["taken"], None
+    return value
+
 
 def _activation(jax, name):
     return {
@@ -284,6 +330,8 @@ def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order):
     use_ema = s["inference_weights"] == "ema"
     plateau = s["learning_rate_curve"] == "train_loss_plateau"
     everything = jnp.arange(n)
+    # Fixed at trace time: off, the traced program is the one before trainer v2.
+    recording = recording_history()
 
     def step_fn(carry, i):
         p, state, ema, avg, k = carry
@@ -304,17 +352,19 @@ def train(*, init, apply, f, z, sw, gw, trajectory, settings, seed, order):
             avg = jax.tree_util.tree_map(
                 lambda a, x: jnp.where(i >= tail, a + (x - a) / count, a), avg, p
             )
-        return (p, state, ema, avg, k), None
+        return (p, state, ema, avg, k), (value if recording else None)
 
     @jax.jit
     def run(params, key):
         carry = (params, tx.init(params), params, params, key)
-        (p, state, ema, avg, _), _ = jax.lax.scan(
+        (p, state, ema, avg, _), values = jax.lax.scan(
             step_fn, carry, jnp.arange(steps, dtype=f.dtype)
         )
-        return p, state, ema, avg
+        return p, state, ema, avg, values
 
-    p, state, ema, avg = run(params, key)
+    p, state, ema, avg, values = run(params, key)
+    if recording:
+        keep_history(enumerate(np.asarray(values).tolist()), steps)
     if s["optimizer_family"] == "free_adamw":
         from optax.contrib import schedule_free_eval_params
 
