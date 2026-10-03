@@ -436,9 +436,11 @@ def test_the_live_runner_needs_an_owner_only_key_and_the_planner_grant(
     grant_file.write_text(
         json.dumps(
             grant_document(
-                grant_id="graphite-test-grant"
-                if case == "other_grant"
-                else "GRAPHITE-GRANT-PLANNER-02"
+                grant_id=(
+                    "graphite-test-grant"
+                    if case == "other_grant"
+                    else "GRAPHITE-GRANT-PLANNER-02"
+                )
             )
         )
     )
