@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-surface-owner-answers",
+  "recorded_at": "2026-10-03T02:45:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Canonical (groups chain archive science-jax science-torch mcp): 643 passed, 3 skipped across tests/cpu/test_miner_guidance.py, test_battery_trainer_history.py, test_battery_torch_backend.py, the research-surface suites, the research loop, agent policy, campaign and task suites, the battery construction, carry-over, validator, observation and GPU practice suites, and tests/service/test_battery_mcp_research.py; ruff format and check clean. The demo's Conversation and Learning curve were checked in the browser.",
+    "description": "The owner answered the surface's two open questions on 2026-10-03, and both answers were built. Carbon's own agent now reads the miner's messages at each step boundary as recorded guidance (RSURF-D13, amending C-MLP-02-D6 prospectively). Battery trainer v2 records a capped TRAIN-loss history in practice only (RSURF-D3)."
+  },
+  "expected": "Messages reach Carbon's agent without changing anything frozen at launch, and replay stays exact. A loss history appears without changing a single trained weight or the validator's computation.",
+  "observed": "Both held, and the existing precedent made it small. The parallel-calls rule had already shown how to change the loop prospectively: a rule frozen in the provider plan, absent from older plans. The step records reuse the loop's write-once journalling, and a hash chain from the plan digest binds them, so the frozen effective input digest itself never changes. The loss history needed one value the loop already computes, captured only when practice turns recording on. Identical params_sha256 with recording on and off held for JAX on CPU (classic MLP, general MLP, DeepONet) and for PyTorch in the canonical environment (MLP, FNO, FNO ensemble). The trainer bytes are part of the implementation digest, so the identity changes prospectively and deployments carry over under OWNER-BATTERY-CARRYOVER-01. No image is rebuilt, because practice stages the trainer modules into the existing worker. One gap remains: a new epoch starts a fresh conversation, so messages Carbon's agent read in epoch 1 are not shown to it again in epoch 2. The editing tool again turned a \\u202e escape in a new test into a literal bidirectional override, and the pre-commit scan caught it.",
+  "keep": [
+    "Change agent-loop behaviour prospectively through a rule frozen in the provider plan; a plan without it keeps its recorded meaning.",
+    "Record anything read from a mutable source at a step boundary once, chained from the frozen plan, and replay from the record, never the source.",
+    "Put untrusted text into a model's input as a JSON string under one fixed key, beside an authority statement, never as instructions.",
+    "Add observability to a trusted trainer only by reading values it already computes, behind a switch only the practice program turns on, and test identical weights both ways."
+  ],
+  "change": [
+    "Run PyTorch-dependent checks through canonical with the science-torch group, rather than recording them as unverified, when local Python lacks PyTorch.",
+    "Decide, with the owner, whether a new epoch should carry forward the miner messages Carbon's agent has already read."
+  ],
+  "protocol_elements": [
+    "miner guidance reaches Carbon's agent as recorded, chained, replayable step input under a frozen rule",
+    "a trainer's practice-only diagnostics never change what the validator rebuilds"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
