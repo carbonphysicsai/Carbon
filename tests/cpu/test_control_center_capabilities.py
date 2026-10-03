@@ -221,14 +221,16 @@ def test_launch_contract_is_the_operation_and_names_the_challenge():
 def test_unoffered_providers_are_unavailable_with_a_reason():
     document = capabilities.control_center(None)
     compute = {item["id"]: item for item in document["compute"]["unavailable"]}
-    assert "runpod" in compute and unavailable_is_explained(compute["runpod"])
+    # Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): a miner
+    # runs their own machine on any provider, so no provider is listed as a
+    # missing integration either.
+    assert not {"runpod", "lium", "targon"} & set(compute)
     models = {item["id"] for item in document["model"]["unavailable"]}
-    assert "chutes" in models
-    # Engy's adapters are registered providers now, not an unavailable
-    # integration; the specimen is that they appear as providers.
-    assert "engy" not in models
+    # Engy's and Chutes' adapters are registered providers now, not
+    # unavailable integrations; the specimen is that they appear as providers.
+    assert "engy" not in models and "chutes" not in models
     providers = {item["id"] for item in document["model"]["providers"]}
-    assert {"engy-anthropic", "engy-chat"} <= providers
+    assert {"engy-anthropic", "engy-chat", "chutes"} <= providers
 
 
 def test_the_stale_burgers_bridge_entry_is_gone():
@@ -239,10 +241,10 @@ def test_the_stale_burgers_bridge_entry_is_gone():
     """
     listed = {item["reason"] for item in controller.capability_catalog()["unavailable"]}
     assert "research_bridge_not_implemented" not in listed
-    assert "adapter_not_implemented" in listed
+    assert "integration_interface_unverified" in listed
     ids = {item["id"] for item in controller.INTEGRATIONS}
     assert "carbon-burgers-development" not in ids
-    assert "hermes" in ids
+    assert "mira" in ids
     # Every integration is placed somewhere a miner will meet it.
     assert ids == set(controller.INTEGRATION_PLACEMENT)
 
@@ -321,13 +323,14 @@ def test_primary_navigation_is_the_control_center_and_rehearsal_is_development()
     parsed = views()
     primary = [label for _, label, group in parsed.views if group is None]
     assert primary == [
-        "Overview",
-        "Campaigns",
+        "Launchpad",
+        "My Campaigns",
         "Challenges",
         "Agents",
         "Compute",
         "Connections",
         "Wallet & Identity",
+        "Set up your environment",
         "Settings",
     ]
     development = [(vid, label) for vid, label, group in parsed.views if group]

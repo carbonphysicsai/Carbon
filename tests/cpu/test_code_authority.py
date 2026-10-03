@@ -1090,6 +1090,14 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
     )
+    # Six shards share the canonical command; ci.sh owns what each runs.
+    assert "fail-fast: false" in jobs["canonical"]
+    assert "shard: [0, 1, 2, 3, 4, 5]" in jobs["canonical"]
+    assert "CARBON_CI_SHARD: ${{ matrix.shard }}/6" in jobs["canonical"]
+    assert "grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh" in jobs["canonical"]
+    # The retired Hub runs only while the protected gate still names it.
+    assert "hub_required == 'true'" in jobs["hub-validation"]
+    assert "# HUB-RETIREMENT BEGIN" in jobs["merge-gate"]
     assert _inline_run_commands(jobs["dev-image"]) == (
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
     )
@@ -1107,7 +1115,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["workbench"]
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["c03-worker"]
-    assert 'CARBON_UV_GROUPS: "archive"' in jobs["contract-authority"]
+    assert 'CARBON_UV_GROUPS: "chain archive"' in jobs["contract-authority"]
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
@@ -1148,7 +1156,10 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "path: .carbon-artifacts/quality.json" in jobs["canonical"]
     # The dev image runs the same canonical acceptance, so it installs the
     # same optional groups; the MCP door tests import `mcp`.
-    assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["dev-image"]
+    assert (
+        'CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"'
+        in jobs["dev-image"]
+    )
     assert jobs["dev-image"].count("CARBON_UV_GROUPS") == 1
     assert jobs["dev-image"].index("docker/build-push-action") < jobs[
         "dev-image"

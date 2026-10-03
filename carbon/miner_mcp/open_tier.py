@@ -188,8 +188,47 @@ def attach_campaign(
     resources = server._resource_manager._resources
     for uri, resource in reference._resource_manager._resources.items():
         resources.setdefault(uri, resource)
+    # And its prompts: the research workflow an agent is told to follow
+    # reaches it on the attach path too (RSURF-D6), not only on a server
+    # started for one campaign.
+    prompts = server._prompt_manager._prompts
+    for name, prompt in reference._prompt_manager._prompts.items():
+        prompts.setdefault(name, prompt)
 
     server._carbon_attached = True
+    return tuple(added)
+
+
+def attach_operations(server, host, attachment, *, guard=None):
+    """Add the registered tier's operations to a running server.
+
+    Setup's review writes the miner's runner profile mid-session
+    (OWNER-MINER-SETUP-AGENT-FIRST-01). What `serve_operations` builds at
+    start from a profile - one tool per miner operation over `host`, and
+    attach/detach - is added here to the live server instead, by the same
+    insertion `attach_campaign` uses and with the same strictness check, so
+    the agent goes on to launch without reconnecting. There is no campaign
+    yet, so `attach_campaign` itself is not the call: once one is launched,
+    the attach tool added here reaches it.
+
+    Returns the names added; a name already present is left as it is.
+    """
+    from carbon.miner_mcp.mcp_operations import (
+        make_attachment_tools,
+        make_operation_tools,
+    )
+
+    added = []
+    target = server._tool_manager._tools
+    for tool in [
+        *make_operation_tools(host, guard=guard),
+        *make_attachment_tools(attachment, guard=guard),
+    ]:
+        if tool.name in target:
+            continue
+        _assert_strict(tool.name, tool)
+        target[tool.name] = tool
+        added.append(tool.name)
     return tuple(added)
 
 

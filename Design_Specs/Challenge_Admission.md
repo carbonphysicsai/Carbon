@@ -14,6 +14,19 @@ are internal. Results may be archived and keep their meaning under the rule and
 permissions they were produced with (invariant 10). Mainnet iteration is a
 separate, undecided rule; nothing here transfers to it.
 
+**Combined run (OWNER-ADMISSION-COMBINED-01, 2026-10-02).** Tracks A and B
+now run as one admission test per Challenge and ladder rung. It has one
+study sheet, one panel (legitimate and attack constructions together), one
+fresh confirmation set and one ledger. Score tuning and the design optimizer
+run inside it: Mode X belongs to the attack side, Mode D to the value side.
+The run reports three separate verdicts:
+- construction integrity;
+- adversarial score;
+- value.
+
+Any one fails the rung, and none compensates for another. The sections below
+still define each track's checks.
+
 **Review moves from every change to every finding.** Permission expansion
 needs no review in advance; every expansion is recorded (§6.1); a finding
 escalates and is never suppressed (§6.2); the review is of the state reached,
@@ -304,7 +317,19 @@ python -m carbon.challenge_readiness validate --require-admission
 python -m carbon.battery.value.audit --results docs/development/evidence/ev1-2026-09-25/results.json
 python -m carbon.battery.value.divergence --results docs/development/evidence/ev2-2026-10-01/results.json
 python -m pytest tests/cpu/test_challenge_admission.py tests/cpu/test_engineering_value_audit.py tests/cpu/test_challenge_readiness.py tests/cpu/test_admission_divergence.py
+python -m carbon.battery.track_a run --out DIR
 ```
+
+`carbon.battery.track_a` (CI-BATTERY-L0-01) is battery's Level 0 Track A
+harness:
+- registered attacks against the real boundary;
+- a vulnerable specimen per family, showing the detector can fire;
+- a valid control per family;
+- the attempt ledger, and a coverage map of here, reused and untested
+  surfaces.
+
+Like the divergence command, it exits 1 when any condition fires. It chooses
+no threshold, budget or acceptance.
 
 The first command validates the records, including any retained evidence files.
 Without `--require-admission`, zero exit means valid records, not accepted

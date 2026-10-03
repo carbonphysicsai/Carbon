@@ -339,10 +339,32 @@ class ResearchFixture:
         assert identity == self.record["id"]
         return self.record
 
+    # The research surface's detail view reads the campaign view document
+    # through the operations table (RSURF-D1): the campaign gate and the body
+    # a runner gives it, built from this fixture's own record.
+    def owned_campaign(self, identity):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        if self.record is None or identity != self.record["id"]:
+            raise Rejected("research_run_unavailable", 404)
+        return {"id": identity, "root": None, "kind": "fixture"}
+
+    def campaign_view_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad.campaign_view import build
+
+        return build(
+            self.record,
+            view=None,
+            contract=None,
+            notes=[],
+            feedback_mode="FULL",
+            predictions=lambda task: (None, "engineering_fixture"),
+        )
+
     def control(self, identity, action):
         record = self.get(identity)
         record["state"] = {
-            "pause": "PAUSE_REQUESTED",
+            "pause": "PAUSED",
             "resume": "RUNNING",
             "stop": "STOPPING",
             "reconcile": "STOPPED",
@@ -793,22 +815,67 @@ def run():
                     load(session, origin)
                     connect(session, token)
                     click(session, "research-launch")
+                    # The campaign detail is the research surface (RSURF-D1):
+                    # every panel is drawn from the campaign view document the
+                    # operations table builds from the runner's own record.
+                    fixture_id = research.record["id"]
+                    detail_text = (
+                        "document.getElementById('campaign-detail').textContent"
+                    )
+
+                    def tab(name):
+                        session.evaluate(
+                            "location.hash = "
+                            + json.dumps("#campaigns/" + fixture_id + "/" + name)
+                        )
+                        wait(
+                            session,
+                            "document.querySelector('#campaign-detail .rs-tab')?.dataset.tab === "
+                            + json.dumps(name),
+                        )
+
+                    def control(action):
+                        return (
+                            "document.querySelector('#campaign-detail .rs-head [data-action="
+                            + action
+                            + "]')"
+                        )
+
+                    # The retried launch is confirmed (it moves the page to the
+                    # campaign), and only then is the campaign's view read.
                     wait(
                         session,
-                        "document.getElementById('campaign-detail').textContent.includes('UI FIXTURE')",
+                        "document.getElementById('message').textContent.includes('Research launch recorded')",
                     )
+                    wait(
+                        session,
+                        "document.querySelector('#campaign-detail .rs-id')?.textContent === "
+                        + json.dumps(fixture_id),
+                    )
+                    # The record's own agent, as the campaign's settings say.
+                    tab("settings")
+                    wait(session, detail_text + ".includes('UI FIXTURE')")
+                    tab("live")
+                    # The practice run's two-point training curve, drawn.
+                    wait(
+                        session,
+                        "document.querySelectorAll('#campaign-detail figure[data-chart=learning_curve] svg circle').length === 2",
+                    )
+                    # Its descriptive score, on the practice trend.
                     assert session.evaluate(
-                        "document.querySelectorAll('.practice-result svg circle').length === 2"
+                        "document.querySelector('#campaign-detail figure[data-chart=trend_score]').textContent.includes('0.42')"
                     )
+                    # Spend from the miner's own ledger: reported plus
+                    # uncertain, never the available balance.
                     assert session.evaluate(
-                        "document.querySelector('.practice-result').textContent.includes('ENGINEERING_FIXTURE_GATE')"
+                        "[...document.querySelectorAll('#campaign-detail .rs-tile')].some(t => t.textContent.includes('Model spend') && t.textContent.includes('$0.00500'))"
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.research-usage').textContent.includes('uncertain: $0.00300000')"
+                    tab("submission")
+                    wait(
+                        session,
+                        detail_text + ".includes('No DEVELOPMENT outcome yet.')",
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.development-result').textContent.includes('no independent result')"
-                    )
+                    tab("live")
                     session.evaluate(
                         "document.querySelector('#campaign-detail details').open = true"
                     )
@@ -817,32 +884,38 @@ def run():
                     }
                     wait(
                         session,
-                        "document.querySelector('#campaign-detail').textContent.includes('UI FIXTURE updated hypothesis')",
+                        detail_text + ".includes('UI FIXTURE updated hypothesis')",
                     )
+                    # A user-opened panel stays open when the view refreshes.
                     assert session.evaluate(
                         "document.querySelector('#campaign-detail details').open"
                     )
                     research.record["experiments"][0]["inline_curve"][0][
                         "data_loss"
                     ] = None
+                    # A curve with a missing point is not drawn, and says so.
                     wait(
                         session,
-                        "document.querySelectorAll('.practice-result svg').length === 0",
+                        "!document.querySelector('#campaign-detail figure[data-chart=learning_curve]')",
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.practice-result').textContent.includes('Training curve unavailable')"
-                    )
+                    assert session.evaluate(detail_text + ".includes('Not recorded.')")
                     research.record["experiments"][0]["inline_curve"][0][
                         "data_loss"
                     ] = 0.5
+                    wait(
+                        session,
+                        "Boolean(document.querySelector('#campaign-detail figure[data-chart=learning_curve]'))",
+                    )
                     original_research_recent = research.recent
                     research.recent = unavailable
                     wait(
                         session,
                         "document.getElementById('connection-state').textContent === 'Connection interrupted'",
                     )
+                    # No control can be sent while the connection is down.
                     assert session.evaluate(
-                        "[...document.querySelectorAll('#campaign-detail button')].every(b => b.disabled)"
+                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 4"
+                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)"
                     )
                     research.recent = original_research_recent
                     wait(
@@ -853,32 +926,23 @@ def run():
                         "document.querySelector('#campaign-detail details').open"
                     )
                     for action, observed in (
-                        ("pause", "PAUSE_REQUESTED"),
+                        ("pause", "PAUSED"),
                         ("resume", "RUNNING"),
                         ("stop", "STOPPING"),
                         ("reconcile", "STOPPED"),
                     ):
+                        wait(session, "!" + control(action) + ".disabled")
+                        session.evaluate(control(action) + ".click()")
                         wait(
                             session,
-                            "![...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
-                            + json.dumps(action)
-                            + ").disabled",
-                        )
-                        session.evaluate(
-                            "[...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
-                            + json.dumps(action)
-                            + ").click()"
-                        )
-                        wait(
-                            session,
-                            "document.getElementById('campaign-detail').textContent.includes("
-                            + json.dumps(observed)
-                            + ")",
+                            "document.querySelector('#campaign-detail .rs-meta .pill')?.textContent === "
+                            + json.dumps(observed),
                         )
                     assert len(research.keys) == 1
-                    assert "UI FIXTURE stop reason" in session.evaluate(
-                        "document.getElementById('campaign-detail').textContent"
-                    )
+                    # The agent's stop reason, as an epoch outcome.
+                    tab("reasoning")
+                    wait(session, detail_text + ".includes('UI FIXTURE stop reason')")
+                    tab("submission")
                     research.record["final_results"] = [
                         {
                             "status": "VERIFIED_SOURCE",
@@ -890,23 +954,20 @@ def run():
                     ]
                     wait(
                         session,
-                        "document.querySelector('.development-result').textContent.includes('ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED')",
+                        detail_text
+                        + ".includes('engineering fixture complete unresolved')",
                     )
                     assert session.evaluate(
-                        "document.querySelector('.development-result').textContent.includes('improvement: false')"
+                        detail_text
+                        + ".includes('accepted DEVELOPMENT improvement: false')"
                     )
                     research.record["final_results"] = [
                         {"status": "READBACK_UNAVAILABLE", "result": None}
                     ]
-                    wait(
-                        session,
-                        "document.querySelector('.development-result').textContent.includes('Readback unavailable')",
-                    )
+                    wait(session, detail_text + ".includes('readback unavailable')")
                     assert (
-                        "ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED"
-                        not in session.evaluate(
-                            "document.getElementById('campaign-detail').textContent"
-                        )
+                        "engineering fixture complete unresolved"
+                        not in session.evaluate(detail_text)
                     )
                     load(session, origin)
                     connect(session, token)
@@ -956,7 +1017,10 @@ def run():
                             "#overview",
                             "#launch",
                             "#challenges",
+                            "#compute",
                             "#wallet",
+                            "#setup",
+                            "#guide",
                             "#development",
                             campaign_hash,
                         ):
@@ -967,8 +1031,8 @@ def run():
                         # Monitoring and stop stay usable: the campaign's own
                         # controls, and the rehearsal's in the Development area.
                         assert session.evaluate(
-                            "[...document.querySelectorAll('#campaign-detail button')]"
-                            ".find(b => b.textContent === 'stop').getBoundingClientRect().width >= 44"
+                            "document.querySelector('#campaign-detail .rs-head [data-action=stop]')"
+                            ".getBoundingClientRect().width >= 44"
                         ), width
                         goto(session, "#development")
                         assert session.evaluate(
@@ -979,6 +1043,19 @@ def run():
                         # finger can hit; and a real Enter on one moves the
                         # working surface to that view. Development is listed
                         # apart from the primary views.
+                        if width < 900:
+                            # On a phone the rail is behind Menu (C-MLP-05): a
+                            # person opens it, and then every view is in reach.
+                            assert session.evaluate(
+                                "document.getElementById('rail-toggle').getBoundingClientRect().height >= 44"
+                            )
+                            session.evaluate(
+                                "document.getElementById('rail-toggle').click()"
+                            )
+                            wait(
+                                session,
+                                "document.documentElement.classList.contains('rail-open')",
+                            )
                         listed = session.evaluate(
                             "JSON.stringify([...document.querySelectorAll('#tool-nav a')]"
                             ".map(a => [a.getAttribute('href'), a.textContent,"
@@ -989,14 +1066,17 @@ def run():
                             ".map(s => ['#' + s.id, s.dataset.nav, true]))"
                         )
                         assert json.loads(listed) == json.loads(marked), (width, listed)
+                        # The research surface's names (C-MLP-05): Launchpad
+                        # and My Campaigns head the rail.
                         assert [entry[1] for entry in json.loads(listed)] == [
-                            "Overview",
-                            "Campaigns",
+                            "Launchpad",
+                            "My Campaigns",
                             "Challenges",
                             "Agents",
                             "Compute",
                             "Connections",
                             "Wallet & Identity",
+                            "Set up your environment",
                             "Settings",
                             "Development",
                         ], listed
@@ -1158,10 +1238,30 @@ def journey():
                     choose(session, "wizard-challenge", FIXTURE_CHALLENGE["id"])
                     choose(session, "research-agent", "manual")
                     click(session, "research-launch")
-                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    # The launch opens the campaign. With no agent, the person
+                    # practises under Experiments and freezes and submits
+                    # under Submission: the research surface's tabs (C-MLP-05).
+                    wait(session, "/^#campaigns\\/[^/]+\\//.test(location.hash)")
                     run_id = session.evaluate(
-                        "document.querySelector('.journey').id.slice('journey-'.length)"
+                        "decodeURIComponent(location.hash.split('/')[1])"
                     )
+
+                    def journey_tab(name):
+                        session.evaluate(
+                            "location.hash = "
+                            + json.dumps("#campaigns/" + run_id + "/" + name)
+                        )
+                        wait(
+                            session,
+                            "document.querySelector('#campaign-detail .rs-tab')?.dataset.tab === "
+                            + json.dumps(name),
+                        )
+
+                    journey_tab("experiments")
+                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    assert session.evaluate(
+                        "document.querySelector('.journey').id"
+                    ) == ("journey-" + run_id)
                     campaign = root / "campaigns" / run_id
                     # A refusal through the real route: submitting with nothing
                     # frozen is a named 409, never a 500 - the shared table's
@@ -1198,14 +1298,26 @@ def journey():
                     assert "unet1d" in families
                     # The freeze is refused before any practice: a candidate
                     # must have a practice result.
+                    journey_tab("submission")
+                    wait(
+                        session,
+                        f"Boolean(document.getElementById('journey-freeze-{run_id}'))",
+                    )
                     assert session.evaluate(
                         f"document.getElementById('journey-freeze-{run_id}').disabled"
+                    )
+                    journey_tab("experiments")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-practice-{run_id}').disabled === false",
                     )
                     session.evaluate(
                         f"const h=document.getElementById('journey-hypothesis-{run_id}');"
                         "h.value='wider FNO lowers data loss';h.dispatchEvent(new Event('input'))"
                     )
                     click(session, f"journey-practice-{run_id}")
+                    # Once practised, the recipe can be frozen under Submission.
+                    journey_tab("submission")
                     wait(
                         session,
                         f"document.getElementById('journey-freeze-{run_id}') && !document.getElementById('journey-freeze-{run_id}').disabled",
@@ -1251,6 +1363,890 @@ def journey():
     )
 
 
+class SetupChecks:
+    """Fixture live checks for the setup smoke: they contact nothing."""
+
+    def published_pricing(self, provider_id, model_id):
+        return {
+            "unit": "nanodollars per token",
+            "input": 240,
+            "cached_input": 24,
+            "output_including_reasoning": 2200,
+            "source": "provider_published",
+            "reference": "https://llm.chutes.ai/v1/models",
+            "observed": "2026-10-02T00:00:00Z",
+            "note": "fixture",
+        }
+
+    def inference(self, provider_id, model_id, credential_file, spec=None):
+        return {
+            "models_source": "fixture",
+            "models_listed": 1,
+            "completion": "answered",
+        }
+
+    def compute(self, image, analysis):
+        return {
+            "implementation": {
+                "revision": "a" * 40,
+                "tree": "b" * 40,
+                "source_tree_digest": "sha256:" + "c" * 64,
+            },
+            "images": ["sha256:" + "d" * 64, "sha256:" + "e" * 64],
+        }
+
+    def gpu(self, manifest, campaign=None):
+        raise AssertionError("the smoke's miner checks the CPU, not a GPU")
+
+    @staticmethod
+    def _gpu_image():
+        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.reconstruction.worker.model import WorkerImageIdentity
+
+        value = "sha256:" + "9" * 64
+        return WorkerImageIdentity(
+            image_id=value,
+            config_digest=value,
+            source_tree_digest="sha256:" + "a" * 64,
+            wheel_digest="sha256:" + "b" * 64,
+            lock_digest=GPU_PROFILE.environment_lock_digest,
+            base_image_digest="sha256:" + "1" * 64,
+            build_recipe_digest="sha256:" + "d" * 64,
+            entrypoint_digest="sha256:" + "e" * 64,
+        )
+
+    def remote(self, manifest, machine, campaign):
+        """The miner's own machine with Docker, reached by fixture: it holds
+        no worker yet, so the page offers to send it."""
+        from carbon.compute.remote_route import remote_scope
+
+        image = self._gpu_image()
+        return {
+            "scope": campaign.gpu_scope(image),
+            "remote_scope": remote_scope(
+                campaign.key.challenge_id, image, machine.transport
+            ),
+            "check": {
+                "transport": machine.transport,
+                "reached": True,
+                "docker": "usable without sudo",
+                "nvidia_container_toolkit": "present",
+                "worker_image": "missing",
+                "image_verified_by": "image-id",
+            },
+        }
+
+    def send_worker(self, manifest, machine, image_id):
+        SENT.append((machine.destination, image_id))
+        return "sent"
+
+    @staticmethod
+    def hermes_files():
+        return [
+            "/hermes-fixture/profiles/carbon/config.yaml",
+            "/hermes-fixture/profiles/carbon/.env",
+        ]
+
+    def hermes(self, document, key):
+        raise AssertionError("the smoke's miner uses Carbon's agent")
+
+    def intake(self, url, campaign=None):
+        raise AssertionError("the smoke's validator runs beside the campaign")
+
+    def agent(self, hotkey, socket_path=None):
+        return {"signing": "carbon-miner-signer holds the registered hotkey"}
+
+    @staticmethod
+    def operator_config(path):
+        raise AssertionError("the smoke's miner names no operator configuration")
+
+    @staticmethod
+    def network():
+        """A miner's network read (C-MLP-04): Carbon's testnet constants and a
+        fixture publisher; no chain is reached."""
+        from carbon.development_session import miner_network
+        from carbon.development_session.chain_onboarding import (
+            carbon_testnet_context,
+        )
+
+        context = carbon_testnet_context()
+        bound = miner_network.NetworkBinding(context, "5" + "P" * 47, context.netuid)
+        return miner_network.document(bound, 7), 7
+
+
+#: What "Send your worker" was asked to send: (destination, image ID).
+SENT = []
+
+
+def setup_journey():
+    """After registration a person sets up inference, compute and agent in a
+    real browser, and the profile is written and loaded without a restart.
+    Chain, providers and images are fixtures; no key reaches the page again."""
+    from onboarding import BrowserOnboarding
+
+    from carbon.chain.models import Participant
+
+    hotkey = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+    coldkey = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+    key = "sk-browser-smoke-fixture-key-not-real"
+    with tempfile.TemporaryDirectory(prefix="carbon-setup-smoke-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        miner = root / "miner"
+        miner.mkdir(mode=0o700)
+        for name in ("worker.json", "analysis.json", "operator.json", "gpu.json"):
+            (miner / name).write_text("{}")
+        onboarding = BrowserOnboarding(
+            reader=StubReader(
+                (Participant(uid=0, hotkey=hotkey, coldkey=coldkey, registered_at=42),)
+            ),
+            context=stub_onboarding().context,
+        )
+        token = "browser-smoke-session-token-not-a-real-credential"
+        server = controller.Server(
+            controller.Controller(root / "runs.sqlite3"),
+            token,
+            0,
+            onboarding=onboarding,
+            state_dir=root / "state",
+            setup_checks=SetupChecks(),
+        )
+        attached = []
+        server.setup.attach = lambda path: attached.append(path) or True
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                load(session, server.origin)
+                connect(session, token)
+                session.evaluate("location.hash = '#wallet'")
+                session.evaluate(
+                    "document.getElementById('onboarding-address').value="
+                    + json.dumps(hotkey)
+                )
+                click(session, "onboarding-confirm")
+                # Confirmed: the wizard opens at its next step, and the
+                # registration step shows done.
+                # Step 3 is who researches (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                wait(session, "location.hash === '#setup/agent'")
+                wait(
+                    session,
+                    "!document.querySelector('[data-step-panel=agent]').hidden"
+                    " && document.getElementById('setup-eyebrow').textContent.includes('Step 3 of 6')",
+                )
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=register] .step-done')"
+                    ".textContent.includes('Registered')"
+                )
+                # Until a handshake asks it, the signer is not shown done; this
+                # miner registered first, so step 1 is the one next.
+                assert (
+                    session.evaluate(
+                        "document.querySelector('#setup-progress li:first-child').className"
+                    )
+                    == "is-next"
+                ), "the signer is done only once a handshake has asked it"
+                assert session.evaluate(
+                    "document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent.includes('check')"
+                )
+                # Hermes is offered beside Carbon's agent, and names the exact
+                # files it would write; nothing is agreed by default.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'hermes';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-hermes-consent').checked"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('profiles/carbon/config.yaml')"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('hermes -p carbon chat')",
+                )
+                # Your own agent: the one command and each client's snippet,
+                # to copy, with what was not run marked UNVERIFIED; it skips
+                # Inference because it brings its own model.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'own-agent';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-connect').hidden"
+                    " && document.getElementById('setup-agent-connect').textContent"
+                    ".includes('Skips Inference')",
+                )
+                snippets = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll("
+                        "'#setup-agent-connect .copy-line code')].map(c => c.textContent))"
+                    )
+                )
+                # The command names this controller's own setup records.
+                command = snippets[0]
+                assert command.endswith(
+                    "-m carbon.miner_mcp.standard_cli --state-dir "
+                    + str(root / "state")
+                ), command
+                assert any(
+                    c.startswith("claude mcp add --transport stdio") for c in snippets
+                )
+                assert any(c.startswith("codex mcp add carbon") for c in snippets)
+                assert any("mcp_servers:" in c for c in snippets)
+                assert session.evaluate(
+                    "document.querySelectorAll('#setup-agent-connect .unverified').length >= 3"
+                    " && [...document.querySelectorAll('#setup-agent-connect button')]"
+                    ".every(b => b.type === 'button')"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                # External signing: the Agent step asks for no hotkey file
+                # and no password; it only asks the miner's signer.
+                assert (
+                    session.evaluate(
+                        "document.querySelectorAll('form[data-step=agent] input[type=password],"
+                        " #setup-agent-hotkey_file, #setup-agent-password').length"
+                    )
+                    == 0
+                )
+                # A miner names no operator file: setup reads the network.
+                assert session.evaluate(
+                    "document.querySelector('label[for=setup-agent-operator_config]')"
+                    ".textContent.includes('operators only')"
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=agent]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: agent.'",
+                )
+                # The Agent step asked the signer: step 1 is done only now.
+                wait(
+                    session,
+                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/inference'"
+                    " && !document.querySelector('[data-step-panel=inference]').hidden"
+                    " && document.getElementById('setup-eyebrow').textContent.includes('Step 4 of 6')",
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-body').textContent.includes('billed by')"
+                )
+                # Engy's Chat Completions route is the default choice.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-inference-provider_id').value"
+                    )
+                    == "engy-chat"
+                )
+                # Chutes takes any model id it serves, typed, and is quoted
+                # at its published price; it needs no endpoint from the miner.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'chutes';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'Qwen/Qwen3.8-27B-TEE';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')"
+                    " && document.getElementById('setup-inference-endpoint').parentElement.hidden",
+                )
+                # A generic adapter asks for the miner's endpoint before quoting.
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'openai-compatible-chat';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-model_id').value = 'my-model';"
+                    "document.getElementById('setup-inference-model_id').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-endpoint').parentElement.hidden"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('endpoint')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-inference-provider_id').value = 'engy-chat';"
+                    "document.getElementById('setup-inference-provider_id').dispatchEvent(new Event('change'));"
+                    "document.getElementById('setup-inference-key').value = "
+                    + json.dumps(key)
+                )
+                # The check's maximum cost is quoted before anything is spent,
+                # nothing is agreed by default, and the check cannot run until
+                # the person agrees to that amount.
+                wait(
+                    session,
+                    "!document.getElementById('setup-inference-consent').disabled"
+                    " && document.querySelector('label[for=setup-inference-consent]')"
+                    ".textContent.includes('at most $')",
+                )
+                assert session.evaluate(
+                    "!document.getElementById('setup-inference-consent').checked"
+                    " && document.querySelector('form[data-step=inference] button').disabled"
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-result').textContent !== 'Checked: inference.'"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-inference-consent').click();"
+                    "document.querySelector('form[data-step=inference]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: inference.'",
+                )
+                # The step shows done, and Next opens the following step.
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=inference] .step-done')"
+                    ".textContent.includes('Done')"
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/compute'"
+                    " && !document.querySelector('[data-step-panel=compute]').hidden",
+                )
+                # No typed paths: with nothing built here, setup names the one
+                # command that builds and records the images.
+                assert session.evaluate(
+                    "document.querySelector('form[data-step=compute]').textContent"
+                    '.includes("Carbon hasn\'t found your worker images")'
+                    " && document.querySelector('form[data-step=compute] .copy-line code')"
+                    ".textContent.includes('install_miner.sh --no-start')"
+                )
+                # This machine's GPU is offered beside the CPU default, with
+                # its own image field and the plain statement that GPU
+                # practice is for speed only.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-compute-choice').value"
+                    )
+                    == "this-machine-cpu"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-gpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('speed only')"
+                    # GPU practice is set up for a Challenge the miner chooses.
+                    " && [...document.getElementById('setup-compute-challenge').options]"
+                    ".some(o => JSON.parse(o.value).id === 'battery-fastcharge-ageing-development-v1')",
+                )
+                # Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01):
+                # this machine's CPU and GPU are offered, and the miner's own
+                # remote machine or container; nothing asks for a provider
+                # key.
+                assert (
+                    session.evaluate(
+                        "[...document.getElementById('setup-compute-choice').options]"
+                        ".map(o => o.value).join()"
+                    )
+                    == "this-machine-cpu,this-machine-gpu,remote-machine"
+                )
+                assert session.evaluate(
+                    "!document.querySelector('form[data-step=compute] input[type=password]')"
+                )
+                # Where's your GPU? Each provider card sets the remote choice
+                # and the transport its guide section names (LINKONLY-D10).
+                from scripts.dev.miner_launchpad.environment_setup import REMOTE_GUIDES
+
+                for guide_id, _, transport, _ in REMOTE_GUIDES:
+                    click(session, "setup-where-" + guide_id)
+                    wait(
+                        session,
+                        "document.getElementById('setup-compute-choice').value === 'remote-machine'"
+                        " && document.getElementById('setup-compute-transport').value === "
+                        + json.dumps(transport)
+                        + " && !document.getElementById('setup-guide-panel').hidden",
+                    )
+                # A card shows its guide section, UNVERIFIED marks kept, and
+                # the commands to copy, the destination filled in as typed.
+                click(session, "setup-where-runpod")
+                wait(
+                    session,
+                    "document.getElementById('setup-guide-panel').textContent.includes('RunPod')",
+                )
+                panel = session.evaluate(
+                    "document.getElementById('setup-guide-panel').textContent"
+                )
+                assert "UNVERIFIED" in panel and "ssh-container" in panel, panel[:300]
+                assert session.evaluate(
+                    "document.querySelectorAll('#setup-guide-panel .unverified').length >= 2"
+                )
+                copies = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#setup-guide-panel .copy-line')]"
+                        ".map(l => [l.querySelector('code').textContent,"
+                        " l.querySelector('button').type, l.querySelector('button').textContent]))"
+                    )
+                )
+                assert len(copies) >= 4, copies
+                assert all(
+                    kind == "button" and text == "Copy" for _, kind, text in copies
+                )
+                assert "push_worker_image.sh" in copies[0][0], copies[0]
+                session.evaluate(
+                    "document.getElementById('setup-compute-destination').value = 'root@pod-1';"
+                    "document.getElementById('setup-compute-destination').dispatchEvent(new Event('input'))"
+                )
+                wait(
+                    session,
+                    "[...document.querySelectorAll('#setup-guide-panel .copy-line code')]"
+                    ".some(c => c.textContent === 'ssh -o BatchMode=yes root@pod-1 true')",
+                )
+                # The guide link opens the guide this controller serves.
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-guide-link').getAttribute('href')"
+                    )
+                    == "#guide/runpod-pods"
+                )
+                # The miner's own remote setup: the two built transports, and
+                # the endpoint transport shown with why it is not built; the
+                # wiring guide is named.
+                click(session, "setup-where-own-server")
+                wait(
+                    session,
+                    "!document.getElementById('setup-compute-destination').parentElement.hidden"
+                    " && !document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                    " && document.querySelector('form[data-step=compute]').textContent.includes('MINER_REMOTE_SETUP.md')"
+                    " && document.getElementById('setup-compute-submit').textContent.includes('my SSH')",
+                )
+                transports = session.evaluate(
+                    "JSON.stringify([...document.getElementById('setup-compute-transport').options]"
+                    ".map(o => [o.value, o.disabled]))"
+                )
+                assert json.loads(transports) == [
+                    ["ssh-docker", False],
+                    ["ssh-container", False],
+                    ["endpoint", True],
+                ]
+                assert (
+                    session.evaluate(
+                        "document.getElementById('setup-compute-transport').value"
+                    )
+                    == "ssh-docker"
+                )
+                SENT.clear()
+                session.evaluate(
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "worker.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.getElementById('setup-compute-gpu_image_manifest').value = "
+                    + json.dumps(str(miner / "gpu.json"))
+                    + ";document.getElementById('setup-compute-destination').value = 'miner@gpu-box';"
+                    "document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: compute.'"
+                    " && Boolean(document.getElementById('setup-send-worker-consent'))",
+                )
+                # Checked, but not done until the worker is there: Next waits.
+                assert session.evaluate(
+                    "document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent.includes('Send your worker')"
+                )
+                # Sending the worker is its own step: nothing is agreed by
+                # default and the consent names the destination and image.
+                assert session.evaluate(
+                    "!document.getElementById('setup-send-worker-consent').checked"
+                    " && document.querySelector('form[data-step=send_worker] button').disabled"
+                    " && document.querySelector('label[for=setup-send-worker-consent]')"
+                    ".textContent.includes('miner@gpu-box')"
+                )
+                assert SENT == []
+                session.evaluate(
+                    "document.getElementById('setup-send-worker-consent').click();"
+                    "document.querySelector('form[data-step=send_worker]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: send_worker.'"
+                    " && !document.getElementById('setup-send-worker-consent')",
+                )
+                assert SENT == [("miner@gpu-box", SetupChecks._gpu_image().image_id)]
+                session.evaluate(
+                    "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
+                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
+                )
+                # A missing image is refused by name, with its build step.
+                session.evaluate(
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "absent.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.startsWith('image manifest: ')"
+                    " && document.getElementById('setup-result').textContent.includes('c03_worker_image.sh')",
+                )
+                session.evaluate(
+                    "document.getElementById('setup-compute-image_manifest').value = "
+                    + json.dumps(str(miner / "worker.json"))
+                    + ";document.getElementById('setup-compute-analysis_image_manifest').value = "
+                    + json.dumps(str(miner / "analysis.json"))
+                    + ";document.querySelector('form[data-step=compute]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: compute.'",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/review'"
+                    " && !document.querySelector('[data-step-panel=review]').hidden",
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=review]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.startsWith('Profile written and loaded')",
+                )
+                assert attached == [server.setup.profile_path]
+                # Overview: five steps confirmed, and the sixth is the next,
+                # since no campaign is on record yet.
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelectorAll('#getting-started-steps .gs-step.is-done').length === 5",
+                )
+                assert (
+                    session.evaluate(
+                        "document.querySelector('#getting-started-steps .is-current').dataset.step"
+                    )
+                    == "review"
+                )
+                page = session.evaluate("document.documentElement.outerHTML")
+                assert key not in page
+                written = (
+                    server.setup.profile_path.read_text(),
+                    server.setup.record_path.read_text(),
+                )
+                assert not any(key in text for text in written)
+                # Nothing that could open the miner's key reaches the profile.
+                assert not any(
+                    field in text
+                    for text in written
+                    for field in ('"miner_password_file"', '"key_file"')
+                )
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+    print(
+        "Launchpad setup smoke passed: after a confirmed registration a person set up who researches (with your own agent's connect command and client snippets to copy), inference and compute in a real browser, in the agent-first order, one wizard step at a time with each step done only once checked and the signer done only after the Agent step asked it; each Where's your GPU? card set the transport its guide section names and showed that section, UNVERIFIED marks kept, with its commands to copy; they checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
+    )
+
+
+def fresh_miner():
+    """A brand-new miner lands on the Control Center (LINKONLY-D10): one
+    ordered list with its next step, setup that leads with that step, plain
+    statuses each with the place that fixes it, the remote route beside this
+    machine, and the guide and Carbon's font served by this controller with
+    nothing fetched from anywhere else. Chain and checks are fixtures."""
+    with tempfile.TemporaryDirectory(prefix="carbon-fresh-miner-smoke-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        token = "browser-smoke-session-token-not-a-real-credential"
+        server = controller.Server(
+            controller.Controller(root / "runs.sqlite3"),
+            token,
+            0,
+            onboarding=stub_onboarding(),
+            state_dir=root / "state",
+            setup_checks=SetupChecks(),
+        )
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                session.command("Network.enable")
+                load(session, server.origin)
+                connect(session, token)
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelectorAll('#getting-started-steps .gs-step').length === 6",
+                )
+                steps = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#getting-started-steps .gs-step')]"
+                        ".map(s => [s.dataset.step, s.className, s.querySelector('.gs-state').textContent]))"
+                    )
+                )
+                assert [s[0] for s in steps] == [
+                    "signer",
+                    "register",
+                    "agent",
+                    "inference",
+                    "compute",
+                    "review",
+                ], steps
+                # Nothing is confirmed yet, so nothing is done. One step reads
+                # Next, the signer; registration is open beside it, in either
+                # order, and says so.
+                assert [s[2] for s in steps] == ["Next", "Open"] + ["Waiting"] * 4
+                assert session.evaluate(
+                    "document.querySelector('#getting-started-steps [data-step=register]')"
+                    ".textContent.includes('either order')"
+                )
+                assert "is-current" in steps[0][1]
+                primary = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([document.getElementById('overview-primary').textContent,"
+                        " document.getElementById('overview-primary').getAttribute('href')])"
+                    )
+                )
+                assert primary == ["Next: Start your signer", "#setup/signer"], primary
+                # The same step leads in setup, with its command to copy; the
+                # steps after registration are locked until it is confirmed.
+                session.evaluate("document.getElementById('overview-primary').click()")
+                wait(
+                    session,
+                    "location.hash === '#setup/signer'"
+                    " && !document.querySelector('[data-step-panel=signer]').hidden",
+                )
+                assert session.evaluate(
+                    "document.getElementById('setup-signer-copy').type === 'button'"
+                    " && document.querySelector('[data-step-panel=signer] code')"
+                    ".textContent.includes('--wallet <your wallet> --hotkey <your hotkey>')"
+                )
+                locked = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#setup-progress button')]"
+                        ".map(b => b.disabled))"
+                    )
+                )
+                assert locked == [False, False, True, True, True, True], locked
+                # The miner's agent checks the signer over the MCP door, on the
+                # same setup records: the page shows it, without a reload
+                # (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                from scripts.dev.miner_launchpad import setup_operations
+
+                setup_operations.perform(
+                    server.setup,
+                    "signer",
+                    {"address": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+                    door=setup_operations.MCP,
+                )
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline and not session.evaluate(
+                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                ):
+                    time.sleep(0.2)
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=signer] .step-done') !== null"
+                ), "the page did not show the agent's signer check"
+                # The signer is checked here too, before registration: its
+                # public address names the socket and it says which hotkey it
+                # holds.
+                session.evaluate(
+                    "document.getElementById('setup-signer-address').value = "
+                    + json.dumps("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                )
+                click(session, "setup-signer-check")
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: signer.'"
+                    " && document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                    " && document.querySelector('[data-step-panel=signer] .step-done') !== null",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/register'"
+                    " && document.getElementById('setup-next').disabled"
+                    " && document.getElementById('setup-next-reason').textContent"
+                    ".includes('Confirm your registration first')",
+                )
+                assert session.evaluate(
+                    "Boolean(document.getElementById('setup-register-confirm'))"
+                    " && document.querySelector('[data-step-panel=register] a[href=\"#wallet\"]') !== null"
+                )
+                # The signer answered: step 1 is done, and registration is the
+                # one next.
+                goto(session, "#overview")
+                wait(
+                    session,
+                    "document.querySelector('#getting-started-steps .is-current').dataset.step === 'register'",
+                )
+                # A hotkey the chain does not read as registered is refused in
+                # place, with where to prepare the registration.
+                goto(session, "#setup/register")
+                session.evaluate(
+                    "document.getElementById('setup-register-address').value = "
+                    + json.dumps("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
+                    + ";document.getElementById('setup-register-confirm').click()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent.includes('Not registered')",
+                )
+                assert session.evaluate("location.hash") == "#setup/register"
+                # Plain statuses: one sentence and the place that fixes it,
+                # with the machine code kept behind Details.
+                goto(session, "#challenges")
+                wait(
+                    session,
+                    "Boolean(document.querySelector('#challenge-catalog .card'))",
+                )
+                fixes = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#challenge-catalog .card')]"
+                        ".filter(c => c.querySelector('.pill').textContent === 'Set up first')"
+                        ".map(c => [c.querySelector('.status-line').textContent,"
+                        " c.querySelector('a.fix').getAttribute('href'),"
+                        " c.querySelector('details:last-of-type').textContent]))"
+                    )
+                )
+                assert fixes, "an implemented Challenge waits on setup"
+                for sentence, href, hidden in fixes:
+                    assert sentence == "Finish setup first." and href == "#setup"
+                    assert "research_profile_not_configured" in hidden
+                visible = session.evaluate(
+                    "[...document.querySelectorAll('#challenge-catalog .status-line')]"
+                    ".map(p => p.textContent).join(' ')"
+                )
+                assert "_" not in visible, visible
+                # Compute: this machine and a GPU run elsewhere, side by side.
+                goto(session, "#compute")
+                wait(
+                    session,
+                    "document.querySelectorAll('#compute-catalog .card').length >= 2",
+                )
+                routes = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll('#compute-catalog .card')]"
+                        ".map(c => [c.querySelector('h3').textContent,"
+                        " (c.querySelector('a.button') || {}).getAttribute"
+                        " ? c.querySelector('a.button').getAttribute('href') : null]))"
+                    )
+                )
+                assert routes[0] == ["This machine", "#setup"], routes
+                assert routes[1] == [
+                    "A GPU you run elsewhere",
+                    "#setup/compute",
+                ], routes
+                # The guide opens here, read from this checkout.
+                goto(session, "#guide")
+                wait(
+                    session,
+                    "document.getElementById('guide-body').textContent.includes('Per-provider notes')",
+                )
+                assert session.evaluate(
+                    "document.querySelectorAll('#guide-body .unverified').length >= 5"
+                    " && document.getElementById('guide-heading').textContent"
+                    ".startsWith('Practising on your own remote machine')"
+                )
+                # Carbon's font, from this controller.
+                assert session.evaluate(
+                    "document.fonts.ready.then(() => document.fonts.check('600 16px Montreal')"
+                    " && getComputedStyle(document.body).fontFamily.startsWith('Montreal'))"
+                ), "the Montreal face is declared, loaded and used"
+                wait(
+                    session,
+                    "[...document.fonts].some(f => f.family === 'Montreal' && f.status === 'loaded')",
+                )
+                fetched = [
+                    event["params"]["request"]["url"]
+                    for event in session.events
+                    if event["method"] == "Network.requestWillBeSent"
+                ]
+                assert any(
+                    url.endswith("/fonts/neue-0.otf") for url in fetched
+                ), fetched
+                outside = [
+                    url
+                    for url in fetched
+                    if not url.startswith(server.origin + "/")
+                    and not url.startswith(("data:", "blob:"))
+                ]
+                assert not outside, outside
+                # Exactly one step reads Next at a time.
+                assert (
+                    session.evaluate(
+                        "[...document.querySelectorAll('#getting-started-steps .gs-state')]"
+                        ".filter(p => p.textContent === 'Next').length"
+                    )
+                    == 1
+                )
+                for width in (1440, 800, 390):
+                    session.command(
+                        "Emulation.setDeviceMetricsOverride",
+                        {
+                            "width": width,
+                            "height": 900,
+                            "deviceScaleFactor": 1,
+                            "mobile": False,
+                        },
+                    )
+                    for surface in ("#overview", "#setup/signer", "#compute", "#guide"):
+                        goto(session, surface)
+                        assert session.evaluate(
+                            "document.documentElement.scrollWidth <= innerWidth"
+                        ), (width, surface)
+                        # The navigation wraps: no view is cut off or behind
+                        # a sideways scroll.
+                        assert session.evaluate(
+                            "(() => { const nav = document.getElementById('tool-nav');"
+                            " return nav.scrollWidth <= nav.clientWidth"
+                            " && [...nav.querySelectorAll('a')].every(a =>"
+                            " a.getBoundingClientRect().right <= innerWidth + 0.5); })()"
+                        ), (width, surface)
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+                server.shutdown()
+                server.server_close()
+                thread.join(timeout=5)
+    print(
+        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and one step next (the signer, registration open beside it in either order), setup led with that step, an agent's signer check over the MCP door showed on the page without a reload, the page checked the signer before registration by its handshake and locked the steps after registration, the navigation wrapped at 800 and 390 px, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
+    )
+
+
 if __name__ == "__main__":
     run()
     journey()
+    setup_journey()
+    fresh_miner()

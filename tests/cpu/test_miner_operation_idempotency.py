@@ -205,6 +205,11 @@ def test_a_double_clicked_submit_evaluates_the_candidate_once(campaign, monkeypa
     for thread in clicks:
         thread.join(timeout=30)
     hold.set()
+    # The released clicks answer after the hold lifts; count their answers only
+    # once every click has returned, not when the campaign happens to settle.
+    for thread in clicks:
+        thread.join(timeout=60)
+    assert not any(thread.is_alive() for thread in clicks)
     settle(host, identity)
     assert counted.dispatches == [identity]
     assert counted.exams == [(1, RECIPE)]

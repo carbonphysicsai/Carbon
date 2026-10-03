@@ -105,6 +105,24 @@ The fitted points (μ in mPa·s):
 | 49 | 1.09608 | 1.09607 | -7.4e-06 |
 | 50 | 1.07260 | 1.07262 | +1.6e-05 |
 
+**Rung 6e: fits over the fluid's whole range.** Rung 6d's fluid reached
+79 °C, so its 30-50 °C fit was extrapolated where up to half the fluid sat.
+`plate_channel/fit_viscosity.py` refits the same model under a selection rule
+stated in the script before it is applied (lowest degree positive over
+250-500 K with a written residual within 1e-4; else the smallest residual):
+
+| Fit | Degree | Largest relative residual, as written | c₀ … c₆ |
+|---|---|---|---|
+| 30-80 °C | 6 | 2.3e-5 | 17.849881432792948, −0.30849429267675, 2.229195303851334e-03, −8.615712938028535e-06, 1.877630788396675e-08, −2.186903343496054e-11, 1.063194651727941e-14 |
+| 30-99 °C | 6 | 1.7e-4 | 11.809225533760118, −0.19835015412139706, 1.3929060738771873e-03, −5.23132660955004e-06, 1.1076921123177383e-08, −1.2533006110289745e-11, 5.917954657407082e-15 |
+
+- Both stay positive over 250-500 K. The odd degrees go negative between
+  112 and 140 °C and were rejected.
+- 99 °C is the top because the model ends at 100 °C: CoolProp refuses it.
+- At the nominal geometry the two fits give the same peak to 1e-4 K and the
+  same Δp to 0.003 Pa (rung 6e). Within its range, the fit is no longer a
+  source of error.
+
 The command that produced the table:
 
 ```bash
@@ -172,3 +190,34 @@ from it:**
   refinement), which goes to the owner priced, before it runs.
 
 Those are made, and recorded, when the pilot is proposed.
+
+## 5. Decided on 2026-10-01, for the DEVELOPMENT exam
+
+The owner delegated the design flow (OWNER-CHALLENGE-DESIGN-01): "No
+blockers. Just follow the correct design flow." Section 4's open items are
+decided as follows. The full record, with each choice's basis, is
+`.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, D1-D8. Every
+value is a provisional DEVELOPMENT value, not a qualified one.
+
+- **The frozen heat maps are a family, not a list.**
+  - The family is an axial hot band: a Gaussian on a uniform floor,
+    normalized to the heat load.
+  - Its parameters are a peak-to-average ratio of 1-3, a centre of 3-27 mm
+    and a width of 1.5-3.5 mm.
+  - 3.5 mm is the widest band that still reaches 3x on a 30 mm die.
+  - The reason for a hot spot at all: with a uniform map, the textbook
+    closed-form model is within 0.1-0.35 K of the reference peak. That would
+    leave a learned model nothing to add.
+- **The population and its sampling law.**
+  - Draws are uniform over the nine-input box.
+  - A draw is admitted when the closed-form model (with axial spreading)
+    predicts a hottest wall of at most 95 °C and Re of at most 2,000.
+  - The coolant model ends at 100 °C; the reference checks its own fluid
+    against 99 °C.
+- **Gates, feasibility and scores are kept apart.**
+  - Gates are physical laws only.
+  - Feasibility (die temperature through the TIM, and hydraulic power) is a
+    decision property, never a gate.
+  - The score is TRAIN-normalized peak, profile and pressure-drop error.
+- **The pilot** ran in #342's shape on the owner's host, at no marginal
+  spend: 16 of 16 OK (`reference/README.md`).

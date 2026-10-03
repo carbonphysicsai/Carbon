@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-one-next",
+  "recorded_at": "2026-10-02T23:43:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "8b3cfd1c3 walked in a browser by the coordinator; scripts/dev/miner_launchpad/app.js journey() and browser_smoke.py fresh_miner",
+    "description": "Overview's Get started list badged both 'Start your signer' and 'Register on the subnet' as NEXT while the hero said 'Step 1 of 6 is next'; after registration, inference, compute and agent would all have read NEXT too."
+  },
+  "expected": "Badging every step a miner can take now as NEXT would be accurate.",
+  "observed": "Accurate but not intuitive: two NEXT badges contradicted the one primary action. Now the first open step alone reads Next; the others a miner can take now, in any order, read Open, and registration says steps 1 and 2 go in either order. The smoke asserts exactly one Next.",
+  "keep": [
+    "One screen, one next action: the badge, the hero sentence and the primary button name the same step."
+  ],
+  "change": [
+    "Give a step a miner can take now but is not the next one its own state (Open) instead of reusing Next."
+  ],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

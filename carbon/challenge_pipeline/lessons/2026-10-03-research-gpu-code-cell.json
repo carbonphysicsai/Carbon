@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-gpu-code-cell",
+  "recorded_at": "2026-10-03T03:45:44Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Canonical (groups chain archive science-jax science-torch mcp): 992 passed, 5 skipped across tests/cpu/test_gpu_code_cell.py, the carrier, miner-lane, liveness-reaper, failure-path, GPU and remote practice, Julia, research tools and tasks, adapter, MCP and research-surface suites; ruff clean. Six real-Docker carrier service tests and ten authored-Julia service tests did not run here: they need built image manifests (CARBON_C03_IMAGE_MANIFEST, CARBON_JULIA_WORKER_MANIFEST) this environment does not have. In the browser, the demo's Tools tab showed where it runs, the CPU or GPU choice and a failed run's stderr, at the pane's width and at 375 px.",
+    "description": "OWNER-MINER-RESEARCH-SURFACE-04: the GPU shown in the Tools tab, a GPU code cell (local and remote), and kept stdout and stderr for every miner-lane run."
+  },
+  "expected": "A miner sees where a campaign runs, can run a code cell on the GPU they set up with the same isolation, and sees why a program failed.",
+  "observed": "The owner's question exposed a real fault: the campaign projection said local-isolated-cpu for every campaign, whatever its frozen runtime, and the toolbox computed the GPU lanes but showed none of them. The GPU code cell fitted the existing pieces. The miner lane's container takes one extra device, and the inspection after create now checks it exactly. GPU practice already had the device record, lease and host checks. The remote route already ran a staged program with the pinned worker. Its job server, inside the pinned image, returns stderr but not stdout, so a fixed wrapper returns stdout as a file, with no image change. The CPU analysis image has no CUDA, so the GPU cell runs the pinned GPU worker, whose packages differ. The Julia environments have no CUDA at all, so run_julia refuses gpu and says why. Keeping stderr also removed an old failure mode: more than 1 MiB of stderr used to fail a run as infrastructure. Unit fakes of the Docker CLI needed a seam (stream_kept), because the kept-output reader needs a real process. The real-Docker service tests need built images and were not run here.",
+  "keep": [
+    "When an owner asks where something is, check the record behind the page too: here the projection itself was wrong.",
+    "Add a device to an isolated container by checking the exact device request after create, not by trusting the create arguments.",
+    "Use a fixed wrapper to get what an unchangeable remote program does not return, rather than changing the pinned image.",
+    "Keep a CPU request's identity byte-for-byte unchanged when adding an optional device; only a GPU request carries the new field."
+  ],
+  "change": [
+    "Have a dedicated security review of the GPU code cell before any use beyond DEVELOPMENT (AGENTS.md section 13).",
+    "Run the real-Docker carrier service tests with built images on a GPU host before relying on the GPU cell.",
+    "Ask the owner whether the pinned Julia image should carry CUDA packages so run_julia can use the GPU."
+  ],
+  "protocol_elements": [
+    "a code cell chooses CPU or the campaign's GPU lane per run, refused before dispatch when it cannot run",
+    "a miner-lane run keeps the last 64 KiB of stdout and of stderr, whatever its outcome",
+    "a campaign's compute is read from its frozen runtime"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

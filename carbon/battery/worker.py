@@ -17,6 +17,10 @@ Backends:
 - `CarrierBackend` runs both programs through the existing isolated carrier
   (`research_carrier._run`): no network, read-only root, dropped capabilities,
   bounded memory and wall clock, exported through the bounded output stream.
+  It holds one pinned worker image per reconstruction backend
+  (OWNER-PYTORCH-BACKEND-01): the C-03 JAX image, and the PyTorch image when
+  the deployment names one. A recipe is rebuilt, and its state predicts, in
+  the image of the backend it names.
   Its work ledger is the validator's own (`WorkLedger`), so a completed run
   replays its stored result after a restart, and an unresolved run is never
   dispatched twice.
@@ -53,6 +57,8 @@ for staged, module in (
     ("battery-domain.py", "domain.py"),
     ("battery-recipes.py", "recipes.py"),
     ("battery-training.py", "training.py"),
+    ("battery-torch-training.py", "torch_training.py"),
+    ("battery-torch-families.py", "torch_families.py"),
 ):
     shutil.copyfile(work / staged, lab / module)
 sys.path.insert(0, str(work))
@@ -76,6 +82,10 @@ try:
     model = recipes.build(recipe["family"], recipe["settings"])
     stats = model.fit(train, structure, recipe["seed"])
     state = recipes.state_bytes(model)
+except ImportError as missing:  # this image lacks the recipe's backend: Carbon's
+    (out / "failure.json").write_text(
+        json.dumps({"stage": "environment", "error": type(missing).__name__})
+    )
 except Exception as failure:  # the candidate's own construction failed
     (out / "failure.json").write_text(
         json.dumps({"stage": "reconstruct", "error": type(failure).__name__})
@@ -103,6 +113,8 @@ for staged, module in (
     ("battery-domain.py", "domain.py"),
     ("battery-recipes.py", "recipes.py"),
     ("battery-training.py", "training.py"),
+    ("battery-torch-training.py", "torch_training.py"),
+    ("battery-torch-families.py", "torch_families.py"),
 ):
     shutil.copyfile(work / staged, lab / module)
 sys.path.insert(0, str(work))
@@ -184,6 +196,23 @@ def infer_files(state, inputs):
         }
     )
     return files
+
+
+def state_backend(state):
+    """The reconstruction backend a stored model state was trained in.
+
+    Reads the state's JSON header only; never imports a numerical runtime.
+    A state without the field (the nearest-neighbour family, or one from
+    before OWNER-PYTORCH-BACKEND-01) is JAX's.
+    """
+    import io
+
+    import numpy as np
+
+    with np.load(io.BytesIO(state), allow_pickle=False) as data:
+        header = json.loads(bytes(data["__header__"]).decode())
+    member = header.get("member") or (header.get("members") or [{}])[0]
+    return member.get("backend", "jax")
 
 
 class WorkerFailure(RuntimeError):
@@ -296,17 +325,36 @@ class CarrierBackend:
     OWNER = "battery-validator"
 
     def __init__(
-        self, ledger, image, *, root=".", seconds=600, runner=None, identity=None
+        self,
+        ledger,
+        image,
+        *,
+        torch_image=None,
+        root=".",
+        seconds=600,
+        runner=None,
+        identity=None,
     ):
         from carbon.development_session.research_carrier import _run
 
         self.ledger, self.image, self.root = ledger, image, Path(root)
+        self.images = {"jax": image, "pytorch": torch_image}
+        # The C-03 JAX image is the carrier's own; PyTorch is served only
+        # where the deployment names its image.
+        self.backends = ("jax",) if torch_image is None else ("jax", "pytorch")
         self.seconds = seconds
         self.runner = _run if runner is None else runner
         self.identity = identity or {
             "backend": "ISOLATED_CARRIER",
             "validator_path": True,
             "image": getattr(image, "image_id", None),
+            # Only a deployment that serves PyTorch names a second image, so a
+            # JAX-only deployment's identity is what it was.
+            **(
+                {}
+                if torch_image is None
+                else {"pytorch_image": getattr(torch_image, "image_id", None)}
+            ),
         }
 
     def _snapshot(self, result, names):
@@ -323,7 +371,9 @@ class CarrierBackend:
             reported = json.loads(failure.read_bytes()[:4096])
             raise WorkerFailure(
                 f"{reported.get('stage')}_failed:{reported.get('error')}",
-                candidate=True,
+                # A worker image without the recipe's backend is the
+                # validator's own state, never the candidate's.
+                candidate=reported.get("stage") != "environment",
             )
         out = {}
         for name, maximum in names.items():
@@ -341,7 +391,14 @@ class CarrierBackend:
             out[name] = body
         return out
 
-    def _call(self, identity, source, files, names):
+    def _image(self, backend):
+        if backend not in self.backends:
+            # Admission refuses a backend this validator does not serve, so
+            # this is Carbon's own state, never the candidate's.
+            raise WorkerFailure("backend_not_served:" + str(backend), candidate=False)
+        return self.images[backend]
+
+    def _call(self, identity, source, files, names, backend):
         try:
             result = self.runner(
                 self.ledger,
@@ -349,7 +406,7 @@ class CarrierBackend:
                 identity=identity,
                 source=source,
                 files=files,
-                image=self.image,
+                image=self._image(backend),
                 seconds=self.seconds,
                 provenance="BATTERY_VALIDATOR",
                 extra_resources={},
@@ -373,6 +430,7 @@ class CarrierBackend:
             RECONSTRUCT_PROGRAM,
             reconstruct_files(self.root, recipe, seed),
             {"state.npz": 256 * 1024**2, "fit.json": 65536},
+            recipe.settings.get("backend", "jax"),
         )
         return out["state.npz"], json.loads(out["fit.json"])
 
@@ -382,6 +440,7 @@ class CarrierBackend:
             INFER_PROGRAM,
             infer_files(state, inputs),
             {"predictions.json": 64 * 1024**2},
+            state_backend(state),
         )
         return json.loads(out["predictions.json"])
 
@@ -392,8 +451,16 @@ class DirectBackend:
     identity = DIRECT
 
     def __init__(self, root="."):
+        import importlib.util
+
         from .challenge import PublicMaterial
 
+        # In process, a backend is served only where its stack is installed;
+        # a missing one is refused at admission, never blamed on a candidate.
+        torch_ready = all(
+            importlib.util.find_spec(m) is not None for m in ("torch", "neuralop")
+        )
+        self.backends = ("jax", "pytorch") if torch_ready else ("jax",)
         self.root = Path(root)
         self.material = PublicMaterial.load(self.root)
         self.calls = {"reconstruct": 0, "infer": 0}

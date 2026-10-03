@@ -285,8 +285,7 @@ def test_capabilities_do_not_claim_external_execution():
     data = launchpad.capability_catalog()
     assert data["mode"] == "REHEARSAL"
     assert {entry["id"] for entry in data["unavailable"]} >= {
-        "lium",
-        "hermes",
+        "mira",
         "testnet-registration",
     }
 

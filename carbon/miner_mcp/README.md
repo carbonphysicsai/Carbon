@@ -89,6 +89,48 @@ Two limitations worth knowing before building on this:
   the SDK, not of how attachment is implemented: its own `add_tool` has no
   notification path either.
 
+## Automate setup with your agent
+
+Your own agent can set up the miner's environment for them, from nothing to
+launch, over the same setup records as the Control Center
+(OWNER-MINER-SETUP-AGENT-FIRST-01). Start the server with no profile:
+
+```sh
+python -m carbon.miner_mcp.standard_cli            # add --state-dir if the Control Center uses another
+```
+
+- **One loop.** `carbon_setup_status` returns the steps done, the next step,
+  what it is missing (closed codes) and the exact next call with its
+  arguments schema. Call it, make the call, repeat until `next.step` is
+  `launch`. The prompt `carbon_setup_workflow_v1` states the loop.
+- **One table, two doors.** The `carbon_setup_<step>` tools and the
+  Control Center's `/api/v1/setup/<step>` routes (and `GET
+  /api/v1/setup/status`) are generated from
+  `scripts/dev/miner_launchpad/setup_operations.py` and call the same
+  operation, with the same gates in the same order. The page shows the
+  agent's progress and the agent's status shows the page's.
+- **The order:** start your signer, register on the subnet, who researches
+  (`carbon-autonomous`, `own-agent` or `hermes`), inference (skipped for
+  `own-agent`: it uses its own model), compute, review and launch.
+- **The tiers grow, absent before they are present (C-MLP-02-D10).**
+  `carbon_setup_status`, `carbon_setup_signer` and `carbon_setup_begin` are in
+  the open tier. The later steps appear once setup has confirmed the
+  registration; launch and the research operations once `carbon_setup_review`
+  writes the runner profile, in the same session. A result that adds tools
+  lists them in `tools_added`: list the tools again.
+- **The miner's own steps.** Starting the signer and signing the registration
+  answer a closed `human_action_required` result with the exact instruction
+  or command. Nothing here accepts, returns or logs a private key, seed
+  phrase, mnemonic or password; the only hotkey value is the public address.
+- **The model key is a file.** `carbon_setup_inference` takes `model_key_file`, the
+  absolute path to an owner-only file the miner made (a regular file they own,
+  with no group or other access). A key passed as a value is refused.
+- Refusals are closed JSON: `error`, `field` and `next_step`.
+
+The Control Center's step 3 shows the command for its machine with snippets
+for Claude Code, Codex and Hermes, from each client's documentation, read
+2026-10-02. UNVERIFIED: Carbon has not run those clients against this server.
+
 ## The prepared-campaign profile
 
 The installed console command is `carbon-mcp` with the same arguments. The

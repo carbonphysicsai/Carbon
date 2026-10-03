@@ -91,6 +91,32 @@ TASK_CORRECTIONS = {
         "not take; the start_research_task description lists each action's "
         "fields."
     ),
+    # The code cell's device (RSURF-D20).
+    "device_choice_invalid": (
+        "run_python and run_julia take device=cpu (the default) or device=gpu "
+        "in their arguments."
+    ),
+    "gpu_lane_not_configured": (
+        "This campaign has no GPU lane: its runtime was frozen at launch without "
+        "a GPU. Run on cpu, or set up a GPU (Control Center: Set up, Compute) "
+        "and launch a campaign with it."
+    ),
+    "julia_gpu_unavailable": (
+        "The pinned Julia environments carry no CUDA packages, so run_julia runs "
+        "on cpu only; run_python runs on the GPU."
+    ),
+    "remote_gpu_seconds_required": (
+        "A run on your remote GPU needs seconds between 40 and 3600 in its "
+        "arguments: the remote route's job has a lifetime."
+    ),
+    "remote_gpu_unsandboxed_opt_in_required": (
+        "Your remote GPU is an ssh-container setup: a code cell there runs "
+        "inside your own container with no sandbox and with that container's "
+        "network. It runs only if you opt in yourself: add "
+        '"unsandboxed_code_cell": true to remote_machine in your runner '
+        "profile. Or run on cpu, or use an ssh-docker setup, which runs each "
+        "job in a hardened container."
+    ),
     "workspace_recipe_forbidden": (
         "kind=workspace requires strategy_json=null, an allowed action and its "
         "arguments_json object. To practice a registered recipe, use kind=practice "
@@ -380,6 +406,25 @@ class ResearchMinerTools:
                 raise TaskContractMismatch(
                     "workspace_field_unexpected", "arguments_json"
                 )
+            if "device" in arguments:
+                # A device that cannot run is refused here, before anything
+                # starts or is charged (RSURF-D20).
+                from .gpu_code_cell import refusal
+
+                code = refusal(
+                    args["action"],
+                    arguments,
+                    getattr(getattr(c, "executor", None), "gpu", None),
+                )
+                if code is not None:
+                    raise TaskContractMismatch(
+                        code,
+                        (
+                            "arguments_json.seconds"
+                            if code == "remote_gpu_seconds_required"
+                            else "arguments_json.device"
+                        ),
+                    )
             spec = constructor(version, args["action"], canonical(arguments).decode())
         else:
             raise ValueError("unsupported task kind")

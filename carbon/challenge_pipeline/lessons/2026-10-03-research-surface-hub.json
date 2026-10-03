@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-surface-hub",
+  "recorded_at": "2026-10-03T01:05:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "render_hub.py and --check; test_newcomer.py; validate_hub.py (HUB_DIFF_BASE_SHA = merge-base with origin/main); tools/test_routes.js under Node 24.19.0; tools/browser_smoke_test.py under Windows Python 3.11 and Chrome against the WSL checkout: all pass",
+    "description": "The Hub repinned to the research surface's authority snapshot after merging agent-first setup, with one immutable decision event, OWNER-MINER-RESEARCH-SURFACE-01."
+  },
+  "expected": "One event file and a repin; no hand-merged projections.",
+  "observed": "The merged branch carried the setup branch's Hub build, so the only source changes were the event file, the repinned links in hub_data_v2.json and the playbook's snapshot line. The renderer rewrote the projections. The real-browser smoke could not reach Chrome's DevTools port from WSL; run with Windows Python against the \\\\wsl.localhost path, it passed.",
+  "keep": [
+    "Repin only the current snapshot's links; event files keep their own snapshots.",
+    "Merge the sibling branch first, so the Hub is rebuilt once from both."
+  ],
+  "change": [
+    "From WSL without a Linux Chromium, run the Hub browser smoke with Windows Python over the \\\\wsl.localhost path."
+  ],
+  "protocol_elements": [
+    "one event file per decision; the renderer owns every projection"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

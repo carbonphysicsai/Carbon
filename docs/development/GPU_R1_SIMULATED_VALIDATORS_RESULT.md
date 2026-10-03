@@ -2,9 +2,8 @@
 
 **Recorded 2026-09-24.** The first time `compare_r1` decided on real GPU runs.
 Owner direction of 2026-09-23: *"step 1 and step 2. We don't have validators yet
-but we can simulate it."* Spend authorized at about USD 2.10; actual about
-**USD 0.75** (estimated from pod run times; billing had not posted when this was
-written).
+but we can simulate it."* Spend stayed within the owner's authorization;
+the figures are kept in private operator records.
 
 ## What ran
 

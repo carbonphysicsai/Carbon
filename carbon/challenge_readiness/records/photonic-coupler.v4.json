@@ -1,0 +1,225 @@
+{
+  "admission_tests": {
+    "protocol": "carbon.challenge-admission.v1",
+    "scope": null,
+    "tracks": {
+      "construction_integrity": {
+        "acceptance": null,
+        "expansions": [],
+        "findings": [],
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      },
+      "engineering_value": {
+        "acceptance": null,
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      }
+    }
+  },
+  "challenge_id": "photonic-coupler",
+  "costs": [
+    {
+      "basis": "measured",
+      "evidence": "carbon/photonic/tables_v1.json",
+      "item": "mesh",
+      "unit": "USD marginal for the 10 nm supermode tables on the owner's local host (205 solves, 1.5 core-hours; no cloud price applied)",
+      "usd": 0.0
+    },
+    {
+      "basis": "measured",
+      "evidence": "docs/development/evidence/photonic-pilot-v1/records.jsonl",
+      "item": "reference",
+      "unit": "USD marginal per case from the committed tables (about 0.1 s on the owner's host)",
+      "usd": 0.0
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reconstruction",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "inference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "finalist",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Photonic-component designers (a hypothesis in #345).",
+    "engineering_decision": "Choose the gap and coupling length of a symmetric silicon directional coupler for a cross-power ratio over a 100 nm band, with its complex response for phase-sensitive circuits.",
+    "intended_use": "Predict the cross power and the unwrapped common phase at five wavelengths of the declared local-supermode reference (10 nm supermode tables) over the DEVELOPMENT population; agreement is with that model, not with 3D FDTD or a fabricated device. A phase-aware test Challenge: for this symmetric family the reference is itself the conventional design method, so it exercises the pipeline on complex outputs rather than demonstrating engineering value (ticket D2)."
+  },
+  "design_variables": [
+    {
+      "description": "Edge-to-edge coupling gap, 150 to 300.",
+      "name": "gap_nm",
+      "unit": "nm"
+    },
+    {
+      "description": "Straight coupling length, 1 to 6; cosine S-bends of 3.0 and 2.0 um to a 1.6 um port pitch are fixed.",
+      "name": "length_um",
+      "unit": "um"
+    }
+  ],
+  "limits": [
+    {
+      "approved": null,
+      "basis": "Reference numerical check: four times the z points may move the cross power by at most this (pilot worst 7e-9).",
+      "name": "check_z_integration_cross",
+      "proposed": 1e-06,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Reference numerical check on the common phase (pilot worst 3.5e-8 rad).",
+      "name": "check_z_integration_phase",
+      "proposed": 0.0001,
+      "unit": "rad"
+    },
+    {
+      "approved": null,
+      "basis": "Table check: every supermode's mirror parity within this of +-1 (built tables: within 1e-6).",
+      "name": "table_parity",
+      "proposed": 0.001,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Table check: every supermode's relative eigen-residual at most this (built tables: about 4e-14).",
+      "name": "table_residual",
+      "proposed": 1e-08,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Provisional DEVELOPMENT value: the strongest couplers (cross power at 1.55 um of 0.10 or more); the signed cross-power bias is reported there, not scored.",
+      "name": "important_region_cross",
+      "proposed": 0.1,
+      "unit": "1"
+    }
+  ],
+  "maturity": {
+    "baseline": "MEASURED",
+    "reference_execution": "PILOTED"
+  },
+  "next_experiment": "Integrate the miner path (CHALLENGE-PHOTONIC-02), then decide whether to build the v2 asymmetric coupler (eigenmode expansion, no paid compute) or fund the costed 3D comparison.",
+  "outputs": [
+    {
+      "description": "|S41|^2 at 1.50, 1.525, 1.55, 1.575 and 1.60 um (predicted).",
+      "name": "cross_power",
+      "unit": "1"
+    },
+    {
+      "description": "The unwrapped common phase (phi_even + phi_odd)/2 at the five wavelengths (predicted).",
+      "name": "common_phase_rad",
+      "unit": "rad"
+    },
+    {
+      "description": "Complex S31 and S41 per wavelength: derived by Carbon from the two outputs under the port convention (arg(S41/S31) = -pi/2 exactly), never predicted.",
+      "name": "s_parameters",
+      "unit": "1"
+    }
+  ],
+  "pilots": [
+    {
+      "attempt_id": "photonic-pilot-v1",
+      "case_kind": "mixed",
+      "evidence": "docs/development/evidence/photonic-pilot-v1/records.jsonl",
+      "note": "8 ordinary public draws and 4 box corners, each with four refinement pairs (z integration, ladder, 20 and 5 nm meshes) against the committed 10 nm tables. The v3 record's 3D FDTD diagnostics belong to the superseded reference and stay with v3.",
+      "outcomes": {
+        "OK": 12
+      }
+    }
+  ],
+  "population": {
+    "approved": null,
+    "proposed": "carbon.photonic-coupler.development-population.v1: independent uniform draws over the gap and length box (Q = P, w = 1). A proposed DEVELOPMENT population, not a ratified production one."
+  },
+  "recommendation": {
+    "basis": "All 12 pilot cases ran OK; the 10 nm reference's remaining mesh error (about 0.3 % in the phase difference, 0.03 rad in the common phase) is about a fiftieth of the closed-form baseline's error (score 1.1 to 1.7); the phase convention is exact by construction; the pools and both baselines are scored through the exam (private pool: closed-form 1.446, learned 5.8e-4).",
+    "decision": "PROCEED"
+  },
+  "record_version": 4,
+  "reference": {
+    "applicability": "The declared box (gap 150 to 300 nm, length 1 to 6 um, 1.50 to 1.60 um). Mesh error about 0.3 % in the phase difference and 0.03 rad in the common phase; a grid-alignment wobble of at most about 7e-3 rad and 0.5 % in cross power is part of the declared tables. Agreement with 3D FDTD is supported at the 5 to 10 % level only.",
+    "evidence": [
+      "scripts/dev/photonic/README.md",
+      "docs/development/evidence/photonic-pilot-v1/records.jsonl",
+      "docs/development/evidence/photonic-tables-v1/build.log",
+      "docs/development/evidence/photonic-pools-v1/baselines.json"
+    ],
+    "licence": "Carbon's own code; numpy and scipy are BSD-3-Clause",
+    "model": "Local-supermode model of a symmetric 500 x 220 nm silicon coupler in silica (n 3.48, 1.444): even and odd supermode indices tabulated on a 41-gap ladder at 10 nm and integrated along the gap profile; radiation, reflection and bend loss are outside it",
+    "solver": "Carbon's full-vector FDFD mode solver (carbon/photonic/modes.py) with sub-pixel permittivity averaging; numpy 2.4.6 and scipy 1.17.1 (ARPACK with a fixed start vector)"
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v3",
+  "sources": [
+    "carbonphysicsai/Carbon#345",
+    ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md",
+    "scripts/dev/photonic/README.md",
+    ".agent/DECISIONS.md OWNER-CHALLENGE-DESIGN-01"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#345",
+  "training_budget_study": {
+    "decision": null,
+    "result": null,
+    "state": "NOT_STARTED"
+  },
+  "unresolved": [
+    "The reference is the local-supermode model, not 3D FDTD; a radiation-inclusive comparison at 10 nm or finer is paid compute (about 14 GPU-hours, costed in the ticket) and needs its own owner grant.",
+    "For the symmetric family the reference is the conventional design method, so a learned model can only reproduce it (ticket D2); the value version is the v2 asymmetric coupler or fabrication variation.",
+    "The tables are not smoothed; their grid-alignment wobble sets the exam's resolution floor near 1e-3.",
+    "Miner-path integration is CHALLENGE-PHOTONIC-02; the registry entry stays RESERVED until then.",
+    "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "grant_id": "GRAPHITE-GRANT-PLANNER-02",
+ "provider": "graphite",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "monetary_ceiling": "3.00",
+ "cleanup_allowance": "0.00",
+ "worst_case_run_cost": "1.50",
+ "permitted_runs": 2,
+ "max_concurrency": 1,
+ "max_runtime_s": 4800,
+ "max_submissions": 2
+}

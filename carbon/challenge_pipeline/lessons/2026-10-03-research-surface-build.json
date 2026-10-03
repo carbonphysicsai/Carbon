@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-surface-build",
+  "recorded_at": "2026-10-03T00:40:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_research_surface.py, test_research_surface_mcp.py, test_research_surface_page.py, test_research_surface_fixture.py: 44 passed, 1 skipped (Node); 273 passed, 2 skipped across the 14 neighbouring Launchpad, MCP and journey suites; tests/cpu/research_charts_check.cjs under Node 24.19.0: 15 charts, every kind",
+    "description": "First build of the miner's research surface (C-MLP-05): a Challenge-neutral research-view declaration, the battery adapter, one allow-listed campaign view and carbon_note as operations in the shared table, attach bringing the research prompts and skill, the branded page and a synthetic demo campaign."
+  },
+  "expected": "Battery's practice components and public practice curves draw through a declaration any Challenge can supply, and per-case detail is allowed only if a recorded rule allows it.",
+  "observed": "The declaration covers battery from what it already publishes: objective outputs, exam components, the practice disclosure contract and the feedback ladder. A synthetic second Challenge draws every output kind through the same code. The per-case question was settled by the practice population's own disclosure contract (public_practice_labels public, aggregation detailed_own_public_practice); the dropped _rows had no recorded reason. A battery learning curve cannot be added without changing the staged worker program, so it is an owner question (RSURF-D3). Two tooling faults showed up: the editing tool decoded \\u escapes written into source into literal invisible characters (bidirectional overrides in a regex, a byte-order mark in a test), caught only by ruff's PLE2502; and canonical pytest needs CARBON_UV_GROUPS for the MCP and chain suites, without which collection fails on a missing cryptography import.",
+  "keep": [
+    "Ask the Challenge, through its registered campaign, for anything a door would otherwise hard-code: outputs, components, disclosure, feedback fields.",
+    "Settle a disclosure question from the authored disclosure contract, and make the code read the same contract, so the rule and the behaviour cannot drift.",
+    "Put new operations in the shared table, so the browser route and the MCP tool are one generated thing and parity is structural.",
+    "Keep a renderer's layout pure so Node can test it without a browser."
+  ],
+  "change": [
+    "Write escape sequences into source as double-escaped text, then scan new files for invisible characters before committing.",
+    "Set CARBON_UV_GROUPS (science-jax chain mcp) for canonical runs of Launchpad and MCP suites."
+  ],
+  "protocol_elements": [
+    "a Challenge declares its research view: outputs by kind, components, per-case disclosure, feedback fields",
+    "per-case practice detail is a function of the practice disclosure contract, fail closed",
+    "a second synthetic Challenge runs through every shared surface test"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,296 @@
+{
+  "admission_tests": {
+    "protocol": "carbon.challenge-admission.v1",
+    "scope": null,
+    "tracks": {
+      "construction_integrity": {
+        "acceptance": null,
+        "expansions": [],
+        "findings": [],
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      },
+      "engineering_value": {
+        "acceptance": null,
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      }
+    }
+  },
+  "challenge_id": "chip-cold-plate",
+  "costs": [
+    {
+      "basis": "measured",
+      "evidence": "docs/development/evidence/cold-plate-pilot-v1/records.jsonl",
+      "item": "reference",
+      "unit": "USD marginal per r = 2 case on the owner's local host (849-1,545 s wall at ten-way sharing, about 0.4 core-hours; no cloud price applied)",
+      "usd": 0.0
+    },
+    {
+      "basis": "not_applicable",
+      "evidence": null,
+      "item": "mesh",
+      "unit": "USD (blockMesh runs inside the reference case)",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reconstruction",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "inference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "finalist",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Cooling and component suppliers (a hypothesis in #342; no customer demand or paid pilot is claimed).",
+    "engineering_decision": "Choose straight-microchannel dimensions and coolant flow for a single-phase copper cold plate on a 30 x 30 mm die with an axial hot spot, trading the hottest die temperature against pumping power.",
+    "intended_use": "Predict the heated-face peak temperature, its 30-segment profile along the flow, and the pressure drop of the declared OpenFOAM reference over the DEVELOPMENT population; agreement is with that model (the periodic interior of a straight-channel plate), not with a built plate."
+  },
+  "design_variables": [
+    {
+      "description": "Channel width, 0.2 to 0.5 (design basis section 2).",
+      "name": "channel_width_mm",
+      "unit": "mm"
+    },
+    {
+      "description": "Fin width, 0.2 to 0.5.",
+      "name": "fin_width_mm",
+      "unit": "mm"
+    },
+    {
+      "description": "Channel depth, 1 to 3.",
+      "name": "channel_depth_mm",
+      "unit": "mm"
+    },
+    {
+      "description": "Coolant flow per kW of heat load, 1.25 to 2.0.",
+      "name": "flow_lpm_per_kw",
+      "unit": "L/min/kW"
+    },
+    {
+      "description": "Coolant inlet temperature, 30 to 45 (an operating condition).",
+      "name": "inlet_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Heat load on the 30 x 30 mm footprint, 500 to 1,500 (an operating condition).",
+      "name": "heat_load_w",
+      "unit": "W"
+    },
+    {
+      "description": "Peak-to-average ratio of the axial hot band, 1 to 3.",
+      "name": "hotspot_ratio",
+      "unit": "1"
+    },
+    {
+      "description": "Hot band centre along the flow, 3 to 27.",
+      "name": "hotspot_center_mm",
+      "unit": "mm"
+    },
+    {
+      "description": "Hot band Gaussian width, 1.5 to 3.5.",
+      "name": "hotspot_width_mm",
+      "unit": "mm"
+    }
+  ],
+  "limits": [
+    {
+      "approved": null,
+      "basis": "Provisional DEVELOPMENT value (OWNER-CHALLENGE-DESIGN-01): 4 K below the coolant model's 99 C; the pilot used 1.7 K of it.",
+      "name": "screen_hottest_wall",
+      "proposed": 95.0,
+      "unit": "degC"
+    },
+    {
+      "approved": null,
+      "basis": "The PG25 fits' range; CoolProp refuses 100 C. A case past it is REFERENCE_INVALID.",
+      "name": "reference_fluid_ceiling",
+      "proposed": 99.0,
+      "unit": "degC"
+    },
+    {
+      "approved": null,
+      "basis": "The design basis's laminar check; under the straight-duct transition near 2,300. Pilot maximum 1,341.",
+      "name": "laminar_reynolds",
+      "proposed": 2000.0,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Reference numerical check; at least 100x the rungs' largest (pilot worst 6.9e-10).",
+      "name": "check_mass_imbalance",
+      "proposed": 1e-06,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Reference numerical check on the solver's own enthalpy flows (pilot worst 2.1e-6).",
+      "name": "check_energy_imbalance",
+      "proposed": 1e-05,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "Reference numerical check, half-way against final write (pilot worst 1.6e-7 K).",
+      "name": "check_iteration_change",
+      "proposed": 0.001,
+      "unit": "K"
+    },
+    {
+      "approved": null,
+      "basis": "Provisional DEVELOPMENT value: the upper third of the population's closed-form peak range; the optimism diagnostic is reported there.",
+      "name": "important_region_peak",
+      "proposed": 85.0,
+      "unit": "degC"
+    }
+  ],
+  "maturity": {
+    "baseline": "MEASURED",
+    "reference_execution": "PILOTED"
+  },
+  "next_experiment": "Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is prior work for laminar internal flow (f04) and steady conduction (f03): the miner path (CHALLENGE-COLD-PLATE-02) and further design, including a physics-aware learned baseline (a learned correction to the conventional model), wait until the family reaches Prioritize after protocol lock.",
+  "outputs": [
+    {
+      "description": "Heated-face peak temperature (predicted).",
+      "name": "peak_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Heated-face span-mean temperature over 30 one-millimetre segments, inlet first (predicted).",
+      "name": "profile_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Inlet-to-outlet area-averaged static pressure drop, no headers (predicted).",
+      "name": "pressure_drop_pa",
+      "unit": "Pa"
+    },
+    {
+      "description": "Heated-face mean: derived by Carbon as the profile's mean, never predicted.",
+      "name": "mean_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Outlet bulk temperature: derived by Carbon from the energy balance, never predicted.",
+      "name": "outlet_c",
+      "unit": "degC"
+    }
+  ],
+  "pilots": [
+    {
+      "attempt_id": "cold-plate-rung7",
+      "case_kind": "diagnostic",
+      "evidence": "docs/development/evidence/cold-plate-rung7/records.jsonl",
+      "note": "The package reference against rung 6e and the fluid-model choice. The two REFERENCE_INVALID records are the cp-varying diagnostic, which fails the exact energy check by design (that is why the reference holds cp). A seventh, r = 3 hot-spot case was stopped by the operator; the pilot's refinements cover it.",
+      "outcomes": {
+        "OK": 4,
+        "REFERENCE_INVALID": 2
+      }
+    },
+    {
+      "attempt_id": "cold-plate-pilot-v1",
+      "case_kind": "mixed",
+      "evidence": "docs/development/evidence/cold-plate-pilot-v1/records.jsonl",
+      "note": "#342's pilot shape: 8 ordinary and 4 difficult cases (screen edge, sharpest spot, highest pressure drop, highest Re) with 4 paired r = 3 refinements, from public draws of the DEVELOPMENT population; run on the owner's local host. An earlier attempt was stopped by the operator after about two minutes, with no records, to move it to a runner that outlives the session.",
+      "outcomes": {
+        "OK": 16
+      }
+    }
+  ],
+  "population": {
+    "approved": null,
+    "proposed": "carbon.cold-plate.development-population.v1: independent uniform draws over the nine-input box, admitted when the closed-form model (with axial spreading) predicts a hottest wetted wall of at most 95 C and Re of at most 2,000 (about 84 % of the box). A proposed DEVELOPMENT population, not a ratified production one."
+  },
+  "recommendation": {
+    "basis": "All 16 pilot cases ran OK with exact checks (mass 6.9e-10, energy 2.1e-6); the r = 2 reference's discretization (about 0.1 K, 0.33 K worst; Delta p within 1.6 %) is about a tenth of the conventional baseline's error. The pools are complete (400 TRAIN, 100 PRACTICE, 200 private, all OK) and both baselines are scored through the exam on the private pool: the conventional closed form 0.109 (peak 0.138, profile 0.149, pressure 0.041) and the generic kernel-ridge model 0.105 (0.118, 0.182, 0.016). The conventional model with axial spreading is a strong baseline; the generic learned model barely improves on it and is worse on the profile, so a useful surrogate must beat a physics-aware baseline, not a generic one.",
+    "decision": "PROCEED"
+  },
+  "record_version": 6,
+  "reference": {
+    "applicability": "The declared box admitted by the population screen; fluid at most 99 C (the coolant model's end) and Re at most 2,000, both checked per case; the periodic interior only (no headers, manifolds, plate edges or spanwise heat maps). Discretization at r = 2: about 0.1 K on the peak for most cases, 0.33 K at the screen edge, and Delta p 0.9 to 1.6 % low (pilot refinements).",
+    "evidence": [
+      "scripts/dev/cold_plate/reference/README.md",
+      "docs/development/evidence/cold-plate-pilot-v1/records.jsonl",
+      "docs/development/evidence/cold-plate-rung7/records.jsonl",
+      "scripts/dev/cold_plate/plate_channel/README.md"
+    ],
+    "licence": "GPL-3.0 as published upstream; run on the operator host only; Carbon writes its inputs and reads its outputs; redistribution not reviewed",
+    "model": "Steady laminar conjugate heat transfer in the periodic cell (half channel, half fin) on the rungs' wall-graded mesh (r = 2, grading 4); PG25 from CoolProp 6.8.0 fits with viscosity, density and conductivity varying and heat capacity held at the inlet; copper C11000, k = 391; axial hot-spot flux as an OpenFOAM expression",
+    "solver": "OpenFOAM v2512 chtMultiRegionSimpleFoam, opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v3",
+  "sources": [
+    "carbonphysicsai/Carbon#342",
+    "scripts/dev/cold_plate/DESIGN_BASIS.md",
+    "scripts/dev/cold_plate/reference/README.md",
+    ".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md",
+    ".agent/DECISIONS.md OWNER-CHALLENGE-DESIGN-01"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#342",
+  "training_budget_study": {
+    "decision": null,
+    "result": null,
+    "state": "NOT_STARTED"
+  },
+  "unresolved": [
+    "The generic learned baseline barely improves on the conventional model (private pool 0.105 against 0.109) and is worse on the profile; a physics-aware learned baseline is untested.",
+    "Spanwise heat-map variation, headers and manifolds need a multi-channel domain (about 50x the cost): the recorded v2 expansion.",
+    "Heat capacity is held at the inlet temperature (about 0.1 K on the peak, rung 7) to keep the energy check exact.",
+    "The inlet undershoot (up to 2.3 K, linearUpwind) is reported, not judged; a bounded scheme is untested.",
+    "Miner-path integration is CHALLENGE-COLD-PLATE-02; the registry entry stays RESERVED until then.",
+    "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
+  ]
+}

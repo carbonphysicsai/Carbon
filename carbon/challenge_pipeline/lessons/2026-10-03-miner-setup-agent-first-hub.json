@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-miner-setup-agent-first-hub",
+  "recorded_at": "2026-10-03T00:46:36Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "docs/development/carbon_hub: render_hub.py, render_hub.py --check, validate_hub.py with HUB_DIFF_BASE_SHA=merge-base(HEAD, origin/main), tools/test_routes.js and tools/browser_smoke_test.py: all passed",
+    "description": "Hub repin for OWNER-MINER-SETUP-AGENT-FIRST-01: authority snapshot 310d2ec97, every current-role link (252) repinned, the playbook's snapshot line updated, and one immutable decision event, OWNER-MINER-SETUP-AGENT-FIRST-01."
+  },
+  "expected": "The scripted repin passes unchanged with the new snapshot and event.",
+  "observed": "It did, on the second attempt. The first attempt ran a copy of the script rewritten by Windows Python, which wrote CRLF line endings: bash read every path with a trailing carriage return, so nothing in the hub changed, but it left one stray event file whose name ended in a carriage return. It was removed before the real run.",
+  "keep": [
+    "Keep the repin a script with the old snapshot and the event as its only inputs."
+  ],
+  "change": [
+    "Write scripts for WSL with LF line endings: generate them on the Linux side, or rewrite CRLF to LF before running them."
+  ],
+  "protocol_elements": [
+    "two-commit hub model: authority snapshot A, hub commit H",
+    "one immutable event per map_structural ticket change"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

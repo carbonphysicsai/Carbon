@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "OWNER-BATTERY-CARRYOVER-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented the owner's 2026-10-01 carry-over decision for the battery validator deployment. During testing the owner revises recipes and the construction contract while a deployment runs, and incumbents stay winners. PoolStore.rebind carries a deployment over in place: only the construction contract, recipe implementation, backend images and envelope may change, every earlier identity is kept, and a changed exam rule, public material or seed pin is still refused. The operator runs it as operate upgrade. After an upgrade, a recipe admitted under a recorded earlier contract is recompiled under the current one and each recompile is recorded; one the current contract refuses is closed as contract_revised without stalling the queue behind it; a final whose side the current contract refuses keeps the incumbent; and a digest that matches no recorded identity is still artifact_mismatch. The same decision has PyTorch run with the same standing as JAX, its tolerance, training limit and image analysed in tandem with testing, and names autoscience.io/Mira as C-MLP-03's Mira. Battery stays a DEVELOPMENT, non-paying Challenge; the exam, scoring and qualification are unchanged.",
+  "primary_detail": "carbon/battery/pool_store.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-01T22:41:55Z"
+}

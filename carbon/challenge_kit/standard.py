@@ -42,8 +42,9 @@ PROVISIONS = {
         "entries and why each is gated, so a miner can see what can be tried."
     ),
     "train": (
-        "The validator's own construction runtime (the same pinned JAX "
-        "environment and training code), runnable by the miner."
+        "The validator's own construction runtime (the same pinned backend "
+        "environment - JAX, or PyTorch where the Challenge offers it - and "
+        "training code), runnable by the miner."
     ),
     "generate": (
         "The Challenge's public generator and reference solver, runnable in the "
@@ -53,6 +54,21 @@ PROVISIONS = {
     "evaluate": (
         "Practice scoring with the exam's own gates and metrics, on public or "
         "miner-generated cases, repeatable so a miner can iterate."
+    ),
+    # OWNER-MINER-ENVIRONMENT-01 (2026-09-30): the environment is fully loaded
+    # after registration. Carbon facilitates; the miner's own accounts, keys
+    # and machines provide these, and nothing is hosted by Carbon.
+    "compute": (
+        "A GPU research path on hardware the miner runs themselves, set up "
+        "from the Control Center after registration."
+    ),
+    "model": (
+        "The named inference providers, connectable in setup with the "
+        "miner's own key."
+    ),
+    "agent": (
+        "The named agents, connectable in setup, driving the Challenge's "
+        "research tools."
     ),
 }
 
@@ -133,28 +149,89 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
         "research": Provided(("carbon.battery.research:challenge_parts",)),
         "hypothesize": Provided((REGISTRY_EVIDENCE,)),
         "train": Provided(
-            ("carbon.battery.research:implementation_files",),
-            "training.py is published and staged byte-identical in practice.",
+            (
+                "carbon.battery.research:implementation_files",
+                "carbon.battery.practice:staged_files",
+            ),
+            "training.py and the PyTorch trainer (torch_training.py, "
+            "torch_families.py) are published and staged byte-identical in "
+            "practice. Practice runs a recipe in its own backend; PyTorch "
+            "recipes need the PyTorch worker image "
+            "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
+            "(OWNER-PYTORCH-BACKEND-01).",
         ),
-        "generate": Gap(
-            reason=(
-                "No battery challenge kit. The sandbox offers only the fixed "
-                "TRAIN v1 and 200 PRACTICE cases; nothing miner-facing runs the "
-                "pinned PyBaMM reference, so a miner cannot generate new "
-                "training or test data inside Carbon."
+        "generate": Provided(
+            (
+                "carbon.challenge_kit.battery:draw",
+                "carbon.challenge_kit.battery:label",
             ),
-            next_step=(
-                "Build carbon/challenge_kit/battery.py as a command on the "
-                "miner's own machine (OWNER-MINER-OWN-MACHINE-01): uniform "
-                "draws over the published input box from the miner's own seed "
-                "roots, labelled by the pinned PyBaMM reference in the pinned "
-                "truth image, with the Burgers kit's no-official-seed tests."
-            ),
+            "carbon/challenge_kit/battery.py, a command on the miner's own "
+            "machine (OWNER-MINER-OWN-MACHINE-01): uniform draws over the "
+            "published input box with the validator's own rule "
+            "(seeds.draw_inputs), from the miner's own seed roots and mock "
+            "seeding only, labelled by the pinned PyBaMM reference in the "
+            "pinned truth image through the validator's own no-network solve "
+            "run, with typed reference failures. Output has TRAIN v1's shape. "
+            "Not in the research sandbox yet; that is a later, separately "
+            "reviewed step.",
         ),
         "evaluate": Provided(
             ("carbon.battery.practice:score_practice",),
             "Exam gates on the 200 public PRACTICE cases. Scoring "
-            "miner-generated cases follows once `generate` is closed.",
+            "miner-generated cases (from the battery kit) is not yet wired.",
+        ),
+        "compute": Provided(
+            (
+                "carbon.development_session.battery_gpu:gpu_scope",
+                "carbon.battery.research:BatteryPractice",
+                "carbon.development_session.battery_gpu:remote_worker",
+                "carbon.compute.remote_route:campaign_runner",
+            ),
+            "Setup (Set up your environment, Compute) offers this machine's "
+            "CPU, every miner's default, its own GPU, or the miner's own "
+            "remote machine or container. For this machine's GPU, setup "
+            "detects it, installs the host device record and verifies the "
+            "pinned GPU worker (scripts/dev/accelerator_worker_image.sh); "
+            "battery practice then runs on it with JAX_PLATFORMS=cuda (C-MLP-03 "
+            "slice 3). A remote setup is any the miner runs "
+            "(OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02), reached "
+            "with their own SSH: a machine with Docker (ssh-docker, the worker "
+            "checked by image ID and sent with consent) or a container started "
+            "from the pinned worker (ssh-container, its build identity "
+            "checked). Carbon never starts, stops or bills it, and the route "
+            "is Challenge-neutral (docs/development/MINER_REMOTE_SETUP.md). "
+            "Every feedback records the backend observed. GPU practice is for "
+            "speed only; the validator rebuilds on its own pinned backend. A "
+            "real practice on a local GPU, and one on a remote setup, are the "
+            "slices' acceptance and need the hardware.",
+        ),
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.development_session.model_provider:published_pricing",
+            ),
+            "Setup (Set up your environment, Inference) connects every adapter "
+            "with the miner's own key and checks it live: Engy (Chat "
+            "Completions by default, or Messages), Chutes at its published "
+            "per-token price, OpenAI, Anthropic, and the OpenAI-compatible "
+            "adapters at the miner's own endpoint and declared price "
+            "(C-MLP-03 slice 2). A live completion through Chutes and Engy "
+            "with miner-held keys is the ticket's acceptance and needs the "
+            "miner's keys.",
+        ),
+        "agent": Provided(
+            (
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
+            ),
+            "Setup offers Carbon's autonomous agent or Hermes Agent (Nous "
+            "Research) on the miner's machine: with consent to the exact files, "
+            "setup writes a Hermes profile with the inference choice as its "
+            "model and Carbon's MCP server over stdio, each changing tool "
+            "asking first (C-MLP-03 slice 5). A Hermes-driven battery campaign "
+            "is the acceptance and needs Hermes and the miner's keys. Mira "
+            "(autoscience.ai) publishes no tool connection, so it is not "
+            "offered.",
         ),
     },
 }

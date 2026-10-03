@@ -71,5 +71,12 @@ def verify_history(root, task, policy, expected_context):
             != effective_digest(policy, observation)
         ):
             raise ValueError("frozen effective research input differs")
-        identities.append({"epoch": epoch, "digest": plan["effective_input_digest"]})
+        identity = {"epoch": epoch, "digest": plan["effective_input_digest"]}
+        if "miner_guidance" in plan:
+            # RSURF-D13: the miner's messages each step read, chained from
+            # this plan; a broken chain is a changed input.
+            from .miner_guidance import verify as guidance_chain
+
+            identity["miner_guidance_chain"] = guidance_chain(path.parent, plan)
+        identities.append(identity)
     return identities

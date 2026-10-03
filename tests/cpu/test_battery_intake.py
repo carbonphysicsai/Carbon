@@ -332,10 +332,51 @@ def test_the_listener_binds_loopback_unless_the_exposure_is_recorded(tmp_path):
     decisions.write_text(
         "## 2026-09-30 — OWNER-INTAKE-EXPOSURE-01: expose the battery intake\n"
     )
+    recorded = {**base, "exposure_record": "OWNER-INTAKE-EXPOSURE-01"}
+    # A recorded public bind still terminates TLS in the intake.
+    with pytest.raises(ib.IntakeUnavailable) as refused:
+        ib.require_exposure(recorded, repository=tmp_path)
+    assert refused.value.code == "intake_exposure_needs_tls"
     ib.require_exposure(
-        {**base, "exposure_record": "OWNER-INTAKE-EXPOSURE-01"}, repository=tmp_path
+        {**recorded, "tls_cert": "cert.pem", "tls_key": "key.pem"},
+        repository=tmp_path,
     )
     ib.require_exposure({"host": "127.0.0.1"}, repository=tmp_path)
+
+
+def test_an_exposure_recorded_in_its_own_decision_file_counts(tmp_path):
+    """From 2026-10-03 each decision is its own file under .agent/decisions/;
+    the record must still be a decision heading, not a mention."""
+    (tmp_path / ".agent" / "decisions").mkdir(parents=True)
+    (tmp_path / ".agent" / "DECISIONS.md").write_text("## 2026-09-30 — OTHER-01\n")
+    record = (
+        tmp_path / ".agent" / "decisions" / "2026-10-04-OWNER-INTAKE-EXPOSURE-02.md"
+    )
+    config = {
+        "host": "0.0.0.0",
+        "exposure_record": "OWNER-INTAKE-EXPOSURE-02",
+        "tls_cert": "cert.pem",
+        "tls_key": "key.pem",
+    }
+    record.write_text("Mentions OWNER-INTAKE-EXPOSURE-02 but is no heading.\n")
+    with pytest.raises(ib.IntakeUnavailable) as refused:
+        ib.require_exposure(config, repository=tmp_path)
+    assert refused.value.code == "intake_exposure_unrecorded"
+    record.write_text(
+        "## 2026-10-04 — OWNER-INTAKE-EXPOSURE-02: expose the battery intake\n"
+    )
+    ib.require_exposure(config, repository=tmp_path)
+
+
+def test_the_repository_records_the_owners_exposure_decision():
+    """OWNER-INTAKE-EXPOSURE-01 is in this repository's decision log."""
+    config = {
+        "host": "0.0.0.0",
+        "exposure_record": "OWNER-INTAKE-EXPOSURE-01",
+        "tls_cert": "cert.pem",
+        "tls_key": "key.pem",
+    }
+    ib.require_exposure(config, repository=REPOSITORY)
 
 
 def test_the_client_has_no_signing_code():

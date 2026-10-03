@@ -30,10 +30,14 @@ snapshot must be one this intake already observed: **no request causes a chain
 read.** One refresher thread reads the metagraph on a fixed period.
 
 **Exposure.** The listener binds loopback unless the configuration names an
-exposure record that exists in `.agent/DECISIONS.md` - the owner's §4 security
+exposure record that exists as a decision heading in `.agent/DECISIONS.md` or
+`.agent/decisions/*.md` (one file per decision from 2026-10-03) - the owner's §4 security
 review decision for this intake, an id of the form
-`OWNER-…INTAKE-EXPOSURE-NN`. Tests are not a security audit; this module
-is security-sensitive (AGENTS §13) and is NOT SECURITY_QUALIFIED.
+`OWNER-…INTAKE-EXPOSURE-NN` - and terminates TLS itself (`tls_cert`,
+`tls_key`). The owner recorded OWNER-INTAKE-EXPOSURE-01 on 2026-10-02 for
+testnet 567 and the routes above; exposing a host stays an operator action.
+Tests are not a security audit; this module is security-sensitive (AGENTS
+§13).
 
 Nothing here scores, qualifies, commits on chain or signs with a key: the
 miner signs; the service key, if configured, belongs to the daemon.
@@ -135,8 +139,12 @@ def require_exposure(config, *, repository):
     """A non-loopback bind needs the owner's recorded exposure decision.
 
     Only the owner's §4 security review decision may make this host reachable
-    from outside, so a public bind names that record and the record must be in
-    `.agent/DECISIONS.md` as a heading. Loopback needs no record.
+    from outside, so a public bind names that record and the record must be a
+    decision heading: in `.agent/DECISIONS.md` (the history to 2026-10-03) or in
+    one of the one-per-decision files under `.agent/decisions/` that replaced
+    appending to it. A public bind also terminates TLS here:
+    the miner client refuses plain HTTP beyond loopback, and behind a TLS
+    proxy every request would share one peer's limits. Loopback needs neither.
     """
     try:
         loopback = ipaddress.ip_address(config["host"]).is_loopback
@@ -149,9 +157,14 @@ def require_exposure(config, *, repository):
     # including the one that chose the intake, never exposes it.
     if type(record) is not str or not re.fullmatch(EXPOSURE_RECORD, record):
         raise IntakeUnavailable("intake_exposure_unrecorded")
-    decisions = (Path(repository) / ".agent" / "DECISIONS.md").read_text()
-    if not re.search(rf"^## .*\b{re.escape(record)}\b", decisions, re.MULTILINE):
+    agent = Path(repository) / ".agent"
+    files = [agent / "DECISIONS.md", *sorted((agent / "decisions").glob("*.md"))]
+    texts = [path.read_text(encoding="utf-8") for path in files]
+    heading = re.compile(rf"^## .*\b{re.escape(record)}\b", re.MULTILINE)
+    if not any(heading.search(text) for text in texts):
         raise IntakeUnavailable("intake_exposure_unrecorded")
+    if not ("tls_cert" in config and "tls_key" in config):
+        raise IntakeUnavailable("intake_exposure_needs_tls")
 
 
 # --- snapshots ------------------------------------------------------------------
@@ -632,7 +645,7 @@ def work_once(inbox, target):
     duration only. An infrastructure state leaves the submission where it
     was, to be retried; it is never a refusal of the miner.
     """
-    from .daemon import CommitmentRequired
+    from .daemon import BackendNotServed, CommitmentRequired
     from .deployment import writer
     from .pool_store import HotkeyWindowUsed
 
@@ -655,6 +668,12 @@ def work_once(inbox, target):
                 else "commitment_required"
             )
             inbox.mark(submission_id, "REFUSED", {"failure": {"code": code}})
+            continue
+        except BackendNotServed as missing:
+            # This validator has no image for the recipe's backend: not a
+            # judgement of the recipe, and nothing is recorded in the pool.
+            failure = {"code": "backend_not_served", "backend": missing.backend}
+            inbox.mark(submission_id, "REFUSED", {"failure": failure})
             continue
         # An invalid construction is admitted and settled at once; it does
         # not use the hotkey's window (the daemon does not count it either).

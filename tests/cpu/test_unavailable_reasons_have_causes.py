@@ -21,8 +21,8 @@ from scripts.dev.miner_launchpad import controller
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: Where a launch is decided and dispatched. Wiring RunPod into a launch means
-#: one of these reaching `carbon.compute`.
+#: Where a launch is decided and dispatched. Wiring a compute provider into a
+#: launch means one of these reaching it.
 LAUNCH_PATH = (
     ROOT / "scripts/dev/miner_launchpad",
     ROOT / "carbon/development_session",
@@ -50,48 +50,62 @@ def _importers(pattern, *roots):
     ]
 
 
-COMPUTE_IMPORT = r"^\s*(from carbon\.compute\b|import carbon\.compute\b)"
+#: The provider-API modules OWNER-MINER-COMPUTE-LINK-ONLY-01 removed.
+PROVIDER_IMPORT = (
+    r"^\s*(from|import) carbon\.compute\.(runpod|lium|targon|providers?|service"
+    r"|store|accounting|reconcile|rented_runner)\b"
+)
 
 
-def test_runpod_is_implemented_but_no_launch_path_dispatches_to_it():
-    assert _reason("runpod") == "compute_adapter_not_wired_into_launch"
-    # The adapter exists: this is not "not implemented".
-    from carbon.compute import runpod
-
-    assert hasattr(runpod, "__file__")
-    # Specimen: the same search finds the importer that really exists.
-    assert "tests/cpu/test_compute_provider.py" in _importers(
-        COMPUTE_IMPORT, ROOT / "tests/cpu"
-    )
-    # The cause: nothing on the launch path reaches it.
-    assert _importers(COMPUTE_IMPORT, *LAUNCH_PATH) == []
-
-
-def test_chutes_has_no_adapter_of_its_own_but_the_generic_one_reaches_it():
-    assert _reason("chutes").startswith("no_chutes_adapter")
-    ids = set(model_provider.ADAPTERS)
-    # Specimen, and the path the next action names.
-    assert "openai-compatible-chat" in ids
-    assert model_provider.ADAPTERS["openai-compatible-chat"].endpoint is None
-    # The cause.
-    assert not any("chutes" in adapter_id for adapter_id in ids)
-
-
-def test_lium_has_no_compute_provider():
-    assert _reason("lium") == "provisioning_and_teardown_adapter_not_implemented"
+def test_no_rented_compute_provider_is_listed_or_reachable():
+    # OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute. RunPod, Lium
+    # and Targon are not unavailable integrations to be built: a miner runs
+    # their own machine on any provider. The cause holds in code: no provider
+    # adapter exists and nothing on the launch path reaches one.
     names = {path.stem for path in (ROOT / "carbon/compute").glob("*.py")}
-    assert "runpod" in names  # specimen
-    assert not any("lium" in name for name in names)
+    assert not {"runpod", "lium", "targon", "providers", "rented_runner"} & names
+    # Specimen: the same listing finds the module that is still there.
+    assert "job_server" in names
+    listed = {item["id"] for item in controller.INTEGRATIONS}
+    assert not {"runpod", "lium", "targon"} & listed
+    assert _importers(PROVIDER_IMPORT, *LAUNCH_PATH, ROOT / "carbon") == []
+    # Specimen: the pattern finds such an import where one is written.
+    assert re.search(
+        PROVIDER_IMPORT, "x = 1\nfrom carbon.compute.runpod import A\n", re.MULTILINE
+    )
 
 
-def test_hermes_has_no_agent_adapter():
-    assert _reason("hermes") == "adapter_not_implemented"
-    pattern = r"hermes"
+def test_chutes_is_a_provider_of_its_own_not_an_unavailable_integration():
+    # C-MLP-03 slice 2 added Chutes' own adapter, with the prices it
+    # publishes; the unavailable entry that said it had none is gone.
+    assert "chutes" in model_provider.ADAPTERS
+    assert model_provider.ADAPTERS["chutes"].live_pricing is True
+    assert "chutes" not in {item["id"] for item in controller.INTEGRATIONS}
+    # Specimen: the same search finds an entry that is still there.
+    assert "mira" in {item["id"] for item in controller.INTEGRATIONS}
+
+
+def test_hermes_is_configured_in_setup_and_left_the_list():
+    # C-MLP-03 slice 5: setup writes a Hermes profile driving Carbon's MCP
+    # server over stdio. The unavailable entry that said no adapter existed is
+    # gone, and so is its cause.
+    from scripts.dev.miner_launchpad import environment_setup, hermes_setup
+
+    assert "hermes" not in {item["id"] for item in controller.INTEGRATIONS}
+    assert "hermes" in {c["id"] for c in environment_setup.choices()["agent"]}
+    assert callable(hermes_setup.config_document)
+
+
+def test_mira_has_no_verified_interface():
+    # Specimen: the entry is still there, with its reason.
+    assert _reason("mira") == "integration_interface_unverified"
     roots = (ROOT / "carbon", ROOT / "scripts/dev/miner_launchpad")
-    mentions = _importers(pattern, *roots)
-    # Specimen: the list itself names it.
-    assert "scripts/dev/miner_launchpad/controller.py" in mentions
-    assert mentions == ["scripts/dev/miner_launchpad/controller.py"]
+    # Nothing builds a Mira connection anywhere.
+    assert not [
+        path
+        for path in _importers(r"^\s*(def|class) \w*mira", *roots)
+        if "mira" in path.lower()
+    ]
 
 
 def test_the_remote_door_is_built_but_nothing_serves_it():

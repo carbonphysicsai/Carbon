@@ -1,0 +1,125 @@
+{
+  "batch": "rung7",
+  "cases": [
+    {
+      "case_id": "nominal-viscosity-only",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 40.0,
+        "heat_load_w": 1000.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {
+        "fluid_model": "viscosity-only"
+      }
+    },
+    {
+      "case_id": "nominal-variable",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 40.0,
+        "heat_load_w": 1000.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {}
+    },
+    {
+      "case_id": "nominal-variable-cp",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 40.0,
+        "heat_load_w": 1000.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {
+        "fluid_model": "variable-cp"
+      }
+    },
+    {
+      "case_id": "hot-variable",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 45.0,
+        "heat_load_w": 1500.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {}
+    },
+    {
+      "case_id": "hot-variable-cp",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 45.0,
+        "heat_load_w": 1500.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {
+        "fluid_model": "variable-cp"
+      }
+    },
+    {
+      "case_id": "hotspot-variable-r2",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 40.0,
+        "heat_load_w": 1000.0,
+        "hotspot_ratio": 3.0,
+        "hotspot_center_mm": 10.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {}
+    },
+    {
+      "case_id": "hotspot-variable-r3",
+      "kind": "diagnostic",
+      "inputs": {
+        "channel_width_mm": 0.3,
+        "fin_width_mm": 0.3,
+        "channel_depth_mm": 2.0,
+        "flow_lpm_per_kw": 1.5,
+        "inlet_c": 40.0,
+        "heat_load_w": 1000.0,
+        "hotspot_ratio": 3.0,
+        "hotspot_center_mm": 10.0,
+        "hotspot_width_mm": 2.5
+      },
+      "options": {
+        "resolution": 3
+      }
+    }
+  ]
+}

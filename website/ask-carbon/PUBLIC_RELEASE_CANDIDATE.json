@@ -1,11 +1,35 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
-  "candidate_id": "ask-carbon-public-release-2026-09-30.1",
+  "candidate_id": "ask-carbon-public-release-2026-10-02.1",
   "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
-  "status_note": "Bundle 86f51385… approved for deployment by the owner in session on 2026-10-01 (WEB-QA-11-D2). It supersedes 48fd4680… (WEB-QA-10-D1), which production still serves. NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_01.md; this host has none and ran no wrangler command.",
+  "status_note": "Bundle b22f6d1c… (106 files) approved for deployment by the owner in session on 2026-10-02 (WEB-QA-12-D1). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_02.md; this host has none and ran no wrangler command. Re-verified at approval (2026-10-02T21:16Z): manifest v4 100/100 on both hostnames, and the rebuild reproduced b22f6d1c….",
+  "status_note_before_approval": "Bundle b22f6d1c… (106 files) is built and certified deployable against live c12d547a. NOT approved and NOT deployed. It needs the owner's approval of this exact identity, then the operator's deploy from DEPLOY_PACKAGE_2026_10_02.md; this host holds no Cloudflare credential and ran no wrangler command.",
+  "deployment": {
+    "state": "NOT_DEPLOYED"
+  },
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
+    "decision": "WEB-QA-12-D1 (exact bundle); OWNER-WEBSITE-START-MINING-01 (content)",
+    "recorded_at": "2026-10-02",
+    "source": ".agent/DECISIONS.md",
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "state": "OWNER_APPROVED_EXACT_BUNDLE",
+    "content_instruction": "OWNER-WEBSITE-START-MINING-01 (2026-10-02): the owner, in session: \"'get started' should be 'start mining' and it should be linked on home page and on the miner pager.\" An instruction about content, given before the bundle existed; it does not authorize deployment.",
+    "attaches_to": {
+      "bundle_identity_sha256": "b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46",
+      "integrated_index_sha256": "5b842bf698ba60a34e16d9cb49e0f11549743488838bbc3ac8f830f838f393ca",
+      "rollback_target_version_id": "carbonwebsite c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4 (WEB-QA-11-D2), re-confirmed by the operator with wrangler immediately before deploying"
+    },
+    "approval": "The owner, in session on 2026-10-02, answered \"1 start\" to \"Start mining site: approve bundle b22f6d1c… for deployment\" (WEB-QA-12-D1).",
+    "reverification_at_approval": {
+      "at": "2026-10-02T21:16Z",
+      "baseline": "tools/fetch-live-baseline.mjs: manifest v4 100/100 on carbonphysics.ai and www.carbonphysics.ai; hostnames agree",
+      "rebuild": "integrate-static.mjs with Node 24.19.0 (Linux) reproduced bundle b22f6d1c…, 106 files, deployable_to_carbonwebsite true",
+      "pre_deploy_check": "tools/verify-publication.mjs: exactly the eight expected FAIL lines (/, /miners/, /start-mining/, /sitemap.xml on each hostname); health ok"
+    }
+  },
+  "owner_authorization_superseded_2026_10_02": {
     "decision": "WEB-QA-11-D2 (exact bundle); WEB-QA-11-D1 (in principle)",
     "recorded_at": "2026-10-01",
     "source": ".agent/DECISIONS.md",
@@ -170,38 +194,66 @@
     "approved_under": "WEB-QA-09-D1 (2026-09-26)"
   },
   "static_integration": {
-    "source_authority": "BASELINE_MANIFEST_V3_RE_DERIVED_FROM_LIVE_2026_09_30: all 100 manifest paths fetched from both hostnames matched manifest v3 by SHA-256 after removing the edge-injected challenge script and analytics beacon; index.html recovered from the live integrated homepage by removing the two integration blocks, reproducing the reviewed source 99be1318…",
+    "source_authority": "BASELINE_MANIFEST_V4_RE_DERIVED_FROM_LIVE_2026_10_02: all 100 manifest v4 paths fetched from both hostnames matched by SHA-256 and size after removing the edge-injected challenge script and analytics beacon; index.html recovered from the live integrated homepage by removing the two integration blocks, reproducing the reviewed source 99be1318…",
     "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
     "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
     "reconciliation_id": null,
     "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
-    "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+    "integrated_index_sha256": "5b842bf698ba60a34e16d9cb49e0f11549743488838bbc3ac8f830f838f393ca",
+    "homepage_edit": "start-mining-link-v1",
+    "edited_homepage_source_sha256": "c8af360f7d04ce6d1184e6c0f9ff97b040e8e14306c64fe415e8a0381c237296",
+    "homepage_edit_note": "tools/integrate-static.mjs --homepage-edit start-mining-link-v1 applies one reviewed edit to the pinned source 99be1318… after its digest check: a Start mining link to /start-mining/ after the Miners card's Learn more. The source pin is unchanged.",
     "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4",
     "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
     "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
     "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329",
     "pilot_html_sha256_note": "GOAL-WORKBENCH-16 Pilot Designer (Workbench lane #448, #449, #450; final at main 1e3292a2): four modes, reviewed-package format carbon.client-intake.reviewed.v2 (v1 still validates), CSP connect-src 'self', guidance context to /api/ask-carbon unchanged. Opens all three /workbench/ save formats under Continue a saved draft. Live serves 4c9f3916… (WEB-QA-10-D1).",
-    "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
-    "staged_file_count": 105,
-    "build_certified_utc": "2026-09-30",
-    "build_certification_note": "Re-derived 2026-10-01T03:05Z after merging main af5b8ac0b (#454, which changes no bundle input: the builder reads only the Pilot Designer HTML from Business/, still be64f8b9…): the 100-path baseline was re-fetched from both hostnames, matched manifest v3 100/100 on each after removing the edge-injected challenge script and analytics beacon, and index.html was recovered to 99be1318…; the build reproduced bundle 86f51385…, 105 files, and the five repository-side digests above were re-hashed from the files on disk. First built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
+    "bundle_identity_sha256": "b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46",
+    "staged_file_count": 106,
+    "build_certified_utc": "2026-10-02T19:49Z",
+    "build_certification_note": "Built 2026-10-02T19:49Z with Node 24.19.0 from branch agent/start-mining (main 390d5e840 plus this change): the 100-path baseline was re-fetched from both hostnames against manifest v4 and matched 100/100 on each, and index.html was recovered to 99be1318…. As a control, the same baseline with no declaration reproduced the live bundle 86f51385… (105 files) exactly. The candidate was built with --existing-site, --site-replacements site-replacements.json, --site-additions site-additions.json, --homepage-edit start-mining-link-v1 and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (c12d547a) and deployable_to_carbonwebsite true, release_authorized false.",
     "knowledge_json_sha256": "fab55d5dca7f547d47899f29c5cf3b1b0b7ab1674e923da945feef02fd0361a0",
     "changes_against_live": {
-      "compared_utc": "2026-09-30T18:16:28.552Z",
-      "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
-      "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
-      "method": "every one of the 105 staged paths fetched from both hostnames and compared by SHA-256, HTML after removing the edge-injected challenge script and analytics beacon",
+      "compared_utc": "2026-10-02T19:49Z",
+      "live_version_id": "c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4",
+      "live_bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+      "method": "staged inventory compared path by path with the control build that reproduces live (86f51385…), and tools/verify-publication.mjs against both hostnames: before the deploy exactly /, /miners/, /start-mining/ (HTTP 404) and /sitemap.xml fail on each hostname, and every other check, health included, is ok",
       "paths_matching": {
-        "carbonphysics.ai": "103/105",
-        "www.carbonphysics.ai": "103/105"
+        "control_build": "102/106"
       },
       "changed_paths": [
-        "ask-carbon/pilot-designer.html",
-        "workbench/index.html"
+        "index.html",
+        "miners/index.html",
+        "sitemap.xml"
       ],
-      "added_paths": [],
-      "removed_paths": []
+      "added_paths": [
+        "start-mining/index.html"
+      ],
+      "removed_paths": [],
+      "changed_detail": {
+        "index.html": {
+          "live": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+          "candidate": "5b842bf698ba60a34e16d9cb49e0f11549743488838bbc3ac8f830f838f393ca",
+          "bytes": 17816
+        },
+        "miners/index.html": {
+          "live": "88517c7c62c1743f2cd4628e4bf583fd86160fd3ab1f2ac02f7cee3d4ccafe43",
+          "candidate": "044edfef68bd7378b6036bcb6b5dda648123e389de997190457b0e2498481525",
+          "bytes": 22970
+        },
+        "sitemap.xml": {
+          "live": "18a8b1638e93ad1eb4222beb42e8001f7823ce7f6c03eeaae4ca619b13f3fc6c",
+          "candidate": "51fb9148a1e5df39742f6dc1fa114bb5452c5ee39c67b2b874d03f23bab7ecc2",
+          "bytes": 574
+        }
+      },
+      "added_detail": {
+        "start-mining/index.html": {
+          "candidate": "4adbf65ece6d43ab46176b44c0a59299561ebdc35de3a9ec662179c7e7c12e09",
+          "bytes": 13230
+        }
+      }
     },
     "component_js_sha256_superseded": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
     "bundle_identity_sha256_superseded": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
@@ -244,15 +296,61 @@
       },
       "live_still_serves": "ask-carbon.js 6a098c0a… and pilot-designer.html 3de37b43…, the recorded digests of bundle c973a2ea…"
     },
-    "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
+    "live_bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
     "site_replacements": [
       {
-        "path": "workbench/index.html",
-        "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
-        "replaces_baseline_sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
-        "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+        "path": "miners/index.html",
+        "sha256": "044edfef68bd7378b6036bcb6b5dda648123e389de997190457b0e2498481525",
+        "replaces_baseline_sha256": "88517c7c62c1743f2cd4628e4bf583fd86160fd3ab1f2ac02f7cee3d4ccafe43",
+        "reason": "The miner page hero button reads Start mining and goes to /start-mining/ (it was Start a development run, to #start). Every other byte is the v4 baseline page 88517c7c."
+      },
+      {
+        "path": "sitemap.xml",
+        "sha256": "51fb9148a1e5df39742f6dc1fa114bb5452c5ee39c67b2b874d03f23bab7ecc2",
+        "replaces_baseline_sha256": "18a8b1638e93ad1eb4222beb42e8001f7823ce7f6c03eeaae4ca619b13f3fc6c",
+        "reason": "Lists https://carbonphysics.ai/start-mining/ after /miners/. Every other byte is the v4 baseline sitemap 18a8b163."
       }
-    ]
+    ],
+    "site_additions": [
+      {
+        "path": "start-mining/index.html",
+        "sha256": "4adbf65ece6d43ab46176b44c0a59299561ebdc35de3a9ec662179c7e7c12e09",
+        "reason": "The Start mining page: from a clean Linux machine to the Control Center, then choose a Challenge. It replaces the unpublished website/get-started draft (C-MLP-04) and uses the site header, footer and stylesheet."
+      }
+    ],
+    "superseded_2026_10_02": {
+      "source_authority": "BASELINE_MANIFEST_V3_RE_DERIVED_FROM_LIVE_2026_09_30: all 100 manifest paths fetched from both hostnames matched manifest v3 by SHA-256 after removing the edge-injected challenge script and analytics beacon; index.html recovered from the live integrated homepage by removing the two integration blocks, reproducing the reviewed source 99be1318…",
+      "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+      "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+      "staged_file_count": 105,
+      "build_certified_utc": "2026-09-30",
+      "build_certification_note": "Re-derived 2026-10-01T03:05Z after merging main af5b8ac0b (#454, which changes no bundle input: the builder reads only the Pilot Designer HTML from Business/, still be64f8b9…): the 100-path baseline was re-fetched from both hostnames, matched manifest v3 100/100 on each after removing the edge-injected challenge script and analytics beacon, and index.html was recovered to 99be1318…; the build reproduced bundle 86f51385…, 105 files, and the five repository-side digests above were re-hashed from the files on disk. First built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
+      "changes_against_live": {
+        "compared_utc": "2026-09-30T18:16:28.552Z",
+        "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+        "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
+        "method": "every one of the 105 staged paths fetched from both hostnames and compared by SHA-256, HTML after removing the edge-injected challenge script and analytics beacon",
+        "paths_matching": {
+          "carbonphysics.ai": "103/105",
+          "www.carbonphysics.ai": "103/105"
+        },
+        "changed_paths": [
+          "ask-carbon/pilot-designer.html",
+          "workbench/index.html"
+        ],
+        "added_paths": [],
+        "removed_paths": []
+      },
+      "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
+      "site_replacements": [
+        {
+          "path": "workbench/index.html",
+          "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+          "replaces_baseline_sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
+          "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+        }
+      ]
+    }
   },
   "worker": {
     "name": "ask-carbon-public",
@@ -324,8 +422,7 @@
   },
   "budget_note_2026_09_26": "Budget snapshot not re-read (the operator ledger endpoint is staging-only and needs an operator secret). Ceilings are unchanged: USD 50/month shared ledger, 100 requests/day, 12/client/hour, concurrency 4. Default-on live answers will raise request volume toward the daily limit; at the Chutes prices the per-request reservation falls from 5,640 to 3,139 micro-USD at the same 24,000/700 token bounds.",
   "required_before_production_mutation": [
-    "Owner approval of bundle identity 86f51385… (WEB-QA-11-D1)",
-    "Live carbonwebsite version re-confirmed as dc4469a7 with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
+    "Live carbonwebsite version re-confirmed as c12d547a with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
   ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
@@ -335,7 +432,8 @@
     "public content approved for display": "WEB-QA-07-D1 (2026-09-22)",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-24.1": "WEB-QA-08-D1 (2026-09-24), bundle c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-26.1": "WEB-QA-09-D1 (2026-09-26), bundle 2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
-    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)"
+    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)",
+    "owner approval of bundle identity b22f6d1c… (candidate 2026-10-02.1)": "WEB-QA-12-D1 (2026-10-02)"
   },
   "deployment_order": {
     "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
@@ -347,14 +445,39 @@
     "candidate_2026_09_30_1": "Static publish, then the owner-directed Worker activation, from DEPLOY_PACKAGE_2026_10_01.md: capture both rollback ids; re-derive the baseline with tools/fetch-live-baseline.mjs (100/100 on both hostnames); rebuild (identity must equal 86f51385…); `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`; verify with tools/verify-publication.mjs; then `wrangler deploy --config wrangler.public-release-active.toml` (Worker inputs byte-identical to the live WEB-QA-10-D1 revision 368c713e) and verify again."
   },
   "remaining_execution_inputs": [
-    "None beyond the owner's byte approval: no Worker deploy and no new secret."
+    "The operator's deploy from DEPLOY_PACKAGE_2026_10_02.md; no Worker deploy and no new secret."
   ],
   "execution_inputs_satisfied": {
     "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",
     "Pinned deployment tool": "Wrangler 4.134.0, installed outside the repository and outside the public asset tree."
   },
-  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-26.1",
-  "change_note": "Candidate 2026-09-30.1 ships the GOAL-WORKBENCH-16 Pilot Designer (main 1e3292a2, #448-#450: guided conversation, form, Your system, Proposed Challenge) and retires /workbench/ with a page that points to the Pilot Designer and redirects there after five seconds. Static only: exactly two paths change against live (ask-carbon/pilot-designer.html, workbench/index.html); the other 103 are byte-identical on both hostnames. The other workbench/ files stay so saved drafts and bookmarks keep working. Worker, knowledge (fab55d5d…), budget, ceilings, activation, Pilot Designer AI opt-in and inquiry collection are unchanged.",
+  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-30.1",
+  "superseded_candidate_2026_09_30_1": {
+    "candidate_id": "ask-carbon-public-release-2026-09-30.1",
+    "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
+    "status_note": "Bundle 86f51385… approved by the owner on 2026-10-01 (WEB-QA-11-D2) and deployed by the operator on 2026-10-02 as carbonwebsite c12d547a (01:52:41Z, 100 % of traffic), replacing dc4469a7. Verified by content from the building host on both hostnames (tools/verify-publication.mjs: VERIFIED). The ask-carbon-public version ids were not supplied to the repository.",
+    "status_note_before_deployment": "Bundle 86f51385… approved for deployment by the owner in session on 2026-10-01 (WEB-QA-11-D2). It supersedes 48fd4680… (WEB-QA-10-D1), which production still serves. NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential, following DEPLOY_PACKAGE_2026_10_01.md; this host has none and ran no wrangler command.",
+    "deployment": {
+      "decision": "WEB-QA-11-D2",
+      "carbonwebsite_version_id": "c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4",
+      "created_utc": "2026-10-02T01:52:41.964Z",
+      "traffic": "100%",
+      "replaced_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
+      "capture": "the operator's wrangler deploy output (01:52Z), re-read with `wrangler deployments status --name carbonwebsite` at 02:56Z; relayed by the owner in session on 2026-10-02",
+      "ask_carbon_public_version_ids": "not supplied",
+      "verification": "tools/verify-publication.mjs against the reproduced bundle 86f51385 (built from release/pilot-designer.html and a baseline re-fetched from both hostnames): VERIFIED on both hostnames, health active:true, reasons [], gemma-4-31b-turbo-tee:v1",
+      "recorded_by": "ASK-CARBON-PILOT-SNAPSHOT-01 change, 2026-10-02"
+    },
+    "change_note": "Candidate 2026-09-30.1 ships the GOAL-WORKBENCH-16 Pilot Designer (main 1e3292a2, #448-#450: guided conversation, form, Your system, Proposed Challenge) and retires /workbench/ with a page that points to the Pilot Designer and redirects there after five seconds. Static only: exactly two paths change against live (ask-carbon/pilot-designer.html, workbench/index.html); the other 103 are byte-identical on both hostnames. The other workbench/ files stay so saved drafts and bookmarks keep working. Worker, knowledge (fab55d5d…), budget, ceilings, activation, Pilot Designer AI opt-in and inquiry collection are unchanged.",
+    "required_before_production_mutation": [
+      "Owner approval of bundle identity 86f51385… (WEB-QA-11-D1)",
+      "Live carbonwebsite version re-confirmed as dc4469a7 with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
+    ],
+    "remaining_execution_inputs": [
+      "None beyond the owner's byte approval: no Worker deploy and no new secret."
+    ]
+  },
+  "change_note": "Candidate 2026-10-02.1 publishes the Start mining page and links it from the homepage and the miner page (OWNER-WEBSITE-START-MINING-01). Static only: against live, exactly three paths change (index.html gains a Start mining link on the Miners card; miners/index.html's hero button reads Start mining and goes to /start-mining/; sitemap.xml lists the page) and one is added (start-mining/index.html). The other 102 are byte-identical. Worker, knowledge, Pilot Designer, budget, ceilings and activation are unchanged. Remote compute is not offered on the page: it names this machine's CPU or GPU only.",
   "superseded_candidate_2026_09_24_1": {
     "candidate_id": "ask-carbon-public-release-2026-09-24.1",
     "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",

@@ -30,10 +30,25 @@ CHOICES = {
     "reasoning": "none",
     "compute": "local",
 }
+#: The largest tool-call body the page sends (RSURF-D15).
+TOOL_BODY_MAX = 40960
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
+    # The research surface (OWNER-MINER-RESEARCH-SURFACE-01).
+    "/research.css": ("research.css", "text/css; charset=utf-8"),
+    "/research_charts.js": ("research_charts.js", "text/javascript; charset=utf-8"),
+    "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
+    # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).
+    "/research_tools.js": ("research_tools.js", "text/javascript; charset=utf-8"),
+    # Carbon's wordmark and the website's Montreal font, served from this
+    # controller so the page loads nothing from the internet. The font files
+    # are the website's own (their digests are the website baseline
+    # manifest's); the owner's licence covers bundling them (2026-10-02).
+    "/brand/brand-2.svg": ("brand/brand-2.svg", "image/svg+xml"),
+    "/fonts/neue-0.otf": ("fonts/neue-0.otf", "font/otf"),
+    "/fonts/neue-1.otf": ("fonts/neue-1.otf", "font/otf"),
 }
 
 
@@ -310,12 +325,20 @@ def research_compute_choices() -> list:
         {
             "id": "attach-existing-remote",
             "available": True,
+            # OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02: any setup
+            # the miner runs, connected over their own SSH (LINKONLY-D5).
+            "transports": ["ssh-docker", "ssh-container"],
             "requires": [
-                "A_HOST_YOU_ALREADY_CONTROL",
-                "CARBON_ACCELERATOR_PREPARE_RUN_ON_THAT_HOST",
+                "A_MACHINE_OR_CONTAINER_YOU_RUN",
+                "SSH_FROM_THIS_MACHINE_WITHOUT_A_PROMPT",
+                "PINNED_GPU_WORKER_IMAGE",
             ],
-            "not_required": ["CARBON_HELD_PROVIDER_CREDENTIALS"],
-            "summary": "A compatible machine you already have, anywhere. Carbon does not provision or bill it, and never terminates a resource this campaign does not own.",
+            "not_required": [
+                "CARBON_HELD_PROVIDER_CREDENTIALS",
+                "CARBON_HELD_REGISTRY_CREDENTIALS",
+                "A_SUDO_PASSWORD",
+            ],
+            "summary": "Your own GPU machine (Docker and the NVIDIA Container Toolkit) or a container you started from the pinned worker, anywhere, reached with your own SSH. Set it up under Set up your environment, Compute. Carbon never starts, stops or bills it.",
         },
         {
             "id": "external-byo",
@@ -350,7 +373,6 @@ def _default_onboarding():
 #: `unavailable` and the Control Center's per-category unavailable entries, so
 #: a reason cannot be corrected in one place and left stale in the other.
 INTEGRATIONS = (
-    {"id": "hermes", "reason": "adapter_not_implemented"},
     {
         # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
         # miner and a planner act on: a wrong one sends someone to build
@@ -399,26 +421,17 @@ INTEGRATIONS = (
         "id": "personal-agent",
         "reason": "remote_door_not_hosted",
     },
+    # Hermes is configured in setup (C-MLP-03 slice 5) and left this list.
+    # Mira is autoscience.ai/mira (owner, 2026-10-01). Read 2026-10-02: access
+    # is a sales form, and nothing public says how Mira connects to tools,
+    # whether over MCP or to a server on the miner's machine. A network door
+    # into a miner's machine would be an owner decision; until Autoscience
+    # documents a route, the interface stays unverified.
     {"id": "mira", "reason": "integration_interface_unverified"},
-    {
-        # Not "no adapter": `openai-compatible-chat` sends to any endpoint
-        # the miner names, Chutes included. What is missing is an adapter
-        # of Chutes' own (its listed models, prices and charge report) and
-        # an exercise of the generic one against Chutes - Carbon has not
-        # run one, so it does not claim that it works.
-        "id": "chutes",
-        "reason": "no_chutes_adapter_generic_chat_adapter_unexercised_against_it",
-    },
-    {
-        "id": "lium",
-        "reason": "provisioning_and_teardown_adapter_not_implemented",
-    },
-    # Approved as a compute provider. `carbon.compute` implements its pod
-    # lifecycle, but no launch path dispatches to it: a campaign runs on this
-    # machine's worker or a host the miner attaches, whatever key is
-    # configured. Configuring a key does not change this reason; wiring
-    # dispatch does, and `test_unavailable_reasons_have_causes` fails then.
-    {"id": "runpod", "reason": "compute_adapter_not_wired_into_launch"},
+    # RunPod, Lium and Targon are not listed: Carbon rents no compute
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01). A miner starts and stops their own
+    # machine on any provider; the rented-GPU setup choice that drove a
+    # provider with the miner's key is retired and refused by name.
     {
         # Two earlier reasons here were wrong in different ways. The
         # first named a signing wallet adapter, which the key rule
@@ -439,32 +452,16 @@ INTEGRATIONS = (
 
 #: Where each integration is shown in the Control Center, and what to do now.
 INTEGRATION_PLACEMENT = {
-    "hermes": (
-        "agent",
-        "Use Carbon's agent, research manually, or bring your own agent over MCP stdio.",
-    ),
     "personal-agent": (
         "agent",
         "Connect your own MCP client over stdio; it needs no Carbon credential.",
     ),
-    "mira": ("connection", "None today; the interface has not been verified."),
-    "chutes": (
-        "model_provider",
+    "mira": (
+        "connection",
         (
-            "Choose 'Any service implementing OpenAI Chat Completions' with your "
-            "own endpoint and key, declaring the model's price for a spend limit."
+            "None today: Mira publishes no way to connect to tools on your "
+            "machine. Use Hermes or Carbon's agent under Set up your environment."
         ),
-    ),
-    "runpod": (
-        "compute_provider",
-        (
-            "Run on this machine's isolated worker, or attach a host you control "
-            "(a RunPod pod you started yourself counts)."
-        ),
-    ),
-    "lium": (
-        "compute_provider",
-        "Run on this machine's isolated worker, or on a host you already control.",
     ),
     "testnet-registration": (
         "wallet",
@@ -507,6 +504,9 @@ class Server(ThreadingHTTPServer):
         development_sources=None,
         research_runner=None,
         onboarding=None,
+        state_dir=None,
+        legacy_database=None,
+        setup_checks=None,
     ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
@@ -517,12 +517,45 @@ class Server(ThreadingHTTPServer):
         # registered hotkey, because onboarding exists for people who have none
         # of those yet.
         self.onboarding = onboarding or _default_onboarding()
+        # C-MLP-03: after registration the miner sets up their environment
+        # here, and the profile it writes is loaded without a restart.
+        self.research_profile = None
+        self.legacy_database = legacy_database
+        self.attach_lock = threading.Lock()
+        self.setup = None
+        if state_dir is not None:
+            from scripts.dev.miner_launchpad.environment_setup import EnvironmentSetup
+
+            self.setup = EnvironmentSetup(
+                state_dir,
+                onboarding=self.onboarding,
+                checks=setup_checks,
+                attach=self.attach_profile,
+            )
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
         super().__init__(("127.0.0.1", port), Handler)
         self.authority = f"127.0.0.1:{self.server_port}"
         self.origin = f"http://{self.authority}"
+
+    def attach_profile(self, profile: Path) -> bool:
+        """Load the runner profile setup wrote, without a restart.
+
+        Only into an empty seat: an operator's `--research-profile` is never
+        replaced from the browser. Re-attaching the same file is a no-op, since
+        the runner re-reads its profile on every operation.
+        """
+        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+        with self.attach_lock:
+            if self.research_runner is not None:
+                return self.research_profile == Path(profile)
+            self.research_runner = RunnerAdapter.for_profile(
+                profile, legacy_database=self.legacy_database
+            )
+            self.research_profile = Path(profile)
+            return True
 
     def process_request(self, request, client_address):
         if not self.request_slots.acquire(blocking=False):
@@ -561,7 +594,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            # blob: images only: a run's raster images, which the page makes
+            # from checked bytes it read itself (RSURF-D17). No data: URL, no
+            # other origin.
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         )
         self.end_headers()
         self.wfile.write(body)
@@ -617,6 +653,48 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path.startswith("/api/v1/guide/"):
+                # The wiring guide, read from this checkout and rendered by
+                # the page: nothing is fetched from the internet. Only the
+                # named guides are read.
+                from scripts.dev.miner_launchpad import guide
+
+                name = self.path.removeprefix("/api/v1/guide/")
+                if name not in guide.GUIDES:
+                    raise Rejected("guide_not_found", 404)
+                self.reply(200, guide.document(name))
+            elif self.path in ("/api/v1/setup", "/api/v1/setup/status"):
+                # Authenticated: the page shows the miner's own choices, and
+                # the status an agent loops on, from the same table and records
+                # as the MCP door (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                from scripts.dev.miner_launchpad import setup_operations
+
+                setup = self.server.setup
+                if setup is None:
+                    raise Rejected("setup_unavailable", 409)
+                if (
+                    self.server.research_runner is None
+                    and setup.attach is not None
+                    and setup.state()["steps"]["review"]["profile_written"]
+                    and setup.profile_path.is_file()
+                ):
+                    # Written by the miner's agent over MCP: load it here too,
+                    # as this page's own review would.
+                    with contextlib.suppress(Exception):
+                        setup.attach(setup.profile_path)
+                runner = self.server.research_runner
+                status = setup_operations.status(
+                    setup,
+                    door=setup_operations.HTTP,
+                    campaigns=len(runner.recent()) if runner else None,
+                )
+                if self.path.endswith("/status"):
+                    self.reply(200, status)
+                else:
+                    self.reply(
+                        200,
+                        {**setup.state(), "choices": setup.offered(), "status": status},
+                    )
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -638,6 +716,17 @@ class Handler(BaseHTTPRequestHandler):
                 if runner is None:
                     raise Rejected("research_admission_unavailable", 409)
                 self.reply(200, runner.get(self.path.removeprefix("/api/v1/research/")))
+            elif self.path.startswith("/api/v1/tools/"):
+                # The page's tool session for one campaign (RSURF-D15).
+                from scripts.dev.miner_launchpad.tool_door import route
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                parts = self.path.split("/")
+                if len(parts) != 5:
+                    raise Rejected("not_found", 404)
+                self.reply(200, route(runner, parts[4], "state", None))
             elif self.path.startswith("/api/v1/development/"):
                 sources = self.server.development_sources
                 if sources is None:
@@ -671,10 +760,14 @@ class Handler(BaseHTTPRequestHandler):
                 or not lengths[0].isdigit()
             ):
                 raise Rejected("invalid_content_length")
-            if len(lengths[0]) > 4:
+            # A tool call carries the research tools' own arguments, up to
+            # their 32 KiB bound plus its envelope (RSURF-D15); every other
+            # request stays at 4 KiB.
+            limit = TOOL_BODY_MAX if self.path.startswith("/api/v1/tools/") else 4096
+            if len(lengths[0]) > len(str(limit)):
                 raise Rejected("body_size_limit", 413)
             length = int(lengths[0])
-            if length < 2 or length > 4096:
+            if length < 2 or length > limit:
                 raise Rejected("body_size_limit", 413)
             if self.headers.get_content_type() != "application/json":
                 raise Rejected("json_required", 415)
@@ -682,7 +775,20 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 raise Rejected("incomplete_body")
             value = parse_json(body)
-            if self.path.startswith("/api/v1/onboarding/"):
+            if self.path.startswith("/api/v1/setup/"):
+                # Every setup step, generated from the one table the MCP door
+                # also serves: the same gates in the same order.
+                from scripts.dev.miner_launchpad import setup_operations
+
+                action = self.path.removeprefix("/api/v1/setup/")
+                if action not in setup_operations.SETUP_OPERATIONS:
+                    raise Rejected("unknown_setup_step", 404)
+                if self.server.setup is None:
+                    raise Rejected("setup_unavailable", 409)
+                result = setup_operations.perform(
+                    self.server.setup, action, value, door=setup_operations.HTTP
+                )
+            elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:
                     raise Rejected("unknown_onboarding_action", 404)
@@ -709,6 +815,27 @@ class Handler(BaseHTTPRequestHandler):
                     raise Rejected("research_admission_unavailable", 409)
                 result = perform(
                     runner, self.path.removeprefix("/api/v1/operations/"), value
+                )
+            elif self.path.startswith("/api/v1/tools/"):
+                # The page's tool session: open, close, call, start, observe,
+                # cancel. The tools are the agent's own (RSURF-D15).
+                from scripts.dev.miner_launchpad.tool_door import route
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                parts = self.path.split("/")
+                if len(parts) != 6 or parts[5] == "state":
+                    raise Rejected("not_found", 404)
+                result = route(runner, parts[4], parts[5], value)
+            elif self.path.startswith("/api/v1/conversation/"):
+                # The miner's message to their own agent, from this page
+                # only: the local session is the miner (RSURF-D12).
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                result = runner.miner_message(
+                    self.path.removeprefix("/api/v1/conversation/"), value
                 )
             elif self.path == "/api/v1/research":
                 runner = self.server.research_runner
@@ -744,7 +871,13 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.server.controller.control(parts[4], parts[5])
             self.reply(200, result)
         except Rejected as exc:
-            self.reply(exc.status, {"error": exc.code})
+            body = {"error": exc.code}
+            # A setup refusal names the field it is about, and the next step
+            # when there is one to take.
+            for name in ("field", "next_step"):
+                if getattr(exc, name, None) is not None:
+                    body[name] = getattr(exc, name)
+            self.reply(exc.status, body)
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
         except (ValueError, RuntimeError):
@@ -852,6 +985,12 @@ def main() -> None:
             except Exception:  # noqa: BLE001 - do not print private source errors.
                 parser.error("DEVELOPMENT source attachment failed verification")
         runner = None
+        if args.research_profile is None:
+            # The profile "Set up your environment" wrote here, so a restart
+            # opens the miner's own setup without a flag (C-MLP-04).
+            written = args.state_dir / "environment" / "runner-profile.json"
+            if written.is_file() and not written.is_symlink():
+                args.research_profile = written
         if args.research_profile is not None:
             from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
@@ -866,7 +1005,11 @@ def main() -> None:
             args.port,
             development_sources=sources,
             research_runner=runner,
+            state_dir=args.state_dir,
+            legacy_database=database,
         )
+        if runner is not None:
+            server.research_profile = args.research_profile
         controller.recover()
         done = threading.Event()
 
@@ -888,7 +1031,7 @@ def main() -> None:
         )
         print(f"Local session token (paste into page; do not share): {token}")
         print(
-            "Research requires a separate approved operator profile and accepted runtime."
+            "Set up your environment, then choose a Challenge and launch."
             if runner
             else "No agents, paid compute, training, registration, or submissions."
         )
@@ -898,8 +1041,8 @@ def main() -> None:
             pass
         finally:
             done.set()
-            if runner is not None:
-                runner.close()
+            if server.research_runner is not None:
+                server.research_runner.close()
             thread.join(timeout=3)
             server.server_close()
 

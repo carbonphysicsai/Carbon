@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "protocol_elements": [
+  "climb_procedure.graphite_proposal",
+  "grants"
+ ],
+ "status": "RECORDED",
+ "proposed_revision": null,
+ "lesson_id": "2026-10-03-planner-run-1-input-bound",
+ "recorded_at": "2026-10-03T02:40:00Z",
+ "execution": {
+  "kind": "campaign_session",
+  "ref": "level-plan-1 under GRAPHITE-GRANT-PLANNER-01",
+  "description": "First live battery level-planner session, with 24 method cards chosen by fixed queries from the shared literature snapshot."
+ },
+ "expected": "24 cards (MAX_CARDS) fit one Planner request.",
+ "observed": "The request was 115 KB against a 61,440-byte bound (one token per byte before any reported usage). It was refused before any call, and the stop was labelled provider_response_incomplete, which hid the cause.",
+ "keep": [
+  "Bounding the request before it is sent; nothing was spent."
+ ],
+ "change": [
+  "Refuse a brief that cannot fit before any call (brief_too_large).",
+  "Report an input-bound stop as a size limit (STOPPED_CAP input_tokens)."
+ ]
+}

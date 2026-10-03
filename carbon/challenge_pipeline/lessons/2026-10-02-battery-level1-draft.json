@@ -1,0 +1,37 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-battery-level1-draft",
+ "recorded_at": "2026-10-02T21:39:37Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_loss_expressions.py; tests/cpu/test_agent_campaign_climb.py; tests/cpu/test_graphite_admission_mutations.py; contract, registry, expansion-record and B02b suites",
+  "description": "Drafted battery's Level-1 surface (bounded loss expressions), built Carbon's reconstruction for it and the Challenge-neutral climb harness, and ran them with fake runs, a clean-process rebuild and the contract regression suites."
+ },
+ "expected": "Carbon rebuilds a loss expression from its pinned bytes alone; the expression restating today's objective menu computes the menu's loss; the harness matches budgets, ablates, covers interactions and stops on a finding; nothing reaches a miner.",
+ "observed": "46 passed, and the 127 contract, registry, expansion-record and B02b tests are unchanged. A clean process given only the pinned bytes trained to bit-identical parameters. The registry has no way to serve a development-only surface: CONTRACTS holds one contract per Challenge token and every registered contract is what the miner path validates against, and its Surface kinds (uint, float, bool, choice) cannot describe an expression. So the draft lives entirely outside the registry, the miner path refuses it by name, and opening it to Graphite's live campaigns needs an owner decision.",
+ "keep": [
+  "Restate today's registered menu as one expression of the new level, so the ablation baseline is the level below, computed by the same evaluator.",
+  "Rebuild in a clean process from pinned bytes only, and compare trained parameters, not just the loss value."
+ ],
+ "change": [
+  "Before a level opens to Graphite's live campaigns, decide how a development-only contract variant is served without any miner path reading it.",
+  "At the climb, add an expression surface kind to the registry with the expansion record, and wire the trainer with its own rebuild control."
+ ],
+ "protocol_elements": [
+  "construction_ladder.climb_procedure",
+  "construction_ladder.reconstruction",
+  "graphite.permissions"
+ ],
+ "proposed_revision": {
+  "target": "construction_ladder.climb_procedure",
+  "text": "Add to step 1: a level opened for Graphite's development campaigns is served as a development-only contract variant held outside the miner-facing registry, pinned by its own digest, read only by Carbon's proposal runner and never by the miner MCP server, the validator or the intake, with a test that each of those refuses its surfaces."
+ },
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-03 item 9: the owner chose \"Dev-only contract variant\" over \"Open to everyone first\""
+ }
+}

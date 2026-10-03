@@ -384,6 +384,14 @@ def frozen_parallel_calls(manifest):
     return plan.get("parallel_calls") if type(plan) is dict else None
 
 
+def frozen_miner_guidance(manifest):
+    """The miner-message rule the campaign froze in its provider plan, or
+    None: a campaign launched before RSURF-D13 reads no messages, and nothing
+    about it is reinterpreted."""
+    plan = manifest.get("provider") if type(manifest) is dict else None
+    return plan.get("miner_guidance") if type(plan) is dict else None
+
+
 def registered_julia_image(root, runtime, analysis):
     """Read the campaign's image record; the caller still verifies its authority.
 
@@ -588,7 +596,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
             SelectionTransport(selection)
     if grant is not None and grant["provider"] != selection.provider_id:
         raise ValueError("the grant names a different model provider")
-    config = load_config(args.operator_config)
+    if getattr(args, "operator_config", None) is not None:
+        config = load_config(args.operator_config)
+    else:
+        from .miner_network import binding_for
+
+        config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")
@@ -983,6 +996,7 @@ async def run_agent(prepared, *, transport=None):
             challenge=prepared.challenge,
             transport=transport,
             parallel_calls=frozen_parallel_calls(prepared.manifest),
+            miner_guidance=frozen_miner_guidance(prepared.manifest),
             **({} if prepared.selection is None else {"provider": prepared.selection}),
         )
         report(ledger, owner=owner)

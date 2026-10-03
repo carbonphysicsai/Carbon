@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 4,
+ "recorded_at": "2026-10-03T02:47:56Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [],
+ "left_out": [
+  "prediction.rollout is left out: contract:prediction.rollout is research_only with an engineering blocker \u2014 a learned time-stepper over the 30 s grid with rollout training is not designed for battery yet. Cards card:arxiv-2505.17341v3 (TI-DeepONet) and card:arxiv-2508.05190v3 (PITI-DeepONet) address time-integrated operator learning by learning time-derivative fields integrated by standard solvers, not a learned time-stepper with rollout training on the battery grid; card:arxiv-2306.10619v2 analyses autoregressive instability in neural operators but does not provide a battery-specific rollout design. No card or result gives Carbon a rebuildable rollout architecture for the 30 s battery trajectory.",
+  "hybrid.candidate_solver_template is left out: contract:hybrid.candidate_solver_template is research_only with an engineering blocker \u2014 a Carbon-registered JAX cell model (for example a single-particle model) with a learned correction is not designed yet. Cards card:arxiv-2508.08087v1 and card:arxiv-2601.01466v1 demonstrate neural-operator surrogates for the battery SPM, and card:arxiv-2508.12602v2 shows a hybrid physics-plus-neural-operator surrogate for EV power consumption, but none provides a Carbon-registerable JAX cell-model template with a learned correction pathway that could be rebuilt from a declarative recipe.",
+  "hybrid.symbolic_template is left out: contract:hybrid.symbolic_template is research_only with an engineering blocker \u2014 a registered expression template whose coefficients Carbon fits is not designed for battery yet. No card or result in the brief provides a symbolic expression template for battery electrochemical trajectories or degradation kinetics that Carbon could register and rebuild.",
+  "hybrid.composition_graphs is excluded by the contract (trigger: executable_submission): participant-defined composition graphs are not permitted.",
+  "hybrid.reference_solver_reuse is excluded by the contract (trigger: evidence_design_change): hybrids reusing the PyBaMM reference are not permitted because validation is JAX-only.",
+  "Level 4 would need isolation: An independently isolated execution stage capable of running custom JAX architecture code \u2014 hybrid physics-plus-learned-correction models, symbolic expression evaluators, and learned time-steppers \u2014 while exporting predictions through a constrained inference interface that enforces the same output contract (voltage and temperature trajectories over the 30 s grid, plating margin, capacity) as the registered model families. The stage must block access to the PyBaMM reference solver, external data, pretrained weights, and the file system beyond the recipe and TRAIN data.; and reconstruction: Carbon must design and build, before this level can open: (1) a constrained inference interface that custom architectures export through, with the same trajectory and scalar output shapes as the registered model families, pinned in Carbon's worker image; (2) a registered JAX cell-model template (for example a single-particle or equivalent reduced-order model) with a learned correction pathway; (3) a registered symbolic expression template system with coefficient fitting via the permitted optimizers; (4) a rollout time-stepper architecture for the 30 s battery grid with error-controlled training. Each needs a validator reconstruction test proving Carbon can rebuild it from a declarative recipe against the contract digest."
+ ],
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
+}

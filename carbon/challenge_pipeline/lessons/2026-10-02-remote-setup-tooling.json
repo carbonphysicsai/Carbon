@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-remote-setup-tooling",
+  "recorded_at": "2026-10-02T22:00:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_push_worker_image.py: 13 passed",
+    "description": "First run of the image push helper (scripts/dev/push_worker_image.sh) in real bash from a copy of the checkout layout, with a fake docker and a fake worker build; then the provider-neutral wiring guide (docs/development/MINER_REMOTE_SETUP.md) written from public provider documentation read the same day."
+  },
+  "expected": "The helper pushes only the pinned GPU worker by image ID, prints the repository@sha256 reference, never logs in, and refuses anything else before a push.",
+  "observed": "All 13 tests passed on the first run. The documentation read changed the guide. The pinned worker carries no SSH server, and two container providers need the image to run its own (RunPod full SSH, Lium custom templates), so ssh-container on them needs the miner's own SSH layer on top of the pinned worker. Carbon's build-identity check still passes on such a layer. No provider documents a pull by digest for every product, so the helper prints the tag as well.",
+  "keep": [
+    "Test a shell helper from a copy of the checkout layout, so its own sibling build script can be replaced by a fake without a test hook in the helper.",
+    "Bind the GPU-worker check to the checkout's accelerator lock file, the same digest the image build asserts.",
+    "Mark every provider fact with its source page and read date, and UNVERIFIED where public documentation is silent."
+  ],
+  "change": [
+    "Verify a container provider's SSH model before promising ssh-container on it: whether it injects SSH, and whether its proxy allows port forwarding.",
+    "Record an SSH-ready layer on the pinned worker as follow-up tooling once a live pod confirms it, rather than building an unpinned apt layer now."
+  ],
+  "protocol_elements": [
+    "miner-held registry credentials; Carbon never logs in",
+    "provider facts carry source and read date; UNVERIFIED otherwise",
+    "shell tooling tested in real bash with fakes on PATH"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
