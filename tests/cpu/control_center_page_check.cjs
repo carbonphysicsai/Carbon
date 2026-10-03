@@ -494,12 +494,12 @@ scenario("old campaign links open the tab they meant, under its own name", async
 scenario("Connections shows the real MCP command and the profile it names", async () => {
   const state = launchable(world());
   const mcp = state.caps.agents.choices.find(choice => choice.id === "external_mcp");
-  Object.assign(mcp, {command: "/venv/bin/carbon-mcp --configuration /home/miner/profile.json", profile_path: "/home/miner/profile.json"});
+  Object.assign(mcp, {command: "/venv/bin/carbon-mcp --configuration /srv/miner/profile.json", profile_path: "/srv/miner/profile.json"});
   const page = await open(state);
   page.go("#connections");
   await page.advance(0);
-  assert.match(page.text("connection-catalog"), /\/venv\/bin\/carbon-mcp --configuration \/home\/miner\/profile\.json/);
-  assert.match(page.text("connection-catalog"), /Your runner profile: \/home\/miner\/profile\.json/);
+  assert.match(page.text("connection-catalog"), /\/venv\/bin\/carbon-mcp --configuration \/srv\/miner\/profile\.json/);
+  assert.match(page.text("connection-catalog"), /Your runner profile: \/srv\/miner\/profile\.json/);
   assert.doesNotMatch(page.text("connection-catalog"), /<your runner profile>/);
   clean(page);
 });
