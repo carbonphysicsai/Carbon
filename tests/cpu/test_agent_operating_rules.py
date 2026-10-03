@@ -51,8 +51,15 @@ def test_the_loop_enforces_the_stated_call_and_trial_counts():
     from carbon.development_session import research_loop
 
     source = inspect.getsource(research_loop.run_epoch)
-    assert "range(MAX_PROVIDER_CALLS)" in source
-    assert '"max_provider_calls": MAX_PROVIDER_CALLS' in source
+    # The shared cap stands unless a closed role supplies its own
+    # (GRAPHITE-D26); both the loop and the plan use the same value.
+    flat = " ".join(source.replace("(", " ").replace(")", " ").split())
+    assert (
+        "call_limit = MAX_PROVIDER_CALLS if max_provider_calls is None "
+        "else max_provider_calls" in flat
+    )
+    assert "range(call_limit)" in source
+    assert '"max_provider_calls": call_limit' in source
     assert "min(MAX_RESEARCH_TRIALS," in source
     # Specimen: the literals the constants replaced are gone.
     assert not re.search(r"range\(48\)|min\(8,", source)

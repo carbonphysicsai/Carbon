@@ -13,6 +13,9 @@ Phases:
 * ``value_refs`` / ``value_panel`` - EV4 and the Problem-C optimizer
   (``value_phases.py``): Carbon's truth service on a shard of reference jobs,
   and panel reconstruction with the optimizer's grid predictions.
+* ``graphite_practice`` - one Graphite phase-3 proposal (GRAPHITE-01):
+  compile it, verify the staged files Carbon pinned, train and predict public
+  PRACTICE (``carbon.agent_campaign.graphite.pod_phase``).
 
 Progress is rewritten to ``progress.json`` so the status page can report it.
 """
@@ -483,6 +486,11 @@ def main(argv=None) -> int:
         from scripts.dev.exam_design import train_phase
 
         return train_phase.run(cfg, a.out)
+    if a.phase == "graphite_practice":
+        # GRAPHITE-01 phase 3: one Graphite proposal's practice trial.
+        from carbon.agent_campaign.graphite import pod_phase
+
+        return pod_phase.run(cfg, a.out)
     raise SystemExit(f"unknown phase {a.phase}")
 
 

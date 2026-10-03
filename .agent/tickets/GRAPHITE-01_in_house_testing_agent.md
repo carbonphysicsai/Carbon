@@ -389,3 +389,305 @@ grant.
 - The Chutes adapter is not wired into Graphite.
 - Human checks are not authenticated.
 - None of this is scientific, security or production qualification.
+
+## Phase 3: Constructor, Level 0
+
+**Owner decision:** OWNER-GRAPHITE-03 (2026-10-02): "$15 runpod included",
+then "Start phase 3 build in parallel". One USD 15 grant,
+GRAPHITE-GRANT-PHASE3, covers Engy tokens and RunPod pod time together.
+
+**Scope** (plan §5 and §7, phase 3): the Constructor proposes declarative
+battery `TrainingStrategy` objects through the real miner path. Carbon then:
+
+1. runs each proposal on a RunPod pod;
+2. scores it by the frozen rule;
+3. bundles the best improvement as a PR-ready directory;
+4. rebuilds that bundle from the bundle alone.
+
+Level 0 widens nothing: every construction stays inside the recorded battery
+construction contract (the reconstruction rule).
+
+**Definition of done (build).** Scripted-model, scripted-pod tests for:
+
+- an end-to-end session: proposal → pod run → frozen-rule score → rebuild
+  match → bundle → clean rebuild;
+- a rebuild mismatch becoming a finding;
+- an unrebuildable proposal refused and never scored;
+- the combined token and pod cap;
+- pod termination on cancellation and after a crash;
+- crash and resume without paying twice;
+- injection as data;
+- refusal of confirmation material;
+- the stall limit producing the ladder observation.
+
+Mutation checks show each protection is load-bearing. The graphite and
+agent_campaign suites, the quality ratchet, diff hygiene and Hub checks pass.
+
+**Definition of done (exit, later).** The first block of 3 live sessions
+under the grant, giving the plan's first end-to-end proposal → run →
+frozen-rule score → PR → clean rebuild.
+
+### Phase 3 delivery (2026-10-02)
+
+**Built** (conditional closeout: it takes effect when its PR passes automated
+acceptance and merges, per `.agent/DELIVERY_PROTOCOL.md`). The live sessions
+are pending. Nothing was sent to a live model, no pod was started, no key was
+read and nothing was spent.
+
+New modules in `carbon/agent_campaign/graphite/`:
+
+- `miner_path.py`: the real miner path, which phase 1 left unconnected.
+  - `attach` opens the standard miner MCP door
+    (`standard_cli.load_profile` and `attached_profile`) on a battery
+    DEVELOPMENT campaign, and refuses any other Challenge.
+  - `MinerPathTools` sends each raw tool call to the public
+    `ResearchToolAdapter.call`, exactly as an external MCP client does.
+  - An adapter failure that may have dispatched stops the loop for
+    reconciliation.
+- `experiment.py`: Carbon's runner.
+  - **The reconstruction gate.** A proposal must compile under the live
+    battery contract, and that contract must be the one its newest expansion
+    record pins. Anything else is refused as `REFUSED_UNREBUILDABLE`,
+    recorded as a finding and never run or scored.
+  - **Pinned build.** Carbon computes what it would build before any pod:
+    the recipe, the staged files and the program, by digest.
+  - **Pod reservation.** Each pod is reserved against the run's combined
+    token and pod cap. Each model call is held to the same cap
+    (`phase3.Phase3Ledger`).
+  - **Lost creates.** A create whose answer is lost is never sent again. The
+    pod it made is adopted by its ownership tag, and when none exists its
+    reservation is released.
+  - **Independent rebuild check.** The pod's `built.json` is compared with
+    Carbon's own record. A mismatch is a finding, and the proposal is not
+    scored.
+  - **Frozen-rule score.** `practice.score_practice` on the 200 public
+    PRACTICE cases, then `exam.final_compare` (rule v2) against the
+    session's baseline.
+  - **Stall rule.** It applies after 5 non-improving attempts.
+  - **Pod ledger.** An EV4-style append-only JSONL ledger per run.
+- `pods.py`: the pods.
+  - `RunPodPods`, on the compute layer's `ComputeService` and
+    `RunPodAdapter`, with EV4's pinned study image, `bootstrap.py` and a
+    hash-pinned code ship at a pushed commit.
+  - Verified termination, and the provider's own charge.
+  - `ScriptedPods`, a scripted lifecycle with rates, charges, failures and
+    process deaths.
+  - Prices are read from `pod_control`.
+- `pod_phase.py`: the `graphite_practice` pod phase, added to
+  `scripts/dev/exam_design/runner.py`.
+  - It compiles the proposal and builds the practice trial's staged files.
+  - It refuses to run unless they match Carbon's pinned digests.
+  - It then runs the fixed GPU practice program.
+- `delivery.py`: the PR-ready bundle (`strategy.json`, `recipe.json`,
+  `score.json`, `rows.json`, `baseline.json`, `ablations.json`,
+  `run-log.jsonl`, `WRITEUP.md`, `REBUILD.md`, `manifest.json`) and
+  `clean_rebuild`, which reads the bundle alone.
+- `phase3.py`: `Phase3Provider` (a `GraphiteProvider`) and the runner
+  (`run`, `cancel`, `reconcile`, `status`, `rebuild`, and `run --dry-run`).
+
+Other changes:
+
+- `roles.py`: the Constructor's manifest gains `graphite_run_proposal`, and
+  its prompt names it. No other role has it.
+- `provider.py`: the GRAPHITE-D18 repair (below).
+- `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json`, with its
+  arithmetic in the grants README.
+
+**Tests.**
+
+- `tests/cpu/test_graphite_phase3.py`: 44 tests covering every DoD item.
+  Also covered:
+  - the pod phase's local CPU run, and its refusal of a different build;
+  - pod_control's code-manifest equality;
+  - the live RunPod backend against an in-memory RunPod;
+  - the miner adapter translation;
+  - the runner's refusals and its dry run.
+- `tests/cpu/test_graphite_phase3_mutations.py`: 14 protections, each
+  switched off in turn.
+- `tests/service/test_graphite_miner_path.py`: a Constructor session whose
+  miner tools reach the battery composition through the standard
+  `ResearchToolAdapter` (signed gateway, research adapter, campaign ledger),
+  added to `scripts/dev/ci.sh`'s MCP lane.
+
+**Engineering decisions** (delegated, recorded under
+`.agent/DELEGATED_DECISION_PROTOCOL.md`; a lead may supersede any):
+
+- **GRAPHITE-D18, provider hooks.** `GraphiteProvider.run` now calls
+  `_epoch` (one research epoch) and `_unresolved` (whether a reservation's
+  outcome is unknown). Phase 3 overrides both; phase 1 behaves exactly as
+  before. File: `graphite/provider.py`.
+- **GRAPHITE-D19, the miner path.**
+  - The real path is the standard miner MCP attachment, not a second
+    composition. It holds the campaign lock, checks the owner, and composes
+    the Challenge's own research service.
+  - Graphite's operation ids are `graphite-<run>-<tool>`, so sessions never
+    collide in one miner campaign.
+  - File: `graphite/miner_path.py`.
+- **GRAPHITE-D20, pods and the session's shape.**
+  - One proposal is one pod of 30 minutes: start-up 15 (the rented runner's
+    900 s), job 10 (the contract's `worker_deadline_seconds`) and export 5
+    (pod_control's default).
+  - A session has 12 pods (360 minutes, the plan's upper estimate of USD 3).
+  - The pods use EV4's pinned image, A40 Secure, the 0.49 rate ceiling and
+    disk price and the 0.25 cleanup reserve, all read from `pod_control`. The
+    account balance floor is the operator's private configuration
+    (`~/.runpod/campaigns.json`, `balance_floor_usd`, POD-LEDGER-PRIVATE-01),
+    read only at launch and never recorded; without it a launch refuses
+    before any provider call.
+  - Lifecycle, ownership tags, lost-create recovery and verified termination
+    come from the operator RunPod layer (GRAPHITE-D32; it was `carbon.compute`
+    until OWNER-MINER-COMPUTE-LINK-ONLY-01 removed that).
+  - Only JAX recipes are served, as in the GPU practice lane. A PyTorch recipe
+    is refused, typed, and is not a finding.
+  - Files: `graphite/pods.py`, `graphite/experiment.py`.
+- **GRAPHITE-D21, the proposal tool and the rebuild check.**
+  - The Constructor's `graphite_run_proposal` carries data only.
+  - Carbon compares nine fields of what the pod built with its own
+    computation (`experiment.REBUILT_FIELDS`). Any difference is a
+    `REBUILD_MISMATCH` finding (`OTHER_SIGNAL`), and the proposal is not
+    scored.
+  - A proposal refused by the gate is an `UNREBUILDABLE` finding.
+  - Findings reach the controller (`phase3.sync_findings`), where they block
+    any later expansion.
+  - Files: `graphite/roles.py`, `graphite/experiment.py`, `graphite/phase3.py`.
+- **GRAPHITE-D22, the baseline and the frozen rule on development material.**
+  - Each session runs a baseline once, on its first pod. By default this is
+    the battery scaffold, the unexecuted template every miner starts from.
+  - Each proposal is scored and compared with it by the frozen gates and
+    score and rule v2's paired comparison, on public PRACTICE only.
+  - The baseline is a provisional engineering default, not the B1 study
+    population, which stays science-reserved (plan §9).
+  - File: `graphite/phase3.py` (`session_brief`).
+- **GRAPHITE-D23, the stall rule's automation.**
+  - A stall is 5 consecutive scored proposals since the last `IMPROVEMENT`
+    that are not an `IMPROVEMENT`.
+  - At the limit Carbon records one `BUILD_STALLED_AGAINST_BASELINE`
+    observation per run.
+  - At the session's end the provider consumes it and moves the Constructor
+    up one rung for its next session.
+  - Compile failures are not escalated automatically.
+  - Files: `graphite/experiment.py`, `graphite/phase3.py`.
+- **GRAPHITE-D24, delivery.**
+  - Carbon's rule picks the proposal to bundle: the eligible `IMPROVEMENT`
+    with the lowest score. The agent's own selection is recorded beside it.
+  - Ablations remove each change from the baseline one at a time, while pods
+    remain.
+  - The write-up is generated from the records; no Writer model runs in
+    phase 3.
+  - The clean rebuild checks digests. Numerical reproduction is
+    `NOT_JUDGED` with tolerance `HUMAN_INPUT`.
+  - File: `graphite/delivery.py`.
+- **GRAPHITE-D25, keys, cancellation and crashes.**
+  - **Keys.** The RunPod key is an owner-only file (pod_control's
+    `~/.runpod/api_key`), or `RUNPOD_API_KEY` copied into a 0600 file in a
+    fresh 0700 directory and removed on exit.
+  - **Cancellation.** `phase3 cancel`, SIGINT or SIGTERM sets the run's
+    cancel flag. The worker terminates its pod, verifies it is gone and
+    finishes cancelled.
+  - **Crashes.** A resume first terminates every pod the run may have
+    created and settles it. It never launches one again. An interrupted
+    proposal stays open, and the run ends `reconciliation_required`.
+  - **Settlement.** A pod's spend settles from RunPod's billing record. An
+    unreported charge keeps the full reservation.
+  - File: `graphite/phase3.py`.
+- **GRAPHITE-D26, the Constructor's 150-call session** (OWNER-GRAPHITE-03
+  amendment, 2026-10-02: "up the plan to 150").
+  - A Constructor session (one research epoch) may make up to 150 model
+    calls, `roles.CONSTRUCTOR_SESSION_TURNS`. It was capped at the shared
+    48, while the plan expects about 150 turns.
+  - Mechanism: `research_loop.run_epoch` takes an optional
+    `max_provider_calls`, accepted only with a role's `instructions` and
+    `tools` (as the GRAPHITE-D18 repair is) and recorded in the epoch plan.
+    Omitted, the shared `research_agent_policy.MAX_PROVIDER_CALLS` (48)
+    stands and the plan is byte-identical, so frozen studies such as the
+    battery agent-campaign pre-registrations are unchanged.
+  - `Phase3Provider` passes 150 to `run_epoch` and uses it as the run
+    ledger's `provider_attempts` cap. `GraphiteProvider` itself is
+    unchanged: phase-1 and phase-2 sessions keep their recorded shape.
+  - The grant's `max_runtime_s` becomes 150 × 120 s + 12 × 1,800 s =
+    39,600. The ceiling, `worst_case_run_cost` and pod budget are unchanged.
+    The 1.95 token share still binds first on an expensive rung (40 calls on
+    the fourth rung).
+  - Files: `graphite/roles.py`, `graphite/phase3.py`,
+    `development_session/research_loop.py`, the phase-3 grant and its README.
+- **GRAPHITE-D32, phase 3's pods after the link-only decision**
+  (OWNER-GRAPHITE-04, 2026-10-03).
+  - OWNER-MINER-COMPUTE-LINK-ONLY-01 (#511) removed the RunPod provisioning
+    layer from `carbon.compute`, which phase 3's `RunPodPods` was built on.
+    Its LINKONLY-D1 keeps operator scripts on Carbon's own RunPod account.
+    Asked how phase 3 should get GPUs, the owner chose "Carbon's own RunPod".
+  - The layer phase 3 uses (adapter, provisioning service, store, accounting
+    bound, reconciler and its CLI) is restored unchanged in behaviour under
+    `scripts/dev/exam_design/runpod/operator_compute/`, beside `pod_control`.
+    It is operator-side only: nothing under `carbon/` names a provider API
+    (the #511 scan test still passes), and only phase 3's runner imports it,
+    as it already imports `pod_control`.
+  - Pods run on Carbon's account with Carbon's key under the phase-3 grant,
+    never a miner's key. Nothing on the miner path changes.
+  - The independent reconciler is now
+    `python -m scripts.dev.exam_design.runpod.operator_compute reconcile
+    --root "$ROOT/pods/compute" --runpod-key-file FILE`.
+  - Tests: the retired layer's tests, restored against the new path
+    (`test_graphite_operator_runpod.py`), and phase 3's live-backend test.
+  - Files: `scripts/dev/exam_design/runpod/operator_compute/`,
+    `graphite/pods.py`, `graphite/phase3.py`.
+
+**Running phase 3 live** (the later session; the grant expires 2026-12-31):
+
+```
+export ENGY_API_KEY=... RUNPOD_API_KEY=...       # in the owner's environment
+ROOT=/path/outside/the/repository                 # a private directory
+REF=<the checked-out commit>                       # pushed, and clean under carbon/ and scripts/dev/exam_design/
+python -m carbon.agent_campaign.graphite.phase3 run --root "$ROOT" \
+    --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
+    --credential-env ENGY_API_KEY --runpod-key-env RUNPOD_API_KEY \
+    --miner-profile PROFILE.json --miner-campaign CAMPAIGN_ID \
+    --code-ref "$REF" --session 1
+python -m carbon.agent_campaign.graphite.phase3 status --root "$ROOT"
+python -m carbon.agent_campaign.graphite.phase3 cancel --root "$ROOT" --session 1
+python -m carbon.agent_campaign.graphite.phase3 reconcile --root "$ROOT" \
+    --grant docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json \
+    --runpod-key-env RUNPOD_API_KEY --code-ref "$REF"
+python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle "$ROOT/graphite/runs/RUN/delivery"
+python -m carbon.agent_campaign.graphite.phase3 run --root "$ROOT" --dry-run   # no spend
+```
+
+What each argument is:
+
+- `PROFILE.json` and `CAMPAIGN_ID` name a battery DEVELOPMENT miner campaign
+  that a miner has launched with the Launchpad, on a registered testnet
+  hotkey. Graphite attaches to it as any MCP client does.
+- Sessions 2 and 3 use `--session 2` and `--session 3`.
+- Running the same command again resumes a session.
+- `run` exits 4 on any end other than `succeeded`.
+
+**Limitations.**
+
+- No live session has run. Token, pod and time figures are planning
+  estimates until the first one.
+- A Constructor session makes at most 150 model calls (GRAPHITE-D26), the
+  plan's "about 150 turns". On a dear rung the run's 1.95 token share stops
+  it sooner (about 40 calls on the fourth rung).
+- RunPod's billing read (`RunPodAdapter.provider_charge`) has not been
+  exercised live. Until it is, a pod may stay at its full reservation, which
+  leaves fewer proposals per session but never more spend.
+- **The pod phase is unexercised on RunPod.** It is exercised locally on the
+  CPU. Its first run on EV4's study image, with JAX on CUDA, is the live
+  check.
+- `miner_path.attach` needs that launched campaign and its accepted host
+  images. The service test drives the same adapter class through fixture
+  signing, not `attach` itself.
+- The scores are development feedback on adaptively seen public PRACTICE
+  cases, chosen as the best of a session's proposals. They carry selection
+  bias and are not held-out evidence.
+- The worker runs in the runner's process. A cancellation from another
+  process is a flag the worker reads at its next checkpoint or pod poll.
+- None of this is scientific, security or production qualification.
+
+**Open owner decisions** (none blocks the build):
+
+- the live sessions themselves, which need the keys and a launched battery
+  miner campaign;
+- science-reserved, unchanged (plan §9): the reconstruction tolerances,
+  which would let a clean rebuild judge a retrained model's numbers, and the
+  Level-0 study population and held-out confirmation for B1.
