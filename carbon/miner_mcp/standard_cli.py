@@ -583,7 +583,14 @@ async def serve_operations(configuration: Path):
             profile = None
         return configured_host_facts(profile)
 
-    server = create_open_tier_server(host_facts=host_facts)
+    from carbon.miner_mcp.mcp_skills import make_skills_extension
+
+    # The research skill is fixed guidance that grants nothing. An MCP
+    # extension cannot be added once a client has initialized, so it is
+    # registered here, where attach can reach it (RSURF-D6).
+    server = create_open_tier_server(
+        host_facts=host_facts, extensions=[make_skills_extension(guard=None)]
+    )
     attachment = Attachment(server, configuration)
     tools = server._tool_manager._tools
     for tool in [*make_operation_tools(host), *make_attachment_tools(attachment)]:

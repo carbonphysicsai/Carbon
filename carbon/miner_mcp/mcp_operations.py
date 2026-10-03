@@ -117,6 +117,7 @@ class Attachment:
         self.campaign = None
         self.tools = ()
         self.resources = ()
+        self.prompts = ()
 
     async def attach(self, campaign):
         from carbon.miner_mcp.open_tier import CampaignAlreadyAttached, attach_campaign
@@ -126,6 +127,7 @@ class Attachment:
             raise CampaignAlreadyAttached("this session already owns a campaign")
         stack = contextlib.AsyncExitStack()
         before = set(self.server._resource_manager._resources)
+        prompts = set(self.server._prompt_manager._prompts)
         try:
             adapter, _ = await stack.enter_async_context(
                 attached(self.configuration, campaign)
@@ -135,8 +137,13 @@ class Attachment:
             await stack.aclose()
             raise
         self.resources = tuple(set(self.server._resource_manager._resources) - before)
+        self.prompts = tuple(set(self.server._prompt_manager._prompts) - prompts)
         self.stack, self.campaign = stack, campaign
-        return {"attached": campaign, "research_tools": list(self.tools)}
+        return {
+            "attached": campaign,
+            "research_tools": list(self.tools),
+            "research_prompts": sorted(self.prompts),
+        }
 
     async def detach(self):
         if self.stack is None:
@@ -147,10 +154,13 @@ class Attachment:
         resources = self.server._resource_manager._resources
         for uri in self.resources:
             resources.pop(uri, None)
+        prompts = self.server._prompt_manager._prompts
+        for name in self.prompts:
+            prompts.pop(name, None)
         self.server._carbon_attached = False
         stack, campaign = self.stack, self.campaign
         self.stack = self.campaign = None
-        self.tools = self.resources = ()
+        self.tools = self.resources = self.prompts = ()
         await stack.aclose()
         return {"detached": campaign}
 

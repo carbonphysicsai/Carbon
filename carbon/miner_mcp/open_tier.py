@@ -188,6 +188,12 @@ def attach_campaign(
     resources = server._resource_manager._resources
     for uri, resource in reference._resource_manager._resources.items():
         resources.setdefault(uri, resource)
+    # And its prompts: the research workflow an agent is told to follow
+    # reaches it on the attach path too (RSURF-D6), not only on a server
+    # started for one campaign.
+    prompts = server._prompt_manager._prompts
+    for name, prompt in reference._prompt_manager._prompts.items():
+        prompts.setdefault(name, prompt)
 
     server._carbon_attached = True
     return tuple(added)
