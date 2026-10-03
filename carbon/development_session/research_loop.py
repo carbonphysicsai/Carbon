@@ -11,6 +11,15 @@ epoch again on every resume. A malformed call gets a typed
 REJECTED_BEFORE_DISPATCH result naming the field and the fix, and the epoch
 goes on; a call with no identity cannot be answered, so the epoch stops with a
 typed STOPPED outcome.
+
+A reply the provider ended early - cut off at its output limit, paused, or
+refused - is a turn like any other (LP-PROD-A): it spent one model call and is
+metered exactly. The tool calls it finished run; one it did not finish is
+answered `call_truncated` without running; and a journalled note tells the
+model how its reply ended and to continue, more concisely when it hit the
+limit. A provider failure is the provider layer's (`research_agent`): it
+propagates, the epoch keeps no outcome, and a resume carries on from the same
+turn.
 """
 
 from __future__ import annotations
@@ -27,6 +36,7 @@ from .profile import CHALLENGE, canonical, digest
 from .research_agent import (
     CONTEXT_RESERVE_TOKENS,
     caching_status,
+    incomplete_reply,
     input_token_bound,
     provider_turns,
     request_model,
@@ -155,16 +165,20 @@ NUMERICAL_ACTIONS = ("run_python", "run_julia")
 #:   Challenge, or does not compile;
 #: - `selection_not_practiced`: under `PARALLEL_CALLS_V2`, Carbon's own agent
 #:   selected a recipe with no completed practice; the reply lists the
-#:   recipes that have one.
+#:   recipes that have one;
+#: - `call_truncated`: the provider ended the reply before this call was
+#:   complete (`cut_calls`), so it did not run.
 ARGUMENTS_INVALID = "arguments_invalid"
 SELECTION_INVALID = "selection_invalid"
 CANDIDATE_INVALID = "candidate_invalid"
 SELECTION_NOT_PRACTICED = "selection_not_practiced"
+CALL_TRUNCATED = "call_truncated"
 REFUSAL_CODES = (
     ARGUMENTS_INVALID,
     SELECTION_INVALID,
     CANDIDATE_INVALID,
     SELECTION_NOT_PRACTICED,
+    CALL_TRUNCATED,
 )
 #: The typed outcome of a turn whose tool call has no call_id or name: it
 #: cannot be answered, so the epoch stops, retained.
@@ -490,6 +504,82 @@ def turn_status(
     return message
 
 
+def cut_calls(output, calls):
+    """Positions, in `calls`, of the tool calls a reply the provider ended
+    early did not finish: a call the provider marks unfinished, and the
+    reply's last item when it is a call not marked completed - an early end
+    cuts what came last. Every call before it was finished before the end."""
+    last = output[-1] if output else None
+    return [
+        position
+        for position, item in enumerate(calls)
+        if item.get("status") in ("incomplete", "in_progress")
+        or (item is last and item.get("status") != "completed")
+    ]
+
+
+def _ended(incomplete):
+    if incomplete["reason"] == "max_output_tokens":
+        return (
+            "was cut off at its limit of "
+            f"{incomplete['max_output_tokens']} output tokens"
+        )
+    return f"ended before it finished (provider reason: {incomplete['reason']})"
+
+
+def truncated_call(incomplete):
+    """The answer to a tool call the reply did not finish: it did not run."""
+    return rejected_call(
+        CALL_TRUNCATED,
+        "arguments",
+        f"your reply {_ended(incomplete)} before this call was complete, so it "
+        "did not run",
+        "send this call again in your next reply, and keep that reply shorter",
+    )
+
+
+def truncation_note(root, turn, response, incomplete, *, cut, ran):
+    """The user note after a reply the provider ended early (LP-PROD-A): how
+    it ended, which unfinished calls did not run, and to continue - more
+    concisely after the output limit. Journalled once, before the next
+    request, so a replay sends the same request; a later wording never
+    rewrites it."""
+    path = root / (turn + "-truncated.json")
+    if path.exists():
+        return json.loads(path.read_bytes())["message"]
+    text = f"Carbon: your last reply {_ended(incomplete)}."
+    if cut:
+        several = len(cut) > 1
+        text += (
+            f" Its unfinished tool call{'s' if several else ''} did not run "
+            f"({CALL_TRUNCATED}); send {'them' if several else 'it'} again."
+        )
+    if ran:
+        text += " The tool calls it finished ran; their results are above."
+    if incomplete["reason"] == "max_output_tokens":
+        text += (
+            " Continue from where you stopped, more concisely: keep your "
+            "reasoning short and send fewer or smaller tool calls in one reply."
+        )
+    else:
+        text += " Continue from where you stopped."
+    message = {"role": "user", "content": text}
+    write_once(
+        path,
+        canonical(
+            {
+                "schema": "carbon.autoresearch.turn-truncated.v1",
+                "turn": turn,
+                "response_digest": digest(canonical(response)),
+                **incomplete,
+                "cut_calls": cut,
+                "message": message,
+            }
+        ),
+    )
+    return message
+
+
 def parallel_call_counts(root):
     """How the calls of several-call turns went in one epoch folder, read from
     the v2 journals: how many ran (their result is journalled) and how many a
@@ -709,10 +799,14 @@ async def run_epoch(
             return result
         return await sdk.call(name, arguments, identity)
 
-    async def run_call(call, identity):
+    async def run_call(call, identity, cut=None):
         """One tool call, exactly once: its intent journalled before dispatch
-        and its result after; a replay reads the result."""
+        and its result after; a replay reads the result. `cut` is how the
+        reply ended when it ended before this call was complete: the call is
+        answered `call_truncated` and nothing runs."""
         arguments, rejection = tool_arguments(call, schemas)
+        if cut is not None:
+            rejection = truncated_call(cut)
         intent = {
             "name": call["name"],
             "arguments": arguments,
@@ -825,6 +919,7 @@ async def run_epoch(
                 ),
             )
         phase = json.loads(phase_path.read_bytes())["phase"]
+        # A reply the provider ended early comes back metered (LP-PROD-A).
         response = await asyncio.to_thread(
             request_model,
             ledger,
@@ -836,6 +931,7 @@ async def run_epoch(
             transport=transport,
             provider=provider,
             anchor=anchor,
+            accept_incomplete=True,
         )
         # The turn's cost, tokens and serving identity, journalled beside the
         # epoch so a view shows spend per turn as it happens.
@@ -862,6 +958,8 @@ async def run_epoch(
             for item in output
             if type(item) is dict and item.get("type") == "function_call"
         ]
+        incomplete = incomplete_reply(response, provider.settings.max_output_tokens)
+        cut = cut_calls(output, calls) if incomplete is not None else []
         if len(calls) > 1 and parallel_calls is None:
             raise ValueError("parallel tool output prohibited; retained and stopped")
         if not every_call:
@@ -926,6 +1024,13 @@ async def run_epoch(
                     "output": canonical(PARALLEL_REFUSAL).decode(),
                 }
             )
+        if not calls and incomplete is not None:
+            # Ended early before any call: not a choice to stop, and no
+            # reminder is spent. The note asks the model to continue.
+            history.append(
+                truncation_note(root, call_id, response, incomplete, cut=[], ran=False)
+            )
+            continue
         if not calls:
             if autonomous and reminders < policy["free_text_reminders"]:
                 reminders += 1
@@ -975,7 +1080,9 @@ async def run_epoch(
             )
         for position, call in enumerate(running):
             identity = tool_identity(epoch, index, position)
-            result = await run_call(call, identity)
+            result = await run_call(
+                call, identity, cut=incomplete if position in cut else None
+            )
             if result.get("requires_reconciliation"):
                 outcome = {
                     "status": "RECONCILIATION_REQUIRED",
@@ -1020,6 +1127,17 @@ async def run_epoch(
             )
         if outcome is not None:
             break
+        if incomplete is not None:
+            history.append(
+                truncation_note(
+                    root,
+                    call_id,
+                    response,
+                    incomplete,
+                    cut=[calls[p]["call_id"] for p in cut if p < len(running)],
+                    ran=any(p not in cut for p in range(len(running))),
+                )
+            )
         if every_call:
             # Any tool call renews the one free-text reminder (LP-PROD-A).
             reminders = 0
