@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-10-03. Rows 22-26 are reconciled with EV4, the scoring-ratio studies and the TRACK-B-STUCK-01 outcome.
+**Last updated:** 2026-10-03. Rows 22-26 are reconciled with EV4, the scoring-ratio studies and the TRACK-B-STUCK-01 outcome; row 26 records the commissioned sign-error measurement (OWNER-EXEC-APPROVALS-01).
 
 ## Authority in force
 
@@ -47,7 +47,7 @@ All of these are in `.agent/DECISIONS.md`.
 | 23 | Near-limit optimism admissibility gate (`carbon/battery/value/admissibility.py`), built inactive (TRACK-B-STUCK-01 outcome, 2026-10-03) | SciML/technical lead (cutoff), then owner (testnet use) | the cutoff `THRESHOLD_BANDS` (HUMAN_INPUT); evidence in `evidence/admissibility-optimism-2026-10-03/` | built, inactive; the cutoff is open; value-study scope only |
 | 24 | EV5: the battery Level 0 combined admission run (OWNER-ADMISSION-COMBINED-01); confirms the deciding rule, the SR-2 candidate and the gate once on fresh conditions | gate cutoff (23), then lead session | 23; spend approved 2026-10-03 (OWNER-EV5-CAP-01: option A, cap USD 6, inside the USD 25 L0 cap) | draft pre-registration (`BATTERY_ENGINEERING_VALUE_EV5.md`); nothing dispatched |
 | 25 | Track A construction integrity at Level 0 (CI-BATTERY-L0-01) | Claude session | the scoring precondition (24) | harness families and worker-boundary attacks built; INCONCLUSIVE until the value precondition is resolved (OWNER-TRACK-A-L0-02 item 6) |
-| 26 | A measurement for the localized sign-error failure, which no tested rule or the mean-optimism gate catches | SciML/technical lead | 24 | named gap (`evidence/real-divergence-2026-10-03/`) |
+| 26 | A measurement for the localized sign-error failure, which no tested rule or the mean-optimism gate catches | SciML/technical lead (amend or accept); cutoff HUMAN_INPUT | 24 | commissioned 2026-10-03 (OWNER-EXEC-APPROVALS-01): near-limit false acceptance (`value/false_acceptance.py`) built, descriptive; sign-error control 0.95, other controls 0 (`evidence/near-false-acceptance-2026-10-03/`); proposed as EV5's H3 measurement; real members unmeasured until EV5 |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
 ## Budget (OD-5)
