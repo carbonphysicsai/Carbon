@@ -220,12 +220,15 @@ test("the plan is the specification's own words: seven questions, five stages, f
 });
 
 test("the relayed spend carries no account balance", () => {
-  // Specimen: the source line does carry one, so the check below can fail.
+  // The source line carried the account balance until 2026-10-02
+  // (POD-LEDGER-PRIVATE-01); neither it nor the relayed record may carry one.
+  const figure = /balance \d/;
+  // Specimen: the pattern catches the form the source line used, so the
+  // checks below can fail.
+  assert.match("USD 1.00 billed (balance 9.00 → 8.00)", figure);
   const result = fs.readFileSync(path.join(REPO, "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md"), "utf8");
   const line = result.split("\n").find((l) => l.includes("USD 4.80 billed"));
-  const figure = /balance \d/;
-  assert.match(line, figure);
-  const text = JSON.stringify(RECORD);
-  assert.doesNotMatch(text, figure);
-  for (const amount of line.match(/\d+\.\d+ → \d+\.\d+/)[0].split(" → ")) assert.ok(!text.includes(amount), amount);
+  assert.ok(line, "the relayed spend line is still in the source");
+  assert.doesNotMatch(line, figure);
+  assert.doesNotMatch(JSON.stringify(RECORD), figure);
 });
