@@ -97,6 +97,25 @@ Both questions were answered on 2026-10-03
   - A run's stdout, files and images come through `run_output`.
   - The demo shows the toolbox working and runs nothing.
 
+## Owner answers, 2026-10-03 (OWNER-MINER-RESEARCH-SURFACE-04)
+
+- **GPU shown (RSURF-D19).** The Tools tab and each practice run say
+  whether they run on CPU, on this machine's GPU or on the remote GPU. They
+  also say that the validator stays on its published CPU environment.
+- **GPU code cell (RSURF-D20).** `run_python` takes `device=cpu|gpu` when
+  the campaign has a GPU lane: local GPU in the same isolated miner
+  container with the device attached, or remote GPU over the miner's own
+  route. `run_julia` refuses `gpu`, because its environments have no CUDA.
+- **Kept output (RSURF-D21).** The last 64 KiB of stdout and of stderr,
+  for successful and failed runs.
+
+**Security review required (AGENTS.md section 13).** RSURF-D20 changes the
+sandboxed carrier: it attaches a GPU device to the miner lane's container
+and runs miner code on a remote route. Its tests are engineering evidence,
+not a security audit. A dedicated security review is required before any
+use beyond DEVELOPMENT. Maturity: IMPLEMENTED and TESTED only; not
+SECURITY_QUALIFIED.
+
 ## Boundaries
 
 - DEVELOPMENT and testnet 567. Practice evidence is not qualification. No
