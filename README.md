@@ -104,3 +104,7 @@ cd Carbon
 Follow [Development setup](docs/DEVELOPMENT.md) and the [environment guide](docs/development/ENVIRONMENT.md). Optional science and network dependencies have separate setup requirements. Contributors should read [AGENTS.md](AGENTS.md) before changing code or specifications.
 
 For commercial enquiries and project updates, visit [carbonphysics.ai](https://carbonphysics.ai). Keep confidential customer data out of public issues.
+
+## License
+
+Carbon's subnet software, including everything a miner or validator needs to run, is licensed under the [MIT License](LICENSE). `Business/`, `website/` and `presentations/` are proprietary to Carbon Physics, Inc. and are not covered by it. The license does not extend to models or methods submitted to the subnet, or to its outputs. See [LICENSE](LICENSE) for the details.
