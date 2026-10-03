@@ -17206,6 +17206,41 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 - Scientific, security and launch qualification stay human-reserved. A
   method card is the paper's claim as extracted, never Carbon's.
 
+**Amendment (2026-10-02): 40 runs, and resume after a lost call.**
+- **Why.** The live triage kept being cut off: the cloud container restarted
+  and killed the process mid-call. Each time one call was left with an
+  unknown outcome (ledger state `RESERVED`), and the run stopped
+  `RECONCILIATION_REQUIRED`. All three permitted runs were used:
+  - `smoke-1`: 5 calls;
+  - `full-1`: 59 calls, 1 unresolved;
+  - `full-2`: 41 calls, 1 unresolved.
+
+  Together they made 101 cards and 1 rejection. Booked spend is USD 0.086.
+  Estimated actual spend is about USD 0.007: Engy does not report
+  `x_engy.charged_micro`, so each call keeps its full reservation.
+- **Owner, verbatim, choosing among four options:** "Raise runs, add resume
+  fix (Recommended)". The option read: raise the phase-2 grant to 40 runs,
+  keeping the USD 9 ceiling; run in chunks of about 300 calls, so each
+  restart costs at most one call; and fix the code so that a crashed run
+  writes off its one unresolved call and continues instead of needing a new
+  run.
+- **Decision.**
+  - `GRAPHITE-GRANT-PHASE2.json`: `permitted_runs` is 40. Nothing else in
+    the grant changes. The ceiling stays USD 9.00 and the worst case per run
+    stays USD 2.49.
+  - The ceiling, not the run count, still bounds money: a run opens only
+    while settled and reserved spend, plus the next run's worst case, plus
+    cleanup, stays within USD 9.00. Each run's ledger is still capped at
+    USD 2.49.
+  - The resume fix is GRAPHITE-D17 in the ticket. At every start, a call
+    whose outcome is unknown is written off with a typed
+    `provider_outcome_unknown` rejection, and the run continues. The call is
+    never resent, and its full reservation stays booked and counted.
+- **Unchanged.** A call that ends with an unknown outcome still stops its
+  run `RECONCILIATION_REQUIRED`; the write-off happens only on the next
+  start, so the operator always sees the stop. No reservation is settled,
+  refunded or deleted.
+
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation

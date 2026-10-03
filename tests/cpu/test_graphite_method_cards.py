@@ -162,6 +162,8 @@ def test_the_phase2_grant_document_is_the_owners_grant():
     assert document["monetary_ceiling"] == "9.00"
     assert document["account"] == "Carbon-Account"
     assert document["expires_at"] == "2026-12-31T23:59:59Z"
+    assert document["permitted_runs"] == 40  # OWNER-GRAPHITE-02 amendment
+    assert document["worst_case_run_cost"] == "2.49"
     assert set(document) == set(grants.FIELDS)
     grants.SpendingGrant.from_document(document)
 
@@ -288,18 +290,148 @@ def test_a_resumed_run_replays_a_paid_call_without_paying_again(tmp_path, monkey
     assert summary["provider_nanodollars"] == 3 * 100 * 1000
 
 
-def test_a_call_in_flight_at_a_crash_is_reconciled_never_resent(tmp_path):
-    raw = seed(tmp_path, entry(1), entry(2))
+RESERVATION = 16384 * 45 + 1024 * 90
+
+
+def _crashed(tmp_path, count=4):
+    """Run 1 makes one card, then dies with paper 2's call in flight."""
+    raw = seed(tmp_path, *(entry(n) for n in range(1, count + 1)))
     model = scripted([reply(), crash()])
     job = backfill(tmp_path, raw, model)
     with pytest.raises(SimulatedCrash):
         job.run("run-1")
-    resumed = backfill(tmp_path, raw, model)
-    summary = resumed.run("run-1")
+    return raw, model, job
+
+
+def _stuck(job):
+    return [
+        op
+        for op in job._ledger("run-1").status(owner=triage.OWNER)["operations"]
+        if op["state"] == "RESERVED"
+    ]
+
+
+def test_a_crash_mid_call_leaves_the_call_reserved(tmp_path):
+    raw, model, job = _crashed(tmp_path)
+    stuck = _stuck(job)
+    second = raw.addresses()[1]
+    assert [op["id"] for op in stuck] == ["card-" + second[7:47]]
+    assert stuck[0]["reservation"]["provider_nanodollars"] == RESERVATION
+    assert job.committed_nano() == 100_000 + RESERVATION
+    assert len(model.requests) == 2
+
+
+def test_a_resume_writes_off_the_unknown_call_and_completes(tmp_path):
+    raw, model, job = _crashed(tmp_path)
+    second = raw.addresses()[1]
+    model.script.extend(replies(2))  # papers 3 and 4; never paper 2
+    summary = backfill(tmp_path, raw, model).run("run-1")
+    assert summary["status"] == "COMPLETED"
+    assert summary["written_off_unknown"] == 1
+    assert summary["cards_made"] == 2 and summary["pending"] == 0
+    assert len(model.requests) == 4  # paper 2 was not sent again
+    assert model.requests[1] not in model.requests[2:]
+    (rejection,) = job.cards.rejections()
+    assert rejection == {
+        "schema": mc.REJECTION_SCHEMA,
+        "record_digest": second,
+        "code": "provider_outcome_unknown",
+        "run_id": "run-1",
+        "operation_id": "card-" + second[7:47],
+        "reservation": _stuck(job)[0]["reservation"],
+    }
+    # The reservation stays booked in run 1's ledger and is still counted.
+    assert _stuck(job)[0]["id"] == "card-" + second[7:47]
+    assert summary["provider_nanodollars"] == 3 * 100_000 + RESERVATION
+    assert job.committed_nano() == 3 * 100_000 + RESERVATION
+
+
+def test_a_written_off_call_is_never_resent_in_any_run(tmp_path):
+    raw, model, _ = _crashed(tmp_path, count=2)
+    again = backfill(tmp_path, raw, model)
+    first = again.run("run-1")
+    assert first["status"] == "COMPLETED" and first["written_off_unknown"] == 1
+    assert len(model.requests) == 2
+    assert again.pending() == []
+    # A new run finds nothing to send and still counts run 1's reservation.
+    second = again.run("run-2")
+    assert second["status"] == "COMPLETED"
+    assert second["written_off_unknown"] == 0 and second["cards_made"] == 0
+    assert len(model.requests) == 2
+    assert again.committed_nano() == 100_000 + RESERVATION
+
+
+def test_a_new_run_never_resends_an_unknown_call(tmp_path):
+    raw, model, _ = _crashed(tmp_path, count=2)
+    model.script.extend(replies(1))  # would answer a resend, if one were made
+    summary = backfill(tmp_path, raw, model).run("run-2")
+    assert len(model.requests) == 2, "the unknown call was resent"
+    assert summary["written_off_unknown"] == 1
+    assert summary["status"] == "COMPLETED" and summary["provider_attempts"] == 0
+
+
+def test_the_write_off_is_idempotent(tmp_path):
+    raw, model, _ = _crashed(tmp_path, count=2)
+    again = backfill(tmp_path, raw, model)
+    assert again.write_off_unknown() == 1
+    before = [p.read_bytes() for p in sorted(again.cards.root.rglob("*.json"))]
+    assert again.write_off_unknown() == 0
+    assert again.run("run-1")["written_off_unknown"] == 0
+    assert again.run("run-1")["written_off_unknown"] == 0
+    after = [p.read_bytes() for p in sorted(again.cards.root.rglob("*.json"))]
+    assert before == after and len(again.cards.rejections()) == 1
+    assert len(_stuck(again)) == 1  # the ledger is never settled or deleted
+    assert again.committed_nano() == 100_000 + RESERVATION
+
+
+def test_an_unmapped_unknown_call_refuses_the_run_unchanged(tmp_path):
+    _, model, job = _crashed(tmp_path, count=2)
+    other = seed(tmp_path / "elsewhere", entry(9))
+    stranger = triage.Backfill(
+        root=job.root, raw=other, grant=grant(), model=model, clock=lambda: 1000.0
+    )
+    with pytest.raises(triage.BackfillRefused, match="unresolved_operation_unmapped"):
+        stranger.run("run-1")
+    assert job.cards.rejections() == []
+    assert len(model.requests) == 2
+
+
+@pytest.mark.parametrize("step", [crash(), fail(503), fail(500)])
+def test_an_unknown_outcome_during_a_live_call_still_stops_the_run(tmp_path, step):
+    raw = seed(tmp_path, entry(1), entry(2), entry(3))
+    model = scripted([reply(), step])
+    job = backfill(tmp_path, raw, model)
+    if step.get("crash"):
+        with pytest.raises(SimulatedCrash):
+            job.run("run-1")
+        # The operator sees the stop: a fresh start writes the call off.
+        model.script.extend(replies(1))
+        summary = backfill(tmp_path, raw, model).run("run-1")
+        assert summary["written_off_unknown"] == 1
+        assert summary["status"] == "COMPLETED" and len(model.requests) == 3
+        return
+    summary = job.run("run-1")
     assert summary["status"] == "RECONCILIATION_REQUIRED"
-    assert len(model.requests) == 2  # nothing resent
-    reservation = 16384 * 45 + 1024 * 90
-    assert summary["provider_nanodollars"] == 100_000 + reservation
+    assert summary["written_off_unknown"] == 0
+    assert summary["cards_made"] == 1 and len(model.requests) == 2
+    assert job.cards.rejections() == []  # written off only at the next start
+    assert summary["provider_nanodollars"] == 100_000 + RESERVATION
+    model.script.extend(replies(1))
+    resumed = job.run("run-1")
+    assert resumed["status"] == "COMPLETED"
+    assert resumed["written_off_unknown"] == 1
+    assert len(model.requests) == 3  # paper 2 never resent
+
+
+def test_a_resumed_run_with_a_written_off_call_still_types_a_later_rejection(
+    tmp_path,
+):
+    raw, model, _ = _crashed(tmp_path, count=3)
+    model.script.append(fail(401, "auth"))
+    summary = backfill(tmp_path, raw, model).run("run-1")
+    assert summary["status"] == "PROVIDER_REJECTED"
+    assert summary["outcome"] == "auth_credential"
+    assert summary["written_off_unknown"] == 1
 
 
 def test_a_provider_rejection_stops_the_run_typed(tmp_path):
