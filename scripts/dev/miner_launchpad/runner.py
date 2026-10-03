@@ -1332,6 +1332,18 @@ class RunnerAdapter:
     def observe_admitted(self, admitted, request):
         return self.get(admitted.campaign["id"])
 
+    def campaign_view_admitted(self, admitted, request):
+        # The research surface's one document (RSURF-D1).
+        from scripts.dev.miner_launchpad.campaign_view import ledger_view
+
+        return ledger_view(self, admitted, request)
+
+    def note_admitted(self, admitted, request):
+        # A journal entry through the existing journal path (RSURF-D5).
+        from scripts.dev.miner_launchpad.campaign_view import post_note
+
+        return post_note(self, admitted, request)
+
     def halt_admitted(self, admitted, request):
         if request["action"] not in {"stop", "pause", "reconcile"}:
             raise Rejected("invalid_research_control")

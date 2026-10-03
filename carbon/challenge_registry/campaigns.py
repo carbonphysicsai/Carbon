@@ -79,6 +79,10 @@ class ChallengeCampaign:
     #: and the environment its GPU practice program needs there. None: the
     #: Challenge offers no remote practice (OWNER-MINER-COMPUTE-LINK-ONLY-01).
     remote_worker: Callable | None = None
+    #: () -> the Challenge's research-surface declaration
+    #: (`research_view.ResearchView`): its outputs by kind, practice
+    #: components and per-case disclosure. None: aggregates only.
+    research_view: Callable | None = None
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -137,6 +141,7 @@ def _battery_intake(url):
 
 def _battery():
     from carbon.battery import campaign as battery
+    from carbon.battery import research_view as battery_view
     from carbon.development_session import battery_gpu
 
     return ChallengeCampaign(
@@ -155,6 +160,7 @@ def _battery():
         gpu_scope=battery_gpu.gpu_scope,
         declared_gpu=battery_gpu.declared_scope,
         remote_worker=battery_gpu.remote_worker,
+        research_view=battery_view.research_view,
     )
 
 

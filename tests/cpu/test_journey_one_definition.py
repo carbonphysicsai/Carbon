@@ -315,10 +315,12 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
     left out of the journey fails here until someone decides where it goes."""
     from scripts.dev.miner_launchpad.operations import OPERATIONS
 
-    covered = {step.operation for step in JOURNEY} | {"observe"}
+    # The research view reads the campaign as observe does (RSURF-D1).
+    covered = {step.operation for step in JOURNEY} | {"observe", "campaign_view"}
     # Halt and resume are the lifecycle controls, pinned by the door-parity
-    # test through both doors; the journey has no pause in it.
-    assert set(OPERATIONS) - covered == {"halt", "resume"}
+    # test through both doors; the journey has no pause in it. A journal note
+    # starts no work and is pinned by tests/cpu/test_research_surface.py.
+    assert set(OPERATIONS) - covered == {"halt", "resume", "note"}
 
 
 if __name__ == "__main__":
