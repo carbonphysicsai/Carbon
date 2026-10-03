@@ -96,17 +96,21 @@ def render():
         "",
         "## Construction ladder",
         "",
-        "Every Challenge starts at Level 0 and climbs one level at a time",
-        "(`Design_Specs/Challenge_Admission.md` §3, OWNER-CHALLENGE-ROADMAP-03). A",
-        "level is reached only with its expansion record and Carbon's reconstruction",
-        "for it. A level not reached is NOT_RUN, never a pass.",
+        "Every Challenge starts at Level 0 and climbs one level at a time in internal",
+        "testing (`Design_Specs/Challenge_Admission.md` §3, OWNER-CHALLENGE-ROADMAP-03),",
+        "on development-only contracts that miners never see. A level is reached only",
+        "with its expansion record and Carbon's reconstruction for it, and a level not",
+        "reached is NOT_RUN, never a pass. The owners then choose the best level, and",
+        "the Challenge is frozen, locked and opened to miners at that level only.",
         "",
         "| Level | Adds |",
         "| --- | --- |",
     ]
     out += [f"| {n} | {text} |" for n, text in ladder.LEVELS.items()]
-    out += ["", "**Climb procedure**, for every level above 0:", ""]
+    out += ["", "**Climb procedure**, internal, for every level above 0:", ""]
     out += [f"{i}. {step}" for i, step in enumerate(ladder.CLIMB_PROCEDURE, start=1)]
+    out += ["", "**Then launch:**", ""]
+    out += [f"{i}. {step}" for i, step in enumerate(ladder.LAUNCH, start=1)]
     on_ladder = {
         fid: r["construction"]
         for fid, r in records.items()
@@ -117,15 +121,18 @@ def render():
         out.append("No Challenge is on the ladder yet.")
     else:
         out += [
-            "| Family | Contract | Level | "
+            "| Family | Contract | Reached | Chosen | "
             + " | ".join(f"L{n}" for n in ladder.LEVELS)
             + " |",
-            "| --- | --- | --- | " + " | ".join("---" for _ in ladder.LEVELS) + " |",
+            "| --- | --- | --- | --- | "
+            + " | ".join("---" for _ in ladder.LEVELS)
+            + " |",
         ]
         for fid, c in on_ladder.items():
             states = " | ".join(ladder.state_of(c, n) for n in ladder.LEVELS)
+            chosen = "–" if c["chosen"] is None else c["chosen"]
             out.append(
-                f"| {fid} {names[fid]} | `{c['challenge']}` | {c['level']} | {states} |"
+                f"| {fid} {names[fid]} | `{c['challenge']}` | {c['level']} | {chosen} | {states} |"
             )
     proposals = load_proposals(protocol)
     out += [

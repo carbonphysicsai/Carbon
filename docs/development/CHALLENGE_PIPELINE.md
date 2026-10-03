@@ -25,17 +25,19 @@ during Phase 1 and approved at lock.
 | 2 | Write the four stage definitions, with battery as the worked example: entry criteria, work, Graphite's permissions, output artifact and exit gate for each stage. | Protocol draft. | – | todo |
 | 3 | Build test suite v1: Track A attack vectors with severity rules, Track B EV1-EV3, exam rotation and sealed pool. | Versioned, pinned suite. | – | todo |
 | 4 | Run battery through Test/iterate with Graphite at construction Level 0: attack, fix, re-score; tune construction and scoring within Level 0 until results stop improving or the iteration budget runs out. Then climb to Level 1 by the climb procedure, as its worked example. | Iteration log with a lessons entry for every execution, and battery's Level 1 climb record. | – | todo |
-| 5 | Freeze and run the final evidence: pinned suite, battery's sealed pool, no changes during the run. | Frozen evidence record and the first leaderboard entry. | – | todo |
+| 5 | Choose battery's construction level, freeze and run the final evidence: the owners choose the best level step 4's internal testing supports; pinned suite, battery's sealed pool at that level, no changes during the run. | Frozen evidence record and the first leaderboard entry. | – | todo |
 | 6 | Set rubric v1: Harshdeep proposes thresholds from what battery showed is achievable and meaningful. *Science proposes the thresholds; the process owner approves them at lock.* | Rubric v1, entered in §05. | – | todo |
 | 7 | Record cost and calendar time for every stage. | Cycle-time baseline for planning throughput. | – | todo |
 | 8 | Fitz approves. Protocol v1.0 is locked, with every lesson proposed for it adopted or declined. *The process owner approves the lock.* | The process package, versioned. | – | todo |
 
 ## Construction ladder
 
-Every Challenge starts at Level 0 and climbs one level at a time
-(`Design_Specs/Challenge_Admission.md` §3, OWNER-CHALLENGE-ROADMAP-03). A
-level is reached only with its expansion record and Carbon's reconstruction
-for it. A level not reached is NOT_RUN, never a pass.
+Every Challenge starts at Level 0 and climbs one level at a time in internal
+testing (`Design_Specs/Challenge_Admission.md` §3, OWNER-CHALLENGE-ROADMAP-03),
+on development-only contracts that miners never see. A level is reached only
+with its expansion record and Carbon's reconstruction for it, and a level not
+reached is NOT_RUN, never a pass. The owners then choose the best level, and
+the Challenge is frozen, locked and opened to miners at that level only.
 
 | Level | Adds |
 | --- | --- |
@@ -46,7 +48,7 @@ for it. A level not reached is NOT_RUN, never a pass.
 | 4 | New architectures exporting through a constrained inference interface |
 | 5 | Custom inference in an independently isolated execution stage |
 
-**Climb procedure**, for every level above 0:
+**Climb procedure**, internal, for every level above 0:
 
 1. Graphite proposes the level's capabilities for this Challenge, with their bounds, the research behind them, the reconstruction work each needs and the attack surface it opens; the construction contract owner accepts or declines the proposal.
 2. Record the changed contract and permissions as an expansion record.
@@ -56,11 +58,15 @@ for it. A level not reached is NOT_RUN, never a pass.
 6. Remove the new permission and repeat the comparison (ablation).
 7. Test interactions with earlier permissions (combined-permission attacks).
 8. Reconstruct promising valid submissions on clean workers.
-9. Open the level to miners only after a person locks it, and only once validators serve the new contract: a miner sends a declarative recipe and the contract digest it was written against, the validator rebuilds it with the reconstruction pinned in its own Carbon version, and a digest it does not serve is refused.
 
-| Family | Contract | Level | L0 | L1 | L2 | L3 | L4 | L5 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | OPEN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
+**Then launch:**
+
+1. Choose the Challenge's construction level: the owners choose the best level the internal evidence supports, which need not be the highest tested.
+2. Freeze at the chosen level, lock it, and open the Challenge to miners at that level once validators serve its contract: a miner sends a declarative recipe and the contract digest it was written against, the validator rebuilds it with the reconstruction pinned in its own Carbon version, and a digest it does not serve is refused.
+
+| Family | Contract | Reached | Chosen | L0 | L1 | L2 | L3 | L4 | L5 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | – | OPEN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
 
 **Graphite's level proposals.** Graphite proposes the capabilities for every
 level of every Challenge; the construction contract owner accepts or declines

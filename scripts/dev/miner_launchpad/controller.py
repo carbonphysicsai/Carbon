@@ -405,10 +405,10 @@ INTEGRATIONS = (
     # into a miner's machine would be an owner decision; until Autoscience
     # documents a route, the interface stays unverified.
     {"id": "mira", "reason": "integration_interface_unverified"},
-    # RunPod and Lium launch from setup on the miner's own account
-    # (C-MLP-03 slice 4), and so does Targon, as a VM reached over SSH (slice
-    # 4b, OWNER-C-MLP-03-ANSWERS-01): its API runs no container image, so the
-    # pinned worker runs with Docker inside a rented VM.
+    # RunPod, Lium and Targon are not listed: Carbon rents no compute
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01). A miner starts and stops their own
+    # machine on any provider; the rented-GPU setup choice that drove a
+    # provider with the miner's key is retired and refused by name.
     {
         # Two earlier reasons here were wrong in different ways. The
         # first named a signing wallet adapter, which the key rule

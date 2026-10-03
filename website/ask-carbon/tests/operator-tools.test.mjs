@@ -64,6 +64,6 @@ test("health must read active, no reasons and the approved model", () => {
 
 test("post-deploy checks cover the paths the owner named", () => {
   const paths = DEFAULT_CHECKS.map(([url]) => url);
-  for (const required of ["/", "/workbench/", "/workbench/atlas-source.json", "/ask-carbon/pilot-designer.html"]) assert.ok(paths.includes(required), required);
+  for (const required of ["/", "/workbench/", "/workbench/atlas-source.json", "/ask-carbon/pilot-designer.html", "/miners/", "/start-mining/", "/sitemap.xml"]) assert.ok(paths.includes(required), required);
   assert.equal(paths.filter((url) => /^\/assets\/[^/]+\.png$/.test(url)).length, 4);
 });

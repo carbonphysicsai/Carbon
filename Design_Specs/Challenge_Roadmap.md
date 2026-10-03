@@ -80,6 +80,13 @@ operations. It climbs only by the climb procedure in §02, and only after the
 level below is tested. A level Carbon cannot yet rebuild is NOT_RUN, never a
 pass.
 
+**The climb is internal testing.** Graphite climbs on development-only
+contracts that miners never see. When testing is done, the owners choose the
+challenge's best construction level. The challenge is then frozen, locked and
+opened to miners at that level (owner, 2026-10-02: "This is all internal
+testing. We choose a best construction level. Then lock and open challenge to
+miners!").
+
 ### Generalizable, and improved as we go.
 
 The protocol is Challenge-neutral. Battery is its first instance, never its
@@ -164,8 +171,10 @@ building on them.
    Then climb to Level 1 by the climb procedure, as its worked example.
    Output: iteration log, a lessons entry for every execution, and battery's
    Level 1 climb record.
-5. **Freeze and run the final evidence.** Pinned suite, battery's sealed
-   pool, no changes during the run. Output: frozen evidence record and the
+5. **Choose battery's construction level, freeze and run the final
+   evidence.** The owners choose the best level step 4's internal testing
+   supports. The run uses the pinned suite and battery's sealed pool at that
+   level, with no changes during the run. Output: frozen evidence record and the
    first leaderboard entry.
 6. **Set rubric v1.** Harshdeep proposes thresholds from what battery showed
    is achievable and meaningful. Output: rubric v1, entered in §05.
@@ -227,16 +236,18 @@ leaderboard re-run on it before they are compared.
 #### Stage 3: Test / iterate
 
 - **Entry.** Signed design packet.
-- **Work.** At the challenge's current construction level: run the suite, fix
-  what breaks, and tune construction rules and scoring within that level.
-  Climb one level at a time by the climb procedure. Repeat within the
-  iteration budget. Freeze at a recorded level, then run the pinned suite on
-  the sealed pool.
+- **Work.**
+  - At the challenge's current construction level: run the suite, fix what
+    breaks, and tune construction rules and scoring within that level.
+  - Climb one level at a time by the climb procedure, internally.
+  - Repeat within the iteration budget.
+  - The owners choose the best construction level. Freeze at it, then run the
+    pinned suite on the sealed pool.
 - **Graphite.** Attacks construction and exams (Track A), runs development EV
   studies, proposes construction and scoring changes and the next level.
   Before freeze only.
-- **Output.** Frozen evidence record naming its construction level; results
-  entered in §05.
+- **Output.** The chosen construction level, and a frozen evidence record taken
+  at it. Results are entered in §05.
 - **Exit.** Tested, construction and scoring optimized. Ryan signs Track A,
   Harshdeep signs Track B.
 
@@ -246,7 +257,8 @@ leaderboard re-run on it before they are compared.
 - **Work.** Apply the rubric gates and place the challenge on the leaderboard.
 - **Graphite.** Compiles the evidence summary. No role in grades.
 - **Output.** Leaderboard position.
-- **Exit.** Fitz picks deployments. Network activation stays a separate owner
+- **Exit.** Fitz picks deployments. A deployed challenge opens to miners at its
+  chosen construction level, locked. Network activation stays a separate owner
   decision.
 
 ### Construction ladder
@@ -281,7 +293,7 @@ construction level"). A proposal states:
 The construction contract owner accepts or declines each proposal. Graphite
 proposes; it never writes the contract or an expansion record.
 
-**Climb procedure, for every level above 0:**
+**Climb procedure, internal, for every level above 0:**
 1. Graphite proposes the level's capabilities for this Challenge, with their
    bounds, the research behind them, the reconstruction work each needs and
    the attack surface it opens; the construction contract owner accepts or
@@ -294,17 +306,26 @@ proposes; it never writes the contract or an expansion record.
 6. Remove the new permission and repeat the comparison (ablation).
 7. Test interactions with earlier permissions (combined-permission attacks).
 8. Reconstruct promising valid submissions on clean workers.
-9. Open the level to miners only after a person locks it, and only once
-   validators serve the new contract.
+
+The climb runs on a development-only contract variant. It is held outside the
+miner-facing registry and served only to Carbon's own registered Graphite
+campaigns (owner, 2026-10-02).
+
+**Then launch:**
+1. Choose the challenge's construction level: the owners choose the best
+   level the internal evidence supports, which need not be the highest
+   tested.
+2. Freeze at the chosen level, lock it, and open the challenge to miners at
+   that level once validators serve its contract.
 
 **How a validator knows how to build a construction.** A miner never sends
 build instructions. A submission is a declarative recipe plus the digest of
 the construction contract it was written against. The validator rebuilds it
 with the reconstruction code pinned in its own Carbon version, and refuses a
-digest it does not serve. Climbing a level is therefore a Carbon release,
-made of three parts:
-- the contract's new version;
-- the reconstruction code;
+digest it does not serve. Opening a challenge at its chosen level is
+therefore a Carbon release, made of three parts:
+- the chosen level's contract;
+- its reconstruction code;
 - a validator update.
 
 Levels 4 and 5 are where a submission carries participant code. They need
@@ -314,18 +335,19 @@ reconstruction exist.
 **Rules.**
 - A finding stops further climbing until it is repaired and retested.
 - A level that is not implemented is NOT_RUN, never a pass.
-- A level opened for Graphite's development campaigns is never opened to
-  miners to gather acceptance data.
-- Frozen evidence and leaderboard entries name the level they were taken at.
+- Miners only ever see the chosen, locked level. A level tested internally is
+  never opened to miners to gather acceptance data.
+- Frozen evidence and leaderboard entries name the chosen level they were
+  taken at.
 
 ### Freeze rule
 
 Before freeze, Graphite and the team can change anything: construction rules,
 scoring, the exam design, the suite's challenge-specific attacks. At freeze,
-the suite version, harness code, scoring, sealed pool and construction level
-are pinned, and only the run on those feeds the leaderboard. A change after
-freeze, including a climb to the next level, creates a new challenge version
-and a new frozen run. Earlier evidence stays bound to its level.
+the suite version, harness code, scoring, sealed pool and chosen construction
+level are pinned, and only the run on those feeds the leaderboard. A change
+after freeze, including choosing a different level, creates a new challenge
+version and a new frozen run. Earlier evidence stays bound to its level.
 
 ### Graphite operating rules
 
@@ -491,7 +513,8 @@ maximum open critical, maximum open high, and the rubric version. They are in
 A challenge record holds:
 - its stage and solve time: stage, measured p50 and p95 wall time, cases
   timed and hardware;
-- its construction level and each level's state;
+- its construction levels: the highest reached, each level's state and the
+  chosen level;
 - its attack results: suite version, and the open critical, high, medium and
   low findings at freeze;
 - its score-to-value results: rank agreement ρ, regret, independent
@@ -499,8 +522,8 @@ A challenge record holds:
 
 Saving replaces the earlier record for that challenge. Enter Track A and B
 results from the frozen run only. A leaderboard entry is a challenge at a
-version and a construction level. Climbing a level makes a new frozen run,
-and the challenge re-enters at its new level.
+version and its chosen construction level. Choosing a different level makes
+a new version and a new frozen run.
 
 ---
 

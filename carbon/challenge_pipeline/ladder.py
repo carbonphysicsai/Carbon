@@ -3,7 +3,9 @@
 Authority: `Design_Specs/Challenge_Admission.md` §3 (planning levels 0-5) and
 the Challenge Roadmap's construction ladder (rev 2.2, OWNER-CHALLENGE-ROADMAP-03).
 Every Challenge starts at Level 0, its pinned recipe and registered operations,
-and climbs one level at a time. Nothing here is battery-specific: a Challenge
+and climbs one level at a time in internal testing. The owners then choose
+its best construction level, and the Challenge is frozen, locked and opened
+to miners at that level. Nothing here is battery-specific: a Challenge
 supplies its registered construction contract token, its expansion records
 (`carbon/reconstruction/expansions/<challenge>/NNNN.json`) and the test that
 shows Carbon rebuilds each level it reaches.
@@ -23,6 +25,11 @@ A pipeline record's `construction` block is checked against these rules:
 - **The current level names the newest expansion record.** A newer record means
   the contract widened or narrowed after the pipeline last looked, and the
   record is stale until it is reviewed.
+- **The climb is internal; miners get the chosen level** (`LAUNCH`). `chosen`
+  is null until the owners choose the best level internal testing supports.
+  It must be a TESTED or FROZEN level at or below `level`. Only the chosen
+  level may be FROZEN, because the frozen run, the lock and the miners' opening
+  all happen there.
 
 These checks keep a record coherent. They do not open a level, judge whether a
 widening was wise or replace the admission ledger's own rule that no expansion
@@ -74,11 +81,23 @@ CLIMB_PROCEDURE = (
     "Remove the new permission and repeat the comparison (ablation).",
     "Test interactions with earlier permissions (combined-permission attacks).",
     "Reconstruct promising valid submissions on clean workers.",
+)
+
+#: After internal testing (owner, 2026-10-02: "This is all internal testing. We
+#: choose a best construction level. Then lock and open challenge to miners!").
+#: The climb runs on development-only contracts that only Carbon's own Graphite
+#: campaigns read; miners only ever see the chosen, locked level.
+LAUNCH = (
     (
-        "Open the level to miners only after a person locks it, and only once validators "
-        "serve the new contract: a miner sends a declarative recipe and the contract digest "
-        "it was written against, the validator rebuilds it with the reconstruction pinned in "
-        "its own Carbon version, and a digest it does not serve is refused."
+        "Choose the Challenge's construction level: the owners choose the best level the "
+        "internal evidence supports, which need not be the highest tested."
+    ),
+    (
+        "Freeze at the chosen level, lock it, and open the Challenge to miners at that level "
+        "once validators serve its contract: a miner sends a declarative recipe and the "
+        "contract digest it was written against, the validator rebuilds it with the "
+        "reconstruction pinned in its own Carbon version, and a digest it does not serve is "
+        "refused."
     ),
 )
 
@@ -89,7 +108,7 @@ class LadderError(ValueError):
 
 def empty():
     """The block of a family with no construction contract yet."""
-    return {"challenge": None, "level": None, "levels": []}
+    return {"challenge": None, "level": None, "chosen": None, "levels": []}
 
 
 def newest_record(challenge, root):
@@ -111,18 +130,22 @@ def validate(construction, where, root):
     if not isinstance(construction, dict) or set(construction) != {
         "challenge",
         "level",
+        "chosen",
         "levels",
     }:
-        raise LadderError(f"{where}: construction is {{challenge, level, levels}}")
-    challenge, level, levels = (
+        raise LadderError(
+            f"{where}: construction is {{challenge, level, chosen, levels}}"
+        )
+    challenge, level, chosen, levels = (
         construction["challenge"],
         construction["level"],
+        construction["chosen"],
         construction["levels"],
     )
     if not isinstance(levels, list):
         raise LadderError(f"{where}: levels is a list")
     if not levels:
-        if level is not None:
+        if level is not None or chosen is not None:
             raise LadderError(f"{where}: a level needs its levels listed")
         if challenge is not None and not TOKEN.match(str(challenge)):
             raise LadderError(f"{where}: challenge is a registered contract token")
@@ -187,6 +210,18 @@ def validate(construction, where, root):
         if entry["state"] == "OPEN":
             raise LadderError(
                 f"{where}: level {entry['level']} is still OPEN; climb one level at a time"
+            )
+    if chosen is not None and (
+        chosen not in numbers or state_of(construction, chosen) == "OPEN"
+    ):
+        raise LadderError(
+            f"{where}: the chosen level is a TESTED or FROZEN level the climb reached"
+        )
+    for entry in levels:
+        if entry["state"] == "FROZEN" and entry["level"] != chosen:
+            raise LadderError(
+                f"{where}: only the chosen level is FROZEN; the frozen run, the lock and "
+                "the miners' opening happen at the chosen level"
             )
     newest = newest_record(challenge, root)
     if levels[-1]["expansion_record"] != newest:
