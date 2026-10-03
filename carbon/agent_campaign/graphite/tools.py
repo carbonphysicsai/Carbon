@@ -14,11 +14,16 @@ Graphite session that object is a `GraphiteToolbox`, which:
    own markers. It scans every string in the arguments, including JSON
    carried in `*_json` strings, so it may over-refuse an innocent mention; it
    never under-refuses a named one (GRAPHITE-D5);
-3. answers `lit_search` / `lit_card` from the pinned literature index;
-4. delegates the remaining miner SDK tools to an injected `miner_tools`
+3. answers `lit_search` / `lit_card` from the pinned literature index. An
+   `OfferedLiterature` index marks every card's check status in the result,
+   and an `UNCHECKED` card says so (GRAPHITE-D29);
+4. hands `graphite_propose_next_level` (Planner and Constructor) to the injected
+   `next_level` writer, which stores a PROPOSED record and widens nothing
+   (GRAPHITE-D30); without one it answers `UNAVAILABLE`;
+5. delegates the remaining miner SDK tools to an injected `miner_tools`
    object (the existing closed miner SDK in later phases). Phase 1 injects
    none, so they answer `UNAVAILABLE` without dispatching anything;
-5. withholds any result that carries protected material, returning a typed
+6. withholds any result that carries protected material, returning a typed
    refusal instead.
 
 Results are data. Nothing in a result is read back by the toolbox, the loop
@@ -35,6 +40,11 @@ from carbon.development_session.profile import canonical, digest
 
 from .. import boundaries
 from . import literature
+
+#: The next-level proposal tool (`roles.NEXT_LEVEL`; roles imports
+#: this module's checks through the literature index, so the name is repeated
+#: here and `roles` asserts the two agree).
+NEXT_LEVEL = "graphite_propose_next_level"
 
 #: Graphite's markers beyond the checkout deny rules. Lower-case substrings.
 PROTECTED_MARKERS = (
@@ -108,12 +118,15 @@ def refusal(status, code, **extra):
 class GraphiteToolbox:
     """The `sdk` a Graphite session's research loop calls."""
 
-    def __init__(self, *, role, literature_index, emit, miner_tools=None):
+    def __init__(
+        self, *, role, literature_index, emit, miner_tools=None, next_level=None
+    ):
         self.role = role
         self.manifest = frozenset(role.tools)
         self.literature = literature_index
         self.emit = emit
         self.miner_tools = miner_tools
+        self.next_level = next_level
 
     def _refuse(self, identity, name, arguments, result):
         self.emit(
@@ -152,6 +165,11 @@ class GraphiteToolbox:
             )
         if name in (literature.SEARCH, literature.CARD):
             result = self._literature(name, arguments)
+        elif name == NEXT_LEVEL:
+            if self.next_level is None:
+                result = refusal(UNAVAILABLE, "next_level_store_not_attached")
+            else:
+                result = self.next_level(arguments, identity)
         elif self.miner_tools is None:
             result = refusal(
                 UNAVAILABLE,
@@ -186,12 +204,14 @@ class GraphiteToolbox:
             if name == literature.SEARCH:
                 if set(arguments) != {"query"}:
                     raise literature.LiteratureError("lit_search takes query")
-                return {
-                    "status": "OK",
-                    "snapshot_digest": self.literature.snapshot_digest,
-                    "results": self.literature.search(arguments["query"]),
-                    "content_is_data": True,
-                }
+                return self._offered_marks(
+                    {
+                        "status": "OK",
+                        "snapshot_digest": self.literature.snapshot_digest,
+                        "results": self.literature.search(arguments["query"]),
+                        "content_is_data": True,
+                    }
+                )
             if set(arguments) != {"card_id"} or type(arguments["card_id"]) is not str:
                 raise literature.LiteratureError("lit_card takes card_id")
             card = self.literature.card(arguments["card_id"])
@@ -200,10 +220,34 @@ class GraphiteToolbox:
                 "REFUSED_INVALID_REQUEST", "literature_request", detail=str(error)
             )
         if card is None:
-            return {"status": "NOT_FOUND", "card_id": arguments["card_id"]}
-        return {
+            return self._offered_marks(
+                {"status": "NOT_FOUND", "card_id": arguments["card_id"]}
+            )
+        result = {
             "status": "OK",
             "snapshot_digest": self.literature.snapshot_digest,
             "card": card,
             "content_is_data": True,
         }
+        if type(self.literature) is literature.OfferedLiterature:
+            status = self.literature.status(card["card_id"])
+            result["check_status"] = status
+            if status == literature.UNCHECKED:
+                result["unchecked_note"] = literature.UNCHECKED_NOTE
+        return self._offered_marks(result)
+
+    def _offered_marks(self, result):
+        """An offered index states its policy, and says when it is empty. A
+        phase-1 index's results are unchanged."""
+        if type(self.literature) is not literature.OfferedLiterature:
+            return result
+        result["offer_policy"] = self.literature.policy
+        if any(
+            hit.get("check_status") == literature.UNCHECKED
+            for hit in result.get("results") or ()
+        ):
+            result["unchecked_note"] = literature.UNCHECKED_NOTE
+        if self.literature.empty:
+            result["index_empty"] = True
+            result["index_note"] = literature.EMPTY_NOTE
+        return result

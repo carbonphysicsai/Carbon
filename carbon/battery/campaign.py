@@ -335,6 +335,15 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the battery runtime")
+    # Practice on the miner's own remote setup, when the runtime declares it:
+    # built by battery's campaign from the profile's machine, and refused
+    # before anything is reached when it differs from the frozen transport
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+    remote = None
+    if "remote_gpu" in runtime:
+        remote = _own_campaign(campaign).remote_runner(
+            runtime, getattr(args, "remote_machine", None), gpu_image
+        )
     # The operator configuration where an operator runs one, otherwise the
     # miner's own network file (C-MLP-04): the chain context and publisher.
     config = binding_for(args)
@@ -391,6 +400,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             connection=connection,
             julia_image=julia_image,
             gpu_image=gpu_image,
+            remote=remote,
         )
         sdk = ResearchMinerTools(
             connection=connection,
@@ -439,6 +449,7 @@ def compose(
     runner=None,
     backend=None,
     gpu_image=None,
+    remote=None,
 ):
     """The battery composition and the wrapper that authenticates for it.
 
@@ -446,6 +457,10 @@ def compose(
     (`host_julia_image`), or None. It reaches only the research executor's
     `run_julia`; practice, the recipe compiler, discovery and submission are
     composed identically with or without it.
+
+    `remote` is the campaign's practice runner on the miner's own remote
+    setup (`ChallengeCampaign.remote_runner`), or None. It changes only where
+    GPU practice runs, never what it scores.
 
     The gateway is the connection's own: the same chain context, publisher,
     observed registration, verifier and receipt journal. Only its Challenge
@@ -467,6 +482,7 @@ def compose(
         runner=runner,
         backend=backend,
         gpu_image=gpu_image,
+        remote=remote,
     )
     composition = make_battery_research_service(
         root=ledger.root / "research-tasks",
@@ -496,11 +512,22 @@ def compose(
 #: A battery runtime may name these keys and no others. `gpu_research` is
 #: battery's own GPU practice scope (`carbon.development_session.battery_gpu`, C-MLP-03 slice 3);
 #: Burgers' GPU scope binds Burgers material and is refused by its schema.
-#: `rented_gpu` is retired (OWNER-MINER-COMPUTE-LINK-ONLY-01) and refused by
-#: name before a runtime is composed.
+#: `remote_gpu` runs that GPU practice on the miner's own remote machine or
+#: container (`carbon.compute.remote_route`, OWNER-MINER-COMPUTE-LINK-ONLY-01).
+#: `rented_gpu` is retired and refused by name before a runtime is composed.
 RUNTIME_KEYS = frozenset(
-    {"implementation", "images", "authored_research", "gpu_research"}
+    {"implementation", "images", "authored_research", "gpu_research", "remote_gpu"}
 )
+
+
+def _own_campaign(campaign):
+    """Battery's `ChallengeCampaign`: the one the research path passed, or
+    the registry's own."""
+    if campaign is not None:
+        return campaign
+    from carbon.challenge_registry.campaigns import campaign_for_id
+
+    return campaign_for_id(CHALLENGE.challenge_id)
 
 
 def host_gpu_image(root, declared):
@@ -553,6 +580,17 @@ def research_runtime(declared, *, implementation, images, julia_image, gpu_image
         if gpu_image is None:
             raise ValueError("a GPU practice runtime needs its installed GPU image")
         runtime["gpu_research"] = [gpu_scope(gpu_image)]
+    if "remote_gpu" in declared:
+        from carbon.compute.remote_route import declared_remote, remote_scope
+
+        if gpu_image is None:
+            raise ValueError("remote GPU practice needs its installed GPU image")
+        # The miner's transport, recomposed against this host's GPU worker:
+        # the frozen scope must name the worker it actually runs.
+        transport = declared_remote(declared)["transport"]
+        runtime["remote_gpu"] = [
+            remote_scope(CHALLENGE.challenge_id, gpu_image, transport)
+        ]
     return runtime
 
 

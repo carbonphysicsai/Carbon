@@ -64,7 +64,7 @@ Wave A closure does not create scientific, security, network, commercial, produc
 ## Repository detail
 
 - [Wave A closeout report](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/WAVE_A_REPORT.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/1a1a119f915cc2efe6f83afd08d81342f758778a/.agent/WAVE.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/81585c14d26ea94a6bafb2a72aa40bfafb4da926/.agent/WAVE.md)
 - [Repository constitution](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/CONSTITUTION.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

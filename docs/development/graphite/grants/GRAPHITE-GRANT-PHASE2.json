@@ -9,7 +9,7 @@
  "monetary_ceiling": "9.00",
  "cleanup_allowance": "0.00",
  "worst_case_run_cost": "2.49",
- "permitted_runs": 3,
+ "permitted_runs": 40,
  "max_concurrency": 1,
  "max_runtime_s": 360000,
  "max_submissions": 1

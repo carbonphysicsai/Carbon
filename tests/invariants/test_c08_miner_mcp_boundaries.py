@@ -93,6 +93,15 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         # and launches, supervises and stops nothing. No official,
         # network-writing or signing surface is introduced.
         "agent_connection.py",
+        # The MCP caller of the shared setup table
+        # (OWNER-MINER-SETUP-AGENT-FIRST-01). It defines no step and no gate:
+        # every tool is generated from the table the browser's setup routes
+        # also come from, and runs its gates through the shared `perform`.
+        # It writes only the miner's own setup records and runner profile,
+        # takes a model key only as a path to an owner-only file, signs
+        # nothing and accepts no key material. No official, network-writing or
+        # signing surface is introduced.
+        "mcp_setup.py",
     }
     assert tuple(miner_mcp_exports) == (
         "AuthenticatedMcpResult",

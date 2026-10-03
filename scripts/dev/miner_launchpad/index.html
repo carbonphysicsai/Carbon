@@ -8,30 +8,35 @@
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <header class="topbar"><a class="wordmark" href="#overview">carbon<span> / control center</span></a><div class="topbar-state"><span id="connection-state" class="pill">Disconnected</span><span class="badge">DEVELOPMENT</span></div></header>
+  <header class="topbar">
+    <a class="wordmark" href="#overview" aria-label="Carbon Control Center: overview"><img src="/brand/brand-2.svg" alt="Carbon" width="118" height="27"><span class="eyebrow">Control Center</span></a>
+    <div class="topbar-state"><span class="pill pill-dev">Development</span><span id="network-pill" class="pill pill-dev">Testnet</span><span id="connection-state" class="pill">Disconnected</span></div>
+  </header>
   <div class="shell">
   <nav id="tool-nav" class="tool-nav" aria-label="Control Center"></nav>
   <main>
-    <section id="connect-panel" class="connect panel"><div><h2>Connect this browser</h2><p>Paste the local session token printed by the server. We keep it in this tab's memory only.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit">Connect</button></div></form></section>
+    <section id="connect-panel" class="connect panel"><div><p class="eyebrow section-label">Start here</p><h2>Connect this browser</h2><p class="hint">Paste the local session token the server printed. It stays in this tab's memory only.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit" class="primary">Connect</button></div></form></section>
     <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
     <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
 
     <section id="overview" class="view" data-nav="Overview" aria-labelledby="overview-heading">
-      <div class="view-head"><div><p class="eyebrow">MINER CONTROL CENTER</p><h1 id="overview-heading">Your research, in one place.</h1><p class="lede">Choose a Challenge, choose who researches it, set your own limits or none, and watch it run.</p></div><a class="button primary" href="#launch">New campaign</a></div>
-      <div class="notice">This is your space and your compute. Carbon does not cap what you spend and does not approve your access: subnet registration is the only admission, read at launch. DEVELOPMENT only: no official qualification, reward or chain write.</div>
+      <div class="view-head"><div><p class="eyebrow section-label">Miner Control Center</p><h1 id="overview-heading">Your research, in one place.</h1><p id="overview-lede" class="lede">Set up once. Then choose a Challenge and launch.</p></div><a id="overview-primary" class="button primary" href="#setup">Get started</a></div>
+      <section id="getting-started" class="panel get-started" aria-labelledby="getting-started-heading"><div class="panel-heading"><h2 id="getting-started-heading">Get started</h2><span id="getting-started-progress" class="eyebrow"></span></div><ol id="getting-started-steps" class="gs-steps"><li class="gs-step"><span class="gs-num">00</span><div><p class="hint">Connect this browser to see your next step.</p></div></li></ol></section>
+      <h2 class="section-title">Your campaigns</h2>
       <div id="overview-active" class="cards"><p class="hint">Connect to see your campaigns.</p></div>
       <h2 class="section-title">Before you launch</h2>
       <ul id="overview-prerequisites" class="checklist"><li class="hint">Connect to read what this controller can do.</li></ul>
+      <p class="notice">This is your space and your compute. Carbon does not cap what you spend and does not approve your access: subnet registration is the only admission, read at launch. DEVELOPMENT only: no official qualification, reward or chain write.</p>
     </section>
 
     <section id="campaigns" class="view" data-nav="Campaigns" aria-labelledby="campaigns-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">CAMPAIGNS</p><h1 id="campaigns-heading">Campaigns</h1></div><a class="button primary" href="#launch">New campaign</a></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Campaigns</p><h1 id="campaigns-heading">Campaigns</h1></div><a class="button primary" href="#launch">New campaign</a></div>
       <div id="research-runs" class="campaign-list"></div>
       <div id="campaign-detail" class="campaign-detail" hidden></div>
     </section>
 
     <section id="launch" class="view" aria-labelledby="research-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">NEW CAMPAIGN</p><h1 id="research-heading">Launch a research campaign</h1><p class="lede">Live practice research: current execution, not Carbon's qualified LIVE mode.</p></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">New campaign</p><h1 id="research-heading">Launch a research campaign</h1><p class="lede">Live practice research: current execution, not Carbon's qualified LIVE mode.</p></div></div>
       <ol id="wizard-steps" class="wizard-steps" aria-label="Launch steps"></ol>
       <div class="wizard-body panel">
         <section class="step" data-step="challenge" aria-labelledby="step-challenge-heading"><h2 id="step-challenge-heading">Challenge</h2><p class="hint">Every Challenge the registry knows, with its real status. There is no default Challenge: choose one.</p><div id="wizard-challenges" class="choice-grid"></div><div id="wizard-challenge-description" class="description"></div></section>
@@ -59,28 +64,28 @@
     </section>
 
     <section id="challenges" class="view" data-nav="Challenges" aria-labelledby="challenges-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">CHALLENGE REGISTRY</p><h1 id="challenges-heading">Challenges</h1><p class="lede">Read from Carbon's Challenge registry. Reserved and deferred Challenges are listed with the reason they cannot be selected.</p></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Challenge registry</p><h1 id="challenges-heading">Challenges</h1><p class="lede">What you can mine. Each card says if it is ready, and what to do if not.</p></div></div>
       <div id="challenge-catalog" class="cards"><p class="hint">Connect to read the registry.</p></div>
     </section>
 
     <section id="agents" class="view" data-nav="Agents" aria-labelledby="agents-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">AGENTS &amp; MODELS</p><h1 id="agents-heading">Agents</h1></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Agents &amp; models</p><h1 id="agents-heading">Agents</h1><p class="lede">Who researches for you, and the model it calls.</p></div></div>
       <div id="agent-catalog" class="cards"><p class="hint">Connect to read which agents this controller can run.</p></div>
     </section>
 
     <section id="compute" class="view" data-nav="Compute" aria-labelledby="compute-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">COMPUTE</p><h1 id="compute-heading">Compute</h1><p class="lede">Where your research runs, and what the validator runs the exam on. They are separate: your hardware does not have to match the exam's.</p></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Compute</p><h1 id="compute-heading">Compute</h1><p class="lede">Where your research runs. The validator runs the exam on its own machine, so yours does not have to match.</p></div></div>
       <div id="compute-catalog" class="cards"><p class="hint">Connect to read this host's compute.</p></div>
-      <section id="exam" class="panel integrations" aria-labelledby="exam-heading"><div class="panel-heading"><h2 id="exam-heading">What the validator runs</h2><span class="small-tag">PUBLIC CONTRACT · READ ONLY</span></div><p class="hint">You submit a design, not a trained model. A validator reconstructs it and trains it from scratch under the environment below, so your own research hardware is your choice and does not have to match it. This is published so you can read it before you submit; it is not an eligibility test.</p><div id="exam-environment"><p class="hint">Connect to read the published exam environment.</p></div></section>
+      <section id="exam" class="panel integrations" aria-labelledby="exam-heading"><div class="panel-heading"><h2 id="exam-heading">What the validator runs</h2><span class="small-tag">Public contract · read only</span></div><p class="hint">You submit a design, not a trained model. A validator reconstructs it and trains it from scratch under the environment below, so your own research hardware is your choice and does not have to match it. This is published so you can read it before you submit; it is not an eligibility test.</p><div id="exam-environment"><p class="hint">Connect to read the published exam environment.</p></div></section>
     </section>
 
     <section id="connections" class="view" data-nav="Connections" aria-labelledby="connections-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">CONNECTIONS</p><h1 id="connections-heading">Connections</h1><p class="lede">Bring your own agent over MCP. Nothing here is issued by Carbon.</p></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Connections</p><h1 id="connections-heading">Connections</h1><p class="lede">Bring your own agent over MCP. Nothing here is issued by Carbon.</p></div></div>
       <div id="connection-catalog" class="cards"><p class="hint">Connect to read the available connections.</p></div>
     </section>
 
     <section id="wallet" class="view" data-nav="Wallet &amp; Identity" aria-labelledby="wallet-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">WALLET &amp; IDENTITY</p><h1 id="wallet-heading">Wallet &amp; Identity</h1></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Wallet &amp; identity</p><h1 id="wallet-heading">Wallet &amp; Identity</h1><p class="lede">Register your hotkey on the subnet. You sign in your own wallet.</p></div></div>
       <section id="onboarding-panel" class="panel setup"><div class="panel-heading"><h2>Register on the subnet</h2><span class="small-tag">00 / Join</span></div>
         <p class="hint">Registration is how you reach Carbon's research environment. You execute it in your own wallet &mdash; Carbon never asks for, holds or transmits a private key, seed phrase or mnemonic, and nothing here signs on your behalf.</p>
         <p id="onboarding-coldkey" class="notice"><strong>The recycle amount is spent from your COLDKEY, not your hotkey.</strong> Funding the hotkey is the most common way a first registration fails: the transaction is signed for the hotkey you are registering, and the balance is taken from the coldkey that owns it.</p>
@@ -89,27 +94,34 @@
         <div class="inline"><input id="onboarding-address" type="text" autocomplete="off" spellcheck="false" minlength="46" maxlength="50" placeholder="5..." disabled><button id="onboarding-status" type="button" disabled>Check status</button></div>
         <p class="hint">Paste an address only. This field rejects anything phrase-shaped before it is read, and no request body records what you typed.</p>
         <div id="onboarding-result" class="events" aria-live="polite"></div>
-        <div class="controls"><button id="onboarding-prepare" type="button" disabled>Prepare an unsigned registration</button><button id="onboarding-confirm" type="button" disabled>I have registered &mdash; confirm</button></div>
+        <div class="controls"><button id="onboarding-prepare" type="button" disabled>Prepare an unsigned registration</button><button id="onboarding-confirm" type="button" class="primary" disabled>I have registered &mdash; confirm</button></div>
       </section>
       <div id="wallet-profile" class="cards"></div>
     </section>
 
     <section id="setup" class="view" data-nav="Set up your environment" aria-labelledby="setup-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">AFTER REGISTRATION</p><h1 id="setup-heading">Set up your environment</h1><p class="lede">Inference, compute and agent, on your own machine and your own accounts. Carbon hosts nothing and bills nothing.</p></div></div>
-      <p class="notice"><strong>Keys stay on this machine.</strong> An API key you enter here is written once to an owner-only file beside this controller, never shown again, and sent only to its own provider. Your hotkey stays in your own carbon-miner-signer; Carbon never asks for it or its password. Each live check runs with your key at your cost, and says so before it runs.</p>
-      <div id="setup-body"><p class="hint">Confirm your registration under Wallet &amp; Identity to begin.</p></div>
+      <div class="view-head"><div><p id="setup-eyebrow" class="eyebrow section-label">Set up your environment</p><h1 id="setup-heading">Set up your environment</h1><p id="setup-lede" class="lede">Six steps, on your own machine and accounts. Carbon hosts nothing and bills nothing.</p></div></div>
+      <ol id="setup-progress" class="wizard-progress" aria-label="Setup steps"></ol>
+      <div id="setup-body" class="panel wizard-panel"><p class="hint">Connect this browser to begin.</p></div>
+      <div id="setup-nav" class="setup-nav"><button id="setup-back" type="button">Back</button><span id="setup-next-reason" class="hint" aria-live="polite"></span><button id="setup-next" type="button" class="primary go">Next</button></div>
       <div id="setup-result" class="events" aria-live="polite"></div>
+      <details class="keys-note"><summary>Keys stay on this machine</summary><p class="notice"><strong>Keys stay on this machine.</strong> An API key you enter here is written once to an owner-only file beside this controller, never shown again, and sent only to its own provider. Your hotkey stays in your own carbon-miner-signer; Carbon never asks for it or its password. Each live check runs with your key at your cost, and says so before it runs.</p></details>
+    </section>
+
+    <section id="guide" class="view" aria-labelledby="guide-heading" hidden>
+      <div class="view-head"><div><p class="eyebrow section-label">Wiring guide · read from this checkout</p><h1 id="guide-heading">Your own remote machine or container</h1><p class="lede">Served by this controller from <code>docs/development/MINER_REMOTE_SETUP.md</code>. Nothing is fetched from the internet.</p></div><a class="button" href="#setup/compute">Back to setup</a></div>
+      <div id="guide-body" class="guide-body"><p class="hint">Connect to read the guide.</p></div>
     </section>
 
     <section id="settings" class="view" data-nav="Settings" aria-labelledby="settings-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">SETTINGS</p><h1 id="settings-heading">Settings</h1></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Settings</p><h1 id="settings-heading">Settings</h1></div></div>
       <div class="panel"><h2>This browser</h2><p class="hint">Your session token lives only in this tab's memory. Wizard choices, journey drafts and templates are kept in this browser's storage and never include a token, key or phrase.</p><div class="controls"><button id="settings-recheck" type="button" disabled>Re-read capabilities</button><button id="settings-clear" type="button">Forget saved choices and drafts</button></div><p id="settings-note" class="hint"></p></div>
     </section>
 
     <section id="development" class="view" data-nav="Development" data-nav-group="development" aria-labelledby="development-area-heading" hidden>
-      <div class="view-head"><div><p class="eyebrow">DEVELOPMENT AREA</p><h1 id="development-area-heading">Development</h1><p class="lede">Developer diagnostics and fixtures. Nothing here is research: rehearsal steps produce no physics or mining evidence.</p></div></div>
+      <div class="view-head"><div><p class="eyebrow section-label">Development area</p><h1 id="development-area-heading">Development</h1><p class="lede">Developer diagnostics and fixtures. Nothing here is research: rehearsal steps produce no physics or mining evidence.</p></div></div>
       <div id="rehearsal" class="layout">
-        <section class="panel setup"><div class="panel-heading"><h2>Controller rehearsal</h2><span class="small-tag">FIXTURE</span></div>
+        <section class="panel setup"><div class="panel-heading"><h2>Controller rehearsal</h2><span class="small-tag">Fixture</span></div>
           <form id="launch-form"><fieldset id="launch-fields" disabled>
             <p class="hint">A local fixture counter with no agent, chain, compute or campaign. It checks the controls, not the science.</p>
             <div class="two"><div><label for="steps">Rehearsal steps</label><input id="steps" type="number" min="1" max="100" step="1" value="20" required></div><div><label for="seconds">Lifetime limit · seconds</label><input id="seconds" type="number" min="1" max="600" step="1" value="120" required></div></div>
@@ -122,7 +134,7 @@
           <div id="empty" class="empty"><h3>No rehearsal yet.</h3><p>Connect the browser, then launch a rehearsal. Closing this tab will not stop a run while the server remains running.</p></div>
           <label for="run-picker" id="picker-label" hidden>Recent rehearsals</label><select id="run-picker" hidden></select>
           <div id="run-detail" hidden>
-            <div class="run-top"><div><p class="eyebrow">CONTROLLER REHEARSAL</p><code id="run-id"></code></div><span id="run-state" class="badge"></span></div>
+            <div class="run-top"><div><p class="eyebrow">Controller rehearsal</p><code id="run-id"></code></div><span id="run-state" class="badge"></span></div>
             <div class="metrics"><div><span>Fixture steps</span><strong id="run-steps"></strong></div><div><span>External spend</span><strong>$0.00</strong></div><div><span>Scientific result</span><strong class="no-result">None</strong></div></div>
             <progress id="progress" max="100" value="0" aria-label="Rehearsal steps completed"></progress>
             <p class="hint" id="deadline"></p>
@@ -132,8 +144,8 @@
           </div>
         </section>
       </div>
-      <section id="evidence" class="panel integrations" aria-labelledby="development-heading"><div class="panel-heading"><h2 id="development-heading">Retained DEVELOPMENT evaluations</h2><span class="small-tag">ATTACHED HISTORICAL EVIDENCE</span></div><p class="hint">Existing Carbon receipts attached by the local operator. These were not launched by this browser. Their original disposition is preserved; verification does not establish an improvement or official qualification.</p><div id="development-sources"><p class="hint">Connect to inspect attached sources.</p></div></section>
-      <section id="integration-queue" class="panel integrations"><div class="panel-heading"><h2>Integration queue</h2><span class="small-tag">NOT OFFERED</span></div><div id="integrations" class="integration-grid"><p class="hint">Connect to read the integration list.</p></div></section>
+      <section id="evidence" class="panel integrations" aria-labelledby="development-heading"><div class="panel-heading"><h2 id="development-heading">Retained DEVELOPMENT evaluations</h2><span class="small-tag">Attached historical evidence</span></div><p class="hint">Existing Carbon receipts attached by the local operator. These were not launched by this browser. Their original disposition is preserved; verification does not establish an improvement or official qualification.</p><div id="development-sources"><p class="hint">Connect to inspect attached sources.</p></div></section>
+      <section id="integration-queue" class="panel integrations"><div class="panel-heading"><h2>Integration queue</h2><span class="small-tag">Not offered</span></div><div id="integrations" class="integration-grid"><p class="hint">Connect to read the integration list.</p></div></section>
     </section>
     <footer>Private development tool. Do not expose this server to the public internet.<span>Practice evidence ≠ qualification</span></footer>
   </main>

@@ -139,14 +139,30 @@ def backend_record(device, observed):
     }
 
 
+def remote_worker(image):
+    """Battery's worker on the miner's own remote setup: the pinned GPU
+    worker, with the JAX platform its GPU practice program runs on
+    (OWNER-MINER-COMPUTE-LINK-ONLY-01). The route itself is the Challenge-
+    neutral `carbon.compute.remote_route`."""
+    from carbon.compute.remote_runner import RemoteWorker
+
+    if not is_gpu_image(image):
+        raise ValueError("exact pinned GPU worker image required")
+    return RemoteWorker(image=image, environment=(("JAX_PLATFORMS", JAX_PLATFORMS),))
+
+
 def remote_backend_record(remote, observed):
     """What the feedback records about a practice run on the miner's own
-    remote GPU machine (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+    remote setup (OWNER-MINER-COMPUTE-LINK-ONLY-01): the one remote record
+    (transport, how the worker was verified, job transport, cleanup), what
+    JAX observed, and that it is speed only."""
     return {
         "kind": "REMOTE_GPU",
         "runner": "carbon.compute.remote_runner",
+        "transport": remote.get("transport"),
+        "image_verified_by": remote.get("image_verified_by"),
         "job_transport": remote.get("job_transport"),
-        "container_removed": remote.get("container_removed") is True,
+        "cleanup": remote.get("cleanup"),
         "jax_platforms": JAX_PLATFORMS,
         "observed": observed,
         "purpose": "speed_only",

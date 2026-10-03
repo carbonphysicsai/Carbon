@@ -184,19 +184,26 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             (
                 "carbon.development_session.battery_gpu:gpu_scope",
                 "carbon.battery.research:BatteryPractice",
+                "carbon.development_session.battery_gpu:remote_worker",
+                "carbon.compute.remote_route:campaign_runner",
             ),
             "Setup (Set up your environment, Compute) offers this machine's "
-            "CPU, every miner's default, or its own GPU: setup detects the GPU, "
-            "installs the host device record and verifies the pinned GPU "
-            "worker (scripts/dev/accelerator_worker_image.sh). Battery practice "
-            "then runs on the GPU with JAX_PLATFORMS=cuda, and the feedback "
-            "records the backend observed. GPU practice is for speed only; the "
-            "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
-            "A real practice on a local GPU is the slice's acceptance and needs "
-            "a GPU host. Carbon rents no compute "
-            "(OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU route of slices "
-            "4 and 4b is retired, and a GPU machine the miner runs elsewhere "
-            "is connected over SSH once setup offers it.",
+            "CPU, every miner's default, its own GPU, or the miner's own "
+            "remote machine or container. For this machine's GPU, setup "
+            "detects it, installs the host device record and verifies the "
+            "pinned GPU worker (scripts/dev/accelerator_worker_image.sh); "
+            "battery practice then runs on it with JAX_PLATFORMS=cuda (C-MLP-03 "
+            "slice 3). A remote setup is any the miner runs "
+            "(OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02), reached "
+            "with their own SSH: a machine with Docker (ssh-docker, the worker "
+            "checked by image ID and sent with consent) or a container started "
+            "from the pinned worker (ssh-container, its build identity "
+            "checked). Carbon never starts, stops or bills it, and the route "
+            "is Challenge-neutral (docs/development/MINER_REMOTE_SETUP.md). "
+            "Every feedback records the backend observed. GPU practice is for "
+            "speed only; the validator rebuilds on its own pinned backend. A "
+            "real practice on a local GPU, and one on a remote setup, are the "
+            "slices' acceptance and need the hardware.",
         ),
         "model": Provided(
             (

@@ -88,7 +88,7 @@ The company's commercial plan is to use the subnet as a research team and pay fo
 
 ## Development Hub
 
-Use the [GitHub reading guide](docs/development/carbon_hub/orientation/START_HERE.md) to explore the implementation map. The [HTML Hub](docs/development/carbon_hub/index.html) opens as a local file after cloning; GitHub's file view does not host it. Contributors follow the [Hub maintenance contract](docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md) when changes affect the map.
+Use the [GitHub reading guide](docs/development/carbon_hub/orientation/START_HERE.md) to explore the implementation map. The [HTML Hub](docs/development/carbon_hub/index.html) opens as a local file after cloning; GitHub's file view does not host it. The Hub was retired on 2026-10-03 (OWNER-WORKFLOW-SPEED-01): it is frozen history, not maintained, and no merge requirement.
 
 ## Development
 

@@ -11,6 +11,22 @@ export PATH="${VIRTUAL_ENV}/bin:${PATH}"
 
 cd "${repo_root}"
 
+# CARBON_CI_SHARD=<index>/<count> splits this command across parallel runners.
+# The default CPU suite is divided by test file (scripts/dev/ci_shard.py); every
+# other lane runs whole on exactly one shard. Unset means one shard: the full
+# serial command, as local and dev-image runs use it.
+shard_spec="${CARBON_CI_SHARD:-0/1}"
+if [[ ! "${shard_spec}" =~ ^([0-9]+)/([1-9][0-9]*)$ ]] \
+  || (( 10#${BASH_REMATCH[1]} >= 10#${BASH_REMATCH[2]} )); then
+  echo "Invalid CARBON_CI_SHARD '${shard_spec}'; expected <index>/<count>." >&2
+  exit 2
+fi
+shard_index=$(( 10#${BASH_REMATCH[1]} ))
+shard_count=$(( 10#${BASH_REMATCH[2]} ))
+# Lane n runs on shard n mod count, so the heavier lanes spread out.
+on_shard() { (( $1 % shard_count == shard_index )); }
+echo "==> canonical CI shard ${shard_index}/${shard_count}"
+
 if ! quality_base="$(git rev-parse --verify --end-of-options "${quality_base_ref}^{commit}" 2>/dev/null)"; then
   echo "Carbon CI cannot resolve QUALITY_BASE_SHA '${quality_base_ref}' to a commit." >&2
   echo "Fetch the comparison history or set QUALITY_BASE_SHA to an available commit/ref." >&2
@@ -22,83 +38,109 @@ if ! git merge-base "${quality_base}" HEAD >/dev/null 2>&1; then
   exit 2
 fi
 
-echo "==> delivery scope and repository hygiene"
-"${python_bin}" scripts/dev/classify_changes.py \
-  --repository "${repo_root}" \
-  --base "${quality_base}"
-"${python_bin}" scripts/dev/check_delivery_hygiene.py \
-  --repository "${repo_root}" \
-  --base "${quality_base}"
+if on_shard 0; then
+  echo "==> delivery scope and repository hygiene"
+  "${python_bin}" scripts/dev/classify_changes.py \
+    --repository "${repo_root}" \
+    --base "${quality_base}"
+  "${python_bin}" scripts/dev/check_delivery_hygiene.py \
+    --repository "${repo_root}" \
+    --base "${quality_base}"
 
-echo "==> fast preflight"
-QUALITY_BASE_SHA="${quality_base}" ./scripts/dev/preflight.sh
+  echo "==> fast preflight"
+  QUALITY_BASE_SHA="${quality_base}" ./scripts/dev/preflight.sh
 
-echo "==> invariant lane"
-"${python_bin}" -m pytest tests/invariants -m invariant -q
+  echo "==> invariant lane"
+  "${python_bin}" -m pytest tests/invariants -m invariant -q
+fi
 
 echo "==> default CPU lane"
 cpu_profile="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}")"
 case "${cpu_profile}" in
-  DEVELOPMENT_COMPETITION)
-    echo "==> bounded DEVELOPMENT measurement/source/scoring/reward regression; no public transaction"
-    "${python_bin}" -m pytest --collect-only -q >/dev/null
-    development_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --development-tests)"
-    mapfile -t development_tests <<< "${development_manifest}"
-    [[ "${#development_tests[@]}" -gt 0 ]]
-    "${python_bin}" -m pytest "${development_tests[@]}" -q
+  DEVELOPMENT_COMPETITION|NETWORK_FOUNDATION|TOOLING_ONLY)
+    # The bounded profiles are small; they run whole on shard 0.
+    if ! on_shard 0; then
+      echo "==> ${cpu_profile} profile runs on shard 0"
+    fi
     ;;
-  NETWORK_FOUNDATION)
-    echo "==> bounded network and tooling regression; full invariant and package lanes retained"
-    "${python_bin}" -m pytest --collect-only -q >/dev/null
-    network_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --network-tests)"
-    mapfile -t network_tests <<< "${network_manifest}"
-    [[ "${#network_tests[@]}" -gt 0 ]]
-    "${python_bin}" -m pytest "${network_tests[@]}" -q
-    ;;
-  TOOLING_ONLY)
-    echo "==> bounded tooling regression suite; all CPU tests must still collect"
-    "${python_bin}" -m pytest --collect-only -q >/dev/null
-    tooling_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --tooling-tests)"
-    mapfile -t tooling_tests <<< "${tooling_manifest}"
-    [[ "${#tooling_tests[@]}" -gt 0 ]]
-    "${python_bin}" -m pytest "${tooling_tests[@]}" -q
-    ;;
-  RUNTIME_FULL)
-    ./scripts/dev/test.sh
-    ;;
+  RUNTIME_FULL) ;;
   *)
     echo "Invalid CPU acceptance profile: ${cpu_profile}" >&2
     exit 2
     ;;
 esac
+case "${cpu_profile}" in
+  DEVELOPMENT_COMPETITION)
+    if on_shard 0; then
+      echo "==> bounded DEVELOPMENT measurement/source/scoring/reward regression; no public transaction"
+      "${python_bin}" -m pytest --collect-only -q >/dev/null
+      development_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --development-tests)"
+      mapfile -t development_tests <<< "${development_manifest}"
+      [[ "${#development_tests[@]}" -gt 0 ]]
+      "${python_bin}" -m pytest "${development_tests[@]}" -q
+    fi
+    ;;
+  NETWORK_FOUNDATION)
+    if on_shard 0; then
+      echo "==> bounded network and tooling regression; full invariant and package lanes retained"
+      "${python_bin}" -m pytest --collect-only -q >/dev/null
+      network_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --network-tests)"
+      mapfile -t network_tests <<< "${network_manifest}"
+      [[ "${#network_tests[@]}" -gt 0 ]]
+      "${python_bin}" -m pytest "${network_tests[@]}" -q
+    fi
+    ;;
+  TOOLING_ONLY)
+    if on_shard 0; then
+      echo "==> bounded tooling regression suite; all CPU tests must still collect"
+      "${python_bin}" -m pytest --collect-only -q >/dev/null
+      tooling_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --tooling-tests)"
+      mapfile -t tooling_tests <<< "${tooling_manifest}"
+      [[ "${#tooling_tests[@]}" -gt 0 ]]
+      "${python_bin}" -m pytest "${tooling_tests[@]}" -q
+    fi
+    ;;
+  RUNTIME_FULL)
+    if (( shard_count == 1 )); then
+      ./scripts/dev/test.sh
+    else
+      # Every shard collects the whole suite and runs its own files.
+      CARBON_TEST_SHARD="${shard_index}/${shard_count}" \
+        ./scripts/dev/test.sh -p scripts.dev.ci_shard
+    fi
+    ;;
+esac
 
-echo "==> package, wheel, and outside-tree lane"
-"${python_bin}" -m pytest \
-  tests/cpu/test_package_installation.py \
-  tests/cpu/test_optional_backends.py \
-  tests/cpu/test_observability.py::test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree \
-  -q -s
+if on_shard 0; then
+  echo "==> package, wheel, and outside-tree lane"
+  "${python_bin}" -m pytest \
+    tests/cpu/test_package_installation.py \
+    tests/cpu/test_optional_backends.py \
+    tests/cpu/test_observability.py::test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree \
+    -q -s
+fi
 
-if [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
+if on_shard 1 && [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
   echo "==> required C-02 JAX development lane"
   "${python_bin}" -m pytest tests/science -q
 fi
 
-if [[ " ${CARBON_UV_GROUPS:-} " == *" science-torch "* ]]; then
+if on_shard 2 && [[ " ${CARBON_UV_GROUPS:-} " == *" science-torch "* ]]; then
   echo "==> required PyTorch reconstruction backend lane"
   CARBON_REQUIRE_TORCH=1 "${python_bin}" -m pytest \
     tests/cpu/test_battery_torch_backend.py \
     tests/cpu/test_battery_construction_contract.py -q
 fi
 
-if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
+if on_shard 3 && [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
   echo "==> pinned standard MCP external-client interoperability"
   "${python_bin}" -m pytest tests/service/test_standard_mcp_stdio.py \
     tests/service/test_standard_mcp_cli.py tests/service/test_standard_mcp_http.py \
     tests/service/test_standard_mcp_apps.py tests/service/test_mcp_app_composition.py \
     tests/service/test_standard_mcp_extensions.py \
     tests/service/test_mcp_task_supervisor.py \
-    tests/service/test_battery_mcp_research.py -q
+    tests/service/test_battery_mcp_research.py \
+    tests/service/test_graphite_miner_path.py -q
   if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then
     "${python_bin}" -m pytest tests/service/test_standard_mcp_typescript.py -q
     # The MCP conformance suite is not collected by the default testpaths, so it
@@ -118,19 +160,27 @@ fi
 # workflow step because the workflow delegates all of its semantics to these
 # scripts, and adding a step there would have widened what that invariant pins
 # instead of respecting it. Skipped, loudly, where no browser exists.
-if "${python_bin}" -c "import sys; sys.path.insert(0, 'docs/development/carbon_hub/tools'); import browser_smoke_test as cdp; cdp.discover_browser()" >/dev/null 2>&1; then
-  echo "==> Launchpad real-browser smoke"
-  "${python_bin}" scripts/dev/miner_launchpad/browser_smoke.py
-else
-  echo "==> Launchpad real-browser smoke SKIPPED: no Chromium-family browser found"
+if on_shard 4; then
+  if "${python_bin}" -c "import sys; sys.path.insert(0, 'docs/development/carbon_hub/tools'); import browser_smoke_test as cdp; cdp.discover_browser()" >/dev/null 2>&1; then
+    echo "==> Launchpad real-browser smoke"
+    "${python_bin}" scripts/dev/miner_launchpad/browser_smoke.py
+  else
+    echo "==> Launchpad real-browser smoke SKIPPED: no Chromium-family browser found"
+  fi
 fi
 
-echo "==> canonical/legacy authority boundary"
-"${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
+if on_shard 0; then
+  echo "==> canonical/legacy authority boundary"
+  "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 
-echo "==> terminal committed and local Git diff hygiene"
-"${python_bin}" scripts/dev/check_diff_hygiene.py \
-  --repository "${repo_root}" \
-  --base "${quality_base}"
+  echo "==> terminal committed and local Git diff hygiene"
+  "${python_bin}" scripts/dev/check_diff_hygiene.py \
+    --repository "${repo_root}" \
+    --base "${quality_base}"
+fi
 
-echo "Carbon canonical CI gates passed."
+if (( shard_count == 1 )); then
+  echo "Carbon canonical CI gates passed."
+else
+  echo "Carbon canonical CI shard ${shard_index}/${shard_count} passed."
+fi

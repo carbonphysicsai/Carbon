@@ -11,11 +11,24 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from pathlib import Path
 
 SCHEMA = "carbon.launchpad.installed-images.v1"
 FILE = "installed-images.json"
 FIELDS = ("image_manifest", "analysis_image_manifest", "gpu_image_manifest")
+#: Where `scripts/dev/accelerator_worker_image.sh` writes the GPU worker's
+#: manifest by default. A miner whose controller has no GPU builds it with
+#: that script for their remote setup (`install_miner.sh --gpu` checks for a
+#: local NVIDIA driver first), and setup still finds it.
+GPU_DEFAULT = ".carbon-artifacts/accelerator-worker-image.json"
+#: The one command that builds each image, named when setup finds none: the
+#: script in the checkout and its arguments.
+BUILD = {
+    "image_manifest": ("scripts/install_miner.sh", "--no-start"),
+    "analysis_image_manifest": ("scripts/install_miner.sh", "--no-start"),
+    "gpu_image_manifest": ("scripts/dev/accelerator_worker_image.sh",),
+}
 
 
 def write(
@@ -57,6 +70,30 @@ def read(state_dir):
         and Path(record[field]).is_file()
     }
     return found or None
+
+
+def found(state_dir, repo) -> dict:
+    """Each image setup can fill in: its path and who recorded it, or none
+    and the one command, from the checkout `repo`, that builds it.
+
+    The installer's record comes first. Only the GPU worker is also looked
+    for where its build script writes it; setup verifies every image anyway.
+    """
+    recorded = read(state_dir) or {}
+    images = {}
+    for field in FIELDS:
+        path, by = recorded.get(field), "install_miner.sh"
+        if path is None and field == "gpu_image_manifest":
+            default = Path(repo) / GPU_DEFAULT
+            if default.is_file() and not default.is_symlink():
+                path, by = str(default), "accelerator_worker_image.sh"
+        script, *arguments = BUILD[field]
+        images[field] = {
+            "path": path,
+            "found_by": by if path else None,
+            "build": " ".join([shlex.quote(str(Path(repo) / script)), *arguments]),
+        }
+    return images
 
 
 def main(argv=None):
