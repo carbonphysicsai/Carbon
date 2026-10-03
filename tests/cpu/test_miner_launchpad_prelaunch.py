@@ -313,9 +313,14 @@ def test_declared_gpu_research_is_reviewed_as_its_own_runtime(tmp_path, monkeypa
     assert review["final_evaluation"]["selected_by_research_runtime"] is False
     assert review["execution"]["assurance"]["validator_grade"] is False
     assert review["execution"]["assurance"]["official_eligible"] is False
-    # A GPU research selection says nothing about Julia, which keeps its own
-    # CPU route.
+    # Julia on the GPU is claimed only for a campaign that has authored Julia
+    # and a local GPU lane (JULIA-GPU-01); this one has no authored Julia.
     assert review["capabilities"]["julia_on_gpu"] is False
+    # Declared authored Julia names its image record, as a GPU names its own.
+    cfg["runtime"]["authored_research"] = [{"schema": "fixture-scope"}]
+    cfg["authored_julia_image"] = str(tmp_path / "authored-julia-image.json")
+    write(bridge, cfg)
+    assert bridge.preflight()["review"]["capabilities"]["julia_on_gpu"] is True
 
 
 def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):

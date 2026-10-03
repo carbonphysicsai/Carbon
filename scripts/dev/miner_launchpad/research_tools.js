@@ -169,7 +169,8 @@
     const limit = (w.doc.toolbox?.workspace || []).find(a => a.id === action)?.limits;
     const lane = w.state?.gpu_lane;
     const wall = device === "gpu" && lane?.kind === "remote_gpu" ? "required, " + lane.seconds[0] + " to " + lane.seconds[1] + " s on your remote GPU" : typeof limit === "number" ? "up to " + limit + " s" : limit ? String(limit) : "your allowance, or none";
-    const where = device === "gpu" && lane ? " Runs on " + lane.label + ", in the campaign's pinned GPU worker image (its packages differ from the CPU sandbox), on your machine and your bill. Isolation: " + (lane.isolation || "not stated, so assume none") + ". The validator stays on CPU." : " Runs on CPU, in the isolated analysis sandbox.";
+    const image = action === "run_julia" ? "the campaign's Julia image (CUDA.jl on CUDA 13.0)" : "the campaign's pinned GPU worker image (its packages differ from the CPU sandbox)";
+    const where = device === "gpu" && lane ? " Runs on " + lane.label + ", in " + image + ", on your machine and your bill. Isolation: " + (lane.isolation || "not stated, so assume none") + ". The validator stays on CPU." : " Runs on CPU, in the isolated analysis sandbox.";
     return "Costs 1 research trial of your own budget: used " + used + ". Wall time: " + wall + "." + where + " Research only, never part of a submission.";
   }
 
@@ -266,18 +267,30 @@
     // CPU or GPU, per run, only when this campaign has a GPU lane (RSURF-D20).
     const lane = w.state.gpu_lane;
     const device = select([["cpu", "CPU (isolated analysis sandbox)"], ...(lane ? [["gpu", lane.label]] : [])], "cpu", "Device");
-    field(box, "Runs on", device, lane ? "Choose per run. run_julia runs on CPU: its environments have no CUDA." : "CPU only: this campaign was launched without a GPU. Set one up in Set up, Compute, for your next campaign.");
+    // run_julia on the GPU only where this campaign has Julia, the lane runs
+    // it, and the environment has CUDA (JULIA-GPU-01): the lane says which.
+    const juliaGpuEnvironments = julia && lane && (lane.actions || []).includes("run_julia") ? (lane.julia_environments || []) : [];
+    const gpuNote = !lane ? "CPU only: this campaign was launched without a GPU. Set one up in Set up, Compute, for your next campaign."
+      : !julia ? "Choose per run."
+      : juliaGpuEnvironments.length ? "Choose per run. run_julia runs on this GPU in its " + juliaGpuEnvironments.join(", ") + " environment (CUDA.jl on CUDA 13.0); its other environments run on CPU."
+      : "Choose per run. run_julia runs on CPU: this GPU lane runs run_python only.";
+    field(box, "Runs on", device, gpuNote);
     device.disabled = !lane;
     const source = input("textarea", PYTHON, "Source"); source.className = "rs-code"; source.rows = 12;
     field(box, "Source", source);
+    const syncDevice = () => {
+      const juliaOnCpuOnly = language.value === "run_julia" && !juliaGpuEnvironments.includes(environment.value);
+      if (juliaOnCpuOnly) device.value = "cpu";
+      device.disabled = !lane || juliaOnCpuOnly;
+      cost.textContent = costLine(w, language.value, device.value);
+    };
     language.addEventListener("change", () => {
       const isJulia = language.value === "run_julia";
       envField.parentElement.hidden = !isJulia;
       if (source.value === PYTHON || source.value === JULIA) source.value = isJulia ? JULIA : PYTHON;
-      if (isJulia) device.value = "cpu";
-      device.disabled = !lane || isJulia;
-      cost.textContent = costLine(w, language.value, device.value);
+      syncDevice();
     });
+    environment.addEventListener("change", syncDevice);
     device.addEventListener("change", () => { cost.textContent = costLine(w, language.value, device.value); });
     const files = el("div", undefined, "rs-checks");
     field(box, "Files to stage", files, "Only the files you tick are copied in; refresh the workspace to see new ones.");

@@ -30,13 +30,22 @@ qualification; the lanes stay unqualified until a human review and real
 GPU-host checks (AGENTS.md §13).
 
 A program finds its outputs at `../output` in every lane. Each run records
-the device it ran on. `run_julia` takes the same argument, but the pinned
-Julia environments carry no CUDA packages, so `gpu` is refused for it.
+the device it ran on.
+
+`run_julia` takes the same argument (JULIA-GPU-01 slice 2, OWNER-EXEC-APPROVALS-01
+item 4). On this machine's GPU it runs in the same miner lane, in the composed
+Julia image, in an environment that carries CUDA.jl (`current`: CUDA.jl
+6.2.2 on the CUDA 13.0 toolkit). `pde` has no CUDA and is refused on `gpu`
+(`julia_gpu_environment_without_cuda`). A remote GPU runs `run_python` only:
+the remote route is bound to the one pinned Python GPU worker, so Julia there
+is refused under its own code (`remote_julia_gpu_unavailable`).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from .julia_depot import CUDA_ENVIRONMENTS, DEFAULT_ENVIRONMENT
 
 DEVICES = ("cpu", "gpu")
 #: The miner's program as staged on a remote setup, and the file the wrapper
@@ -103,6 +112,9 @@ class GpuLane:
                 "label": "your GPU (this machine)",
                 "image": self.image.image_id,
                 "isolation": LOCAL_ISOLATION,
+                # run_julia on gpu: in its CUDA environments only.
+                "actions": ["run_python", "run_julia"],
+                "julia_environments": list(CUDA_ENVIRONMENTS),
             }
         transport = getattr(self.remote, "transport", None)
         return {
@@ -111,6 +123,7 @@ class GpuLane:
             "transport": getattr(transport, "name", None),
             "image": self.image.image_id,
             "seconds": list(REMOTE_SECONDS),
+            "actions": ["run_python"],
             "isolation": (
                 REMOTE_SANDBOX
                 if getattr(transport, "sandboxed", False)
@@ -144,6 +157,22 @@ def _remote_unsandboxed_refused(lane):
     )
 
 
+def _julia_runner(executor, args):
+    """`run_julia` on this machine's GPU: the campaign's composed Julia image
+    and the chosen environment, which `refusal` has already checked carries
+    CUDA."""
+    from .julia_analysis import run_julia
+
+    image = getattr(executor, "julia_image", None)
+    if image is None:
+        raise ValueError("authored Julia is not available for this campaign")
+    return (
+        run_julia,
+        image,
+        {"environment": args.get("environment", DEFAULT_ENVIRONMENT)},
+    )
+
+
 def refusal(action, arguments, lane):
     """The registered correction for a device choice that cannot run, or
     None. Checked before dispatch, so nothing starts and nothing is charged."""
@@ -152,10 +181,14 @@ def refusal(action, arguments, lane):
         return "device_choice_invalid"
     if device == "cpu":
         return None
-    if action == "run_julia":
-        return "julia_gpu_unavailable"
     if lane is None:
         return "gpu_lane_not_configured"
+    if action == "run_julia":
+        if lane.remote is not None:
+            return "remote_julia_gpu_unavailable"
+        if arguments.get("environment", DEFAULT_ENVIRONMENT) not in CUDA_ENVIRONMENTS:
+            return "julia_gpu_environment_without_cuda"
+        return None
     if lane.remote is not None and _remote_unsandboxed_refused(lane):
         return "remote_gpu_unsandboxed_opt_in_required"
     seconds = arguments.get("seconds")
@@ -167,8 +200,10 @@ def refusal(action, arguments, lane):
     return None
 
 
-def run(executor, *, identity, args, files):
-    """Run one GPU code cell for `executor` and return its public result."""
+def run(executor, *, identity, args, files, action="run_python"):
+    """Run one GPU code cell for `executor` and return its public result.
+
+    `action` is `run_python` or, on this machine's GPU only, `run_julia`."""
     from .research_carrier import (
         KEPT_BYTES,
         MINER_GPU,
@@ -180,7 +215,7 @@ def run(executor, *, identity, args, files):
     )
 
     lane = executor.gpu
-    code = refusal("run_python", args, lane)
+    code = refusal(action, args, lane)
     if code is not None:
         raise ValueError(code)
     if lane.remote is None:
@@ -192,16 +227,23 @@ def run(executor, *, identity, args, files):
             "device_kind": device.device_kind,
             "device_record_digest": device.digest,
         }
+        if action == "run_julia":
+            runner, image, selection = _julia_runner(executor, args)
+            # What ran is the composed Julia image, not the Python GPU worker.
+            ran = {**ran, "image": image.image_id, "language": "julia", **selection}
+        else:
+            runner, image, selection = run_script, lane.image, {}
         try:
-            result = run_script(
+            result = runner(
                 executor.ledger,
                 owner=executor.owner,
                 identity=identity,
                 source=args["source"],
                 files=files,
-                image=lane.image,
+                image=image,
                 seconds=args.get("seconds"),
                 accelerator=MINER_GPU,
+                **selection,
             )
         except MinerProgramFailure as failure:
             return {

@@ -101,9 +101,15 @@ TASK_CORRECTIONS = {
         "a GPU. Run on cpu, or set up a GPU (Control Center: Set up, Compute) "
         "and launch a campaign with it."
     ),
-    "julia_gpu_unavailable": (
-        "The pinned Julia environments carry no CUDA packages, so run_julia runs "
-        "on cpu only; run_python runs on the GPU."
+    "julia_gpu_environment_without_cuda": (
+        "run_julia runs on the GPU only in an environment that carries CUDA.jl: "
+        "current (CUDA 13.0). pde has no CUDA. Use environment=current with "
+        "device=gpu, or run pde on cpu."
+    ),
+    "remote_julia_gpu_unavailable": (
+        "Your remote GPU runs run_python only: the remote route is bound to the "
+        "pinned Python GPU worker. Run run_julia on cpu, or on this machine's GPU "
+        "with a campaign launched with it."
     ),
     "remote_gpu_seconds_required": (
         "A run on your remote GPU needs seconds between 40 and 3600 in its "
@@ -417,6 +423,8 @@ class ResearchMinerTools:
                     getattr(getattr(c, "executor", None), "gpu", None),
                 )
                 if code is not None:
+                    # The device choice is what is refused; the correction
+                    # names the environment that would let it run.
                     raise TaskContractMismatch(
                         code,
                         (

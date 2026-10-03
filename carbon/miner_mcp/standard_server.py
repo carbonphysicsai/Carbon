@@ -378,7 +378,16 @@ def _create_server(
                     if adapter.gpu_lane["kind"] == "remote_gpu"
                     else ""
                 )
-                + ". Write outputs to ../output. run_julia runs on cpu only."
+                + ". Write outputs to ../output. "
+                + (
+                    "run_julia also accepts device=gpu here, in its "
+                    + ", ".join(adapter.gpu_lane.get("julia_environments", []))
+                    + " environment (CUDA.jl on CUDA 13.0, the same lane and "
+                    "isolation); its other environments run on cpu."
+                    if "run_julia" in adapter.gpu_lane.get("actions", [])
+                    else "run_julia runs on cpu only: this GPU lane runs "
+                    "run_python only."
+                )
                 if adapter.gpu_lane is not None
                 else ""
             )
