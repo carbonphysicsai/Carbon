@@ -137,6 +137,11 @@ async function upload(page, text, name) {
   await page.locator("#show-system").click();
   check("no horizontal page scroll at phone width", await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
 
+  const unexplainedDisabled = await page.evaluate(() => [...document.querySelectorAll("button:disabled, input:disabled, textarea:disabled, select:disabled")]
+    .filter((e) => e.getClientRects().length)
+    .filter((e) => { const ref = document.getElementById(e.getAttribute("aria-describedby") || ""); return !ref || !ref.getClientRects().length || ref.textContent.trim().length < 10; })
+    .map((e) => e.id || e.textContent.trim()));
+  check("every visible disabled control points to a visible reason", unexplainedDisabled.length === 0);
   check("no page errors", errors.length === 0);
   check("no request left the page", outbound.length === 0);
   await browser.close();

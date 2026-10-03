@@ -139,3 +139,16 @@ guided AI conversation and the encrypted handover.
   and the record's measured per-item costs, labelled as compute only and not a
   price, a quote or a commitment to run. A family without evidence shows no
   figure.
+
+## Reconciliation with the owner's migration ticket (2026-09-30, after slices 1-3 merged)
+
+The owner's "Slice 1: migrate the builder without carrying the duplicate-render
+defect" arrived after #448-#450 had merged. Its requirements, checked against main:
+
+- **Source of truth (its section 2).** The live `/workbench/` source is not in any repository. It exists in the owner's site archives (`carbon-site-v3-BUILD-INPUT.zip`, `carbon-site-v3-source.zip`), whose `workbench/` scripts match the live site by SHA-256. Only `engine.js` and `cooling-v02.js` were brought under version control, byte for byte, with provenance in `data/problem_engine_provenance.json`. The builder UI in `src/system_builder.js` was written from `app.js`'s logic. `index.html` and `assist-ui.js`, which carry the defect, were not migrated.
+- **The duplicate render (3, 4).** The Pilot Designer's assist markup has one owner: the HTML template (`src/intake_shell.html`). `intake_app.js` only looks elements up by ID and creates none. A CI test with a specimen asserts no duplicate ID in the built page (#454), and browser checks repeat it after interaction.
+- **Disabled controls (4.3).** Every control the page ships disabled, or disables later, points by `aria-describedby` to a visible reason. A CI test and a browser check enforce this.
+- **One consent (4.4).** There is one consent checkbox. The other two are a timing statement and a conversation-sharing choice.
+- **Copy discipline (5.1).** The four hedges are carried word for word, and a test pins them.
+- **Unchanged (5.2-5.5).** The opt-in guidance and its Chutes disclosure, E8, the additive v2 handover (tested against the internal import and the receiver), and the receiver itself.
+- **Deployment (6).** Not from this lane. The Ask Carbon lane's candidate #453 carries the page. Correction to the ticket: the owner captured the live `carbonwebsite` version on 2026-09-30 as `dc4469a7-f4da-4437-aaa1-2789277e57fc`; `f7954cb2` is the earlier rollback target.

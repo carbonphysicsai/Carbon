@@ -82,6 +82,19 @@ def state(result):
     return result.payload["terminal_task"]["state"]
 
 
+async def until_dispatch_settles(adapter):
+    """Wait for every owned worker thread to finish its run, so the
+    `shutdown_tasks` that follows has nothing live to cancel.
+
+    A fixed sleep raced the worker thread: under CI load the run had not
+    finished, so shutdown cancelled the task it was meant to retain, and the
+    cleanup attach first observed CANCELLED instead of QUEUED.
+    """
+    active = [future for _, future in adapter._sdk.wrapper._active.values()]
+    assert active, "start_task scheduled no owned worker"
+    await asyncio.gather(*active)
+
+
 def block(composition):
     ready, release = threading.Event(), threading.Event()
     original = composition.executor._workspace_action
@@ -222,7 +235,7 @@ def test_cleanup_attachment_reads_and_cancels_expired_owned_work_without_dispatc
 
     async def enqueue():
         value = await adapter.start_task(request())
-        await asyncio.sleep(0.02)
+        await until_dispatch_settles(adapter)
         await adapter.shutdown_tasks()
         return task_id(value)
 
@@ -289,7 +302,7 @@ def test_running_orphan_restart_remains_uncertain_and_does_not_redispatch(
 
     async def start():
         value = await adapter.start_task(request())
-        await asyncio.sleep(0.05)
+        await until_dispatch_settles(adapter)
         await adapter.shutdown_tasks()
         return task_id(value)
 
@@ -371,7 +384,7 @@ def test_actual_cli_cleanup_mode_attaches_after_the_budget_is_spent(
 
     async def queued():
         result = await adapter.start_task(request())
-        await asyncio.sleep(0.05)
+        await until_dispatch_settles(adapter)
         await adapter.shutdown_tasks()
         return task_id(result)
 

@@ -22,6 +22,8 @@
     next_discussion: "next discussion",
   };
   const guidanceBoundaryHtml = $("guidance-boundary").innerHTML;
+  // The undo button's reason is visible only while it is disabled.
+  new MutationObserver(() => { $("undo-reason").hidden = !$("undo-suggestion").disabled; }).observe($("undo-suggestion"), { attributes: true, attributeFilter: ["disabled"] });
   const pilot = Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, ""]));
   const provenance = new Map();
   const acceptedSuggestions = [];
@@ -329,7 +331,7 @@
     builder.reset();
   };
   $("show-consent").onclick = () => { $("consent-panel").hidden = false; renderBrief(); };
-  $("consent-check").onchange = () => { $("enable-guidance").disabled = !$("consent-check").checked; };
+  $("consent-check").onchange = () => { $("enable-guidance").disabled = !$("consent-check").checked; $("enable-reason").hidden = $("consent-check").checked; };
   $("enable-guidance").onclick = enableGuidance; $("guidance-form").onsubmit = sendGuidance;
   $("clear-conversation").onclick = () => { conversation = []; pendingProposals = []; clearedLocally = true; $("conversation").innerHTML = '<article class="message assistant"><strong>Carbon</strong><p>Conversation cleared on this device. This does not delete provider records. Your accepted brief changes remain.</p></article>'; renderProposals(); renderBrief(); };
   $("undo-suggestion").onclick = () => { const item = undoStack.pop(); if (!item) return; setValue(item.proposal.field, item.previous); const index = acceptedSuggestions.findIndex((entry) => entry.suggestion_id === item.proposal.suggestion_id); if (index >= 0) acceptedSuggestions.splice(index, 1); provenance.set(item.proposal.field, { origin: item.previous ? "CLIENT_TYPED" : "UNKNOWN", suggestion_id: null }); $("undo-suggestion").disabled = !undoStack.length; renderBrief(); };
