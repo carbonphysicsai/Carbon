@@ -58,9 +58,6 @@ class ChallengeCampaign:
     #: (root, runtime) -> the campaign's verified GPU worker image, or None
     #: when its runtime declares no GPU practice.
     gpu_image: Callable = lambda root, runtime: None
-    #: (root, manifest, credential file) -> the campaign's rented-GPU practice
-    #: runner on the miner's own provider account, or None.
-    rented: Callable = lambda root, manifest, credential: None
     # What the Control Center reads, so it never names a Challenge itself
     # (C-MLP-04). Each defaults to "not offered".
     #: The practice feedback modes this Challenge applies; FULL is every
@@ -76,10 +73,6 @@ class ChallengeCampaign:
     gpu_scope: Callable | None = None
     #: (runtime) -> the declared GPU practice scope, checked for shape.
     declared_gpu: Callable | None = None
-    #: (compute, image) -> the rented-GPU scope; None when not offered.
-    rented_scope: Callable | None = None
-    #: (runtime) -> the declared rented choice, checked for shape.
-    declared_rented: Callable | None = None
 
 
 def _manifest_challenge(manifest):
@@ -133,15 +126,12 @@ def _battery():
         check_attached=battery.check_attached,
         compose=battery.compose,
         gpu_image=battery.host_gpu_image,
-        rented=battery.host_rented_runner,
         # Fail closed: a campaign that declares no modes knows only FULL.
         feedback_modes=tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",))),
         feedback_schema="carbon.battery.permitted-feedback.v1",
         intake_check=_battery_intake,
         gpu_scope=battery_gpu.gpu_scope,
         declared_gpu=battery_gpu.declared_scope,
-        rented_scope=battery_gpu.rented_scope,
-        declared_rented=battery_gpu.declared_rented,
     )
 
 
@@ -214,11 +204,3 @@ def declared_gpu(runtime):
     if campaign.declared_gpu is None:
         raise ValueError("this Challenge offers no GPU practice")
     return campaign.declared_gpu(runtime)
-
-
-def declared_rented(runtime):
-    """The declared rented-GPU choice, checked by the Challenge it names."""
-    campaign = campaign_for_id(runtime_challenge(runtime))
-    if campaign.declared_rented is None:
-        raise ValueError("this Challenge offers no rented GPU practice")
-    return campaign.declared_rented(runtime)

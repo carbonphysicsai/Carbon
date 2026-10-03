@@ -1,26 +1,27 @@
-"""The one-job server a rented GPU pod runs (C-MLP-03 slice 4).
+"""The one-job server a remote GPU worker container runs.
 
-A rented box receives the pinned worker image and one job's public inputs,
-nothing else. This module is that job's whole surface: it is part of the
-`carbon` wheel inside the pinned worker image, and the pod's start command is
-`python -I -m carbon.compute.job_server`. The miner's controller (on their own
-machine, holding every key) then:
+A remote machine receives the pinned worker image and one job's public
+inputs, nothing else. This module is that job's whole surface: it is part of
+the `carbon` wheel inside the pinned worker image, and the container's start
+command is `python -I -m carbon.compute.job_server`. The miner's controller
+(on their own machine, holding every key) then:
 
 1. waits for `GET /status`;
 2. uploads the staged inputs once (`PUT /stage`, a gzip tar of flat files);
 3. starts the fixed program (`POST /run`) and polls `GET /status`;
 4. downloads the output once (`GET /output`), after which the server exits;
-5. terminates the pod and verifies it is gone.
+5. removes the job's container. The machine itself is the miner's to start
+   and stop (OWNER-MINER-COMPUTE-LINK-ONLY-01).
 
 Every request but `/status` must carry the job's bearer token, a random value
-Carbon generates per job and passes in the pod's environment. It is not a
-provider key, a hotkey or any credential of the miner's: it opens this one job
-and nothing else. The program runs with the carrier's working-directory layout
-(`workspace/` holds the inputs, `output/` beside it), so the same practice
-program runs here as in the local carrier.
+Carbon generates per job and passes in the container's environment. It is not
+a provider key, a hotkey or any credential of the miner's: it opens this one
+job and nothing else. The program runs with the carrier's working-directory
+layout (`workspace/` holds the inputs, `output/` beside it), so the same
+practice program runs here as in the local carrier.
 
-What this is not: an isolation boundary. The pod is the miner's own rented
-machine; nothing that runs here is evidence the validator reads.
+What this is not: an isolation boundary. The machine is the miner's own;
+nothing that runs here is evidence the validator reads.
 """
 
 from __future__ import annotations
@@ -87,7 +88,7 @@ def unpack(blob, maximum):
 
 
 class Job:
-    """One job's state on the pod."""
+    """One job's state in the worker container."""
 
     def __init__(self, root, seconds):
         self.root = Path(root)

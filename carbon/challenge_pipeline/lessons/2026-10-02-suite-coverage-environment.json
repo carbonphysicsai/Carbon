@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-suite-coverage-environment",
+ "recorded_at": "2026-10-02T20:01:18Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "protocol",
+ "execution": {
+  "kind": "coverage_run",
+  "ref": "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json (Phase 1 step 3)",
+  "description": "Ran suite v1's cited checks for battery to produce the first coverage report."
+ },
+ "expected": "Every check suite v1 cites runs and reports PASS or FAIL.",
+ "observed": "The first run, in the development-only environment, left most checks NOT_RUN because the Challenge's dependency groups were absent. Rerun with battery's groups, all eight vectors passed.",
+ "keep": [
+  "NOT_RUN is reported as NOT_RUN and never counted as a pass."
+ ],
+ "change": [
+  "Each Challenge declares the dependency groups its checks need; the suite records them per Challenge."
+ ],
+ "protocol_elements": [
+  "suite_v1.environments",
+  "coverage_run"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
