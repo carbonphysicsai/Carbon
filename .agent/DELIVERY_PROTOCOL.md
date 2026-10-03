@@ -17,8 +17,9 @@ qualification, and LIVE acceptance remain human-reserved and unchanged.
 2. Use one branch and one PR per ticket by default. Develop coherent slices
    with focused tests. Continue through slices without asking for permission
    at each checkpoint unless the owner requested a stop.
-3. Record material decisions and update affected documentation. Batch Hub
-   maintenance before acceptance. Do not create a contract-only PR, a separate
+3. Record material decisions, one file each under `.agent/decisions/`, and
+   update affected documentation. The Development Hub is retired
+   (OWNER-WORKFLOW-SPEED-01): no Hub maintenance. Do not create a contract-only PR, a separate
    plan, or a review checkpoint merely because a ticket has multiple modules.
    Split independently shippable work when an actual dependency or owner
    instruction requires it; explain the split in the PR.
@@ -218,8 +219,9 @@ or to block implementation; GitHub's pinned environment supplies acceptance.
 Native-host tests are diagnostics, not canonical qualification.
 
 For a ready runtime PR, CI runs the CPU regression suite, invariant tests,
-quality ratchet, package/import checks, and applicable Hub validation. Unknown
-paths retain full runtime acceptance. Contract-only and generated-doc changes
+quality ratchet, and package/import checks, on 8 parallel shards that split the
+CPU suite by test file and run every other lane once (OWNER-WORKFLOW-SPEED-01).
+Unknown paths retain full runtime acceptance. Contract-only and generated-doc changes
 retain their existing lighter classified suites. Test semantics remain intact.
 
 The clean development-image build runs for environment, dependency, workflow,
@@ -230,27 +232,13 @@ The aggregate Merge gate rejects failed or skipped required jobs.
 Draft PR updates do not start acceptance. Marking a draft ready starts its
 first acceptance run. Ready PR code pushes start acceptance for that revision.
 PR title/body edits, review submissions, and comments do not start full CI.
-The standalone Hub workflow is manual; CI owns normal Hub acceptance once.
 
-A local `validate_hub.py` run is **partial by default**, and it still prints
-`Validation passed`. The diff and change-event coverage is skipped without
-`HUB_DIFF_BASE_SHA`, and the live pull-request block - which checks the PR body's
-hub-impact declaration and binds it to the exact checked-out head - is skipped
-without `GITHUB_EVENT_PATH` and `HUB_LIVE_PR_PATH`. Each skip is announced as a
-warning, not an error, so a local pass is evidence only about the checks that
-ran; reporting it as a clean Hub result while CI fails states a true fact about a
-different validation run. To reproduce a CI Hub failure, check out the exact PR
-head and supply all three variables, building the live-PR and event payloads from
-the real pull request. See 1.2.
-
-A `HUB_IMPACT_NONE` declaration must state **why the hub's semantics remain
-accurate**, not which paths are untracked. The validator requires a concrete
-scoped reason and looks for reason markers in the text, so a declaration arguing
-only about path coverage can pass on an incidental word while expressing the
-wrong claim. Write the reason the hub's purpose, placement, status, dependencies,
-boundaries, maturity and primary links are unchanged, and confirm that a passing
-check passed for that reason. `HUB_IMPACT_NONE` is unavailable on a
-`map_structural` path regardless of the reason given.
+The Development Hub is retired (OWNER-WORKFLOW-SPEED-01, 2026-10-03). It is no
+merge requirement: PR bodies carry no `HUB_*` declaration, and no PR adds Hub
+events, regenerates Hub files or repins its snapshot. Its files remain as frozen
+history. The lesson recorded here about partial local Hub validation still
+illustrates 1.2: a local pass that skipped checks is evidence only about the
+checks that ran.
 Main smoke checks detect integration failures after merge; they are not a
 second full acceptance or a ticket-closeout ceremony.
 
@@ -269,9 +257,11 @@ Thread-resolution bookkeeping is not an additional gate; actual unresolved
 bugs and explicit owner blocks still require disposition. Use normal merge
 commits and retain the API's inexpensive expected-head race guard.
 
-Merge hygiene (conflict resolution in generated Hub files and
-`.agent/DECISIONS.md`, merging when green, and the `merge-priority` lane) is
-governed by `docs/development/MERGE_HYGIENE.md` (OWNER-MERGE-HYGIENE-01).
+Merge hygiene (one decision per file, conflicts in retired Hub files and the
+frozen `.agent/DECISIONS.md`, merging when green, no re-merging main into a
+green PR without a real conflict, and the `merge-priority` lane) is governed by
+`docs/development/MERGE_HYGIENE.md` (OWNER-MERGE-HYGIENE-01, amended by
+OWNER-WORKFLOW-SPEED-01).
 
 Do not require a base refresh solely because main advanced. Inspect the
 integration impact; reconcile conflicts or changed dependencies and validate
@@ -280,7 +270,7 @@ does not prove scientific qualification or conflict-free semantic integration.
 
 CI obtains revision identities from GitHub/Git. Do not ask a human to copy
 head/tree/base SHAs, review counters, or rerun totals into a PR. The PR needs a
-ticket/scope explanation, test summary, risks, and Hub impact where relevant.
+ticket/scope explanation, test summary, and risks.
 Legacy receipt fields are historical metadata and are not merge authority.
 
 The versioned intended rule remains `.github/rulesets/main.v1.json`; the file

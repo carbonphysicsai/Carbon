@@ -6,6 +6,12 @@
 > applies. Older process descriptions below are superseded; ticket scope,
 > historical evidence, and human-reserved scientific/security authority remain.
 
+> **OWNER-WORKFLOW-SPEED-01 (2026-10-03):** the Development Hub is retired. The
+> Hub steps below (map_ref, hub impact, hub events, regeneration, hub
+> validation, the PR's hub-impact declaration) no longer apply. Record each new
+> decision as its own file under `.agent/decisions/`; `.agent/DECISIONS.md` is
+> frozen history. See `docs/development/MERGE_HYGIENE.md`.
+
 **Executor-agnostic.** Use with Codex, Hermes, Claude Code, Cursor agents, or a human developer.
 
 Model choice, API keys, and vendor harness config are **out of band** (see optional `agent_pack/executors/`). This file is only: how to take tickets safely against Carbon.
@@ -165,7 +171,7 @@ Complex tickets: use `agent_pack/PLANS.md`; write under `.agent/plans/`.
 
 Development authorization comes from the active Wave and selected ticket, not from prior multi-role approval.
 
-A material development decision must be recorded in `.agent/DECISIONS.md` or the applicable ticket, plan, or specification. Decisions in Carbon's SciML / Technical Lead lane must be surfaced in GitHub issue #42 and mention `@harshaa765`. Owner-reserved decisions and decisions explicitly deferred by a lead route to owner issue #41.
+A material development decision must be recorded as its own file under `.agent/decisions/` or in the applicable ticket, plan, or specification. Decisions in Carbon's SciML / Technical Lead lane must be surfaced in GitHub issue #42 and mention `@harshaa765`. Owner-reserved decisions and decisions explicitly deferred by a lead route to owner issue #41.
 
 Notification is evidence of delivery and visibility, not approval. No affirmative response, reaction, approval, or waiting period is required for agent-authorized engineering work.
 
@@ -285,7 +291,6 @@ For the active board, success remains:
 - the selected ticket's exact acceptance criteria and DoD are green;
 - concrete implementation, test, CI, review, and normal-merge evidence is recorded;
 - material decisions and required lead notifications are durable;
-- the PR contains exactly one completed hub-impact declaration and the hub's captured map state remains accurate;
 - no constitutional invariant regresses;
 - ticket and Wave evidence accurately preserve all unearned maturity states.
 
