@@ -624,28 +624,9 @@ class GraphiteProvider:
             )
         ledger = self._ledger(run_id)
         ledger.freeze(self._manifest(opened))
-        sdk = toolbox.GraphiteToolbox(
-            role=role,
-            literature_index=self.literature,
-            emit=lambda event_id, body: self._emit(run_id, event_id, body),
-            miner_tools=self.miner_tools,
-        )
         self._active.add(run_id)
         try:
-            report = asyncio.run(
-                run_epoch(
-                    ledger,
-                    owner=OWNER,
-                    epoch=EPOCH,
-                    sdk=sdk,
-                    credential_file=None,
-                    initial_observation=brief["initial_observation"],
-                    transport=self.model.transport_for(selection),
-                    provider=selection,
-                    instructions=role.prompt,
-                    tools=role.tool_schemas(),
-                )
-            )
+            report = asyncio.run(self._epoch(run_id, ledger, role, brief, selection))
         except RunCancelled:
             return self._finish(run_id, "cancelled", None, None)
         except RunCapReached as error:
@@ -658,7 +639,7 @@ class GraphiteProvider:
         except ProviderCallFailed as error:
             # A rejection before generation is settled with no charge; any
             # other failure keeps its full reservation for reconciliation.
-            unresolved = any(c["settlement"] is None for c in self._calls(run_id))
+            unresolved = self._unresolved(run_id)
             return self._finish(
                 run_id,
                 "failed",
@@ -673,7 +654,7 @@ class GraphiteProvider:
                 None,
             )
         except Exception as error:  # noqa: BLE001 - typed below, never echoed
-            unresolved = any(c["settlement"] is None for c in self._calls(run_id))
+            unresolved = self._unresolved(run_id)
             if (
                 not unresolved
                 and type(error) is ValueError
@@ -708,6 +689,34 @@ class GraphiteProvider:
                 run_id, "failed", {"code": "reconciliation_required"}, report
             )
         return self._finish(run_id, "succeeded", None, report)
+
+    async def _epoch(self, run_id, ledger, role, brief, selection):
+        """One research epoch of the session: the role's toolbox as the loop's
+        `sdk`, the role's prompt and closed tools. A later phase overrides
+        this to attach what its role acts through (GRAPHITE-D18)."""
+        sdk = toolbox.GraphiteToolbox(
+            role=role,
+            literature_index=self.literature,
+            emit=lambda event_id, body: self._emit(run_id, event_id, body),
+            miner_tools=self.miner_tools,
+        )
+        return await run_epoch(
+            ledger,
+            owner=OWNER,
+            epoch=EPOCH,
+            sdk=sdk,
+            credential_file=None,
+            initial_observation=brief["initial_observation"],
+            transport=self.model.transport_for(selection),
+            provider=selection,
+            instructions=role.prompt,
+            tools=role.tool_schemas(),
+        )
+
+    def _unresolved(self, run_id):
+        """True when a reservation's outcome is unknown: it keeps its full
+        amount and the run needs reconciliation."""
+        return any(c["settlement"] is None for c in self._calls(run_id))
 
     def _finish(self, run_id, final, failure, report):
         self._crash("before_finish")

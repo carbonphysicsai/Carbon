@@ -9,21 +9,19 @@ from collections.abc import Mapping
 
 from classify_changes import ChangeScope
 
+# The Development Hub is no longer a merge requirement (owner, 2026-10-03), so
+# no scope requires a Hub job. The canonical job is a matrix of shards; its one
+# result succeeds only when every shard does.
 JOB_NAMES = (
     "preflight",
     "canonical",
     "dev_image",
     "contract_authority",
     "derived_documentation",
-    "hub_validation",
 )
 REQUIRED_JOBS = {
-    ChangeScope.RUNTIME_FULL: frozenset(
-        {"preflight", "canonical", "dev_image", "hub_validation"}
-    ),
-    ChangeScope.CONTRACT_AUTHORITY: frozenset(
-        {"preflight", "contract_authority", "hub_validation"}
-    ),
+    ChangeScope.RUNTIME_FULL: frozenset({"preflight", "canonical", "dev_image"}),
+    ChangeScope.CONTRACT_AUTHORITY: frozenset({"preflight", "contract_authority"}),
     ChangeScope.DERIVED_DOCUMENTATION: frozenset(
         {"preflight", "derived_documentation"}
     ),
