@@ -1,0 +1,33 @@
+{
+  "population": "carbon.motor.development-population.v1",
+  "train": {
+    "label": "carbon.motor.pools-v1.train",
+    "batch": "motor-train-v1",
+    "cases": 150,
+    "ok": 150,
+    "solved": {
+      "owner host, pinned container": 26,
+      "RunPod CPU pod, native": 124
+    }
+  },
+  "practice": {
+    "label": "carbon.motor.pools-v1.practice",
+    "batch": "motor-practice-v1",
+    "cases": 30,
+    "ok": 30,
+    "solved": {
+      "owner host, pinned container": 5,
+      "RunPod CPU pod, native": 25
+    }
+  },
+  "private": {
+    "root_commitment": "sha256:5ec0222502eb608c52d1162f4be6c7347deed7b6d4f03777ec4ea31b6d619559",
+    "batch": "motor-private-v1",
+    "cases": 60,
+    "ok": 59,
+    "reference_invalid": 1,
+    "solved": {
+      "owner host, pinned container": 60
+    }
+  }
+}
