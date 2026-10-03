@@ -1,0 +1,54 @@
+{
+ "schema": "carbon.challenge-pipeline.record.v1",
+ "family": "f06",
+ "stage": "queued",
+ "p50s": null,
+ "p95s": null,
+ "cases": null,
+ "hw": "",
+ "suite": "",
+ "attC": null,
+ "attH": null,
+ "attM": null,
+ "attL": null,
+ "rho": null,
+ "regret": null,
+ "n": null,
+ "k": null,
+ "notes": "The photonic coupler (local-supermode reference, not FDTD) is prior work. Designed under OWNER-CHALLENGE-DESIGN-01 before the protocol existed. It is prior work to start from, not a pipeline entry: it enters at Prioritize in queue order after protocol lock, and its pre-protocol timings were not taken on the reference hardware.",
+ "at": "2026-10-02",
+ "gates": {
+  "scope": null,
+  "design": null,
+  "track_a": null,
+  "track_b": null,
+  "deploy": null
+ },
+ "evidence": {
+  "status": null,
+  "brief": null,
+  "design_packet": null,
+  "timing": null,
+  "frozen": null
+ },
+ "prior_work": [
+  {
+   "what": "Photonic coupler repair and local-supermode reference (OWNER-CHALLENGE-DESIGN-01, PR #490)",
+   "ref": ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md"
+  },
+  {
+   "what": "Photonic pilot, 12 of 12 OK",
+   "ref": "docs/development/evidence/photonic-pilot-v1"
+  },
+  {
+   "what": "Photonic pools and baselines",
+   "ref": "docs/development/evidence/photonic-pools-v1"
+  }
+ ],
+ "construction": {
+  "challenge": null,
+  "level": null,
+  "chosen": null,
+  "levels": []
+ }
+}

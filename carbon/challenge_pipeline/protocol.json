@@ -1,0 +1,96 @@
+{
+ "schema": "carbon.challenge-pipeline.protocol.v1",
+ "roadmap": "Design_Specs/Challenge_Roadmap.md",
+ "owners": {
+  "process": "Fitz",
+  "technical": "Ryan",
+  "science": "Harshdeep"
+ },
+ "state": "DEFINING",
+ "version": null,
+ "suite_version": null,
+ "reference_hardware": "runpod-cpu5c-16vcpu",
+ "reference_hardware_spec": "RunPod CPU pod, flavor cpu5c with no fallback, 16 vCPU, the challenge's pinned image; each timing study records the CPU model it ran on",
+ "reference_hardware_approval": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-02"
+ },
+ "construction_ladder": "Design_Specs/Challenge_Admission.md §3 levels 0-5; every Challenge starts at Level 0 and climbs one level at a time by the climb procedure in carbon/challenge_pipeline/ladder.py (OWNER-CHALLENGE-ROADMAP-03); the climb is internal testing on development-only contracts, the owners choose the best level, and the Challenge is frozen, locked and opened to miners at that level only",
+ "lessons": "carbon/challenge_pipeline/lessons/: one entry after every execution; a proposed revision is adopted or declined by a named owner, never applied silently (OWNER-CHALLENGE-ROADMAP-03)",
+ "lock": null,
+ "phase_1": [
+  {
+   "step": 1,
+   "work": "Reconcile battery's current state: contract, EV1-EV3 results, PR 458 status, current exam batch.",
+   "output": "Battery status record with commit IDs.",
+   "reserved": null,
+   "ticket": "CHALLENGE-PROTOCOL-01",
+   "status": "in_progress",
+   "evidence": null
+  },
+  {
+   "step": 2,
+   "work": "Write the four stage definitions, with battery as the worked example: entry criteria, work, Graphite's permissions, output artifact and exit gate for each stage.",
+   "output": "Protocol draft.",
+   "reserved": null,
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 3,
+   "work": "Build test suite v1: Track A attack vectors with severity rules, Track B EV1-EV3, exam rotation and sealed pool.",
+   "output": "Versioned, pinned suite.",
+   "reserved": null,
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 4,
+   "work": "Run battery through Test/iterate with Graphite at construction Level 0: attack, fix, re-score; tune construction and scoring within Level 0 until results stop improving or the iteration budget runs out. Then climb to Level 1 by the climb procedure, as its worked example.",
+   "output": "Iteration log with a lessons entry for every execution, and battery's Level 1 climb record.",
+   "reserved": null,
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 5,
+   "work": "Choose battery's construction level, freeze and run the final evidence: the owners choose the best level step 4's internal testing supports; pinned suite, battery's sealed pool at that level, no changes during the run.",
+   "output": "Frozen evidence record and the first leaderboard entry.",
+   "reserved": null,
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 6,
+   "work": "Set rubric v1: Harshdeep proposes thresholds from what battery showed is achievable and meaningful.",
+   "output": "Rubric v1, entered in §05.",
+   "reserved": "Science proposes the thresholds; the process owner approves them at lock.",
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 7,
+   "work": "Record cost and calendar time for every stage.",
+   "output": "Cycle-time baseline for planning throughput.",
+   "reserved": null,
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  },
+  {
+   "step": 8,
+   "work": "Fitz approves. Protocol v1.0 is locked, with every lesson proposed for it adopted or declined.",
+   "output": "The process package, versioned.",
+   "reserved": "The process owner approves the lock.",
+   "ticket": null,
+   "status": "todo",
+   "evidence": null
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-attacker-brief-protected-markers",
+ "recorded_at": "2026-10-02T20:11:18Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/agent_campaign/graphite/attack.py (Phase 1 step 4)",
+  "description": "Dry-ran the Attacker brief through Graphite's toolbox."
+ },
+ "expected": "The brief built from suite v1's vectors reaches the Attacker.",
+ "observed": "The toolbox's protected-material filter refused it: the vector text names protected things such as credentials.",
+ "keep": [
+  "The filter fails closed on protected words, including in Carbon's own briefs."
+ ],
+ "change": [
+  "Attack goals are written once as shared suite vectors in neutral wording, with a test that none trips the filter."
+ ],
+ "protocol_elements": [
+  "suite_v1.track_a",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
