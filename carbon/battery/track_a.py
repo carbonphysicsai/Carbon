@@ -358,6 +358,106 @@ def rebuild_control():
     return {"accepted": a["accepted"] and a == b}
 
 
+# --- Family 5: what crosses into the worker (construction_evaluation_isolation)
+
+#: Validator-private material the worker must never receive, as distinctive
+#: bytes. They sit beside the staging calls as a validator's state does.
+CANARY_ROOT = b"CANARY-PRIVATE-ROOT-0123456789AB"  # 32 bytes, like a root
+CANARY_LABEL = "CANARY-HIDDEN-LABEL-7f3c"
+CANARY_VALUE = 0.123456789123
+
+
+def _hidden_batch():
+    """A hidden batch as the validator holds it: opaque ids, inputs, and the
+    private references and labels the worker must never see."""
+    cases = {}
+    for i in range(3):
+        case_id = f"screen-{i:04x}"
+        cases[case_id] = {
+            "inputs": {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.2},
+            "reference": {
+                "plating_margin_v": CANARY_VALUE,
+                "label": CANARY_LABEL,
+            },
+        }
+    return cases
+
+
+def _staging_inputs():
+    from carbon.battery.compile import compile_recipe
+
+    _, recipe = compile_recipe(RECIPE_CONTROL)
+    batch = _hidden_batch()
+    return recipe, batch
+
+
+def _stage_all(stager):
+    recipe, batch = _staging_inputs()
+    inputs = {c: row["inputs"] for c, row in batch.items()}
+    return stager(recipe, inputs, batch)
+
+
+def real_stager(recipe, inputs, batch):
+    """The real boundary: the three staging calls the daemon and practice make.
+    They are given what the daemon gives them, while the private state exists."""
+    from carbon.battery import practice, worker
+
+    practice_set, _ = _Practice.get()
+    return {
+        "reconstruct": worker.reconstruct_files(".", recipe, 7),
+        "infer": worker.infer_files(b"model-state", inputs),
+        "practice": practice.staged_files(".", practice_set, recipe, 7),
+    }
+
+
+def leaky_stager(recipe, inputs, batch):
+    """Vulnerable specimen: inference also stages the hidden batch's
+    references and the private root, as a careless refactor might."""
+    staged = real_stager(recipe, inputs, batch)
+    staged["infer"] = {
+        **staged["infer"],
+        "batch.json": json.dumps(batch).encode(),
+        "root.bin": CANARY_ROOT,
+    }
+    return staged
+
+
+def staged_canaries(staged):
+    """Every canary found in any staged byte: the detector."""
+    needles = (
+        CANARY_ROOT,
+        CANARY_LABEL.encode(),
+        repr(CANARY_VALUE).encode(),
+    )
+    found = []
+    for stage, files in staged.items():
+        for name, body in files.items():
+            for needle in needles:
+                if needle in body:
+                    found.append((stage, name, needle.decode(errors="replace")))
+    return {"found": found}
+
+
+def staging_control():
+    """The staged names are exactly the published allow-list."""
+    from carbon.battery.practice import STAGED_MODULES
+
+    staged = _stage_all(real_stager)
+    code = set(STAGED_MODULES)
+    expected = {
+        "reconstruct": code | {"train-v1.jsonl.gz", "ocv-table.json", "recipe.json"},
+        "infer": code | {"state.npz", "query.json"},
+        "practice": code
+        | {
+            "train-v1.jsonl.gz",
+            "ocv-table.json",
+            "practice-inputs.json",
+            "recipe.json",
+        },
+    }
+    return all(set(staged[k]) == expected[k] for k in expected)
+
+
 # --- The families ------------------------------------------------------------
 
 
@@ -423,6 +523,16 @@ FAMILIES = (
         field_dropping_digest,
         rebuild_breached,
         lambda: rebuild_control()["accepted"],
+    ),
+    Family(
+        "staged_bytes",
+        "construction_evaluation_isolation",
+        "answer-key/log/artifact exfiltration, construction-to-evaluator access",
+        lambda: (("stage_with_private_state_present", None),),
+        lambda _: staged_canaries(_stage_all(real_stager)),
+        lambda _: staged_canaries(_stage_all(leaky_stager)),
+        lambda result: bool(result["found"]),
+        staging_control,
     ),
 )
 
@@ -604,7 +714,7 @@ COVERAGE = {
         ],
     },
     "construction_evaluation_isolation": {
-        "here": [],
+        "here": ["staged_bytes"],
         "reused": [
             (
                 "tests/service/test_c03_worker_service.py::"
@@ -627,8 +737,9 @@ COVERAGE = {
         "in CI; reuse holds only for the same manifest",
         "untested": [
             (
-                "a battery-specific canary scan of every staged and exported "
-                "byte of a reconstruction, run against the pinned image"
+                "the same canary scan over every byte a real practice run "
+                "leaves in the isolated carrier, against the pinned image "
+                "(tests/service/test_battery_track_a_service.py, CI only)"
             ),
         ],
     },

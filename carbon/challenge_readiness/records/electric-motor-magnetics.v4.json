@@ -129,10 +129,10 @@
     }
   ],
   "maturity": {
-    "baseline": "SELECTED",
+    "baseline": "MEASURED",
     "reference_execution": "PILOTED"
   },
-  "next_experiment": "Finish the pools, calibrate the exam on TRAIN, and score the textbook and kernel-ridge baselines on the private pool; then integrate the miner path (CHALLENGE-MOTOR-02).",
+  "next_experiment": "Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is prior work for the magnetostatics family (f09): the miner path (CHALLENGE-MOTOR-02) and further design wait until that family reaches Prioritize after protocol lock, and then follow the common stages and suite.",
   "outputs": [
     {
       "description": "Torque at 60 evenly spaced rotor angles over one 15 degree period, with the phase currents turning with the rotor (predicted).",
@@ -166,10 +166,10 @@
     "proposed": "carbon.motor.development-population.v1: independent uniform draws over the eight-input box, kept when the geometry is buildable (about 91 % of the box); Q = P, w = 1. A proposed DEVELOPMENT population, not a ratified production one."
   },
   "recommendation": {
-    "basis": "All 17 pilot cases ran OK; the 1,440-node reference is within 0.26 % of peak (0.1 % in mean torque) of the 2,880-node mesh, and 0.25 degree sampling captures the 0.125 degree curve within 8e-5 of peak, against a textbook baseline that over-predicts mean torque by 5 to 26 % and omits up to 0.82 N m RMS of ripple, so the exam can separate models.",
+    "basis": "All 17 pilot cases ran OK; the 1,440-node reference is within 0.26 % of peak (0.1 % in mean torque) of the 2,880-node mesh, and 0.25 degree sampling captures the 0.125 degree curve within 8e-5 of peak. The pools are complete (150 TRAIN, 30 PRACTICE, 60 private) and both baselines are scored through the exam on the private pool: textbook closed form 0.463 (mean torque 0.165, ripple shape 0.761), kernel-ridge learned 0.214 (mean 0.038, ripple 0.391). Ripple shape is where both lose most, so the exam separates models.",
     "decision": "PROCEED"
   },
-  "record_version": 3,
+  "record_version": 4,
   "reference": {
     "applicability": "The declared buildable box at currents of 0 to 15 A/mm^2 and angles of 0 to 60 degrees; linear magnets (demagnetization is outside the model); 2D (no end effects). Discretization about 0.26 % of peak torque and 0.1 % in mean torque (pilot refinements); angle sampling within 8e-5 of peak.",
     "evidence": [
@@ -219,7 +219,7 @@
     "state": "NOT_STARTED"
   },
   "unresolved": [
-    "The pools (150 TRAIN, 30 PRACTICE, 60 private from an operator-held root) are running; the exam's scales and the baselines' scores await them.",
+    "One private case of 60 is REFERENCE_INVALID on the reference's periodicity check (0.0012 against 0.001); it is charged to the reference, counted, and scored for no one.",
     "The iron is a generic Brauer law, not a named steel; the magnets are linear, so demagnetization at deep field weakening is outside the model.",
     "The 2D model has no end effects, eddy currents or temperature.",
     "Miner-path integration is CHALLENGE-MOTOR-02; the registry entry stays RESERVED until then.",

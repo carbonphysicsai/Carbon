@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "CI-BATTERY-L0-01-S3",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "CI-BATTERY-L0-01 slice 3 (2026-10-03): battery Track A at the worker boundary. A new registered family, staged_bytes, stages reconstruction, inference and practice files while validator-private canaries (a private root, a hidden batch's references and labels) sit beside them, then scans every staged byte; a leaky-stager specimen shows the detector fires, and the control holds the staged names to the published allow-list. A new service test runs a real battery practice through the isolated carrier in the pinned C-03 worker image with the same canaries planted on the host, then scans every byte the run left behind; it runs in CI's C-03 service lane. That lane now also triggers on the battery worker boundary (battery worker.py, practice.py, the research carrier and the battery service tests), which battery changes previously skipped. The classifier digest pin is updated as hygiene. Surface-edge resource recipes remain open. Not a security audit.",
+  "primary_detail": ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-03T02:10:45Z"
+}
