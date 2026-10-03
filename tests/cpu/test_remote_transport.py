@@ -45,6 +45,7 @@ from remote_container_fixture import (
     LocalContainer,
     build_file,
     container,
+    unconfirmed_because,
     worker_python,
 )
 
@@ -324,6 +325,14 @@ def stopped(ssh, jobs, stdout=b"", **options):
     return code
 
 
+def confirmed(ssh, jobs, stdout, **options):
+    """The stop script confirms the cleanup (exit 0); when it does not, the
+    failure names what this machine shows kept it unconfirmed."""
+    code = stopped(ssh, jobs, stdout, **options)
+    assert code == 0, unconfirmed_because(remote_container.job_record(stdout))
+    return True
+
+
 def job_pids(directory):
     """This machine's processes whose environment names the job directory."""
     marker = b"CARBON_JOB_ROOT=" + str(directory).encode()
@@ -389,7 +398,7 @@ def test_a_job_process_serves_one_job_on_loopback_and_is_cleaned_up(tmp_path):
         assert result["state"] == "DONE"
         assert json.loads(output["predictions.json"]) == {"sum": 3}
     finally:
-        assert stopped(ssh, jobs, stdout) == 0
+        assert confirmed(ssh, jobs, stdout)
     assert not directory.exists() and job_pids(directory) == []
 
 
@@ -415,7 +424,7 @@ def test_stopping_kills_a_process_that_ignores_the_request(tmp_path):
     code, stdout = started(ssh, stubborn, jobs)
     assert code == 0
     assert job_pids(jobs / NAME)
-    assert stopped(ssh, jobs, stdout, grace_seconds=1) == 0
+    assert confirmed(ssh, jobs, stdout, grace_seconds=1)
     assert job_pids(jobs / NAME) == [] and not (jobs / NAME).exists()
 
 
@@ -434,7 +443,7 @@ def test_stopping_leaves_every_other_process_alone(tmp_path):
     try:
         code, stdout = started(ssh, server, jobs)
         assert code == 0 and job_pids(jobs / NAME)
-        assert stopped(ssh, jobs, stdout) == 0
+        assert confirmed(ssh, jobs, stdout)
         assert job_pids(jobs / NAME) == []
         assert bystander.poll() is None
     finally:
@@ -455,7 +464,7 @@ def test_a_job_whose_server_never_answers_is_refused_by_code(tmp_path):
     finally:
         # The record was printed before the wait, so the server is still
         # found and the cleanup confirmed.
-        assert stopped(ssh, jobs, stdout) == 0
+        assert confirmed(ssh, jobs, stdout)
     assert job_pids(jobs / NAME) == []
 
 
@@ -513,7 +522,9 @@ def test_a_detached_child_left_in_the_jobs_session_is_stopped_and_confirmed(tmp_
         (pid,) = job_pids(jobs / NAME)
         # Its environment names nothing, but it is in the server's session.
         assert alive(child) and os.getsid(child) == os.getsid(pid) == pid
-        assert transport.cleanup(NAME) is True
+        assert transport.cleanup(NAME) is True, unconfirmed_because(
+            transport._records.get(NAME)
+        )
         assert not alive(child) and not alive(pid)
         assert not (jobs / NAME).exists()
     finally:
@@ -538,7 +549,9 @@ def test_a_child_detached_into_its_own_session_leaves_cleanup_unconfirmed(tmp_pa
     finally:
         killed(child)
     # Once it is gone, the record the controller kept confirms the cleanup.
-    assert transport.cleanup(NAME) is True
+    assert transport.cleanup(NAME) is True, unconfirmed_because(
+        transport._records.get(NAME)
+    )
 
 
 def test_a_job_process_that_cannot_be_stopped_leaves_cleanup_unconfirmed(tmp_path):
