@@ -1,7 +1,7 @@
 """Graphite's level planner: a PROPOSED level proposal for every construction level.
 
 The owner, 2026-10-02: "I want graphite to propose capabilities for every
-construction level" (OWNER-GRAPHITE-04; OWNER-CHALLENGE-ROADMAP-03 item 7).
+construction level" (OWNER-GRAPHITE-06; OWNER-CHALLENGE-ROADMAP-03 item 7).
 
 For one Challenge, a planner session asks Graphite once per level 0-5 for that
 level's capabilities, and writes each accepted reply as a level proposal in

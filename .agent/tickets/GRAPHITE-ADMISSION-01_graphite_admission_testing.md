@@ -1,6 +1,6 @@
 # GRAPHITE-ADMISSION-01: Graphite in Carbon's internal admission testing
 
-**Owner decisions:** OWNER-GRAPHITE-04 (`.agent/DECISIONS.md`, 2026-10-02),
+**Owner decisions:** OWNER-GRAPHITE-06 (`.agent/DECISIONS.md`, 2026-10-02),
 under OWNER-CHALLENGE-ROADMAP-03, OWNER-GRAPHITE-02 and
 OWNER-CHALLENGE-ADMISSION-01 as amended 2026-10-01.
 **Handoff:** `docs/development/graphite/ADMISSION_TESTING_HANDOFF.md`, the
@@ -42,7 +42,7 @@ record, or an ACCEPTED or DECLINED status.
 
 In order, one reviewable slice per commit:
 
-1. **Working contract.** This ticket, OWNER-GRAPHITE-04, the handoff copy, the
+1. **Working contract.** This ticket, OWNER-GRAPHITE-06, the handoff copy, the
    Mira supersession notes and the Hub event.
 2. **Reconciliation** (handoff §2):
    `docs/development/graphite/ADMISSION_RECONCILIATION.md`.

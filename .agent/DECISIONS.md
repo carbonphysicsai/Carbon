@@ -17479,7 +17479,7 @@ session builds it, and the phase 2 grant's account and expiry are reused.
 5. **Graphite, not Mira, is the testing agent.**
    - The roadmap says no external research agent takes Graphite's role.
    - The Mira handoff is re-issued as a Graphite handoff and implemented under
-     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-04).
+     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-06).
 6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
    rebuilds a declarative recipe. Executable participant code starts at
    Level 4.
@@ -18098,7 +18098,9 @@ command) and `carbon.compute.remote_job`.
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
 retired; the remote-machine route replaces them).
 
-## 2026-10-02 — OWNER-GRAPHITE-04: Graphite, not Mira, does Carbon's internal admission testing; one generalizable protocol; lessons after every execution; Graphite proposes every level's capabilities
+## 2026-10-02 — OWNER-GRAPHITE-06: Graphite, not Mira, does Carbon's internal admission testing; one generalizable protocol; lessons after every execution; Graphite proposes every level's capabilities
+
+*Renamed 2026-10-03 from OWNER-GRAPHITE-04, which #504's decision on Graphite phase 3 pods also uses; the content is unchanged.*
 
 **Owner, verbatim, in session on 2026-10-02:**
 1. "The plan is to use GRAPHITE not Mira for this testing. Ignore all

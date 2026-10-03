@@ -1,6 +1,6 @@
 # Mira in internal admission testing: stages 1 and 2
 
-> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-04).** The owner:
+> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-06).** The owner:
 > "The plan is to use GRAPHITE not Mira for this testing." Graphite, Carbon's
 > own agent, does the admission-testing work under GRAPHITE-ADMISSION-01, with
 > the handoff re-issued as `docs/development/graphite/ADMISSION_TESTING_HANDOFF.md`.

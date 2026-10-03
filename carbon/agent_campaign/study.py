@@ -4,7 +4,7 @@ Handoff §7 and `Design_Specs/Challenge_Admission.md` §2: before any counted
 attempt, commit the study sheet and the ten scope pins. This module **prepares**
 that sheet from the repository's real identities; it does not freeze or run it.
 
-It is Challenge-neutral (OWNER-GRAPHITE-04). Everything that differs by
+It is Challenge-neutral (OWNER-GRAPHITE-06). Everything that differs by
 Challenge comes from that Challenge's `ChallengeStudy` adapter, reached only
 through `study_for`:
 - its construction contract (`capability_registry`), whose rebuildable surface

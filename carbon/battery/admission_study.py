@@ -1,7 +1,7 @@
 """Battery's adapter for the Challenge-neutral admission study sheet.
 
 `carbon.agent_campaign.study` prepares the Level-0 study sheet and permission
-inventory for any Challenge (OWNER-GRAPHITE-04). This module is what battery
+inventory for any Challenge (OWNER-GRAPHITE-06). This module is what battery
 supplies to it, moved here unchanged from the shared module:
 
 - battery's capability-to-level map (`LADDER`);

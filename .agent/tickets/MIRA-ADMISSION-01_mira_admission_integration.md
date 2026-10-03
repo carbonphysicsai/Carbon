@@ -1,6 +1,6 @@
 # MIRA-ADMISSION-01: supervised external research agent for admission testing
 
-> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-04).** The owner:
+> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-06).** The owner:
 > "The plan is to use GRAPHITE not Mira for this testing." Graphite does the
 > admission-testing work under
 > `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`. This
