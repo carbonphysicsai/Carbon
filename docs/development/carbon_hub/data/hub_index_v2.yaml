@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T02:23:59Z"
+  captured_at_utc: "2026-10-03T03:36:14Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "125eafa03e749809f3be9d48957dc4f852535e67"
+  authority_snapshot_commit: "90a68cbc2202ae91cf8c84c721c0c763fd403a4e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10848,6 +10848,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T23:44:17Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01-S3"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 slice 3 (2026-10-03): battery Track A at the worker boundary. A new registered family, staged_bytes, stages reconstruction, inference and practice files while validator-private canaries (a private root, a hidden batch's references and labels) sit beside them, then scans every staged byte; a leaky-stager specimen shows the detector fires, and the control holds the staged names to the published allow-list. A new service test runs a real battery practice through the isolated carrier in the pinned C-03 worker image with the same canaries planted on the host, then scans every byte the run left behind; it runs in CI's C-03 service lane. That lane now also triggers on the battery worker boundary (battery worker.py, practice.py, the research carrier and the battery service tests), which battery changes previously skipped. The classifier digest pin is updated as hygiene. Surface-edge resource recipes remain open. Not a security audit."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:10:45Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
