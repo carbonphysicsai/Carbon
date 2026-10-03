@@ -269,6 +269,10 @@ Thread-resolution bookkeeping is not an additional gate; actual unresolved
 bugs and explicit owner blocks still require disposition. Use normal merge
 commits and retain the API's inexpensive expected-head race guard.
 
+Merge hygiene (conflict resolution in generated Hub files and
+`.agent/DECISIONS.md`, merging when green, and the `merge-priority` lane) is
+governed by `docs/development/MERGE_HYGIENE.md` (OWNER-MERGE-HYGIENE-01).
+
 Do not require a base refresh solely because main advanced. Inspect the
 integration impact; reconcile conflicts or changed dependencies and validate
 those changes. The merge guard prevents merging a different PR revision; it
