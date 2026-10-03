@@ -160,6 +160,34 @@ scenario("a hovered control waits; it is redrawn once the pointer leaves", async
   clean(page);
 });
 
+scenario("a resting pointer holds a redraw back only briefly", async () => {
+  const state = launchable(world());
+  const run = copy(fx.run);
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns");
+  await page.advance(0);
+  // An agent's pointer, left on the card it last clicked: `:hover` holds the
+  // whole card, and with it the list.
+  const card = one(page, "#research-runs a.campaign-card");
+  page.hover(card.querySelector("h3"));
+  run.state = "PAUSED";
+  await refresh(page);
+  assert.ok(card.isConnected, "held while the pointer rests on it");
+  for (let i = 0; i < 3; i++) await refresh(page);
+  assert.match(page.text("research-runs"), /PAUSED/, "shown within the hold's bound, the pointer still resting");
+  // The same for the campaign's header, under a pointer resting on Export.
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  page.hover([...all(page, "#campaign-detail .rs-head button")].find(b => b.textContent === "Export"));
+  state.view.campaign.state = "PAUSED";
+  for (let i = 0; i < 6; i++) await refresh(page);
+  assert.match(page.text(one(page, "#campaign-detail .rs-meta")), /PAUSED/);
+  page.unhover();
+  clean(page);
+});
+
 scenario("a message being written survives new events and replies", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
@@ -341,6 +369,103 @@ scenario("a submit says submitted only when the record shows it admitted", async
   clean(page);
 });
 
+scenario("a lost submit that ran lets its key go: the next epoch's submit is a new request", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/submission");
+  await page.advance(0);
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: {timeout: true}});
+  await page.press(one(page, "#journey-submit-" + run.id));
+  const first = lastPost(state, "/api/v1/operations/submit").body.idempotency_key;
+  assert.match(page.text("message"), /Not confirmed: .*same key/);
+  assert.ok(one(page, "#journey-discard-submit-" + run.id), "a held submit can be let go");
+  // The controller ran it: epoch 1 is submitted, and its key is spent.
+  Object.assign(run, {journey: {submitted_epochs: [1], final_exams_remaining: 1, frozen_awaiting_submission: false}});
+  await refresh(page);
+  assert.equal(all(page, "#journey-discard-submit-" + run.id).length, 0, "the record shows how it ended");
+  assert.equal(page.window.sessionStorage.getItem("carbon.launchpad.pending-operation.v1"), "{}");
+  // The next candidate is frozen, then submitted: a new request, dispatched.
+  state.script.push({match: r => r.path === "/api/v1/operations/freeze_candidate", answer: () => ({body: {...run, state: "FREEZING"}})});
+  await page.press(one(page, "#journey-freeze-" + run.id));
+  run.journey = {submitted_epochs: [1], final_exams_remaining: 1, frozen_awaiting_submission: true};
+  await refresh(page);
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: () => ({body: {...run, state: "SUBMITTING"}})});
+  await page.press(one(page, "#journey-submit-" + run.id));
+  assert.notEqual(lastPost(state, "/api/v1/operations/submit").body.idempotency_key, first, "never epoch 1's key");
+  clean(page);
+});
+
+scenario("a retried submit answered after its work finished reads as submitted", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/submission");
+  await page.advance(0);
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: {timeout: true}});
+  await page.press(one(page, "#journey-submit-" + run.id));
+  const first = lastPost(state, "/api/v1/operations/submit").body.idempotency_key;
+  // The retry's answer is slow; meanwhile the record shows the epoch
+  // submitted. The answer is a replay of that finished work.
+  let release;
+  state.script.push({match: r => r.path === "/api/v1/operations/submit", answer: () => new Promise(resolve => { release = resolve; })});
+  await page.press(one(page, "#journey-submit-" + run.id));
+  assert.equal(lastPost(state, "/api/v1/operations/submit").body.idempotency_key, first, "the same request, under its key");
+  Object.assign(run, {journey: {submitted_epochs: [1], final_exams_remaining: 1, frozen_awaiting_submission: false}});
+  await refresh(page);
+  release({body: copy(run)});
+  await page.advance(0);
+  await refresh(page);
+  assert.match(page.text("message"), /Submitted for the DEVELOPMENT comparison/);
+  assert.doesNotMatch(page.text("campaign-detail"), /without the change it was for/);
+  clean(page);
+});
+
+scenario("an edited retry is a new request under a new key, said so; Discard lets one go", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  run.journey.frozen_awaiting_submission = false;
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/experiments");
+  await page.advance(0);
+  const practice = () => one(page, "#journey-practice-" + run.id);
+  const key = () => lastPost(state, "/api/v1/operations/practice").body.idempotency_key;
+  await page.type(one(page, "#journey-hypothesis-" + run.id), "a wider network");
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: {network: true}});
+  await page.press(practice());
+  const first = key();
+  // The same values again: the same key.
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: {status: 503, body: {error: "registration_unreadable"}}});
+  await page.press(practice());
+  assert.equal(key(), first);
+  // Edited: a new request, under a new key, and the page says so.
+  await page.type(one(page, "#journey-hypothesis-" + run.id), "a deeper network");
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  await page.press(practice());
+  const second = key();
+  assert.notEqual(second, first);
+  assert.match(page.text("message"), /went as a new request under a new key/);
+  // Another lost practice, let go by Discard: the next one is new.
+  await refresh(page);
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: {timeout: true}});
+  await page.press(practice());
+  const third = key();
+  assert.notEqual(third, second);
+  await page.press(one(page, "#journey-discard-practice-" + run.id));
+  assert.equal(all(page, "#journey-discard-practice-" + run.id).length, 0);
+  assert.match(page.text("message"), /Discarded/);
+  state.script.push({match: r => r.path === "/api/v1/operations/practice", answer: () => ({body: {...run, state: "PRACTICING"}})});
+  await page.press(practice());
+  assert.notEqual(key(), third);
+  clean(page);
+});
+
 scenario("a campaign without last_refusal shows no refusal", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
@@ -393,6 +518,10 @@ scenario("a queued campaign with no frozen record can be reconciled without its 
   const page = await open(state);
   page.go("#campaigns/" + run.id + "/live");
   await page.advance(0);
+  // A fresh launch is QUEUED until its run thread creates its ledger: no
+  // alarm at first, only once it has stayed so.
+  assert.doesNotMatch(page.text("campaign-detail"), /never started here|Needs attention/);
+  for (let i = 0; i < 21; i++) await refresh(page);
   assert.match(page.text("campaign-detail"), /never started here/);
   const button = one(page, "#campaign-detail [data-part=attention] [data-action=reconcile]");
   await page.press(button);
@@ -401,6 +530,28 @@ scenario("a queued campaign with no frozen record can be reconciled without its 
   page.go("#overview");
   await page.advance(0);
   assert.ok(one(page, "#active-campaign [data-action=reconcile]"));
+  clean(page);
+});
+scenario("the controller's own recovery actions are offered when its record carries them", async () => {
+  const state = launchable(world());
+  // Slice C's record: admitted, nothing carrying it out, and what moves it.
+  const run = {id: "e".repeat(32), state: "QUEUED", experiments: [], refusals: [], in_flight: null, recovery: [{action: "resume", operation: "resume"}, {action: "stop", operation: "halt"}]};
+  state.runs = [run];
+  state.view = null;
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  const attention = () => one(page, "#campaign-detail [data-part=attention]");
+  assert.match(page.text(attention()), /nothing is carrying it out\. Resume dispatches it again/);
+  assert.equal(all(page, "#campaign-detail [data-part=attention] [data-action=reconcile]").length, 0, "the controller did not ask for Reconcile");
+  const resume = one(page, "#campaign-detail [data-part=attention] [data-action=resume]");
+  assert.ok(resume.classList.contains("primary"));
+  await page.press(resume);
+  assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/resume"));
+  // Carried out again: nothing is needed, and nothing is said.
+  Object.assign(run, {in_flight: {operation: "run", state: "RUNNING", since: 1800000000, supervisor_running: true}, recovery: []});
+  await refresh(page);
+  assert.equal(page.text(attention()), "");
   clean(page);
 });
 
@@ -473,6 +624,76 @@ scenario("limits are typed in dollars and minutes and sent in the ledger's units
   clean(page);
 });
 
+scenario("a cap keeps its exact ledger value when another limit is edited, and is never rounded up", async () => {
+  const state = launchable(world());
+  // Saved by the page before human units: caps finer than the editor shows
+  // at a glance (a nanodollar, a millisecond).
+  const local = new Storage();
+  local.setItem("carbon.control-center.wizard.v1", JSON.stringify({launchPath: "advanced", budget: {ceilings: {provider_nanodollars: 1234567891, numerical_milliseconds: 1000, retained_bytes: 1}}}));
+  const page = await open(state, {localStorage: local});
+  await wizardTo(page, "limits");
+  const field = name => page.$("ceiling-" + name);
+  // Read across the page's realm as plain data.
+  const caps = () => copy(page.window.CarbonControlCenter.state().composition.budget.ceilings);
+  // Shown exactly (minutes rounded up in the last place, so they read back the same).
+  assert.equal(field("provider_nanodollars").value, "1.234567891");
+  assert.equal(field("numerical_milliseconds").value, "0.01667");
+  assert.equal(field("retained_bytes").value, "0.000001");
+  assert.match(page.text("composition-summary"), /model spend ≤ \$1\.234567891/);
+  assert.match(page.text("composition-summary"), /worker time ≤ 1 s/);
+  // Editing another limit leaves them exactly as they were.
+  await page.type(page.$("budget-elapsed"), "600");
+  assert.deepEqual(caps(), {provider_nanodollars: 1234567891, numerical_milliseconds: 1000, retained_bytes: 1});
+  // Typed: read exactly and rounded down, never up.
+  await page.type(field("provider_nanodollars"), "0.0015");
+  assert.equal(caps().provider_nanodollars, 1500000);
+  await page.type(field("provider_nanodollars"), "0.29");
+  assert.equal(caps().provider_nanodollars, 290000000);
+  await page.type(field("provider_nanodollars"), "0.0000000019");
+  assert.equal(caps().provider_nanodollars, 1, "1.9 nanodollars is a cap of 1, never 2");
+  await page.type(field("numerical_milliseconds"), "0.5");
+  assert.equal(caps().numerical_milliseconds, 30000);
+  // Typed as shown before (with a trailing 0, so it is read, not kept).
+  await page.type(field("numerical_milliseconds"), "0.016670");
+  assert.equal(caps().numerical_milliseconds, 1000, "the shown minutes read back as the same milliseconds");
+  // The reviewer's round trip: typed, Quick, reopened, another field edited.
+  await page.type(field("provider_nanodollars"), "0.0015");
+  await page.press(page.$("path-quick"));
+  await page.press(page.$("path-advanced"));
+  assert.equal(field("provider_nanodollars").value, "0.0015");
+  await page.type(page.$("budget-elapsed"), "900");
+  assert.equal(caps().provider_nanodollars, 1500000, "not raised to $0.002");
+  assert.match(page.text("composition-summary"), /model spend ≤ \$0\.0015/);
+  await page.press(page.$("wizard-next"));
+  await page.press(page.$("wizard-next"));
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id: "f".repeat(32)}}});
+  await page.press(page.$("research-launch"));
+  assert.deepEqual(lastPost(state, "/api/v1/research").body.budget, {elapsed_seconds: 900, ceilings: {provider_nanodollars: 1500000, numerical_milliseconds: 1000, retained_bytes: 1}});
+  clean(page);
+});
+
+scenario("the usage table reads in the units its limits are set in", async () => {
+  const state = launchable(world());
+  const run = copy(fx.run);
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/logs");
+  await page.advance(0);
+  const cells = label => {
+    const row = [...all(page, "#campaign-detail [data-part=logs] tr")].find(tr => tr.querySelector("td")?.textContent === label);
+    assert.ok(row, "a row for " + label);
+    return [...row.querySelectorAll("td")].map(td => td.textContent);
+  };
+  // usage: budget $0.05 and 16 trials; reported $0.00421, 812 s of worker
+  // time and 8 trials; reserved $0.00012 and 1 trial.
+  assert.deepEqual(cells("model spend · USD"), ["model spend · USD", "$0.05", "$0.00421", "$0.00012", "–"]);
+  assert.deepEqual(cells("worker time · minutes"), ["worker time · minutes", "No limit", "13 min 32 s", "–", "–"]);
+  assert.deepEqual(cells("research trials"), ["research trials", "16", "8", "1", "–"]);
+  assert.doesNotMatch(page.text(one(page, "#campaign-detail [data-part=logs]")), /4210000|812000/);
+  clean(page);
+});
+
 scenario("old campaign links open the tab they meant, under its own name", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
@@ -522,6 +743,22 @@ scenario("sending the worker shows how long it has been going until it answers",
   release({body: copy(fx.setup_send)});
   await page.advance(0);
   assert.equal(page.text("setup-result"), "Checked: send_worker.");
+  clean(page);
+});
+
+scenario("a send that does not go through leaves its button ready again", async () => {
+  const state = launchable(world({setup: copy(fx.setup_send)}));
+  state.script.push({match: r => r.path === "/api/v1/setup/send_worker", answer: {status: 409, body: {error: "remote_unreachable", next_step: "Check that ssh me@box works."}}});
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  await page.press(page.$("setup-send-worker-consent"));
+  const send = [...all(page, "#setup-body form[data-step=send_worker] button")][0];
+  await page.press(send);
+  assert.match(page.text("setup-result"), /remote unreachable/);
+  assert.ok(send.isConnected, "the form is still drawn");
+  assert.equal(send.textContent, "Send my worker");
+  assert.equal(send.disabled, false);
   clean(page);
 });
 

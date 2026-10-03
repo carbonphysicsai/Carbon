@@ -493,6 +493,7 @@
     if (w.opLine.className !== className) w.opLine.className = className;
     w.opLine.hidden = !text;
   }
+  const KEYED = ["freeze_candidate", "submit"];
   async function operation(w, control, name, body, doing) {
     control.disabled = true;
     try {
@@ -500,12 +501,16 @@
       await close(w);
       say(w, doing + ": sending…");
       const outcome = await CC.keyedOperation(name, body, 60000);
-      if (outcome.ok) { CC.watch(name, w.id, outcome.value); w.following = name; follow(w); }
-      else say(w, (outcome.refused ? "Refused" : "Not confirmed") + ": " + errorText(outcome.error).replace(/\.$/, "") + (outcome.kept ? ". Trying again sends the same request under the same key: if it started, it is replayed, never run twice." : "."), "reason");
-    } finally { control.disabled = false; }
+      if (outcome.ok) { CC.watch(name, w.id, outcome.value, outcome); w.following = name; follow(w); }
+      else { w.following = null; say(w, CC.notDone(outcome, errorText(outcome.error)), "reason"); }
+    } finally { control.disabled = false; follow(w); }
   }
-  // The operation's progress and ending, from the campaign's own record.
+  // The operation's progress and ending, from the campaign's own record; and
+  // Discard while a freeze or submit is held under its key, its answer lost.
   function follow(w) {
+    const held = CC.heldOperation(w.id, KEYED);
+    if (w.opDiscard.hidden !== !held) w.opDiscard.hidden = !held;
+    if (held) CC.setText(w.opDiscard, "Discard the unconfirmed " + (held.name === "submit" ? "submit" : "freeze"));
     if (!w.following) return;
     const run = (CC.state().research?.runs || []).find(item => item.id === w.id);
     const status = run ? CC.watchStatus(run) : null;
@@ -601,7 +606,7 @@
   function draw(w) {
     w.node.replaceChildren(el("h3", "Use the tools"));
     sessionBar(w, w.node);
-    w.node.append(w.opLine);
+    w.node.append(w.opLine, w.opDiscard);
     if (!w.state?.open) return;
     w.resultList = null;
     const body = el("div", undefined, "rs-bench");
@@ -622,6 +627,14 @@
     if (!w) {
       w = {id, doc, node: el("section", undefined, "rs-panel rs-workbench"), state: null, tasks: [], files: [], opLine: el("p", "", "hint")};
       w.opLine.setAttribute("role", "status"); w.opLine.hidden = true;
+      // Lets go of a freeze or submit held under its key (LP-PROD-F).
+      w.opDiscard = button("Discard the unconfirmed request", "", () => {
+        CC.discardOperation(w.id, KEYED);
+        w.following = null;
+        say(w, "Discarded. The next freeze or submit is a new request, under a new key.");
+        follow(w);
+      });
+      w.opDiscard.dataset.discard = "operation"; w.opDiscard.hidden = true;
       benches.set(id, w);
       w.doc = doc;
       draw(w);

@@ -33,6 +33,8 @@
   const STEPS = [["challenge", "Challenge"], ["agent", "Agent"], ["model", "Model"], ["compute", "Compute"], ["limits", "Tools & limits"], ["review", "Review"], ["launch", "Launch"]];
   const TABS = [["overview", "Overview"], ["experiments", "Experiments"], ["metrics", "Metrics"], ["journal", "Research Journal"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // The keyed operations, as a person names them.
+  const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
   const templateKey = "carbon.launchpad.launch-templates.v1";
   const wizardKey = "carbon.control-center.wizard.v1";
   const draftKey = "carbon.control-center.journey-drafts.v1";
@@ -110,12 +112,19 @@
   // a region is redrawn only when what it shows changed, and never under a
   // person's hand. A region holding a control being typed into, or an edit
   // not yet sent, is never rebuilt. During a background refresh it is also
-  // left alone while a pointer is pressed in it or rests on one of its
-  // controls: a click is never swallowed by a redraw and an element an agent
-  // just read stays the element it clicks. It is redrawn on the first
-  // refresh after that ends.
+  // left alone while a pointer is pressed in it: a click is never swallowed
+  // by a redraw. A pointer resting on one of its controls holds it too, so an
+  // element an agent just read stays the element it clicks, but only for
+  // HOVER_HOLD_MS: `:hover` matches every ancestor of the element under the
+  // pointer (a whole campaign card), and an agent leaves its pointer where it
+  // last clicked, so a resting pointer must never keep a state it is
+  // watching for stale. A held region is redrawn on the first refresh after
+  // the hold ends.
   const FORM_TAGS = ["INPUT", "SELECT", "TEXTAREA"];
   const HOVERED = "a:hover, button:hover, input:hover, select:hover, textarea:hover, label:hover, summary:hover";
+  const HOVER_HOLD_MS = 3000;
+  // When a resting pointer first held each region's change back.
+  const hoverHeld = new WeakMap();
   let pressed = null;
   let background = false;
   document.addEventListener("pointerdown", event => { pressed = event.target; }, true);
@@ -142,7 +151,15 @@
     if (region.querySelector("[data-edited]")) return true;
     if (!quiet) return false;
     if (pressed && region.contains(pressed)) return true;
-    try { return Boolean(region.querySelector(HOVERED)); } catch (_) { return false; }
+    let hovered = false;
+    try { hovered = Boolean(region.querySelector(HOVERED)); } catch (_) { hovered = false; }
+    if (!hovered) { hoverHeld.delete(region); return false; }
+    const since = hoverHeld.get(region);
+    if (since === undefined) { hoverHeld.set(region, Date.now()); return true; }
+    if (Date.now() - since < HOVER_HOLD_MS) return true;
+    // Held long enough: drawn now, under the pointer; the next change waits again.
+    hoverHeld.delete(region);
+    return false;
   }
   // A render the page did not ask for: the refresh timer or a campaign read.
   function quietly(draw) {
@@ -154,6 +171,7 @@
   // 1.5 s refresh. Returns whether it was rebuilt.
   function rebuild(target, key, build) {
     if (target.dataset.key === key || held(target)) return false;
+    hoverHeld.delete(target);
     const open = new Set([...target.querySelectorAll("details[open]")].map(node => node.dataset.key));
     target.replaceChildren();
     build(target);
@@ -176,33 +194,70 @@
   function said(error) { return words(error?.message).replace(/\.$/, ""); }
   // Human units for the ledger's resources (LP-PROD-F): what the miner types
   // and reads, and the whole number the ledger counts. A resource without an
-  // entry is a count.
+  // entry is a count. Conversions are exact decimal arithmetic on the whole
+  // number, never floating point: a cap shown is the cap stored, and a cap
+  // read back is never raised above what was typed.
   const UNITS = {
-    provider_nanodollars: {short: "model spend", unit: "USD", scale: 1e9, step: "0.01", show: value => "$" + (value / 1e9).toFixed(value % 1e7 ? 4 : 2)},
-    numerical_milliseconds: {short: "worker time", unit: "minutes", scale: 60000, step: "0.5", show: value => trimmed(value / 60000) + " min"},
-    retained_bytes: {short: "retained storage", unit: "MB", scale: 1e6, step: "1", show: value => trimmed(value / 1e6) + " MB"},
+    provider_nanodollars: {short: "model spend", unit: "USD", scale: 1e9, step: "0.01", show: value => "$" + cents(fromLedger("provider_nanodollars", value))},
+    numerical_milliseconds: {short: "worker time", unit: "minutes", scale: 60000, step: "0.5", show: value => durationText(value)},
+    retained_bytes: {short: "retained storage", unit: "MB", scale: 1e6, step: "1", show: value => fromLedger("retained_bytes", value) + " MB"},
   };
+  // Decimal text with at least two places: "2.5" as "2.50"; finer amounts
+  // keep every digit ("0.0015"), so no cap reads as $0.00 unless it is 0.
+  function cents(text) { const [whole, fraction = ""] = text.split("."); return whole + "." + fraction.padEnd(2, "0"); }
+  // Milliseconds as hours, minutes and seconds, exactly: "30 min",
+  // "13 min 32 s", "1 h 2 min 3.456 s", "0.001 s".
+  function durationText(ms) {
+    const parts = [];
+    const hours = Math.floor(ms / 3600000), minutes = Math.floor(ms % 3600000 / 60000), rest = ms % 60000;
+    if (hours) parts.push(hours + " h");
+    if (minutes) parts.push(minutes + " min");
+    if (rest || !parts.length) parts.push(Math.floor(rest / 1000) + (rest % 1000 ? "." + String(rest % 1000).padStart(3, "0").replace(/0+$/, "") : "") + " s");
+    return parts.join(" ");
+  }
+  // A short decimal for a quantity a person reads beside another (minutes
+  // beside seconds), at most three places.
   function trimmed(value) { return String(Math.round(value * 1000) / 1000); }
   function resourceName(name) { return UNITS[name] ? UNITS[name].short + " · " + UNITS[name].unit : words(name); }
   function resourceShort(name) { return UNITS[name]?.short || words(name); }
+  // A ledger amount as a person reads it: in its unit when it is a ledger
+  // whole number, otherwise as recorded, named in the ledger's own unit.
   function resourceValue(name, value) {
     if (value === undefined || value === null) return "no limit";
-    return UNITS[name] && typeof value === "number" ? UNITS[name].show(value) : String(value);
+    if (!UNITS[name] || typeof value !== "number") return String(value);
+    return Number.isSafeInteger(value) && value >= 0 ? UNITS[name].show(value) : String(value) + " " + words(name);
   }
   // A typed amount in the resource's human unit, as the ledger's whole
-  // number; undefined when blank, NaN when it is not an amount.
+  // number, rounded down; undefined when blank, NaN when it is not an
+  // amount, Infinity when it is too large to count exactly.
   function toLedger(name, text) {
-    const trimmedText = String(text ?? "").trim();
-    if (trimmedText === "") return undefined;
-    if (!/^\d+(\.\d+)?$/.test(trimmedText)) return NaN;
+    const typed = String(text ?? "").trim();
+    if (typed === "") return undefined;
     const scale = UNITS[name]?.scale || 1;
-    const value = Number(trimmedText) * scale;
-    return scale === 1 ? value : Math.round(value);
+    if (scale === 1) return /^\d+(\.\d+)?$/.test(typed) ? Number(typed) : NaN;
+    const match = /^(\d*)(?:\.(\d*))?$/.exec(typed);
+    if (!match || !(match[1] || match[2])) return NaN;
+    const fraction = match[2] || "";
+    const unit = 10n ** BigInt(fraction.length);
+    const ledger = (BigInt(match[1] || "0") * unit + BigInt(fraction || "0")) * BigInt(scale) / unit;
+    return ledger <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(ledger) : Infinity;
   }
+  // A ledger whole number in its human unit, as decimal text: exact whenever
+  // the unit can say it in as many places as its scale has digits (always,
+  // for USD and MB). Otherwise (minutes) the last place is rounded up, so
+  // reading the text back, which rounds down, gives the same whole number.
   function fromLedger(name, value) {
     if (value === undefined || value === null) return "";
     const scale = UNITS[name]?.scale || 1;
-    return scale === 1 ? String(value) : trimmed(value / scale);
+    if (scale === 1 || !(Number.isSafeInteger(value) && value >= 0)) return String(value);
+    const divisor = BigInt(scale);
+    let places = 0;
+    while (10n ** BigInt(places) < divisor) places++;
+    const unit = 10n ** BigInt(places);
+    const scaled = BigInt(value) * unit;
+    const digits = scaled / divisor + (scaled % divisor ? 1n : 0n);
+    const fraction = (digits % unit).toString().padStart(places, "0").replace(/0+$/, "");
+    return (digits / unit).toString() + (fraction ? "." + fraction : "");
   }
   // " (10 min)" beside a number of seconds a person would rather read so.
   function longer(seconds) {
@@ -1266,7 +1321,13 @@
         const consent = {destination: checkedMachine.destination, image: workerImage};
         if (checkedMachine.port) consent.port = checkedMachine.port;
         sendButton.disabled = true; sendButton.textContent = "Sending…";
-        await sendWorker({consent: {send: consent}}, target);
+        try { await sendWorker({consent: {send: consent}}, target); }
+        finally {
+          // A send that did not go through leaves this form drawn: its
+          // button is ready again, as its consent box says.
+          sendButton.textContent = "Send my worker";
+          sendButton.disabled = !sendAgree.checked || Boolean(sendingWorker);
+        }
       });
     }
 
@@ -1435,6 +1496,7 @@
       connected = true;
       land();
       settleWatches();
+      settleHeld();
       quietly(render);
       if (!setupRead) { setupRead = true; readSetup(); }
       else pollSetup();
@@ -1746,7 +1808,10 @@
     return [run.id, run.state, run.challenge ?? null, run.selects ?? null, run.attempted_experiments ?? 0, run.completed_experiments ?? 0, lastRefusal(run)];
   }
   // The campaign's last refusal (slice C's `last_refusal`): {code,
-  // next_action, at}, shown when present and well formed, ignored otherwise.
+  // next_action, at, and, when given, the operation it was for and its kind
+  // (refused, interrupted or paused)}, shown when present and well formed,
+  // ignored otherwise.
+  const REFUSAL_KINDS = {refused: "Refused", interrupted: "Interrupted", paused: "Paused"};
   function lastRefusal(...sources) {
     for (const source of sources) {
       const value = source?.last_refusal ?? source?.campaign?.last_refusal;
@@ -1755,6 +1820,8 @@
           code: value.code.slice(0, 128),
           next_action: typeof value.next_action === "string" ? value.next_action.slice(0, 2000) : null,
           at: typeof value.at === "number" || typeof value.at === "string" ? value.at : null,
+          operation: typeof value.operation === "string" && value.operation ? value.operation.slice(0, 32) : null,
+          kind: typeof value.kind === "string" && Object.hasOwn(REFUSAL_KINDS, value.kind) ? value.kind : "refused",
         };
       }
     }
@@ -1779,7 +1846,7 @@
     const box = el("div", undefined, "refusal-note");
     box.setAttribute("role", "status");
     const at = when(refusal.at);
-    box.append(el("p", "Refused: " + words(refusal.code) + (at ? " · " + at : ""), "status-line"));
+    box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + words(refusal.code) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
     if (refusal.next_action) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
@@ -2091,19 +2158,27 @@
     experiments.forEach((experiment, index) => renderPractice(panel, experiment, index));
     if (!experiments.length) missing(panel, "no practice experiment has completed in this campaign.");
   }
-  function tabMetrics(panel, run) {
-    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+  // A campaign's ledger usage, every column in the unit its limit is set in
+  // (USD, minutes, MB; counts as counts), so spend reads beside its limit
+  // (LP-PROD-F). Shared by this page and the research surface's Logs tab.
+  function usageTable(parent, usage) {
     const table = el("table", undefined, "metrics-table");
     const header = el("tr"); for (const name of ["Resource", "Your limit", "Reported", "Reserved", "Uncertain"]) header.append(el("th", name));
     table.append(header);
-    const budget = run.usage.budget || {};
-    for (const name of Object.keys(run.usage.reported || {})) {
+    const budget = usage.budget || {};
+    const amount = (name, value) => typeof value === "number" ? resourceValue(name, value) : "–";
+    for (const name of Object.keys(usage.reported || {})) {
       const row = el("tr");
       const cap = budget.ceilings ? budget.ceilings[name] : budget[name];
-      row.append(el("td", words(name)), el("td", cap === undefined || cap === null ? "No limit" : resourceValue(name, cap)), el("td", String(run.usage.reported[name])), el("td", String(run.usage.reserved?.[name] ?? "")), el("td", String(run.usage.uncertain?.[name] ?? "")));
+      row.append(el("td", resourceName(name)), el("td", cap === undefined || cap === null ? "No limit" : resourceValue(name, cap)), el("td", amount(name, usage.reported[name])), el("td", amount(name, usage.reserved?.[name])), el("td", amount(name, usage.uncertain?.[name])));
       table.append(row);
     }
-    const wrap = el("div", undefined, "table-wrap"); wrap.append(table); panel.append(wrap);
+    const wrap = el("div", undefined, "table-wrap"); wrap.append(table); parent.append(wrap);
+    researchNote(parent, "Shown in USD, minutes and MB; the ledger counts whole nanodollars, milliseconds and bytes.", "hint");
+  }
+  function tabMetrics(panel, run) {
+    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+    usageTable(panel, run.usage);
     const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable"));
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
   }
@@ -2330,11 +2405,25 @@
   function operationLine(parent, run, names) {
     const entry = watches.get(run.id);
     const status = entry && names.includes(entry.name) ? watchStatus(run) : null;
-    if (!status) return;
-    const line = el("p", status.text, status.kind === "refused" ? "reason" : "status-line");
-    line.dataset.operation = status.kind;
-    line.setAttribute("role", "status");
-    parent.append(line);
+    if (status) {
+      const line = el("p", status.text, status.kind === "refused" ? "reason" : "status-line");
+      line.dataset.operation = status.kind;
+      line.setAttribute("role", "status");
+      parent.append(line);
+    }
+    // A request whose answer was lost is held under its key until the record
+    // shows how it ended; the miner can let it go (LP-PROD-F).
+    const held = heldOperation(run.id, names);
+    if (!held) return;
+    const box = el("div", undefined, "held-operation");
+    box.dataset.held = held.name;
+    box.append(el("p", "Your last " + OPERATION_NAMES[held.name] + " request was not confirmed. Trying again with the same values replays it under its key, never runs it twice; the page lets it go once the campaign's record shows how it ended.", "hint"));
+    const discard = el("button", "Discard the unconfirmed " + OPERATION_NAMES[held.name], undefined);
+    discard.type = "button"; discard.id = "journey-discard-" + held.name + "-" + run.id;
+    discard.disabled = busy;
+    discard.addEventListener("click", () => { discardOperation(run.id, [held.name]); message("Discarded. The next " + OPERATION_NAMES[held.name] + " is a new request, under a new key."); });
+    box.append(discard);
+    parent.append(box);
   }
 
   // ---- Launch wizard. ----
@@ -2371,6 +2460,7 @@
     if ("final_reserve" in budget && typeof budget.final_reserve !== "boolean") return "the final reserve is on or off";
     for (const [name, cap] of Object.entries(budget.ceilings || {})) {
       if (!vocabulary.ceilings.includes(name)) return "no resource is called " + name;
+      if (cap === Infinity) return "the " + resourceShort(name) + " ceiling is too large to count exactly";
       if (!(Number.isInteger(cap) && cap >= 0)) return "the " + resourceShort(name) + " ceiling must be " + (UNITS[name] ? "an amount in " + UNITS[name].unit : "a whole number") + ", 0 or more";
     }
     return null;
@@ -2703,6 +2793,10 @@
     box.dataset.built = "1";
     writeAdvanced();
   }
+  // What each ceiling field was last filled with, and the ledger whole number
+  // it stands for: a field not typed into since keeps that exact number, so
+  // editing one limit never rewrites another (LP-PROD-F).
+  const ceilingsWritten = new Map();
   // Advanced inputs write into the composition; a blank field removes its key.
   function readAdvanced() {
     const budget = {};
@@ -2712,8 +2806,11 @@
     if ($("budget-final-reserve").checked) budget.final_reserve = true;
     const ceilings = {};
     for (const input of document.querySelectorAll("[data-ceiling]")) {
-      const cap = toLedger(input.dataset.ceiling, input.value);
-      if (cap !== undefined) ceilings[input.dataset.ceiling] = cap;
+      const name = input.dataset.ceiling;
+      const written = ceilingsWritten.get(name);
+      const kept = written && written.text === input.value && Number.isSafeInteger(written.ledger) && written.ledger >= 0;
+      const cap = kept ? written.ledger : toLedger(name, input.value);
+      if (cap !== undefined) ceilings[name] = cap;
     }
     if (Object.keys(ceilings).length) budget.ceilings = ceilings;
     composition = {...composition, budget};
@@ -2724,7 +2821,12 @@
     const budget = composition.budget || {};
     $("budget-elapsed").value = budget.elapsed_seconds ?? "";
     $("budget-final-reserve").checked = budget.final_reserve === true;
-    for (const input of document.querySelectorAll("[data-ceiling]")) input.value = fromLedger(input.dataset.ceiling, budget.ceilings?.[input.dataset.ceiling]);
+    for (const input of document.querySelectorAll("[data-ceiling]")) {
+      const name = input.dataset.ceiling;
+      const ledger = budget.ceilings?.[name];
+      input.value = fromLedger(name, ledger);
+      ceilingsWritten.set(name, {text: input.value, ledger});
+    }
   }
   function renderLaunchComposition() {
     buildCeilings();
@@ -2816,12 +2918,24 @@
     render();
   });
   // ---- Keyed operations (LP-PROD-F): practice, freeze and submit. One
-  // idempotency key per request, kept until the controller answers it: a
-  // retry after a lost answer or a reload replays the request rather than
-  // starting it twice (or meeting campaign_busy from its own first attempt).
-  // A refusal with nothing outstanding releases the key; an unknown outcome
-  // keeps it. Both the journey and the Tools tab send through here.
+  // idempotency key per request, held until its outcome is known: a retry
+  // after a lost answer or a reload replays the request rather than starting
+  // it twice (or meeting campaign_busy from its own first attempt). Both the
+  // journey and the Tools tab send through here.
+  //
+  // A held key is released when the controller answers it; on a refusal
+  // with no earlier attempt under it outstanding; on
+  // operation_replay_conflict (the key is spent); by Discard; and when the
+  // campaign's record shows how the request ended (its effect, a refusal
+  // recorded since, an interruption, the campaign ending) or that it no
+  // longer applies (a submit with its frozen candidate gone). A held key is
+  // never carried into the next epoch's request: a submit whose answer was
+  // lost but which ran is released by its submitted epoch, so the next
+  // candidate's submit is a new request, not a replay of the old one.
   const operationKey = "carbon.launchpad.pending-operation.v1";
+  // Slots whose request is in flight from this page: only its answer
+  // releases those.
+  const inFlight = new Set();
   function heldOperations() {
     let value = null;
     try { value = JSON.parse(sessionStorage.getItem(operationKey) || "null"); } catch (_) { value = null; }
@@ -2830,36 +2944,120 @@
     if (typeof value.name === "string") return {[value.name + ":" + (value.body?.campaign || "")]: {...value, unknown: true}};
     return value;
   }
+  function writeHeld(all) {
+    try { sessionStorage.setItem(operationKey, JSON.stringify(all)); } catch (_) { /* the key still covers this request */ }
+  }
   function holdOperation(slot, action) {
     const all = heldOperations();
     if (action) all[slot] = action; else delete all[slot];
-    try { sessionStorage.setItem(operationKey, JSON.stringify(all)); } catch (_) { /* the key still covers this request */ }
+    writeHeld(all);
+  }
+  // What the campaign's record showed when a request was first sent: the
+  // mark its outcome is read against, on a retry as on the first answer.
+  function recordMark(campaign) {
+    const run = research.runs.find(item => item.id === campaign) || {};
+    return {
+      state: run.state || null,
+      submitted: (run.journey?.submitted_epochs || []).length,
+      frozen: run.journey?.frozen_awaiting_submission === true,
+      experiments: (run.experiments || []).length,
+      refusals: (run.refusals || []).length,
+      refusal: JSON.stringify(lastRefusal(run)),
+    };
+  }
+  // A refusal that may be this operation's: slice C names the operation a
+  // refusal was for; one naming another operation is not this one's.
+  function refusalOf(name, refusal) { return Boolean(refusal) && (!refusal.operation || refusal.operation === name); }
+  // Whether the record shows how a held request ended, or that it no longer
+  // applies, since its mark.
+  // A record that could not be read (READBACK_UNAVAILABLE, or one without
+  // its journey) shows nothing either way, and releases nothing.
+  function heldSettled(name, mark, run) {
+    if (["COMPLETED", "STOPPED", "EXPIRED"].includes(run.state)) return true;
+    if (["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state) && run.state !== mark.state) return true;
+    const refusal = lastRefusal(run);
+    if (refusal && JSON.stringify(refusal) !== mark.refusal && refusalOf(name, refusal)) return true;
+    if ((run.refusals || []).length > mark.refusals) return true;
+    if (name === "practice") return (run.experiments || []).length > mark.experiments;
+    const journey = run.journey;
+    if (!journey || typeof journey !== "object") return false;
+    const submitted = (journey.submitted_epochs || []).length > mark.submitted;
+    const frozen = journey.frozen_awaiting_submission === true;
+    if (name === "submit") return submitted || (mark.frozen && !frozen);
+    if (name === "freeze_candidate") return submitted || (!mark.frozen && frozen);
+    return false;
+  }
+  // Each refresh: a held request the record shows ended lets its key go.
+  function settleHeld() {
+    const all = heldOperations();
+    let changed = false;
+    for (const [slot, action] of Object.entries(all)) {
+      if (inFlight.has(slot) || !action || typeof action !== "object" || !action.mark) continue;
+      const run = research.runs.find(item => item.id === action.body?.campaign);
+      if (run && heldSettled(action.name, action.mark, run)) { delete all[slot]; changed = true; }
+    }
+    if (changed) writeHeld(all);
+  }
+  // The held request among `names` for a campaign, when one is waiting on a
+  // retry or a discard (not while it is in flight), or null.
+  function heldOperation(campaign, names) {
+    const all = heldOperations();
+    for (const name of names) {
+      const slot = name + ":" + campaign;
+      if (all[slot] && all[slot].unknown === true && !inFlight.has(slot)) return {name, key: all[slot].key};
+    }
+    return null;
+  }
+  function discardOperation(campaign, names) {
+    const all = heldOperations();
+    for (const name of names) if (!inFlight.has(name + ":" + campaign)) delete all[name + ":" + campaign];
+    writeHeld(all);
+    render();
   }
   async function keyedOperation(name, body, timeout = 20000) {
     const slot = name + ":" + (body.campaign || "");
-    const kept = heldOperations()[slot];
-    const action = kept && JSON.stringify(kept.body) === JSON.stringify(body) ? kept : {name, body, key: crypto.randomUUID(), unknown: false};
+    let kept = heldOperations()[slot];
+    if (!kept || typeof kept !== "object" || typeof kept.key !== "string") kept = null;
+    // Held, but the record shows it ended: its key is spent, and this is a
+    // new request.
+    const run = research.runs.find(item => item.id === body.campaign);
+    if (kept && kept.mark && run && heldSettled(name, kept.mark, run)) kept = null;
+    const same = Boolean(kept) && JSON.stringify(kept.body) === JSON.stringify(body);
+    // A different request while an earlier one is unknown: sent as a new
+    // request under a new key, and said so; the earlier one's key is let go.
+    const replaced = Boolean(kept) && kept.unknown === true && !same;
+    const action = same ? {...kept, mark: kept.mark || recordMark(body.campaign)} : {name, body, key: crypto.randomUUID(), unknown: false, mark: recordMark(body.campaign)};
     const earlier = action.unknown === true;
     holdOperation(slot, {...action, unknown: true});
+    inFlight.add(slot);
     try {
       const value = await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, timeout);
       holdOperation(slot, null);
-      return {ok: true, value};
+      // A retry answered: its outcome is read against the record when it was
+      // first sent, which a replay of finished work already includes.
+      return {ok: true, value, mark: earlier ? action.mark : null, replaced};
     } catch (error) {
-      const release = refused(error) && !earlier;
+      // The key already named another request: it is spent, nothing new ran.
+      const spent = error.code === "operation_replay_conflict";
+      const release = spent || (refused(error) && !earlier);
       if (release) holdOperation(slot, null);
-      return {ok: false, error, refused: refused(error), kept: !release};
-    }
+      return {ok: false, error, refused: refused(error), kept: !release, spent, replaced};
+    } finally { inFlight.delete(slot); }
   }
-  function notDone(outcome) {
-    return (outcome.refused ? "Refused: " : "Not confirmed: ") + said(outcome.error) + (outcome.kept ? ". Trying again sends the same request under the same key: if it started, it is replayed, never run twice." : ".");
+  const REPLACED = "This differs from your earlier request, whose outcome is unknown, so it went as a new request under a new key; if the earlier one started, it ran too.";
+  // Why an operation is not done, as a person reads it. `text` is the
+  // caller's wording of the error, when it has its own.
+  function notDone(outcome, text = said(outcome.error)) {
+    if (outcome.spent) return "Not sent again: an earlier request under this key was recorded with other values, so nothing new started. See the campaign's record.";
+    const head = (outcome.refused ? "Refused: " : "Not confirmed: ") + text.replace(/\.$/, "");
+    return head + (outcome.kept ? ". Trying again with the same values sends it under the same key: if it started, it is replayed, never run twice. Or discard it." : ".") + (outcome.replaced ? " " + REPLACED : "");
   }
   async function operate(name, body, started) {
     if (!connected || busy) return;
     busy = true; render();
     try {
       const outcome = await keyedOperation(name, body);
-      if (outcome.ok) { watch(name, body.campaign, outcome.value); message(started); }
+      if (outcome.ok) { watch(name, body.campaign, outcome.value, outcome); message(started + (outcome.replaced ? " " + REPLACED : "")); }
       else message(notDone(outcome), true);
     } finally { busy = false; await refresh(); render(); }
   }
@@ -2870,15 +3068,19 @@
   // is shown with what to do.
   const WORKING = {PRACTICING: "practice", FREEZING: "freeze_candidate", SUBMITTING: "submit"};
   const watches = new Map();
-  function watch(name, campaign, answered) {
+  // `sent` is keyedOperation's outcome: on a retry, the mark from its first
+  // send is the baseline, so a replay of work that already finished reads as
+  // done, not as "ended without the change it was for".
+  function watch(name, campaign, answered, sent = {}) {
     if (!campaign) return;
     const before = research.runs.find(run => run.id === campaign) || {};
+    const mark = sent.mark;
     watches.set(campaign, {
-      name, since: Date.now(), settled: null,
-      submitted: (before.journey?.submitted_epochs || []).length,
-      experiments: (before.experiments || []).length,
-      refusals: (before.refusals || []).length,
-      refusal: JSON.stringify(lastRefusal(answered, before)),
+      name, since: Date.now(), settled: null, replaced: Boolean(sent.replaced),
+      submitted: mark ? mark.submitted : (before.journey?.submitted_epochs || []).length,
+      experiments: mark ? mark.experiments : (before.experiments || []).length,
+      refusals: mark ? mark.refusals : (before.refusals || []).length,
+      refusal: mark ? mark.refusal : JSON.stringify(lastRefusal(answered, before)),
     });
   }
   // Back to READY with no change of record: the projection can lag the
@@ -2893,10 +3095,10 @@
     const elapsed = "started " + new Date(entry.since).toLocaleTimeString();
     if (WORKING[run.state]) {
       const doing = {practice: "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
-      return {kind: "working", text: doing + " · " + elapsed + "."};
+      return {kind: "working", text: doing + " · " + elapsed + "." + (entry.replaced ? " " + REPLACED : "")};
     }
     const refusal = lastRefusal(run);
-    if (refusal && JSON.stringify(refusal) !== entry.refusal) {
+    if (refusal && JSON.stringify(refusal) !== entry.refusal && refusalOf(entry.name, refusal)) {
       return {kind: "refused", text: "Not done: " + words(refusal.code) + "." + (refusal.next_action ? " " + refusal.next_action : ""), refusal};
     }
     const recorded = run.refusals || [];
@@ -3013,8 +3215,8 @@
     // Live regions, refusals and keyed operations (LP-PROD-F), shared with
     // the research surface and its Tools tab so all three behave alike.
     held, rebuild, quietly, setText, sent, refused,
-    keyedOperation, watch, watchStatus, notDone,
-    lastRefusal, refusalNote, campaignHref, budgetParts, resourceShort, resourceValue,
+    keyedOperation, heldOperation, discardOperation, watch, watchStatus, notDone,
+    lastRefusal, refusalNote, campaignHref, budgetParts, resourceShort, resourceValue, usageTable,
     onRender(hook) { renderHooks.push(hook); },
   };
   buildNavigation();

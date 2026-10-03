@@ -17,7 +17,9 @@ authority, starts nothing and reads no chain.
 from __future__ import annotations
 
 import functools
+import os
 import shlex
+from pathlib import Path
 
 SCHEMA = "carbon.control-center.capabilities.v1"
 
@@ -351,12 +353,16 @@ def _mcp_connection(profile_path):
     """How the miner's own MCP client starts Carbon's server for this
     controller's runner profile: the real command, with the profile's path,
     when one is loaded (LP-PROD-F); the placeholder otherwise. Naming the path
-    loads nothing: the server verifies the profile when it starts."""
+    loads nothing: the server verifies the profile when it starts. The path
+    is made absolute against the controller's working directory (the one it
+    was given relative to), because the miner's MCP client starts the server
+    from a directory of its own."""
     if profile_path is None:
         return {"command": MCP_PLACEHOLDER, "profile_path": None}
     from carbon.miner_mcp.agent_connection import connection_instructions
 
     try:
+        profile_path = Path(os.path.abspath(profile_path))
         connection = connection_instructions(configuration=profile_path)
     except Exception:  # noqa: BLE001 - the placeholder still connects a client
         return {"command": MCP_PLACEHOLDER, "profile_path": None}

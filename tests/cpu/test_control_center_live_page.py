@@ -4,17 +4,22 @@ The owner, 2026-10-03: the miner front end is "our entire workforce facing
 application", to be zero-friction and production-level. These tests hold the
 page to that, through its own scripts, without a browser:
 - a refresh redraws only what changed, and never the control under a hand:
-  a pressed or hovered control, a field being typed into, an unsent edit;
+  a pressed control, a field being typed into, an unsent edit; a resting
+  pointer holds a redraw back only briefly;
 - the Model step passes with the model setup chose, for a provider whose
   adapter lists none;
 - a launch is held only while its outcome is unknown, retries with the
   current choices under the same key, and can be discarded;
 - a refusal is shown with what to do, and a submit is "submitted" only once
   the campaign's record shows it admitted;
-- Reconcile is in reach whenever the state needs it, with why;
-- the Tools tab's freeze and submit keep one key until answered and report
+- Reconcile (or the controller's own recovery actions) is in reach whenever
+  the state needs it, with why;
+- practice, freeze and submit keep one key until the answer or the record
+  shows how they ended, never into the next epoch; an edited retry is a new
+  request, said so; a held one can be discarded; the Tools tab reports
   readable text;
-- limits are typed in dollars and minutes; old campaign links resolve; the
+- limits are typed in dollars and minutes, kept exactly and never rounded
+  up; usage reads in the same units; old campaign links resolve; the
   Connections page names the real MCP command.
 
 The page scenarios run in Node (tests/cpu/control_center_page_check.cjs over
@@ -262,6 +267,24 @@ def test_the_mcp_command_names_the_loaded_profile(journey, tmp_path):
     none = next(c for c in unloaded if c["id"] == "external_mcp")
     assert none["command"] == capabilities.MCP_PLACEHOLDER
     assert none["profile_path"] is None
+
+
+def test_the_mcp_command_names_a_relative_profile_absolutely(
+    journey, tmp_path, monkeypatch
+):
+    """The controller may be given its profile relative to where it started;
+    the miner's MCP client starts the server from a directory of its own, so
+    the command names the profile absolutely."""
+    from scripts.dev.miner_launchpad import capabilities
+
+    monkeypatch.chdir(tmp_path)
+    journey.configuration = Path("profiles/runner.json")
+    mcp = {
+        c["id"]: c for c in capabilities.control_center(journey)["agents"]["choices"]
+    }["external_mcp"]
+    absolute = str(Path.cwd() / "profiles/runner.json")
+    assert Path(absolute).is_absolute() and mcp["profile_path"] == absolute
+    assert shlex.split(mcp["command"])[-2:] == ["--configuration", absolute]
 
 
 def test_shared_choices_are_named_as_setup_names_them(journey):

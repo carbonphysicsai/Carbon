@@ -89,35 +89,70 @@
     box.append(el("h3", title));
     parent.append(box);
   }
-  // ---- Recovery (LP-PROD-F). A campaign in one of these states needs a
-  // reconcile before anything else; each says why, in a line, and the
-  // Reconcile control stays in reach wherever the campaign is shown.
+  // ---- Recovery (LP-PROD-F). A campaign in one of these states needs
+  // something done before it moves again; each says why, in a line, and its
+  // controls stay in reach wherever the campaign is shown. When the record
+  // carries the controller's own `recovery` (slice C's [{action,
+  // operation}], empty when nothing is needed), its actions are the ones
+  // offered; otherwise this page reads the state, and offers Reconcile.
   const RECOVERY = {
     PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Wait for the step to end; if it stays here, Reconcile settles what it holds.",
     RECONCILIATION_REQUIRED: "Work may still be held after an interruption. Reconcile checks what is held and cleans it up; then Resume or Stop.",
     INTERRUPTED: "The controller stopped mid-step. Reconcile settles what was held, then Resume continues the campaign.",
   };
+  // The same states, said as the controller's own recovery actions say them.
+  const RECOVERY_OFFERED = {
+    QUEUED: "Admitted, and nothing is carrying it out. Resume dispatches it again from its record; Stop ends it.",
+    PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Resume cancels the pause; Stop ends the campaign.",
+    INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Stop ends it.",
+    RECONCILIATION_REQUIRED: RECOVERY.RECONCILIATION_REQUIRED,
+  };
+  const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile"};
+  // A fresh launch is QUEUED, with no frozen record, until its run thread
+  // creates its ledger: "never started" is said only once it has stayed so
+  // this long, as this page has seen it.
+  const UNSTARTED_GRACE_MS = 30000;
+  const unstartedSince = new Map();
+  function offeredRecovery(run, doc) {
+    const list = Array.isArray(doc?.recovery) ? doc.recovery : Array.isArray(run?.recovery) ? run.recovery : null;
+    if (!list) return null;
+    return [...new Set(list.filter(item => item && Object.hasOwn(RECOVERY_ACTIONS, item.action)).map(item => item.action))];
+  }
+  // {text, actions} for a campaign that needs recovering, or null.
   function recovery(state, run, doc) {
+    const actions = offeredRecovery(run, doc);
+    if (actions) {
+      // PAUSED is the miner's own choice: its Resume is the header's.
+      if (!actions.length || state === "PAUSED") return null;
+      return {text: RECOVERY_OFFERED[state] || "To move again it needs: " + actions.map(a => RECOVERY_ACTIONS[a]).join(" or ") + ".", actions};
+    }
     // Recorded, but its campaign was never created here: no frozen manifest,
     // so nothing ran (the controller stopped before it started).
-    const unstarted = state === "QUEUED" && run && !run.runtime_revision && !(doc && doc.campaign.runtime_revision);
-    if (unstarted) return "Recorded, but never started here: the campaign has no frozen record yet. Reconcile settles it; if it stays queued, Stop it and launch again.";
-    return RECOVERY[state] || null;
+    const id = run?.id || doc?.campaign?.id;
+    if (state === "QUEUED" && run && !run.runtime_revision && !(doc && doc.campaign.runtime_revision)) {
+      if (!unstartedSince.has(id)) unstartedSince.set(id, Date.now());
+      if (Date.now() - unstartedSince.get(id) < UNSTARTED_GRACE_MS) return null;
+      return {text: "Recorded, but never started here: the campaign has no frozen record yet. Reconcile settles it; if it stays queued, Stop it and launch again.", actions: ["reconcile"]};
+    }
+    unstartedSince.delete(id);
+    return RECOVERY[state] ? {text: RECOVERY[state], actions: ["reconcile"]} : null;
   }
   // The recovery line; nothing for a healthy state. With the campaign view,
-  // the Reconcile control is the header's (and the Live tab's); without it,
-  // the line carries its own, so recovery never needs the view.
+  // its controls are the header's (and the Live tab's); without it, the line
+  // carries its own, so recovery never needs the view.
   function recoveryNote(parent, state, run, doc) {
-    const text = recovery(state, run, doc);
-    if (!text) return null;
+    const needs = recovery(state, run, doc);
+    if (!needs) return null;
     const box = el("div", undefined, "rs-recovery");
     box.setAttribute("role", "status");
-    box.append(el("p", "Needs attention · " + words(state).toLowerCase(), "eyebrow"), el("p", text, "status-line"));
+    box.append(el("p", "Needs attention · " + words(state).toLowerCase(), "eyebrow"), el("p", needs.text, "status-line"));
     if (!doc) {
-      const b = button("Reconcile", "primary", () => CC.researchAction(run.id, "reconcile"));
-      b.dataset.action = "reconcile";
-      b.disabled = !CC.state().connected || CC.state().busy || TERMINAL.includes(state);
-      box.append(b);
+      needs.actions.forEach((action, index) => {
+        const b = button(RECOVERY_ACTIONS[action], action === "stop" ? "rs-stop" : index === 0 ? "primary" : "", () => CC.researchAction(run.id, action));
+        b.dataset.action = action;
+        b.disabled = !CC.state().connected || CC.state().busy || TERMINAL.includes(state);
+        box.append(b);
+      });
     }
     parent.append(box);
     return box;
@@ -246,12 +281,12 @@
     title.append(meta);
     head.append(title);
     const actions = el("div", undefined, "rs-actions");
-    // Compact (the Overview's card): Pause and Stop, and Reconcile when the
-    // state needs it, so recovery is never only behind another page.
-    const needs = Boolean(recovery(doc.campaign.state, run, doc));
+    // Compact (the Overview's card): Pause and Stop, and what recovery the
+    // state needs, so recovery is never only behind another page.
+    const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
     for (const control of doc.controls) {
-      if (compact && control.action !== "stop" && control.action !== "pause" && !(needs && control.action === "reconcile")) continue;
-      const b = button(control.label, control.action === "stop" ? "rs-stop" : control.action === "reconcile" && needs ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
+      if (compact && control.action !== "stop" && control.action !== "pause" && !needs.includes(control.action)) continue;
+      const b = button(control.label, control.action === "stop" ? "rs-stop" : needs.includes(control.action) ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
       b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;
       b.dataset.action = control.action;
@@ -266,7 +301,7 @@
   // What the header shows, as one key (no clock).
   function headerKey(doc, run, compact) {
     const s = CC.state();
-    return JSON.stringify([compact, doc.campaign, doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, Boolean(recovery(doc.campaign.state, run, doc))]);
+    return JSON.stringify([compact, doc.campaign, doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
   }
   function tilesKey(doc) { return JSON.stringify({...doc.tiles, now_unix: 0, elapsed_seconds: doc.tiles.elapsed_seconds === null ? null : 0}); }
   // A refusal and a recovery line, above the campaign's own parts.
@@ -281,7 +316,7 @@
   function attentionKey(doc, run) {
     const s = CC.state();
     const state = doc ? doc.campaign.state : run.state;
-    return JSON.stringify([refusalOf(doc, run), state, Boolean(recovery(state, run, doc)), (doc?.controls || []).find(c => c.action === "reconcile") || null, s.connected, s.busy]);
+    return JSON.stringify([refusalOf(doc, run), state, recovery(state, run, doc), Boolean(doc), s.connected, s.busy]);
   }
   function tiles(parent, doc) {
     const t = doc.tiles;
@@ -335,7 +370,7 @@
     const grid = part(panel, "live", "grid", () => {}, "rs-live", "div");
     const s = CC.state();
     const tab = name => CC.campaignHref(doc.campaign.id, name);
-    part(grid, "now", JSON.stringify([doc.current_operation, doc.campaign.state, doc.research_task, doc.hypothesis, doc.controls, s.connected, s.busy, Boolean(recovery(doc.campaign.state, run, doc))]), now => {
+    part(grid, "now", JSON.stringify([doc.current_operation, doc.campaign.state, doc.research_task, doc.hypothesis, doc.controls, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]), now => {
       head(now, "Now", "Current work");
       if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
       else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
@@ -349,12 +384,13 @@
         quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
         now.append(quote);
       }
-      // Reconcile is here whenever the state needs it (LP-PROD-F); why is
-      // said once, above the campaign's header.
-      const needs = Boolean(recovery(doc.campaign.state, run, doc));
+      // What recovery the state needs is here, first among the controls
+      // (LP-PROD-F); why is said once, above the campaign's header.
+      // Reconcile is offered here only then.
+      const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
       const quick = el("div", undefined, "rs-quick");
-      for (const control of doc.controls.filter(c => needs || c.action !== "reconcile")) {
-        const b = button(control.label, control.action === "reconcile" ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
+      for (const control of doc.controls.filter(c => c.action !== "reconcile" || needs.includes("reconcile"))) {
+        const b = button(control.label, needs.includes(control.action) && control.action !== "stop" ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
         b.dataset.action = control.action;
         b.disabled = !control.available || !s.connected || s.busy; if (control.reason) b.title = control.reason;
         quick.append(b);
@@ -635,7 +671,9 @@
   function journeyKey(run, which) {
     const s = CC.state();
     const status = CC.watchStatus(run);
-    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null]);
+    // A request held under its key (its answer lost) shows with Discard.
+    const held = CC.heldOperation(run.id, which === "practice" ? ["practice"] : ["freeze_candidate", "submit"]);
+    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held]);
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
@@ -823,18 +861,8 @@
     const usage = run && run.usage;
     const res = section(panel, "Resources", "Your ledger");
     if (!usage) { para(res, "Appears once the campaign ledger exists.", "hint"); return; }
-    const wrap = el("div", undefined, "table-wrap"); const table = el("table", undefined, "metrics-table");
-    const head = el("tr"); for (const n of ["Resource", "Your limit", "Reported", "Reserved", "Uncertain"]) head.append(el("th", n)); table.append(head);
-    const budget = usage.budget || {};
-    for (const name of Object.keys(usage.reported || {})) {
-      const cap = budget.ceilings ? budget.ceilings[name] : budget[name];
-      const row = el("tr");
-      // Your limit in the unit you set it in (LP-PROD-F); the ledger's own
-      // counts beside it, as recorded.
-      row.append(el("td", words(name)), el("td", cap === undefined || cap === null ? "No limit" : CC.resourceValue(name, cap)), el("td", String(usage.reported[name])), el("td", String(usage.reserved?.[name] ?? "")), el("td", String(usage.uncertain?.[name] ?? "")));
-      table.append(row);
-    }
-    wrap.append(table); res.append(wrap);
+    // Every column in the unit your limit is set in (LP-PROD-F).
+    CC.usageTable(res, usage);
     para(res, usage.cost_basis || "", "hint");
   }
   function tabSettings(panel, doc) {
@@ -886,7 +914,7 @@
     // own state then.
     part(container, "attention", attentionKey(doc, run), box => attention(box, doc, run, false), "rs-attention", "div");
     if (!doc) {
-      part(container, "fallback", JSON.stringify([run.id, run.state, s.connected, s.busy]), box => fallbackControls(box, run), "rs-fallback", "div");
+      part(container, "fallback", JSON.stringify([run.id, run.state, s.connected, s.busy, recovery(run.state, run, null)]), box => fallbackControls(box, run), "rs-fallback", "div");
       return;
     }
     part(container, "fallback", "", () => {}, "rs-fallback", "div");
@@ -917,9 +945,10 @@
     const s = CC.state();
     const done = TERMINAL.includes(run.state);
     const row = el("div", undefined, "rs-quick");
-    // Reconcile is the recovery line's own when the state needs it.
-    for (const [action, label, offered] of [["pause", "Pause", !done && !["PAUSED", "PAUSE_REQUESTED"].includes(run.state)], ["resume", "Resume", ["PAUSED", "INTERRUPTED"].includes(run.state)], ["stop", "Stop", !done], ["reconcile", "Reconcile", !done && !recovery(run.state, run, null)], ["export", "Export", true]]) {
-      if (!offered) continue;
+    // What recovery the state needs is the recovery line's own.
+    const needs = recovery(run.state, run, null)?.actions || [];
+    for (const [action, label, offered] of [["pause", "Pause", !done && !["PAUSED", "PAUSE_REQUESTED"].includes(run.state)], ["resume", "Resume", ["PAUSED", "INTERRUPTED"].includes(run.state)], ["stop", "Stop", !done], ["reconcile", "Reconcile", !done], ["export", "Export", true]]) {
+      if (!offered || needs.includes(action)) continue;
       const b = button(label, "", () => CC.researchAction(run.id, action));
       b.dataset.action = action;
       b.disabled = !s.connected || s.busy;
