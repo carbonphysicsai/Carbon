@@ -4,8 +4,8 @@ Handoff §11-12, as a **separate later experiment** (`EXPERIMENT`): it wraps the
 fixed design-optimizer baseline of `docs/development/DESIGN_OPTIMIZER_SCOPE.md`
 so that a different search method (for example one an external research agent
 proposes) can be compared with it on development material only. It does not
-modify EV4, its contract, its panel or `optimizer.py`; EV4's own conditions are
-refused (`ev4_protected_conditions`).
+modify EV4, its contract, its panel or `optimizer.py`; EV4's and EV5's own
+conditions are refused (`ev4_protected_conditions`, `ev5_protected_conditions`).
 
 The record carries everything the handoff lists:
 
@@ -72,7 +72,11 @@ def _digest(value):
 
 
 def _protected():
-    from .ev4_protected_conditions import is_protected
+    from .ev4_protected_conditions import is_protected as ev4
+    from .ev5_protected_conditions import is_protected as ev5
+
+    def is_protected(t_amb, soc0):
+        return ev4(t_amb, soc0) or ev5(t_amb, soc0)
 
     return is_protected
 

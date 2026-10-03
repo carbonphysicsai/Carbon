@@ -19,11 +19,28 @@ They cover the patterns the experiment needs:
 themselves, to test specific scoring failure modes. They are scoring tests,
 not miner submissions, and not evidence of achievable model performance.
 Their kind is always `SYNTHETIC_CONTROL`.
+
+**Attack constructions** (EV5 onward, OWNER-ADMISSION-COMBINED-01). The
+Track A harness's declarative-recipe constructions join the panel as members
+of kind `ATTACK_CONSTRUCTION`. They are rebuilt, scored and value-tested
+exactly like reconstructed members, so an attack that only shows up as a
+value failure is caught. A construction Carbon's construction contract
+refuses never reaches a worker; it is recorded with its typed refusal.
+Participant code is out of scope at Level 0, and GRAPHITE constructions are
+not added (`attack_constructions`).
 """
 
 from __future__ import annotations
 
 import copy
+import functools
+
+from carbon.challenge_readiness.combined_run import (
+    ATTACK_CONSTRUCTION,
+    DECLARATIVE_RECIPE,
+    RECONSTRUCTED,
+    admit_attack_construction,
+)
 
 CHALLENGE_ID = "battery-fastcharge-ageing-development-v1"
 MLP = {"steps": 6000, "width": 256, "depth": 3}
@@ -215,7 +232,18 @@ PANELS = {
     "ev1": RECIPES,
     "ev2": RECIPES + EV2_RECIPES,
     "ev4": RECIPES + EV2_RECIPES + EV4_RECIPES,
+    # EV5 (§2): EV4's 100 members, unchanged; its attack constructions are
+    # added by `members` (ATTACK_PANELS).
+    "ev5": RECIPES + EV2_RECIPES + EV4_RECIPES,
 }
+
+#: The Track A harness families whose attempts are declarative recipes
+#: (strategy documents). The other families attack Python objects,
+#: predictions or staged bytes, so they leave nothing to rebuild.
+ATTACK_FAMILIES = ("recipe_surface", "rebuild_identity")
+ATTACK_ORIGIN = "track_a_harness"
+#: Panels that carry the harness's attack constructions.
+ATTACK_PANELS = ("ev5",)
 
 
 def family(strategy):
@@ -223,13 +251,85 @@ def family(strategy):
     return strategy["backbone"]
 
 
+def harness_constructions():
+    """Every strategy document the declarative-recipe families submit, as an
+    admitted attack-construction entry, in the harness's own order. A rebuild
+    pair gives two entries (`<attempt>_a`, `<attempt>_b`)."""
+    from carbon.battery import track_a
+
+    families = {f.family_id: f for f in track_a.FAMILIES}
+    out = []
+    for family_id in ATTACK_FAMILIES:
+        for name, value in families[family_id].attacks():
+            documents = value if type(value) is tuple else (value,)
+            for index, document in enumerate(documents):
+                entry = {
+                    "origin": ATTACK_ORIGIN,
+                    "family": family_id,
+                    "attempt": name if len(documents) == 1 else f"{name}_{'ab'[index]}",
+                    "material": DECLARATIVE_RECIPE,
+                    "document": copy.deepcopy(document),
+                }
+                out.append(admit_attack_construction(entry, origins=(ATTACK_ORIGIN,)))
+    return out
+
+
+@functools.cache
+def _attack_constructions():
+    from carbon.battery.track_a import compile_boundary
+
+    admitted, refused = [], []
+    for entry in harness_constructions():
+        label = f"attack_{entry['family']}_{entry['attempt']}"
+        result = compile_boundary(entry["document"])
+        if result["accepted"]:
+            admitted.append((label, entry["document"], (0,)))
+        else:
+            refused.append(
+                {
+                    "label": label,
+                    "family": entry["family"],
+                    "attempt": entry["attempt"],
+                    "codes": [list(c) for c in result["codes"]],
+                }
+            )
+    return tuple(admitted), tuple(refused)
+
+
+def attack_constructions():
+    """The harness's constructions, split by Carbon's construction contract.
+
+    `admitted`: each compiles, and joins the panel as an ATTACK_CONSTRUCTION
+    member `(label, strategy, seeds)`, like any recipe. `refused`: each is
+    refused by a typed compiler issue and never reaches a worker."""
+    admitted, refused = _attack_constructions()
+    return {"admitted": copy.deepcopy(admitted), "refused": copy.deepcopy(refused)}
+
+
 def members(panel="ev1"):
-    """Every reconstructed panel member: (member id, family, strategy, seed)."""
+    """Every panel member Carbon rebuilds: (member id, family, strategy, seed).
+    For an attack panel, its admitted attack constructions come last."""
+    rows = PANELS[panel]
+    if panel in ATTACK_PANELS:
+        rows = rows + attack_constructions()["admitted"]
     return [
         (f"{family}-s{seed}", family, strategy, seed)
-        for family, strategy, seeds in PANELS[panel]
+        for family, strategy, seeds in rows
         for seed in seeds
     ]
+
+
+def kinds(panel="ev1"):
+    """Each member's panel kind: RECONSTRUCTED or ATTACK_CONSTRUCTION."""
+    attacks = (
+        {label for label, *_ in attack_constructions()["admitted"]}
+        if panel in ATTACK_PANELS
+        else set()
+    )
+    return {
+        member: ATTACK_CONSTRUCTION if label in attacks else RECONSTRUCTED
+        for member, label, _strategy, _seed in members(panel)
+    }
 
 
 def _shift_voltage_late(outputs, steps=1):
