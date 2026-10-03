@@ -30,13 +30,18 @@ registered record:
   unset, while a condition repeats one EV4 protects, while the panel's
   reconstructed members differ from EV4's frozen panel, or while the
   confirmation batch is unsealed.
+- **Freeze** (`freeze`): writes the contract, the reference and panel plans
+  and the freeze manifest into the repository, once. A second freeze is
+  refused.
 
-Nothing here dispatches, spends or freezes, and no value is chosen here. H3's
+Nothing here dispatches or spends, and no value is chosen here. H3's
 localized measurement is near-limit false acceptance (`H3_MEASUREMENT`,
 `h3_report`), descriptive and with no cutoff.
 
     python -m carbon.battery.value.ev5 seal-confirmation --config DEPLOYMENT.json
     python -m carbon.battery.value.ev5 freeze-manifest --out FILE \
+        --confirmation-fingerprint sha256:<hex> --confirmation-sequence N
+    python -m carbon.battery.value.ev5 freeze \
         --confirmation-fingerprint sha256:<hex> --confirmation-sequence N
 """
 
@@ -67,6 +72,7 @@ SOURCE = "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md"
 STUDY_SHEET = "docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json"
 EVIDENCE = "docs/development/evidence/ev5-2026-10-03"
 PLANS = f"{EVIDENCE}/plans"
+FREEZE_MANIFEST = f"{EVIDENCE}/freeze-manifest.json"
 CONTRACT = "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json"
 EV4_CONTRACT = ev.CONTRACTS / "ev4-charge-protocol-selection.v1.json"
 EV4_FREEZE_MANIFEST = "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json"
@@ -720,6 +726,13 @@ def freeze_manifest(confirmation_commitment=None, repository=REPOSITORY):
             "TRACK-B-STUCK-01 outcome",
             "OWNER-TRACK-A-L0-02",
             "OWNER-EV5-CAP-01",
+            "OWNER-GATE-CUTOFF-01",
+            "OWNER-EXEC-APPROVALS-01",
+            "OWNER-EV5-Q1-01",
+            "OWNER-EV5-Q2-01",
+            "OWNER-EV5-Q3-01",
+            "OWNER-EV5-Q4-01",
+            "OWNER-EV5-FREEZE-01",
         ],
         "conditions": {
             **{
@@ -764,6 +777,48 @@ def freeze_manifest(confirmation_commitment=None, repository=REPOSITORY):
     }
 
 
+def _frozen_files(manifest):
+    """The files the freeze writes, as text: the contract as EV4's is laid
+    out, the plans as `value_plans` writes them, and the manifest."""
+    files = {CONTRACT: json.dumps(manifest["contract"]["document"], indent=2) + "\n"}
+    for name, entry in manifest["plans"]["files"].items():
+        files[f"{PLANS}/{name}"] = (
+            json.dumps(entry["plan"], indent=1, sort_keys=True) + "\n"
+        )
+    files[FREEZE_MANIFEST] = json.dumps(manifest, sort_keys=True, indent=1) + "\n"
+    return files
+
+
+def freeze(confirmation_commitment, repository=REPOSITORY):
+    """Freeze EV5: write the contract, the reference and panel plans and the
+    freeze manifest into the repository, once.
+
+    Refused, writing nothing, when any of those files already exists (a
+    second freeze) or while `freeze_manifest` refuses. The manifest pins the
+    pre-registration's bytes as they are now, so the freeze runs on the
+    committed text (LF line endings), never on a converted checkout."""
+    root = Path(repository)
+    existing = [
+        path
+        for path in (CONTRACT, PLANS, FREEZE_MANIFEST)
+        if (root / path).exists()
+    ]
+    if existing:
+        raise cr.CombinedRunError("already_frozen", blockers=existing)
+    manifest = freeze_manifest(confirmation_commitment, repository)
+    files = _frozen_files(manifest)
+    for path, text in files.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as handle:
+            handle.write(text.encode())
+    return {
+        "written": sorted(files),
+        "contract_digest": manifest["contract"]["digest"],
+        "manifest_sha256": hashlib.sha256(files[FREEZE_MANIFEST].encode()).hexdigest(),
+    }
+
+
 def main(argv=None):
     from carbon.development_session.data import write_once
 
@@ -774,10 +829,15 @@ def main(argv=None):
         help="Make and commit the sealed confirmation batch (validator host only)",
     )
     seal.add_argument("--config", type=Path, required=True)
-    freeze = sub.add_parser("freeze-manifest", help="Build EV5's freeze manifest")
-    freeze.add_argument("--out", type=Path, required=True)
-    freeze.add_argument("--confirmation-fingerprint", required=True)
-    freeze.add_argument("--confirmation-sequence", type=int, required=True)
+    build = sub.add_parser("freeze-manifest", help="Build EV5's freeze manifest")
+    build.add_argument("--out", type=Path, required=True)
+    build.add_argument("--confirmation-fingerprint", required=True)
+    build.add_argument("--confirmation-sequence", type=int, required=True)
+    frozen = sub.add_parser(
+        "freeze", help="Write EV5's contract, plans and freeze manifest, once"
+    )
+    frozen.add_argument("--confirmation-fingerprint", required=True)
+    frozen.add_argument("--confirmation-sequence", type=int, required=True)
     args = parser.parse_args(argv)
     if args.command == "seal-confirmation":
         from carbon.battery.deployment import EvaluationUnavailable
@@ -792,13 +852,20 @@ def main(argv=None):
             return 2
         print(json.dumps(result, sort_keys=True, indent=2))
         return 0
+    commitment = {
+        "fingerprint": args.confirmation_fingerprint,
+        "journal_sequence": args.confirmation_sequence,
+    }
+    if args.command == "freeze":
+        try:
+            result = freeze(commitment)
+        except cr.CombinedRunError as refused:
+            print(json.dumps({"refused": refused.code, "blockers": refused.blockers}))
+            return 2
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return 0
     try:
-        manifest = freeze_manifest(
-            {
-                "fingerprint": args.confirmation_fingerprint,
-                "journal_sequence": args.confirmation_sequence,
-            }
-        )
+        manifest = freeze_manifest(commitment)
     except cr.CombinedRunError as refused:
         print(json.dumps({"refused": refused.code, "blockers": refused.blockers}))
         return 2

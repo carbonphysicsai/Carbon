@@ -1,9 +1,17 @@
-# EV5: the battery Level 0 combined admission run — pre-registration DRAFT
+# EV5: the battery Level 0 combined admission run — pre-registration
 
-**Status. DRAFT, not frozen. Nothing dispatches.** The owner approved option
-A's USD 6 cap on 2026-10-03 (OWNER-EV5-CAP-01). The gate cutoff is set
-(2.0 bands, OWNER-GATE-CUTOFF-01). The freeze now waits only on the
-engineering work in §8.
+**Status. FROZEN on 2026-10-03, before any EV5 solve. Nothing has
+dispatched.** OWNER-EV5-FREEZE-01. `python -m carbon.battery.value.ev5 freeze`
+wrote these once:
+- the contract, `carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json`
+  (digest `sha256:bb08f9794fcd24afc70764fd953c8828e31dad49445ddbbeedc548cc5640fc31`);
+- the reference and panel plans, `docs/development/evidence/ev5-2026-10-03/plans/`;
+- the freeze manifest, `docs/development/evidence/ev5-2026-10-03/freeze-manifest.json`.
+
+The manifest pins this document's text as frozen, together with the L0 study
+sheet and H3's module. Anything changed after the first solve is reported as a
+change, never silently applied. Spend stays under OWNER-EV5-CAP-01 (USD 6),
+and the gate cutoff is 2.0 bands (OWNER-GATE-CUTOFF-01).
 
 **Authority.**
 - OWNER-ADMISSION-COMBINED-01 (2026-10-02): construction, attack and value
@@ -127,8 +135,8 @@ freeze:
     (`docs/development/evidence/near-false-acceptance-2026-10-03/`).
   - It is reported for every member. Separation holds if the sign-error
     control's rate is above every eligible real member's.
-  - No cutoff: it gates nothing in EV5. The SciML lead may amend or replace
-    it before the freeze.
+  - No cutoff: it gates nothing in EV5. The SciML lead approved it
+    unchanged before the freeze (OWNER-EV5-FREEZE-01).
 - **Adversarial score.** No Track A or Mode X construction with a
   reference-verified violation scores in the top half of eligible members,
   under the deciding rule plus the gate.
@@ -186,7 +194,7 @@ per hour. EV4 itself cost USD 2.52 in total.
 - Ledger figures follow POD-LEDGER-PRIVATE-01 once it merges: the repository
   ledger keeps only allow-listed fields.
 
-## 8. Freeze blockers (HUMAN_INPUT)
+## 8. Freeze blockers (all resolved)
 
 1. **Gate cutoff: resolved.** `THRESHOLD_BANDS = 2.0` (OWNER-GATE-CUTOFF-01,
    2026-10-03): the SciML/technical lead deferred it to the lead session and
@@ -195,10 +203,11 @@ per hour. EV4 itself cost USD 2.52 in total.
 2. **Spend: resolved.** OWNER-EV5-CAP-01 (2026-10-03) approves option A: RunPod
    A40 at no more than USD 0.49 per hour, a hard cap of USD 6, counted inside
    the USD 25 L0 cap.
-3. **Sign-error measurement: commissioned.** The owner commissioned one on
-   2026-10-03 (OWNER-EXEC-APPROVALS-01). Near-limit false acceptance is
-   built and proposed for H3 (§4). It is descriptive, with no cutoff, and the
-   SciML lead may amend it before the freeze.
+3. **Sign-error measurement: resolved.** The owner commissioned one on
+   2026-10-03 (OWNER-EXEC-APPROVALS-01). Near-limit false acceptance was built
+   and proposed for H3 (§4), descriptive and with no cutoff. The SciML lead
+   approved it unchanged (OWNER-EV5-FREEZE-01), which closed the amendment
+   window.
 
 4. **Freshness against EV4's optimizer grid: resolved.** OWNER-EV5-Q1-01
    (2026-10-03): EV4's protected optimizer grid counts as EV4 conditions. The
@@ -210,10 +219,16 @@ per hour. EV4 itself cost USD 2.52 in total.
    committed pod plan or rented compute (POOLS-D2).
 
 The engineering work (conditions, the `ATTACK_CONSTRUCTION` panel kind, plans,
-campaign and freeze manifest) is built (#536). What still blocks the freeze is
-the sealed confirmation batch: made on the validator host and committed by
-journal fingerprint before use. The optimizer (#536 Q2) and the H2 bootstrap
-(#536 Q4) are settled: OWNER-EV5-Q2-01 and OWNER-EV5-Q4-01 (§3, §4).
+campaign and freeze manifest) is built (#536). The optimizer (#536 Q2) and the
+H2 bootstrap (#536 Q4) are settled: OWNER-EV5-Q2-01 and OWNER-EV5-Q4-01 (§3,
+§4).
+
+**The confirmation batch is sealed.** It was made on the operator host on
+2026-10-03 from the testnet validator's deployment (OWNER-EV5-FREEZE-01), and
+newly committed to its seed journal:
+- fingerprint `sha256:0add08ed7a3c6568a0779b0becb123578eedee6ca8e4f9f014588ed4ba934f3e`;
+- journal sequence 14;
+- role `ev5-confirmation`, 120 cases and 4 hidden duplicates.
 
 **Sealing the batch (operator, validator host).** One command, from a checkout
 that has it, against the deployment's own configuration:
