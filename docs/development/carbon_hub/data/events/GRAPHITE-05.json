@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "GRAPHITE-05",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "GRAPHITE-01 phase 3, the Constructor at Level 0, is built; its live sessions have not run and nothing was spent. OWNER-GRAPHITE-03 sets one USD 15 grant covering both Engy tokens and RunPod pod time (\"$15 runpod included\"), recorded as GRAPHITE-GRANT-PHASE3 with derived limits: 3 runs of at most USD 4.91, each split into 2.96 of pods (12 thirty-minute A40 pods at pod_control's 0.49 an hour plus disk) and 1.95 of tokens, with pod_control's 0.25 cleanup reserve. The Constructor's miner tools now reach a battery development campaign through the standard miner adapter, so phase 1's unconnected miner path is connected. Its proposals go to Carbon's runner. The runner refuses, records as a finding and never scores anything outside the recorded battery construction contract. It runs each admitted proposal on one EV4-style pod with a hash-pinned code ship, a pinned build and verified termination, and checks the pod's build against Carbon's own; a mismatch is a finding. It scores proposals by the battery exam's frozen gates, score and paired comparison on public PRACTICE, and records the ladder's stall observation after 5 non-improving attempts. It bundles the best improvement with ablations as a PR-ready directory and rebuilds it from the bundle alone. Every model call and pod is reserved before use against one run cap and settled from the provider's charge. Scripted tests and mutation checks cover the whole loop, and nothing here grades, qualifies or rewards.",
+  "primary_detail": ".agent/tickets/GRAPHITE-01_in_house_testing_agent.md",
+  "affects": [
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T14:00:00Z"
+}

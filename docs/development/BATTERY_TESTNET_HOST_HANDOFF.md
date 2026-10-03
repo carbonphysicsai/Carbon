@@ -265,7 +265,7 @@ sandbox lacks access.
 ## 4. Budget (OD-5): reconciliation, remaining ceiling, run matrix
 
 **Reconciliation (OWNER-BATTERY-TESTNET-04).**
-- The exam-design campaign's earlier RunPod spend (about USD 4.79,
+- The exam-design campaign's earlier RunPod spend (provenance in
   `docs/development/evidence/exam-design-2026-09-24/accounting/ledger.jsonl`,
   with all 12 pods it launched verified terminated) is **not** counted
   against this track.

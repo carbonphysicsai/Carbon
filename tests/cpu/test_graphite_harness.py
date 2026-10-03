@@ -496,3 +496,107 @@ def test_the_loop_repair_leaves_historical_epochs_unchanged(tmp_path):
                 agent_policy=AUTONOMOUS,
             )
         )
+
+
+class _ProbeTools:
+    """A role's `sdk`: answers every call with a fixed record; runs nothing."""
+
+    async def call(self, name, arguments, identity):
+        return {"status": "OK", "probe": True}
+
+
+def _probe_transport(request):
+    return {
+        "model": request["model"],
+        "status": "completed",
+        "output": [
+            {
+                "type": "function_call",
+                "call_id": "probe-" + str(len(request["input"])),
+                "name": "graphite_probe",
+                "arguments": "{}",
+            }
+        ],
+        "usage": {"input_tokens": 10, "output_tokens": 20},
+    }
+
+
+_PROBE_TOOL = {
+    "type": "function",
+    "name": "graphite_probe",
+    "strict": True,
+    "description": "probe",
+    "parameters": {"type": "object", "properties": {}, "required": []},
+}
+
+
+def _role_epoch(meter, **extra):
+    return asyncio.run(
+        run_epoch(
+            meter,
+            owner="alice",
+            epoch=1,
+            sdk=_ProbeTools(),
+            credential_file=None,
+            initial_observation={"fixture": True},
+            transport=_probe_transport,
+            instructions="a closed role",
+            tools=[_PROBE_TOOL],
+            **extra,
+        )
+    )
+
+
+def test_a_role_without_its_own_call_cap_keeps_the_shared_48(tmp_path):
+    """GRAPHITE-D26: omitted, the shared MAX_PROVIDER_CALLS (48) caps the
+    epoch and the plan records it exactly as before."""
+    from test_cw1_research_ledger import ledger
+
+    from carbon.development_session.research_agent_policy import MAX_PROVIDER_CALLS
+
+    meter = ledger(tmp_path / "default")
+    report = _role_epoch(meter)
+    assert MAX_PROVIDER_CALLS == 48
+    assert report["status"] == "STOPPED"
+    assert report["reason"] == "epoch provider-call ceiling"
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 48
+    plan = json.loads((meter.root / "epoch-1" / "plan.json").read_bytes())
+    assert plan["max_provider_calls"] == 48
+
+
+def test_a_role_call_cap_is_recorded_and_bounds_the_epoch(tmp_path):
+    from test_cw1_research_ledger import DEVELOPMENT_CEILINGS, ledger
+
+    meter = ledger(
+        tmp_path / "role",
+        ceilings={
+            **DEVELOPMENT_CEILINGS,
+            "provider_attempts": 200,
+            "provider_nanodollars": 10**10,
+        },
+    )
+    report = _role_epoch(meter, max_provider_calls=60)
+    assert report["reason"] == "epoch provider-call ceiling"
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 60
+    plan = json.loads((meter.root / "epoch-1" / "plan.json").read_bytes())
+    assert plan["max_provider_calls"] == 60
+
+
+def test_a_call_cap_without_a_role_is_refused(tmp_path):
+    from test_cw1_research_ledger import ledger
+
+    args = {
+        "owner": "alice",
+        "epoch": 1,
+        "sdk": None,
+        "credential_file": None,
+        "initial_observation": {"fixture": True},
+        "transport": _stop_transport,
+    }
+    meter = ledger(tmp_path / "no-role")
+    with pytest.raises(ValueError, match="only a role"):
+        asyncio.run(run_epoch(meter, **args, max_provider_calls=150))
+    assert not (meter.root / "epoch-1").exists()
+    for bad in (0, -1, True, 150.0, "150"):
+        with pytest.raises(ValueError, match="positive integer"):
+            _role_epoch(ledger(tmp_path / ("bad-" + str(bad))), max_provider_calls=bad)

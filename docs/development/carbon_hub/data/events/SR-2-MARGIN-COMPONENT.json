@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "SR-2-MARGIN-COMPONENT",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "SR-2 (2026-10-02), score tuning inside the combined admission test (OWNER-ADMISSION-COMBINED-01). A margin-aware leg m is the decision contract's cost-weighted margin error in band units on plating and peak temperature: optimism at the false-acceptance cost, pessimism at the missed-opportunity cost. It was pre-registered before computing and tested in 286 weighted-geometric profiles over accuracy, important-region robustness, decision agreement and m, offline on EV2 with its 15 prediction files verified against committed digests. Outcome NO_PROMOTION. m measures what it was built for: the boundary optimist overstates margins by 1.6 bands, the real MLPs by 0.5-0.7. Averaged over all scoring cases it does not track decision quality (verification tau 0.243 against g's 0.309), and no m-weighted profile is chosen. The next candidate weights margin error toward the decision boundary, which needs a science-lead value. EV4 replication NOT_RUN (predictions not retained). STUCK count 2 of 3. No testnet rule changed.",
+  "primary_detail": "docs/development/BATTERY_SCORING_RATIOS_SR2.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T22:37:58Z"
+}

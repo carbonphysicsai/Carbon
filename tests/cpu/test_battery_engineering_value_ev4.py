@@ -611,11 +611,23 @@ def test_report_outcomes_on_synthetic_references():
 @pytest.fixture
 def ev4_campaign(tmp_path, monkeypatch):
     # Every global use_campaign sets is restored after the test.
-    for name in ("CAMPAIGN", "EVID", "LEDGER", "ACTIVE", "TOKEN_FILE", "CEILING_USD"):
+    for name in (
+        "CAMPAIGN",
+        "EVID",
+        "LEDGER",
+        "PRIVATE_LEDGER",
+        "ACTIVE",
+        "TOKEN_FILE",
+    ):
         monkeypatch.setattr(pc, name, getattr(pc, name))
     monkeypatch.setattr(pc, "STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setattr(pc, "REPO", str(tmp_path))
     pc.use_campaign("ev4")
+    # Synthetic operator limits; the real ones are never committed.
+    (tmp_path / "state").mkdir()
+    (tmp_path / "state" / pc.OPERATOR_CONFIG).write_text(
+        json.dumps({"balance_floor_usd": 3.0, "ceilings_usd": {"ev4": 12.0}})
+    )
 
 
 def test_pod_allowance_never_exceeds_the_campaign_limit(ev4_campaign):
@@ -643,14 +655,13 @@ def test_active_pods_are_recorded_per_pod_with_their_tokens(ev4_campaign):
 
 
 def test_the_combined_budget_and_the_cap_are_checked_before_spend(ev4_campaign):
-    assert pc.start_cap(100.0, 15.0) == 15.0
-    assert pc.start_cap(100.0, 50.0) == 15.0  # never above the ceiling
-    assert pc.start_cap(10.0, 15.0) == 8.0  # never below the balance floor
-    pc.check_budget(10.0, pc.pod_cost_usd(120), 15.0)
+    limits = pc.operator_limits()
+    assert pc.start_cap(100.0, 12.0, limits) == 12.0
+    assert pc.start_cap(100.0, 50.0, limits) == 12.0  # never above the ceiling
+    assert pc.start_cap(10.0, 12.0, limits) == 7.0  # never below the balance floor
+    pc.check_budget(7.0, pc.pod_cost_usd(120), 12.0)
     with pytest.raises(SystemExit):
-        pc.check_budget(13.0, pc.pod_cost_usd(240), 15.0)
-    # Three 2-hour pods at the maximum rate fit inside the cap, as planned.
-    assert 3 * pc.pod_cost_usd(120) + pc.CLEANUP_RESERVE_USD < 15.0
+        pc.check_budget(10.0, pc.pod_cost_usd(240), 12.0)
 
 
 def test_large_manifests_travel_gzipped_and_decode_exactly():

@@ -17291,6 +17291,278 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 Tickets: `.agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md`, with
 motor and photonic tickets to follow.
 
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-01: the Challenge Roadmap rev 2.0 is Carbon's standing challenge development pipeline
+
+**Owner, verbatim, in session on 2026-10-02**, attaching the Challenge
+Roadmap rev 2.0 (status "Direction approved"; process approver Fitz,
+technical Ryan, science Harshdeep): "Implement this as our standing
+challenge develop pipeline and roadmap we need to build out and execute."
+
+**Decision.**
+1. **One pipeline.** Every in-house challenge goes through Prioritize,
+   Design, Test/iterate and Rank for deployment, under one common test
+   suite, in the roadmap's priority order. The roadmap's text is
+   `Design_Specs/Challenge_Roadmap.md`. Its family data, frequency and value
+   labels and estimates are transcribed exactly into
+   `carbon/challenge_pipeline/families.json`, with the source page's SHA-256.
+2. **Machinery.** `carbon/challenge_pipeline/` ports the page's arithmetic
+   (queue, false-feasible bound, leaderboard) and holds the versioned state:
+   the protocol, the rubric and one record per family. The generated view is
+   `docs/development/CHALLENGE_PIPELINE.md`. The page's shared store stays
+   the owners' interactive view, with the same record fields.
+3. **Phase 1 starts now.** Battery defines the protocol through the
+   roadmap's eight steps, one ticket per step (`CHALLENGE-PROTOCOL-01` for
+   step 1, and so on as each opens). No other family enters the pipeline
+   before the process owner locks the protocol (step 8). The code refuses a
+   record that says otherwise.
+4. **Gates are the named owners' acts.**
+   - Scope and Design are signed by the science owner, Track A by the
+     technical owner, and Track B by the science owner.
+   - The lock, the rubric and deployments are approved by the process owner.
+   - A record carries a sign-off only with the decision or review that made
+     it. The executor never writes one on an owner's behalf.
+5. **The rubric is unset.** Its thresholds (rank agreement, false-feasible
+   bound, scenario count, optional regret) stay null until the science owner
+   proposes them from battery's results and the process owner approves them
+   at lock. The open critical and high limits start at zero, as §05's gate
+   states.
+6. **Solve times enter the queue only from the reference hardware.** That
+   hardware is chosen during Phase 1 and approved at lock. The pre-protocol
+   timings of the cold plate, motor and photonic coupler were taken on other
+   hosts, so they do not re-rank the queue.
+
+**How it meets earlier decisions.**
+- **OWNER-CHALLENGE-ADMISSION-01 (amended): `NO_CONFLICT`.**
+  - The roadmap's Tracks A and B are that protocol's tracks.
+  - Its trigger model (expand freely, escalate on a finding) governs
+    iteration before freeze. The roadmap adds the common suite, the freeze
+    rule and the leaderboard.
+  - §2 holds: the pipeline is internal and never mainnet, and miners see only
+    the final optimized version.
+  - A stage, a queue position or a leaderboard place is not a qualification
+    gate (§2.1, §7).
+- **OWNER-CHALLENGE-DESIGN-01: superseded for sequencing.**
+  - The three challenges designed under it are prior work for their
+    families: the cold plate for f02, f03 and f04; the motor for f09; the
+    photonic coupler for f06 and f14. Each family's pipeline record links
+    the work.
+  - They enter the pipeline at Prioritize, in queue order, after lock. Their
+    readiness records stand unchanged and are not leaderboard entries.
+  - Working decision ROADMAP-D1: the slices already in flight finish and are
+    recorded. Those are the cold plate and motor public pools (already
+    computed on the paid pods), their baselines, and the readiness relay
+    (#493). The compute is spent and the evidence is prior work. No further
+    design starts on the three until their family reaches Prioritize.
+  - The alternative, stopping mid-slice, was rejected: it would waste paid
+    results and leave the prior work unrecorded.
+- **OWNER-LAUNCH-PORTFOLIO-01: the deployment criterion is superseded by the
+  owner's later direction.**
+  - Rev 2.0 settles that deployment goes to the challenges with the cleanest
+    attack results and the closest score-to-value match, picked by the
+    process owner from the leaderboard.
+  - The portfolio's families stay in the queue at their ranked positions.
+  - Battery goes first because it defines the protocol.
+- **Customer pilots, Workbench intake and the Pilot Designer route:
+  `NO_CONFLICT`.** The roadmap puts them outside this plan. They are not
+  cancelled, and their decisions are unchanged.
+- **OWNER-GRAPHITE-01: `NO_CONFLICT`.**
+  - Graphite is the roadmap's Graphite. Its controller, per-stage permission
+    ledger and operating procedure are Phase 1 work, locked at step 8.
+  - Graphite still proposes, and the frozen verifier decides.
+- **OWNER-TRAINING-BUDGET-STUDY-01: unchanged.** A challenge's training
+  budget study belongs to its Design construction contract.
+- **OWNER-PYTORCH-BACKEND-01: `NEW_OWNER_DECISION_REQUIRED`.**
+  - Roadmap §03 (Track A, admission) rejects "non-JAX executables". §06
+    says Carbon "accepts and rebuilds only JAX-runnable submissions".
+  - OWNER-PYTORCH-BACKEND-01 (2026-10-01) lets a construction contract name
+    `pytorch`, rebuilt in DEVELOPMENT only until its reserved values are
+    set.
+  - The smallest decision needed is which governs pipeline challenges:
+    either JAX only, or recipes in any backend the construction contract
+    supports.
+  - Until the owner decides, the roadmap text stands as written, runtime
+    behavior is unchanged, and suite v1's admission vector (Phase 1 step 3)
+    keeps the backend set as an explicit open parameter. Nothing else waits
+    on it.
+
+**Unchanged.**
+- AGENTS.md §3 and §5: scientific, security and launch qualification, LIVE,
+  reward, frontier and chain authority stay human-reserved.
+- Network activation stays a separate owner decision.
+- Testnet 567 only, and spending only under owner grants.
+- No population, threshold, tolerance or rubric value is set by the executor.
+
+Ticket: `.agent/tickets/CHALLENGE-PIPELINE-01.md`.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-02: both backends, the step 4 grant, the reference hardware, and who builds Graphite phases 3-4
+
+**Owner, in session on 2026-10-02**, answering OWNER-CHALLENGE-ROADMAP-01's
+open questions: "1. Both 2. $5 Engy 3. Approved and it needs my approval
+only". Then, asked who builds step 4 and which grant account to use: this
+session builds it, and the phase 2 grant's account and expiry are reused.
+
+**Decision.**
+1. **Both backends.**
+   - Pipeline challenges admit recipes in any backend the construction
+     contract supports: JAX and PyTorch (OWNER-PYTORCH-BACKEND-01).
+   - This resolves ROADMAP-01's `NEW_OWNER_DECISION_REQUIRED`.
+   - Track A vector 1 still rejects executables outside the contract's
+     backends, and disguised executable content.
+   - Roadmap rev 2.1 amends §03 and §06.
+   - PyTorch stays DEVELOPMENT-only until OWNER-PYTORCH-BACKEND-01's reserved
+     values are set.
+2. **Step 4 grant.** For Phase 1 step 4 (Graphite through Test/iterate on
+   battery):
+   - USD 5.00, Engy inference only;
+   - account `Carbon-Account`, expiring 2026-12-31;
+   - no pods: reconstructions run on the owner's host at no marginal spend.
+
+   The grant file is completed in step 4's ticket, from these values.
+3. **Reference timing hardware: approved by the technical owner alone.** It
+   is a RunPod CPU pod:
+   - flavor `cpu5c`, with no fallback flavor;
+   - 16 vCPU;
+   - each challenge's pinned image.
+
+   The label is `runpod-cpu5c-16vcpu`. Each timing study records the CPU model
+   it ran on, because the earlier pool pods fell back to other flavors and
+   other processors (EPYC 9655P and 4564P). This value leaves the
+   lock-approved list. Roadmap rev 2.1 moves it, and the protocol records the
+   technical owner's approval.
+4. **Graphite phases 3-4 are Phase 1 step 4.**
+   - This session builds Graphite's Level 0 constructor loop on battery
+     (phase 3) and the attacker for Track A's eight vectors (phase 4).
+   - They are built under the challenge roadmap and GRAPHITE-01's plan
+     together, including OWNER-GRAPHITE-02's reconstruction rule.
+   - The GRAPHITE-01 lane continues from phase 5.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No pod or other spend beyond this grant.
+
+## 2026-10-02 — OWNER-CHALLENGE-ROADMAP-03: the construction ladder is the spine; one generalizable protocol; lessons after every execution; Graphite, not Mira
+
+**Owner, verbatim, in session on 2026-10-02:**
+- "I'm nervous about this. The goal is to start with where we are and slowly
+  add more construction capabilities. At one point we had 5 well defined and
+  generalizable stages for increasing construction freedom and it sounds like
+  none of that made it here. Not happy."
+- To the proposed fix: "Yes. Fix this."
+- "The plan is to use GRAPHITE not Mira for this testing. Ignore all
+  autoscience and Mira talk and replace it with our graphite agent."
+- "Make sure everything we have is a generalizable test and design protocol
+  that can be adapted to any challenge and improved as we go. Note lessons
+  learned after every execution."
+
+**What went wrong (classified IMPLEMENTATION_LAG).**
+- Roadmap rev 2.0/2.1 and its pipeline package (PR 498) carried no
+  construction ladder. It is defined in `Design_Specs/Challenge_Admission.md`
+  §3 (Levels 0-5), and expansion records (#468) and Graphite's plan rely on
+  it. Stage 3 said only "tune construction rules".
+- Rev 2.1's backend wording ("executables outside the construction contract's
+  backends") read as executable submissions, which is Level 4-5 freedom.
+- The executor built the roadmap without reconciling it against Admission §3.
+  The owner caught it before merge, and PR 498's auto-merge was stopped.
+
+**Decision (roadmap rev 2.2, PR 498).**
+1. **The construction ladder is the spine of construction iteration.**
+   - Every Challenge enters Test/iterate at Level 0 and climbs one level at a
+     time by the climb procedure. That procedure requires:
+     - an expansion record;
+     - Carbon's reconstruction for the level, with tests (OWNER-GRAPHITE-02);
+     - valid constructions under the previous and expanded profiles;
+     - matched adversarial budgets;
+     - ablation and interaction tests;
+     - clean-worker rebuilds.
+   - A level opens to miners only after a person locks it and validators serve
+     its contract.
+   - Levels not reached are NOT_RUN, never a pass. A level opened for
+     Graphite's development campaigns is never opened to miners to gather
+     acceptance data. A finding stops further climbing.
+   - Design exits with a Level 0 contract Carbon rebuilds.
+   - Frozen evidence and leaderboard entries name their level, and a climb is
+     a new frozen run.
+   - Machinery: `carbon/challenge_pipeline/ladder.py`, and each record's
+     `construction` block.
+2. **Battery's Phase 1 includes its first climb.** Step 4 tests Level 0 and
+   then climbs to Level 1 as the climb procedure's worked example.
+   - This is the executor's recommended scope, presented with the fix that the
+     owner approved with "Yes. Fix this."
+   - The record states battery's actual difference from the ladder. Its Level 0
+     already admits registered menus the ladder labels 1, 2 and 5. Custom loss
+     expressions (Level 1 proper) are excluded, and nothing exists at Level 3.
+3. **How a validator knows how to build a construction** (the owner's question
+   of the same day, recorded in the roadmap).
+   - A miner sends a declarative recipe and the contract digest it was written
+     against.
+   - The validator rebuilds with the contract and reconstruction pinned in its
+     own Carbon version, and refuses a digest it does not serve.
+   - So a climb is a Carbon release: a new contract version, the
+     reconstruction code and a validator update.
+4. **One generalizable protocol, improved as we go.**
+   - The protocol is Challenge-neutral. Each Challenge supplies its own
+     records and the shared machinery reads them; battery is the first
+     instance, not the design.
+   - After every execution, a lessons entry is written
+     (`carbon/challenge_pipeline/lessons/`, one file per entry).
+   - A lesson that should change the protocol is a proposed revision until a
+     named owner adopts or declines it: before lock, any of the three owners;
+     after lock, the process owner. Nothing changes silently.
+   - The lessons log and revision procedure are lock items.
+5. **Graphite, not Mira, is the testing agent.**
+   - The roadmap says no external research agent takes Graphite's role.
+   - The Mira handoff is re-issued as a Graphite handoff and implemented under
+     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-04).
+6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
+   rebuilds a declarative recipe. Executable participant code starts at
+   Level 4.
+7. **Graphite proposes every level's capabilities** (owner, same day: "I want
+   graphite to propose capabilities for every construction level").
+   - For every Challenge and every level 0-5, Graphite writes a level proposal
+     (`carbon/challenge_pipeline/proposals/<challenge>/level-<n>.json`,
+     validated by `proposals.py`) stating:
+     - each capability, what it adds and its bounds;
+     - its research basis;
+     - the reconstruction work it needs;
+     - its attack surface;
+     - what the level leaves out.
+   - The construction contract owner accepts or declines each proposal. A
+     level above 0 is reached only with an accepted one, which is the climb
+     procedure's first step.
+   - Graphite never writes the contract or an expansion record.
+   - Battery's Level 0 predates proposals and names none.
+   - This adopts the lessons log's first proposed revision
+     (`2026-10-02-level-proposal-step`), broadened by the owner to every level.
+8. **The climb is internal; miners get the chosen level** (owner, same day:
+   "This is all internal testing. We choose a best construction level. Then
+   lock and open challenge to miners!").
+   - Graphite climbs the ladder in internal testing.
+   - The owners choose each challenge's best construction level, which need
+     not be the highest tested.
+   - The challenge is frozen, locked and opened to miners at that level only.
+     Miners never see the internal levels.
+   - Each record's `construction.chosen` holds the choice. Only the chosen level
+     may be FROZEN, a frozen run is taken at it, and `ready`/`deployed` need it.
+   - The roadmap's climb procedure ends at clean rebuilds, followed by two
+     launch steps: choose, then freeze, lock and open.
+9. **Internal levels run on a development-only contract variant** (owner, same
+   day, choosing between that and "open to everyone first").
+   - The variant is held outside the miner-facing registry
+     (`capability_registry.CONTRACTS`) and is served only to Carbon's own
+     registered Graphite campaigns.
+   - The miner path never reads it.
+   - The chosen level's contract becomes the miner-facing contract only at
+     launch.
+   - The variant is built with battery's Level 1 work (GRAPHITE-ADMISSION-01).
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Network activation stays a separate decision.
+- Testnet 567 only.
+- No spend.
+
 ## 2026-10-02 — ASK-CARBON-PILOT-SNAPSHOT-01: the Ask Carbon release ships a committed Pilot Designer snapshot
 
 **Authority.** The owner, 2026-10-02: "I want to remove the ask carbon
@@ -17434,3 +17706,555 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
 - Engineering evidence is not a security audit. The record is the owner's
   acceptance; tests only hold the gate.
 - Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — CI-BATTERY-L0-01: battery Track A starts at Level 0 with a registered harness; GRAPHITE phase 4 drives it
+
+**Authority.** The owner, in session on 2026-10-02: "Start the
+construction-integrity attack tests for battery as long as no one else has.
+Communicate with all lanes". Working decision under delegated engineering
+authority. The lanes were notified in #41 (owner), #42 (SciML/technical lead)
+and #504 (GRAPHITE-01).
+
+1. **Claim.** No PR, issue or branch had started battery Track A. All eight
+   Level 0 checks were `NOT_RUN`.
+2. **Split.**
+   - This ticket builds the instrument (`carbon/battery/track_a.py`). Each
+     family has registered attacks, a vulnerable specimen showing the
+     detector can fire, and a valid control measuring wrongful rejection.
+   - GRAPHITE-01 phase 4 drives agent-generated attempts through the same
+     detectors and ledger, rather than building its own.
+3. **Level 0 only.** Recipes are declarative. Executable-code families are
+   `NOT_RUN` for this profile, never passed. No level is opened to collect
+   data.
+4. **Nothing reserved is chosen.** These stay HUMAN_INPUT:
+   - the attack budget;
+   - the study population;
+   - reconstruction tolerances;
+   - threat-model approval;
+   - the Track A lock reviewer.
+
+   No family state is ever an acceptance. Track A stays `IN_PROGRESS` at
+   most, and #477 is untouched.
+5. **Findings are emitted, never suppressed.**
+   - The divergence detector's conditions on the retained EV2 results (12)
+     and EV4 results (42) are retained with the run.
+   - They escalate under §3.3, and should be entered in the readiness record
+     when the v3 wiring (#477) lands.
+
+## 2026-10-02 — OWNER-WEBSITE-START-MINING-01: "Get started" becomes "Start mining", linked from the homepage and the miner page (candidate 2026-10-02.1; the exact bundle awaits the owner)
+
+**Owner, verbatim, in session on 2026-10-02:** ""get started" should be
+"start mining" and it should be linked on home page and on the miner pager."
+This is an instruction about content, given before the bundle existed. **It
+does not authorize deployment.** As with every Ask Carbon publication, that
+needs the owner's approval of the exact bundle, to be recorded as WEB-QA-12-D1.
+
+**Exact artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46` (106 files) |
+| `/start-mining/` (added) | `4adbf65e…`, from `website/ask-carbon/site/start-mining/index.html`, declared in `site-additions.json` |
+| `/miners/` | `044edfef…`, from `site/miners/index.html`: the hero button reads "Start mining" and goes to `/start-mining/` |
+| `/sitemap.xml` | `51fb9148…`, from `site/sitemap.xml`: lists `/start-mining/` |
+| Homepage | `5b842bf6…`: the reviewed source `99be1318…` plus `--homepage-edit start-mining-link-v1`, a "Start mining" link on the Miners card |
+| Unchanged | the other 102 paths, the Worker, the knowledge and the Pilot Designer `be64f8b9…` |
+| Rollback target | `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` (WEB-QA-11-D2) |
+
+**Measured.**
+- Manifest v4 was fetched from both hostnames at 2026-10-02T19:40Z and matched
+  100/100 on each.
+- Built against that baseline with no declaration, the integrator reproduces
+  the live bundle `86f51385…` exactly.
+- The candidate was certified with `--require-complete-bundle`.
+- Run against live before deployment, `tools/verify-publication.mjs` fails
+  exactly `/`, `/miners/`, `/start-mining/` (HTTP 404) and `/sitemap.xml` on
+  each hostname. Every other check, health included, is ok.
+
+**Engineering choices (delegated).**
+- **Manifest v4.** It folds the live `/workbench/` replacement into the
+  inventory, so `site-replacements.json` no longer lists it.
+  - The per-entry field `change_since_2026_09_22_baseline` becomes
+    `change_since_previous_manifest`.
+  - The `upload_archive` block now describes the deployed staged bundle,
+    which had no archive file.
+- **`--site-additions`.** It publishes a reviewed repository file at a path
+  live does not serve. It refuses:
+  - any path the manifest lists;
+  - the homepage and the Ask Carbon assets;
+  - a file already present in the supplied site.
+- **`--homepage-edit NAME`.** It applies a named, reviewed edit to the pinned
+  homepage source after its digest check, so the pin is unchanged and the
+  output stays deterministic. The marker must occur exactly once.
+- **The page uses the site's own header, footer and stylesheet.** It replaces
+  the unpublished standalone draft `website/get-started/index.html`
+  (C-MLP-04), which is removed.
+- **Compute, on the page: this machine's CPU or GPU only.**
+  - The owner decided the same day that Carbon does not create rented
+    machines. Miners rent and stop their own, and Carbon only connects to
+    them. That decision is recorded as OWNER-MINER-COMPUTE-LINK-ONLY-01 with
+    its change.
+  - Connecting a machine the miner runs is not built yet, so the page offers
+    only local compute.
+
+**Deployment, once the exact bundle is approved.** Static only, from
+`website/ask-carbon/DEPLOY_PACKAGE_2026_10_02.md`:
+1. capture the rollback id;
+2. re-derive the baseline;
+3. rebuild, and the identity must be `b22f6d1c…`;
+4. `wrangler deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12`;
+5. verify with `tools/verify-publication.mjs`.
+
+This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
+
+## 2026-10-02 — WEB-QA-12-D1: publish Ask Carbon bundle b22f6d1c (Start mining)
+
+**Owner, in session on 2026-10-02.** The question was "Start mining site:
+approve bundle `b22f6d1c…` for deployment". The answer: "1 start".
+
+**Exact artifact.** Bundle identity
+`b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46`, 106 files,
+as recorded under OWNER-WEBSITE-START-MINING-01. Rollback target:
+`carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`.
+
+**Re-verified at approval (2026-10-02T21:16Z).**
+- Manifest v4 matched 100/100 on both hostnames, and the hostnames agree.
+- The rebuild with Node 24.19.0 (Linux) reproduced `b22f6d1c…`, certified
+  deployable.
+- `tools/verify-publication.mjs` showed exactly the eight expected
+  differences before deployment.
+- A second run moments later got HTTP 429 on one hostname's health endpoint,
+  which is its per-client rate limit. The deploy package now says to wait and
+  re-run once.
+
+**Deployment** is the operator's act from `DEPLOY_PACKAGE_2026_10_02.md`.
+- Re-confirm the live version is `c12d547a` immediately before deploying.
+- Static only: the Worker is not redeployed.
+- This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
+
+## 2026-10-02 — OWNER-TRACK-A-L0-02: battery Track A Level 0 values approved; the lock waits on a fixed scoring rule; scoring ratios are proposed and tested
+
+**Authority.** The owner, in session on 2026-10-02. On the open values: "I
+approve and sign everything". On the specific proposal: "Approve and (a) for
+6. We need to be proposing and testing new scoring ratios when we're having
+this problem."
+
+**Decision.** The values are frozen in
+`docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json`.
+
+1. **Threat model.** The attacker is any registered miner, with up to 3
+   cooperating.
+   - They have all public material: code, TRAIN, PRACTICE, the kit and the
+     research image.
+   - They see practice feedback, refusal codes and timing.
+   - They have no validator host, private root, journal or hidden-batch
+     results.
+   - Level 0 recipes are declarative.
+   - Chain attacks, operator compromise and the image supply chain are
+     reviewed separately.
+   - Hostile executables at later levels run only in the pinned C-03
+     isolated worker, on disposable hosts with canaries. No level above 0 is
+     opened.
+2. **Attack budget.**
+   - The hand-written harness is unlimited at no spend.
+   - Agent attacks (GRAPHITE-01 phase 4) are 3 sessions of up to 20
+     executed attempts.
+   - Hard cap: USD 25 for tokens, pods and the confirmation batch together.
+     Pods follow EV4's rules (A40 at no more than USD 0.49 per hour, at most
+     3, termination verified).
+   - Any escape or answer-key exposure stops all runs.
+3. **Study population.**
+   - Attack discovery uses miner-equivalent public material.
+   - Confirmation uses one fresh private batch from the committed root: 120
+     cases plus 4 hidden duplicates, uniform over the published box, with
+     the important region reported separately, sealed until retirement.
+4. **Reconstruction tolerances.**
+   - Same pinned CPU worker and seed: bit-identical parameters and
+     predictions.
+   - Fresh seeds or other permitted hardware: every gate passes, the
+     paired-repeat threshold holds, and the score lies within the recipe's
+     own seed-to-seed spread from the EV4 panel.
+   - With no measured spread, no rebuild acceptance.
+5. **Review.** The SciML/technical lead reviews findings first in #42 and may
+   block; silence does not block. The owner signs the Track A lock.
+6. **Lock precondition, route (a).** The deciding rule scores the
+   boundary-optimist control at or above every eligible real model on EV2
+   and EV4, so Track A at Level 0 is not locked while that stands. It is
+   recorded INCONCLUSIVE. The route out is fixing the scoring rule through
+   Track B, not proving the behaviour unconstructible.
+7. **Scoring ratios, standing direction.** While score-value divergence
+   findings stand, new scoring ratios are proposed and tested.
+   - The first study is SR-1 (`docs/development/BATTERY_SCORING_RATIOS_SR1.md`).
+   - It is pre-registered before any new ratio is computed.
+   - It is offline, on retained EV results, with no spend.
+   - A selected ratio is a proposal, like `dar-p0-r100-a0`. It changes no
+     testnet rule until it passes a fresh confirmation and its own approval.
+
+**Unchanged.** The deciding testnet rule, historical results (invariant 10),
+and every claim boundary: this is not a security audit, a qualification or a
+mainnet decision.
+
+## 2026-10-02 — OWNER-ADMISSION-COMBINED-01: construction, attack and value run as one admission test, with separate verdicts
+
+**Authority.** The owner, in session on 2026-10-02: "This almost makes me
+think construction + attack + value should be rolled into one test". Then:
+"I agree. Let's run it as one test where we're still working up the ladder,
+using graphite, and attacking but value/score tuning at the same time."
+
+**Amends** OWNER-CHALLENGE-ADMISSION-01 (`Design_Specs/Challenge_Admission.md`)
+prospectively.
+
+1. **One run per Challenge and ladder rung.** Each run has one frozen study
+   sheet, one panel, one fresh confirmation set and one ledger.
+   - The panel holds both the legitimate constructions (real models, and
+     GRAPHITE's Constructor) and the attackers' best constructions (the
+     registered harness, `carbon.battery.track_a`, and GRAPHITE's Attacker).
+   - Attack constructions are scored and value-tested exactly like real
+     ones, so an attack that only shows up as a value failure is caught. The
+     boundary optimist is the case that motivates this.
+2. **Score tuning runs inside the test.**
+   - Candidate scoring rules are proposed and tested on the run's own
+     development material. SR-1 is the first.
+   - The design optimizer runs inside the test:
+     - Mode X (adversarial) belongs to the attack side;
+     - Mode D (design) belongs to the value side.
+   - A rule is chosen on development conditions only and confirmed once on
+     fresh cases.
+3. **Separate verdicts, never blended.** The run reports three verdicts, and
+   any one can fail the rung:
+   - construction integrity: no breach, escape or forbidden access;
+   - adversarial score: no high-scoring unacceptable construction under the
+     candidate rule;
+   - value: the rule's ranking agrees with decision quality within the noise
+     band, and design search beats the baseline.
+
+   A gain in one never compensates for a failure in another (§1 unchanged).
+4. **Up the ladder.**
+   - Each level is a new run with its own sheet.
+   - A rung is passed only when all three verdicts pass and the owner signs
+     the lock (OWNER-TRACK-A-L0-02).
+   - Unsupported levels stay NOT_RUN and are never opened to collect data.
+5. **Budgets.** Battery Level 0 runs under OWNER-TRACK-A-L0-02's USD 25 cap.
+   The next fresh value study (EV5) is the first combined run, and its
+   confirmation batch serves the attack confirmation too. Its own reference
+   budget, beyond that cap, comes to the owner before dispatch.
+
+**Unchanged.** Internal development only: not mainnet, not a qualification
+gate. Every existing invariant, and the deciding testnet rule, until a
+candidate passes confirmation and its own approval.
+
+## 2026-10-02 — OWNER-SR3-NEAR-01: "near the decision boundary" is the published important region
+
+**Authority.** The owner, in session on 2026-10-02: "Use the important region
+band as 'near' and build SR-3".
+
+**Decision.** For score tuning (SR-3 and later), a case is near the decision
+boundary when the reference is in the published important region,
+`carbon.battery.domain.is_important`:
+- the reference plating margin is within `PLATING_BAND_V` (5 mV) of zero;
+  or
+- the reference peak temperature is at or above `T_IMPORTANT_C` (55 °C).
+
+These are the existing published DEVELOPMENT values (OD-2), reused
+unchanged. No new number is introduced. On the retained scoring set, 311 of
+1,588 cases are near: 221 by plating and 90 by temperature.
+
+**Unchanged.** The deciding testnet rule and the published important-region
+definition itself. A score built on it stays a proposal until confirmation
+and its own approval.
+
+## 2026-10-02 — TRACK-B-STUCK-01: the STUCK trigger fires for battery score tuning; full Track B review
+
+**Basis.** `Challenge_Admission.md` §4.2: a full review happens at `STUCK`,
+which is three consecutive studies with no progress. SR-1, SR-2 and SR-3
+(`docs/development/evidence/sr{1,2,3}-2026-10-02/`) each ended NO_PROMOTION
+under their pre-registered rules. The condition is emitted, not concluded
+(§6.2).
+
+**What the review examines.** The three pre-registrations, results and
+code, and the recommendation in the SR-3 evidence README:
+1. rerun the three studies on EV4's 99 members after regenerating and
+   verifying its predictions, at about USD 1-3 inside OWNER-TRACK-A-L0-02's
+   cap;
+2. then confirm the best candidate once, on fresh conditions, in EV5;
+3. meanwhile, use an SR-1 ratio that catches the boundary optimist as an
+   admissibility check, not as a ranking rule.
+
+**Reviewers.** The SciML/technical lead (#42), then the owner (#41). No
+further formula search on EV2 until the review decides.
+
+**Unchanged.** The deciding testnet rule. Track A at Level 0 stays
+INCONCLUSIVE (OWNER-TRACK-A-L0-02 item 6).
+
+## 2026-10-02 — OWNER-EV4-REGEN-01: regenerate EV4's panel predictions and rerun SR-1, SR-2 and SR-3 on EV4
+
+**Authority.** The owner, 2026-10-02: "Approve step 1, regenerate EV4
+predictions and rerun". This is step 1 of the TRACK-B-STUCK-01
+recommendation.
+
+1. **Regeneration.**
+   - EV4's own panel plan
+     (`docs/development/evidence/ev4-2026-10-01/plans/ev4-panel-shard0-of1.json`)
+     runs at EV4's own code ref (`b92e90ef`), on one A40 pod with EV4's
+     settings (`--jax-platform cuda,cpu --pinned-xla`).
+   - It uses its own pod campaign, `ev4-regen`, with a USD 5 ceiling inside
+     OWNER-TRACK-A-L0-02's USD 25 cap, and termination verified.
+2. **Verification.**
+   - Each regenerated file is checked against EV4's committed
+     `predictions.sha256`.
+   - A file that matches is EV4's own predictions.
+   - A file that differs is reported as a regeneration difference. It is
+     used only as a labelled new panel, never as EV4's.
+3. **Rerun.** SR-1, SR-2 and SR-3 run on EV4 under their frozen
+   pre-registrations' selection and outcome rules, with no new formula. EV4
+   was SR-1's primary data and is the replication data for SR-2 and SR-3.
+
+## 2026-10-03 — OWNER-EV5-CAP-01: EV5 spend cap approved (option A, USD 6)
+
+**Authority.** The owner, 2026-10-03: "Approve the cap".
+
+1. **What is approved.** EV5's option A
+   (`docs/development/BATTERY_ENGINEERING_VALUE_EV5.md` §7): about USD 2.8
+   expected, with no in-run agents.
+   - Hard cap: USD 6, counted inside OWNER-TRACK-A-L0-02's USD 25 L0 cap.
+   - Pods: RunPod A40 at no more than USD 0.49 per hour, at most 3 in
+     parallel, termination verified.
+2. **What it does not do.** It does not freeze EV5 and dispatches nothing.
+   The freeze still waits on the near-limit optimism gate's cutoff.
+3. **The gate cutoff.** The owner reports that the SciML/technical lead
+   deferred the cutoff to the lead session, and the owner approved that.
+   - The lead session's recommended value is 2.0 bands. It is a round value,
+     not fitted to the boundary optimist's 2.41, and still fails that
+     optimist. It fails 20 of 99 real EV4 members, whose mean verification
+     loss is 1.68 against 0.51 for the rest; on EV2 it fails 2 of 14.
+   - Setting it in code (`admissibility.THRESHOLD_BANDS`) was refused by
+     this session's automated permission check. The value stays None and
+     the gate stays INACTIVE until the owner applies it, or allows the
+     change.
+
+## 2026-10-03 — TRACK-B-STUCK-01 outcome: keep the deciding rule; build the near-limit optimism gate inactive
+
+**Authority.** The owner, 2026-10-03: "Harsh approved, I approve all."
+The SciML/technical lead's approval is reported by the owner; it is not
+recorded on GitHub.
+
+1. **Ranking.** The deciding rule stays. No SR profile beat it beyond noise
+   on EV4's 99 members.
+2. **Admissibility gate.** `carbon/battery/value/admissibility.py` measures
+   mean near-limit optimism (SR-3's quantity, band units over the important
+   region). A model at or above the cutoff is inadmissible and scores 0.
+3. **Cutoff.** `THRESHOLD_BANDS = None` (HUMAN_INPUT, SciML/technical lead).
+   No value was given, so the gate is INACTIVE and changes no score. Its
+   evidence is in
+   `docs/development/evidence/admissibility-optimism-2026-10-03/`.
+4. **Scope.** Value-study results only; adding the gate to the testnet rule
+   is a separate approval. The gate does not catch a localized sign error
+   (that control's mean optimism is below every real member); this is
+   recorded, not suppressed (OWNER-CHALLENGE-ADMISSION-01 §6.2).
+5. **Next.** Report real-member divergence separately; confirm once in EV5,
+   whose cost the owner sees before any spend.
+
+## 2026-10-02 — OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon connects to the miner's own machine and rents no compute
+
+**Owner, verbatim, in session on 2026-10-02:** "Why do we care about rented
+resources for submissions? ... Don't we just wire them to pods to create
+themselves? Should we be creating them?? I think we just linked them to it."
+Then, on the proposal to retire the rented route: "Yes and you take it on."
+
+**Decision.** Carbon never creates, stops, terminates, bills or reads the
+balance of rented compute with the miner's provider key. A miner rents and
+stops their own machines; Carbon only connects to a machine the miner already
+runs.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **LINKONLY-D1, scope.** The miner-facing path only: the Launchpad, the
+  Control Center, battery practice, the miner MCP door and the research
+  environment standard. Operator scripts on the operator's own RunPod account
+  (`scripts/dev/challenge_pools/pod_phase.py`,
+  `scripts/dev/exam_design/runpod/`) are outside this decision and unchanged.
+- **LINKONLY-D2, old inputs fail closed** with
+  `rented_gpu_retired_connect_your_machine`, following
+  `miner_password_file_retired_start_signer`:
+  - a runner profile naming `compute_credential`, or whose runtime declares
+    `rented_gpu`, is refused (409) before its closed-set checks;
+  - a setup request choosing `rented-gpu` is refused on the field `choice`,
+    and a compute step an earlier page checked for one is refused at review;
+  - a frozen campaign declaring `rented_gpu` raises `RentedComputeRetired` at
+    both campaign doors, before any network or SSH call.
+
+  The next step says: start and stop your machine yourself; check your
+  provider console for leftover `carbon-…` pods, VMs or SSH keys; revoke the
+  key you gave Carbon. A rented scope is never translated into anything else.
+- **LINKONLY-D3, Carbon's copy of the key is deleted.** The next time the
+  miner runs compute setup, Carbon deletes its stored copy of a rented-GPU
+  provider key (`keys/*.compute-key`), as setup already deletes a stored
+  hotkey password, and tells the miner to revoke the key at the provider.
+- **LINKONLY-D4, the remote route.** The miner's own GPU machine, reached
+  over SSH, with Docker and the NVIDIA Container Toolkit. The worker image is
+  streamed (`docker save <image id> | ssh <machine> docker load`) and checked
+  by image ID. Carbon runs one job container per trial and removes it; it
+  never starts or stops the machine. The miner's own SSH agent, configuration
+  and known hosts decide how the machine is reached, and their key never
+  leaves their machine. Container-only rentals (for example RunPod pods, which
+  have no Docker daemon) are not supported; whether to support them is an
+  owner question.
+
+**Removed.** The provider-API layer under `carbon/compute/`: the RunPod, Lium
+and Targon adapters, the provisioning service and its store, accounting,
+admission, the reconciler and its CLI, and `rented_runner.py`. Also setup's
+rented-GPU choice and its live balance and price check, the battery
+`rented_gpu` scope, and the rented hooks in the Challenge campaign and both
+campaign doors. Kept: `carbon.compute.job_server` (the worker's start
+command) and `carbon.compute.remote_job`.
+
+**Supersedes.**
+- OWNER-MINER-ENVIRONMENT-01 §2 ("The named integrations"), its compute item:
+  "Lium and Targon, with RunPod under the miner's own key". The miner's own
+  GPU stays.
+- OWNER-C-MLP-03-ANSWERS-01 §2 ("Targon"): the Targon VM rented on the
+  miner's own account, with its ceilings, verified teardown and charge
+  reconciliation.
+
+**Unchanged.**
+- Practice on any GPU is speed only and never evidence; the exam is
+  unchanged.
+- No key reaches Carbon.
+- OWNER-MINER-OWN-MACHINE-01: the miner's own machine is the default and its
+  sandbox is kept. Remote compute stays opt-in and the miner's own.
+- Testnet 567; DEVELOPMENT; nothing is qualified.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
+retired; the remote-machine route replaces them).
+
+## 2026-10-03 — OWNER-MERGE-HYGIENE-01: standing merge-hygiene rules for every agent
+
+**Owner, verbatim, in session on 2026-10-03:** "Do you have a solution for
+problems like this. How can we make sure this never happens." Then: "Give me a
+standing message to give all agents that hard codes these new rules so we don't
+do this anymore", "make it durable", and, on labelling #504
+`merge-priority`, "and yes add it now". The owner reports that all agents have
+received the same instructions.
+
+**Context.** Graphite phase 3 (#504) was green but had to merge main seven
+times in one night. Every conflict was in generated Hub files or this
+append-only file, never in code, and each re-merge restarted about 75 minutes
+of required CI while other sessions kept merging.
+
+**Decision.** The rules in `docs/development/MERGE_HYGIENE.md` bind every
+agent and executor:
+- **Part A, in force now:** generated Hub files are never hand-edited, and
+  their conflicts are resolved by taking main's version and re-rendering;
+  conflicts here keep both sides, main's first; main is merged only just
+  before the final push; a green PR is merged at once; and every agent
+  defers to an open PR labelled `merge-priority` whose CI is running or green.
+- **Part B, after the MERGE-HYGIENE-01 ticket merges:** PRs commit no generated
+  Hub outputs, and decisions are one file each.
+
+A merge queue stays a separate owner decision, because the repository's rules
+forbid auto-merge.
+
+*Unchanged.* Every scientific, security and delivery rule. These rules change
+how PRs are assembled and merged, not what any PR may decide.
+
+## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
+
+**Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
+amount (USD 15 suggested) and whether RunPod pod time is inside it or
+separate, the owner answered: "$15 runpod included". The owner then said:
+"Start phase 3 build in parallel".
+
+**Decision.**
+1. **Phase 3 grant.** The ceiling is **USD 15.00**, and it covers both Engy
+   tokens and RunPod pod time under one grant. It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json` in the
+   existing `SpendingGrant` format: provider `graphite`, currency USD.
+   - `account` (`Carbon-Account`) and `expires_at` (`2026-12-31T23:59:59Z`)
+     are the phase-2 grant's. The owner set both for phase 2
+     (OWNER-GRAPHITE-02), and phase 3 reuses them.
+   - `permitted_runs` is 3, the plan's first block of 3 sessions (plan §7).
+   - The other limits are derived, not chosen. The arithmetic is in
+     `docs/development/graphite/grants/README.md`:
+     - the pod price is the EV4 tooling's (`pod_control.MAX_RATE` USD 0.49 an
+       hour, which the EV4 ledger records as RunPod's `costPerHr`, plus 20 GB
+       of disk);
+     - `cleanup_allowance` is pod_control's `CLEANUP_RESERVE_USD`, USD 0.25,
+       and covers pod termination;
+     - `worst_case_run_cost` is USD 4.91 a run: 2.96 for 12 thirty-minute
+       pods and 1.95 for tokens;
+     - `max_runtime_s` is 27,360, `max_concurrency` is 1 and
+       `max_submissions` is 3.
+   - One ceiling covers both kinds of spend:
+     - the controller reserves each run's worst case;
+     - inside a run, every model call is reserved before dispatch and every
+       pod before launch, against the same run cap;
+     - each settles from the provider's reported charge;
+     - an unknown outcome keeps its full reservation.
+2. **Build in parallel.** Phase 3 is built now, without spend. The live
+   sessions run later, in a session that has `ENGY_API_KEY` and
+   `RUNPOD_API_KEY`.
+
+**Unchanged.**
+- Phase 3 constructs only inside the recorded battery construction contract
+  (the reconstruction rule, OWNER-GRAPHITE-02). Level 0 widens nothing.
+- Graphite proposes; Carbon's frozen rule decides (invariants 7.9 and 7.10).
+- No official, protected or EV4 confirmation material reaches the agent or a
+  pod.
+- Reconstruction tolerances and the Level-0 study population stay
+  science-reserved (plan §9).
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.
+
+## 2026-10-03 — OWNER-GRAPHITE-04: Graphite phase 3 keeps one RunPod pod per proposal on Carbon's own account
+
+**Owner, in session on 2026-10-03.** Asked how phase 3 should get GPUs after
+#511 (OWNER-MINER-COMPUTE-LINK-ONLY-01) removed the RunPod code it creates
+pods with, the owner chose "Carbon's own RunPod" over running proposals on a
+machine the owner starts, or pausing phase 3.
+
+**Decision.** Phase 3 keeps its design: one RunPod pod per proposal, created,
+watched and terminated by Carbon on Carbon's own account, with Carbon's key,
+under the phase-3 grant (OWNER-GRAPHITE-03). This is operator compute, which
+LINKONLY-D1 leaves outside OWNER-MINER-COMPUTE-LINK-ONLY-01. No miner key is
+ever used, and the miner path is unchanged.
+
+**Engineering (GRAPHITE-D32).** The provisioning layer phase 3 relies on is
+restored, same behaviour, under `scripts/dev/exam_design/runpod/operator_compute/`
+beside `pod_control`. Nothing under `carbon/` names a provider API.
+
+*Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
+grant and limits. No live session has run, and nothing was spent.

@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-10-01, with the decision-aware proposal (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01), after the tier 3B results.
+**Last updated:** 2026-10-03. Rows 22-26 are reconciled with EV4, the scoring-ratio studies and the TRACK-B-STUCK-01 outcome.
 
 ## Authority in force
 
@@ -39,13 +39,15 @@ All of these are in `.agent/DECISIONS.md`.
 | 10 | M5b Launchpad battery UI; M6 control center | Claude session | #351 (merged) | built as the Challenge-neutral Control Center: C-MLP-03 setup and C-MLP-04 (install, no operator file, Challenge choice); live fresh-machine run pending |
 | 11 | M7 testnet window (handoff §4 R4), validators and approved all-burn publication | host session | 2 to 7 | not started |
 | 12 | A real model-driven battery agent campaign (paid, within the OD-5 provider ceiling) | host session | provider key; run plan in the handoff | not run |
-| 16 | Battery challenge kit (`carbon/challenge_kit/battery.py`): the pinned PyBaMM overlay and the public population in the miner research image, with miner seeds only; closes the battery `generate` gap (OWNER-RESEARCH-ENVIRONMENT-01) | Claude session | — | open gap, declared in `challenge_kit/standard.py` |
 | 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | Claude session | **approved 2026-10-01** (OWNER-BATTERY-3B-AND-EXPOSURE-01); runs on the v1 deployment as pre-registered, no v2 re-registration; `pscreen-T04`/`T05` prepared with complete references | **run 2026-10-01**: all four rungs FOUND (prediction confirmed), USED at rungs 3-4 by the mechanical rule with a stated limit; results in `BATTERY_AGENT_CAMPAIGN_V2_RESULTS_TIER_3.md` §9 |
 | 18 | Battery intake (OD-7(b)): built (`carbon/battery/intake.py`, `intake_client.py`); design for the mainnet switch in `BATTERY_MINER_SUBMISSION_PATHS.md` | owner (exposure), operator (bind) | OWNER-INTAKE-EXPOSURE-01 recorded 2026-10-02: a public bind names it and terminates TLS in the intake; Launchpad posts through `intake_client` | built, exposure approved for testnet 567; binding a public host is the operator's step |
 | 19 | Battery exam rule v2 (`exam.DEVELOPMENT_RULE_V2`): one scored submission per hotkey per tempo, block-based rotation, never stalls; the deployment selects it with `"rule": "v2"` on a fresh root | Claude session; Launchpad for the research disclosure | this PR; a fresh v2 deployment with its own batches; zero hidden-batch exposure to miners (OWNER-BATTERY-3B-AND-EXPOSURE-01 item 2): nothing computed from a hidden batch reaches a miner until Carbon releases it to the training pool | v2 seals hidden-batch results from miners (`exam.MINER_DISCLOSURE`, `daemon.outcome`), outside the scoring digest, so the prepared v2 deployment and its solved references stay valid; built and tested; deployment held |
 | 20 | Owner decision: whether to propose a decision-aware component for the battery exam, prospectively, on the EV2 evidence (it removes the boundary-optimist blind spot; it did not rank real models better on this panel) | owner | EV2 results | **decided 2026-10-01** (OWNER-BATTERY-DECISION-AWARE-PROPOSAL-01): registered as a prospective proposal (`value/proposal.py`), not deciding; both rankings reported; EV4 would settle it, not run |
 | 21 | EV3 design competition: freeze the pre-registration after the owner ranks its candidate problems (EV3 doc §6) and sets problem D's capacity floor | owner, then Claude session | EV2 results | draft for owner review |
-| 22 | EV4 (100-member panel, paired Δτ between the proposed and deciding rules) and the Problem-C optimizer (one protocol for 15-35 °C, Modes D and X) | lead session (freeze, dispatch) | owner approval 2026-10-01: RunPod A40 ≤ USD 0.49/h, hard cap USD 15 for both, up to 3 pods | built and pre-registered (`BATTERY_ENGINEERING_VALUE_EV4.md`, DRAFT until the root is frozen); nothing dispatched |
+| 23 | Near-limit optimism admissibility gate (`carbon/battery/value/admissibility.py`), built inactive (TRACK-B-STUCK-01 outcome, 2026-10-03) | SciML/technical lead (cutoff), then owner (testnet use) | the cutoff `THRESHOLD_BANDS` (HUMAN_INPUT); evidence in `evidence/admissibility-optimism-2026-10-03/` | built, inactive; the cutoff is open; value-study scope only |
+| 24 | EV5: the battery Level 0 combined admission run (OWNER-ADMISSION-COMBINED-01); confirms the deciding rule, the SR-2 candidate and the gate once on fresh conditions | gate cutoff (23), then lead session | 23; spend approved 2026-10-03 (OWNER-EV5-CAP-01: option A, cap USD 6, inside the USD 25 L0 cap) | draft pre-registration (`BATTERY_ENGINEERING_VALUE_EV5.md`); nothing dispatched |
+| 25 | Track A construction integrity at Level 0 (CI-BATTERY-L0-01) | Claude session | the scoring precondition (24) | harness families and worker-boundary attacks built; INCONCLUSIVE until the value precondition is resolved (OWNER-TRACK-A-L0-02 item 6) |
+| 26 | A measurement for the localized sign-error failure, which no tested rule or the mean-optimism gate catches | SciML/technical lead | 24 | named gap (`evidence/real-divergence-2026-10-03/`) |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
 ## Budget (OD-5)
@@ -64,6 +66,10 @@ All of these are in `.agent/DECISIONS.md`.
 | M3 validator daemon, one evaluation path, battery agent, review fixes | #350 |
 | M4P truth environment, runtime probe, `operate init`, OD-4a request, host handoff | #351 |
 | EV2 engineering-value experiment (items 14 and 15): 560 references, 15 members. H2 PASS: every decision-aware rule ranks the boundary optimist below all 14 eligible members, while the current rule ranks it at or above all 14. H1: verification tau 0.202 for the development-chosen rule against 0.298 for the current rule; indicative only | the EV2 PR |
+| EV4 (100-member panel) and the Problem-C design optimizer (item 22): 840 references, 99 eligible members; H1 UNRESOLVED; Problem C's chosen protocols showed no in-band violation, and Mode X emitted 29 in-band findings | the EV4 PR |
+| Scoring-ratio studies SR-1, SR-2 and SR-3 on EV2 and on EV4 (regenerated, content-verified predictions): NO_PROMOTION; the deciding rule is kept for ranking (TRACK-B-STUCK-01 outcome, 2026-10-03) | #512, #513, #514, #515 |
+| Battery challenge kit (item 16) | #505 |
+| Track A Level 0 harness: attack catalogue, detectors, specimens, controls | #506 |
 | EV1 engineering-value experiment: contract, run, results (the approved rule gives weak, indicative decision alignment; tau 0.165 on verification) | the EV1 PR |
 
 ## Never without its exact record

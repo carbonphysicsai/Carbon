@@ -5,8 +5,8 @@ solved natively on RunPod CPU pods. The private pools ran only on the
 owner's host.
 
 - **Owner approval.** 2026-10-02, in session: "Go", for RunPod, public pools
-  only, with a USD 25 cap. That cap is the `challenge-pools` campaign
-  ceiling in `pod_control.py`.
+  only, with a fixed cap. That cap is the `challenge-pools` campaign
+  ceiling, held in the operator's configuration, not in the repository.
 - **Ticket:** `.agent/tickets/CHALLENGE-POOLS-CLOUD-01.md`.
 
 ## What ran
