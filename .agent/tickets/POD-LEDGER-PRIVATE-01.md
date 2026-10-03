@@ -27,8 +27,10 @@ ceiling and the balance floor in source.
   repository holds a row the private ledger lacks, so spend is never
   undercounted. Recording a termination is never refused.
 - `migrate-ledger` copies a campaign's full rows out and rewrites the
-  repository ledger as its projection; it is idempotent. The exam-design and
-  EV4 ledgers are migrated here, row for row.
+  repository ledger as its projection; it is idempotent. The exam-design,
+  EV4 and ev4-regen ledgers are migrated here, row for row; ev4-regen arrived
+  from main mid-review, with its ceiling in source, and that ceiling moved
+  to the operator's configuration like the others.
 - Ceilings and the floor come from `~/.runpod/campaigns.json`, through a
   `Limits` value only `operator_limits()` can build. Nothing that spends runs
   without it, and nothing is requested before it is read.
