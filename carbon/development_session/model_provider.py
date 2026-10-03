@@ -51,6 +51,8 @@ from __future__ import annotations
 import enum
 import json
 import re
+import socket
+import threading
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -610,7 +612,7 @@ def published_pricing(adapter_id, model_id, *, opener=None, now=None):
     if type(pricing) is not dict or not {"prompt", "completion"} <= set(pricing):
         raise ValueError("model has no published price")
     input_nano = _nano_per_token(pricing["prompt"])
-    observed = (now or datetime.datetime.now(datetime.timezone.utc)).strftime(
+    observed = (now or datetime.datetime.now(datetime.UTC)).strftime(
         "%Y-%m-%dT%H:%M:%SZ"
     )
     return {
@@ -1018,26 +1020,121 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def _post(selection, body, opener=None):
-    """POST `body` to the selection's endpoint, reading the key here and
-    nowhere else. Rejections become `ProviderHTTPError` with no text."""
-    adapter, settings = selection.adapter, selection.settings
-    headers = {"Content-Type": "application/json"}
-    if adapter.protocol == MESSAGES:
-        headers["anthropic-version"] = ANTHROPIC_VERSION
-    if adapter.auth == "x-api-key":
-        headers["x-api-key"] = read_credential(selection.credential)
-    else:
-        headers["Authorization"] = "Bearer " + read_credential(selection.credential)
-    outgoing = urllib.request.Request(
-        selection.endpoint, data=body, headers=headers, method="POST"
-    )
-    del headers
-    opener = opener or urllib.request.build_opener(_NoRedirect())
-    limit = settings.max_response_bytes
+#: Added to a selection's `timeout_seconds` to form each provider call's hard
+#: total wall-clock deadline (GRAPHITE-D27). urllib applies `timeout_seconds`
+#: to each socket operation separately - connect, the TLS handshake, the proxy
+#: CONNECT, every read - so a reply that trickles, or headers or a body that
+#: arrive in pieces each inside the timeout, never ends the call. The margin
+#: admits the connect, handshake and send that precede the reply wait, so a
+#: call that completed historically within its per-read timeout still does.
+DEADLINE_MARGIN_SECONDS = 10
+
+
+def call_deadline_seconds(settings):
+    """The hard total wall-clock bound on one provider call, in seconds."""
+    return settings.timeout_seconds + DEADLINE_MARGIN_SECONDS
+
+
+class ProviderDeadlineExceeded(Exception):
+    """A provider call passed its hard total deadline and was abandoned.
+
+    The request may have been processed, so this classifies as UNKNOWN: the
+    full reservation stays and nothing is resent. Carries no provider text."""
+
+
+class _Call:
+    """The sockets one call opens, so its deadline can shut them."""
+
+    def __init__(self):
+        self.lock, self.sockets, self.aborted = threading.Lock(), [], False
+
+    def register(self, sock):
+        with self.lock:
+            self.sockets.append(sock)
+            aborted = self.aborted
+        if aborted:
+            _shut(sock)
+            raise ProviderDeadlineExceeded("provider call deadline passed")
+        return sock
+
+    def track(self, connection_class):
+        """`connection_class`, recording its TCP socket when created and its
+        TLS socket before the handshake, so a stalled connect, proxy CONNECT,
+        handshake or read can each be shut (urllib drops `sock` from the
+        connection once headers arrive, so the sockets are kept here)."""
+        call = self
+
+        class Tracked(connection_class):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                create = self._create_connection
+                self._create_connection = lambda *a, **k: call.register(create(*a, **k))
+                if getattr(self, "_context", None) is not None:
+                    self._context = _TrackedContext(self._context, call)
+
+        return Tracked
+
+    def abort(self):
+        """Shut every socket the call opened; a read blocked on one returns."""
+        with self.lock:
+            self.aborted = True
+            sockets = list(self.sockets)
+        for sock in sockets:
+            _shut(sock)
+
+
+class _TrackedContext:
+    """An SSL context whose sockets are registered before their handshake."""
+
+    def __init__(self, context, call):
+        self._wrapped, self._call = context, call
+
+    def wrap_socket(self, sock, **kwargs):
+        wrapped = self._wrapped.wrap_socket(
+            sock, do_handshake_on_connect=False, **kwargs
+        )
+        self._call.register(wrapped)
+        wrapped.do_handshake()
+        return wrapped
+
+    def __getattr__(self, name):
+        return getattr(self._wrapped, name)
+
+
+def _shut(sock):
+    if sock is None:
+        return
     try:
-        with opener.open(outgoing, timeout=settings.timeout_seconds) as response:
-            payload = response.read(limit + 1)
+        # The plain-socket shutdown, also for a TLS socket: it unblocks a read
+        # in the worker without touching the TLS state that read is using.
+        socket.socket.shutdown(sock, socket.SHUT_RDWR)
+    except OSError:
+        pass
+
+
+class _TrackedHandler:
+    def __init__(self, call):
+        super().__init__()
+        self._call = call
+
+    def do_open(self, http_class, req, **kwargs):
+        return super().do_open(self._call.track(http_class), req, **kwargs)
+
+
+class _TrackedHTTPHandler(_TrackedHandler, urllib.request.HTTPHandler):
+    pass
+
+
+class _TrackedHTTPSHandler(_TrackedHandler, urllib.request.HTTPSHandler):
+    pass
+
+
+def _exchange(opener, outgoing, timeout, limit):
+    """Send the request and read the bounded reply; the network half of
+    `_post`, run in its worker thread. Rejections become `ProviderHTTPError`."""
+    try:
+        with opener.open(outgoing, timeout=timeout) as response:
+            return response.read(limit + 1)
     except urllib.error.HTTPError as rejected:
         code = None
         try:
@@ -1054,8 +1151,57 @@ def _post(selection, body, opener=None):
         raise ProviderHTTPError(
             rejected.code, code=code, retry_after=retry_after
         ) from None
-    finally:
-        del outgoing
+
+
+def _post(selection, body, opener=None, deadline=None):
+    """POST `body` to the selection's endpoint, reading the key here and
+    nowhere else. Rejections become `ProviderHTTPError` with no text.
+
+    The exchange runs in a daemon worker joined for at most `deadline` seconds
+    (default `call_deadline_seconds`). Past it the call's sockets are shut and
+    `ProviderDeadlineExceeded` is raised; whatever the worker later receives
+    is discarded, and a daemon thread never holds up process exit."""
+    adapter, settings = selection.adapter, selection.settings
+    if deadline is None:
+        deadline = call_deadline_seconds(settings)
+    headers = {"Content-Type": "application/json"}
+    if adapter.protocol == MESSAGES:
+        headers["anthropic-version"] = ANTHROPIC_VERSION
+    if adapter.auth == "x-api-key":
+        headers["x-api-key"] = read_credential(selection.credential)
+    else:
+        headers["Authorization"] = "Bearer " + read_credential(selection.credential)
+    outgoing = urllib.request.Request(
+        selection.endpoint, data=body, headers=headers, method="POST"
+    )
+    del headers
+    call = _Call()
+    opener = opener or urllib.request.build_opener(
+        _NoRedirect(), _TrackedHTTPHandler(call), _TrackedHTTPSHandler(call)
+    )
+    limit = settings.max_response_bytes
+    outcome = {}
+
+    def work(request):
+        try:
+            outcome["payload"] = _exchange(
+                opener, request, settings.timeout_seconds, limit
+            )
+        except BaseException as error:  # noqa: BLE001 - re-raised by the caller
+            outcome["error"] = error
+
+    worker = threading.Thread(
+        target=work, args=(outgoing,), name="carbon-provider-call", daemon=True
+    )
+    del outgoing
+    worker.start()
+    worker.join(deadline)
+    if worker.is_alive():
+        call.abort()
+        raise ProviderDeadlineExceeded("provider call deadline passed")
+    if "error" in outcome:
+        raise outcome.pop("error")
+    payload = outcome["payload"]
     if len(payload) > limit:
         raise ValueError("provider response exceeds bound")
     return json.loads(payload)
@@ -1441,14 +1587,19 @@ class SelectionTransport:
 
     No redirect is followed and nothing is retried here; a rejection is raised
     as `ProviderHTTPError`, an untranslatable request as `NotDispatched`
-    before anything is sent, and anything else propagates unchanged,
-    classifying as UNKNOWN. `opener` replaces urllib's for fixture tests only.
+    before anything is sent, a call past its hard total deadline
+    (`call_deadline_seconds`) as `ProviderDeadlineExceeded`, and anything else
+    propagates unchanged; all but a rejection classify as UNKNOWN. `opener`
+    replaces urllib's, and `deadline_seconds` the deadline, for tests only.
     """
 
-    def __init__(self, selection: ModelSelection, *, opener=None):
+    def __init__(
+        self, selection: ModelSelection, *, opener=None, deadline_seconds=None
+    ):
         if type(selection) is not ModelSelection:
             raise ModelSelectionRefused("a validated ModelSelection is required")
         self.selection, self.opener = selection, opener
+        self.deadline_seconds = deadline_seconds
 
     def __call__(self, request: dict[str, object]):
         from .profile import canonical
@@ -1462,7 +1613,9 @@ class SelectionTransport:
             body = _responses_body(request)
         # Canonical bytes: sorted keys and no volatile fields, so the same
         # history always produces the same prefix for the provider's cache.
-        response = _post(self.selection, canonical(body), self.opener)
+        response = _post(
+            self.selection, canonical(body), self.opener, self.deadline_seconds
+        )
         if protocol == CHAT_COMPLETIONS:
             return chat_response(response)
         if protocol == MESSAGES:

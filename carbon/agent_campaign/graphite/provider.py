@@ -72,9 +72,15 @@ from ..provider import (
     digest_text,
     identifier,
 )
+from . import next_level
 from . import tools as toolbox
 from .ladder import Ladder
-from .literature import FIXTURE_INDEX, LiteratureIndex
+from .literature import (
+    FIXTURE_INDEX,
+    LiteratureIndex,
+    OfferedLiterature,
+    literature_record,
+)
 from .model import ENGY_ADAPTERS
 from .roles import ROLES, RoleName
 
@@ -179,7 +185,7 @@ class GraphiteLedger(CampaignLedger):
             raise
 
 
-def _verify(opened, role, selection_record, literature_digest, brief_digest, limits):
+def _verify(opened, role, selection_record, literature, brief_digest, limits):
     """The session record still describes what would resume it: the role's
     prompt and manifest, the model selection, the literature snapshot, the
     brief, and the grant and caps the run is held to."""
@@ -193,12 +199,19 @@ def _verify(opened, role, selection_record, literature_digest, brief_digest, lim
         raise SessionMismatch("role_changed")
     if opened["model"] != selection_record:
         raise SessionMismatch("model_selection_changed")
-    if opened["literature"]["snapshot_digest"] != literature_digest:
+    if _literature_changed(opened["literature"], literature):
         raise SessionMismatch("literature_snapshot_changed")
     if opened["brief"]["digest"] != brief_digest:
         raise SessionMismatch("brief_changed")
     if {"grant": opened["grant"], "caps": opened["caps"]} != limits:
         raise SessionMismatch("grant_or_caps_changed")
+
+
+def _literature_changed(recorded, current):
+    """True when the literature that would resume a session is not the one its
+    record pins: a different snapshot file, policy or offered card set
+    (GRAPHITE-D28). `current` is the serving index's full record."""
+    return recorded != current
 
 
 def _check_role(role, spec):
@@ -249,8 +262,8 @@ class GraphiteProvider:
             raise ProviderUnavailable("live_model_grant_mismatch")
         if adapter_id not in ENGY_ADAPTERS:
             raise ProviderUnavailable("engy_adapter_required")
-        if type(literature_index) is not LiteratureIndex:
-            raise TypeError("exact LiteratureIndex required")
+        if type(literature_index) not in (LiteratureIndex, OfferedLiterature):
+            raise TypeError("exact LiteratureIndex or OfferedLiterature required")
         if max_calls_per_run is not None and (
             type(max_calls_per_run) is not int or max_calls_per_run < 1
         ):
@@ -412,6 +425,26 @@ class GraphiteProvider:
             "owner": OWNER,
         }
 
+    def _literature_record(self):
+        """The session record's `literature` block. A phase-1 index keeps its
+        original two fields; an offered index adds its source and policy."""
+        return literature_record(self.literature)
+
+    def _next_level(self, run_id, role):
+        """The next-level writer for one run (GRAPHITE-D30)."""
+
+        def write(arguments, identity):
+            return next_level.propose_tool(
+                arguments,
+                literature=self.literature,
+                run_dir=self._dir(run_id),
+                run_id=run_id,
+                identity=identity,
+                role=role.name.value,
+            )
+
+        return write
+
     def _selection(self, model_id):
         return select(
             provider_id=self.adapter_id,
@@ -460,10 +493,7 @@ class GraphiteProvider:
                     canonical(brief["initial_observation"])
                 ),
             },
-            "literature": {
-                "snapshot_digest": self.literature.snapshot_digest,
-                "label": self.literature.label,
-            },
+            "literature": self._literature_record(),
             "checkout": brief["checkout"],
             "grant": self._grant_record(),
             "caps": self.caps(),
@@ -606,7 +636,7 @@ class GraphiteProvider:
                 opened,
                 role,
                 selection.record(),
-                self.literature.snapshot_digest,
+                self._literature_record(),
                 digest(canonical(brief)),
                 {"grant": self._grant_record(), "caps": self.caps()},
             )
@@ -624,28 +654,9 @@ class GraphiteProvider:
             )
         ledger = self._ledger(run_id)
         ledger.freeze(self._manifest(opened))
-        sdk = toolbox.GraphiteToolbox(
-            role=role,
-            literature_index=self.literature,
-            emit=lambda event_id, body: self._emit(run_id, event_id, body),
-            miner_tools=self.miner_tools,
-        )
         self._active.add(run_id)
         try:
-            report = asyncio.run(
-                run_epoch(
-                    ledger,
-                    owner=OWNER,
-                    epoch=EPOCH,
-                    sdk=sdk,
-                    credential_file=None,
-                    initial_observation=brief["initial_observation"],
-                    transport=self.model.transport_for(selection),
-                    provider=selection,
-                    instructions=role.prompt,
-                    tools=role.tool_schemas(),
-                )
-            )
+            report = asyncio.run(self._epoch(run_id, ledger, role, brief, selection))
         except RunCancelled:
             return self._finish(run_id, "cancelled", None, None)
         except RunCapReached as error:
@@ -658,7 +669,7 @@ class GraphiteProvider:
         except ProviderCallFailed as error:
             # A rejection before generation is settled with no charge; any
             # other failure keeps its full reservation for reconciliation.
-            unresolved = any(c["settlement"] is None for c in self._calls(run_id))
+            unresolved = self._unresolved(run_id)
             return self._finish(
                 run_id,
                 "failed",
@@ -673,7 +684,7 @@ class GraphiteProvider:
                 None,
             )
         except Exception as error:  # noqa: BLE001 - typed below, never echoed
-            unresolved = any(c["settlement"] is None for c in self._calls(run_id))
+            unresolved = self._unresolved(run_id)
             if (
                 not unresolved
                 and type(error) is ValueError
@@ -708,6 +719,35 @@ class GraphiteProvider:
                 run_id, "failed", {"code": "reconciliation_required"}, report
             )
         return self._finish(run_id, "succeeded", None, report)
+
+    async def _epoch(self, run_id, ledger, role, brief, selection):
+        """One research epoch of the session: the role's toolbox as the loop's
+        `sdk`, the role's prompt and closed tools. A later phase overrides
+        this to attach what its role acts through (GRAPHITE-D18)."""
+        sdk = toolbox.GraphiteToolbox(
+            role=role,
+            literature_index=self.literature,
+            emit=lambda event_id, body: self._emit(run_id, event_id, body),
+            miner_tools=self.miner_tools,
+            next_level=self._next_level(run_id, role),
+        )
+        return await run_epoch(
+            ledger,
+            owner=OWNER,
+            epoch=EPOCH,
+            sdk=sdk,
+            credential_file=None,
+            initial_observation=brief["initial_observation"],
+            transport=self.model.transport_for(selection),
+            provider=selection,
+            instructions=role.prompt,
+            tools=role.tool_schemas(),
+        )
+
+    def _unresolved(self, run_id):
+        """True when a reservation's outcome is unknown: it keeps its full
+        amount and the run needs reconciliation."""
+        return any(c["settlement"] is None for c in self._calls(run_id))
 
     def _finish(self, run_id, final, failure, report):
         self._crash("before_finish")

@@ -45,17 +45,123 @@ ROLE_SCHEMA = "carbon.graphite.role.v1"
 #: (`ladder.Ladder.record_failure`).
 CONSTRUCTOR_STALL_ATTEMPTS = 5
 
+#: The model calls one Constructor session (one research epoch) may make
+#: (plan §7: "about 150 turns"; OWNER-GRAPHITE-03 amendment, 2026-10-02: "up
+#: the plan to 150"). Graphite's own cap, passed to `run_epoch` as
+#: `max_provider_calls` (GRAPHITE-D26); the shared
+#: `research_agent_policy.MAX_PROVIDER_CALLS` (48) is unchanged.
+CONSTRUCTOR_SESSION_TURNS = 150
+
+
+#: Carbon's proposal runner (`experiment.Experiment.propose_tool`, phase 3):
+#: the Constructor's one way to have a recipe run on a pod and scored. It
+#: carries data only; Carbon decides what runs.
+PROPOSE = "graphite_run_proposal"
+PROPOSAL_TOOL = {
+    "type": "function",
+    "name": PROPOSE,
+    "strict": True,
+    "description": (
+        "Ask Carbon to run one battery TrainingStrategy proposal on a pod and "
+        "score it. strategy_json is the strategy object as a JSON string "
+        "(schema_version, challenge_id, backbone, parameters), inside the "
+        "battery construction contract; Carbon refuses, typed, anything it "
+        "cannot rebuild, and never scores it. The reply is development "
+        "feedback: the frozen rule's eligibility, score and gate failures on "
+        "public PRACTICE, the paired comparison with the session's baseline, "
+        "the fit statistics, the stall count and the pods left. Each call "
+        "uses one pod from the session's budget."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "strategy_json": {"type": "string"},
+            "hypothesis": {"type": "string"},
+            "expected_effect": {"type": "string"},
+        },
+        "required": ["strategy_json", "hypothesis", "expected_effect"],
+        "additionalProperties": False,
+    },
+}
+
+
+#: The next-level proposal (GRAPHITE-D30), held by the Planner and the
+#: Constructor: a typed record that a card points at a capability outside the
+#: recorded construction contract.
+#: It is stored for the owner and widens nothing (`next_level`).
+NEXT_LEVEL = "graphite_propose_next_level"
+#: The construction contract's dimensions (`capability_registry.Dimension`).
+CONTRACT_DIMENSIONS = (
+    "model_family",
+    "architecture",
+    "objective",
+    "optimizer",
+    "schedule",
+    "batching",
+    "stages",
+    "training_data",
+    "physical_structure",
+    "hybrid",
+    "prediction",
+    "inference",
+)
+NEXT_LEVEL_TOOL = {
+    "type": "function",
+    "name": NEXT_LEVEL,
+    "strict": True,
+    "description": (
+        "Record a next-level proposal: a method card points at a capability "
+        "outside the current recorded battery construction contract (a new loss "
+        "form, an architecture family, a data pipeline). Name the capability, "
+        "the source card ids, the contract dimension it falls under, the "
+        "contract's capability id when the contract names it (else an empty "
+        "string), why it is outside the contract, and what Carbon would need to "
+        "reconstruct it. Carbon stores it as PROPOSED for the owner. It widens "
+        "nothing, changes no permission and affects no score."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "capability": {"type": "string"},
+            "source_card_ids": {"type": "array", "items": {"type": "string"}},
+            "contract_dimension": {
+                "type": "string",
+                "enum": list(CONTRACT_DIMENSIONS),
+            },
+            "contract_capability_id": {"type": "string"},
+            "outside_contract_because": {"type": "string"},
+            "reconstruction_needs": {"type": "string"},
+        },
+        "required": [
+            "capability",
+            "source_card_ids",
+            "contract_dimension",
+            "contract_capability_id",
+            "outside_contract_because",
+            "reconstruction_needs",
+        ],
+        "additionalProperties": False,
+    },
+}
+
 
 def _registry():
+    from . import tools as toolbox
+
+    if toolbox.NEXT_LEVEL != NEXT_LEVEL:
+        raise RuntimeError("the toolbox and the registry name the same tool")
     tools = {tool["name"]: tool for tool in MINER_TOOLS}
     tools[SELECT] = SELECTION_TOOL
     for tool in literature.TOOLS:
         tools[tool["name"]] = tool
+    tools[PROPOSAL_TOOL["name"]] = PROPOSAL_TOOL
+    tools[NEXT_LEVEL_TOOL["name"]] = NEXT_LEVEL_TOOL
     return tools
 
 
 #: Every tool any role may be given: the closed miner SDK, the loop's
-#: selection tool and the literature tools. Nothing else exists to give.
+#: selection tool, the literature tools, Carbon's proposal runner (phase 3)
+#: and the Planner's next-level proposal. Nothing else exists to give.
 TOOL_REGISTRY = _registry()
 MINER_TOOL_NAMES = frozenset(tool["name"] for tool in MINER_TOOLS)
 LITERATURE_TOOL_NAMES = frozenset(tool["name"] for tool in literature.TOOLS)
@@ -108,13 +214,21 @@ PROMPTS = {
 Role: Planner. Pick the next hypothesis from the literature cards and the
 results you are given. Before any run, write the plan: the hypothesis, the
 expected effect and a stopping rule. Finish with a written plan; you run
-nothing yourself.
+nothing yourself. When a card points at a capability outside the recorded
+construction contract, you may record it with graphite_propose_next_level: a
+proposal for the owner, which widens nothing and is never scored.
 """),
     RoleName.CONSTRUCTOR: _prompt("""
 Role: Constructor. Turn the plan you are given into a recipe inside the
 permission profile, using the miner research tools. Validate and compile
 before practice, read the development feedback, and iterate within your
-budget. Select a recipe only with evidence, or stop and say why.
+budget. To have Carbon run and score a recipe, propose it with
+graphite_run_proposal: Carbon runs it on a pod, scores it by the frozen rule
+against the session's baseline, and refuses anything it cannot rebuild. Select
+a recipe only with evidence, or stop and say why. When a card points at a
+capability outside the recorded construction contract, you may record it with
+graphite_propose_next_level: a proposal for the owner, which widens nothing and
+is never scored.
 """),
     RoleName.ATTACKER: _prompt("""
 Role: Attacker. Red-team the admission boundaries named in your brief
@@ -221,6 +335,7 @@ ROLES = {
                 literature.CARD,
                 _RESEARCH + "get_challenge_info",
                 _RESEARCH + "get_interaction_manifest",
+                NEXT_LEVEL,
             ),
             start_model="glm-5.2",
             escalation_kinds=frozenset(
@@ -243,7 +358,9 @@ ROLES = {
                 _RESEARCH + "get_research_result",
                 _RESEARCH + "cancel_research_task",
                 literature.CARD,
+                PROPOSE,
                 SELECT,
+                NEXT_LEVEL,
             ),
             start_model="deepseek-v4-flash-0731",
             escalation_kinds=frozenset(

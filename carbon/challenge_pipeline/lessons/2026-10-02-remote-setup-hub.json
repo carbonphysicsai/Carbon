@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-remote-setup-hub",
+  "recorded_at": "2026-10-02T22:25:00Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "docs/development/carbon_hub: render_hub.py, render_hub.py --check, validate_hub.py with HUB_DIFF_BASE_SHA=merge-base(HEAD, origin/main), tools/test_routes.js and tools/browser_smoke_test.py: all passed on the first run",
+    "description": "Hub repin for the C-MLP-03 remote-setup slice. The authority snapshot is the wiring commit, every current-role link (252) is repinned to it, the playbook's snapshot line and capture time are updated to match, and one immutable event, C-MLP-03-SLICE-4-REMOTE-SETUP, supersedes C-MLP-03-SLICE-4-REMOTE-MACHINE."
+  },
+  "expected": "A mechanical repin, as the previous slice's, passes the validator, and the renderer rewrites only outputs whose bytes change.",
+  "observed": "Everything passed on the first run. The new code, docs and lessons paths (carbon/compute, docs/development/MINER_REMOTE_SETUP.md, carbon/challenge_pipeline/lessons) are not authority paths, so they needed no impact rule. The validator also checks that HUB_UPDATE_PLAYBOOK.md names the snapshot and capture time exactly, which the renderer does not write. The hub browser smoke runs with the host's Playwright Chromium through CARBON_HUB_BROWSER.",
+  "keep": [
+    "Take the authority snapshot as the last commit that changes the mapped ticket, then repin in a separate hub commit after it.",
+    "Update the playbook's snapshot line in the same edit as meta.authority_snapshot_commit and meta.captured_at_utc."
+  ],
+  "change": [
+    "Script the repin: replace the old snapshot SHA everywhere in hub_data_v2.json, set the capture time, update the playbook line, write the event, render, check and validate in one run."
+  ],
+  "protocol_elements": [
+    "two-commit hub model: authority snapshot A, hub commit H",
+    "one immutable event per map_structural ticket change"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

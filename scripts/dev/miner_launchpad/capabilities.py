@@ -32,12 +32,83 @@ NO_PROFILE = {
     ),
 }
 
+_SETUP = ("Continue setup", "#setup")
+_INFERENCE = ("Set up inference", "#setup/inference")
+_REREAD = ("Re-read capabilities", "#settings")
+
+#: What a blocking reason means to a miner, in one short sentence, and the one
+#: place in the Control Center that fixes it, or None when nothing a miner
+#: does here changes it (LINKONLY-D10). The reason code and its full next
+#: action stay beside it, for the page's Details.
+PLAIN = {
+    "research_profile_not_configured": ("Finish setup first.", _SETUP),
+    "research_profile_unavailable": ("Your profile can't be loaded.", _SETUP),
+    "research_dispatch_disabled": ("Your profile has research off.", _SETUP),
+    "research_runtime_interface_unavailable": (
+        "Your profile's runtime can't run here.",
+        _SETUP,
+    ),
+    "runner_profile_v1_retired": ("Your profile is an old version.", _SETUP),
+    "rented_gpu_retired_connect_your_machine": (
+        "Your profile names rented compute Carbon no longer runs.",
+        ("Set up compute", "#setup/compute"),
+    ),
+    "launch_options_unreadable": ("Your profile's options can't be read.", _REREAD),
+    "not_offered_by_launch_options": ("Your profile doesn't offer this.", _REREAD),
+    "docker_cli_not_found": ("Docker isn't installed on this machine.", _REREAD),
+    "model_provider_key_not_configured": (
+        "Carbon's agent needs your model key.",
+        _INFERENCE,
+    ),
+    "model_provider_credential_not_configured": (
+        "This provider has no key yet.",
+        _INFERENCE,
+    ),
+    "model_provider_credential_unusable": (
+        "This provider's key file can't be used.",
+        _INFERENCE,
+    ),
+    "model_provider_endpoint_not_configured": (
+        "This provider needs your endpoint.",
+        _INFERENCE,
+    ),
+    "challenge_not_implemented": ("Not built yet.", None),
+    "challenge_deferred": ("Not offered in this release.", None),
+    "challenge_retired": ("Retired.", None),
+    "challenge_unknown": ("Not in this registry.", None),
+    "challenge_version_unsupported": ("This version isn't offered.", None),
+    "challenge_has_no_campaign": ("Not launchable yet.", None),
+    "challenge_resolution_failed": ("Not launchable here.", None),
+    "execution_profile_unavailable": ("It can't run on this machine's profile.", None),
+    "remote_door_not_hosted": (
+        "Carbon hosts no remote agent door.",
+        ("Use your own MCP client", "#connections"),
+    ),
+    "integration_interface_unverified": ("There's no way to connect it yet.", None),
+    "flow_implemented_execution_is_the_miners_own": (
+        "You sign registration in your own wallet.",
+        ("Wallet & Identity", "#wallet"),
+    ),
+}
+
+
+def plain(reason) -> dict:
+    """One sentence and one link for a blocking reason; `known` is false for
+    a reason this map does not name yet."""
+    sentence, go = PLAIN.get(reason, ("Not available here yet.", None))
+    return {
+        "sentence": sentence,
+        "next": {"label": go[0], "href": go[1]} if go else None,
+        "known": reason in PLAIN,
+    }
+
 
 def _unavailable(reason, next_action, **extra):
     return {
         "availability": "unavailable",
         "reason": reason,
         "next_action": next_action,
+        "plain": plain(reason),
         **extra,
     }
 
@@ -61,7 +132,11 @@ def _integrations(category):
 def _profile(runner):
     """The runner profile's state: configured, disabled, or absent."""
     if runner is None:
-        return None, {"configured": False, **NO_PROFILE}
+        return None, {
+            "configured": False,
+            **NO_PROFILE,
+            "plain": plain(NO_PROFILE["reason"]),
+        }
     try:
         cfg = runner.configured()
     except Exception as refused:  # noqa: BLE001 - the code only, never content
@@ -74,6 +149,7 @@ def _profile(runner):
                 "runtime one this runner can assemble. Campaigns you already "
                 "have stay observable and stoppable."
             ),
+            "plain": plain(code),
         }
     return cfg, {"configured": True, "profile_id": cfg.get("profile_id")}
 
@@ -151,7 +227,7 @@ def _setup_offers(entry):
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.challenge_registry.registry import GPU_RESEARCH, IMPLEMENTED
 
-    none = {"gpu": False, "intake": False, "feedback_modes": []}
+    none = {"gpu": False, "remote_gpu": False, "intake": False, "feedback_modes": []}
     if entry["status"] != IMPLEMENTED:
         return none
     try:
@@ -165,6 +241,10 @@ def _setup_offers(entry):
     )
     return {
         "gpu": gpu,
+        # GPU practice on the miner's own remote machine or container
+        # (OWNER-MINER-COMPUTE-LINK-ONLY-01): offered by the Challenge's own
+        # campaign, never assumed.
+        "remote_gpu": gpu and campaign.remote_worker is not None,
         "intake": campaign.intake_check is not None,
         "feedback_modes": list(campaign.feedback_modes),
     }
@@ -246,6 +326,7 @@ def _challenges(profile_state, host):
         if refusal is not None:
             item["reason"] = refusal["code"]
             item["next_action"] = refusal["next_action"]
+            item["plain"] = plain(refusal["code"])
         result.append(item)
     # The launch portfolio first; the historical DEVELOPMENT Challenge after it.
     order = {"launch": 0, "historical_development": 1, "deferred": 2}
@@ -467,23 +548,84 @@ def _compute(cfg, options, refusal, host):
     lanes = {"cpu": {"availability": "configured"} if cfg else local}
     for lane, state in ((options or {}).get("research_lanes") or {}).items():
         lanes[lane] = state
+    runtime = (cfg or {}).get("runtime", {})
+    if "remote_gpu" in runtime:
+        # GPU practice on the miner's own remote machine or container. This
+        # controller still runs its trusted worker locally, so this machine's
+        # Docker is still needed.
+        transport = cfg["remote_machine"]["transport"]
+        choice = {
+            "id": "remote-machine",
+            "label": "Your own remote machine or container · " + transport,
+            "lane": "remote-gpu",
+            "transport": transport,
+            "started_stopped_and_billed_by": "you; Carbon never does",
+        }
+    else:
+        choice = {
+            "id": "local-isolated-worker",
+            "label": "This machine · isolated Docker worker",
+            "lane": "gpu" if "gpu_research" in runtime else "cpu",
+        }
     return {
         "choices": [
             {
-                "id": "local-isolated-worker",
-                "label": "This machine · isolated Docker worker",
-                "lane": (
-                    "gpu" if cfg and "gpu_research" in cfg.get("runtime", {}) else "cpu"
-                ),
+                **choice,
                 "lanes": lanes,
                 "host_facts": sorted(host.facts),
                 **local,
             }
         ],
         "selection": "Set by your runner profile's runtime; the launch carries no compute field.",
+        "routes": _routes(cfg, local),
         "destinations": research_compute_choices(),
         "unavailable": _integrations("compute_provider"),
     }
+
+
+def _routes(cfg, local):
+    """Where research can run, side by side (LINKONLY-D10): this machine, and
+    a GPU the miner runs elsewhere, each with its state from the profile and
+    the one place that sets it up."""
+    runtime = (cfg or {}).get("runtime", {})
+    remote = (cfg or {}).get("remote_machine") if "remote_gpu" in runtime else None
+    here = {
+        "id": "this-machine",
+        "label": "This machine",
+        "lane": "gpu" if "gpu_research" in runtime and remote is None else "cpu",
+        "in_use": remote is None and cfg is not None,
+        **local,
+    }
+    if remote is None:
+        there = {
+            "availability": "not_set_up",
+            "in_use": False,
+            "plain": {
+                "sentence": "Not set up.",
+                "next": {"label": "Set it up", "href": "#setup/compute"},
+                "known": True,
+            },
+        }
+    else:
+        there = {
+            "availability": "configured",
+            "in_use": True,
+            "transport": remote["transport"],
+            "plain": {
+                "sentence": "In your profile, over your own SSH.",
+                "next": {"label": "Change it", "href": "#setup/compute"},
+                "known": True,
+            },
+        }
+    return [
+        here,
+        {
+            "id": "remote-machine",
+            "label": "A GPU you run elsewhere",
+            "started_stopped_and_billed_by": "you; Carbon never does",
+            **there,
+        },
+    ]
 
 
 def _budget():

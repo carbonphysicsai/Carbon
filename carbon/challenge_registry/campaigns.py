@@ -53,7 +53,8 @@ class ChallengeCampaign:
     #: the frozen binding changed. `julia_image` is the host's verified
     #: authored Julia image, or None.
     check_attached: Callable
-    #: (**attach, julia_image, gpu_image) -> (composition, wrapper)
+    #: (**attach, julia_image, gpu_image, remote) -> (composition, wrapper);
+    #: `remote` is `remote_runner`'s runner, or None.
     compose: Callable
     #: (root, runtime) -> the campaign's verified GPU worker image, or None
     #: when its runtime declares no GPU practice.
@@ -73,6 +74,27 @@ class ChallengeCampaign:
     gpu_scope: Callable | None = None
     #: (runtime) -> the declared GPU practice scope, checked for shape.
     declared_gpu: Callable | None = None
+    #: (gpu image) -> the Challenge's worker on the miner's own remote setup
+    #: (`carbon.compute.remote_runner.RemoteWorker`): its pinned GPU worker
+    #: and the environment its GPU practice program needs there. None: the
+    #: Challenge offers no remote practice (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+    remote_worker: Callable | None = None
+
+    def remote_runner(self, runtime, machine, gpu_image):
+        """The campaign's practice runner on the miner's own remote setup, or
+        None when its runtime declares no remote practice. Both campaign
+        doors call this; the route itself names no Challenge
+        (`carbon.compute.remote_route`, LINKONLY-D9).
+
+        `machine` is the runner profile's `remote_machine` and `gpu_image`
+        the campaign's verified GPU worker (`gpu_image`). Nothing is reached
+        until a trial runs.
+        """
+        from carbon.compute.remote_route import campaign_runner
+
+        return campaign_runner(
+            self, runtime=runtime, machine=machine, gpu_image=gpu_image
+        )
 
 
 def _manifest_challenge(manifest):
@@ -132,6 +154,7 @@ def _battery():
         intake_check=_battery_intake,
         gpu_scope=battery_gpu.gpu_scope,
         declared_gpu=battery_gpu.declared_scope,
+        remote_worker=battery_gpu.remote_worker,
     )
 
 
@@ -204,3 +227,17 @@ def declared_gpu(runtime):
     if campaign.declared_gpu is None:
         raise ValueError("this Challenge offers no GPU practice")
     return campaign.declared_gpu(runtime)
+
+
+def declared_remote(runtime):
+    """The declared remote GPU practice scope, checked for shape, for a
+    Challenge whose campaign offers remote practice; None without one."""
+    from carbon.compute.remote_route import declared_remote as shape
+
+    scope = shape(runtime)
+    if scope is None:
+        return None
+    declared_gpu(runtime)
+    if campaign_for_id(runtime_challenge(runtime)).remote_worker is None:
+        raise ValueError("this Challenge offers no remote GPU practice")
+    return scope

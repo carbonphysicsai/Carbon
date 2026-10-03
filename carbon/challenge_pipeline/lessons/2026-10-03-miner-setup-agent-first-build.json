@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-miner-setup-agent-first-build",
+  "recorded_at": "2026-10-03T00:27:48Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "scripts/dev/miner_launchpad/setup_operations.py, environment_setup.py, controller.py, app.js; carbon/miner_mcp/mcp_setup.py, open_tier.attach_operations, standard_cli --state-dir; tests/cpu/test_miner_setup_agent_first.py",
+    "description": "OWNER-MINER-SETUP-AGENT-FIRST-01: miner setup made agent first. One setup table generates the browser routes and the MCP tools over one set of records; a status call returns the next step, what it lacks and the exact next call; the signer and the registration answer human_action_required; a model key reaches the MCP door only as an owner-only file; the tools appear tier by tier in one session, up to launch."
+  },
+  "expected": "The operations-table pattern (operations.py driving the browser routes and the MCP tools) carries over to setup unchanged.",
+  "observed": "It did, with three additions the pattern had not needed. Two doors now write the same setup records from two processes, so the record's read-modify-write takes a file lock beside the thread lock. Tools must appear mid-session at two tier boundaries (registration, then the written profile), so a door object grows the live server with the same strictness check attach_campaign uses. And the browser could not show an agent's progress without re-reading setup, so the page polls it and rebuilds only on a change, never under a person's cursor. The order change exposed a dependency: Hermes' ready-made profile is written with setup's model, so Hermes keeps Inference and its files move to Review when it is chosen first; only an agent that brings its own model skips it.",
+  "keep": [
+    "Generate every door from one table and one perform; let a parity test compare the generated schemas, the refusals and the records across doors.",
+    "Give an agent one status call with closed codes and the exact next call, and make the miner's own steps a closed human_action_required result rather than a refusal.",
+    "Read client configuration from each client's current documentation, cite it with its date, and mark everything not run UNVERIFIED instead of inventing a flag."
+  ],
+  "change": [
+    "When two processes share a record file, add the file lock with the second door, not after a race.",
+    "Check a step's dependencies on later steps before reordering a wizard."
+  ],
+  "protocol_elements": [
+    "miner.control_center",
+    "miner.mcp"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

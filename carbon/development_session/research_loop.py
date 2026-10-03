@@ -149,6 +149,7 @@ async def run_epoch(
     parallel_calls=None,
     instructions=None,
     tools=None,
+    max_provider_calls=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -171,6 +172,11 @@ async def run_epoch(
     it; every other call goes to `sdk`, which owns refusing it. Both are
     recorded in the epoch plan. Omitted, the historical prompt and tools stand
     unchanged.
+
+    `max_provider_calls` is a role's own per-epoch model-call cap
+    (GRAPHITE-D26), accepted only with `instructions` and `tools` and recorded
+    in the epoch plan. Omitted, the shared `MAX_PROVIDER_CALLS` stands and the
+    plan is unchanged.
     """
     if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
         raise ValueError("unknown parallel tool call rule")
@@ -178,6 +184,14 @@ async def run_epoch(
         raise ValueError("a role supplies both its instructions and its tools")
     if instructions is not None and (agent_policy != LEGACY or challenge is not None):
         raise ValueError("role instructions run under the legacy policy only")
+    if max_provider_calls is not None:
+        if instructions is None:
+            raise ValueError("only a role's instructions carry their own call cap")
+        if type(max_provider_calls) is not int or max_provider_calls < 1:
+            raise ValueError("a role's call cap is a positive integer")
+    call_limit = (
+        MAX_PROVIDER_CALLS if max_provider_calls is None else max_provider_calls
+    )
     root = _epoch_paths(ledger, epoch)
     policy = binding(agent_policy, challenge)
     autonomous = agent_policy == AUTONOMOUS
@@ -204,7 +218,7 @@ async def run_epoch(
         "prompt": prompt,
         "tools": tools,
         "initial_observation": initial_observation,
-        "max_provider_calls": MAX_PROVIDER_CALLS,
+        "max_provider_calls": call_limit,
         "max_research_trials": MAX_RESEARCH_TRIALS,
         "rule_change": False,
         "selection_is_final_evidence": False,
@@ -248,7 +262,7 @@ async def run_epoch(
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
-    for index in range(MAX_PROVIDER_CALLS):
+    for index in range(call_limit):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
         trials = status["used"]["research_trials"] - trial_start
@@ -283,7 +297,7 @@ async def run_epoch(
             }
             break
         print(
-            f"Research epoch {epoch}: agent call {index + 1}/{MAX_PROVIDER_CALLS}; trial slots used {trials}/{trial_limit}",
+            f"Research epoch {epoch}: agent call {index + 1}/{call_limit}; trial slots used {trials}/{trial_limit}",
             flush=True,
         )
         phase_path = root / (call_id + "-admission.json")

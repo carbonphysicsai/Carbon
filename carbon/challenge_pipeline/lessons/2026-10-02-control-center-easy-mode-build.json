@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-easy-mode-build",
+  "recorded_at": "2026-10-02T23:21:36Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "scripts/dev/miner_launchpad (guide.py, environment_setup.py, installed.py, capabilities.py, controller.py, index.html, app.js, style.css); owner screenshots before-*.png from ee48dbce0 and after-*.png from the easy-mode commits, taken with fixture servers and the host's Playwright Chromium",
+    "description": "LINKONLY-D10: the Control Center made easy for a new miner. Overview leads with six ordered steps, setup is the same six steps as a wizard, a Where's your GPU? chooser maps each setup the wiring guide covers to its transport and shows that guide section, statuses are one sentence and one fix with codes behind Details, and the page uses the public website's design system with the wordmark and Montreal served locally."
+  },
+  "expected": "A plainer page built from the same server state, every safety statement kept, with the provider-to-transport map and the plain wording testable on the server.",
+  "observed": "The owner raised the bar twice during the execution: first 'way more intuitive and to match our brand' (a guided wizard, the website's design system), then 'Our license covers it, bundle the font'. Because the plain sentences, the compute routes, the guide cards and the found images were already server data, the redesign changed only the page; no server fact moved. Three practical findings: the browser smoke selected 'the first button in the compute form', which became a copy button once cards were added; install_miner.sh --gpu checks for a local NVIDIA driver, so a controller without a GPU could not record the GPU worker its remote setup needs, and setup now also finds it where accelerator_worker_image.sh writes it; and a full-page CDP capture paints sticky bars at the scroll offset, and a hash route scrolls to the view's own id, so captures set the bars static and scroll to the top first.",
+  "keep": [
+    "Put every miner-facing mapping the page leads with (reason to sentence and fix, provider to transport, image to the command that builds it) on the server, with a 'known' flag and a test that every emitted code is known.",
+    "Hold a provider-to-transport map to the guide's own 'Transport' lines in a test, so the cards and the document cannot drift.",
+    "Serve brand assets from the controller, copied only when their SHA-256 equals the website baseline manifest, and assert in the browser that nothing is fetched from another origin.",
+    "Mark a step done only from a controller-confirmed fact; a step the controller cannot confirm yet (the signer before the Agent step) waits rather than shows done."
+  ],
+  "change": [
+    "Ask which visual system an owner-facing surface uses before the first UI pass; a later brand pass redoes the page.",
+    "Select controls in browser tests by id, never by position in a form.",
+    "Give install_miner.sh a way to build the GPU worker for a remote setup without a local GPU, so the installer records it too."
+  ],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

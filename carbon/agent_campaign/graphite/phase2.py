@@ -233,6 +233,12 @@ def make_snapshot(args):
                 "snapshot": address,
                 "index_snapshot_digest": index.snapshot_digest,
                 "cards": len(index.cards),
+                # What a phase-3 session is offered by default (GRAPHITE-D29).
+                "checked_correct": sum(
+                    status == "HUMAN_CHECKED_CORRECT"
+                    for status in document["card_status"].values()
+                ),
+                "path": str(store.root / "snapshots" / (address[7:] + ".json")),
                 "withheld_protected": len(document["withheld_protected"]),
                 "excluded": len(document["excluded"]),
             },

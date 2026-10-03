@@ -12,8 +12,8 @@ returned, and sent only to its own provider.
 
 **Carbon never holds the miner's hotkey** (external signing, #445). The miner
 runs `carbon-miner-signer` for their registered hotkey in their own terminal;
-the Agent step only asks it, through `carbon.chain.external_signer`, which
-hotkey it holds. No hotkey file path and no password is asked for, stored or
+setup's first step and the Agent step only ask it, through
+`carbon.chain.external_signer`, which hotkey it holds. No hotkey file path and no password is asked for, stored or
 written into the profile.
 
 **Every connection is checked live, at the miner's cost, with consent.** A
@@ -35,6 +35,13 @@ Only launchable choices are offered.
   (OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU choice of slices 4 and
   4b is refused by name, and Carbon's stored copy of its provider key is
   deleted the next time compute is set up.
+- Compute also offers the miner's own remote machine or container, any
+  setup they run (the decision's amendment, LINKONLY-D5 to D9). Setup
+  reaches it with the miner's own SSH, checks what practice needs there and
+  starts nothing; for a machine with Docker, sending the pinned worker is its
+  own step, with consent to the destination and the image. Its "Where's your
+  GPU?" cards (LINKONLY-D10) set the transport for each setup the wiring
+  guide covers and show that setup's notes and commands from the guide.
 - Agent (slice 5) offers Carbon's autonomous agent or Hermes.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
@@ -46,7 +53,9 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -68,6 +77,37 @@ LOCAL_CPU = "this-machine-cpu"
 #: slice 3). Research and practice run there; the validator rebuilds on its
 #: own pinned backend and resources.
 LOCAL_GPU = "this-machine-gpu"
+#: The miner's own remote machine or container, reached over their own SSH,
+#: for practice speed only (OWNER-MINER-COMPUTE-LINK-ONLY-01, amended
+#: 2026-10-02: any setup the miner runs). Carbon never starts, stops or
+#: bills it.
+REMOTE = "remote-machine"
+#: The wiring guide setup names for it.
+REMOTE_GUIDE = "docs/development/MINER_REMOTE_SETUP.md"
+#: Where a miner's GPU can be beyond this machine, as setup's "Where's your
+#: GPU?" cards show it (LINKONLY-D10): each setup the wiring guide covers, the
+#: transport it takes and its section there. A machine or VM with Docker is
+#: reached as `ssh-docker`; a container rental as `ssh-container`. These are
+#: notes for the miner's own accounts: Carbon calls no provider API and
+#: starts, stops and bills none of them (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+REMOTE_GUIDES = (
+    ("runpod", "RunPod", "ssh-container", "RunPod pods"),
+    ("lium", "Lium", "ssh-container", "Lium (Bittensor subnet 51)"),
+    ("targon", "Targon", "ssh-docker", "Targon VMs (Bittensor subnet 4)"),
+    ("vast", "Vast.ai", "ssh-container", "Vast.ai"),
+    ("lambda", "Lambda", "ssh-docker", "Lambda"),
+    ("own-server", "My own server / workstation", "ssh-docker", "Your own workstation"),
+)
+#: A command a provider documents for the miner's own machine, as the guide
+#: quotes it.
+GUIDE_COMMANDS = {
+    "lambda": (
+        (
+            "On the instance: run docker without sudo, then log in again",
+            'sudo adduser "$(id -un)" docker',
+        ),
+    ),
+}
 #: The retired choice of a GPU rented with the miner's provider key (C-MLP-03
 #: slices 4 and 4b), refused by name (OWNER-MINER-COMPUTE-LINK-ONLY-01).
 RETIRED_RENTED_GPU = retired.RENTED_CHOICE
@@ -87,6 +127,15 @@ AUTONOMOUS = "carbon-autonomous"
 #: Hermes Agent on the miner's machine, driving Carbon's MCP server over stdio
 #: (C-MLP-03 slice 5).
 HERMES = "hermes"
+#: The miner's own agent, any MCP client (OWNER-MINER-SETUP-AGENT-FIRST-01):
+#: it brings its own model, so setup's Inference step is skipped for it.
+OWN_AGENT = "own-agent"
+#: The agents that call a model chosen in setup's Inference step: Carbon's own
+#: agent, and Hermes' ready-made profile, which is written with that model.
+USES_SETUP_MODEL = (AUTONOMOUS, HERMES)
+#: Where a profile points its model key when no Inference step was taken: no
+#: file is there, so Carbon's agent stays unavailable and nothing reads it.
+NO_MODEL_KEY = "no-model.key"
 
 #: The order inference choices are offered in; the first is the default
 #: (Engy's Chat Completions route, C-MLP-03 slice 2).
@@ -294,8 +343,202 @@ def _closed(value, required, optional=frozenset()):
         raise SetupRefused(extra[0], "unknown_field")
 
 
-def choices() -> dict:
-    """What each step offers: only what launches today, each with its cost."""
+def signer_command() -> str:
+    """How the miner starts their signer, from this controller's environment
+    when it holds the signer, otherwise by name."""
+    binary = Path(sys.executable).with_name("carbon-miner-signer")
+    name = shlex.quote(str(binary)) if binary.is_file() else "carbon-miner-signer"
+    return name + " --wallet <your wallet> --hotkey <your hotkey>"
+
+
+def guide_commands(guide_id, transport, gpu_manifest=None) -> list[dict]:
+    """The commands a miner runs for one remote setup, each to copy.
+
+    `<destination>` is the SSH destination the miner types in setup; the page
+    fills it in. A container rental pulls the worker image from a registry the
+    miner controls, so its first command is the push helper, with the GPU
+    worker setup found when there is one (otherwise the helper builds it).
+    """
+    commands = []
+    if transport == "ssh-container":
+        push = shlex.quote(str(REPO / "scripts/dev/push_worker_image.sh"))
+        if gpu_manifest:
+            push += " --manifest " + shlex.quote(str(gpu_manifest))
+        commands.append(
+            {
+                "label": "Push your worker image to a registry you control "
+                "(after your own docker login)",
+                "command": push + " <registry>/<you>/carbon-gpu-worker",
+            }
+        )
+    commands += [
+        {"label": "Load your SSH key into your agent", "command": "ssh-add"},
+        {
+            "label": "Connect once by hand to accept the host key",
+            "command": "ssh <destination>",
+            "destination": True,
+        },
+        {
+            "label": "Check it answers without a prompt, as Carbon will",
+            "command": "ssh -o BatchMode=yes <destination> true",
+            "destination": True,
+        },
+    ]
+    for label, command in GUIDE_COMMANDS.get(guide_id, ()):
+        commands.append({"label": label, "command": command})
+    return commands
+
+
+#: The Control Center's state directory when none is named (controller.main).
+DEFAULT_STATE_DIR = Path.home() / ".carbon" / "development-launchpad"
+#: Where each client's MCP configuration was read, 2026-10-02. Nothing here
+#: was run against the client: each snippet says so (UNVERIFIED).
+CLIENT_DOCS = {
+    "claude-code": "code.claude.com/docs/en/mcp",
+    "codex": "learn.chatgpt.com/docs/extend/mcp (Codex CLI)",
+    "hermes": "hermes-agent.nousresearch.com/docs/user-guide/features/mcp",
+}
+
+
+def mcp_connect(state_dir=None) -> dict:
+    """How the miner's own agent connects: one command, and a snippet per
+    client from that client's public documentation (OWNER-MINER-SETUP-AGENT-
+    FIRST-01).
+
+    The server starts with no runner profile: the open tier and setup, over
+    the same setup records as this Control Center. The checkout must be on
+    the import path (its `scripts` package), so each snippet names it.
+    """
+    python = sys.executable
+    args = ["-m", "carbon.miner_mcp.standard_cli"]
+    if state_dir is not None and Path(state_dir) != DEFAULT_STATE_DIR:
+        args += ["--state-dir", str(state_dir)]
+    repo = str(REPO)
+    command = " ".join(shlex.quote(part) for part in [python, *args])
+    quoted = lambda value: json.dumps(value)
+    claude = {
+        "mcpServers": {
+            "carbon": {"command": python, "args": args, "env": {"PYTHONPATH": repo}}
+        }
+    }
+    toml = (
+        "[mcp_servers.carbon]\n"
+        f"command = {quoted(python)}\n"
+        f"args = {json.dumps(args)}\n"
+        f"cwd = {quoted(repo)}\n"
+        "tool_timeout_sec = 1800\n"
+    )
+    yaml = (
+        "mcp_servers:\n"
+        "  carbon:\n"
+        f"    command: {quoted(python)}\n"
+        f"    args: {json.dumps(args)}\n"
+        f"    cwd: {quoted(repo)}\n"
+        "    timeout: 1800\n"
+    )
+    not_run = "UNVERIFIED: Carbon has not run this client against the server."
+    return {
+        "command": command,
+        "cwd": repo,
+        "note": (
+            "Run it from your Carbon checkout. With no runner profile it serves "
+            "the open tier and setup; once setup writes your profile, the same "
+            "session gains launch and the research operations."
+        ),
+        "clients": [
+            {
+                "id": "claude-code",
+                "name": "Claude Code",
+                "source": CLIENT_DOCS["claude-code"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "Add it",
+                        "text": "claude mcp add --transport stdio --env "
+                        + shlex.quote("PYTHONPATH=" + repo)
+                        + " carbon -- "
+                        + command,
+                    },
+                    {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
+                ],
+                "unverified": [
+                    not_run,
+                    (
+                        "UNVERIFIED: how Claude Code bounds a long tool call; "
+                        "Send your worker can take minutes."
+                    ),
+                ],
+            },
+            {
+                "id": "codex",
+                "name": "Codex",
+                "source": CLIENT_DOCS["codex"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "Add it",
+                        "text": "codex mcp add carbon --env "
+                        + shlex.quote("PYTHONPATH=" + repo)
+                        + " -- "
+                        + command,
+                    },
+                    {"label": "Or in ~/.codex/config.toml", "text": toml},
+                ],
+                "unverified": [not_run],
+            },
+            {
+                "id": "hermes",
+                "name": "Hermes Agent",
+                "source": CLIENT_DOCS["hermes"] + ", read 2026-10-02",
+                "snippets": [
+                    {
+                        "label": "In ~/.hermes/config.yaml, then /reload-mcp in Hermes",
+                        "text": yaml,
+                    }
+                ],
+                "unverified": [
+                    not_run,
+                    (
+                        "UNVERIFIED: whether `hermes mcp add` takes your own "
+                        "command; its documentation shows presets."
+                    ),
+                ],
+            },
+        ],
+    }
+
+
+def remote_guides(gpu_manifest=None) -> dict:
+    """The "Where's your GPU?" cards beyond this machine, from the guide.
+
+    Each card carries its transport, its section of the wiring guide as text
+    data (UNVERIFIED marks included) and its commands. When this checkout has
+    no guide, the cards keep their transport and commands and show no steps.
+    """
+    from scripts.dev.miner_launchpad import guide
+
+    document = guide.document("remote-setup")
+    parsed = document["blocks"]
+    return {
+        "source": document["source"],
+        "notes": guide.section(parsed, "Per-provider notes", nested=False) or [],
+        "cards": [
+            {
+                "id": guide_id,
+                "display_name": name,
+                "transport": transport,
+                "anchor": guide.slug(heading),
+                "steps": guide.section(parsed, heading) or [],
+                "commands": guide_commands(guide_id, transport, gpu_manifest),
+            }
+            for guide_id, name, transport, heading in REMOTE_GUIDES
+        ],
+    }
+
+
+def choices(gpu_manifest=None) -> dict:
+    """What each step offers: only what launches today, each with its cost.
+
+    `gpu_manifest`, when setup has found the GPU worker, goes into the remote
+    cards' push command."""
     from carbon.development_session.model_provider import ADAPTERS
 
     inference = []
@@ -373,6 +616,35 @@ def choices() -> dict:
                 ),
                 "note": SPEED_ONLY_NOTE,
             },
+            {
+                "id": REMOTE,
+                "display_name": "Your own remote machine or container",
+                "default": False,
+                "needs_gpu_image": True,
+                "needs_remote": True,
+                # Remote practice is set up for one Challenge whose campaign
+                # offers it (Challenge-neutral, LINKONLY-D9).
+                "for_challenges": remote_challenges(),
+                "transports": remote_transports(),
+                "cost_basis": (
+                    "A machine or container you run on your own account: you "
+                    "start, stop and pay for it. Carbon never starts, stops or "
+                    "bills it, and asks for no provider key."
+                ),
+                "live_check": (
+                    "Everything the CPU check does, then reaches your setup "
+                    "with your own SSH (your agent, config and known hosts) "
+                    "and checks what practice needs there: Docker, the NVIDIA "
+                    "Container Toolkit, Docker without sudo and your GPU "
+                    "worker by image ID on a machine; the pinned worker and "
+                    "its build identity in a container. It starts nothing and "
+                    "installs nothing."
+                ),
+                "note": SPEED_ONLY_NOTE,
+                "guide": REMOTE_GUIDE,
+                # The "Where's your GPU?" cards, from the guide (LINKONLY-D10).
+                "guides": remote_guides(gpu_manifest),
+            },
         ],
         "agent": [
             {
@@ -388,6 +660,23 @@ def choices() -> dict:
                     "holds and checks it is the registered one. Carbon never "
                     "sees your key or password. No network, no cost."
                 ),
+                "uses_setup_model": True,
+            },
+            {
+                "id": OWN_AGENT,
+                "display_name": "Your own agent, over MCP",
+                "cost_basis": (
+                    "Your agent runs where you run it, with its own model, "
+                    "billed by its own provider. Carbon bills nothing."
+                ),
+                "live_check": (
+                    "Asks your running carbon-miner-signer which hotkey it "
+                    "holds and checks it is the registered one. Carbon never "
+                    "sees your key or password. No network, no cost."
+                ),
+                "uses_setup_model": False,
+                "skips": {"inference": "your agent uses its own model"},
+                "connect": mcp_connect(),
             },
             {
                 "id": HERMES,
@@ -406,6 +695,9 @@ def choices() -> dict:
                 ),
                 "needs_consent_to_write": True,
                 "start": START,
+                # Its ready-made profile is written with setup's model, so
+                # Inference stays; the files are written once it is known.
+                "uses_setup_model": True,
             },
         ],
         "not_yet_offered": (
@@ -423,10 +715,19 @@ class LiveChecks:
     """
 
     def __init__(
-        self, *, opener=None, repo: Path = REPO, host_root=None, hermes_home=None
+        self,
+        *,
+        opener=None,
+        repo: Path = REPO,
+        host_root=None,
+        hermes_home=None,
+        ssh=None,
     ):
         self.opener = opener
         self.repo = repo
+        # The miner's own ssh client (`remote_machine.SSHClient` unless a test
+        # names a double): it reaches their remote setup and nothing else.
+        self.ssh = ssh
         # Where Hermes keeps its profiles (`HERMES_HOME` or ~/.hermes).
         self.hermes_home = hermes_home
         # Where the host device record lives (`HOST_ROOT` unless a test names
@@ -708,6 +1009,71 @@ class LiveChecks:
             "record_digest": record.digest,
         }
 
+    def _remote(self, gpu_manifest: Path, machine):
+        """The pinned GPU worker and the transport to the miner's setup."""
+        from carbon.compute.remote_transport import transport_for
+        from carbon.development_session.gpu_practice import is_gpu_image
+        from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+        try:
+            image = load_image_identity(gpu_manifest)
+        except Exception:  # noqa: BLE001 - never echo a local path or error.
+            image = None
+        if not is_gpu_image(image):
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_image_unverified",
+                next_step=BUILD_STEPS["gpu_image_manifest"],
+            )
+        options = {} if self.ssh is None else {"ssh": self.ssh}
+        return image, transport_for(machine, **options)
+
+    @staticmethod
+    def _remote_refused(refused):
+        return SetupRefused(
+            REMOTE_FIELDS.get(refused.code, "remote"),
+            refused.code,
+            next_step=refused.next_step,
+        )
+
+    def remote(self, gpu_manifest: Path, machine, campaign) -> dict:
+        """Reach the miner's remote setup with their own SSH and check what
+        practice needs there. Starts nothing, installs nothing, costs
+        nothing (OWNER-MINER-COMPUTE-LINK-ONLY-01)."""
+        from carbon.compute.remote_machine import RemoteMachineError
+        from carbon.compute.remote_route import remote_scope
+
+        image, transport = self._remote(gpu_manifest, machine)
+        try:
+            check = transport.check(image)
+        except RemoteMachineError as refused:
+            raise self._remote_refused(refused) from None
+        return {
+            # The chosen Challenge's own GPU practice scope, and remote
+            # practice beside it over the miner's transport.
+            "scope": campaign.gpu_scope(image),
+            "remote_scope": remote_scope(
+                campaign.key.challenge_id, image, machine.transport
+            ),
+            "check": check,
+        }
+
+    def send_worker(self, gpu_manifest: Path, machine, image_id: str) -> str:
+        """Stream the pinned GPU worker `image_id` to the miner's machine with
+        Docker, and check it arrived by image ID: "present" or "sent"."""
+        from carbon.compute.remote_machine import RemoteMachineError
+
+        image, transport = self._remote(gpu_manifest, machine)
+        if image.image_id != image_id:
+            # Rebuilt since the check: the miner agreed to send another image.
+            raise SetupRefused(
+                "gpu_image_manifest", "gpu_image_changed_since_the_check"
+            )
+        try:
+            return transport.send(image)
+        except RemoteMachineError as refused:
+            raise self._remote_refused(refused) from None
+
     def hermes_files(self) -> list[str]:
         """The exact files a Hermes choice writes, for the miner's consent."""
         from scripts.dev.miner_launchpad.hermes_setup import (
@@ -824,6 +1190,100 @@ def gpu_challenges() -> list[dict]:
     ]
 
 
+def remote_challenges() -> list[dict]:
+    """The implemented Challenges whose campaigns offer GPU practice on the
+    miner's own remote setup."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+    from carbon.challenge_registry.registry import GPU_RESEARCH
+
+    return [
+        {"id": entry.challenge_id, "version": entry.version, "title": entry.title}
+        for entry, campaign in implemented_campaigns()
+        if GPU_RESEARCH in {p.name for p in entry.profiles}
+        and campaign.gpu_scope is not None
+        and campaign.remote_worker is not None
+    ]
+
+
+def remote_transports() -> list[dict]:
+    """How Carbon can reach the miner's remote setup: the two built
+    transports, and the endpoint transport with why it is not built."""
+    from carbon.compute.remote_transport import (
+        ENDPOINT,
+        ENDPOINT_NEXT_STEP,
+        ENDPOINT_NOT_BUILT,
+        SSH_CONTAINER,
+        SSH_DOCKER,
+    )
+
+    return [
+        {
+            "id": SSH_DOCKER,
+            "available": True,
+            "display_name": "A machine with Docker, over SSH",
+            "summary": (
+                "Docker and the NVIDIA Container Toolkit, and your SSH user "
+                "runs docker without sudo. Each practice trial runs one job "
+                "container from your GPU worker, by image ID, then removes it."
+            ),
+            "send_worker": True,
+        },
+        {
+            "id": SSH_CONTAINER,
+            "available": True,
+            "display_name": "A container from the pinned worker, over SSH",
+            "summary": (
+                "A container you started from the pinned GPU worker image "
+                "(push it with scripts/dev/push_worker_image.sh), with SSH "
+                "into it and no Docker inside. Each practice trial runs one "
+                "job process there after checking the worker's build "
+                "identity, then stops it."
+            ),
+            "send_worker": False,
+        },
+        {
+            "id": ENDPOINT,
+            "available": False,
+            "display_name": "A job endpoint you expose",
+            "reason": ENDPOINT_NOT_BUILT,
+            "next_step": ENDPOINT_NEXT_STEP,
+        },
+    ]
+
+
+def _remote_machine(value):
+    """The miner's remote setup from a setup request, or a refusal naming
+    the field."""
+    from carbon.compute.remote_machine import RemoteMachineError, checked_destination
+    from carbon.compute.remote_transport import BUILT, RemoteMachine
+
+    if type(value) is not dict:
+        raise SetupRefused("remote", "closed_setup_request_required")
+    _closed(value, {"transport", "destination"}, {"port"})
+    try:
+        return RemoteMachine.from_document(value)
+    except RemoteMachineError as refused:
+        raise SetupRefused(
+            "transport", refused.code, next_step=refused.next_step
+        ) from None
+    except ValueError:
+        if value["transport"] not in BUILT:
+            raise SetupRefused("transport", "remote_transport_not_offered") from None
+        try:
+            checked_destination(value["destination"])
+        except ValueError:
+            raise SetupRefused("destination", "ssh_destination_invalid") from None
+        raise SetupRefused("port", "ssh_port_invalid") from None
+
+
+#: Which field a refusal from the miner's remote setup is about.
+REMOTE_FIELDS = {
+    "ssh_unreachable": "destination",
+    "ssh_timed_out": "destination",
+    "worker_identity_mismatch": "gpu_image_manifest",
+}
+
+
 def intake_challenges() -> list[dict]:
     """The implemented Challenges whose campaigns submit through an intake."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
@@ -848,7 +1308,7 @@ class EnvironmentSetup:
         self.onboarding = onboarding
         self.checks = checks or LiveChecks()
         self.attach = attach
-        self.lock = threading.Lock()
+        self.lock = _SetupLock(self.root)
 
     # -- storage
 
@@ -884,7 +1344,13 @@ class EnvironmentSetup:
 
     def state(self) -> dict:
         record = self._record()
-        done = {name: name in record for name in STEPS[:-1]}
+        # Inference is needed only by an agent that calls setup's model.
+        needed = [
+            name
+            for name in STEPS[:-1]
+            if name != "inference" or _needs_inference(record)
+        ]
+        done = {name: name in record for name in needed}
         from scripts.dev.miner_launchpad import installed
 
         return {
@@ -892,6 +1358,9 @@ class EnvironmentSetup:
             "registered_hotkey": record.get("hotkey"),
             # The images the installer built here, for setup to fill in.
             "installed": installed.read(self.root.parent),
+            # Each image setup fills in, where it was found, or the one
+            # command that builds it (LINKONLY-D10: no typed paths).
+            "images": installed.found(self.root.parent, REPO),
             "steps": {
                 "inference": _public(
                     record.get("inference"),
@@ -904,14 +1373,61 @@ class EnvironmentSetup:
                         "check",
                     ),
                 ),
-                "compute": _public(record.get("compute"), ("choice", "check")),
+                "compute": _public(
+                    record.get("compute"),
+                    ("choice", "challenge", "remote_machine", "check"),
+                ),
                 "agent": _public(record.get("agent"), ("choice", "check")),
                 "review": {
                     "ready": "hotkey" in record and all(done.values()),
                     "profile_written": "profile" in record,
                 },
+                # Setup's first step (LINKONLY-D10): the miner's signer
+                # answered for this hotkey, by the same identity handshake the
+                # Agent step makes. It counts only for the registered hotkey,
+                # once there is one.
+                "signer": self._signer(record),
             },
         }
+
+    @staticmethod
+    def _signer(record) -> dict:
+        signer = record.get("signer")
+        if signer is None or record.get("hotkey") not in (None, signer["hotkey"]):
+            return {"checked": False}
+        return {
+            "checked": True,
+            "checked_at": signer["checked_at"],
+            "hotkey": signer["hotkey"],
+            "check": signer["check"],
+        }
+
+    def signer(self, value) -> dict:
+        """Ask the miner's signer which hotkey it holds, before or after
+        registration: the identity handshake only, nothing is signed and
+        nothing leaves this machine. `address` is the public hotkey address
+        whose signer socket is asked."""
+        _closed(value, {"address"}, {"signer_socket"})
+        address = value["address"]
+        if type(address) is not str or not _ADDRESS.fullmatch(address):
+            raise SetupRefused("address", "hotkey_address_required")
+        socket_path = (
+            _absolute(value["signer_socket"], "signer_socket")
+            if value.get("signer_socket")
+            else None
+        )
+        check = self.checks.agent(address, socket_path)
+        with self.lock:
+            record = self._record()
+            if record.get("hotkey") not in (None, address):
+                raise SetupRefused("address", "signer_hotkey_is_not_the_registered_one")
+            record["signer"] = {
+                "hotkey": address,
+                "check": check,
+                "checked_at": int(time.time()),
+            }
+            self._save(record)
+        return self.state()
 
     def begin(self, value) -> dict:
         """Start setup for a hotkey the chain reads as registered."""
@@ -978,24 +1494,48 @@ class EnvironmentSetup:
         )
 
     def inference(self, value) -> dict:
+        """Check the model with the miner's key, at their cost, on consent.
+
+        The key arrives one of two ways: pasted once on the loopback page
+        (`key`), written here to an owner-only file; or as `model_key_file`, the
+        absolute path to an owner-only file the miner made, which an agent
+        names and Carbon references without copying it. The MCP door accepts
+        only the path (`setup_operations`).
+        """
         _closed(
             value,
             {"provider_id", "model_id", "consent"},
-            {"key", "endpoint", "declared_pricing"},
+            {"key", "model_key_file", "endpoint", "declared_pricing"},
         )
+        if "key" in value and "model_key_file" in value:
+            raise SetupRefused("model_key_file", "key_or_model_key_file_not_both")
         provider = self._inference_choice(value)
-        credential_file = self.root / "keys" / (provider + ".key")
+        stored = self.root / "keys" / (provider + ".key")
+        named = (
+            _owner_only_key_file(value["model_key_file"])
+            if "model_key_file" in value
+            else None
+        )
+        credential_file = named or stored
         spec = self._spec(provider, value)
         _consented(
             value, check_quote(provider, value["model_id"], credential_file, spec)
         )
         with self.lock:
-            if "hotkey" not in self._record():
+            record = self._record()
+            if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
             if "key" in value:
-                write_private(credential_file, _secret(value["key"], "key"))
-            elif not credential_file.exists():
-                raise SetupRefused("key", "field_required")
+                write_private(stored, _secret(value["key"], "key"))
+            elif named is None:
+                # Neither given: the file named or written before, if any.
+                previous = (record.get("inference") or {}).get("credential_file")
+                if previous and record["inference"].get("provider_id") == provider:
+                    credential_file = _owner_only_key_file(previous)
+                elif not stored.exists():
+                    raise SetupRefused(
+                        "model_key_file", "field_required", next_step=KEY_FILE_STEP
+                    )
             check = self.checks.inference(
                 provider, value["model_id"], credential_file, spec
             )
@@ -1004,6 +1544,7 @@ class EnvironmentSetup:
                 {
                     "provider_id": provider,
                     "model_id": value["model_id"],
+                    "credential_file": str(credential_file),
                     **spec,
                     "check": check,
                 },
@@ -1037,11 +1578,14 @@ class EnvironmentSetup:
         _closed(
             value,
             {"choice", "image_manifest", "analysis_image_manifest"},
-            {"gpu_image_manifest", "challenge"},
+            {"gpu_image_manifest", "challenge", "remote"},
         )
-        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU):
+        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU, REMOTE):
             raise SetupRefused("choice", "compute_not_offered")
-        gpu = value["choice"] == LOCAL_GPU
+        # The remote choice runs the GPU practice program too, on the miner's
+        # own setup: it needs the GPU worker and the Challenge as well.
+        gpu = value["choice"] in (LOCAL_GPU, REMOTE)
+        remote = value["choice"] == REMOTE
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -1052,7 +1596,15 @@ class EnvironmentSetup:
                 "challenge",
                 "field_required" if gpu else "challenge_is_for_the_gpu_choice",
             )
+        if remote != ("remote" in value):
+            raise SetupRefused(
+                "remote",
+                "field_required" if remote else "remote_is_for_the_remote_choice",
+            )
         campaign = _gpu_campaign(value["challenge"]) if gpu else None
+        if remote and campaign.remote_worker is None:
+            raise SetupRefused("challenge", "challenge_offers_no_remote_practice")
+        machine = _remote_machine(value["remote"]) if remote else None
         paths = {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
@@ -1079,29 +1631,108 @@ class EnvironmentSetup:
                 # GPU practice is set up for one Challenge, the miner's choice.
                 step["challenge"] = dict(value["challenge"])
                 check["challenge"] = value["challenge"]["id"]
+                step["gpu_image"] = gpu_image
+            if value["choice"] == LOCAL_GPU:
                 detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
                 runtime = {**runtime, "gpu_research": [detected["scope"]]}
-                step["gpu_image"] = gpu_image
                 check.update(
                     gpu=detected["device_kind"],
                     device_record=detected["record_digest"],
                     gpu_image=detected["scope"]["image"],
                     note=SPEED_ONLY_NOTE,
                 )
+            if remote:
+                found = self.checks.remote(Path(gpu_image), machine, campaign)
+                runtime = {
+                    **runtime,
+                    "gpu_research": [found["scope"]],
+                    "remote_gpu": [found["remote_scope"]],
+                }
+                # Where it is stays in the profile, never in a campaign.
+                step["remote_machine"] = machine.document()
+                check.update(
+                    remote=found["check"],
+                    gpu_image=found["scope"]["image"],
+                    balance="not applicable: your own setup, never billed by Carbon",
+                    note=SPEED_ONLY_NOTE,
+                )
+                if found["check"].get("worker_image") == "missing":
+                    check["next_step"] = "send your worker"
             if self._forget_compute_keys():
                 check["retired_compute_key"] = COMPUTE_KEY_REMOVED
             return self._step("compute", {**step, "runtime": runtime, "check": check})
 
+    def send_worker(self, value) -> dict:
+        """Send the pinned GPU worker to the miner's own machine with Docker.
+
+        A step of its own, with consent: the request must name the
+        destination (and port) and the worker's image ID exactly as the
+        checked compute step records them, so a page that changed either
+        sends nothing. It streams `docker save <image id> | ssh <destination>
+        docker load` over the miner's own SSH, checks the image ID arrived,
+        and may take minutes. Nothing else is sent, and nothing is started.
+        """
+        from carbon.compute.remote_transport import SSH_DOCKER, RemoteMachine
+
+        _closed(value, {"consent"})
+        with self.lock:
+            record = self._record()
+            compute = record.get("compute") or {}
+            if compute.get("choice") != REMOTE:
+                raise SetupRefused("compute", "step_not_checked")
+            machine = RemoteMachine.from_document(compute["remote_machine"])
+            if machine.transport != SSH_DOCKER:
+                raise SetupRefused("transport", "send_worker_is_for_ssh_docker")
+            image_id = compute["runtime"]["remote_gpu"][0]["image"]
+            expected = {
+                "destination": machine.destination,
+                **({"port": machine.port} if machine.port is not None else {}),
+                "image": image_id,
+            }
+            if value["consent"] != {"send": expected}:
+                raise SetupRefused(
+                    "consent", "consent_must_name_the_destination_and_image"
+                )
+            sent = self.checks.send_worker(
+                Path(compute["gpu_image"]), machine, image_id
+            )
+            check = dict(compute["check"])
+            check["remote"] = {**check["remote"], "worker_image": "present"}
+            check["worker"] = sent
+            check.pop("next_step", None)
+            record["compute"] = {**compute, "check": check}
+            self._save(record)
+        return self.state()
+
     def offered(self) -> dict:
         """What each step offers, with the exact files a Hermes choice writes."""
-        value = choices()
+        from scripts.dev.miner_launchpad import installed
+
+        found = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
+        value = choices(gpu_manifest=found["path"])
+        # How the miner starts their signer: the first step, before setup can
+        # ask it anything (the Agent step's check confirms it).
+        value["signer"] = {"command": signer_command(), "checked_by": "agent"}
         # The Challenges a frozen candidate can be submitted to through a
         # validator's intake, each named in review (C-MLP-04).
         value["intake_challenges"] = intake_challenges()
         for choice in value["agent"]:
             if choice["id"] == HERMES:
                 choice["writes"] = self.checks.hermes_files()
+            if choice["id"] == OWN_AGENT:
+                # The command for this controller's own setup records.
+                choice["connect"] = mcp_connect(self.root.parent)
         return value
+
+    def _hermes_consent(self, value) -> None:
+        """The miner's consent must name exactly the files Hermes' profile
+        writes."""
+        consent = value.get("consent")
+        if (
+            type(consent) is not dict
+            or consent.get("writes") != self.checks.hermes_files()
+        ):
+            raise SetupRefused("consent", "consent_must_name_the_files")
 
     def _hermes_document(self, value):
         """The Hermes profile for this setup's inference choice, or a refusal.
@@ -1110,12 +1741,7 @@ class EnvironmentSetup:
         """
         from scripts.dev.miner_launchpad import hermes_setup
 
-        consent = value.get("consent")
-        if (
-            type(consent) is not dict
-            or consent.get("writes") != self.checks.hermes_files()
-        ):
-            raise SetupRefused("consent", "consent_must_name_the_files")
+        self._hermes_consent(value)
         inference = self._record().get("inference")
         if inference is None:
             raise SetupRefused("inference", "step_not_checked")
@@ -1133,18 +1759,32 @@ class EnvironmentSetup:
             runner_profile=self.profile_path,
             repo=REPO,
         )
-        key = (self.root / "keys" / (inference["provider_id"] + ".key")).read_text()
+        key = Path(self._credential(inference)).read_text()
         return document, key
 
+    def _credential(self, inference) -> str:
+        """The key file the checked inference step used: the one the miner
+        named, or the one written from the page."""
+        return inference.get("credential_file") or str(
+            self.root / "keys" / (inference["provider_id"] + ".key")
+        )
+
     def agent(self, value) -> dict:
+        """Who researches (setup step 3): Carbon's agent, the miner's own agent
+        over MCP, or Hermes with its ready-made profile. Each asks the miner's
+        signer which hotkey it holds and reads the network.
+
+        Hermes' profile is written with setup's model: at once when Inference
+        is already checked, otherwise at Review, on the consent given here.
+        """
         from carbon.chain.models import CARBON_NETUID
 
         # `operator_config` is for an operator running Carbon's own deployment;
         # a miner names none, and setup reads the network itself (C-MLP-04).
         _closed(value, {"choice"}, {"operator_config", "signer_socket", "consent"})
-        if value["choice"] not in (AUTONOMOUS, HERMES):
+        if value["choice"] not in (AUTONOMOUS, OWN_AGENT, HERMES):
             raise SetupRefused("choice", "agent_not_offered")
-        if value["choice"] == AUTONOMOUS and "consent" in value:
+        if value["choice"] != HERMES and "consent" in value:
             raise SetupRefused("consent", "nothing_to_consent_to")
         operator = None
         if value.get("operator_config"):
@@ -1159,8 +1799,16 @@ class EnvironmentSetup:
             record = self._record()
             if "hotkey" not in record:
                 raise SetupRefused("address", "registration_not_confirmed")
-            hermes = self._hermes_document(value) if value["choice"] == HERMES else None
+            hermes = None
+            if value["choice"] == HERMES:
+                if "inference" in record:
+                    hermes = self._hermes_document(value)
+                else:
+                    # Written at Review, once the model is checked.
+                    self._hermes_consent(value)
             check = self.checks.agent(record["hotkey"], socket_path)
+            if value["choice"] == HERMES and hermes is None:
+                check = {**check, "hermes_profile": "written at review"}
             if hermes is not None:
                 # Written only after the signer answered, so a refused setup
                 # leaves the miner's Hermes untouched.
@@ -1203,11 +1851,13 @@ class EnvironmentSetup:
         from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA, validated_profile
 
         record = self._record()
-        for step in ("inference", "compute", "agent"):
-            if step not in record:
+        # Inference only for an agent that calls setup's model; the miner's
+        # own agent brings its own (OWNER-MINER-SETUP-AGENT-FIRST-01).
+        for step in ("agent", "inference", "compute"):
+            if step not in record and (step != "inference" or _needs_inference(record)):
                 raise SetupRefused(step, "step_not_checked")
         inference, compute, agent = (
-            record[s] for s in ("inference", "compute", "agent")
+            record.get(s) for s in ("inference", "compute", "agent")
         )
         if compute.get("choice") == RETIRED_RENTED_GPU or retired.declares_rented(
             compute.get("runtime")
@@ -1217,7 +1867,11 @@ class EnvironmentSetup:
             raise SetupRefused(
                 "compute", retired.RENTED_GPU_RETIRED, next_step=retired.NEXT_STEP
             )
-        key = str(self.root / "keys" / (inference["provider_id"] + ".key"))
+        key = (
+            self._credential(inference)
+            if inference
+            else str(self.root / "keys" / NO_MODEL_KEY)
+        )
         campaigns = _private_dir(self.root / "campaigns")
         cfg = {
             "schema": PROFILE_SCHEMA,
@@ -1236,8 +1890,17 @@ class EnvironmentSetup:
             "campaigns_root": str(campaigns),
             "runtime": compute["runtime"],
             **({"gpu_image": compute["gpu_image"]} if "gpu_image" in compute else {}),
-            "provider_credentials": {inference["provider_id"]: key},
-            "model_selection": {
+            # Where the miner's remote setup is: the profile's, never a
+            # campaign's (LINKONLY-D9).
+            **(
+                {"remote_machine": compute["remote_machine"]}
+                if "remote_machine" in compute
+                else {}
+            ),
+        }
+        if inference:
+            cfg["provider_credentials"] = {inference["provider_id"]: key}
+            cfg["model_selection"] = {
                 "provider_id": inference["provider_id"],
                 "model_id": inference["model_id"],
                 **{
@@ -1245,8 +1908,7 @@ class EnvironmentSetup:
                     for k in ("endpoint", "declared_pricing", "published_pricing")
                     if k in inference
                 },
-            },
-        }
+            }
         try:
             return validated_profile(cfg)
         except ValueError:
@@ -1293,12 +1955,108 @@ class EnvironmentSetup:
             cfg = self.profile()
             if intakes:
                 cfg = {**cfg, "intakes": intakes}
-            write_private(self.profile_path, canonical(cfg))
             record = self._record()
+            agent = record["agent"]
+            if agent.get("check", {}).get("hermes_profile") == "written at review":
+                # Hermes chosen before the model: its profile now, on the
+                # consent to these exact files given at the Agent step.
+                written = self.checks.hermes(
+                    *self._hermes_document(
+                        {"consent": {"writes": self.checks.hermes_files()}}
+                    )
+                )
+                agent["check"] = {
+                    **agent["check"],
+                    **written,
+                    "hermes_profile": "carbon",
+                    "start": START,
+                    "tools_ask_first": True,
+                }
+            write_private(self.profile_path, canonical(cfg))
             record["profile"] = {"written_at": int(time.time())}
             self._save(record)
         attached = self.attach(self.profile_path) if self.attach is not None else False
         return {**self.state(), "attached": attached}
+
+
+def _needs_inference(record) -> bool:
+    """Whether setup's Inference step is part of this miner's path: yes until
+    an agent is chosen, and for an agent that calls setup's model."""
+    agent = record.get("agent")
+    return agent is None or agent.get("choice") in USES_SETUP_MODEL
+
+
+class _SetupLock:
+    """One writer at a time over the setup records, in this process and in any
+    other door onto them: the browser's controller and a miner's MCP server
+    read and write the same files (OWNER-MINER-SETUP-AGENT-FIRST-01)."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.thread = threading.Lock()
+        self.handle = None
+
+    def __enter__(self):
+        import fcntl
+
+        self.thread.acquire()
+        try:
+            _private_dir(self.root)
+            self.handle = os.open(
+                self.root / "setup.lock",
+                os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+            fcntl.flock(self.handle, fcntl.LOCK_EX)
+        except BaseException:
+            if self.handle is not None:
+                os.close(self.handle)
+                self.handle = None
+            self.thread.release()
+            raise
+        return self
+
+    def __exit__(self, *exc):
+        import fcntl
+
+        try:
+            fcntl.flock(self.handle, fcntl.LOCK_UN)
+            os.close(self.handle)
+        finally:
+            self.handle = None
+            self.thread.release()
+
+
+def _owner_only_key_file(value) -> Path:
+    """A model key file the miner made: an absolute path to a regular file,
+    not a link, owned by this user, with no group or other access. Its
+    content is not read here; only its own provider ever receives it."""
+    path = _absolute(value, "model_key_file")
+    try:
+        stat = path.lstat()
+    except OSError:
+        raise SetupRefused(
+            "model_key_file", "model_key_file_not_found", next_step=KEY_FILE_STEP
+        ) from None
+    import stat as kinds
+
+    if (
+        not kinds.S_ISREG(stat.st_mode)
+        or stat.st_uid != os.getuid()
+        or stat.st_mode & 0o077
+        or not 1 <= stat.st_size <= 1024
+    ):
+        raise SetupRefused(
+            "model_key_file", "model_key_file_not_owner_only", next_step=KEY_FILE_STEP
+        )
+    return path
+
+
+#: How a miner makes a key file an agent may name (never the key itself).
+KEY_FILE_STEP = (
+    "put your model key alone in a file only you can read, for example: "
+    "umask 077 && cat > ~/.carbon/model.key, then give its absolute path"
+)
 
 
 def _public(step, fields):

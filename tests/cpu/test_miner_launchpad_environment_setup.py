@@ -214,13 +214,20 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     assert inference["engy-chat"]["needs_endpoint"] is False
     # Slice 3: this machine's CPU is the default; its own GPU is offered
     # beside it, for practice speed only. Carbon rents no compute
-    # (OWNER-MINER-COMPUTE-LINK-ONLY-01), so no rented GPU is offered.
-    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU, "this-machine-gpu"]
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01), so no rented GPU is offered; the
+    # miner's own remote machine or container is (its amendment).
+    assert [c["id"] for c in offered["compute"]] == [
+        LOCAL_CPU,
+        "this-machine-gpu",
+        "remote-machine",
+    ]
     assert not any("providers" in c for c in offered["compute"])
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
-    # Slice 5: Hermes beside Carbon's own agent.
-    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS, "hermes"]
+    # Slice 5: Hermes beside Carbon's own agent; and the miner's own agent,
+    # any MCP client, which brings its own model (OWNER-MINER-SETUP-AGENT-
+    # FIRST-01).
+    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS, "own-agent", "hermes"]
     for step in ("inference", "compute", "agent"):
         for choice in offered[step]:
             assert choice["cost_basis"] and choice["live_check"]
@@ -289,12 +296,14 @@ def test_live_checks_need_consent_and_refusals_name_the_field(tmp_path, state):
             "model_id",
         ),
         (
+            # No key given and none stored: named as the key file, the one
+            # field both doors take (OWNER-MINER-SETUP-AGENT-FIRST-01).
             {
                 "provider_id": "engy-chat",
                 "model_id": "deepseek-v4-flash-0731",
                 "consent": CONSENT,
             },
-            "key",
+            "model_key_file",
         ),
         (
             {
@@ -473,7 +482,9 @@ def test_review_refuses_until_every_step_is_checked(tmp_path, state):
     setup.begin({"address": HOTKEY})
     with pytest.raises(SetupRefused) as refused:
         setup.review({"confirm": True})
-    assert refused.value.field == "inference"
+    # The first unchecked step in setup's order: who researches comes before
+    # Inference (OWNER-MINER-SETUP-AGENT-FIRST-01).
+    assert refused.value.field == "agent"
     assert not setup.profile_path.exists()
 
 
@@ -647,9 +658,11 @@ def test_setup_over_the_loopback_server(tmp_path, server):
             "consent": CONSENT,
         },
     )
+    # A closed refusal: the code, the field and the next step.
     assert status == 409 and body == {
         "error": "registration_not_confirmed",
         "field": "address",
+        "next_step": "confirm your registration: carbon_setup_begin",
     }
 
     status, body = call(server, "POST", "/api/v1/setup/begin", {"address": HOTKEY})

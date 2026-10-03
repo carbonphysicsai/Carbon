@@ -23,8 +23,14 @@ stored abstract, through the existing metered path:
   the run stops when the next reservation would pass either.
 - **Resume.** A record with a card or a rejection is skipped. A call that
   finished before a crash replays from the ledger without being paid again.
-  A call in flight at a crash keeps its full reservation and stops the run
-  as `RECONCILIATION_REQUIRED`; it is never resent.
+  A call whose outcome is unknown (in flight at a crash, or a live failure
+  with no known outcome) keeps its full reservation and stops its run as
+  `RECONCILIATION_REQUIRED`. At the start of every later run, new or resumed,
+  each such call in any run's ledger is written off (GRAPHITE-D17): its
+  record gets a typed `provider_outcome_unknown` rejection, so no run ever
+  resends it, and its reservation stays booked in its own ledger, so it still
+  counts against the run's cap and the grant. The run then continues with
+  the remaining records.
 - **Stops are typed.** `COMPLETED`, `STOPPED_CAP` (with the dimension),
   `RECONCILIATION_REQUIRED`, `PROVIDER_REJECTED` (with the typed outcome).
   Infrastructure stops are never literature findings.
@@ -34,6 +40,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import re
 import time
 from decimal import ROUND_FLOOR, Decimal
 from pathlib import Path
@@ -71,6 +78,10 @@ TRIAGE_SETTINGS = {
 }
 #: The most model calls one backfill run makes (rate-limit retries count).
 MAX_CALLS_PER_RUN = 3000
+#: A metered call's ledger operation id: `card-` and 40 hex digits of the
+#: record address, with `-rlN` on a rate-limit retry (`request_model`).
+_OPERATION = re.compile(r"card-([0-9a-f]{40})(?:-rl[0-9]+)?")
+WRITE_OFF_CODE = "provider_outcome_unknown"
 _LIMITS = {
     "provider timeout cannot fit remaining campaign time": "elapsed_seconds",
     "campaign elapsed-time exhausted or clock regressed": "elapsed_seconds",
@@ -259,11 +270,61 @@ class Backfill:
         }
 
     @staticmethod
-    def _unresolved(ledger):
-        """A call whose outcome is unknown still holds its reservation."""
-        return any(
-            op["state"] == "RESERVED" for op in ledger.status(owner=OWNER)["operations"]
-        )
+    def _reserved(ledger):
+        """Ids of this run's calls whose outcome is unknown; each still holds
+        its full reservation."""
+        return {
+            op["id"]
+            for op in ledger.status(owner=OWNER)["operations"]
+            if op["state"] == "RESERVED"
+        }
+
+    @classmethod
+    def _unresolved(cls, ledger, written_off=frozenset()):
+        """A call of this start whose outcome is unknown. Calls written off at
+        the start (GRAPHITE-D17) are already recorded and not resent."""
+        return bool(cls._reserved(ledger) - set(written_off))
+
+    def write_off_unknown(self):
+        """Write off every call of every run whose outcome is unknown.
+
+        GRAPHITE-D17. A ledger operation still `RESERVED` is a call that may
+        have reached the provider and may have been charged. Its record gets a
+        typed `provider_outcome_unknown` rejection naming the run and the
+        operation, so `pending()` skips it and no run resends it. The ledger is
+        not touched: the operation stays `RESERVED` with its full reservation,
+        so `committed_nano()`, the run's money cap and the grant gate keep
+        counting it. Idempotent: a record that already has a card or a
+        rejection is left as it is. Returns how many records it wrote off now.
+        """
+        prefixes = {address[7:47]: address for address in self.raw.addresses()}
+        written = 0
+        for run in sorted((self.root / "runs").iterdir()):
+            if not (run / "ledger" / "campaign.sqlite3").exists():
+                continue
+            status = self._ledger(run.name).status(owner=OWNER)
+            for op in status["operations"]:
+                if op["state"] != "RESERVED":
+                    continue
+                match = _OPERATION.fullmatch(op["id"])
+                if match is None or match.group(1) not in prefixes:
+                    # An unknown call this store cannot place: stop, unchanged.
+                    raise BackfillRefused("unresolved_operation_unmapped")
+                address = prefixes[match.group(1)]
+                if self.cards.done(self.raw.record(address), address):
+                    continue
+                self.cards.put_rejection(
+                    address,
+                    {
+                        "record_digest": address,
+                        "code": WRITE_OFF_CODE,
+                        "run_id": run.name,
+                        "operation_id": op["id"],
+                        "reservation": op["reservation"],
+                    },
+                )
+                written += 1
+        return written
 
     # -- the run -------------------------------------------------------------------------------
     def pending(self):
@@ -280,6 +341,10 @@ class Backfill:
         selection, record = self._open(run_id)
         ledger = self._ledger(run_id)
         ledger.freeze(self._manifest(record))
+        # GRAPHITE-D17: unknown outcomes from earlier starts are written off
+        # before anything is sent; a new one found below still stops this run.
+        written_off = self.write_off_unknown()
+        known = self._reserved(ledger)
         transport = self.model.transport_for(selection)
         provenance = {
             "model": selection.model_id,
@@ -309,7 +374,7 @@ class Backfill:
                 stop = {
                     "status": (
                         "RECONCILIATION_REQUIRED"
-                        if self._unresolved(ledger)
+                        if self._unresolved(ledger, known)
                         else "PROVIDER_REJECTED"
                     ),
                     "outcome": error.outcome.value,
@@ -329,7 +394,7 @@ class Backfill:
                     )
                     rejected += 1
                     continue
-                stop = _stopped(text, self._unresolved(ledger))
+                stop = _stopped(text, self._unresolved(ledger, known))
                 break
             call = {
                 "request_digest": digest(canonical(request)),
@@ -363,6 +428,7 @@ class Backfill:
             "model": selection.model_id,
             "cards_made": made,
             "rejected": rejected,
+            "written_off_unknown": written_off,
             "pending": len(self.pending()),
             "provider_attempts": status["used"]["provider_attempts"],
             "provider_nanodollars": status["used"]["provider_nanodollars"],
