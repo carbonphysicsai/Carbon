@@ -22,6 +22,7 @@ from .julia_depot import (
     ANALYSIS_ROOT,
     ARCHIVE,
     CPU_TARGET,
+    CUDA_ENVIRONMENTS,
     DEFAULT_ENVIRONMENT,
     DEPOT_LABEL,
     ENVIRONMENT_ROOT,
@@ -486,14 +487,31 @@ def run_julia(
     image,
     seconds=600,
     environment=DEFAULT_ENVIRONMENT,
+    accelerator=None,
 ):
-    from .research_carrier import PRECHARGED_TRIAL, _run
+    """Run the miner's own Julia in the isolated miner lane.
+
+    `accelerator=MINER_GPU` runs it on this host's installed GPU (JULIA-GPU-01
+    slice 2), in the same lane and isolation as `run_python`'s GPU code cell.
+    Only an environment that carries CUDA.jl may (`CUDA_ENVIRONMENTS`), and
+    only a composed image whose depot is today's, which `verify_julia_image`
+    checks before every run. Omitted, the run is on CPU exactly as before.
+    """
+    from .research_carrier import MINER_GPU, PRECHARGED_TRIAL, _run
 
     authorize_julia(ledger, owner, image)
     if environment not in ENVIRONMENTS:
         raise ValueError("unknown authored Julia environment")
     if type(source) is not str or not source:
         raise ValueError("authored Julia source required")
+    if accelerator is not None:
+        if accelerator != MINER_GPU:
+            raise ValueError("unsupported accelerator request")
+        if environment not in CUDA_ENVIRONMENTS:
+            raise ValueError("julia_gpu_environment_without_cuda")
+        if image.depot is None:
+            # A v1 image predates the depot, and so CUDA.
+            raise ValueError("a Julia GPU run needs a composed image with its depot")
     return _run(
         ledger,
         owner=owner,
@@ -516,4 +534,5 @@ def run_julia(
         },
         output_validator=validate_julia_output,
         miner_authored=True,
+        **({} if accelerator is None else {"accelerator": accelerator}),
     )

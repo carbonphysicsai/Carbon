@@ -164,9 +164,13 @@ def review(cfg):
             # What was actually validated, not which option exists. A malformed
             # GPU scope advertises nothing.
             "gpu_research": assurance is not None,
-            # Julia research stays on its own CPU route; nothing about the JAX
-            # GPU selection extends to it.
-            "julia_on_gpu": False,
+            # Julia's code cell runs on this machine's GPU lane, in its CUDA
+            # environment (JULIA-GPU-01); a remote GPU lane runs run_python only.
+            "julia_on_gpu": (
+                "authored_research" in runtime
+                and assurance is not None
+                and "remote_gpu" not in runtime
+            ),
             "selection": "Agent selects a legal strategy during research; no trained model selected at prelaunch",
         },
         # Distinct states, never collapsed into one green badge. Review reads

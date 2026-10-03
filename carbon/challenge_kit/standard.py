@@ -203,7 +203,10 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "Every feedback records the backend observed. GPU practice is for "
             "speed only; the validator rebuilds on its own pinned backend. A "
             "real practice on a local GPU, and one on a remote setup, are the "
-            "slices' acceptance and need the hardware.",
+            "slices' acceptance and need the hardware. The miner's own code "
+            "cell runs on the same GPU lane: run_python, and run_julia in its "
+            "CUDA environment (current, CUDA.jl on CUDA 13.0; JULIA-GPU-01) on "
+            "this machine's GPU; a remote setup runs run_python only.",
         ),
         "model": Provided(
             (

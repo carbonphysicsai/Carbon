@@ -8,10 +8,20 @@ item 4).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** scoped, not built (2026-10-03). Two engineering preconditions are
-missing, and neither is available in a cloud session:
-- a Docker host to build the depot;
-- write access to the GHCR depot package to publish it.
+**Status (2026-10-03):**
+- **Slice 1: done.** carbonphysicsai/Carbon#535 merged the CUDA depot
+  (CUDA.jl 6.2.2, CUDA 13.0). It was built and published on a Docker host,
+  and the lock names it. See JULIA-GPU-01-D1.
+- **Slice 2: built.** `run_julia` runs on the miner's own GPU, in the miner
+  lane, in its CUDA environment. Remote Julia GPU stays refused by name. See
+  JULIA-GPU-01-D2, which also records two departures from the plan below: no
+  device-runtime seeding, and no `_worker_profile` change.
+- **Slice 3: open.** A real kernel through the lane on a GPU host. A
+  preliminary run of the depot image alone on an RTX 3060 Laptop GPU
+  (functional, first kernel 3.7 s) is in D1. It is not the lane.
+
+Originally scoped, not built: a Docker host and GHCR write access were the
+missing preconditions in a cloud session.
 
 ## What is approved
 

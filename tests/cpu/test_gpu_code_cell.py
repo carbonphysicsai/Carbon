@@ -348,7 +348,23 @@ def test_a_device_choice_that_cannot_run_is_refused_before_dispatch():
         ("run_python", {"device": "gpu", "seconds": 600}, unstated, opt_in),
         ("run_python", {"device": "tpu"}, lane(), "device_choice_invalid"),
         ("run_python", {"device": "gpu"}, None, "gpu_lane_not_configured"),
-        ("run_julia", {"device": "gpu"}, lane(), "julia_gpu_unavailable"),
+        # run_julia (JULIA-GPU-01): this machine's GPU, in a CUDA environment.
+        ("run_julia", {"device": "gpu"}, lane(), None),
+        ("run_julia", {"device": "gpu", "environment": "current"}, lane(), None),
+        (
+            "run_julia",
+            {"device": "gpu", "environment": "pde"},
+            lane(),
+            "julia_gpu_environment_without_cuda",
+        ),
+        ("run_julia", {"device": "gpu"}, None, "gpu_lane_not_configured"),
+        (
+            "run_julia",
+            {"device": "gpu", "seconds": 600},
+            remote,
+            "remote_julia_gpu_unavailable",
+        ),
+        ("run_julia", {"device": "cpu", "environment": "pde"}, remote, None),
         ("run_python", {"device": "gpu"}, remote, "remote_gpu_seconds_required"),
         (
             "run_python",
@@ -368,6 +384,8 @@ def test_a_device_choice_that_cannot_run_is_refused_before_dispatch():
             assert expected in TASK_CORRECTIONS
             TaskContractMismatch(expected, "arguments_json.device")
     TaskContractMismatch("remote_gpu_seconds_required", "arguments_json.seconds")
+    # The old blanket refusal is gone: nothing raises it any more.
+    assert "julia_gpu_unavailable" not in TASK_CORRECTIONS
 
 
 def test_both_doors_take_the_same_device_argument():
@@ -922,3 +940,177 @@ def test_a_mig_instance_is_a_device_and_a_refused_launch_is_settled_at_once(tmp_
     (settled,) = finished
     assert settled["state"] == "FAILED_INFRA"
     assert settled["result"]["worker_created"] is False
+
+
+# ---- run_julia on the miner's own GPU (JULIA-GPU-01 slice 2).
+
+
+def test_each_lane_says_which_actions_it_runs():
+    local = lane().describe()
+    assert local["actions"] == ["run_python", "run_julia"]
+    assert local["julia_environments"] == ["current"]
+    remote = lane(
+        SimpleNamespace(transport=SimpleNamespace(name="ssh-docker", sandboxed=True))
+    ).describe()
+    assert remote["actions"] == ["run_python"] and "julia_environments" not in remote
+
+
+def test_a_local_julia_gpu_run_uses_the_julia_image_in_its_cuda_environment(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import julia_analysis
+    from carbon.development_session.profile import digest
+
+    calls = []
+    device = SimpleNamespace(device_kind="NVIDIA L4", digest="sha256:" + "d" * 64)
+    monkeypatch.setattr(research_carrier, "_gpu_device", lambda: device)
+
+    def fake_julia(ledger, **kwargs):
+        calls.append(kwargs)
+        operation = ledger.root / "operation-j"
+        (operation / "snapshot").mkdir(parents=True)
+        (operation / "snapshot" / "kernel.json").write_bytes(b"{}")
+        return {"operation": "operation-j", "files": {"kernel.json": digest(b"{}")}}
+
+    monkeypatch.setattr(julia_analysis, "run_julia", fake_julia)
+    monkeypatch.setattr(
+        research_carrier,
+        "run_script",
+        lambda *a, **k: pytest.fail("a Julia run never uses the Python GPU worker"),
+    )
+    executor = executor_with(tmp_path, lane())
+    executor.julia_image = SimpleNamespace(image_id="sha256:" + "e" * 64)
+    args = {"source": "using CUDA", "files": [], "device": "gpu"}
+    result = gpu_code_cell.run(
+        executor, identity="rtsk_" + "8" * 64, args=args, files={}, action="run_julia"
+    )
+    (sent,) = calls
+    assert sent["accelerator"] == research_carrier.MINER_GPU
+    assert sent["image"] is executor.julia_image and sent["environment"] == "current"
+    # What ran is recorded as the Julia image on this machine's GPU.
+    assert result["device"]["kind"] == "local_gpu"
+    assert result["device"]["image"] == executor.julia_image.image_id
+    assert result["device"]["language"] == "julia"
+    assert result["workspace_exports"] == ["8" * 20 + "-kernel.json"]
+    # pde has no CUDA, and a campaign without a Julia image has nothing to
+    # run: both refused, nothing dispatched.
+    with pytest.raises(ValueError, match="julia_gpu_environment_without_cuda"):
+        gpu_code_cell.run(
+            executor,
+            identity="rtsk_" + "9" * 64,
+            args={**args, "environment": "pde"},
+            files={},
+            action="run_julia",
+        )
+    executor.julia_image = None
+    with pytest.raises(ValueError, match="not available"):
+        gpu_code_cell.run(
+            executor,
+            identity="rtsk_" + "a" * 64,
+            args=args,
+            files={},
+            action="run_julia",
+        )
+    assert len(calls) == 1
+
+
+def test_the_executor_sends_a_julia_gpu_run_to_the_code_cell(tmp_path, monkeypatch):
+    from carbon.development_session.profile import canonical
+
+    seen = []
+    monkeypatch.setattr(
+        gpu_code_cell, "run", lambda executor, **kwargs: seen.append(kwargs) or "ran"
+    )
+    executor = executor_with(tmp_path, lane())
+    spec = SimpleNamespace(
+        action="run_julia",
+        arguments_json=canonical(
+            {
+                "device": "gpu",
+                "environment": "current",
+                "expected_effect": "e",
+                "files": [],
+                "hypothesis": "h",
+                "source": "using CUDA",
+            }
+        ).decode(),
+    )
+    assert executor._workspace_action(spec, "rtsk_" + "b" * 64) == "ran"
+    assert seen[0]["action"] == "run_julia"
+
+
+def test_run_julia_on_the_gpu_needs_a_cuda_environment_and_a_depot(monkeypatch):
+    from carbon.development_session import julia_analysis as julia
+    from carbon.development_session import julia_depot
+    from carbon.development_session.julia_depot_build import JuliaDepotIdentity
+    from carbon.development_session.research_image import ResearchImageIdentity
+
+    sent = []
+    monkeypatch.setattr(julia, "authorize_julia", lambda *args: None)
+    monkeypatch.setattr(
+        research_carrier, "_run", lambda ledger, **kwargs: sent.append(kwargs) or "ran"
+    )
+    parent = ResearchImageIdentity(
+        "sha256:" + "a" * 64, "sha256:" + "b" * 64, "sha256:" + "c" * 64
+    )
+    depot = JuliaDepotIdentity(
+        "sha256:" + "1" * 64, julia_depot.depot_digest(), "sha256:" + "2" * 64
+    )
+    composed = julia.JuliaResearchImageIdentity(
+        "sha256:" + "e" * 64, parent, "sha256:y", depot
+    )
+    before_depot = julia.JuliaResearchImageIdentity(
+        "sha256:" + "d" * 64, parent, "sha256:x"
+    )
+
+    def run(image, **options):
+        return julia.run_julia(
+            None, owner="o", identity="t", source="1", files={}, image=image, **options
+        )
+
+    gpu = {"accelerator": research_carrier.MINER_GPU}
+    assert run(composed, **gpu) == "ran"
+    assert sent[-1]["accelerator"] == research_carrier.MINER_GPU
+    assert sent[-1]["execution_contract"]["selected_environment"] == "current"
+    # A CPU run's request is exactly what it was: no accelerator field.
+    run(composed)
+    assert "accelerator" not in sent[-1]
+    for image, options, refused in (
+        (composed, {**gpu, "environment": "pde"}, "julia_gpu_environment_without_cuda"),
+        (before_depot, gpu, "composed image with its depot"),
+        (composed, {"accelerator": "SOMEONE_ELSES_GPU"}, "unsupported accelerator"),
+    ):
+        with pytest.raises(ValueError, match=refused):
+            run(image, **options)
+    assert len(sent) == 2
+
+
+def test_a_julia_gpu_host_check_needs_the_nvidia_runtime_not_the_python_worker(
+    monkeypatch,
+):
+    from carbon.reconstruction import onboarding
+    from carbon.reconstruction.worker import accelerator_runtime as runtime
+
+    monkeypatch.setattr(
+        runtime,
+        "verify_image_and_toolkit",
+        lambda **_: pytest.fail("the Python GPU worker's lock is not a Julia check"),
+    )
+    monkeypatch.setattr(onboarding, "doctor_report", lambda **_: {"findings": []})
+    device = SimpleNamespace(digest="sha256:" + "d" * 64)
+    monkeypatch.setattr(research_carrier, "_gpu_device", lambda: device)
+
+    class Cli:
+        def __init__(self, runtimes):
+            self.runtimes = runtimes
+
+        def json(self, arguments):
+            return {"Runtimes": self.runtimes}
+
+    research_carrier._check_gpu_host(Cli({"nvidia": {}, "runc": {}}), None, device)
+    with pytest.raises(ValueError, match="NVIDIA container runtime"):
+        research_carrier._check_gpu_host(Cli({"runc": {}}), None, device)
+    with pytest.raises(ValueError, match="device record changed"):
+        research_carrier._check_gpu_host(
+            Cli({"nvidia": {}}), None, SimpleNamespace(digest="sha256:" + "0" * 64)
+        )

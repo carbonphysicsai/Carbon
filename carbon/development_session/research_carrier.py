@@ -373,7 +373,14 @@ def _run_locked(
             from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
             from .research_image import verify_image
 
-            if device is not None:
+            if device is not None and type(image) is JuliaResearchImageIdentity:
+                # A Julia GPU code cell (JULIA-GPU-01): the composed image and
+                # its depot, checked as every Julia run is, and the host's GPU
+                # readiness without the Python GPU worker's lock.
+                verify_julia_image(image, cli)
+                checked = doctor(image_id=image.image_id, cli=cli)
+                _check_gpu_host(cli, None, device)
+            elif device is not None:
                 # A GPU code cell: the pinned GPU worker and the host's GPU
                 # readiness, checked as GPU practice checks them.
                 checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
@@ -580,14 +587,25 @@ def _gpu_device():
 
 
 def _check_gpu_host(cli, image, device):
-    """The miner-lane readiness the GPU controller requires, and no more."""
+    """The miner-lane readiness the GPU controller requires, and no more.
+
+    `image` is the pinned Python GPU worker, checked by its lock and labels
+    with the NVIDIA runtime. None for a Julia GPU code cell: its image is the
+    composed Julia image (verified on its own), which carries no Python GPU
+    worker lock, so only the NVIDIA container runtime is checked here.
+    """
     from carbon.reconstruction.onboarding import doctor_report, miner_lane_blockers
     from carbon.reconstruction.worker.accelerator_runtime import (
         HOST_ROOT,
         verify_image_and_toolkit,
     )
 
-    verify_image_and_toolkit(cli=cli, image=image)
+    if image is None:
+        info = cli.json(["info", "--format", "{{json .}}"])
+        if type(info) is not dict or "nvidia" not in (info.get("Runtimes") or {}):
+            raise ValueError("the NVIDIA container runtime is not available")
+    else:
+        verify_image_and_toolkit(cli=cli, image=image)
     if miner_lane_blockers(doctor_report(root=HOST_ROOT, cli=cli, image=image)):
         raise ValueError("GPU host not ready")
     if _gpu_device().digest != device.digest:

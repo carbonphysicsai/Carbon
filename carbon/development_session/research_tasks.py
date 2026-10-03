@@ -348,17 +348,18 @@ class PublicResearchExecutor:
         if device not in DEVICES:
             raise ValueError("device is cpu or gpu")
         if device == "gpu":
-            if spec.action == "run_julia":
-                raise ValueError("run_julia runs on cpu: no CUDA in its environments")
             if self.gpu is None:
                 raise ValueError("this campaign has no GPU lane")
             from . import gpu_code_cell
 
+            # run_julia on gpu: this machine's GPU, in a CUDA environment
+            # (JULIA-GPU-01); gpu_code_cell refuses every other case by name.
             return gpu_code_cell.run(
                 self,
                 identity=identity,
                 args=args,
                 files=self.workspace.snapshot(args["files"]),
+                action=spec.action,
             )
         runner, image, selection = run_script, self.image, {}
         if spec.action == "run_julia":
