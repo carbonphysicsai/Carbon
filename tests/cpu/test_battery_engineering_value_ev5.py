@@ -39,6 +39,7 @@ from carbon.battery import track_a
 from carbon.battery.compile import compile_recipe
 from carbon.battery.value import admissibility, ev5
 from carbon.battery.value import contract as ev
+from carbon.battery.value import false_acceptance as fa
 from carbon.battery.value import optimizer as op
 from carbon.battery.value import panel as pn
 from carbon.battery.value import search_commitment as search
@@ -582,7 +583,9 @@ def test_the_freeze_manifest_builds_once_the_cutoff_is_set(monkeypatch):
     assert hypotheses["H1"]["bootstrap"]["replicates"] == 10000
     assert hypotheses["H2"]["must_fail"] == ["control-boundary_optimist"]
     assert hypotheses["H2"]["cutoff_bands"] == 1.2345
-    assert hypotheses["H3"]["localized_measurement"] is None  # TODO(EV5-H3)
+    h3 = hypotheses["H3"]["localized_measurement"]
+    assert h3["schema"] == fa.SCHEMA and h3["cutoff"] is None
+    assert h3["module_digest"].startswith("sha256:")
     assert manifest["cap"]["decision"] == "OWNER-EV5-CAP-01"
     assert manifest["cap"]["hard_cap_usd"] == 6
     panel = manifest["panel"]
@@ -604,3 +607,47 @@ def test_this_branch_never_sets_the_cutoff():
         "carbon/challenge_readiness/combined_run.py",
     ):
         assert "THRESHOLD_BANDS =" not in (REPOSITORY / path).read_text()
+
+
+# --- H3: the localized measurement, descriptive (OWNER-EXEC-APPROVALS-01) ---------------
+
+
+def test_h3_is_the_registered_false_acceptance_measurement_with_no_cutoff():
+    measurement = ev5.H3_MEASUREMENT
+    assert measurement["schema"] == fa.SCHEMA
+    assert measurement["cutoff"] is None and measurement["state"] == "DESCRIPTIVE"
+    module = REPOSITORY / measurement["module"]
+    assert module.is_file() and module.name == Path(fa.__file__).name
+    # The freeze pins exactly the module that computes it.
+    pinned = ev5.hypotheses(None)["H3"]["localized_measurement"]
+    assert pinned["module_digest"] == (
+        "sha256:" + hashlib.sha256(module.read_bytes()).hexdigest()
+    )
+
+
+def test_h3_reports_every_member_and_control_and_never_calls_unmeasured_clean():
+    from carbon.battery.value import scoring as sc
+    from carbon.battery.value.near import near_cases
+
+    store, case_ids, _ = sc.scoring_set(REPOSITORY)
+    near = near_cases(store, case_ids)
+    exact = {case: store.refs[case]["outputs"] for case in near}
+    partial = dict(list(exact.items())[1:])
+    contract, _ = ev.load(ev5.EV4_CONTRACT)  # EV5 carries EV4's bands over
+    report = ev5.h3_report(
+        contract,
+        {"real-exact": exact, "attack-exact": exact, "real-partial": partial},
+        {"attack-exact": "ATTACK_CONSTRUCTION"},
+    )
+    assert report["cutoff"] is None and report["state"] == "DESCRIPTIVE"
+    assert report["important_cases"] == len(near) > 0
+    members = report["members"]
+    assert members["real-exact"]["kind"] == "RECONSTRUCTED"
+    assert members["attack-exact"]["kind"] == "ATTACK_CONSTRUCTION"
+    # A model that predicts the reference exactly never falsely accepts...
+    exact_rate = members["real-exact"]["measurement"]["worst_false_acceptance_rate"]
+    assert exact_rate in (None, 0.0)
+    # ...and one missing a single important case is unmeasured, not clean.
+    assert members["real-partial"]["measurement"] is None
+    # The controls are exactly what the measurement's own module computes.
+    assert report["controls"] == fa.controls(REPOSITORY)["controls"]

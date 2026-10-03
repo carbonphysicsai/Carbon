@@ -32,7 +32,8 @@ registered record:
   confirmation batch is unsealed.
 
 Nothing here dispatches, spends or freezes, and no value is chosen here. H3's
-localized measurement is a named seam (`H3_MEASUREMENT`).
+localized measurement is near-limit false acceptance (`H3_MEASUREMENT`,
+`h3_report`), descriptive and with no cutoff.
 
     python -m carbon.battery.value.ev5 freeze-manifest --out FILE \
         --confirmation-fingerprint sha256:<hex> --confirmation-sequence N
@@ -53,6 +54,7 @@ from carbon.challenge_readiness import combined_run as cr
 
 from . import contract as ev
 from . import ev5_protected_conditions as conditions_record
+from . import false_acceptance as fa
 from . import optimizer as op
 from . import panel as pn
 from .divergence import DECIDING_RULE
@@ -90,10 +92,26 @@ GATE_MUST_FAIL = ("boundary_optimist",)
 GATE_MUST_PASS = ("oracle", "conservative", "rank_preserving_delay")
 SIGN_ERROR_CONTROL = "localized_sign_error"
 
-#: H3's localized measurement: None until the SciML/technical lead registers
-#: one (§8 item 3). TODO(EV5-H3): wire `carbon/battery/value/false_acceptance.py`
-#: here when PR #526 merges; until then H3 is the named gap §4 describes.
-H3_MEASUREMENT = None
+#: H3's localized measurement (OWNER-EXEC-APPROVALS-01, §8 item 3): near-limit
+#: false acceptance (`false_acceptance.py`), registered descriptive. No cutoff
+#: exists; making it a gate needs one, a science value (HUMAN_INPUT). The
+#: SciML/technical lead may amend the definition before the freeze; the freeze
+#: manifest pins the module's digest, so what is frozen is exactly what runs.
+H3_MEASUREMENT = {
+    "module": "carbon/battery/value/false_acceptance.py",
+    "schema": fa.SCHEMA,
+    "quantity": (
+        "the worst constraint's near-limit false-acceptance rate: of the cases "
+        "the reference resolves as FAIL (with the contract's bands), the share "
+        "the model calls PASS (without bands)"
+    ),
+    "region": "the scoring set's published important region (near.near_cases)",
+    "unmeasured": "a member missing any important case is None, never clean",
+    "cutoff": None,
+    "state": "DESCRIPTIVE",
+    "amendable_before_freeze_by": "the SciML/technical lead (§8 item 3)",
+}
+H3_REPORT_SCHEMA = "carbon.battery.ev5.h3-report.v1"
 
 #: OWNER-EV5-CAP-01, as recorded. The ceiling and the balance floor stay in the
 #: operator's configuration, never here.
@@ -452,8 +470,15 @@ def hypotheses(cutoff, repository=REPOSITORY):
         "H3": {
             "kind": "known blind spot, reported",
             "control": f"control-{SIGN_ERROR_CONTROL}",
-            "reported": "its rank under each rule, and whether anything catches it",
-            "localized_measurement": H3_MEASUREMENT,
+            "reported": (
+                "its rank under each rule, whether anything catches it, and the "
+                "localized measurement for every member and control (h3_report), "
+                "with no cutoff"
+            ),
+            "localized_measurement": {
+                **H3_MEASUREMENT,
+                "module_digest": _file_digest(repository, H3_MEASUREMENT["module"]),
+            },
         },
         "adversarial_score": (
             "no Track A or Mode X construction with a reference-verified violation "
@@ -466,6 +491,44 @@ def hypotheses(cutoff, repository=REPOSITORY):
         ),
         "verdicts": ["construction_integrity", "adversarial_score", "value"],
         "blended": False,
+    }
+
+
+def h3_report(contract, member_predictions, kinds, repository=REPOSITORY):
+    """H3 as reported: the localized measurement for every panel member and
+    each constructed control, on the scoring set's important region.
+
+    `member_predictions` maps a member to its predictions by case, as a panel
+    bundle holds them; `kinds` names each member's panel kind. Descriptive:
+    no cutoff is applied and no score changes. A member missing any important
+    case is reported unmeasured (None), never clean.
+    """
+    from . import scoring as sc
+    from .near import near_cases
+
+    store, case_ids, identity = sc.scoring_set(repository)
+    near = near_cases(store, case_ids)
+    return {
+        "schema": H3_REPORT_SCHEMA,
+        "measurement": H3_MEASUREMENT,
+        "scoring_set": identity,
+        "important_cases": len(near),
+        "cutoff": None,
+        "state": "DESCRIPTIVE",
+        "members": {
+            member: {
+                "kind": kinds.get(member, "RECONSTRUCTED"),
+                "measurement": fa.component(contract, predictions, near, store.refs),
+            }
+            for member, predictions in sorted(member_predictions.items())
+        },
+        "controls": {
+            "control-"
+            + kind: fa.component(
+                contract, pn.control_predictions(kind, store.refs), near, store.refs
+            )
+            for kind in pn.CONTROLS
+        },
     }
 
 
