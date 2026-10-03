@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-remote-setup-wiring",
+  "recorded_at": "2026-10-02T22:45:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_miner_remote_setup.py and neighbours (setup, battery GPU, research images, Control Center, retired rented route, standard): first run 2 failed, 201 passed, 2 skipped; then 23 passed; Launchpad browser smoke (run, journey, setup_journey) passed with a local Chromium",
+    "description": "First runs of the remote-setup wiring: setup's own remote machine or container choice, its live check and Send your worker step, the profile's remote_machine, the remote_gpu runtime scope at both campaign doors, the Control Center and the browser smoke."
+  },
+  "expected": "The wiring tests pass on the first run, and the existing Control Center contract tests need only the new compute choice added.",
+  "observed": "Two failures on the first run, both from fixtures, neither from the route. The runner's private_json reads only canonical JSON, so a profile written with json.dumps was refused. The prelaunch review needs the full implementation identity (revision, tree, source tree digest). A Challenge-neutral contract test also pinned the exact setup_offers keys and needed remote_gpu. The browser smoke needs a Chromium and the chain, mcp and science-jax groups; the shared native venv lacked them, so it ran from a private venv outside the repository with the Playwright Chromium already on the host.",
+  "keep": [
+    "Freeze how practice runs (the transport and the pinned worker) in the campaign, and keep where it runs (the SSH destination) in the profile, so a pod restarted at a new address resumes the same campaign.",
+    "Refuse a profile machine whose transport differs from the frozen campaign before any request, at both campaign doors.",
+    "Offer a new compute route through the Challenge's own campaign (remote_worker), so the Control Center and setup read it rather than name a Challenge."
+  ],
+  "change": [
+    "Write test profiles with canonical() bytes and the full runtime implementation identity, as the runner reads them.",
+    "When a contract test pins an offers dictionary, extend it in the same change that adds an offer, and assert the new offer's dependency (remote_gpu only with gpu)."
+  ],
+  "protocol_elements": [
+    "where a setup runs is profile state, how it runs is frozen campaign state",
+    "consent names the exact destination and artifact before anything is sent",
+    "browser smoke runs with a private venv and a local Chromium when the shared venv lacks groups"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

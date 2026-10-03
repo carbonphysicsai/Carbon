@@ -34,6 +34,13 @@ STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
+    # Carbon's wordmark and the website's Montreal font, served from this
+    # controller so the page loads nothing from the internet. The font files
+    # are the website's own (their digests are the website baseline
+    # manifest's); the owner's licence covers bundling them (2026-10-02).
+    "/brand/brand-2.svg": ("brand/brand-2.svg", "image/svg+xml"),
+    "/fonts/neue-0.otf": ("fonts/neue-0.otf", "font/otf"),
+    "/fonts/neue-1.otf": ("fonts/neue-1.otf", "font/otf"),
 }
 
 
@@ -310,12 +317,20 @@ def research_compute_choices() -> list:
         {
             "id": "attach-existing-remote",
             "available": True,
+            # OWNER-MINER-COMPUTE-LINK-ONLY-01, amended 2026-10-02: any setup
+            # the miner runs, connected over their own SSH (LINKONLY-D5).
+            "transports": ["ssh-docker", "ssh-container"],
             "requires": [
-                "A_HOST_YOU_ALREADY_CONTROL",
-                "CARBON_ACCELERATOR_PREPARE_RUN_ON_THAT_HOST",
+                "A_MACHINE_OR_CONTAINER_YOU_RUN",
+                "SSH_FROM_THIS_MACHINE_WITHOUT_A_PROMPT",
+                "PINNED_GPU_WORKER_IMAGE",
             ],
-            "not_required": ["CARBON_HELD_PROVIDER_CREDENTIALS"],
-            "summary": "A compatible machine you already have, anywhere. Carbon does not provision or bill it, and never terminates a resource this campaign does not own.",
+            "not_required": [
+                "CARBON_HELD_PROVIDER_CREDENTIALS",
+                "CARBON_HELD_REGISTRY_CREDENTIALS",
+                "A_SUDO_PASSWORD",
+            ],
+            "summary": "Your own GPU machine (Docker and the NVIDIA Container Toolkit) or a container you started from the pinned worker, anywhere, reached with your own SSH. Set it up under Set up your environment, Compute. Carbon never starts, stops or bills it.",
         },
         {
             "id": "external-byo",
@@ -571,7 +586,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         )
         self.end_headers()
         self.wfile.write(body)
@@ -627,13 +642,48 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
-            elif self.path == "/api/v1/setup":
-                # Authenticated: the page shows the miner's own choices.
-                self.check(authenticated=True)
+            elif self.path.startswith("/api/v1/guide/"):
+                # The wiring guide, read from this checkout and rendered by
+                # the page: nothing is fetched from the internet. Only the
+                # named guides are read.
+                from scripts.dev.miner_launchpad import guide
+
+                name = self.path.removeprefix("/api/v1/guide/")
+                if name not in guide.GUIDES:
+                    raise Rejected("guide_not_found", 404)
+                self.reply(200, guide.document(name))
+            elif self.path in ("/api/v1/setup", "/api/v1/setup/status"):
+                # Authenticated: the page shows the miner's own choices, and
+                # the status an agent loops on, from the same table and records
+                # as the MCP door (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                from scripts.dev.miner_launchpad import setup_operations
+
                 setup = self.server.setup
                 if setup is None:
                     raise Rejected("setup_unavailable", 409)
-                self.reply(200, {**setup.state(), "choices": setup.offered()})
+                if (
+                    self.server.research_runner is None
+                    and setup.attach is not None
+                    and setup.state()["steps"]["review"]["profile_written"]
+                    and setup.profile_path.is_file()
+                ):
+                    # Written by the miner's agent over MCP: load it here too,
+                    # as this page's own review would.
+                    with contextlib.suppress(Exception):
+                        setup.attach(setup.profile_path)
+                runner = self.server.research_runner
+                status = setup_operations.status(
+                    setup,
+                    door=setup_operations.HTTP,
+                    campaigns=len(runner.recent()) if runner else None,
+                )
+                if self.path.endswith("/status"):
+                    self.reply(200, status)
+                else:
+                    self.reply(
+                        200,
+                        {**setup.state(), "choices": setup.offered(), "status": status},
+                    )
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -700,19 +750,18 @@ class Handler(BaseHTTPRequestHandler):
                 raise Rejected("incomplete_body")
             value = parse_json(body)
             if self.path.startswith("/api/v1/setup/"):
+                # Every setup step, generated from the one table the MCP door
+                # also serves: the same gates in the same order.
+                from scripts.dev.miner_launchpad import setup_operations
+
                 action = self.path.removeprefix("/api/v1/setup/")
-                if action not in {
-                    "begin",
-                    "quote",
-                    "inference",
-                    "compute",
-                    "agent",
-                    "review",
-                }:
+                if action not in setup_operations.SETUP_OPERATIONS:
                     raise Rejected("unknown_setup_step", 404)
                 if self.server.setup is None:
                     raise Rejected("setup_unavailable", 409)
-                result = getattr(self.server.setup, action)(value)
+                result = setup_operations.perform(
+                    self.server.setup, action, value, door=setup_operations.HTTP
+                )
             elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:

@@ -84,6 +84,22 @@ def review(cfg):
                 "backend": GPU_PROFILE.backend.value,
             }
             assurance = miner_lane_assurance()
+    if "remote_gpu" in runtime and assurance is not None:
+        from carbon.challenge_registry.campaigns import declared_remote
+
+        try:
+            scope = declared_remote(runtime)
+        except (ValueError, KeyError, TypeError, LookupError):
+            blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
+        else:
+            # Where the GPU practice runs: the miner's own remote machine or
+            # container. Its address is the profile's and is not shown here.
+            research_execution["remote"] = {
+                "transport": scope["transport"],
+                "image_verified_by": scope["image_verified_by"],
+                "job_transport": scope["job_transport"],
+                "started_stopped_and_billed_by": "YOU; CARBON NEVER DOES",
+            }
     return {
         "schema": "carbon.launchpad.prelaunch-review.v1",
         "experiment_pause": (

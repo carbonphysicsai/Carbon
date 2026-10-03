@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-easy-mode-hub",
+  "recorded_at": "2026-10-02T23:45:27Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "docs/development/carbon_hub: render_hub.py, render_hub.py --check, validate_hub.py with HUB_DIFF_BASE_SHA=merge-base(HEAD, origin/main), tools/test_routes.js and tools/browser_smoke_test.py: all passed on the first run",
+    "description": "Hub repin for the C-MLP-03 easy mode and the second amendment to OWNER-MINER-COMPUTE-LINK-ONLY-01. The authority snapshot is 7f5399c5e, every current-role link (252) is repinned to it, the playbook's snapshot line and capture time match, and one immutable decision event, OWNER-MINER-COMPUTE-LINK-ONLY-01-EASY-PATH, is added."
+  },
+  "expected": "The scripted repin from the remote-setup slice passes unchanged with a new old-snapshot SHA and event.",
+  "observed": "It did, with only the two inputs changed. The new paths (scripts/dev/miner_launchpad fonts and brand, carbon/challenge_pipeline/lessons) needed no impact rule. The event records an owner decision and supersedes nothing: the remote-setup event it follows stays the record of that slice.",
+  "keep": [
+    "Keep the repin a script with the old snapshot and the event as its only inputs."
+  ],
+  "change": [
+    "Repin once per owner decision or slice that changes the mapped ticket; a further slice on the same branch repins again with its own event."
+  ],
+  "protocol_elements": [
+    "two-commit hub model: authority snapshot A, hub commit H",
+    "one immutable event per map_structural ticket change",
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

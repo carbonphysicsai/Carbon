@@ -18258,3 +18258,214 @@ beside `pod_control`. Nothing under `carbon/` names a provider API.
 
 *Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
 grant and limits. No live session has run, and nothing was spent.
+**Amendment, same day (owner, 2026-10-02): container-only rentals.**
+
+**Question,** as LINKONLY-D4 and the C-MLP-03 ticket's owner input recorded
+it: whether Carbon should run practice on a rental with no Docker daemon, such
+as a RunPod pod, that the miner starts themselves.
+
+**Owner, verbatim:** "miners should be able to use whatever they want to run
+their setup. We are just facilitating and providing wiring and tooling."
+
+**Resolved.** LINKONLY-D4's open question is closed: the miner chooses any
+setup, and Carbon provides the wiring and tooling to connect it. Carbon still
+never creates, stops, terminates, bills or reads the balance of compute. The
+miner starts, stops and pays for whatever they run.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **LINKONLY-D5, one remote route, three transports.** The miner names a
+  transport. All of them share one interface
+  (`carbon.compute.remote_transport`) and one result record: the transport,
+  the pinned worker's image identity, how it was verified, the job transport
+  and the cleanup outcome.
+  - `ssh-docker` is LINKONLY-D4's machine with Docker and the NVIDIA
+    Container Toolkit. One job container runs per trial, by image ID, and is
+    removed afterwards.
+  - `ssh-container` is an SSH-reachable container the miner started from the
+    pinned GPU worker image, such as a RunPod or Lium pod, with no Docker
+    inside. Over SSH, Carbon starts the job server as one process per trial
+    on the container's loopback and reaches it through the same SSH port
+    forward. Afterwards it stops that process and removes its directory. It
+    never touches the container's lifecycle.
+  - `endpoint` is designed and not built (LINKONLY-D7).
+- **LINKONLY-D6, a container reports its own build identity.** Docker cannot
+  check an image ID from inside a container. The pinned worker already
+  carries `/opt/carbon/worker-image-build.json`, written when the image is
+  built. Its fields are the pinned manifest's, without the image ID. Carbon
+  reads that file over SSH before every trial and refuses any difference
+  (`worker_identity_mismatch`). No change to the image build was needed.
+  - The record says `image_verified_by: build-identity`, never `image-id`.
+  - It is a self-report that a modified container could forge. That is
+    acceptable because practice there is speed only and never evidence; it
+    stops a stale or wrong worker, not an adversary.
+- **LINKONLY-D7, the endpoint transport is not built.** Today's job server
+  serves one job per process and takes that job's token from its environment
+  when it starts.
+  - **Not useful as it stands.** Without a shell on the machine, Carbon
+    cannot start a server with a new job's token. The miner would restart it
+    by hand for every trial.
+  - **Making it useful weakens protections.** It would need a long-lived,
+    multi-job server holding a standing secret and accepting programs from
+    whoever presents it, reachable from the internet through a provider's
+    public proxy. That gives up the per-job token and the loopback-only job
+    port. The worker's identity could only be self-reported over the
+    network.
+  - **Design, unbuilt:**
+    - a server the miner starts once from the pinned worker, with a secret
+      setup generates and stores owner-only;
+    - per-job tokens derived from it, one job at a time, an idle lifetime;
+    - its build identity at an authenticated route;
+    - https only.
+  - **Owner's to accept.** Accepting a standing remote job door is a security
+    acceptance, which is the owner's. Until then `endpoint` is refused by
+    name (`endpoint_transport_not_built`); `ssh-container` covers the same
+    rentals over SSH.
+- **LINKONLY-D8, the miner's registry and the miner's login.** Some
+  container-only providers pull images. For them,
+  `scripts/dev/push_worker_image.sh` builds the pinned GPU worker locally and
+  pushes it to a repository the miner names, with the miner's own
+  `docker login`. It prints the `repository@sha256` reference to start the
+  container from. Carbon publishes no registry, holds no registry credential
+  and never logs in.
+- **LINKONLY-D9, where the machine is, and what a campaign freezes.**
+  - The runner profile's `remote_machine` (transport, destination, optional
+    port) says where the machine is. It is not frozen into a campaign,
+    because a pod's address can change when the miner restarts it.
+  - The campaign's runtime freezes `remote_gpu`, beside `gpu_research`: the
+    transport and the pinned GPU worker.
+  - Neither the destination nor any SSH material enters a campaign record.
+  - The route is Challenge-neutral. A Challenge offers it by supplying its
+    GPU scope and the environment its GPU program needs
+    (`ChallengeCampaign.remote_worker`).
+
+**Unchanged by the amendment.** Practice on any remote setup is speed only
+and never evidence; the exam is unchanged. No key reaches Carbon, and the
+miner's SSH key never leaves their machine. Testnet 567; DEVELOPMENT; nothing
+is qualified.
+
+**Second amendment, same day (owner, 2026-10-02): no endpoint transport for
+now, and an easy path for miners.**
+
+**Question,** as LINKONLY-D7 and the C-MLP-03 ticket's owner input recorded
+it: whether Carbon may run a long-lived, internet-facing job server that the
+miner starts once and that holds a standing secret (the `endpoint`
+transport). The executor recommended not building it for now.
+
+**Owner, verbatim:** "I agree and approve your decision, we just need to help
+miners figure out what to do easily."
+
+**Resolved.**
+- The `endpoint` transport stays designed and not built (LINKONLY-D7). Setup
+  keeps refusing it by name (`endpoint_transport_not_built`), and nothing
+  starts a standing job door.
+- `ssh-container` covers SSH-capable container rentals; `ssh-docker` covers
+  machines and VMs with Docker.
+- The priority is the miner's path: a miner can see what to do next, in plain
+  words, without losing any safety statement.
+
+**Recorded engineering decision (executor, same day, within delegated
+authority).**
+- **LINKONLY-D10, the Control Center shows the way.**
+  - One ordered "Get started" list: start your signer, register, inference,
+    compute, agent, then choose a Challenge and launch (reordered the same
+    day by OWNER-MINER-SETUP-AGENT-FIRST-01: who researches comes third). A
+    step shows done only when the controller has confirmed it.
+  - Setup is a guided wizard, one step at a time.
+  - A "Where's your GPU?" chooser offers this machine and one card per setup
+    the wiring guide covers. A card sets the transport and shows that setup's
+    notes from the guide, with their UNVERIFIED marks; the controller serves
+    the guide itself.
+  - A blocking status is one sentence and one link to the fix; machine codes
+    stay behind Details.
+  - The provider cards are notes for the miner's own accounts. Carbon calls no
+    provider API and starts, stops or bills nothing.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
+
+## 2026-10-02 — OWNER-MINER-SETUP-AGENT-FIRST-01: miner setup, agent first
+
+**Owner, verbatim, in session on 2026-10-02:** "yes make this more agent first
+and easy for an agent to automate"
+
+**Decision.** Miner setup is built so the miner's own agent can automate it
+end to end, as easily as a person can click through it.
+- The order becomes: start your signer, register on the subnet, who
+  researches, inference, compute, review and launch.
+- Who researches is Carbon's agent or the miner's own agent. The miner's own
+  agent is any MCP client, not only Hermes, and Hermes keeps its ready-made
+  profile.
+- Inference is skipped for an agent that brings its own model.
+- An agent drives setup over MCP from one status call to launch, with no
+  prose to parse.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **AGENTFIRST-D1, one table, two doors.**
+  `scripts/dev/miner_launchpad/setup_operations.py` holds every setup step.
+  The browser's `/api/v1/setup/<step>` routes and the MCP
+  `carbon_setup_<step>` tools are both generated from it and call one
+  `perform`, over one `EnvironmentSetup` and one set of setup records. The two
+  doors apply the same gates in the same order, and a parity test fails if
+  they drift.
+  - The doors differ in one declared way: the browser may paste a model key
+    once (`key`). The MCP door takes `model_key_file` only.
+  - Both doors write the same records under the Control Center's state
+    directory, behind a file lock (`setup.lock`). Each door sees the other's
+    progress: the page re-reads setup every few seconds.
+- **AGENTFIRST-D2, status drives the loop.** `carbon_setup_status`, and
+  `GET /api/v1/setup/status` on the browser door, return:
+  - the steps and their states (`done`, `next`, `open`, `waiting`, `skipped`);
+  - the next step, and what it is missing, as closed codes;
+  - the exact next call, with its arguments schema and the ids it may name.
+
+  Refusals are closed codes, each with its field and a `next_step`. The
+  prompt `carbon_setup_workflow_v1` states the loop.
+- **AGENTFIRST-D3, where the tools appear (C-MLP-02-D10: absent, not
+  refusing).**
+  - In the open tier, for a miner who has nothing yet: status, the signer
+    check and the registration confirmation.
+  - Once setup has confirmed the registration, added to the live server: the
+    steps after it (agent, quote, inference, compute, send_worker, review).
+  - When review writes the runner profile in that session, the registered
+    tier's operations and attach/detach, added by `open_tier.attach_operations`.
+    It is the same live insertion and strictness check as `attach_campaign`.
+    `attach_campaign` itself binds a campaign, and none exists before launch.
+
+  The pinned SDK sends no list-changed notification, so each result that adds
+  tools names them (`tools_added`).
+- **AGENTFIRST-D4, the miner's own steps.** Starting the signer and signing
+  the registration stay the miner's. A call that reaches one answers a closed
+  `human_action_required` result: the step, the action, the exact instruction
+  and command, and the call to make once it is done. Status shows when it is
+  done. The only hotkey value any tool takes is the public ss58 address. No
+  tool accepts, returns or logs a private key, seed phrase, mnemonic or
+  password.
+- **AGENTFIRST-D5, the model key is a file the miner made.** An agent passes
+  `model_key_file`, an absolute path to a regular file, not a link, owned by
+  the same user, with no group or other access. Carbon references it by path
+  and never copies it. A key passed as a value is refused on the MCP door
+  (`key_must_be_a_file_on_this_door`). The field is not named `key_file`:
+  the product's no-key invariant reserves that name for a hotkey file.
+- **AGENTFIRST-D6, Hermes keeps Inference.** Hermes' ready-made profile is
+  written with setup's model, so choosing Hermes keeps the Inference step.
+  Its files are written at Review once the model is checked, on the consent
+  to those exact files given when Hermes was chosen. Only an agent that brings
+  its own model (`own-agent`) skips Inference. Its runner profile names no
+  model, so Carbon's agent stays unavailable to it.
+- **AGENTFIRST-D7, the connect command and snippets.** The miner's own agent
+  starts `python -m carbon.miner_mcp.standard_cli` from the checkout, with no
+  runner profile. Setup shows that command for this machine, with snippets for
+  Claude Code, Codex and Hermes.
+  - Each snippet was read from that client's public documentation on
+    2026-10-02.
+  - Each is marked UNVERIFIED: Carbon has not run the client against the
+    server.
+  - No flag is invented. Where a client's documentation shows no way to set
+    the working directory, its snippet sets `PYTHONPATH` instead.
+
+**Unchanged.** Compute stays link-only (OWNER-MINER-COMPUTE-LINK-ONLY-01):
+Carbon rents, stops and bills nothing. DEVELOPMENT; testnet 567; nothing is
+qualified. Registration remains the only admission.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.

@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-remote-transport-library",
+  "recorded_at": "2026-10-02T21:50:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_remote_transport.py test_remote_route.py test_remote_runner.py test_remote_machine.py test_rented_job.py test_battery_gpu_practice.py test_rented_compute_retired.py test_control_center_challenge_neutral.py test_protected_material_isolation.py: 209 passed, 2 skipped",
+    "description": "First run of the remote-setup transport library: ssh-docker and ssh-container behind one interface and one record, the container's fixed scripts run in real bash starting the real job server as a process, and the Challenge-neutral remote_gpu route driven by a synthetic second Challenge."
+  },
+  "expected": "Every transport test passes on the first run, the container scripts start and stop a real job server process, and the route modules name no Challenge.",
+  "observed": "One failure on the first run: the Challenge-neutral grep test found the word battery in a remote_runner docstring example; rewording fixed it. Formatting through scripts/dev/canonical.sh did not persist, because its non-interactive mode runs on a copy of the checkout. ruff format and black disagreed on a parenthesized one-string tuple member; black is the gate check_quality enforces.",
+  "keep": [
+    "A grep test that the route modules name no Challenge catches a literal in prose as well as in code.",
+    "Container scripts are tested as real bash with only a container's tools on PATH, and the worker's Python is a wrapper over this interpreter, so the real job server runs as a real process with setsid and is found again by its environment marker.",
+    "A synthetic second Challenge (a ChallengeCampaign registered nowhere) is the proof that a route takes the Challenge as a parameter."
+  ],
+  "change": [
+    "Format in place with the native venv (.venv/bin/python -m black) and use canonical.sh only to verify: ruff check, black --check, check_quality --base origin/main and check_diff_hygiene.",
+    "Write a refusal's next step as one string that fits a line, so ruff format and black agree."
+  ],
+  "protocol_elements": [
+    "challenge-neutral route proven by a synthetic second Challenge",
+    "remote transports tested through fakes that run the real scripts",
+    "one result record per trial across transports",
+    "formatting gate is black via check_quality; canonical.sh validates a copy"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,20 +1,24 @@
-"""Carbon's fixed practice program on the miner's own remote GPU machine.
+"""Carbon's fixed practice program on the miner's own remote setup.
 
 `RemoteRunner` has the carrier's call signature (`research_carrier._run`), so
-practice runs on a GPU machine the miner runs exactly as it runs locally: the
-same staged files, the same program, the same output files, scored on the
-miner's own controller. What differs is where the program runs:
+practice runs on a machine or container the miner runs exactly as it runs
+locally: the same staged files, the same program, the same output files,
+scored on the miner's own controller. What differs is where the program runs:
 
 1. The ledger reserves the trial first, as the carrier does.
 2. A durable job record (`operation/remote-job.json`, owner-only) fixes the
    request, the job token and the deadline before anything is sent.
-3. Over SSH, one job container starts on the machine from the pinned worker,
-   by image ID, under a per-operation name, with the job port published on
-   the machine's loopback only (`remote_machine.start_script`).
+3. The transport the miner chose (`remote_transport`) checks the setup holds
+   the pinned worker and starts one job there: a container by image ID
+   (`ssh-docker`), or a process in the miner's container whose build identity
+   was checked (`ssh-container`). Its port is on the machine's loopback only.
 4. An SSH port forward reaches it; the controller stages the job's public
    inputs, runs it and fetches its output (`RemoteJob`).
-5. The tunnel is closed and the container removed, whether the job succeeded
-   or not, and the record says whether the removal was confirmed.
+5. The tunnel is closed and the job cleaned up, whether it succeeded or not,
+   and the record says whether the cleanup was confirmed.
+
+`RemoteWorker` is the Challenge's part: the pinned worker image and the
+environment its practice program needs. The runner names no Challenge.
 
 OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon never starts, stops or bills the
 machine; that is the miner's. **The trust boundary stays on the miner's
@@ -27,34 +31,29 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
 from .job_server import PROGRAM
 from .remote_job import RemoteJob, RemoteJobFailure, new_token
-from .remote_machine import (
-    JOB_PORT,
-    RemoteMachineError,
-    failure_for,
-    published_port,
-    remove_script,
-    start_script,
-)
+from .remote_machine import RemoteMachineError, checked_command, environment_lines
+from .remote_transport import RemoteTransport, outcome
 
 SCHEMA = "carbon.compute.remote-job-record.v1"
-#: How the controller reaches the job: an SSH local port forward.
-JOB_TRANSPORT = "ssh-tunnel"
-#: The container's start command: the job server from the pinned worker's
-#: own wheel.
+#: The job's start command: the job server from the pinned worker's own
+#: wheel.
 START_COMMAND = (
     "/opt/carbon-worker/bin/python",
     "-I",
     "-m",
     "carbon.compute.job_server",
 )
+_IMAGE_ID = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
 def _cancel_requested(ledger, owner, identity):
@@ -64,35 +63,64 @@ def _cancel_requested(ledger, owner, identity):
     return _cancel_path(ledger, owner, identity).exists()
 
 
-def container_name(launch: str) -> str:
-    """The job container's name: fixed by the operation, so a restart finds
-    the same container."""
+def job_name(launch: str) -> str:
+    """The job's name, as a container or a directory: fixed by the operation,
+    so a restart finds the same job."""
     return "carbon-job-" + launch[7:31]
 
 
-class RemoteRunner:
-    """A carrier-compatible practice runner on the miner's own GPU machine.
+@dataclass(frozen=True)
+class RemoteWorker:
+    """The Challenge's worker on a remote setup.
 
-    `machine` is an `SSHClient` (or a double with its `run` and `tunnel`), and
-    `image` the pinned GPU worker identity it holds by image ID.
+    `image` is the pinned GPU worker identity (`WorkerImageIdentity`);
+    `environment` is what the Challenge's practice program needs there (the
+    JAX platform its GPU program runs on, for example). The job's own
+    variables are the runner's and the transport's, never the Challenge's.
+    """
+
+    image: object
+    environment: tuple = ()
+    command: tuple = START_COMMAND
+
+    def __post_init__(self):
+        if not _IMAGE_ID.fullmatch(str(getattr(self.image, "image_id", ""))):
+            raise ValueError("the remote worker is the pinned image, by ID")
+        environment = tuple(tuple(pair) for pair in self.environment)
+        if any(key.startswith("CARBON_JOB_") for key, _ in environment):
+            raise ValueError("the job's own variables are not the Challenge's")
+        if environment:
+            environment_lines(environment)
+        object.__setattr__(self, "environment", environment)
+        object.__setattr__(self, "command", checked_command(self.command))
+
+
+class RemoteRunner:
+    """A carrier-compatible practice runner on the miner's own remote setup.
+
+    `transport` is a `RemoteTransport` over the miner's own SSH, and `worker`
+    the Challenge's `RemoteWorker`.
     """
 
     def __init__(
         self,
         *,
-        machine,
-        image,
+        transport: RemoteTransport,
+        worker: RemoteWorker,
         startup_seconds: int = 120,
         clock: Callable[[], float] = time.time,
         job: Callable = RemoteJob,
     ):
-        image_id = getattr(image, "image_id", None)
-        if not isinstance(image_id, str) or not image_id.startswith("sha256:"):
+        if type(worker) is not RemoteWorker:
             raise ValueError("the remote worker is the pinned image, by ID")
         if type(startup_seconds) is not int or not 10 <= startup_seconds <= 900:
             raise ValueError("bounded startup allowance required")
-        self.machine, self.image_id = machine, image_id
+        self.transport, self.worker = transport, worker
         self.startup_seconds, self.clock, self.job = startup_seconds, clock, job
+
+    @property
+    def image_id(self) -> str:
+        return self.worker.image.image_id
 
     def _record(self, operation, request, seconds):
         """The durable job record: written once, before anything is sent."""
@@ -119,36 +147,27 @@ class RemoteRunner:
         return record
 
     def _start(self, name, record, seconds):
-        """Start the job container; its host port on the machine's loopback."""
-        script = start_script(
-            image_id=self.image_id,
-            name=name,
-            env=(
+        """Check the setup holds the pinned worker, then start the job; its
+        port on the machine's loopback."""
+        self.transport.verify(self.worker.image)
+        return self.transport.start(
+            name,
+            self.worker.image,
+            (
                 ("CARBON_JOB_TOKEN", record["token"]),
-                ("CARBON_JOB_PORT", str(JOB_PORT)),
                 ("CARBON_JOB_SECONDS", str(seconds)),
-                # The server ends itself after this, and `--rm` removes the
-                # container, even if this controller never returns.
+                # The server ends itself after this, and the transport's own
+                # cleanup (`--rm`, or the job directory) follows, even if this
+                # controller never returns.
                 (
                     "CARBON_JOB_LIFETIME",
                     str(self.startup_seconds + seconds + 300),
                 ),
-                ("JAX_PLATFORMS", "cuda"),
+                *self.worker.environment,
             ),
-            command=START_COMMAND,
+            self.worker.command,
+            timeout=self.startup_seconds,
         )
-        code, stdout = self.machine.run(script, timeout=self.startup_seconds)
-        if code != 0:
-            raise failure_for(code)
-        return published_port(stdout)
-
-    def _remove(self, name) -> bool:
-        """Remove the job container; True only once the machine confirms it."""
-        try:
-            code, _ = self.machine.run(remove_script(name), timeout=120)
-        except OSError:
-            return False
-        return code == 0
 
     def __call__(
         self,
@@ -171,7 +190,7 @@ class RemoteRunner:
             raise ValueError("bounded worker wall allowance required")
         if type(files) is not dict or PROGRAM in files:
             raise ValueError("closed stage required")
-        remote = {"image": self.image_id, "job_transport": JOB_TRANSPORT}
+        remote = self.transport.describe(self.worker.image)
         request = {
             "source": digest(source.encode()),
             "files": {n: digest(b) for n, b in files.items()},
@@ -202,31 +221,31 @@ class RemoteRunner:
                 )
             return admission["result"]
         record = self._record(operation, request, seconds)
-        name = container_name(launch)
+        name = job_name(launch)
         started = time.monotonic()
-        removed = False
+        cleaned = False
         try:
             tunnel = None
             try:
                 port = self._start(name, record, seconds)
-                tunnel = self.machine.tunnel(port)
+                tunnel = self.transport.tunnel(port)
                 job = self.job(
                     tunnel.url,
                     record["token"],
                     cancelled=lambda: _cancel_requested(ledger, owner, identity),
                 )
                 now = job.clock()
-                outcome, output = job.run(
+                result, output = job.run(
                     {**files, PROGRAM: source.encode()},
                     ready_deadline=now + self.startup_seconds,
                     run_deadline=now + self.startup_seconds + seconds + 60,
                 )
             finally:
-                # Whatever happened: close the tunnel and remove the container.
+                # Whatever happened: close the tunnel and clean up the job.
                 # The machine itself is the miner's and is never touched.
                 if tunnel is not None:
                     tunnel.close()
-                removed = self._remove(name)
+                cleaned = self.transport.cleanup(name)
         except (RemoteMachineError, RemoteJobFailure, OSError, ValueError) as failure:
             ledger.finish(
                 identity,
@@ -237,7 +256,7 @@ class RemoteRunner:
                     "schema": "carbon.autoresearch.worker-reconciliation.v1",
                     "operation": operation.name,
                     "state": "FAILED_INFRA",
-                    "remote": {**remote, "container_removed": removed},
+                    "remote": outcome(remote, cleaned),
                     "failed": getattr(failure, "code", type(failure).__name__),
                     "accounting": "full original reservation retained",
                     "scientific_outcome": "UNRESOLVED",
@@ -249,7 +268,7 @@ class RemoteRunner:
         snapshot.mkdir(mode=0o700)
         for file_name, body in output.items():
             write_once(snapshot / file_name, body)
-        result = {
+        worker_result = {
             "schema": "carbon.autoresearch.worker-result.v1",
             "provenance": provenance,
             "output_digest": digest(
@@ -257,7 +276,7 @@ class RemoteRunner:
             ),
             "files": {n: digest(b) for n, b in sorted(output.items())},
             "operation": operation.name,
-            "remote": {**remote, "container_removed": removed, "job": outcome},
+            "remote": {**outcome(remote, cleaned), "job": result},
             "scientific_qualification": False,
             "official_eligible": False,
         }
@@ -274,6 +293,6 @@ class RemoteRunner:
                     p.stat().st_size for p in operation.rglob("*") if p.is_file()
                 ),
             },
-            result=result,
+            result=worker_result,
         )
-        return result
+        return worker_result

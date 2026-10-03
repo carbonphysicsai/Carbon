@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-nav-wrap",
+  "recorded_at": "2026-10-02T23:43:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "8b3cfd1c3 walked in a browser at 800 px by the coordinator; scripts/dev/miner_launchpad/style.css and browser_smoke.py fresh_miner at 1440, 800 and 390 px",
+    "description": "At narrow widths the navigation became one horizontal row with overflow-x: auto, so a scrollbar sat under the tabs and the last tab was cut off. It now wraps onto as many rows as it needs and is no longer sticky there."
+  },
+  "expected": "The page's own no-horizontal-scroll check at 1440 and 390 px covers the navigation.",
+  "observed": "It did not: the check compares the document's scroll width with the viewport, and a navigation that scrolls inside itself never widens the document. The smoke now also asserts, at 1440, 800 and 390 px, that the navigation's own scroll width fits and every link ends inside the viewport. The same run found a long unbroken hotkey address in a step's done line widening the page at 390 px; those lines now wrap anywhere.",
+  "keep": [
+    "Check each scrolling container's own scroll width, not only the document's.",
+    "Include a tablet width (800 px) in layout checks; the break between desktop and phone layouts is where a sticky one-row bar fails."
+  ],
+  "change": [
+    "Let navigation wrap at narrow widths rather than scroll sideways; a horizontal scroller hides views a miner needs."
+  ],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

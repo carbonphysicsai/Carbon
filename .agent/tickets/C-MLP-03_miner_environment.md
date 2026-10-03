@@ -22,15 +22,18 @@ rented with the miner's provider key on RunPod, Lium or Targon) were built and
 are **retired** by OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon rents
 no compute, and old profiles, setup requests and frozen campaigns are refused
 with `rented_gpu_retired_connect_your_machine`. Slice 4 is now the miner's own
-remote GPU machine, connected over SSH (LINKONLY-D4): its library is built
-and tested, and setup and launch do not offer it yet.
+remote setup, connected over SSH (LINKONLY-D4 to D9): a machine with Docker
+(`ssh-docker`) or a container started from the pinned worker (`ssh-container`).
+Its library, setup choice, profile scope, campaign doors and Control Center
+wiring are built and tested; the `endpoint` transport is designed and not
+built (LINKONLY-D7).
 Slice 6's run itself is a person's, on a clean machine
 (`docs/development/FRESH_MINER_JOURNEY.md`). Slice 2's live acceptance (completions with miner-held
 Chutes and Engy keys, and a battery autonomous launch with each) is pending
 the miner's keys. Slice 3's (a real battery practice on a local GPU, and the
 same recipe accepted by the validator) is pending a GPU host. Slice 4's (one
-real battery practice on a GPU machine the miner runs, with its job container
-removed) is pending its setup wiring and a miner's machine. Slice 5's
+real battery practice on a GPU machine or container the miner runs, with its
+job container or process cleaned up) is pending a miner's machine. Slice 5's
 (a Hermes-driven battery campaign that practices, freezes and submits) is
 pending Hermes and the miner's keys.
 - Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
@@ -245,7 +248,7 @@ pending Hermes and the miner's keys.
   `carbon/compute/remote_runner.py` (the carrier-compatible runner),
   `BatteryPractice(remote=...)` and the `REMOTE_GPU` backend record;
   `tests/cpu/test_remote_machine.py` and `test_remote_runner.py` cover it.
-  Setup and launch do not offer it yet; that wiring is next.
+  Setup and launch offer it since the remote-setup slice below.
 - **Recorded engineering decisions (slice 4, the remote machine, 2026-10-02):**
   - *The miner's own SSH decides how the machine is reached.* Carbon passes
     no `-i`, no `IdentitiesOnly`, no known-hosts file of its own and no
@@ -271,6 +274,100 @@ pending Hermes and the miner's keys.
     confirmed it.
   - *The worker is streamed, not pulled.* `docker save <image id> | ssh
     <destination> docker load`, then the image ID is checked on the machine.
+- **Slice 4, remote setup (any setup the miner runs, OWNER-MINER-COMPUTE-LINK-ONLY-01
+  amendment):**
+  - `carbon/compute/remote_transport.py`: the one interface and record, and
+    the `ssh-docker` and `ssh-container` transports.
+  - `carbon/compute/remote_container.py`: the container's fixed scripts.
+  - `carbon/compute/remote_route.py`: the Challenge-neutral `remote_gpu`
+    scope and runner.
+  - `ChallengeCampaign.remote_worker` and `remote_runner`.
+  - `scripts/dev/push_worker_image.sh`, and
+    `docs/development/MINER_REMOTE_SETUP.md` (the wiring guide).
+  - Setup's "Your own remote machine or container" choice, its live check
+    and "Send your worker" step; the profile's `remote_machine`; the
+    `remote_gpu` runtime scope at both campaign doors; and the Control
+    Center.
+
+  `tests/cpu/test_remote_transport.py`, `test_remote_route.py`,
+  `test_push_worker_image.py`, `test_miner_remote_setup.py`, the setup tests
+  and the setup browser smoke cover it.
+- **Recorded engineering decisions (slice 4, remote setup, 2026-10-02):**
+  - *Container-only rentals are supported (owner).* The miner chooses any
+    setup; Carbon wires it (LINKONLY-D5).
+  - *A container reports its build identity* (LINKONLY-D6). The pinned worker
+    image already carries `/opt/carbon/worker-image-build.json`, so the image
+    build is unchanged. What changed inside the image is only the job server
+    in its wheel:
+    - it can bind the container's loopback (`CARBON_JOB_BIND`);
+    - it can take a free port and write it to a file (`CARBON_JOB_PORT=0`,
+      `CARBON_JOB_PORT_FILE`);
+    - it keeps its scratch under a directory Carbon names (`CARBON_JOB_ROOT`).
+  - *A container job is a process Carbon can find again.* One trial runs as:
+    1. `mkdir -m 700 /tmp/carbon-job-<24 hex>`;
+    2. the environment through an owner-only file the starting shell deletes;
+    3. `setsid`, so the server outlives the SSH session;
+    4. its port read back from the file.
+
+    Cleanup stops only processes whose environment names that directory
+    (the server and the program it runs), killing any that ignore TERM, then
+    removes the directory. The record says whether the container confirmed
+    both.
+  - *The endpoint transport is not built* (LINKONLY-D7). It is refused by
+    name, and its design waits for the owner's security acceptance.
+  - *The address is the profile's, the transport is the campaign's*
+    (LINKONLY-D9). A pod's address may change when the miner restarts it, so
+    the destination stays in the profile. A frozen campaign declares
+    `remote_gpu` with the transport and the pinned GPU worker. A profile whose
+    transport differs from the campaign's is refused before anything is
+    reached.
+  - *The live check runs nothing billable.* It uses only the miner's own SSH:
+    - reach;
+    - for `ssh-docker`, Docker, the toolkit and Docker without sudo, then the
+      image by ID;
+    - for `ssh-container`, the worker runtime and its build identity.
+
+    It starts no job, opens no forward and installs nothing.
+  - *Sending the worker is its own step, with consent.* For `ssh-docker`
+    only, the miner agrees to send the pinned worker by image ID to the
+    destination they named. The request must name both, so a page that
+    changed either sends nothing. The transfer runs in the request and may
+    take minutes.
+  - *The image push is the miner's.* `push_worker_image.sh` uses the miner's
+    own `docker login`, pushes only the pinned worker it built (or a manifest
+    the miner names), and prints `repository@sha256` (LINKONLY-D8).
+- **Recorded engineering decisions (easy mode, 2026-10-02, LINKONLY-D10):**
+  - *One path, one step at a time.* Overview leads with a "Get started" list
+    of six steps: start your signer, register, who researches, inference,
+    compute, then review and launch (the order since
+    OWNER-MINER-SETUP-AGENT-FIRST-01; the agent step was fifth before it).
+    Setup is the same six steps as a wizard, with
+    progress, Back and Next. A step is done only when the controller has
+    confirmed it: registration by the chain read, each check by its live
+    check, the signer by its identity handshake (asked at step 1 for the
+    miner's public hotkey address, before or after registration, or by the
+    Agent step), the last step by a campaign on record. One step reads Next;
+    others a miner can take now, in any order, read Open.
+  - *Where's your GPU?* Setup's Compute step offers this machine (CPU or GPU)
+    and one card per setup the wiring guide covers: RunPod, Lium, Targon,
+    Vast.ai, Lambda and your own server. A card sets the remote choice and
+    its transport (a machine or VM with Docker is `ssh-docker`; a container
+    rental is `ssh-container`). It shows the guide's own section, with its
+    UNVERIFIED marks, and the commands the miner runs, with copy buttons.
+    `environment_setup.REMOTE_GUIDES` holds the map, and a test holds it to
+    the guide's "Transport" lines.
+  - *The guide is served locally.* `scripts/dev/miner_launchpad/guide.py`
+    parses `MINER_REMOTE_SETUP.md` into text data (no HTML); the controller
+    serves it behind the session token, and links never leave the machine.
+  - *No typed paths.* Setup fills in the images the installer recorded, and
+    the GPU worker where `accelerator_worker_image.sh` writes it; the paths
+    sit under Advanced. When none is found, setup names the one command.
+  - *Plain statuses.* Each blocking reason has one short sentence and one link
+    to the fix (`capabilities.PLAIN`); its code and full next action stay
+    behind Details.
+  - *Carbon's brand.* The page uses the public website's design system and
+    serves the Carbon wordmark and the Montreal font itself. It loads nothing
+    from the internet.
 - **Slice 5 (agents):** `scripts/dev/miner_launchpad/hermes_setup.py` and
   setup's Hermes choice; `tests/cpu/test_hermes_setup.py` and the setup
   browser smoke cover it.
@@ -458,10 +555,19 @@ provider, and Carbon only connects to it.
   - The controller, keys and signing stay on the miner's machine.
   - A remote machine receives the pinned worker and one job's public inputs
     only.
-- **Container-only rentals** (for example RunPod pods, with no Docker daemon)
-  are not supported; that is an owner question.
-- **Acceptance:** one real battery practice on a GPU machine the miner runs,
-  with its job container removed.
+- **Container-only rentals** (for example RunPod or Lium pods, with no Docker
+  daemon) are supported (owner, 2026-10-02: "miners should be able to use
+  whatever they want to run their setup"). The miner starts a container from
+  the pinned worker image. Carbon runs one job process per trial in it over
+  SSH, checks the worker's build identity, and stops and cleans that process;
+  it never touches the container's lifecycle.
+- **Remote setup.** The miner chooses a transport (`ssh-docker`,
+  `ssh-container`; `endpoint` is designed, not built). Setup checks it live
+  with the miner's own SSH and runs nothing billable. Tooling covers the
+  rest: a "send your worker" step, an image push to the miner's own registry,
+  and a provider-neutral wiring guide with per-provider notes.
+- **Acceptance:** one real battery practice on a GPU machine or container
+  the miner runs, with its job container or process cleaned up.
 
 ### 5. Agents: Hermes and Mira
 
@@ -505,9 +611,43 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
   the miner's own account, reached over SSH (slice 4b). Superseded the same
   day by OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute, and a
   Targon VM the miner runs is reached like any other machine of theirs.
-- **Container-only rentals (open):** whether Carbon should run practice on a
-  rental with no Docker daemon, such as a RunPod pod, that the miner starts
-  themselves. Not built until the owner decides (LINKONLY-D4).
+- **Container-only rentals:** answered 2026-10-02 (OWNER-MINER-COMPUTE-LINK-ONLY-01,
+  amendment): "miners should be able to use whatever they want to run their
+  setup. We are just facilitating and providing wiring and tooling." Built
+  as the `ssh-container` transport.
+- **A job endpoint reached through a provider's public proxy:** answered
+  2026-10-02 (OWNER-MINER-COMPUTE-LINK-ONLY-01, second amendment): not for
+  now. The owner approved the executor's recommendation not to build a
+  long-lived, internet-facing job server holding a standing secret: "I agree
+  and approve your decision, we just need to help miners figure out what to do
+  easily." `endpoint` stays designed, not built and refused by name;
+  `ssh-container` covers SSH-capable container rentals. The priority is an
+  easy miner path (LINKONLY-D10).
+- **The Control Center's ease and look:** answered 2026-10-02: "yeah we need
+  to make this way more intuitive and to match our brand. show me the new
+  control center when it's ready". Built as the easy mode below, in the public
+  website's design system.
+- **Setup, agent first:** answered 2026-10-02
+  (OWNER-MINER-SETUP-AGENT-FIRST-01): "yes make this more agent first and easy
+  for an agent to automate". Built as AGENTFIRST-D1 to D7:
+  - one setup table drives the browser routes and the MCP tools;
+  - `carbon_setup_status` and the `carbon_setup_workflow_v1` prompt drive an
+    agent from nothing to launch;
+  - the order puts who researches before Inference, which is skipped for the
+    miner's own agent;
+  - starting the signer and signing the registration answer
+    `human_action_required`;
+  - a model key reaches the MCP door only as an owner-only file.
+
+  Tests: `tests/cpu/test_miner_setup_agent_first.py` and the setup browser
+  smoke.
+- **The website font in Carbon's apps:** answered 2026-10-02: "Our license
+  covers it, bundle the font". The Montreal licence covers bundling the font
+  in Carbon's apps. The Control Center serves `neue-0.otf` (400) and
+  `neue-1.otf` (600) itself, copied from the website's asset set; their
+  SHA-256 digests equal the website baseline manifest's entries
+  (`website/ask-carbon/production-baseline.manifest.json`, `assets/neue-0.otf`
+  and `assets/neue-1.otf`), and a test holds that.
 
 - **Which Mira?** Answered 2026-10-01: autoscience.io/Mira, not Mira
   Network's Flows (OWNER-BATTERY-CARRYOVER-01).

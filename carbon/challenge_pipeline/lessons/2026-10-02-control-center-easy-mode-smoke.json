@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-easy-mode-smoke",
+  "recorded_at": "2026-10-02T23:21:36Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "scripts/dev/miner_launchpad/browser_smoke.py (run, journey, setup_journey, fresh_miner) with the private venv and the host's Playwright Chromium: all four passed",
+    "description": "The Launchpad browser smoke after the easy mode: the three existing journeys driven through the six-step wizard, and a new fresh-miner journey that holds the Get started list, the locked steps, the in-place registration refusal, the plain statuses with their codes, the compute routes, the locally served guide and font, and that no request leaves the controller's origin."
+  },
+  "expected": "The existing journeys keep passing once they navigate the wizard step by step; the fresh-miner journey shows nothing done for a miner with nothing confirmed.",
+  "observed": "All four journeys passed on their first full run after the selectors moved to ids. The setup journey now also holds that each provider card sets the transport its guide section names, that the cards carry copy buttons of type button (so they never submit the form) with the destination filled in as typed, that a checked machine still waiting for its worker keeps Next closed, and that the signer shows done only after the Agent step's handshake. The fresh-miner journey reads the font as loaded from the controller and finds every request on the controller's own origin.",
+  "keep": [
+    "A fresh-miner journey with real setup state (a state directory, an unregistered stub chain) beside the configured ones: it is the screen a new miner meets first.",
+    "Assert no external request from the browser's own Network events, not from the source text alone."
+  ],
+  "change": [
+    "Run the owner screenshots and the smoke from the same fixtures, so the pictures show a state the smoke holds."
+  ],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

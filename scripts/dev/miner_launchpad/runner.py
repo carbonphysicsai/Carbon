@@ -100,6 +100,11 @@ OPTIONAL_PROFILE_FIELDS = {
     # Legacy names from C-MLP-03, still read exactly as before: the intake and
     # the validator deployment of the one Challenge they were written for.
     "battery_intake",
+    # Where the miner's own remote machine or container is: the transport,
+    # the SSH destination and an optional port (OWNER-MINER-COMPUTE-LINK-ONLY-01,
+    # LINKONLY-D9). Required exactly when the runtime declares `remote_gpu`;
+    # never frozen into a campaign, because its address can change.
+    "remote_machine",
 }
 #: The Challenge each legacy per-Challenge field was written for.
 LEGACY_INTAKE, LEGACY_VALIDATOR = "battery_intake", "battery_validator"
@@ -134,12 +139,14 @@ def validators(cfg):
 
 
 def campaign_args(cfg, **fields):
-    """A campaign's arguments from a profile: its paths, and its per-Challenge
-    intakes and validators, from which each campaign reads its own."""
+    """A campaign's arguments from a profile: its paths, its per-Challenge
+    intakes and validators, from which each campaign reads its own, and where
+    the miner's remote setup is, when they practise on one."""
     return SimpleNamespace(
         **{k: Path(v) for k, v in cfg["paths"].items() if k != LEGACY_VALIDATOR},
         intakes=intakes(cfg),
         validators=validators(cfg),
+        remote_machine=cfg.get("remote_machine"),
         **fields,
     )
 
@@ -193,15 +200,18 @@ RESEARCH_IMAGE_RECORDS = {
 #
 # `implementation` and `images` are what every campaign runs on. The rest are
 # optional research compositions the campaign runner knows how to build: an
-# authored Julia analysis image, the scientific task selection, and GPU research
-# on the miner lane. A key outside this set means the profile describes
-# something this runner cannot assemble, which is refused before launch rather
-# than discovered after the miner has started spending.
+# authored Julia analysis image, the scientific task selection, GPU research
+# on the miner lane, and that GPU practice on the miner's own remote machine
+# or container (`remote_gpu`, beside `gpu_research`). A key outside this set
+# means the profile describes something this runner cannot assemble, which is
+# refused before launch rather than discovered after the miner has started
+# spending.
 REQUIRED_RUNTIME_KEYS = frozenset({"implementation", "images"})
 SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "authored_research",
     "scientific_tasks",
     "gpu_research",
+    "remote_gpu",
 }
 
 
@@ -351,6 +361,7 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
+    _remote_machine(cfg, runtime)
     if LEGACY_INTAKE in cfg and not _intake_url(cfg[LEGACY_INTAKE]):
         raise ValueError("battery_intake is an https URL or a loopback URL")
     if "intakes" in cfg:
@@ -407,6 +418,25 @@ def validated_profile(cfg):
         except ModelSelectionRefused:
             raise ValueError("model_selection does not validate") from None
     return cfg
+
+
+def _remote_machine(cfg, runtime):
+    """The profile's `remote_machine`: present exactly when the runtime
+    declares remote GPU practice, and closed. The `endpoint` transport is not
+    built and is refused by name (LINKONLY-D7)."""
+    if ("remote_gpu" in runtime) != ("remote_machine" in cfg):
+        raise ValueError(
+            "remote_machine is required exactly when the runtime declares remote_gpu"
+        )
+    if "remote_machine" not in cfg:
+        return
+    from carbon.compute.remote_machine import RemoteMachineError
+    from carbon.compute.remote_transport import RemoteMachine
+
+    try:
+        RemoteMachine.from_document(cfg["remote_machine"])
+    except RemoteMachineError as refused:
+        raise Rejected(refused.code, 409) from None
 
 
 #: What a profile's `model_selection` (written by setup) may carry.
@@ -720,6 +750,16 @@ class RunnerAdapter:
                 declared_gpu(runtime)
             except (ValueError, KeyError, TypeError, LookupError):
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
+        if "remote_gpu" in runtime:
+            from carbon.challenge_registry.campaigns import declared_remote
+
+            # Shape, here: remote practice beside the GPU scope, for a
+            # Challenge whose campaign offers it. The campaign recomputes the
+            # scope from its GPU worker and checks the profile's machine.
+            try:
+                declared_remote(runtime)
+            except (ValueError, KeyError, TypeError, LookupError):
+                raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
 
     def preflight(self):
@@ -743,9 +783,13 @@ class RunnerAdapter:
                     else DEFAULT_PROVIDER
                 ),
                 "compute": (
-                    "local-isolated-gpu"
-                    if "gpu_research" in cfg["runtime"]
-                    else "local-isolated-cpu"
+                    "remote-gpu:" + cfg["remote_machine"]["transport"]
+                    if "remote_gpu" in cfg["runtime"]
+                    else (
+                        "local-isolated-gpu"
+                        if "gpu_research" in cfg["runtime"]
+                        else "local-isolated-cpu"
+                    )
                 ),
                 # Registration is read at launch, before anything is recorded.
                 # A budget is the miner's to set at launch or not at all.
@@ -1220,6 +1264,8 @@ class RunnerAdapter:
                     "no_julia_image_installed_for_this_profile",
                 ),
                 "gpu": host("gpu_research" in runtime, "no_gpu_runtime_declared"),
+                # GPU practice on the miner's own remote machine or container.
+                "remote_gpu": host("remote_gpu" in runtime, "no_remote_machine_set_up"),
             },
             # The miner's own budget: every part optional, no bound to be
             # outside of. Read from the ledger's own vocabulary, so a launch
