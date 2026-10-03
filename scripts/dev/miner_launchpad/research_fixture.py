@@ -289,6 +289,7 @@ class FixtureRunner:
             carbon_agent={
                 "present": True,
                 "reads": True,
+                "carries": True,
                 "read": {30, 44},
             },
         )

@@ -400,6 +400,10 @@ def test_the_conversation_says_what_carbons_agent_does():
         "reads_messages": True,
         "basis": cv.CARBON_AGENT_READS,
     }
+    carries = cv.conversation(
+        notes, {"present": True, "reads": True, "carries": True, "read": set()}
+    )
+    assert carries["carbon_agent"]["basis"].endswith(cv.CARBON_AGENT_CARRIES)
     assert [m["read_by_carbon_agent"] for m in reads["thread"]] == [True, False]
     # Carbon's agent marks its replies; nothing else can claim them.
     notes[1]["body"]["author"] = "carbon_agent"
@@ -430,8 +434,11 @@ def test_the_view_reads_which_messages_carbons_agent_was_given(tmp_path):
     assert cv._carbon_agent(tmp_path, {"manifest": manifest}) == {
         "present": True,
         "reads": True,
+        "carries": True,
         "read": {2, 4},
     }
+    v1 = {**manifest, "provider": {"miner_guidance": miner_guidance.RULE_V1}}
+    assert cv._carbon_agent(tmp_path, {"manifest": v1})["carries"] is False
     # A campaign frozen before the amendment, and one with no Carbon agent.
     older = {"agent": "carbon-autoresearch", "provider": {"agent": "autonomous"}}
     assert cv._carbon_agent(tmp_path, {"manifest": older})["reads"] is False

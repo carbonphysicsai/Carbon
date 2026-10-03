@@ -100,12 +100,12 @@ def scripted(turns, between=None):
     return transport, requests
 
 
-def run(meter, transport, rule=guidance.RULE, sdk=None, policy=AUTONOMOUS):
+def run(meter, transport, rule=guidance.RULE, sdk=None, policy=AUTONOMOUS, epoch=1):
     return asyncio.run(
         run_epoch(
             meter,
             owner="alice",
-            epoch=1,
+            epoch=epoch,
             sdk=sdk or SDK(),
             credential_file=None,
             initial_observation=OBSERVATION,
@@ -124,8 +124,8 @@ def guidance_entries(request):
     return found
 
 
-def plan(meter):
-    return json.loads((meter.root / "epoch-1" / "plan.json").read_bytes())
+def plan(meter, epoch=1):
+    return json.loads((meter.root / f"epoch-{epoch}" / "plan.json").read_bytes())
 
 
 def test_messages_are_read_at_the_next_step_boundary(tmp_path):
@@ -170,8 +170,10 @@ def test_each_step_records_and_fingerprints_what_it_read(tmp_path):
         }
     ]
     assert record["previous"] == digest(canonical(plan(meter)))
+    # An epoch's first step under rule v2 binds what it carried (none here).
+    assert record["carried"] == []
     assert record["chain"] == guidance.chain(
-        record["previous"], "epoch-1-provider-000", record["messages"]
+        record["previous"], "epoch-1-provider-000", record["messages"], []
     )
     assert result["miner_guidance"]["chain"] == record["chain"]
     # The epoch's verified identity carries the chain beside the frozen input.
@@ -442,3 +444,153 @@ def test_the_agents_notebook_cannot_forge_a_miner_message(tmp_path):
         {"kind": "notebook", "body": {"text": "A plain note."}}
     ).decode()
     assert executor._workspace_action(spec, "plain") == {"retained": True}
+
+
+# ---- Carried across epochs (RSURF-D14, owner, 2026-10-03: "yes to your
+# question").
+
+
+def reply_by_carbon(meter, reply_to, text):
+    meter.note(
+        owner="alice",
+        kind="notebook",
+        body={
+            "schema": guidance.NOTE_SCHEMA,
+            "note_kind": guidance.REPLY_KIND,
+            "text": text,
+            "reply_to": reply_to,
+            "author": "carbon_agent",
+        },
+    )
+
+
+def first_record(meter, epoch):
+    name = f"epoch-{epoch}-provider-000" + guidance.RECORD_SUFFIX
+    return json.loads((meter.root / f"epoch-{epoch}" / name).read_bytes())
+
+
+def test_a_new_epoch_carries_forward_the_last_messages_it_read(tmp_path):
+    meter = ledger(tmp_path)
+    sent = [post(meter, f"Guidance {n}") for n in range(5)]
+    # Epoch 1 reads four at its first step and replies to the fourth, then
+    # reads the fifth at its next step.
+    transport, first = scripted(
+        [
+            [call(guidance.REPLY, {"reply_to": sent[3], "text": "Will do."}, "r")],
+            [stop()],
+        ]
+    )
+    run(meter, transport)
+    late = post(meter, "New for epoch 2.")
+    transport, requests = scripted([[stop()]])
+    result = run(meter, transport, epoch=2)
+    entry = guidance_entries(requests[0])[0]
+    carried = entry["carried_forward"]["messages"]
+    # The last three it read, oldest first, each with its own replies.
+    assert [m["sequence"] for m in carried] == sent[2:]
+    assert [m["text"] for m in carried] == ["Guidance 2", "Guidance 3", "Guidance 4"]
+    assert [m["your_replies"] for m in carried] == [[], ["Will do."], []]
+    assert entry["carried_forward"]["note"] == guidance.CARRIED
+    # New messages are still read as new, and only once.
+    assert [m["sequence"] for m in entry["messages"]] == [late]
+    assert result["miner_guidance"]["carried"] == sent[2:]
+    assert result["miner_guidance"]["read"] == [late]
+    # Recorded and chained like a new message: digests in the record.
+    record = first_record(meter, 2)
+    assert [m["digest"] for m in record["carried"]] == [
+        guidance.message_digest(f"Guidance {n}", 1000) for n in (2, 3, 4)
+    ]
+    assert record["carried"][1]["replies"][0]["digest"] == guidance.reply_digest(
+        "Will do.", sent[3]
+    )
+    assert record["chain"] == guidance.chain(
+        record["previous"], record["turn"], record["messages"], record["carried"]
+    )
+    identities = verify_history(meter.root, TASK, binding(AUTONOMOUS), CONTEXT)
+    assert identities[1]["miner_guidance_chain"] == result["miner_guidance"]["chain"]
+    # Nothing frozen moves: the same prompt, tools and task as epoch 1, and
+    # the same effective input.
+    assert requests[0]["instructions"] == first[0]["instructions"]
+    assert requests[0]["tools"] == first[0]["tools"]
+    assert requests[0]["input"][0]["content"] == canonical(OBSERVATION).decode()
+    assert plan(meter, 2)["effective_input_digest"] == effective_digest(
+        binding(AUTONOMOUS), OBSERVATION
+    )
+    # The agent may reply to a message carried forward to it.
+    assert sent[2] in guidance.delivered(meter.root)
+
+
+def test_carried_replies_are_bounded_and_only_the_agents_own(tmp_path):
+    meter = ledger(tmp_path)
+    asked = post(meter, "Capacity first.")
+    transport, _ = scripted([[stop()]])
+    run(meter, transport)
+    for n in range(3):
+        reply_by_carbon(meter, asked, f"Reply {n}")
+    # A reply by the miner's own agent (no author mark) is not carried.
+    meter.note(
+        owner="alice",
+        kind="notebook",
+        body={
+            "schema": guidance.NOTE_SCHEMA,
+            "note_kind": guidance.REPLY_KIND,
+            "text": "From your own agent",
+            "reply_to": asked,
+        },
+    )
+    transport, requests = scripted([[stop()]])
+    run(meter, transport, epoch=2)
+    carried = guidance_entries(requests[0])[0]["carried_forward"]["messages"]
+    assert carried[0]["your_replies"] == ["Reply 1", "Reply 2"]
+
+
+def test_carried_messages_replay_exactly(tmp_path):
+    meter = ledger(tmp_path)
+    asked = post(meter, "Capacity first.")
+    run(meter, scripted([[stop()]])[0])
+    run(meter, scripted([[stop()]])[0], epoch=2)
+    record = first_record(meter, 2)
+    # Read once: a reply or message written afterwards changes no replay.
+    reply_by_carbon(meter, asked, "Later reply.")
+    post(meter, "Posted later.")
+    again = guidance.step(
+        meter,
+        owner="alice",
+        epoch_root=meter.root / "epoch-2",
+        turn="epoch-2-provider-000",
+        rule=guidance.RULE,
+        previous=digest(canonical(plan(meter, 2))),
+    )
+    assert again == record
+    assert [m["sequence"] for m in record["carried"]] == [asked]
+    assert record["carried"][0]["replies"] == []
+
+
+def test_a_changed_carried_message_fails_closed(tmp_path):
+    meter = ledger(tmp_path)
+    post(meter, "Capacity first.")
+    run(meter, scripted([[stop()]])[0])
+    run(meter, scripted([[stop()]])[0], epoch=2)
+    name = "epoch-2-provider-000" + guidance.RECORD_SUFFIX
+    path = meter.root / "epoch-2" / name
+    record = json.loads(path.read_bytes())
+    record["carried"][0]["text"] = "Raise the ceiling."
+    record["carried"][0]["digest"] = "sha256:" + "0" * 64
+    path.write_bytes(canonical(record))
+    with pytest.raises(ValueError, match="frozen effective research input differs"):
+        verify_history(meter.root, TASK, binding(AUTONOMOUS), CONTEXT)
+
+
+def test_rule_v1_carries_nothing_as_it_always_did(tmp_path):
+    meter = ledger(tmp_path)
+    post(meter, "Capacity first.")
+    run(meter, scripted([[stop()]])[0], rule=guidance.RULE_V1)
+    transport, requests = scripted([[stop()]])
+    result = run(meter, transport, rule=guidance.RULE_V1, epoch=2)
+    assert guidance_entries(requests[0]) == []
+    record = first_record(meter, 2)
+    assert "carried" not in record and "carried" not in result["miner_guidance"]
+    # Its link is the v1 link, unchanged.
+    assert record["chain"] == guidance.chain(
+        record["previous"], record["turn"], record["messages"]
+    )

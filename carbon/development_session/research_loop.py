@@ -182,7 +182,7 @@ async def run_epoch(
     """
     if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
         raise ValueError("unknown parallel tool call rule")
-    if miner_guidance is not None and miner_guidance != guidance.RULE:
+    if miner_guidance is not None and miner_guidance not in guidance.RULES:
         raise ValueError("unknown miner guidance rule")
     if miner_guidance is not None and (
         agent_policy != AUTONOMOUS or instructions is not None
@@ -547,5 +547,12 @@ async def run_epoch(
                 for m in json.loads(path.read_bytes())["messages"]
             ],
         }
+        carried = [
+            m["sequence"]
+            for path in sorted(root.glob("*" + guidance.RECORD_SUFFIX))
+            for m in json.loads(path.read_bytes()).get("carried") or []
+        ]
+        if "carry_forward_messages" in miner_guidance:
+            report["miner_guidance"]["carried"] = carried
     write_once(root / "outcome.json", canonical(report))
     return report

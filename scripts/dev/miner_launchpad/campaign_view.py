@@ -973,6 +973,10 @@ CARBON_AGENT_READS = (
     "guidance, and can reply. Each message it reads is saved with its digest "
     "as part of that step's recorded input, so the campaign replays exactly."
 )
+#: Added under the v2 rule (RSURF-D14).
+CARBON_AGENT_CARRIES = (
+    " A new epoch starts with the last 3 it already read, and its replies."
+)
 CARBON_AGENT_FROZEN = (
     "This campaign was launched before Carbon's agent could read messages "
     "(RSURF-D13 is prospective), so its agent does not; nothing about it is "
@@ -1011,7 +1015,11 @@ def conversation(notes, carbon_agent=None):
     elif not carbon_agent.get("present"):
         agent = {"reads_messages": False, "basis": NO_CARBON_AGENT}
     elif carbon_agent.get("reads"):
-        agent = {"reads_messages": True, "basis": CARBON_AGENT_READS}
+        agent = {
+            "reads_messages": True,
+            "basis": CARBON_AGENT_READS
+            + (CARBON_AGENT_CARRIES if carbon_agent.get("carries") else ""),
+        }
     else:
         agent = {"reads_messages": False, "basis": CARBON_AGENT_FROZEN}
     return {
@@ -1308,9 +1316,11 @@ def _carbon_agent(root, facts):
         read = delivered(root)
     except (OSError, ValueError):
         read = set()
+    rule = provider.get("miner_guidance")
     return {
         "present": manifest.get("agent") not in (None, "none"),
-        "reads": provider.get("miner_guidance") is not None,
+        "reads": rule is not None,
+        "carries": type(rule) is dict and "carry_forward_messages" in rule,
         "read": read,
     }
 
