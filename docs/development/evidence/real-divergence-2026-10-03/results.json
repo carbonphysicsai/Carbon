@@ -1,0 +1,4327 @@
+{
+ "candidates": {
+  "sr1": {
+   "rule": "sr-a0.5-r0.1-g0.4",
+   "weights": [
+    0.5,
+    0.1,
+    0.4
+   ]
+  },
+  "sr2": {
+   "rule": "sr2-a0-r0.3-g0.6-m0.1",
+   "weights": [
+    0.0,
+    0.3,
+    0.6,
+    0.1
+   ]
+  },
+  "sr3": {
+   "rule": "sr3-a0-r0-g0.8-n0.2",
+   "weights": [
+    0.0,
+    0.0,
+    0.8,
+    0.2
+   ]
+  }
+ },
+ "claims": {
+  "frozen_outcomes_changed": false,
+  "prospective_only": true,
+  "testnet_rule_changed": false
+ },
+ "datasets": {
+  "ev2-2026-10-01": {
+   "results_sha256": "62e6c8bb271f3525af3f30446991c658891a0ab44a039bfdc853fbf6b24994d0",
+   "rules": {
+    "control-exam-v1": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-boundary_optimist",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "knn-s0",
+         "knn15-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "control-rank_preserving_delay",
+         "deeponet-s0",
+         "deeponet-s1",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "knn-s0",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s2",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0",
+         "deeponet-s1"
+        ],
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_half-s0",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-boundary_optimist",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "knn-s0",
+         "knn15-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-rank_preserving_delay",
+         "deeponet-s1",
+         "knn-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s1"
+        ],
+        "within_family": [
+         "mlp_half-s1"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 4,
+       "control": 3,
+       "within_family": 1
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 0
+      }
+     }
+    },
+    "sr-a0.5-r0.1-g0.4": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s2",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_half-s0",
+         "mlp_localized-s0",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "knn-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet-s1",
+         "knn-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s1"
+        ],
+        "within_family": [
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s1"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 3,
+       "control": 1,
+       "within_family": 2
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 0
+      }
+     }
+    },
+    "sr2-a0-r0.3-g0.6-m0.1": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s2",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_half-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ],
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0",
+         "deeponet-s1"
+        ],
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet-s1",
+         "knn-s0",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet-s1",
+         "knn-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s1"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s1"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 6,
+       "control": 1,
+       "within_family": 0
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 0
+      }
+     }
+    },
+    "sr3-a0-r0-g0.8-n0.2": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp-s2",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_half-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0"
+        ],
+        "within_family": [
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0",
+         "deeponet-s1"
+        ],
+        "within_family": [
+         "mlp_ens3-s0",
+         "mlp_plus-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet-s1",
+         "knn-s0",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet-s1",
+         "knn-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet-s1"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s1"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 6,
+       "control": 1,
+       "within_family": 0
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 0
+      }
+     }
+    }
+   }
+  },
+  "ev4-2026-10-01": {
+   "results_sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371",
+   "rules": {
+    "control-exam-v1": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-boundary_optimist",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn1-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d2-s0",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-rank_preserving_delay",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s2",
+         "mlp_half-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s1",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t1500_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w128_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_plus-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3_wd1em4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t3000_w128_d2_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d2-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w64_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d3_f50-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w512_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d2-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_ens4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_irw3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_pca8-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_wd1em3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-boundary_optimist",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn1-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d2-s0",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "control-rank_preserving_delay",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d2-s0",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t1500_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn-s0",
+       "pairs": {
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn3-s0",
+       "pairs": {
+        "control": [
+         "control-conservative"
+        ],
+        "within_family": [
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t3000_w256_d3_arr_pca16-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 20,
+       "control": 2,
+       "within_family": 12
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 4
+      }
+     }
+    },
+    "sr-a0.5-r0.1-g0.4": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "knn15-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s2",
+         "mlp_half-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s1",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t1500_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w128_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_plus-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w256_d3_irw003-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3_wd1em4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t3000_w128_d2_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d2-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d3_f50-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w512_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d2-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_ens4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_irw3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_pca8-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_wd1em3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t1500_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn-s0",
+       "pairs": {
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn3-s0",
+       "pairs": {
+        "within_family": [
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t3000_w256_d3_arr_pca16-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t500_w64_d2-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w256_d3_f25-s1"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 20,
+       "control": 2,
+       "within_family": 11
+      },
+      "verification": {
+       "across_families": 1,
+       "control": 2,
+       "within_family": 4
+      }
+     }
+    },
+    "sr2-a0-r0.3-g0.6-m0.1": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s2",
+         "mlp_half-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s1",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w128_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "within_family": [
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_plus-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3_wd1em4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d2-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d3_f50-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w512_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d2-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_ens4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_irw3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_pca8-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_wd1em3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn40-s0",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d2-s0",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw03-s1",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w512_d3-s0",
+         "mlp_t6000_w512_d3-s1",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn-s0",
+       "pairs": {
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "within_family": [
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn3-s0",
+       "pairs": {
+        "within_family": [
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t1500_w64_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_arr_pca16-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d3-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w256_d3-s1"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w512_d2_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 17,
+       "control": 2,
+       "within_family": 11
+      },
+      "verification": {
+       "across_families": 5,
+       "control": 2,
+       "within_family": 3
+      }
+     }
+    },
+    "sr3-a0-r0-g0.8-n0.2": {
+     "conditions": [
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp-s2",
+         "mlp_half-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn15-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s2",
+         "mlp_half-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet-s1",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w128_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "deeponet_t6000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "knn15-s0",
+         "knn40-s0",
+         "mlp_t6000_w512_d2_f25-s0"
+        ],
+        "within_family": [
+         "deeponet_t500_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "within_family": [
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_ens3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_half-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_localized-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_plus-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn3-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s1"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t1500_w128_d3_wd1em4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t500_w512_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d2-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s1",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w512_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w128_d3_f50-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w256_d3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t6000_w512_d2_f25-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t500_w512_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d2-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_ens4-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_irw3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_pca8-s0",
+       "pairs": {
+        "within_family": [
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w64_d2-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "within_family",
+       "member": "mlp_t6000_w256_d3_wd1em3-s1",
+       "pairs": {
+        "within_family": [
+         "mlp-s2",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_wide-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "knn15-s0",
+         "knn40-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d3-s0"
+        ]
+       },
+       "split": "development"
+      },
+      {
+       "class": "control",
+       "member": "control-conservative",
+       "pairs": {
+        "control": [
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn40-s0",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "control",
+       "member": "control-localized_sign_error",
+       "pairs": {
+        "control": [
+         "control-conservative",
+         "deeponet-s0",
+         "deeponet-s1",
+         "deeponet_t1500_w128_d2-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t1500_w256_d3-s1",
+         "deeponet_t1500_w512_d3-s0",
+         "deeponet_t3000_w128_d3-s0",
+         "deeponet_t3000_w256_d2-s0",
+         "deeponet_t3000_w256_d2-s1",
+         "deeponet_t3000_w512_d3-s0",
+         "deeponet_t500_w128_d2-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d2-s0",
+         "deeponet_t6000_w512_d3-s0",
+         "deeponet_t6000_w512_d3-s1",
+         "knn-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0",
+         "mlp-s0",
+         "mlp-s1",
+         "mlp-s2",
+         "mlp_ens3-s0",
+         "mlp_half-s0",
+         "mlp_half-s1",
+         "mlp_localized-s0",
+         "mlp_localized-s1",
+         "mlp_plus-s0",
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w128_d3-s0",
+         "mlp_t1500_w128_d3-s1",
+         "mlp_t1500_w128_d3_wd1em4-s0",
+         "mlp_t1500_w256_d2-s0",
+         "mlp_t1500_w256_d2_arr-s0",
+         "mlp_t1500_w256_d3-s0",
+         "mlp_t1500_w512_d2-s0",
+         "mlp_t1500_w512_d2-s1",
+         "mlp_t1500_w512_d3-s0",
+         "mlp_t1500_w64_d2-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2-s0",
+         "mlp_t3000_w128_d2_ens3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w128_d3-s0",
+         "mlp_t3000_w256_d2-s0",
+         "mlp_t3000_w256_d2-s1",
+         "mlp_t3000_w256_d3-s0",
+         "mlp_t3000_w256_d3_arr_pca16-s0",
+         "mlp_t3000_w256_d3_f25-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w256_d3_f50-s0",
+         "mlp_t3000_w512_d2-s0",
+         "mlp_t3000_w512_d2_wd1em4-s0",
+         "mlp_t3000_w512_d3-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d2-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t3000_w64_d3-s1",
+         "mlp_t500_w128_d2-s0",
+         "mlp_t500_w128_d3-s0",
+         "mlp_t500_w128_d3_f50-s0",
+         "mlp_t500_w256_d2-s0",
+         "mlp_t500_w256_d3-s0",
+         "mlp_t500_w256_d3-s1",
+         "mlp_t500_w512_d2-s0",
+         "mlp_t500_w512_d3-s0",
+         "mlp_t500_w64_d2-s0",
+         "mlp_t500_w64_d2-s1",
+         "mlp_t500_w64_d3-s0",
+         "mlp_t6000_w128_d2-s0",
+         "mlp_t6000_w128_d3-s0",
+         "mlp_t6000_w128_d3-s1",
+         "mlp_t6000_w256_d2-s0",
+         "mlp_t6000_w256_d3_arr-s0",
+         "mlp_t6000_w256_d3_ens2-s0",
+         "mlp_t6000_w256_d3_ens4-s0",
+         "mlp_t6000_w256_d3_f25-s0",
+         "mlp_t6000_w256_d3_irw003-s0",
+         "mlp_t6000_w256_d3_irw03-s0",
+         "mlp_t6000_w256_d3_irw3-s0",
+         "mlp_t6000_w256_d3_pca8-s0",
+         "mlp_t6000_w256_d3_wd1em3-s0",
+         "mlp_t6000_w256_d3_wd1em3-s1",
+         "mlp_t6000_w256_d3_wd1em5-s0",
+         "mlp_t6000_w512_d2_f25-s0",
+         "mlp_t6000_w512_d2_f50-s0",
+         "mlp_t6000_w64_d2-s0",
+         "mlp_t6000_w64_d2-s1",
+         "mlp_t6000_w64_d3-s0",
+         "mlp_wide-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn-s0",
+       "pairs": {
+        "within_family": [
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "within_family",
+       "member": "knn1-s0",
+       "pairs": {
+        "within_family": [
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "knn3-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t500_w128_d2-s0"
+        ],
+        "within_family": [
+         "knn-s0",
+         "knn10-s0",
+         "knn15-s0",
+         "knn25-s0",
+         "knn40-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t1500_w64_d2-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_arr_pca16-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet-s0",
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d3-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2-s0",
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t1500_w64_d3-s0",
+         "mlp_t3000_w128_d2_irw01-s0",
+         "mlp_t3000_w256_d3_f25-s1",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t3000_w64_d3-s0",
+         "mlp_t500_w256_d3-s1"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t3000_w256_d3_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t6000_w128_d2-s0",
+         "deeponet_t6000_w256_d2-s0",
+         "deeponet_t6000_w512_d3-s0"
+        ],
+        "within_family": [
+         "mlp_t1500_w128_d2_f25-s0",
+         "mlp_t1500_w128_d2_f50-s0",
+         "mlp_t3000_w512_d3_f25-s0",
+         "mlp_t500_w256_d3-s1"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w256_d3_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0",
+         "deeponet_t6000_w512_d3-s0"
+        ]
+       },
+       "split": "verification"
+      },
+      {
+       "class": "across_families",
+       "member": "mlp_t6000_w512_d2_f25-s0",
+       "pairs": {
+        "across_families": [
+         "deeponet_t1500_w256_d3-s0"
+        ]
+       },
+       "split": "verification"
+      }
+     ],
+     "counts": {
+      "development": {
+       "across_families": 17,
+       "control": 2,
+       "within_family": 11
+      },
+      "verification": {
+       "across_families": 6,
+       "control": 2,
+       "within_family": 2
+      }
+     }
+    }
+   }
+  }
+ },
+ "schema": "carbon.battery.real-divergence.v1"
+}
