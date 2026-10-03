@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-easy-mode-regression",
+  "recorded_at": "2026-10-02T23:43:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CARBON_UV_GROUPS='chain archive science-jax science-torch mcp' ./scripts/dev/canonical.sh python -m pytest: the 28 Launchpad, Control Center, setup and remote files (496 passed, 2 skipped), then the previous slice's broad set of 118 files with the easy-mode tests (1371 passed, 8 skipped, 15 min 42 s), then the setup files after the signer change (193 passed)",
+    "description": "The canonical regression runs for the Control Center easy mode, on 8b3cfd1c3 and then on the follow-up for the browser-walk findings."
+  },
+  "expected": "Server changes that only add fields (plain, routes, guides, images, the signer step) leave every existing test green.",
+  "observed": "All green on the first run of each. Adding a key to a capability or setup document was safe because no test pins those documents' key sets except the capability document's top level, which was left unchanged (routes went inside compute). The one existing test that asserts an absence, that no compute choice carries a 'providers' key, constrained the card field's name: the cards are 'guides', notes for the miner's own accounts, not a provider list Carbon drives.",
+  "keep": [
+    "Add new data inside existing sections rather than at a pinned top level.",
+    "Read absence assertions before naming a field: they encode a decision (here, Carbon drives no provider)."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

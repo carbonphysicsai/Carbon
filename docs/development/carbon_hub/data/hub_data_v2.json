@@ -2458,13 +2458,6 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
-        "id": "julia-gpu-depot",
-        "match_type": "exact",
-        "path": ".agent/tickets/JULIA-GPU-01_cuda_julia_depot.md",
-        "impact_class": "mapped_detail",
-        "map_ref": "SYSTEM/AGENT-EXECUTION"
-      },
-      {
         "id": "core-platform-public-gpu-diagnostic",
         "match_type": "exact",
         "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",

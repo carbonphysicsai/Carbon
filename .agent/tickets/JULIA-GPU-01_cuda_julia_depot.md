@@ -103,7 +103,7 @@ minimum and the cost of the first GPU run.
 - **Size, estimated not measured.** The miner image grows by an estimated
   3–5 GB uncompressed. The cold CI build, already 55–85 minutes, gets longer.
 - **The CUDA runtime version.** Choosing it is an engineering decision,
-  recorded in `.agent/DECISIONS.md` when slice 1 lands.
+  recorded in its own file under `.agent/decisions/` when slice 1 lands.
 
 ## Definition of done
 

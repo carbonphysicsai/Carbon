@@ -1,0 +1,10 @@
+-o
+BatchMode=yes
+-o
+ConnectTimeout=15
+-o
+ServerAliveInterval=15
+--
+gpu-box
+bash
+-s

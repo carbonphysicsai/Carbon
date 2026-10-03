@@ -17206,6 +17206,41 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 - Scientific, security and launch qualification stay human-reserved. A
   method card is the paper's claim as extracted, never Carbon's.
 
+**Amendment (2026-10-02): 40 runs, and resume after a lost call.**
+- **Why.** The live triage kept being cut off: the cloud container restarted
+  and killed the process mid-call. Each time one call was left with an
+  unknown outcome (ledger state `RESERVED`), and the run stopped
+  `RECONCILIATION_REQUIRED`. All three permitted runs were used:
+  - `smoke-1`: 5 calls;
+  - `full-1`: 59 calls, 1 unresolved;
+  - `full-2`: 41 calls, 1 unresolved.
+
+  Together they made 101 cards and 1 rejection. Booked spend is USD 0.086.
+  Estimated actual spend is about USD 0.007: Engy does not report
+  `x_engy.charged_micro`, so each call keeps its full reservation.
+- **Owner, verbatim, choosing among four options:** "Raise runs, add resume
+  fix (Recommended)". The option read: raise the phase-2 grant to 40 runs,
+  keeping the USD 9 ceiling; run in chunks of about 300 calls, so each
+  restart costs at most one call; and fix the code so that a crashed run
+  writes off its one unresolved call and continues instead of needing a new
+  run.
+- **Decision.**
+  - `GRAPHITE-GRANT-PHASE2.json`: `permitted_runs` is 40. Nothing else in
+    the grant changes. The ceiling stays USD 9.00 and the worst case per run
+    stays USD 2.49.
+  - The ceiling, not the run count, still bounds money: a run opens only
+    while settled and reserved spend, plus the next run's worst case, plus
+    cleanup, stays within USD 9.00. Each run's ledger is still capped at
+    USD 2.49.
+  - The resume fix is GRAPHITE-D17 in the ticket. At every start, a call
+    whose outcome is unknown is written off with a typed
+    `provider_outcome_unknown` rejection, and the run continues. The call is
+    never resent, and its full reservation stays booked and counted.
+- **Unchanged.** A call that ends with an unknown outcome still stops its
+  run `RECONCILIATION_REQUIRED`; the write-off happens only on the next
+  start, so the operator always sees the stop. No reservation is settled,
+  refunded or deleted.
+
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
@@ -18128,75 +18163,309 @@ forbid auto-merge.
 *Unchanged.* Every scientific, security and delivery rule. These rules change
 how PRs are assembled and merged, not what any PR may decide.
 
-## 2026-10-03 — OWNER-EXEC-APPROVALS-01: the four open decisions from the executive update
+## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
 
-**Authority.** The owner, in chat on 2026-10-03, answering the four decisions
-listed in the session's executive update: "I approve all. Including security
-review and GPu Julia".
+**Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
+amount (USD 15 suggested) and whether RunPod pod time is inside it or
+separate, the owner answered: "$15 runpod included". The owner then said:
+"Start phase 3 build in parallel".
 
-1. **The near-limit optimism gate's cutoff.** The owner approved the lead
-   session's recommended cutoff (OWNER-EV5-CAP-01 item 3).
-   - **Not applied.** This session's automated permission check refused the
-     change to `admissibility.THRESHOLD_BANDS` again.
-   - **Effect.** The value stays None and the gate stays INACTIVE. EV5's
-     freeze still waits on it (EV5 §8 item 1) until the owner applies the
-     change.
-2. **A measurement for the localized sign-error failure: commissioned.**
-   - **What is built.** Near-limit false acceptance
-     (`carbon/battery/value/false_acceptance.py`): the worst constraint's
-     share of the reference-resolved FAILs in the important region that a
-     model calls PASS. The contract's verdicts and bands are used, and
-     nothing new is chosen.
-   - **Controls.** The sign-error control scores 0.95 and the boundary
-     optimist 1.00; oracle, conservative and rank-preserving delay score 0
-     (`docs/development/evidence/near-false-acceptance-2026-10-03/`).
-   - **Real members are not measured.** Their predictions are not retained.
-     The measurement is proposed as EV5's H3 quantity, reported for every
-     member, and the SciML lead may amend it before the freeze.
-   - **Not a gate.** No cutoff exists (HUMAN_INPUT), and no score changes.
-3. **Security review of the C-MLP-05 GPU code cell
-   (https://github.com/carbonphysicsai/Carbon/pull/523): approved and run.**
-   An agent review of the PR head `9efe083d`, read-only. It is not
-   SECURITY_QUALIFIED; human security acceptance stays reserved (AGENTS.md
-   §13).
-   - **Sound.**
-     - No path sends validator-private roots, seeds, hidden batches or
-       reference labels to either GPU lane.
-     - The local GPU lane keeps the CPU lane's isolation and adds exactly one
-       GPU, by UUID from the host record, checked after create.
-   - **Medium, to fix before C-MLP-05 merges.**
-     - The remote lane does not give agent-written code the isolation its
-       tool text promises. The ssh-docker container has network access and
-       every GPU; the ssh-container route has no sandbox. The miner's own
-       credentials and machine are what is at risk.
-     - Remote output is decompressed in full before its size is checked. The
-       same library code is on `main` from
-       https://github.com/carbonphysicsai/Carbon/pull/511, but no setup path
-       reaches it there yet.
-     - A correctness bug: a successful remote run is reported as failed.
-   - **Low.**
-     - Malformed remote output leaves the ledger RESERVED.
-     - The miner and validator GPU locks are separate.
-     - The local tunnel port can be claimed by another local user.
-     - ssh-container cleanup can report confirmed while a child survives.
-     - MIG UUIDs are refused on the local lane.
-   - **Needs a GPU host:**
-     - whether the toolkit exposes only the selected UUID;
-     - the shared driver device surface;
-     - GPU memory scrubbing between runs.
-   - **Next.** The findings went to the owner with file and line detail, for
-     the C-MLP-05 lane to fix.
-4. **CUDA in the pinned Julia depot, so `run_julia` can use the GPU:
-   approved.**
-   - **Scope.** `.agent/tickets/JULIA-GPU-01_cuda_julia_depot.md`.
-   - **Slice 1, the depot.** It can land on `main` first. It needs a Docker
-     host and GHCR write access to publish the depot, which a cloud session
-     does not have.
-   - **Slice 2, the code cell.** It follows C-MLP-05.
-   - **Unchanged.** The validator stays on jax-cpu, and Julia analysis stays
-     non-evaluator (`official_eligible: False`).
+**Decision.**
+1. **Phase 3 grant.** The ceiling is **USD 15.00**, and it covers both Engy
+   tokens and RunPod pod time under one grant. It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json` in the
+   existing `SpendingGrant` format: provider `graphite`, currency USD.
+   - `account` (`Carbon-Account`) and `expires_at` (`2026-12-31T23:59:59Z`)
+     are the phase-2 grant's. The owner set both for phase 2
+     (OWNER-GRAPHITE-02), and phase 3 reuses them.
+   - `permitted_runs` is 3, the plan's first block of 3 sessions (plan §7).
+   - The other limits are derived, not chosen. The arithmetic is in
+     `docs/development/graphite/grants/README.md`:
+     - the pod price is the EV4 tooling's (`pod_control.MAX_RATE` USD 0.49 an
+       hour, which the EV4 ledger records as RunPod's `costPerHr`, plus 20 GB
+       of disk);
+     - `cleanup_allowance` is pod_control's `CLEANUP_RESERVE_USD`, USD 0.25,
+       and covers pod termination;
+     - `worst_case_run_cost` is USD 4.91 a run: 2.96 for 12 thirty-minute
+       pods and 1.95 for tokens;
+     - `max_runtime_s` is 27,360, `max_concurrency` is 1 and
+       `max_submissions` is 3.
+   - One ceiling covers both kinds of spend:
+     - the controller reserves each run's worst case;
+     - inside a run, every model call is reserved before dispatch and every
+       pod before launch, against the same run cap;
+     - each settles from the provider's reported charge;
+     - an unknown outcome keeps its full reservation.
+2. **Build in parallel.** Phase 3 is built now, without spend. The live
+   sessions run later, in a session that has `ENGY_API_KEY` and
+   `RUNPOD_API_KEY`.
 
-**Unchanged.** DEVELOPMENT only:
-- the testnet rule stays deciding;
-- no chain action, reward or weight change;
-- nothing is qualified.
+**Unchanged.**
+- Phase 3 constructs only inside the recorded battery construction contract
+  (the reconstruction rule, OWNER-GRAPHITE-02). Level 0 widens nothing.
+- Graphite proposes; Carbon's frozen rule decides (invariants 7.9 and 7.10).
+- No official, protected or EV4 confirmation material reaches the agent or a
+  pod.
+- Reconstruction tolerances and the Level-0 study population stay
+  science-reserved (plan §9).
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.
+
+## 2026-10-03 — OWNER-GRAPHITE-04: Graphite phase 3 keeps one RunPod pod per proposal on Carbon's own account
+
+**Owner, in session on 2026-10-03.** Asked how phase 3 should get GPUs after
+#511 (OWNER-MINER-COMPUTE-LINK-ONLY-01) removed the RunPod code it creates
+pods with, the owner chose "Carbon's own RunPod" over running proposals on a
+machine the owner starts, or pausing phase 3.
+
+**Decision.** Phase 3 keeps its design: one RunPod pod per proposal, created,
+watched and terminated by Carbon on Carbon's own account, with Carbon's key,
+under the phase-3 grant (OWNER-GRAPHITE-03). This is operator compute, which
+LINKONLY-D1 leaves outside OWNER-MINER-COMPUTE-LINK-ONLY-01. No miner key is
+ever used, and the miner path is unchanged.
+
+**Engineering (GRAPHITE-D32).** The provisioning layer phase 3 relies on is
+restored, same behaviour, under `scripts/dev/exam_design/runpod/operator_compute/`
+beside `pod_control`. Nothing under `carbon/` names a provider API.
+
+*Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
+grant and limits. No live session has run, and nothing was spent.
+**Amendment, same day (owner, 2026-10-02): container-only rentals.**
+
+**Question,** as LINKONLY-D4 and the C-MLP-03 ticket's owner input recorded
+it: whether Carbon should run practice on a rental with no Docker daemon, such
+as a RunPod pod, that the miner starts themselves.
+
+**Owner, verbatim:** "miners should be able to use whatever they want to run
+their setup. We are just facilitating and providing wiring and tooling."
+
+**Resolved.** LINKONLY-D4's open question is closed: the miner chooses any
+setup, and Carbon provides the wiring and tooling to connect it. Carbon still
+never creates, stops, terminates, bills or reads the balance of compute. The
+miner starts, stops and pays for whatever they run.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **LINKONLY-D5, one remote route, three transports.** The miner names a
+  transport. All of them share one interface
+  (`carbon.compute.remote_transport`) and one result record: the transport,
+  the pinned worker's image identity, how it was verified, the job transport
+  and the cleanup outcome.
+  - `ssh-docker` is LINKONLY-D4's machine with Docker and the NVIDIA
+    Container Toolkit. One job container runs per trial, by image ID, and is
+    removed afterwards.
+  - `ssh-container` is an SSH-reachable container the miner started from the
+    pinned GPU worker image, such as a RunPod or Lium pod, with no Docker
+    inside. Over SSH, Carbon starts the job server as one process per trial
+    on the container's loopback and reaches it through the same SSH port
+    forward. Afterwards it stops that process and removes its directory. It
+    never touches the container's lifecycle.
+  - `endpoint` is designed and not built (LINKONLY-D7).
+- **LINKONLY-D6, a container reports its own build identity.** Docker cannot
+  check an image ID from inside a container. The pinned worker already
+  carries `/opt/carbon/worker-image-build.json`, written when the image is
+  built. Its fields are the pinned manifest's, without the image ID. Carbon
+  reads that file over SSH before every trial and refuses any difference
+  (`worker_identity_mismatch`). No change to the image build was needed.
+  - The record says `image_verified_by: build-identity`, never `image-id`.
+  - It is a self-report that a modified container could forge. That is
+    acceptable because practice there is speed only and never evidence; it
+    stops a stale or wrong worker, not an adversary.
+- **LINKONLY-D7, the endpoint transport is not built.** Today's job server
+  serves one job per process and takes that job's token from its environment
+  when it starts.
+  - **Not useful as it stands.** Without a shell on the machine, Carbon
+    cannot start a server with a new job's token. The miner would restart it
+    by hand for every trial.
+  - **Making it useful weakens protections.** It would need a long-lived,
+    multi-job server holding a standing secret and accepting programs from
+    whoever presents it, reachable from the internet through a provider's
+    public proxy. That gives up the per-job token and the loopback-only job
+    port. The worker's identity could only be self-reported over the
+    network.
+  - **Design, unbuilt:**
+    - a server the miner starts once from the pinned worker, with a secret
+      setup generates and stores owner-only;
+    - per-job tokens derived from it, one job at a time, an idle lifetime;
+    - its build identity at an authenticated route;
+    - https only.
+  - **Owner's to accept.** Accepting a standing remote job door is a security
+    acceptance, which is the owner's. Until then `endpoint` is refused by
+    name (`endpoint_transport_not_built`); `ssh-container` covers the same
+    rentals over SSH.
+- **LINKONLY-D8, the miner's registry and the miner's login.** Some
+  container-only providers pull images. For them,
+  `scripts/dev/push_worker_image.sh` builds the pinned GPU worker locally and
+  pushes it to a repository the miner names, with the miner's own
+  `docker login`. It prints the `repository@sha256` reference to start the
+  container from. Carbon publishes no registry, holds no registry credential
+  and never logs in.
+- **LINKONLY-D9, where the machine is, and what a campaign freezes.**
+  - The runner profile's `remote_machine` (transport, destination, optional
+    port) says where the machine is. It is not frozen into a campaign,
+    because a pod's address can change when the miner restarts it.
+  - The campaign's runtime freezes `remote_gpu`, beside `gpu_research`: the
+    transport and the pinned GPU worker.
+  - Neither the destination nor any SSH material enters a campaign record.
+  - The route is Challenge-neutral. A Challenge offers it by supplying its
+    GPU scope and the environment its GPU program needs
+    (`ChallengeCampaign.remote_worker`).
+
+**Unchanged by the amendment.** Practice on any remote setup is speed only
+and never evidence; the exam is unchanged. No key reaches Carbon, and the
+miner's SSH key never leaves their machine. Testnet 567; DEVELOPMENT; nothing
+is qualified.
+
+**Second amendment, same day (owner, 2026-10-02): no endpoint transport for
+now, and an easy path for miners.**
+
+**Question,** as LINKONLY-D7 and the C-MLP-03 ticket's owner input recorded
+it: whether Carbon may run a long-lived, internet-facing job server that the
+miner starts once and that holds a standing secret (the `endpoint`
+transport). The executor recommended not building it for now.
+
+**Owner, verbatim:** "I agree and approve your decision, we just need to help
+miners figure out what to do easily."
+
+**Resolved.**
+- The `endpoint` transport stays designed and not built (LINKONLY-D7). Setup
+  keeps refusing it by name (`endpoint_transport_not_built`), and nothing
+  starts a standing job door.
+- `ssh-container` covers SSH-capable container rentals; `ssh-docker` covers
+  machines and VMs with Docker.
+- The priority is the miner's path: a miner can see what to do next, in plain
+  words, without losing any safety statement.
+
+**Recorded engineering decision (executor, same day, within delegated
+authority).**
+- **LINKONLY-D10, the Control Center shows the way.**
+  - One ordered "Get started" list: start your signer, register, inference,
+    compute, agent, then choose a Challenge and launch (reordered the same
+    day by OWNER-MINER-SETUP-AGENT-FIRST-01: who researches comes third). A
+    step shows done only when the controller has confirmed it.
+  - Setup is a guided wizard, one step at a time.
+  - A "Where's your GPU?" chooser offers this machine and one card per setup
+    the wiring guide covers. A card sets the transport and shows that setup's
+    notes from the guide, with their UNVERIFIED marks; the controller serves
+    the guide itself.
+  - A blocking status is one sentence and one link to the fix; machine codes
+    stay behind Details.
+  - The provider cards are notes for the miner's own accounts. Carbon calls no
+    provider API and starts, stops or bills nothing.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
+
+## 2026-10-02 — OWNER-MINER-SETUP-AGENT-FIRST-01: miner setup, agent first
+
+**Owner, verbatim, in session on 2026-10-02:** "yes make this more agent first
+and easy for an agent to automate"
+
+**Decision.** Miner setup is built so the miner's own agent can automate it
+end to end, as easily as a person can click through it.
+- The order becomes: start your signer, register on the subnet, who
+  researches, inference, compute, review and launch.
+- Who researches is Carbon's agent or the miner's own agent. The miner's own
+  agent is any MCP client, not only Hermes, and Hermes keeps its ready-made
+  profile.
+- Inference is skipped for an agent that brings its own model.
+- An agent drives setup over MCP from one status call to launch, with no
+  prose to parse.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **AGENTFIRST-D1, one table, two doors.**
+  `scripts/dev/miner_launchpad/setup_operations.py` holds every setup step.
+  The browser's `/api/v1/setup/<step>` routes and the MCP
+  `carbon_setup_<step>` tools are both generated from it and call one
+  `perform`, over one `EnvironmentSetup` and one set of setup records. The two
+  doors apply the same gates in the same order, and a parity test fails if
+  they drift.
+  - The doors differ in one declared way: the browser may paste a model key
+    once (`key`). The MCP door takes `model_key_file` only.
+  - Both doors write the same records under the Control Center's state
+    directory, behind a file lock (`setup.lock`). Each door sees the other's
+    progress: the page re-reads setup every few seconds.
+- **AGENTFIRST-D2, status drives the loop.** `carbon_setup_status`, and
+  `GET /api/v1/setup/status` on the browser door, return:
+  - the steps and their states (`done`, `next`, `open`, `waiting`, `skipped`);
+  - the next step, and what it is missing, as closed codes;
+  - the exact next call, with its arguments schema and the ids it may name.
+
+  Refusals are closed codes, each with its field and a `next_step`. The
+  prompt `carbon_setup_workflow_v1` states the loop.
+- **AGENTFIRST-D3, where the tools appear (C-MLP-02-D10: absent, not
+  refusing).**
+  - In the open tier, for a miner who has nothing yet: status, the signer
+    check and the registration confirmation.
+  - Once setup has confirmed the registration, added to the live server: the
+    steps after it (agent, quote, inference, compute, send_worker, review).
+  - When review writes the runner profile in that session, the registered
+    tier's operations and attach/detach, added by `open_tier.attach_operations`.
+    It is the same live insertion and strictness check as `attach_campaign`.
+    `attach_campaign` itself binds a campaign, and none exists before launch.
+
+  The pinned SDK sends no list-changed notification, so each result that adds
+  tools names them (`tools_added`).
+- **AGENTFIRST-D4, the miner's own steps.** Starting the signer and signing
+  the registration stay the miner's. A call that reaches one answers a closed
+  `human_action_required` result: the step, the action, the exact instruction
+  and command, and the call to make once it is done. Status shows when it is
+  done. The only hotkey value any tool takes is the public ss58 address. No
+  tool accepts, returns or logs a private key, seed phrase, mnemonic or
+  password.
+- **AGENTFIRST-D5, the model key is a file the miner made.** An agent passes
+  `model_key_file`, an absolute path to a regular file, not a link, owned by
+  the same user, with no group or other access. Carbon references it by path
+  and never copies it. A key passed as a value is refused on the MCP door
+  (`key_must_be_a_file_on_this_door`). The field is not named `key_file`:
+  the product's no-key invariant reserves that name for a hotkey file.
+- **AGENTFIRST-D6, Hermes keeps Inference.** Hermes' ready-made profile is
+  written with setup's model, so choosing Hermes keeps the Inference step.
+  Its files are written at Review once the model is checked, on the consent
+  to those exact files given when Hermes was chosen. Only an agent that brings
+  its own model (`own-agent`) skips Inference. Its runner profile names no
+  model, so Carbon's agent stays unavailable to it.
+- **AGENTFIRST-D7, the connect command and snippets.** The miner's own agent
+  starts `python -m carbon.miner_mcp.standard_cli` from the checkout, with no
+  runner profile. Setup shows that command for this machine, with snippets for
+  Claude Code, Codex and Hermes.
+  - Each snippet was read from that client's public documentation on
+    2026-10-02.
+  - Each is marked UNVERIFIED: Carbon has not run the client against the
+    server.
+  - No flag is invented. Where a client's documentation shows no way to set
+    the working directory, its snippet sets `PYTHONPATH` instead.
+
+**Unchanged.** Compute stays link-only (OWNER-MINER-COMPUTE-LINK-ONLY-01):
+Carbon rents, stops and bills nothing. DEVELOPMENT; testnet 567; nothing is
+qualified. Registration remains the only admission.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.

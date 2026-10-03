@@ -74,11 +74,15 @@ def test_every_challenge_reports_its_provisions_and_offers_alike():
         if not entry["implemented"]:
             assert offers == {
                 "gpu": False,
+                "remote_gpu": False,
                 "intake": False,
                 "feedback_modes": [],
             }
         else:
             assert offers["feedback_modes"][0] == "FULL"
+            # Remote practice runs the GPU practice program: never offered
+            # without it, and read from the Challenge's own campaign.
+            assert offers["remote_gpu"] <= offers["gpu"]
 
 
 def test_gpu_practice_for_one_challenge_never_launches_another():

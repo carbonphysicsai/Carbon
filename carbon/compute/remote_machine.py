@@ -25,6 +25,10 @@ installs nothing. `remove_script` removes only a container named
 
 Every outcome of a run is an exit status (a timeout 124, no `ssh` client
 127), never an exception that could skip a trial's cleanup.
+
+This module is the `ssh-docker` transport's machine side and the SSH client
+every transport shares; a container with no Docker inside (`ssh-container`)
+has its own scripts in `remote_container` (LINKONLY-D5).
 """
 
 from __future__ import annotations
@@ -45,6 +49,11 @@ __all__ = [
     "RemoteMachineError",
     "SSHClient",
     "Tunnel",
+    "check_script",
+    "checked_command",
+    "checked_destination",
+    "checked_name",
+    "environment_lines",
     "failure_for",
     "image_check_script",
     "published_port",
@@ -57,6 +66,10 @@ __all__ = [
 JOB_PORT = 8000
 #: Exit codes the start script uses for causes the miner must fix.
 NO_DOCKER, NO_NVIDIA_TOOLKIT, NO_DOCKER_ACCESS, NO_WORKER_IMAGE = 90, 91, 92, 93
+#: Exit codes of a container's scripts (`remote_container`, LINKONLY-D5): no
+#: pinned worker runtime in it, the job server did not start, and a job
+#: directory of the same name still present.
+NO_WORKER_RUNTIME, JOB_SERVER_NOT_STARTED, JOB_DIRECTORY_PRESENT = 94, 95, 96
 #: Local outcomes of the SSH run itself, and SSH's own failure.
 TIMED_OUT, NO_SSH_CLIENT, SSH_FAILED = 124, 127, 255
 #: Bound on what a script's standard output may return.
@@ -102,6 +115,21 @@ FAILURES = {
         "no_worker_image",
         "send the pinned GPU worker image to your machine, then retry",
     ),
+    NO_WORKER_RUNTIME: (
+        "no_worker_runtime",
+        (
+            "start your container from the pinned GPU worker image (or an "
+            "image built on it), then retry"
+        ),
+    ),
+    JOB_SERVER_NOT_STARTED: (
+        "job_server_not_started",
+        "check your container can run the worker's Python and write to /tmp",
+    ),
+    JOB_DIRECTORY_PRESENT: (
+        "job_directory_present",
+        "an earlier attempt's job directory is still there; retry the practice",
+    ),
     TIMED_OUT: ("ssh_timed_out", "check that your machine is up and reachable"),
     NO_SSH_CLIENT: ("no_ssh_client", "install an OpenSSH client on this machine"),
     SSH_FAILED: (
@@ -141,10 +169,35 @@ def _checked_image(image_id) -> str:
     return image_id
 
 
-def _checked_name(name) -> str:
+def checked_name(name) -> str:
+    """A job's name: `carbon-job-<24 hex>`, for a container or a directory."""
     if type(name) is not str or not CONTAINER_NAME.fullmatch(name):
         raise ValueError("only a carbon-job-<24 hex> container is Carbon's")
     return name
+
+
+def environment_lines(env: Sequence[tuple[str, str]]) -> str:
+    """Shell lines that print `env` as KEY=value lines, each value plain."""
+    if not env:
+        raise ValueError("a job's environment carries at least its token")
+    for key, value in env:
+        if (
+            type(key) is not str
+            or type(value) is not str
+            or not _ENV_NAME.fullmatch(key)
+            or not _ENV_VALUE.fullmatch(value)
+        ):
+            raise ValueError("a worker environment value is not plain")
+    return "".join(f"printf '%s\\n' {shlex.quote(f'{k}={v}')}\n" for k, v in env)
+
+
+def checked_command(command: Sequence[str]) -> tuple[str, ...]:
+    """A worker start command of plain arguments only."""
+    if not command or not all(
+        type(part) is str and _ARGUMENT.fullmatch(part) for part in command
+    ):
+        raise ValueError("a plain worker start command is required")
+    return tuple(command)
 
 
 def _free_port() -> int:
@@ -310,6 +363,20 @@ def image_check_script(image_id: str) -> str:
 """
 
 
+def check_script(image_id: str) -> str:
+    """Setup's live check: the start script's own checks, in its order, and
+    nothing started. Exit 0, or the code of the first thing missing; a
+    missing image (93) is what "send your worker" fixes."""
+    image = shlex.quote(_checked_image(image_id))
+    return f"""set -u
+command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
+command -v nvidia-ctk >/dev/null 2>&1 || command -v nvidia-container-cli >/dev/null 2>&1 || exit {NO_NVIDIA_TOOLKIT}
+docker info >/dev/null 2>&1 || exit {NO_DOCKER_ACCESS}
+[ "$(docker image inspect --format '{{{{.Id}}}}' {image} 2>/dev/null)" = {image} ] || exit {NO_WORKER_IMAGE}
+exit 0
+"""
+
+
 def start_script(
     *,
     image_id: str,
@@ -324,18 +391,11 @@ def start_script(
     Carbon learns the host port. It installs nothing and never uses sudo.
     """
     image = shlex.quote(_checked_image(image_id))
-    name = _checked_name(name)
+    name = checked_name(name)
     if not 1024 <= port <= 65535:
         raise ValueError("invalid job port")
-    if not env:
-        raise ValueError("a job's environment carries at least its token")
-    for key, value in env:
-        if not _ENV_NAME.fullmatch(key) or not _ENV_VALUE.fullmatch(value):
-            raise ValueError("a worker environment value is not plain")
-    if not command or not all(_ARGUMENT.fullmatch(part) for part in command):
-        raise ValueError("a plain worker start command is required")
-    entry, *args = command
-    lines = "".join(f"printf '%s\\n' {shlex.quote(f'{k}={v}')}\n" for k, v in env)
+    lines = environment_lines(env)
+    entry, *args = checked_command(command)
     return f"""set -eu
 umask 077
 command -v docker >/dev/null 2>&1 || exit {NO_DOCKER}
@@ -354,7 +414,7 @@ docker port {name} {port}/tcp
 
 def remove_script(name: str) -> str:
     """Remove Carbon's job container `name`; exit 0 only once it is gone."""
-    name = _checked_name(name)
+    name = checked_name(name)
     return f"""set -u
 docker rm -f {name} >/dev/null 2>&1 || true
 if docker container inspect {name} >/dev/null 2>&1; then exit 1; fi
