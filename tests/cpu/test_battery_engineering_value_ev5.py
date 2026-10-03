@@ -10,6 +10,9 @@
   and GRAPHITE constructions are refused by name;
 - the contract, plans and campaign are built as EV4's were, and nothing
   dispatches;
+- the confirmation batch is sealed from the validator deployment's committed
+  root, 120 + 4, committed to its journal and never recorded in its pool, and
+  only its public commitment is printed;
 - the freeze manifest refuses while the gate cutoff is unset, and builds once
   it is set (here monkeypatched; this file never sets it).
 """
@@ -35,7 +38,8 @@ from test_battery_engineering_value import (
 )
 
 from carbon.agent_campaign import boundaries as b
-from carbon.battery import track_a
+from carbon.battery import deployment, seeds, track_a
+from carbon.battery.challenge import INPUT_BOUNDS
 from carbon.battery.compile import compile_recipe
 from carbon.battery.value import admissibility, ev5
 from carbon.battery.value import contract as ev
@@ -511,6 +515,150 @@ def test_the_confirmation_skeleton_holds_nothing_private():
 )
 def test_an_unsealed_confirmation_batch_is_refused(commitment):
     assert ev5.sealed(commitment) is None
+
+
+# --- sealing the confirmation batch (validator host) -------------------------------------
+
+
+def _deployment(tmp_path, monkeypatch):
+    """A validator deployment whose root `operate init` has committed."""
+    from carbon.battery.daemon import rule_digest
+
+    monkeypatch.setattr(deployment, "_VALIDATORS", {})
+    tmp_path.chmod(0o700)
+    root = seeds.PrivateRoot.create(tmp_path / "root.bin")
+    journal = seeds.SeedJournal(tmp_path / "journal.jsonl")
+    journal.commit_root(root, seeds.seed_pin("sha256:" + "1" * 64, rule_digest()))
+    path = tmp_path / "deployment.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": deployment.SCHEMA,
+                "state": str(tmp_path / "state.sqlite3"),
+                "private_root": str(tmp_path / "root.bin"),
+                "journal": str(tmp_path / "journal.jsonl"),
+                "work": str(tmp_path / "work"),
+                "backend": "direct",
+                "require_commitment": False,
+            }
+        )
+    )
+    path.chmod(0o600)
+    return path
+
+
+def _confirmation_entries(tmp_path):
+    return [
+        e
+        for e in seeds.SeedJournal(tmp_path / "journal.jsonl").public()
+        if e["kind"] == "batch" and e["role"] == ev5.CONFIRMATION_ROLE
+    ]
+
+
+def _regenerated(tmp_path):
+    """The batch, regenerated from the root as the operator host does."""
+    root = seeds.PrivateRoot.load(tmp_path / "root.bin")
+    pin = seeds.SeedJournal(tmp_path / "journal.jsonl").root_pin(root)
+    return seeds.make_batch(root, pin, ev5.CONFIRMATION_ROLE, 124, 4)
+
+
+def test_the_confirmation_batch_is_sealed_from_the_committed_root_outside_the_pool(
+    tmp_path, monkeypatch
+):
+    from carbon.battery.daemon import BatteryValidator
+
+    path = _deployment(tmp_path, monkeypatch)
+
+    def forbidden(self):
+        raise AssertionError("sealing started or recovered the validator")
+
+    monkeypatch.setattr(BatteryValidator, "start", forbidden)
+    monkeypatch.setattr(BatteryValidator, "recover", forbidden)
+    result = ev5.seal_confirmation(path)
+    assert result["newly_committed"] is True
+    assert (result["cases"], result["hidden_duplicates"]) == (120, 4)
+    commitment = result["commitment"]
+    assert ev5.sealed(commitment) == commitment
+    (entry,) = _confirmation_entries(tmp_path)
+    assert entry["fingerprint"] == commitment["fingerprint"]
+    assert entry["sequence"] == commitment["journal_sequence"]
+    assert entry["cases"] == 124
+    # The study sheet's batch: regenerated from the committed root it has the
+    # same fingerprint, 120 fresh draws inside the published box and 4 hidden
+    # duplicates.
+    batch = _regenerated(tmp_path)
+    assert batch.fingerprint == commitment["fingerprint"]
+    assert len(batch.duplicates) == 4
+    fresh = {inputs for _, inputs in batch.cases}
+    assert len(fresh) == 120
+    for inputs in fresh:
+        for name, value in inputs:
+            low, high = INPUT_BOUNDS[name]
+            assert low <= value <= high
+    # Never in the validator state: no screening rotation or finalist
+    # comparison can claim it.
+    target = deployment.validator(path, repository=REPOSITORY, readonly=True)
+    assert target.store.batches() == []
+
+
+def test_sealing_again_recalls_the_same_batch(tmp_path, monkeypatch):
+    path = _deployment(tmp_path, monkeypatch)
+    first = ev5.seal_confirmation(path)
+    again = ev5.seal_confirmation(path)
+    assert again["commitment"] == first["commitment"]
+    assert again["newly_committed"] is False
+    assert len(_confirmation_entries(tmp_path)) == 1
+
+
+def test_a_second_batch_under_the_confirmation_role_is_refused(tmp_path, monkeypatch):
+    # Draws are seeded by role and index, so another batch under the role
+    # would share this one's cases.
+    path = _deployment(tmp_path, monkeypatch)
+    target = deployment.validator(path, repository=REPOSITORY, readonly=True)
+    other = target.seal_batch(ev5.CONFIRMATION_ROLE, count=10, duplicates=2)
+    with pytest.raises(cr.CombinedRunError) as refused:
+        ev5.seal_confirmation(path)
+    assert refused.value.code == "confirmation_role_reused"
+    assert [e["fingerprint"] for e in _confirmation_entries(tmp_path)] == [
+        other.fingerprint
+    ]
+
+
+def test_the_seal_command_prints_only_the_public_commitment(
+    tmp_path, monkeypatch, capsys
+):
+    path = _deployment(tmp_path, monkeypatch)
+    assert ev5.main(["seal-confirmation", "--config", str(path)]) == 0
+    printed = capsys.readouterr().out
+    result = json.loads(printed)
+    assert set(result) == {
+        "role",
+        "cases",
+        "hidden_duplicates",
+        "newly_committed",
+        "commitment",
+    }
+    assert set(result["commitment"]) == {"fingerprint", "journal_sequence"}
+    # No case id, input or root: the output holds no number but the counts.
+    for case_id, _ in _regenerated(tmp_path).cases:
+        assert case_id not in printed
+    assert "." not in printed
+    assert (tmp_path / "root.bin").read_bytes().hex() not in printed
+    # The printed commitment is what the freeze manifest takes.
+    manifest = ev5.freeze_manifest(result["commitment"])
+    assert manifest["confirmation"]["commitment"] == result["commitment"]
+
+
+def test_the_seal_command_refuses_a_loose_deployment_config(
+    tmp_path, monkeypatch, capsys
+):
+    path = _deployment(tmp_path, monkeypatch)
+    path.chmod(0o644)
+    assert ev5.main(["seal-confirmation", "--config", str(path)]) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "unavailable": "evaluation_input_not_owner_only"
+    }
+    assert _confirmation_entries(tmp_path) == []
 
 
 # --- the freeze manifest ----------------------------------------------------------------

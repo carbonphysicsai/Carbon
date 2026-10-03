@@ -192,6 +192,25 @@ journal fingerprint before use. Two engineering questions remain open and do
 not block the freeze: how EV5's optimizer is parameterized (#536 Q2), and the
 H2 bootstrap's B and seed (#536 Q4).
 
+**Sealing the batch (operator, validator host).** One command, from a checkout
+that has it, against the deployment's own configuration:
+
+```bash
+python -m carbon.battery.value.ev5 seal-confirmation --config <deployment.json>
+```
+
+- It draws the 120 cases and 4 hidden duplicates from the deployment's
+  committed private root under role `ev5-confirmation`, and commits the batch
+  to the deployment's seed journal under its writer lock.
+- It never starts or recovers the validator. It never records the batch in the
+  testnet pool, so no screening rotation or finalist comparison can claim it.
+- It prints only the public commitment: the fingerprint and the journal
+  sequence. A rerun prints the same commitment. A different batch already
+  under the role is refused.
+- Those two values are what `freeze-manifest` takes
+  (`--confirmation-fingerprint`, `--confirmation-sequence`). The private cases
+  are regenerated from the root when they are solved (OWNER-EV5-Q3-01).
+
 ## 9. What it cannot show
 
 - **No population claim.** Panels are development evidence, not population

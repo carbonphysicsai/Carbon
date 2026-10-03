@@ -324,14 +324,26 @@ class BatteryValidator:
         journal before any use, and kept only in the validator state.
         """
         count = self.rule["screening_batch_size"] if count is None else count
+        committed = self.seal_batch(role, count=count, duplicates=duplicates)
+        self.store.add_batch(committed, kind=kind)
+        return committed.fingerprint
+
+    def seal_batch(self, role, *, count, duplicates):
+        """Generate and commit one private batch, outside the pool (idempotent
+        by role).
+
+        The plaintext is generated from the private root and committed to the
+        journal; the batch is never recorded in the validator state, so no
+        screening rotation or finalist comparison can claim it. A study that
+        uses it (EV5's confirmation set) regenerates it from the root and
+        recalls it by fingerprint.
+        """
         batch = make_batch(self.root, self.pin, role, count, duplicates)
         self._refuse_published(batch)
         try:
-            committed = self.journal.recall(batch)
+            return self.journal.recall(batch)
         except ValueError:
-            committed = self.journal.commit(batch, pool_version=self._pool_version())
-        self.store.add_batch(committed, kind=kind)
-        return committed.fingerprint
+            return self.journal.commit(batch, pool_version=self._pool_version())
 
     def import_batch(self, batch, *, kind):
         """Commit and record an externally built batch (tests, replays).
