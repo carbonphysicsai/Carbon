@@ -3,34 +3,61 @@
 All request history and schemas count toward admission. Successful replay loads
 the retained response. Unknown usage keeps its full reservation and never resends.
 
-Provider failures are typed (`model_provider.ProviderOutcome`):
+Provider failures are typed (`model_provider.ProviderOutcome`); LP-PROD-A set
+how each is retried and settled (OWNER-LAUNCHPAD-PROD-01):
 
-* a rate limit (HTTP 429, not a quota) is rejected before generation. The
-  attempt is recorded as its own finished operation - counted, with no token
-  charge - and the request is sent again under a *new* identity and a *new*
-  reservation, after the provider's Retry-After or a bounded backoff, at most
-  `MAX_RATE_LIMIT_RETRIES` times. Replay walks the same identities, so a resume
-  neither resends a finished attempt nor skips one;
-* quota, credential, context-limit and invalid-request rejections are recorded
-  the same way (counted, no token charge) and never retried;
-* a transient server error, a timeout, a dropped connection or anything
-  unrecognised may have been processed: the full reservation stays, the
-  operation stays unresolved for reconciliation, and nothing is resent.
+* a failure that incurred no charge (`model_provider.RETRY_SAFE`) - a rate
+  limit or overload (429, 529), a server that answered 502 or 503 with no
+  usage object, or a connection refused (or a name unresolved) before
+  anything was sent - is recorded as its own finished operation, counted
+  with no token charge, and the request is sent again under a *new* identity
+  (`-rlN`) and a *new* reservation. The wait is exponential backoff with
+  jitter (`retry_wait`), never shorter than the provider's Retry-After. Retries
+  stop after `MAX_AUTOMATIC_RETRIES`, or once the next wait would take the
+  call past `MAX_RETRY_WAIT_SECONDS` of waiting, and every attempt is still
+  admitted by the ledger's ceilings. Replay walks the same identities, so a
+  resume neither resends a finished attempt nor skips one;
+* a quota or credential rejection - or a key file Carbon cannot read, found
+  before anything is sent (`model_provider.CredentialUnavailable`) - is
+  recorded the same way and is not retried at once: the miner has to fix the
+  key or the balance. A later call - a resume - passes the recorded
+  rejection and sends the request once more under the next identity, instead
+  of replaying the rejection forever, as it does for retries that ran out. A
+  context-limit or invalid-request rejection replays: the same request would
+  get the same answer;
+* a reply the provider ended early (its output limit, a pause, a refusal) is
+  metered exactly. A caller that accepts one (`accept_incomplete`: the
+  research loop) gets it back, described by `incomplete_reply`; any other
+  caller gets the historical refusal;
+* a transient server error after the request was sent, a timeout, a dropped
+  connection, a reply without usable usage, a different model, a charge above
+  the reservation or anything unrecognised may have been processed and
+  charged: the full reservation stays, the operation stays unresolved, and
+  nothing is resent. What is known is journalled beside the call
+  (`uncertain.json`). An explicit settlement (`settle_uncertain_call`, reached
+  through the campaign's reconcile action) books the full reservation as the
+  call's charge - never less than the provider can have charged - and
+  journals it; the next call of that turn then goes out under a fresh
+  identity with its own reservation. Nothing settles a call automatically.
 """
 
 from __future__ import annotations
 
 import json
+import random
 import re
 import time
 
 from .data import write_once
 from .model_provider import (
+    _INCOMPLETE_REASONS,
     DEFAULT_SELECTION,
+    RETRY_SAFE,
     ProviderFailure,
     ProviderOutcome,
     ProviderTransport,
     SelectionTransport,
+    _code,
     classify,
     provider_report,
 )
@@ -43,28 +70,139 @@ CACHED_NANO = DEFAULT_SELECTION.pricing.cached_input_nano
 OUTPUT_NANO = DEFAULT_SELECTION.pricing.output_nano
 RESERVATION_NANO = DEFAULT_SELECTION.reservation_nano
 
-#: Automatic resends after a rate limit, each under its own reservation.
-MAX_RATE_LIMIT_RETRIES = 2
-#: Wait bounds between them, in seconds.
+#: Automatic resends, within one call, of a failure that incurred no charge
+#: (`model_provider.RETRY_SAFE`), each under its own identity and reservation.
+MAX_AUTOMATIC_RETRIES = 6
+#: Exponential backoff between them: `BACKOFF_SECONDS * 2**k` seconds, at
+#: most `MAX_BACKOFF_SECONDS`, with equal jitter (half fixed, half random) so
+#: that callers refused together do not resend together.
 BACKOFF_SECONDS = 2
-MAX_BACKOFF_SECONDS = 30
+MAX_BACKOFF_SECONDS = 60
+#: The most one call waits on its retries, in seconds. A Retry-After longer
+#: than what is left ends the call's retries at once, honoured rather than cut
+#: short; a later call sends it again.
+MAX_RETRY_WAIT_SECONDS = 300
+
+#: Rejected before generation, and worth sending again on a later call: every
+#: retry-safe failure, and the two the miner fixes outside Carbon (the key and
+#: the balance).
+RESUMABLE = RETRY_SAFE | {
+    ProviderOutcome.AUTH_CREDENTIAL,
+    ProviderOutcome.QUOTA_EXHAUSTED,
+}
+#: Possibly processed and charged: the reservation stays until a settlement.
+UNCERTAIN = frozenset({ProviderOutcome.TRANSIENT_SERVER, ProviderOutcome.UNKNOWN})
+
+#: What a miner does next after each typed failure (`ProviderCallFailed.report`).
+NEXT_STEPS = {
+    ProviderOutcome.RATE_LIMITED: (
+        "The provider is rate-limiting this key. Carbon retried with backoff and "
+        "charged nothing for the refused attempts. Resume later: the call is "
+        "sent again under a new identity."
+    ),
+    ProviderOutcome.SERVER_UNAVAILABLE: (
+        "The provider answered that it is unavailable (502, 503 or 529, no "
+        "usage). Carbon retried with backoff and charged nothing for the refused "
+        "attempts. Resume later: the call is sent again under a new identity."
+    ),
+    ProviderOutcome.UNREACHABLE: (
+        "Carbon could not connect to the provider: the connection was refused or "
+        "its name did not resolve, so nothing was sent. Check your network and "
+        "the provider's endpoint, then resume."
+    ),
+    ProviderOutcome.AUTH_CREDENTIAL: (
+        "The provider refused the key, or Carbon could not read this provider's "
+        "key file. Put a valid key in that file, then resume: the call is sent "
+        "again under a new identity."
+    ),
+    ProviderOutcome.QUOTA_EXHAUSTED: (
+        "The provider reports no balance or quota left. Add balance or raise the "
+        "quota at your provider, then resume: the call is sent again under a new "
+        "identity."
+    ),
+    ProviderOutcome.CONTEXT_LIMIT: (
+        "The request is longer than the model's context. Sending it again would "
+        "fail the same way."
+    ),
+    ProviderOutcome.INVALID_REQUEST: (
+        "The provider refused the request as invalid. Sending it again would "
+        "fail the same way; check the model and endpoint you selected."
+    ),
+    ProviderOutcome.TRANSIENT_SERVER: (
+        "The provider failed after the request was sent, so it may have been "
+        "processed and charged. Reconcile the campaign: Carbon books the call at "
+        "its full reservation, and the next resume sends it under a new identity."
+    ),
+    ProviderOutcome.UNKNOWN: (
+        "The call's outcome is unknown (no reply in time, a dropped connection "
+        "or a reply Carbon could not read), so it may have been processed and "
+        "charged. Reconcile the campaign: Carbon books the call at its full "
+        "reservation, and the next resume sends it under a new identity."
+    ),
+}
+
+FAILURE_REPORT = "carbon.autoresearch.provider-failure.v1"
 
 
 class ProviderCallFailed(ValueError):
     """A provider call ended without a usable response, with its typed outcome.
 
     The message never contains provider text; `outcome` and `record` are the
-    typed facts a caller may show.
+    typed facts a caller may show, and `report()` says what happens next.
     """
 
     def __init__(self, message, *, outcome, record=None):
         super().__init__(message)
         self.outcome, self.record = outcome, record
 
+    @property
+    def resumable(self):
+        """A later call sends the request again under a new identity."""
+        return self.outcome in RESUMABLE
 
-class _RateLimited(Exception):
-    def __init__(self, retry_after, fresh):
-        self.retry_after, self.fresh = retry_after, fresh
+    @property
+    def requires_settlement(self):
+        """The call may have been charged; its reservation stays until the
+        campaign is reconciled (`settle_uncertain_call`)."""
+        return self.outcome in UNCERTAIN
+
+    def report(self):
+        """The failure as a miner-facing record with its closed code and next
+        step; never provider text."""
+        return {
+            "schema": FAILURE_REPORT,
+            "code": "provider_" + self.outcome.value,
+            "outcome": self.outcome.value,
+            "resumable": self.resumable,
+            "requires_settlement": self.requires_settlement,
+            "next_step": NEXT_STEPS[self.outcome],
+        }
+
+
+class _Passed(Exception):
+    """An attempt the walk passes to the next identity: a failure that
+    incurred no charge (`fresh` when it happened now, so the walk may wait and
+    retry), or a recorded rejection or settlement a later call sends again."""
+
+    def __init__(self, failure, fresh):
+        self.failure, self.fresh = failure, fresh
+
+
+def attempt_identity(identity, attempt):
+    """The ledger identity of a call's attempt: the first keeps `identity`, a
+    later one adds `-rlN` (named for the rate-limit retries it first marked)."""
+    return identity if attempt == 0 else f"{identity}-rl{attempt}"
+
+
+def retry_wait(retries, retry_after=None, jitter=random.random):
+    """Seconds to wait before automatic retry `retries` (0 for the first):
+    exponential backoff with equal jitter, never under one second and never
+    shorter than the provider's Retry-After."""
+    ceiling = min(MAX_BACKOFF_SECONDS, BACKOFF_SECONDS * 2**retries)
+    spread = jitter()
+    if type(spread) not in (int, float) or not 0 <= spread <= 1:
+        raise ValueError("jitter must be a number in [0, 1]")
+    return max(1, ceiling / 2 + spread * ceiling / 2, retry_after or 0)
 
 
 def usage_cost(usage, selection=DEFAULT_SELECTION):
@@ -160,50 +298,131 @@ def request_model(
     phase="research",
     transport=None,
     provider=DEFAULT_SELECTION,
-    sleep=time.sleep,
+    sleep=None,
     anchor=None,
+    accept_incomplete=False,
+    jitter=None,
 ):
-    """One model call, with bounded rate-limit retries under new reservations."""
-    for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
-        attempt_identity = identity if attempt == 0 else f"{identity}-rl{attempt}"
+    """One model call, with bounded automatic retries of failures that
+    incurred no charge, each under a new identity and reservation.
+
+    The walk replays every attempt already recorded under this call - a
+    success or a replayable rejection ends it; a recorded failure that a
+    later call sends again (`RESUMABLE`) or a settled call is passed to the
+    next identity - and makes new attempts only past them. Only new attempts
+    wait or count toward `MAX_AUTOMATIC_RETRIES` and `MAX_RETRY_WAIT_SECONDS`.
+
+    `accept_incomplete` returns a reply the provider ended early, metered;
+    without it such a reply raises, as it always has. `sleep` and `jitter`
+    default to `time.sleep` and `random.random`, read at call time.
+    """
+    sleep = time.sleep if sleep is None else sleep
+    jitter = random.random if jitter is None else jitter
+    attempt = retries = 0
+    waited = 0
+    while True:
         try:
             return _request_once(
                 ledger,
                 owner=owner,
-                identity=attempt_identity,
+                identity=attempt_identity(identity, attempt),
                 request=request,
                 credential_file=credential_file,
                 phase=phase,
                 transport=transport,
                 provider=provider,
                 anchor=anchor,
+                accept_incomplete=accept_incomplete,
             )
-        except _RateLimited as limited:
-            if attempt == MAX_RATE_LIMIT_RETRIES:
+        except _Passed as passed:
+            attempt += 1
+            if not passed.fresh:
+                # Recorded by an earlier call, which did its own waiting.
+                continue
+            failure = passed.failure
+            wait = retry_wait(retries, failure.retry_after_seconds, jitter)
+            if (
+                retries == MAX_AUTOMATIC_RETRIES
+                or waited + wait > MAX_RETRY_WAIT_SECONDS
+            ):
                 raise ProviderCallFailed(
-                    "provider rate limit persisted after bounded retries; "
-                    "each attempt counted, no token charge recorded",
-                    outcome=ProviderOutcome.RATE_LIMITED,
+                    "provider "
+                    + failure.outcome.value
+                    + " persisted after bounded retries; each attempt counted, "
+                    "no token charge recorded; a later call sends it again",
+                    outcome=failure.outcome,
+                    record=failure.record(),
                 ) from None
-            if limited.fresh:
-                # A replayed rate limit already waited when it was received.
-                wait = limited.retry_after
-                if wait is None:
-                    wait = BACKOFF_SECONDS * 2**attempt
-                sleep(min(max(wait, 1), MAX_BACKOFF_SECONDS))
-    raise AssertionError("unreachable")
+            sleep(wait)
+            waited += wait
+            retries += 1
 
 
 def _rejected(failure, *, fresh):
-    if failure.outcome is ProviderOutcome.RATE_LIMITED:
-        raise _RateLimited(failure.retry_after_seconds, fresh)
+    """A rejection before generation: retried now when it is retry-safe;
+    passed by a later call when the miner can have fixed it; otherwise typed
+    and final."""
+    if failure.retry_safe or (not fresh and failure.outcome in RESUMABLE):
+        raise _Passed(failure, fresh)
     raise ProviderCallFailed(
         "provider rejected the request ("
         + failure.outcome.value
-        + "); attempt counted, no token charge recorded, no retry",
+        + "); attempt counted, no token charge recorded, no retry"
+        + (
+            "; a later call sends it again once the miner fixes it"
+            if failure.outcome in RESUMABLE
+            else ""
+        ),
         outcome=failure.outcome,
         record=failure.record(),
     )
+
+
+def _uncertain(directory, identity, reason, failure=None):
+    """Journal what is known about a call left unresolved, beside it, for the
+    settlement and the views. Best effort: the call's own failure is what the
+    caller raises, and a settlement without this record reads it as unknown."""
+    try:
+        write_once(
+            directory / "uncertain.json",
+            canonical(
+                {
+                    "schema": UNCERTAIN_CALL,
+                    "identity": identity,
+                    "reason": reason,
+                    "provider_failure": None if failure is None else failure.record(),
+                }
+            ),
+        )
+    except (OSError, ValueError):
+        pass
+
+
+def _retained(directory, retained):
+    body = (directory / "response.json").read_bytes()
+    if digest(body) != retained["response_digest"]:
+        raise ValueError("retained provider response changed")
+    return json.loads(body)
+
+
+def _replay(admission, directory, provider, accept_incomplete):
+    """The recorded outcome of an attempt that already ran."""
+    retained = admission["result"] or {}
+    if admission["state"] == "FAILED_INFRA":
+        if retained.get("provider_settlement") is not None:
+            # Settled at its full reservation: the turn goes on under the
+            # next identity.
+            raise _Passed(None, fresh=False)
+        if retained.get("provider_rejection") is not None:
+            _replayed_rejection(retained["provider_rejection"], provider)
+        if accept_incomplete and retained.get("response_digest") is not None:
+            # A reply the provider ended early, metered when it came back.
+            return _retained(directory, retained)
+    if admission["state"] != "SUCCEEDED":
+        raise ValueError(
+            "provider outcome uncertain; reconciliation required, no resend"
+        )
+    return _retained(directory, retained)
 
 
 def _request_once(
@@ -217,6 +436,7 @@ def _request_once(
     transport,
     provider,
     anchor=None,
+    accept_incomplete=False,
 ):
     settings = provider.settings
     priced = provider.reservation_nano is not None
@@ -285,20 +505,7 @@ def _request_once(
         identity, owner=owner, phase=phase, request=request, resources=reservation
     )
     if not admission["dispatch"]:
-        retained = admission["result"] or {}
-        if (
-            admission["state"] == "FAILED_INFRA"
-            and retained.get("provider_rejection") is not None
-        ):
-            _replayed_rejection(retained["provider_rejection"], provider)
-        if admission["state"] != "SUCCEEDED":
-            raise ValueError(
-                "provider outcome uncertain; reconciliation required, no resend"
-            )
-        body = (directory / "response.json").read_bytes()
-        if digest(body) != admission["result"]["response_digest"]:
-            raise ValueError("retained provider response changed")
-        return json.loads(body)
+        return _replay(admission, directory, provider, accept_incomplete)
     ledger.check_storage(3 * 1024**2)
     directory.mkdir(mode=0o700)
     write_once(directory / "request.json", payload)
@@ -314,6 +521,7 @@ def _request_once(
         # Never print provider errors: they may contain request/credential text.
         failure = classify(error, provider.errors)
         if not failure.unbilled:
+            _uncertain(directory, identity, "transport_outcome_unknown", failure)
             message = (
                 "provider transient server error; outcome uncertain, full "
                 "reservation retained, no automatic resend"
@@ -342,7 +550,11 @@ def _request_once(
         _rejected(failure, fresh=True)
     body = canonical(response)
     write_once(directory / "response.json", body)
-    usage = usage_cost(response.get("usage"), provider)
+    try:
+        usage = usage_cost(response.get("usage"), provider)
+    except ValueError:
+        _uncertain(directory, identity, "usage_unavailable")
+        raise
     reported = response.get("model")
     # The pinned model must come back exactly. A model the miner named may come
     # back as a dated snapshot of that name, which is recorded.
@@ -351,13 +563,17 @@ def _request_once(
         or type(reported) is not str
         or not reported.startswith(provider.model_id + "-")
     ):
+        _uncertain(directory, identity, "model_mismatch")
         raise ValueError(
             "different provider model; retained usage needs reconciliation"
         )
+    # A reply the provider ended early stays FAILED_INFRA, as it always was
+    # recorded, with its exact metered charge; `incomplete` says how it ended.
     status = "SUCCEEDED" if response.get("status") == "completed" else "FAILED_INFRA"
     report = provider_report(response, provider)
     charge = settled_charge(usage, report, provider)
     if priced and charge["nanodollars"] > provider.reservation_nano:
+        _uncertain(directory, identity, "charge_exceeds_reservation")
         raise ValueError(
             "provider-reported charge exceeds the reservation; retained for "
             "reconciliation"
@@ -368,6 +584,8 @@ def _request_once(
         "usage": usage,
         "provider_status": response.get("status"),
     }
+    if status != "SUCCEEDED":
+        result["incomplete"] = incomplete_reply(response, settings.max_output_tokens)
     if not provider.is_historical_default:
         # Campaign evidence for every call: the estimate and the provider's
         # own charge side by side, and who served it.
@@ -389,7 +607,7 @@ def _request_once(
         },
         result=result,
     )
-    if status != "SUCCEEDED":
+    if status != "SUCCEEDED" and not accept_incomplete:
         raise ValueError("incomplete provider response; retained accounting, no retry")
     return response
 
@@ -403,10 +621,234 @@ def _replayed_rejection(record, provider):
             record["provider_code"],
             record["retry_after_seconds"],
             record["unbilled"],
-            outcome is ProviderOutcome.RATE_LIMITED,
+            outcome in RETRY_SAFE,
         ),
         fresh=False,
     )
+
+
+def incomplete_reply(response, max_output_tokens):
+    """How a reply the provider ended early ended, or None for a completed one.
+
+    `reason` is a closed code: `max_output_tokens` for a reply cut off at its
+    output limit, otherwise the provider's own stop reason (`pause_turn`,
+    `refusal`, `content_filter`, ...), or `unknown`. A reply retained before
+    the translators recorded `incomplete_details` is read from its Messages
+    stop reason where it has one. `max_output_tokens` is the request's limit;
+    `output_tokens` the provider's count, where it gave one."""
+    if type(response) is not dict or response.get("status") == "completed":
+        return None
+    details = response.get("incomplete_details")
+    reason = details.get("reason") if type(details) is dict else None
+    if reason is None:
+        reason = response.get("provider_stop_reason")
+    reason = _code(_INCOMPLETE_REASONS.get(reason, reason)) or "unknown"
+    usage = response.get("usage")
+    produced = usage.get("output_tokens") if type(usage) is dict else None
+    return {
+        "reason": reason,
+        "output_tokens": produced if type(produced) is int and produced >= 0 else None,
+        "max_output_tokens": max_output_tokens,
+    }
+
+
+# -- settling a call whose outcome is unknown (LP-PROD-A) ----------------------
+
+#: What `_request_once` journals beside a call it leaves unresolved.
+UNCERTAIN_CALL = "carbon.autoresearch.provider-uncertain.v1"
+#: The journal of a call's explicit settlement.
+PROVIDER_SETTLEMENT = "carbon.autoresearch.provider-settlement.v1"
+#: Why a settlement was refused, each with the next step. The operation stays
+#: as it was.
+SETTLEMENT_REFUSALS = {
+    "operation_unavailable": "this owner has no such operation",
+    "not_a_provider_call": (
+        "this operation is not a model call; reconcile it through its own path"
+    ),
+    "not_uncertain": "this call's outcome is known; there is nothing to settle",
+    "request_changed": (
+        "the retained request differs from the one reserved; keep the campaign "
+        "as it is and report it"
+    ),
+    "charge_exceeds_reservation": (
+        "the provider reported a charge above the call's reservation, which the "
+        "ledger cannot book; reconcile it against the provider's own usage "
+        "record before this campaign makes another call"
+    ),
+}
+SETTLEMENT_ACCOUNTING = (
+    "The call's outcome is unknown, so its full reservation is booked as its "
+    "charge: never less than the provider can have charged. The provider's own "
+    "charge, which may be lower or nothing, is not known to Carbon."
+)
+SETTLEMENT_RESEND = (
+    "Nothing is resent by this settlement. The next model call of this turn goes "
+    "out under a fresh identity with its own reservation."
+)
+
+
+class SettlementRefused(ValueError):
+    """A call Carbon will not settle, with a closed `code` and the next step."""
+
+    def __init__(self, code):
+        super().__init__(code + ": " + SETTLEMENT_REFUSALS[code])
+        self.code = code
+
+
+def _call_directory(ledger, owner, identity):
+    return ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
+
+
+def _read_record(path, schema):
+    if not path.is_file() or path.is_symlink() or path.stat().st_size > 65536:
+        return None
+    try:
+        value = json.loads(path.read_bytes())
+    except ValueError:
+        return None
+    return value if type(value) is dict and value.get("schema") == schema else None
+
+
+def _reported_above(path, reservation):
+    """Whether a retained reply reports a provider charge above the call's
+    money reservation (Engy's `x_engy.charged_micro`)."""
+    reserved = reservation.get("provider_nanodollars")
+    if reserved is None or not path.is_file() or path.is_symlink():
+        return False
+    try:
+        response = json.loads(path.read_bytes())
+    except ValueError:
+        return False
+    report = response.get("x_engy") if type(response) is dict else None
+    charged = report.get("charged_micro") if type(report) is dict else None
+    return type(charged) is int and charged * 1000 > reserved
+
+
+def _settlement(ledger, owner, identity):
+    """The settlement of an unresolved model call, as it would be journalled,
+    with what the ledger needs to book it; or the recorded settlement of one
+    already settled. Refuses with `SettlementRefused`; changes nothing."""
+    with ledger.db() as db:
+        row = db.execute(
+            "SELECT owner,state,request_digest,reservation,result FROM operations "
+            "WHERE id=?",
+            (identity,),
+        ).fetchone()
+    if row is None or row[0] != owner:
+        raise SettlementRefused("operation_unavailable")
+    reservation = json.loads(row[3])
+    if reservation.get("provider_attempts") != 1:
+        raise SettlementRefused("not_a_provider_call")
+    result = json.loads(row[4]) if row[4] else None
+    if (
+        row[1] == "FAILED_INFRA"
+        and type(result) is dict
+        and result.get("provider_settlement") is not None
+    ):
+        return None, result["provider_settlement"]
+    if row[1] != "RESERVED":
+        raise SettlementRefused("not_uncertain")
+    directory = _call_directory(ledger, owner, identity)
+    request_file = directory / "request.json"
+    response_file = directory / "response.json"
+    if request_file.exists() and digest(request_file.read_bytes()) != row[2]:
+        raise SettlementRefused("request_changed")
+    known = _read_record(directory / "uncertain.json", UNCERTAIN_CALL) or {}
+    reason = _code(known.get("reason")) or "outcome_unknown"
+    if reason == "charge_exceeds_reservation" or _reported_above(
+        response_file, reservation
+    ):
+        raise SettlementRefused("charge_exceeds_reservation")
+    return row[2], {
+        "schema": PROVIDER_SETTLEMENT,
+        "identity": identity,
+        "reason": reason,
+        "provider_failure": known.get("provider_failure"),
+        "request_retained": request_file.exists(),
+        "response_retained": response_file.exists(),
+        "booked": reservation,
+        "accounting": SETTLEMENT_ACCOUNTING,
+        "resend": SETTLEMENT_RESEND,
+        "retry_dispatched": False,
+    }
+
+
+def settle_uncertain_call(ledger, *, owner, identity):
+    """Settle one model call whose outcome is unknown; returns its settlement.
+
+    The explicit, journalled end of a call left `RESERVED` (a timeout, a
+    dropped connection, a 5xx after sending, a reply without usable usage, a
+    different model): its full reservation is booked as its charge, so spend
+    is never under-counted, and the operation finishes `FAILED_INFRA` with the
+    settlement as its result. The settlement is journalled beside the call
+    (`settlement.json`) before the ledger books it. Nothing is resent here;
+    the next `request_model` of that turn passes the settled identity and
+    sends the request under the next one, with its own reservation.
+
+    Called only by the campaign's reconcile action, by its owner-lock holder
+    under a fresh control generation; never automatically. Idempotent: a
+    settled call returns its settlement. Refused (`SettlementRefused`, the
+    operation unchanged): another owner's or a missing operation, one that is
+    not a model call, a call whose outcome is known, a retained request that
+    differs from the reserved one, and a provider-reported charge above the
+    reservation, which the ledger cannot book.
+    """
+    fingerprint, settlement = _settlement(ledger, owner, identity)
+    if fingerprint is None:
+        return settlement
+    directory = _call_directory(ledger, owner, identity)
+    directory.mkdir(mode=0o700, exist_ok=True)
+    write_once(directory / "settlement.json", canonical(settlement))
+    ledger.finish(
+        identity,
+        owner=owner,
+        state="FAILED_INFRA",
+        actual=settlement["booked"],
+        result={"request_digest": fingerprint, "provider_settlement": settlement},
+    )
+    return settlement
+
+
+def uncertain_calls(ledger, *, owner):
+    """This owner's model calls whose outcome is unknown, oldest first: what is
+    known about each, what a settlement would book, and why one would be
+    refused (`refusal`, a `SETTLEMENT_REFUSALS` code, or None)."""
+    rows = []
+    for op in ledger.status(owner=owner)["operations"]:
+        if op["state"] != "RESERVED" or op["reservation"].get("provider_attempts") != 1:
+            continue
+        try:
+            _, settlement = _settlement(ledger, owner, op["id"])
+            refusal = None
+        except SettlementRefused as refused:
+            settlement, refusal = None, refused.code
+        rows.append(
+            {
+                "identity": op["id"],
+                "reason": None if settlement is None else settlement["reason"],
+                "response_retained": (
+                    None if settlement is None else settlement["response_retained"]
+                ),
+                "booked_on_settlement": op["reservation"],
+                "refusal": refusal,
+            }
+        )
+    return rows
+
+
+def settle_uncertain_calls(ledger, *, owner):
+    """Settle every model call of this owner whose outcome is unknown: the
+    reconcile action's entry point. Returns the settlements made and each
+    refusal with its code; a refused call stays unresolved."""
+    settled, refused = [], []
+    for row in uncertain_calls(ledger, owner=owner):
+        try:
+            settled.append(
+                settle_uncertain_call(ledger, owner=owner, identity=row["identity"])
+            )
+        except SettlementRefused as refusal:
+            refused.append({"identity": row["identity"], "code": refusal.code})
+    return {"settled": settled, "refused": refused}
 
 
 def settled_charge(usage, report, selection):
@@ -446,11 +888,14 @@ _RETRY = re.compile(r"-rl\d+$")
 
 def provider_turns(operations):
     """Cost, tokens and provenance per model turn, from the ledger's own
-    operations (retries under a rate limit fold into their turn).
+    operations (every later attempt, `-rlN`, folds into its turn).
 
     Each turn states its charge basis. Where a call recorded no charge record
     (the historical pinned selection) the settled amount is the ledger's own
-    actual, which is the metered usage.
+    actual, which is the metered usage. A turn with a settled call lists it
+    under `settled`, and a turn whose reply the provider ended early carries
+    `incomplete` (`incomplete_reply`); a turn with neither has neither key, as
+    before (LP-PROD-A).
     """
     turns = {}
     for op in operations:
@@ -492,6 +937,10 @@ def provider_turns(operations):
         elif "provider_rejection" in result:
             amount, basis = 0, "rejected before generation; no token charge"
             turn["rejections"].append(result["provider_rejection"])
+        elif "provider_settlement" in result:
+            amount = actual.get("provider_nanodollars")
+            basis = "outcome unknown; full reservation booked by settlement"
+            turn.setdefault("settled", []).append(op["id"])
         else:
             amount = actual.get("provider_nanodollars")
             basis = (result.get("usage") or {}).get("billing_basis", "ledger actual")
@@ -515,6 +964,8 @@ def provider_turns(operations):
             turn["provenance"].append(
                 {k: report[k] for k in ("request_id", "miner", "worker")}
             )
+        if result.get("incomplete") is not None:
+            turn["incomplete"] = result["incomplete"]
     return list(turns.values())
 
 
