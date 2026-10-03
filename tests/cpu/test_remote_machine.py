@@ -8,6 +8,10 @@ with a fake `docker` on PATH. What is held:
   no `accept-new`; the destination can never be read as an option;
 - `run` returns the exit status and a bounded standard output, and a timeout
   or a missing client is a status, not an exception;
+- a tunnel opens no local TCP port: ssh forwards an owner-only Unix socket in
+  a new 0700 directory, removed on close; a socket that is not this user's,
+  or a link in its place, is refused; the forward ends only at a loopback or
+  private IPv4 address; and a hostile local listener never hears the job;
 - the start script starts one container by image ID with a per-job name,
   `--rm`, the GPUs and the job port on the machine's loopback only; the job's
   environment goes through a temporary file that is deleted; nothing uses
@@ -20,17 +24,27 @@ with a fake `docker` on PATH. What is held:
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
+import socket
+import stat
 import subprocess
+import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
 
 import pytest
 
+from carbon.compute import job_server
 from carbon.compute import remote_machine as rm
+from carbon.compute.remote_job import TUNNEL_URL, RemoteJob, new_token
 from carbon.compute.remote_machine import (
     RemoteMachineError,
     SSHClient,
+    checked_forward_host,
     published_port,
     remove_script,
     send_image,
@@ -255,7 +269,10 @@ def test_run_returns_the_status_and_a_bounded_stdout(tmp_path, monkeypatch):
     assert argv[-4:] == ["--", "miner@gpu-box", "bash", "-s"]
 
 
-def test_a_run_that_outlasts_its_time_or_has_no_client_is_a_status(tmp_path):
+def test_a_run_that_outlasts_its_time_or_has_no_client_is_a_status(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
     fake = _executable(tmp_path / "ssh-fake", FAKE_SSH)
     client = SSHClient("gpu-box", binary=str(fake))
     assert client.run("sleep 20", timeout=0.5) == (rm.TIMED_OUT, b"")
@@ -263,36 +280,295 @@ def test_a_run_that_outlasts_its_time_or_has_no_client_is_a_status(tmp_path):
     assert missing.run("true", timeout=5) == (rm.NO_SSH_CLIENT, b"")
 
 
-def test_a_tunnel_forwards_a_local_port_to_the_machines_loopback(tmp_path, monkeypatch):
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
-    fake = _executable(tmp_path / "ssh-fake", FAKE_SSH)
-    client = SSHClient(
-        "gpu-box",
-        binary=str(fake),
-        free_port=lambda: 41000,
-        listening=lambda port: port == 41000,
-        sleep=lambda _: None,
-    )
-    tunnel = client.tunnel(49153)
+# --- the tunnel ------------------------------------------------------------------------
+
+#: A fake `ssh` for a forward: it logs its argv, then serves the `-L` socket
+#: and relays each connection to `host:port`, as ssh relays it to the
+#: machine. `CARBON_FAKE_FORWARD` makes it misbehave: `link` puts a link in
+#: the socket's place, `open` lets others enter the socket's directory.
+FAKE_FORWARD = r"""
+import os, socket, sys, threading
+
+arguments = sys.argv[1:]
+with open(os.environ["CARBON_FAKE_LOG"] + ".ssh", "a") as log:
+    log.write("".join(argument + "\n" for argument in arguments))
+path, host, port = arguments[arguments.index("-L") + 1].rsplit(":", 2)
+mode = os.environ.get("CARBON_FAKE_FORWARD", "")
+bound = path
+if mode == "link":
+    bound = os.path.join(os.path.dirname(path), "elsewhere.sock")
+if mode == "open":
+    os.chmod(os.path.dirname(path), 0o755)
+listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+listener.bind(bound)
+listener.listen()
+if mode == "link":
+    os.symlink(bound, path)
+
+
+def pump(source, sink):
     try:
-        assert tunnel.url == "http://127.0.0.1:41000"
+        while chunk := source.recv(65536):
+            sink.sendall(chunk)
+    except OSError:
+        pass
+    finally:
+        try:
+            sink.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
+
+
+def relay(client):
+    with client, socket.create_connection((host, int(port))) as upstream:
+        back = threading.Thread(target=pump, args=(upstream, client))
+        back.start()
+        pump(client, upstream)
+        back.join()
+
+
+while True:
+    client, _ = listener.accept()
+    threading.Thread(target=relay, args=(client,), daemon=True).start()
+"""
+
+PROGRAM = b"""
+import json
+from pathlib import Path
+work = Path.cwd()
+data = json.loads((work / "inputs.json").read_text())
+(work.parent / "output" / "predictions.json").write_text(json.dumps({"sum": sum(data)}))
+"""
+
+
+@pytest.fixture
+def short_tmp(monkeypatch):
+    """A short temporary directory for tunnels: a socket's path is bounded."""
+    root = Path(tempfile.mkdtemp(prefix="carbon-test-"))
+    monkeypatch.setattr(tempfile, "tempdir", str(root))
+    yield root
+    shutil.rmtree(root, ignore_errors=True)
+
+
+def forwarding(tmp_path, monkeypatch, mode=""):
+    """An SSH client whose `ssh` is FAKE_FORWARD; its forwards are recorded."""
+    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
+    monkeypatch.setenv("CARBON_FAKE_FORWARD", mode)
+    fake = _executable(tmp_path / "ssh-forward", f"#!{sys.executable}\n" + FAKE_FORWARD)
+    client = SSHClient("gpu-box", binary=str(fake), sleep=lambda _: time.sleep(0.1))
+    client.forwards = []
+    forward = client.forward
+
+    def recorded(*args, **kwargs):
+        client.forwards.append(forward(*args, **kwargs))
+        return client.forwards[-1]
+
+    client.forward = recorded
+    return client
+
+
+def serving(root):
+    """The job's server, in a thread on this machine's loopback: its port
+    and token."""
+    token, ready, port = new_token(), threading.Event(), []
+
+    def started(bound):
+        port.append(bound)
+        ready.set()
+
+    threading.Thread(
+        target=job_server.serve,
+        kwargs={
+            "token": token,
+            "port": 0,
+            "seconds": 30,
+            "lifetime": 60,
+            "root": root,
+            "ready": started,
+        },
+        daemon=True,
+    ).start()
+    assert ready.wait(10)
+    return port[0], token
+
+
+def test_a_tunnel_forwards_an_owner_only_socket_to_the_machine(
+    tmp_path, short_tmp, monkeypatch
+):
+    client = forwarding(tmp_path, monkeypatch)
+    tunnel = client.tunnel(49153, host="172.30.0.2", attempts=100)
+    directory = Path(tunnel.directory)
+    try:
+        assert tunnel.url == TUNNEL_URL
+        assert directory.parent == short_tmp
+        # A new directory only this user may enter, holding ssh's socket.
+        found = os.lstat(directory)
+        assert stat.S_IMODE(found.st_mode) == 0o700 and found.st_uid == os.getuid()
+        assert stat.S_ISSOCK(os.lstat(tunnel.path).st_mode)
         argv = _logged(tmp_path / "log.ssh", "gpu-box")
-        assert "127.0.0.1:41000:127.0.0.1:49153" in argv
-        assert "ExitOnForwardFailure=yes" in argv and "-N" in argv
-        assert argv[-2:] == ["--", "gpu-box"]
+        assert argv[argv.index("-L") + 1] == f"{tunnel.path}:172.30.0.2:49153"
+        for option in (
+            "ExitOnForwardFailure=yes",
+            "StreamLocalBindUnlink=yes",
+            "StreamLocalBindMask=0177",
+        ):
+            assert option in argv
+        assert "-N" in argv and argv[-2:] == ["--", "gpu-box"]
     finally:
         tunnel.close()
-    assert tunnel.process.poll() is not None
+    # Closing stops ssh and removes the socket and its directory.
+    assert tunnel.process.poll() is not None and not directory.exists()
 
 
-def test_a_forward_that_never_opens_is_refused_and_closed(tmp_path):
-    fake = _executable(tmp_path / "ssh-fake", "#!/bin/bash\nexit 255\n")
-    client = SSHClient(
-        "gpu-box", binary=str(fake), listening=lambda _: False, sleep=lambda _: None
-    )
+def test_a_hostile_listener_on_a_local_port_never_hears_the_job(
+    tmp_path, short_tmp, monkeypatch
+):
+    """Another local user holds a TCP port first. The tunnel opens none, so
+    every request, token and all, goes to the tunnel's own socket."""
+    port, token = serving(tmp_path)
+    hostile = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    hostile.bind(("127.0.0.1", 0))
+    hostile.listen()
+    hostile.setblocking(False)
+    connected = []
+    connect = socket.socket.connect
+
+    def recording(self, address):
+        connected.append((self.family, address))
+        return connect(self, address)
+
+    monkeypatch.setattr(socket.socket, "connect", recording)
+    tunnel = forwarding(tmp_path, monkeypatch).tunnel(port, attempts=100)
+    try:
+        job = RemoteJob(
+            tunnel.url, token, transport=tunnel.transport, sleep=lambda _: None
+        )
+        result, files = job.run(
+            {"program.py": PROGRAM, "inputs.json": b"[1, 2]"},
+            ready_deadline=job.clock() + 10,
+            run_deadline=job.clock() + 30,
+        )
+    finally:
+        tunnel.close()
+    assert result["state"] == "DONE" and json.loads(files["predictions.json"]) == {
+        "sum": 3
+    }
+    # The controller connected only to the tunnel's socket, never over TCP.
+    assert connected and set(connected) == {(socket.AF_UNIX, tunnel.path)}
+    with pytest.raises(BlockingIOError):
+        hostile.accept()
+    # Nor can a job be aimed at that port.
+    with pytest.raises(ValueError, match="https"):
+        RemoteJob(f"http://127.0.0.1:{hostile.getsockname()[1]}", token)
+    hostile.close()
+
+
+def _not_ours(monkeypatch):
+    """Make the tunnel's socket look like another user's."""
+    lstat = os.lstat
+
+    def foreign(path, *args, **kwargs):
+        found = lstat(path, *args, **kwargs)
+        if os.fspath(path).endswith("/" + rm.TUNNEL_SOCKET):
+            values = list(found[:10])
+            values[4] = found.st_uid + 1
+            return os.stat_result(values)
+        return found
+
+    monkeypatch.setattr(os, "lstat", foreign)
+
+
+@pytest.mark.parametrize("mode", ["link", "open", "foreign"])
+def test_a_socket_that_is_not_this_users_own_is_refused(
+    tmp_path, short_tmp, monkeypatch, mode
+):
+    client = forwarding(tmp_path, monkeypatch, "" if mode == "foreign" else mode)
+    if mode == "foreign":
+        _not_ours(monkeypatch)
     with pytest.raises(RemoteMachineError) as refused:
-        client.tunnel(49153)
+        client.tunnel(49153, attempts=100)
+    assert refused.value.code == "tunnel_socket_refused"
+    # The forward was stopped and nothing is left in the socket's place.
+    (process,) = client.forwards
+    assert process.poll() is not None
+    assert not any(os.path.lexists(d / rm.TUNNEL_SOCKET) for d in short_tmp.iterdir())
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "8.8.8.8",
+        "203.0.113.7",
+        "0.0.0.0",
+        "169.254.169.254",
+        "100.64.0.1",
+        "172.32.0.1",
+        "192.0.2.1",
+        "255.255.255.255",
+        "gpu-box",
+        "localhost",
+        "::1",
+        "127.1",
+        "010.0.0.1",
+        " 10.0.0.1",
+        "",
+        None,
+        167772161,
+    ],
+)
+def test_a_forward_ends_only_at_a_loopback_or_private_ipv4_address(tmp_path, host):
+    client = SSHClient("gpu-box", binary=str(tmp_path / "never-run"))
+    with pytest.raises(ValueError, match="loopback or private"):
+        client.tunnel(49153, host=host)
+    with pytest.raises(ValueError, match="loopback or private"):
+        client.forward("/tmp/carbon-tunnel-x/job.sock", 49153, host=host)
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "127.0.0.1",
+        "127.0.0.53",
+        "10.0.0.5",
+        "172.16.0.1",
+        "172.31.255.254",
+        "192.168.1.20",
+    ],
+)
+def test_a_forward_may_end_at_the_loopback_or_a_private_address(host):
+    assert checked_forward_host(host) == host
+
+
+def test_without_unix_sockets_the_tunnel_is_refused_and_never_uses_tcp(
+    tmp_path, short_tmp, monkeypatch
+):
+    monkeypatch.delattr(socket, "AF_UNIX")
+    with pytest.raises(RemoteMachineError) as refused:
+        SSHClient("gpu-box", binary=str(tmp_path / "never-run")).tunnel(49153)
+    assert refused.value.code == "no_unix_sockets"
+    assert list(short_tmp.iterdir()) == []
+
+
+def test_a_socket_path_too_long_for_a_socket_is_refused(
+    tmp_path, short_tmp, monkeypatch
+):
+    long = short_tmp / ("d" * 100)
+    long.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(long))
+    with pytest.raises(RemoteMachineError) as refused:
+        SSHClient("gpu-box", binary=str(tmp_path / "never-run")).tunnel(49153)
+    assert refused.value.code == "tunnel_socket_unusable"
+    assert list(long.iterdir()) == []
+
+
+def test_a_forward_that_never_opens_is_refused_and_closed(tmp_path, short_tmp):
+    fake = _executable(tmp_path / "ssh-fake", "#!/bin/bash\nexit 255\n")
+    client = SSHClient("gpu-box", binary=str(fake), sleep=lambda _: time.sleep(0.1))
+    with pytest.raises(RemoteMachineError) as refused:
+        client.tunnel(49153, attempts=100)
     assert refused.value.code == "ssh_forward_failed"
+    # Its private directory is gone too.
+    assert list(short_tmp.iterdir()) == []
 
 
 # --- the start script ----------------------------------------------------------------

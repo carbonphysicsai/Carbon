@@ -229,9 +229,12 @@ class RemoteRunner:
             try:
                 port = self._start(name, record, seconds)
                 tunnel = self.transport.tunnel(port)
+                # The job is reached only through the tunnel's owner-only Unix
+                # socket, never a local TCP port.
                 job = self.job(
                     tunnel.url,
                     record["token"],
+                    transport=tunnel.transport,
                     cancelled=lambda: _cancel_requested(ledger, owner, identity),
                 )
                 now = job.clock()

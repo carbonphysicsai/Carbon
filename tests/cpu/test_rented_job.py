@@ -1,9 +1,11 @@
 """The one-job server a remote worker container runs, and the controller's
 client.
 
-The server runs in-process on 127.0.0.1 here. The program, the token checks,
-the stage-once rule, the carrier's working-directory layout and the bounded,
-flat-file archives are all real; only the container around them is absent.
+The server runs in-process on 127.0.0.1 here, and the controller reaches it
+as it reaches a remote job: through a tunnel's owner-only Unix socket, never
+a local TCP port. The program, the token checks, the stage-once rule, the
+carrier's working-directory layout and the bounded, flat-file archives are
+all real; only the container around them is absent.
 """
 
 from __future__ import annotations
@@ -11,15 +13,29 @@ from __future__ import annotations
 import gzip
 import io
 import json
+import os
+import socket
+import sys
 import tarfile
+import tempfile
 import threading
-import urllib.error
-import urllib.request
+from pathlib import Path
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from remote_container_fixture import local_tunnel
+
 from carbon.compute import job_server
-from carbon.compute.remote_job import RemoteJob, RemoteJobFailure, new_token
+from carbon.compute.remote_job import (
+    MAX_ERROR_BYTES,
+    TUNNEL_URL,
+    RemoteJob,
+    RemoteJobFailure,
+    UnixTransport,
+    new_token,
+)
 
 PROGRAM = b"""
 import json
@@ -31,11 +47,13 @@ data = json.loads((work / "inputs.json").read_text())
 """
 
 
+def through(tunnel, token, **options):
+    """The job reached through `tunnel`, as the runner reaches it."""
+    return RemoteJob(tunnel.url, token, transport=tunnel.transport, **options)
+
+
 @pytest.fixture
-def pod(tmp_path, monkeypatch):
-    # Localhost is never sent through a configured proxy.
-    monkeypatch.setenv("no_proxy", "127.0.0.1")
-    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+def pod(tmp_path):
     token, ready = new_token(), threading.Event()
     port = []
 
@@ -57,13 +75,15 @@ def pod(tmp_path, monkeypatch):
     )
     thread.start()
     assert ready.wait(10)
-    yield f"http://127.0.0.1:{port[0]}", token, thread
+    tunnel = local_tunnel(port[0])
+    yield tunnel, token, thread
+    tunnel.close()
     thread.join(timeout=1)
 
 
 def test_a_job_runs_once_in_the_carriers_layout_and_returns_its_output(pod):
-    base, token, thread = pod
-    job = RemoteJob(base, token, sleep=lambda _: None)
+    tunnel, token, thread = pod
+    job = through(tunnel, token, sleep=lambda _: None)
     result, files = job.run(
         {"program.py": PROGRAM, "inputs.json": b"[1, 2, 3]"},
         ready_deadline=job.clock() + 10,
@@ -77,8 +97,8 @@ def test_a_job_runs_once_in_the_carriers_layout_and_returns_its_output(pod):
 
 
 def test_every_request_but_status_needs_the_job_token(pod):
-    base, token, _ = pod
-    stranger = RemoteJob(base, new_token())
+    tunnel, token, _ = pod
+    stranger = through(tunnel, new_token())
     assert stranger.state() == "WAITING"
     with pytest.raises(RemoteJobFailure, match="stage: http 401"):
         stranger.stage({"program.py": PROGRAM})
@@ -87,12 +107,12 @@ def test_every_request_but_status_needs_the_job_token(pod):
     with pytest.raises(RemoteJobFailure, match="output: http 401"):
         stranger.output()
     # The real job is untouched by the stranger's attempts.
-    assert RemoteJob(base, token).state() == "WAITING"
+    assert through(tunnel, token).state() == "WAITING"
 
 
 def test_a_job_is_staged_once_and_run_only_after_staging(pod):
-    base, token, _ = pod
-    job = RemoteJob(base, token)
+    tunnel, token, _ = pod
+    job = through(tunnel, token)
     with pytest.raises(RemoteJobFailure, match="run: http 409"):
         job.start()
     job.stage({"program.py": PROGRAM, "inputs.json": b"[1]"})
@@ -101,8 +121,8 @@ def test_a_job_is_staged_once_and_run_only_after_staging(pod):
 
 
 def test_a_failing_program_is_reported_as_failed_with_its_stderr(pod):
-    base, token, _ = pod
-    job = RemoteJob(base, token, sleep=lambda _: None)
+    tunnel, token, _ = pod
+    job = through(tunnel, token, sleep=lambda _: None)
     result, files = job.run(
         {"program.py": b"raise SystemExit('no inputs')"},
         ready_deadline=job.clock() + 10,
@@ -145,16 +165,104 @@ def test_archives_are_bounded():
         job_server.unpack(job_server.pack({"a": b"x" * 2048}), 64)
 
 
-def test_a_remote_job_is_reached_over_https_or_a_local_tunnel():
-    # Plain HTTP to another host is refused, with no flag to allow it: the
-    # only plain-HTTP route is this machine's end of an SSH port forward.
-    for url in ("http://pod.example.org:8000", "http://10.0.0.5:8000"):
+def test_a_remote_job_is_reached_over_https_or_a_tunnels_unix_socket(tmp_path):
+    # Plain HTTP over TCP is refused, to another host or to a local port
+    # another user could hold, with no flag to allow it. The tunnel's URL is
+    # refused without its Unix transport.
+    def plain(method, url, *, body, headers, timeout):
+        return 200, b""
+
+    for url in (
+        "http://pod.example.org:8000",
+        "http://10.0.0.5:8000",
+        "http://127.0.0.1:41000",
+        "http://localhost:41000",
+        TUNNEL_URL,
+    ):
         with pytest.raises(ValueError, match="https"):
             RemoteJob(url, new_token())
+        with pytest.raises(ValueError, match="https"):
+            RemoteJob(url, new_token(), transport=plain)
     with pytest.raises(TypeError):
         RemoteJob("http://pod.example.org:8000", new_token(), plain_http=True)
+    # A tunnel's Unix transport carries only that tunnel's job.
+    unix = UnixTransport(str(tmp_path / "job.sock"))
+    for url in ("https://pod.example.org", "http://127.0.0.1:41000"):
+        with pytest.raises(ValueError, match="tunnel URL"):
+            RemoteJob(url, new_token(), transport=unix)
+    with pytest.raises(ValueError, match="own job"):
+        unix("GET", "http://127.0.0.1:41000/status", body=None, headers={}, timeout=1)
     RemoteJob("https://pod.example.org", new_token())
-    RemoteJob("http://127.0.0.1:41000", new_token())
+    RemoteJob(TUNNEL_URL, new_token(), transport=unix)
+
+
+def unix_server(responses):
+    """An HTTP server on an owner-only Unix socket that answers each
+    connection with the next of `responses`; it records each request."""
+    directory = tempfile.mkdtemp(prefix="carbon-tunnel-")
+    path = os.path.join(directory, "job.sock")
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(path)
+    listener.listen()
+    seen = []
+
+    def serve():
+        with listener:
+            for response in responses:
+                client, _ = listener.accept()
+                with client:
+                    seen.append(client.recv(65536))
+                    try:
+                        client.sendall(response)
+                    except OSError:
+                        pass
+
+    threading.Thread(target=serve, daemon=True).start()
+    return path, seen
+
+
+def test_the_unix_transport_follows_no_redirect_and_bounds_bodies(monkeypatch):
+    from carbon.compute import remote_job
+
+    monkeypatch.setattr(remote_job, "MAX_OUTPUT_BYTES", 10)
+    redirect = (
+        b"HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:9/steal\r\n"
+        b"Content-Length: 0\r\nConnection: close\r\n\r\n"
+    )
+    refused = (
+        b"HTTP/1.1 404 Not Found\r\nContent-Length: 100000\r\nConnection: close\r\n\r\n"
+    ) + b"e" * 100000
+    served = b"HTTP/1.1 200 OK\r\nContent-Length: 50\r\nConnection: close\r\n\r\n"
+    path, seen = unix_server([redirect, refused, served + b"s" * 50])
+    transport = UnixTransport(path)
+    try:
+        call = {"body": None, "headers": {"Authorization": "Bearer t"}, "timeout": 5}
+        # A redirect is returned, never followed.
+        assert transport("GET", TUNNEL_URL + "/output", **call) == (302, b"")
+        assert len(seen) == 1 and seen[0].startswith(b"GET /output HTTP/1.1\r\n")
+        # An error body is read to its bound, a success body to one past it.
+        status, body = transport("GET", TUNNEL_URL + "/output", **call)
+        assert status == 404 and len(body) == MAX_ERROR_BYTES
+        assert transport("GET", TUNNEL_URL + "/output", **call) == (200, b"s" * 11)
+    finally:
+        os.unlink(path)
+        os.rmdir(os.path.dirname(path))
+
+
+def test_the_unix_transport_refuses_a_socket_that_is_not_private():
+    path, seen = unix_server([b""])
+    os.chmod(os.path.dirname(path), 0o755)
+    transport = UnixTransport(path)
+    try:
+        with pytest.raises(ConnectionRefusedError):
+            transport("GET", TUNNEL_URL + "/status", body=None, headers={}, timeout=5)
+        assert seen == []
+        # The job sees only that its call failed, by type.
+        job = RemoteJob(TUNNEL_URL, new_token(), transport=transport)
+        assert job.state() is None and seen == []
+    finally:
+        os.unlink(path)
+        os.rmdir(os.path.dirname(path))
 
 
 def test_the_server_refuses_to_start_without_a_job_token():
@@ -163,8 +271,8 @@ def test_the_server_refuses_to_start_without_a_job_token():
 
 
 def test_unknown_paths_are_not_found(pod):
-    base, _, _ = pod
-    request = urllib.request.Request(base + "/anything", method="GET")
-    with pytest.raises(urllib.error.HTTPError) as refused:
-        urllib.request.urlopen(request, timeout=5)
-    assert refused.value.code == 404
+    tunnel, _, _ = pod
+    status, _ = tunnel.transport(
+        "GET", tunnel.url + "/anything", body=None, headers={}, timeout=5
+    )
+    assert status == 404

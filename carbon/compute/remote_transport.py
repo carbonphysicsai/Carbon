@@ -249,6 +249,10 @@ class SSHContainer(RemoteTransport):
     ):
         super().__init__(ssh)
         self.python, self.build_file, self.root = python, build_file, root
+        # Each started job's record (`remote_container.JobRecord`), by name:
+        # held here on the controller, never in the container, so cleanup can
+        # find and confirm the job whatever the job did there.
+        self._records = {}
 
     def _identity(self, image) -> None:
         script = remote_container.identity_script(
@@ -276,10 +280,24 @@ class SSHContainer(RemoteTransport):
         script = remote_container.start_script(
             name=name, env=env, command=command, root=self.root
         )
-        return self._started(script, timeout)
+        code, stdout = self.ssh.run(script, timeout=timeout)
+        # Kept even when the start fails: a server that was launched but never
+        # answered is still found and stopped.
+        record = remote_container.job_record(stdout)
+        if record is not None:
+            self._records[name] = record
+        if code != 0:
+            raise failure_for(code)
+        return published_port(stdout)
 
     def cleanup(self, name) -> bool:
-        return self._cleaned(remote_container.stop_script(name, root=self.root))
+        record = self._records.get(name)
+        cleaned = self._cleaned(
+            remote_container.stop_script(name, root=self.root, record=record)
+        )
+        if cleaned:
+            self._records.pop(name, None)
+        return cleaned
 
 
 def transport_for(machine: RemoteMachine, *, ssh=SSHClient) -> RemoteTransport:

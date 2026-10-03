@@ -91,7 +91,7 @@ class NeverReached:
     def run(self, script, *, timeout):
         raise AssertionError("nothing is reached until a trial runs")
 
-    def tunnel(self, port):
+    def tunnel(self, port, *, host="127.0.0.1"):
         raise AssertionError("nothing is reached until a trial runs")
 
 
