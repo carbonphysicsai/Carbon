@@ -430,7 +430,13 @@ def parity(service, intake_config, deployment_config, repository):
 
 
 def _run_checks(checks):
-    """Run each named check; one that depends on a refused one is skipped."""
+    """Run each named check; one that depends on a refused one is skipped.
+
+    A check that fails in a way it does not name (an unreadable store, a
+    malformed root) is still a refusal, `check_failed` with the exception's
+    type only: the preflight never passes by crashing, and never prints a
+    private value.
+    """
     report, values = [], {}
     for name, needs, run in checks:
         if any(values.get(n) is None for n in needs):
@@ -441,6 +447,16 @@ def _run_checks(checks):
             value = run(values)
         except ServiceRefused as refused:
             report.append({"check": name, "status": "refused", **refused.as_dict()})
+            values[name] = None
+        except Exception as failure:  # noqa: BLE001 - reported by type, fail closed
+            report.append(
+                {
+                    "check": name,
+                    "status": "refused",
+                    "refused": "check_failed",
+                    "type": type(failure).__name__,
+                }
+            )
             values[name] = None
         else:
             report.append({"check": name, "status": "ok", "detail": value})

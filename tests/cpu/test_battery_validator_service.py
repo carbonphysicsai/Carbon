@@ -179,6 +179,31 @@ def test_a_fresh_development_deployment_on_loopback_is_ready(tmp_path):
     assert root not in json.dumps(report)
 
 
+def test_the_command_runs_from_the_repository_root(tmp_path):
+    """As a systemd unit runs it: a fresh process, the repository as its
+    working directory, one JSON document out."""
+    import subprocess
+
+    made = throwaway(tmp_path)
+    done = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "scripts.dev.battery_validator_service",
+            "preflight",
+            "--config",
+            str(made.service),
+        ],
+        cwd=REPOSITORY,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    assert json.loads(done.stdout)["ready"] is True
+
+
 def test_a_direct_deployment_needs_the_development_allowance(tmp_path):
     made = throwaway(tmp_path, allow_direct=False)
     found = checks(svc.preflight(made.service, repository=REPOSITORY))
@@ -205,6 +230,18 @@ def test_every_refusal_is_named_and_the_rest_reported(tmp_path):
     rewrite(made.service, unknown_field=1)
     found = checks(svc.preflight(made.service, repository=REPOSITORY))
     assert found["service"]["refused"] == "service_config_fields"
+
+
+def test_a_check_that_fails_unnamed_is_still_a_refusal(tmp_path):
+    """A malformed root raises inside the deployment's own loader; the
+    preflight reports it by type, refuses, and prints nothing of it."""
+    made = throwaway(tmp_path)
+    root = made.validator / "root.bin"
+    root.write_bytes(b"PRIVATE" * 3)
+    found = checks(svc.preflight(made.service, repository=REPOSITORY))
+    assert found["deployment"]["refused"] == "check_failed"
+    assert found["deployment"]["type"] == "ValueError"
+    assert "PRIVATE" not in json.dumps(found)
 
 
 def self_signed(folder):
