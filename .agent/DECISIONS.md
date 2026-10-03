@@ -17856,3 +17856,23 @@ because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
 
 *Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
 run, and nothing was spent.
+
+## 2026-10-03 — OWNER-GRAPHITE-04: Graphite phase 3 keeps one RunPod pod per proposal on Carbon's own account
+
+**Owner, in session on 2026-10-03.** Asked how phase 3 should get GPUs after
+#511 (OWNER-MINER-COMPUTE-LINK-ONLY-01) removed the RunPod code it creates
+pods with, the owner chose "Carbon's own RunPod" over running proposals on a
+machine the owner starts, or pausing phase 3.
+
+**Decision.** Phase 3 keeps its design: one RunPod pod per proposal, created,
+watched and terminated by Carbon on Carbon's own account, with Carbon's key,
+under the phase-3 grant (OWNER-GRAPHITE-03). This is operator compute, which
+LINKONLY-D1 leaves outside OWNER-MINER-COMPUTE-LINK-ONLY-01. No miner key is
+ever used, and the miner path is unchanged.
+
+**Engineering (GRAPHITE-D32).** The provisioning layer phase 3 relies on is
+restored, same behaviour, under `scripts/dev/exam_design/runpod/operator_compute/`
+beside `pod_control`. Nothing under `carbon/` names a provider API.
+
+*Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
+grant and limits. No live session has run, and nothing was spent.
