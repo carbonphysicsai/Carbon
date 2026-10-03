@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T12:00:04Z"
+  captured_at_utc: "2026-10-03T12:00:23Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "70b18ad30a9861969fa98b0cb281ccba28732fb8"
+  authority_snapshot_commit: "4a97d12d29131781b022016bbb0700e9f1881119"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10964,6 +10964,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-03T02:20:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-GATE-CUTOFF-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-GATE-CUTOFF-01 (2026-10-03): the near-limit optimism gate's cutoff is set to THRESHOLD_BANDS = 2.0 (the SciML/technical lead deferred it to the lead session; the owner approved it). A provisional DEVELOPMENT value for value-study results only, confirmed once in EV5. At the cutoff the boundary optimist fails and the oracle, conservative and delay controls pass; on EV4 it fails 20 of 99 real members (verification loss 1.68 vs 0.51), on EV2 2 of 14. It does not catch the localized sign-error control. EV5's gate blocker is resolved; the freeze waits only on engineering work. The testnet rule is unchanged."
+    primary_detail: "docs/development/evidence/admissibility-optimism-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T12:05:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
