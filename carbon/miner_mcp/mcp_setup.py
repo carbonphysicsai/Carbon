@@ -59,7 +59,7 @@ Loop until launch:
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and
 launch. Carbon rents no compute: a remote machine is the miner's own, reached
-over their own SSH. DEVELOPMENT, testnet 567; nothing here is qualified.
+over their own SSH. DEVELOPMENT, on Carbon's testnet; nothing here is qualified.
 """
 
 
