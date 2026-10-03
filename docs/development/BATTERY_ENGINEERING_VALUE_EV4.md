@@ -392,8 +392,16 @@ byte-identical to the root manifest used for evaluation.
   flags), 0 failures, about 404 s of reconstruction in total; 99 eligible.
   Families: MLP 77 (76 eligible), DeepONet 16, kNN 7.
 - Problem C: 498 verification references, all `OK`.
-- Spend: USD 2.48 on RunPod (balance 17.43 to 14.95), seven pods in total,
-  each terminated and verified; the USD 15 cap was never approached.
+- Spend: on RunPod, seven pods in total, each terminated and verified;
+  the cap was never approached. Spend and balance figures are kept in the
+  operator's private ledger.
+- **Change after the run (2026-10-02, owner decision).** The committed
+  campaign ledger (`docs/development/evidence/ev4-2026-10-01/accounting/ledger.jsonl`)
+  now carries provenance only: pod ids, code refs, the image, plans and
+  times. Account balances, committed spend, the cap and pod rates moved to
+  the operator's private ledger, and the campaign ceiling to the operator's
+  configuration. The frozen sections above are unchanged; where they say
+  the cap is recorded in the campaign ledger, that is now the private one.
 
 ### H1 (primary): UNRESOLVED
 

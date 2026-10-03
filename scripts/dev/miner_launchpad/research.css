@@ -25,9 +25,12 @@ body { background: var(--bg); color: var(--fg); }
 .rail-toggle { display: none; min-height: 44px; padding: 8px 14px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
 .theme-toggle { min-height: 32px; padding: 4px 10px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
 
-/* The rail's help card */
-.rail-help { margin: 28px 14px 0; padding: 16px; border: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted-fg); }
-.rail-help .link { min-height: 36px; font-size: 14px; }
+/* The rail: the navigation, then its help card beside it (not in it). The
+   rail, not the navigation, is the sticky column. */
+.rail { position: sticky; top: 72px; align-self: start; max-height: calc(100vh - 72px); overflow-y: auto; border-right: 1px solid var(--border); }
+.rail .tool-nav { position: static; max-height: none; overflow: visible; border-right: 0; }
+.rail-help { margin: 0 14px 28px 24px; padding: 16px; border: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted-fg); }
+.rail-help .link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; }
 .rail-help-note { font-family: var(--mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; }
 
 /* Panels */
@@ -186,7 +189,9 @@ a.rs-change:hover { background: var(--muted); }
   html.rail-open .tool-nav a { border-bottom: 0; border-left: 2px solid transparent; padding: 0 12px; }
   html.rail-open .tool-nav a[aria-current] { border-left-color: var(--red); }
   html.rail-open .nav-label { margin: 16px 12px 4px; }
-  .rail-help { margin: 16px 0 0; }
+  .rail { position: static; max-height: none; overflow: visible; border-right: 0; }
+  html:not(.rail-open) .rail-help { display: none; }
+  .rail-help { margin: 0 16px 16px; }
   .rs-live { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
@@ -239,3 +244,4 @@ a.rs-change:hover { background: var(--muted); }
 .rs-where dd { margin: 0; overflow-wrap: anywhere; }
 .rs-runs-on { font-size: 14px; font-weight: 600; }
 @media (max-width: 560px) { .rs-where { grid-template-columns: minmax(0, 1fr); } .rs-where dd { margin-bottom: 6px; } }
+.frozen-guidance { white-space: pre-wrap; overflow-wrap: anywhere; }
