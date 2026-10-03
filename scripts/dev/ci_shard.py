@@ -32,6 +32,8 @@ import pytest
 
 ENVIRONMENT = "CARBON_TEST_SHARD"
 WEIGHTS_PATH = Path(__file__).with_name("ci_shard_weights.json")
+#: Points the plugin at another weights file (tests use one with no weights).
+WEIGHTS_ENVIRONMENT = "CARBON_TEST_SHARD_WEIGHTS"
 _SPEC = re.compile(r"([0-9]+)/([1-9][0-9]*)")
 
 
@@ -60,12 +62,20 @@ def file_weights(
     }
 
 
-def partition(weights: Mapping[str, float], count: int) -> list[list[str]]:
-    """Heaviest file first onto the lightest shard. Ties break on the path and
-    the shard index, so the result depends only on the inputs."""
+def partition(
+    weights: Mapping[str, float],
+    count: int,
+    lanes: Mapping[int, float] | None = None,
+) -> list[list[str]]:
+    """Heaviest file first onto the lightest shard. A shard starts loaded with
+    the seconds of the other lanes ci.sh runs on it (lane n on shard n mod
+    count), so the heaviest files land on lane-free shards. Ties break on the
+    path and the shard index, so the result depends only on the inputs."""
     if count < 1:
         raise ValueError("count must be at least 1")
     loads = [0.0] * count
+    for lane, seconds in (lanes or {}).items():
+        loads[lane % count] += seconds
     shards: list[list[str]] = [[] for _ in range(count)]
     for path in sorted(weights, key=lambda item: (-weights[item], item)):
         target = min(range(count), key=lambda shard: (loads[shard], shard))
@@ -95,6 +105,23 @@ def load_measured(path: Path = WEIGHTS_PATH) -> dict[str, float]:
     return {key: float(value) for key, value in seconds.items()}
 
 
+def load_lanes(path: Path = WEIGHTS_PATH) -> dict[int, float]:
+    """Seconds of the non-CPU lanes ci.sh runs on each shard, if recorded."""
+    if not path.is_file():
+        return {}
+    lanes = json.loads(path.read_text(encoding="utf-8")).get("lane_seconds", {})
+    if not isinstance(lanes, dict) or not all(
+        isinstance(key, str)
+        and key.isdigit()
+        and isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and value >= 0
+        for key, value in lanes.items()
+    ):
+        raise ValueError(f"{path} lane_seconds must map shard index to seconds >= 0")
+    return {int(key): float(value) for key, value in lanes.items()}
+
+
 def _file_of(item: pytest.Item) -> str:
     return item.nodeid.split("::", 1)[0]
 
@@ -116,7 +143,10 @@ def pytest_collection_modifyitems(
     except ValueError as error:
         raise pytest.UsageError(str(error)) from None
     counts = Counter(_file_of(item) for item in items)
-    shards = partition(file_weights(counts, load_measured()), count)
+    weights = Path(os.environ.get(WEIGHTS_ENVIRONMENT) or WEIGHTS_PATH)
+    shards = partition(
+        file_weights(counts, load_measured(weights)), count, load_lanes(weights)
+    )
     mine = set(shards[index])
     kept = [item for item in items if _file_of(item) in mine]
     if not kept:

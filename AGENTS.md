@@ -1,13 +1,14 @@
 # Carbon — Agent Engineering Instructions
 
-> **OWNER-MERGE-HYGIENE-01 (2026-10-03):** never hand-edit generated Hub
-> files (resolve their conflicts by taking main's and re-running
-> `render_hub.py`); resolve `.agent/DECISIONS.md` conflicts by keeping both
-> sides, main's first; merge main only just before the final push; merge the
-> moment a PR is green; and before merging, defer to any open PR labelled
-> `merge-priority` whose CI is running or green. See
-> `docs/development/MERGE_HYGIENE.md` (part B, no committed Hub outputs and one
-> decision per file, takes effect with the MERGE-HYGIENE-01 ticket).
+> **OWNER-WORKFLOW-SPEED-01 (2026-10-03):** the Development Hub is retired.
+> It is no merge requirement: no `HUB_*` PR-body line, no Hub events, no
+> regenerated Hub files and no snapshot repin. Its files stay frozen as
+> history. Record each new decision as its own file,
+> `.agent/decisions/YYYY-MM-DD-<ID>.md`; never append to `.agent/DECISIONS.md`,
+> which is the frozen history before that date. Merge the moment a PR is green
+> and mergeable; do not merge main into a green PR unless GitHub reports a real
+> conflict, and defer to any open PR labelled `merge-priority` whose CI is
+> running or green. See `docs/development/MERGE_HYGIENE.md`.
 
 > **OWNER-RESEARCH-ENVIRONMENT-01 (2026-09-27):** every mining environment
 > MUST give miners everything they need to research, hypothesize, train,
@@ -83,7 +84,7 @@ Before every new ticket or major wave, read:
 2. `.agent/INVARIANTS.md`;
 3. `.agent/WAVE.md`;
 4. the active ticket under `.agent/tickets/`;
-5. for development tickets, `docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md`;
+5. recent decisions under `.agent/decisions/` (older ones are in `.agent/DECISIONS.md`);
 6. `.agent/DELIVERY_PROTOCOL.md` and
    `.agent/DELEGATED_DECISION_PROTOCOL.md`;
 7. ticket-referenced domain specifications;
@@ -364,8 +365,8 @@ engineering decisions and notify the applicable lead without waiting for
 routine approval. Human-reserved scientific or security decisions still stop
 the affected behavior and remain fail closed.
 
-Before acceptance, reconcile affected docs and Hub source, regenerate outputs,
-and inspect the candidate for correctness. Independent agent review is
+Before acceptance, reconcile affected docs and inspect the candidate for
+correctness. Independent agent review is
 optional. No human approval, GPT receipt, fixed review count, or repeated
 fresh-context complete-diff review is a routine delivery gate.
 
@@ -382,7 +383,7 @@ stop, finish delivery and continue to the next authorized ticket. Follow
 A completed ticket needs implemented behavior and passing evidence for its
 Definition of Done. During implementation, run focused ticket/subsystem tests.
 Before shipping, require CI's applicable regression, invariant, quality,
-package/import, and Hub checks. Unknown paths retain full runtime acceptance.
+and package/import checks. Unknown paths retain full runtime acceptance.
 Do not weaken scientific, leakage, isolation, or correctness tests to obtain
 a green result. Owner-authorized delivery-policy tests must reflect the new
 policy and continue to reject untested or failed required jobs.
@@ -574,8 +575,10 @@ under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
 
 Prefer one ticket → one reviewable branch/diff.
 
-Use normal merge commits only. Do not squash, rebase-merge, or enable auto-
-merge. Merge when the ready PR revision has passed its scope-required automated
+Use normal merge commits only. Do not squash or rebase-merge. Only the merge
+manager arms GitHub auto-merge (OWNER-WORKFLOW-SPEED-01): merge-commit method,
+pinned to the PR's exact head, and only while the live ruleset requires `Merge
+gate` on main. Merge when the ready PR revision has passed its scope-required automated
 checks and `Merge gate`, no applicable owner block or real merge conflict remains,
 and the merge operation uses the expected-head race guard. Human review, GPT
 receipts, review-thread bookkeeping, repeated clean-pass quotas, and post-merge
@@ -615,11 +618,6 @@ Relevant constitutional invariants exercised.
 
 ### Maturity
 Which states are actually earned: specified / implemented / tested / qualified etc.
-
-### Hub Impact
-Primary `map_ref`; changed hub source/events and regeneration evidence, or the
-specific reason the hub's purpose, placement, status, dependencies, boundaries,
-maturity, and primary links remain accurate.
 
 ### Risks / Follow-up
 Remaining work.
