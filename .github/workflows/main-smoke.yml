@@ -26,6 +26,9 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - run: ./scripts/dev/bootstrap.sh
+        env:
+          # tests/invariants builds a real keypair from the chain SDK.
+          CARBON_UV_GROUPS: chain
       - name: Check integration invariants and public import
         run: |
           set -euo pipefail
