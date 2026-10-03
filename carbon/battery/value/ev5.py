@@ -22,8 +22,8 @@ registered record:
   keeps EV4's maxima.
 - **Confirmation** (§3): the public skeleton of the sealed set
   (`confirmation`). No case, input, seed or root is here. The batch is made
-  and committed on the validator host; only its public fingerprint enters the
-  manifest.
+  and committed on the validator host (`seal_confirmation`), outside the
+  testnet pool; only its public fingerprint enters the manifest.
 - **Campaign**: `pod_control` campaign `ev5`. Its ceiling and the balance
   floor are operator configuration (POD-LEDGER-PRIVATE-01).
 - **Freeze manifest** (`freeze_manifest`): refuses while the gate cutoff is
@@ -35,6 +35,7 @@ Nothing here dispatches, spends or freezes, and no value is chosen here. H3's
 localized measurement is near-limit false acceptance (`H3_MEASUREMENT`,
 `h3_report`), descriptive and with no cutoff.
 
+    python -m carbon.battery.value.ev5 seal-confirmation --config DEPLOYMENT.json
     python -m carbon.battery.value.ev5 freeze-manifest --out FILE \
         --confirmation-fingerprint sha256:<hex> --confirmation-sequence N
 """
@@ -341,8 +342,9 @@ def confirmation(repository=REPOSITORY):
         "custody": population["custody"],
         "role": CONFIRMATION_ROLE,
         "made_on": (
-            "the validator host only (prepare_batch: seeds.make_batch, then "
-            "SeedJournal.commit before any use); never in the repository"
+            "the validator host only (seal_confirmation: seeds.make_batch from "
+            "the deployment's committed root, then SeedJournal.commit before any "
+            "use); never in the repository, never in the testnet pool"
         ),
         # OWNER-EV5-Q3-01: private inputs never enter a committed plan or
         # rented compute (POOLS-D2).
@@ -367,6 +369,56 @@ def sealed(commitment):
     ):
         return None
     return dict(commitment)
+
+
+def seal_confirmation(config_path, repository=REPOSITORY):
+    """Make and commit the sealed confirmation batch on the validator host.
+
+    The batch is the study sheet's: `cases` fresh draws from the deployment's
+    committed private root under `CONFIRMATION_ROLE`, plus `hidden_duplicates`
+    (`seeds.make_batch`). It is committed to the deployment's seed journal
+    under its writer lock, and never recorded in the validator state, so no
+    screening rotation or finalist comparison can claim it. The validator is
+    never started or recovered.
+
+    Idempotent: a rerun recalls the same batch and commitment. Refused when the
+    journal already holds a different batch under the role, since a second
+    batch would share the first one's draws. Returns only public values.
+    """
+    from carbon.battery import deployment, seeds
+
+    skeleton = confirmation(repository)
+    count, duplicates = skeleton["batch_size"], skeleton["hidden_duplicates"]
+    target = deployment.validator(config_path, repository=repository, readonly=True)
+    with deployment.writer(target):
+        batch = seeds.make_batch(
+            target.root, target.pin, CONFIRMATION_ROLE, count, duplicates
+        )
+        prior = {
+            e["fingerprint"]
+            for e in target.journal.public()
+            if e["kind"] == "batch" and e["role"] == CONFIRMATION_ROLE
+        }
+        if prior - {batch.fingerprint}:
+            raise cr.CombinedRunError(
+                "confirmation_role_reused",
+                "the journal holds another batch under this role",
+            )
+        committed = target.seal_batch(
+            CONFIRMATION_ROLE, count=count, duplicates=duplicates
+        )
+    return {
+        "role": CONFIRMATION_ROLE,
+        "cases": skeleton["cases"],
+        "hidden_duplicates": duplicates,
+        "newly_committed": not prior,
+        "commitment": sealed(
+            {
+                "fingerprint": committed.fingerprint,
+                "journal_sequence": committed.sequence,
+            }
+        ),
+    }
 
 
 # --- rules, hypotheses and the gate cutoff --------------------------------------------
@@ -641,11 +693,29 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.value.ev5")
     sub = parser.add_subparsers(dest="command", required=True)
+    seal = sub.add_parser(
+        "seal-confirmation",
+        help="Make and commit the sealed confirmation batch (validator host only)",
+    )
+    seal.add_argument("--config", type=Path, required=True)
     freeze = sub.add_parser("freeze-manifest", help="Build EV5's freeze manifest")
     freeze.add_argument("--out", type=Path, required=True)
     freeze.add_argument("--confirmation-fingerprint", required=True)
     freeze.add_argument("--confirmation-sequence", type=int, required=True)
     args = parser.parse_args(argv)
+    if args.command == "seal-confirmation":
+        from carbon.battery.deployment import EvaluationUnavailable
+
+        try:
+            result = seal_confirmation(args.config)
+        except EvaluationUnavailable as unavailable:
+            print(json.dumps({"unavailable": unavailable.code}))
+            return 2
+        except cr.CombinedRunError as refused:
+            print(json.dumps({"refused": refused.code}))
+            return 2
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return 0
     try:
         manifest = freeze_manifest(
             {
