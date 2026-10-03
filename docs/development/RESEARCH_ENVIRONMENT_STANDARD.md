@@ -24,7 +24,7 @@ recorded as a named gap with a next step.
 | `train` | The validator's own construction runtime: the same pinned JAX environment and training code. |
 | `generate` | The Challenge's public generator **and reference solver**, runnable in the sandbox with the miner's own seeds under the published population. Miners can make as much training and test data as they need. |
 | `evaluate` | Practice scoring with the exam's own gates and metrics, on public or miner-generated cases, repeatable. |
-| `compute` | A GPU research path on the miner's own or rented hardware, set up from the Control Center after registration (OWNER-MINER-ENVIRONMENT-01). |
+| `compute` | A GPU research path on hardware the miner runs themselves, set up from the Control Center after registration (OWNER-MINER-ENVIRONMENT-01). Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01). |
 | `model` | The named inference providers, connectable in setup with the miner's own key. |
 | `agent` | The named agents, connectable in setup, driving the Challenge's research tools. |
 
@@ -128,10 +128,12 @@ OWNER-MINER-ENVIRONMENT-01 provisions. The ticket
 `.agent/tickets/C-MLP-03_miner_environment.md` closes them slice by slice:
 - slice 2: `model` (closed in code on 2026-10-02; live acceptance with
   miner-held keys pending);
-- slices 3, 4 and 4b: `compute`. The miner's own GPU closed it in code on
-  2026-10-02. Rented GPUs on RunPod and Lium (slice 4) and a Targon VM over
-  SSH (slice 4b) are built too. A real GPU practice on each is the live
-  acceptance and is pending.
+- slices 3 and 4: `compute`. The miner's own GPU closed it in code on
+  2026-10-02 (slice 3); a real GPU practice is the live acceptance and is
+  pending. The rented GPUs of slices 4 and 4b (RunPod, Lium, a Targon VM,
+  with the miner's provider key) were retired the same day by
+  OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute, and a GPU
+  machine the miner runs elsewhere is to be connected over SSH instead.
 - slice 5: `agent` (Hermes, closed in code on 2026-10-02; a Hermes-driven
   campaign follows). Mira is not offered: OWNER-GRAPHITE-01 builds Graphite
   instead, and the Mira adapter refuses until a vendor contract exists.
