@@ -8,21 +8,34 @@
     python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] fetch DEST [--pod ID] [--tar]
     python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] terminate [--pod ID]
     python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] reconcile
+    python -m scripts.dev.exam_design.runpod.pod_control [--campaign C] migrate-ledger
 
 Campaigns (``CAMPAIGNS``) each have their own ledger, local state and hard
 limits. ``exam-design`` (the default) is the 2026-09-24 campaign: one pod at a
-time under its USD 20 ceiling. ``ev4`` is EV4 and the Problem-C optimizer
-(owner approval 2026-10-01): up to 3 pods in parallel under a USD 15 cap.
+time. ``ev4`` is EV4 and the Problem-C optimizer (owner approval 2026-10-01):
+up to 3 pods in parallel.
+
+The repository is public, so operator configuration and accounting stay on the
+operator's host (owner decision 2026-10-02):
+- each campaign's ceiling and the account balance floor are read from
+  ``~/.runpod/campaigns.json`` (``OPERATOR_CONFIG``); nothing that spends runs
+  without it;
+- every lifecycle event is appended to two ledgers: the full one under
+  ``~/.runpod/accounting/`` (mode 600; it holds the account balance, committed
+  spend, the cap and each pod's rate), and its provenance projection in the
+  repository, which carries only ``PUBLIC_FIELDS``;
+- balances, spend, the cap and rates are printed only with
+  ``--show-accounting``.
 
 The API key is read from ``~/.runpod/api_key`` (mode 600) and never printed,
 logged or placed on a command line. Each active pod id is recorded locally the
-moment the create call returns, and every lifecycle event is appended to the
-campaign ledger in the repository.
+moment the create call returns.
 
-Refusals, all before any spend: the campaign's pod allowance (``--max-pods``,
-never above the campaign's hard limit) is used up, counting both recorded and
-live pods; the A40 Secure rate is above ``MAX_RATE``; the account balance
-would fall below ``BALANCE_FLOOR``; the dispatch ref is not on a remote branch
+Refusals, all before any spend: the operator configuration is missing; the
+campaign's pod allowance (``--max-pods``, never above the campaign's hard
+limit) is used up, counting both recorded and live pods; the A40 Secure rate
+is above ``MAX_RATE``; the account balance would fall below the operator's
+balance floor; the dispatch ref is not on a remote branch
 (the pod fetches code from GitHub at that commit); or the ledger's committed
 spend (every live pod counted to its full deadline) plus this pod's
 full-deadline cost plus the cleanup reserve would exceed the campaign cap.
@@ -36,6 +49,7 @@ import gzip
 import hashlib
 import io
 import json
+import math
 import os
 import secrets
 import subprocess
@@ -49,14 +63,14 @@ from pathlib import Path
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
 STATE_DIR = os.path.expanduser("~/.runpod")
-#: Per-campaign evidence directory, local state, hard pod limit and ceiling.
+#: Per-campaign evidence directory, local state and hard pod limit. Each
+#: campaign's ceiling is operator configuration (OPERATOR_CONFIG).
 CAMPAIGNS = {
     "exam-design": {
         "evidence": "docs/development/evidence/exam-design-2026-09-24",
         "active": "exam_design_active_pod",  # one pod: a single file
         "token": "exam_design_token",
         "max_pods": 1,
-        "ceiling_usd": 20.0,
         "name": "carbon-exam-design",
     },
     "ev4": {
@@ -64,50 +78,148 @@ CAMPAIGNS = {
         "active": "ev4_active_pods",  # a directory: one file per pod (its token)
         "token": None,
         "max_pods": 3,
-        "ceiling_usd": 15.0,
         "name": "carbon-ev4",
     },
-    # The challenge pools' public TRAIN and PRACTICE cases on CPU pods
-    # (owner approval 2026-10-02, USD 25 cap). Private pools never run here.
     # EV4's panel predictions regenerated for the SR-1..3 rerun on EV4
-    # (OWNER-EV4-REGEN-01, 2026-10-02): inside OWNER-TRACK-A-L0-02's USD 25
-    # cap; one GPU pod, EV4's own plan and code ref.
+    # (OWNER-EV4-REGEN-01, 2026-10-02): inside OWNER-TRACK-A-L0-02's cap; one
+    # GPU pod, EV4's own plan and code ref.
     "ev4-regen": {
         "evidence": "docs/development/evidence/ev4-regen-2026-10-02",
         "active": "ev4_regen_active_pods",
         "token": None,
         "max_pods": 1,
-        "ceiling_usd": 5.0,
         "name": "carbon-ev4-regen",
     },
+    # The challenge pools' public TRAIN and PRACTICE cases on CPU pods
+    # (owner approval 2026-10-02). Private pools never run here.
     "challenge-pools": {
         "evidence": "docs/development/evidence/challenge-pools-2026-10-02",
         "active": "challenge_pools_active_pods",
         "token": None,
         "max_pods": 2,
-        "ceiling_usd": 25.0,
         "name": "carbon-challenge-pools",
     },
 }
+#: The operator's limits in STATE_DIR, never committed:
+#: ``{"balance_floor_usd": F, "ceilings_usd": {"<campaign>": C, ...}}``.
+OPERATOR_CONFIG = "campaigns.json"
 CAMPAIGN = "exam-design"
 EVID = os.path.join(REPO, CAMPAIGNS[CAMPAIGN]["evidence"])
 LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
+#: The full ledger, beside the API key and never in the repository.
+PRIVATE_LEDGER = os.path.join(STATE_DIR, "accounting", f"{CAMPAIGN}.jsonl")
 ACTIVE = os.path.join(STATE_DIR, CAMPAIGNS[CAMPAIGN]["active"])
 TOKEN_FILE = os.path.join(STATE_DIR, CAMPAIGNS[CAMPAIGN]["token"])
 #: A manifest larger than this travels gzipped (CODE_MANIFEST_GZ_B64).
 MANIFEST_GZ_ABOVE = 16_000
+#: Print balances, committed spend and the cap (`--show-accounting`).
+SHOW_ACCOUNTING = False
+
+#: What the committed ledger may carry, per event, besides ``utc`` and
+#: ``event``: provenance only. Everything else (account balance, committed
+#: spend, the cap and its rule, a fixed cost, each pod's rate, provider
+#: response text, the host machine id) stays in PRIVATE_LEDGER; the owner kept
+#: rates and machine ids private (2026-10-02). An event not listed here is
+#: committed as its time and name alone.
+PUBLIC_FIELDS = {
+    "campaign_start": {"campaign", "max_pods"},
+    "connectivity_test": {"pod_id"},
+    "dispatch_requested": {
+        "campaign",
+        "max_pods",
+        "phase",
+        "plan",
+        "ref",
+        "minutes",
+        "vcpu",
+        "cuda",
+    },
+    "created": {
+        "pod_id",
+        "phase",
+        "created_epoch",
+        "deadline_epoch",
+        "image",
+        "ref",
+        "code_manifest_sha256",
+    },
+    "create_failed": {"http", "pods_after"},
+    "exported": {
+        "pod_id",
+        "dest",
+        "bytes",
+        "sha256",
+        "files",
+        "bytes_written",
+        "listing_sha256",
+    },
+    "terminate_requested": {"pod_id"},
+    "terminated_verified": {"pod_id", "verified_epoch", "note"},
+    "terminate_unverified": {"pod_id"},
+    "watchdog_deadline": {"pod_id"},
+}
 
 
 def use_campaign(name: str) -> None:
-    """Point the ledger, local state and limits at one campaign."""
-    global CAMPAIGN, EVID, LEDGER, ACTIVE, TOKEN_FILE, CEILING_USD
+    """Point the ledger and local state at one campaign."""
+    global CAMPAIGN, EVID, LEDGER, PRIVATE_LEDGER, ACTIVE, TOKEN_FILE
     spec = CAMPAIGNS[name]
     CAMPAIGN = name
     EVID = os.path.join(REPO, spec["evidence"])
     LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
+    PRIVATE_LEDGER = os.path.join(STATE_DIR, "accounting", f"{name}.jsonl")
     ACTIVE = os.path.join(STATE_DIR, spec["active"])
     TOKEN_FILE = os.path.join(STATE_DIR, spec["token"]) if spec["token"] else None
-    CEILING_USD = spec["ceiling_usd"]
+
+
+class Limits:
+    """A campaign's ceiling and the account balance floor, as the operator
+    configured them. Built only by ``operator_limits``, which validates both."""
+
+    __slots__ = ("balance_floor_usd", "ceiling_usd")
+
+    def __init__(self, ceiling_usd: float, balance_floor_usd: float, _key=None):
+        if _key is not _LIMITS_KEY:
+            raise TypeError("Limits come from operator_limits()")
+        self.ceiling_usd = ceiling_usd
+        self.balance_floor_usd = balance_floor_usd
+
+
+_LIMITS_KEY = object()
+
+
+def operator_limits() -> Limits:
+    """This campaign's limits from OPERATOR_CONFIG. Refuses, naming what is
+    missing, rather than spend under a limit nobody set."""
+    path = os.path.join(STATE_DIR, OPERATOR_CONFIG)
+    try:
+        cfg = json.loads(Path(path).read_text())
+    except FileNotFoundError:
+        raise SystemExit(
+            f"refusing: no operator configuration at {path} "
+            "(campaign ceilings and the balance floor; never committed)"
+        ) from None
+    except json.JSONDecodeError as e:
+        raise SystemExit(f"refusing: {path} is not JSON ({e.msg})") from None
+    if not isinstance(cfg, dict):
+        raise SystemExit(f"refusing: {path} is not a JSON object")
+    ceilings = cfg.get("ceilings_usd")
+    ceiling = ceilings.get(CAMPAIGN) if isinstance(ceilings, dict) else None
+    floor = cfg.get("balance_floor_usd")
+
+    def number(v) -> bool:  # json.loads accepts NaN and Infinity
+        return (
+            isinstance(v, (int, float))
+            and not isinstance(v, bool)
+            and math.isfinite(v)
+            and v >= 0
+        )
+
+    if not number(ceiling) or ceiling == 0:
+        raise SystemExit(f"refusing: {path} has no positive ceilings_usd.{CAMPAIGN}")
+    if not number(floor):
+        raise SystemExit(f"refusing: {path} has no balance_floor_usd")
+    return Limits(float(ceiling), float(floor), _key=_LIMITS_KEY)
 
 
 def _multi() -> bool:
@@ -171,8 +283,6 @@ IMAGE = (
 )
 GPU = "NVIDIA A40"
 MAX_RATE = 0.49
-CEILING_USD = 20.0
-BALANCE_FLOOR = 2.0
 CLEANUP_RESERVE_USD = 0.25
 DISK_GB = 20
 DISK_USD_PER_GB_MONTH = (
@@ -277,18 +387,87 @@ def now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def public_record(rec: dict) -> dict:
+    """The committed projection of a ledger record: provenance fields only."""
+    keep = {"utc", "event"} | PUBLIC_FIELDS.get(rec["event"], set())
+    return {k: v for k, v in rec.items() if k in keep}
+
+
+#: What the budget reads from a row; a projected row lacks it.
+BUDGET_FIELDS = {
+    "campaign_start": {"cap_usd"},
+    "created": {"rate"},
+    "connectivity_test": {"cost_usd"},
+}
+
+
+def _rows(path: str) -> list[dict]:
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        return [json.loads(l) for l in f if l.strip()]
+
+
+def _append(path: str, rec: dict) -> None:
+    old = os.umask(0o077) if path == PRIVATE_LEDGER else None
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "a") as f:
+            f.write(json.dumps(rec) + "\n")
+    finally:
+        if old is not None:
+            os.umask(old)
+
+
+def _missing_from_private() -> list[dict]:
+    """Repository rows the private ledger lacks. A repository row is present
+    when a private row carries every one of its fields with the same value: its
+    projection, or before the split the full row itself. Another checkout's
+    repository ledger may lag the private one, never lead it."""
+    index: dict[tuple, list[dict]] = {}
+    for p in _rows(PRIVATE_LEDGER):
+        index.setdefault((p.get("utc"), p.get("event")), []).append(p)
+
+    def present(r: dict) -> bool:
+        return any(
+            all(k in p and p[k] == v for k, v in r.items())
+            for p in index.get((r.get("utc"), r.get("event")), [])
+        )
+
+    return [r for r in _rows(LEDGER) if not present(r)]
+
+
+def _seed_private() -> list[dict]:
+    """Copy full repository rows the private ledger lacks into it. Returns the
+    rows that cannot be copied: projections whose figures are elsewhere."""
+    missing = _missing_from_private()
+    projected = [
+        r for r in missing if not BUDGET_FIELDS.get(r["event"], set()) <= set(r)
+    ]
+    if not projected:
+        for r in missing:
+            _append(PRIVATE_LEDGER, r)
+    return projected
+
+
 def ledger(event: str, **kw) -> dict:
-    os.makedirs(os.path.dirname(LEDGER), exist_ok=True)
     rec = {"utc": now(), "event": event} | kw
-    with open(LEDGER, "a") as f:
-        f.write(json.dumps(rec) + "\n")
+    _seed_private()  # never refuses: termination must always be recorded
+    _append(PRIVATE_LEDGER, rec)  # first: the budget reads this one
+    _append(LEDGER, public_record(rec))
     return rec
 
 
 def ledger_rows() -> list[dict]:
-    if not os.path.exists(LEDGER):
-        return []
-    return [json.loads(l) for l in open(LEDGER) if l.strip()]
+    """The full ledger. Refuses when the repository holds a row the private
+    ledger lacks: a budget read without it would undercount."""
+    if _seed_private():
+        raise SystemExit(
+            f"refusing: the {CAMPAIGN} repository ledger has rows that "
+            f"{PRIVATE_LEDGER} lacks; run `migrate-ledger` on the host that "
+            "holds the full ledger"
+        )
+    return _rows(PRIVATE_LEDGER)
 
 
 def committed_spend() -> float:
@@ -349,69 +528,60 @@ def pods() -> list:
     return body
 
 
-def start_cap(balance: float, cap_usd: float | None) -> float:
+def start_cap(balance: float, cap_usd: float | None, limits: Limits) -> float:
     """The campaign cap: the requested cap, never above the campaign ceiling
     or the balance less the floor."""
-    requested = CEILING_USD if cap_usd is None else min(float(cap_usd), CEILING_USD)
-    return min(requested, balance - BALANCE_FLOOR)
+    ceiling = limits.ceiling_usd
+    requested = ceiling if cap_usd is None else min(float(cap_usd), ceiling)
+    return min(requested, balance - limits.balance_floor_usd)
 
 
 def cmd_start(a) -> None:
     if any(r["event"] == "campaign_start" for r in ledger_rows()):
         raise SystemExit("campaign already started; the cap is fixed at start")
+    limits = operator_limits()
     acct = account()
-    cap = start_cap(acct["clientBalance"], a.cap_usd)
-    if CAMPAIGN == "exam-design":
-        ledger(
-            "campaign_start",
-            balance_usd=acct["clientBalance"],
-            cap_usd=round(cap, 4),
-            rule="min(USD 20, balance - USD 2); no top-up, no billing change",
-        )
-        ledger(
-            "connectivity_test",
-            pod_id="d69n88ih5wkx3i",
-            cost_usd=0.011,
-            note="bounded connectivity test before the campaign; counted against the cap conservatively",
-        )
-    else:
-        ledger(
-            "campaign_start",
-            campaign=CAMPAIGN,
-            balance_usd=acct["clientBalance"],
-            cap_usd=round(cap, 4),
-            max_pods=CAMPAIGNS[CAMPAIGN]["max_pods"],
-            rule=(
-                f"min(requested cap, USD {CEILING_USD:g}, balance - USD "
-                f"{BALANCE_FLOOR:g}); no top-up, no billing change"
-            ),
-        )
-    print(json.dumps({"balance": acct["clientBalance"], "cap_usd": round(cap, 4)}))
+    cap = start_cap(acct["clientBalance"], a.cap_usd, limits)
+    ledger(
+        "campaign_start",
+        campaign=CAMPAIGN,
+        balance_usd=acct["clientBalance"],
+        cap_usd=round(cap, 4),
+        max_pods=CAMPAIGNS[CAMPAIGN]["max_pods"],
+        rule=(
+            f"min(requested cap, USD {limits.ceiling_usd:g}, balance - USD "
+            f"{limits.balance_floor_usd:g}); no top-up, no billing change"
+        ),
+    )
+    out = {"campaign": CAMPAIGN, "started": True}
+    if SHOW_ACCOUNTING:
+        out |= {"balance": acct["clientBalance"], "cap_usd": round(cap, 4)}
+    print(json.dumps(out))
 
 
 def cmd_status(a) -> None:
-    acct = account()
-    print(
-        json.dumps(
+    out = {
+        "pods": [
             {
-                "balance_usd": acct["clientBalance"],
-                "spend_per_hr": acct["currentSpendPerHr"],
-                "pods": [
-                    {
-                        "id": p["id"],
-                        "name": p.get("name"),
-                        "status": p.get("desiredStatus"),
-                    }
-                    for p in pods()
-                ],
-                "campaign": CAMPAIGN,
-                "active_pods": active_pods(),
-                "committed_spend_usd": round(committed_spend(), 4),
-                "cap_usd": campaign_cap(),
-            },
-            indent=1,
-        )
-    )
+                "id": p["id"],
+                "name": p.get("name"),
+                "status": p.get("desiredStatus"),
+            }
+            for p in pods()
+        ],
+        "campaign": CAMPAIGN,
+        "active_pods": active_pods(),
+        "within_cap": committed_spend() + CLEANUP_RESERVE_USD <= campaign_cap(),
+    }
+    if SHOW_ACCOUNTING:
+        acct = account()
+        out |= {
+            "balance_usd": acct["clientBalance"],
+            "spend_per_hr": acct["currentSpendPerHr"],
+            "committed_spend_usd": round(committed_spend(), 4),
+            "cap_usd": campaign_cap(),
+        }
+    print(json.dumps(out, indent=1))
 
 
 def allowed_pods(requested: int | None) -> int:
@@ -437,8 +607,8 @@ def check_budget(spent: float, pod_cost: float, cap: float) -> None:
     full-deadline cost + the cleanup reserve must stay within the cap."""
     if spent + pod_cost + CLEANUP_RESERVE_USD > cap:
         raise SystemExit(
-            f"refusing: committed {spent:.3f} + pod {pod_cost:.3f} + reserve "
-            f"{CLEANUP_RESERVE_USD:.2f} > cap {cap:.2f}"
+            "refusing: committed spend + this pod's full-deadline cost + the "
+            "cleanup reserve would exceed the cap (status --show-accounting)"
         )
 
 
@@ -487,6 +657,7 @@ def ref_is_pushed(ref: str) -> bool:
 
 
 def cmd_dispatch(a) -> None:
+    limits = operator_limits()
     allowed = allowed_pods(a.max_pods)
     check_pod_allowance(active_pods(), pods(), allowed)
     cuda_ok = []
@@ -507,7 +678,7 @@ def cmd_dispatch(a) -> None:
     spent = committed_spend()
     cap = campaign_cap()
     check_budget(spent, pod_cost, cap)
-    if acct["clientBalance"] - pod_cost < BALANCE_FLOOR:
+    if acct["clientBalance"] - pod_cost < limits.balance_floor_usd:
         raise SystemExit("refusing: balance would fall below the floor")
     ref = (
         a.ref
@@ -702,22 +873,22 @@ def cmd_dispatch(a) -> None:
         stdin=subprocess.DEVNULL,
     )
     if rate_actual > MAX_RATE:
-        print(f"rate {rate_actual} > {MAX_RATE}: terminating immediately")
+        print("rate above the maximum: terminating immediately")
         _terminate(pod_id)
         return
-    print(
-        json.dumps(
-            {
-                "pod_id": pod_id,
-                "rate": rate_actual,
-                "deadline_utc": time.strftime(
-                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime(deadline)
-                ),
-                "ref": ref,
-                "files": len(manifest),
-            }
-        )
-    )
+    print_created(pod_id, rate_actual, deadline, ref, len(manifest))
+
+
+def print_created(pod_id: str, rate: float, deadline: float, ref: str, files: int):
+    out = {
+        "pod_id": pod_id,
+        "deadline_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(deadline)),
+        "ref": ref,
+        "files": files,
+    }
+    if SHOW_ACCOUNTING:
+        out["rate"] = rate
+    print(json.dumps(out))
 
 
 #: The most a 32-vCPU CPU pod may cost per hour; a pod created above it is
@@ -807,6 +978,7 @@ def cpu_start_command(setup: str) -> str:
 def cmd_dispatch_cpu(a) -> None:
     """One CPU pod running one public pool plan natively (pod_phase.py)."""
     kind = CPU_KINDS[a.kind]
+    limits = operator_limits()
     allowed = allowed_pods(a.max_pods)
     check_pod_allowance(active_pods(), pods(), allowed)
     acct = account()
@@ -815,7 +987,7 @@ def cmd_dispatch_cpu(a) -> None:
     spent = committed_spend()
     cap = campaign_cap()
     check_budget(spent, pod_cost, cap)
-    if acct["clientBalance"] - pod_cost < BALANCE_FLOOR:
+    if acct["clientBalance"] - pod_cost < limits.balance_floor_usd:
         raise SystemExit("refusing: balance would fall below the floor")
     ref = (
         a.ref
@@ -927,22 +1099,10 @@ def cmd_dispatch_cpu(a) -> None:
         stdin=subprocess.DEVNULL,
     )
     if rate_actual > MAX_CPU_RATE:
-        print(f"rate {rate_actual} > {MAX_CPU_RATE}: terminating immediately")
+        print("rate above the maximum: terminating immediately")
         _terminate(pod_id)
         return
-    print(
-        json.dumps(
-            {
-                "pod_id": pod_id,
-                "rate": rate_actual,
-                "deadline_utc": time.strftime(
-                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime(deadline)
-                ),
-                "ref": ref,
-                "files": len(manifest),
-            }
-        )
-    )
+    print_created(pod_id, rate_actual, deadline, ref, len(manifest))
 
 
 def _proxy(path: str, timeout=60, pod: str | None = None):
@@ -1063,16 +1223,10 @@ def _terminate(pod_id: str) -> bool:
 def cmd_terminate(a) -> None:
     pod_id = pick_pod(a.pod)
     ok = _terminate(pod_id)
-    print(
-        json.dumps(
-            {
-                "pod_id": pod_id,
-                "terminated": ok,
-                "pods_now": [p["id"] for p in pods()],
-                "committed_spend_usd": round(committed_spend(), 4),
-            }
-        )
-    )
+    out = {"pod_id": pod_id, "terminated": ok, "pods_now": [p["id"] for p in pods()]}
+    if SHOW_ACCOUNTING:
+        out["committed_spend_usd"] = round(committed_spend(), 4)
+    print(json.dumps(out))
 
 
 def cmd_watchdog(a) -> None:
@@ -1108,9 +1262,31 @@ def cmd_reconcile(a) -> None:
             clear_active(rec)
 
 
+def migrate_ledger() -> dict:
+    """Move a campaign's full ledger out of the repository: copy its full rows
+    to PRIVATE_LEDGER, then rewrite the repository ledger as its projection.
+    Running it again changes nothing."""
+    if not os.path.exists(LEDGER):
+        raise SystemExit(f"nothing to migrate: no repository ledger for {CAMPAIGN}")
+    ledger_rows()  # seeds the private ledger, or refuses
+    rows = _rows(LEDGER)
+    Path(LEDGER).write_text("".join(json.dumps(public_record(r)) + "\n" for r in rows))
+    return {"campaign": CAMPAIGN, "rows": len(rows), "private_ledger": PRIVATE_LEDGER}
+
+
+def cmd_migrate_ledger(a) -> None:
+    print(json.dumps(migrate_ledger()))
+
+
 def main(argv=None) -> None:
+    global SHOW_ACCOUNTING
     ap = argparse.ArgumentParser()
     ap.add_argument("--campaign", choices=sorted(CAMPAIGNS), default="exam-design")
+    ap.add_argument(
+        "--show-accounting",
+        action="store_true",
+        help="print balances, committed spend and the cap (operator terminal only)",
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("start")
     s.add_argument("--cap-usd", type=float, help="never above the campaign ceiling")
@@ -1166,8 +1342,10 @@ def main(argv=None) -> None:
     w.add_argument("pod")
     w.add_argument("deadline")
     sub.add_parser("reconcile")
+    sub.add_parser("migrate-ledger")
     a = ap.parse_args(argv)
     use_campaign(a.campaign)
+    SHOW_ACCOUNTING = a.show_accounting
     {
         "start": cmd_start,
         "status": cmd_status,
@@ -1178,6 +1356,7 @@ def main(argv=None) -> None:
         "terminate": cmd_terminate,
         "watchdog": cmd_watchdog,
         "reconcile": cmd_reconcile,
+        "migrate-ledger": cmd_migrate_ledger,
     }[a.cmd](a)
 
 

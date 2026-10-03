@@ -1,9 +1,26 @@
 # The design optimizer: scope before building
 
-**Status.** Scoped, not built. OWNER-CHALLENGE-ADMISSION-01 (amended
+**Status.** Built and run once. This document is the scope record required
+before building, kept unchanged below. OWNER-CHALLENGE-ADMISSION-01 (amended
 2026-10-01) §5.4: "SCOPE IT AND REPORT BEFORE BUILDING. What it searches, over
 what, under which constraints, at what cost per search, and what it cannot find."
 Internal development evidence only (§2): not a qualification gate, not mainnet.
+
+- **Built:** `carbon/battery/value/optimizer.py`, as EV4's Problem C: one
+  two-step fast-charge protocol for 15-35 °C, with Mode D and Mode X.
+- **Run once:** in EV4 on 2026-10-01, under its frozen pre-registration
+  (`BATTERY_ENGINEERING_VALUE_EV4.md` §6 and §12). Results and findings are in
+  `docs/development/evidence/ev4-2026-10-01/optimizer/`.
+- **§2 superseded for that run:** it ran on RunPod A40 pods, not local CPU,
+  under EV4's own cap.
+- **§4 gaps:**
+  - The Mode X verification budget (K = 50 per member) and the Mode X
+    condition grid (t_amb 5-40 °C in 5 °C steps × soc0 {0.05, 0.20, 0.35,
+    0.50}) were fixed by EV4's pre-registration, under the owner's
+    delegation. Any other run needs its own.
+  - Mode D ran as Problem C, not under EV3. EV3 is still a draft.
+  - The PB-INV and PB-ADV policy values remain unset. The optimizer still
+    passes or fails nothing; it reports.
 
 **Why it exists.** "Customer inverse design **is** an adversary: it searches for
 in-envelope inputs that break constraints" (`Design_Specs/Specialist_Bank.md`

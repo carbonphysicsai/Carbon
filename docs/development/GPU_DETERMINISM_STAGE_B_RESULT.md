@@ -112,5 +112,5 @@ two hosts agreeing on numerics is not two validators agreeing on a score.
 `SECURITY_QUALIFIED`, not `PRODUCTION_QUALIFIED`. `compare_r1` still returns
 `BACKEND_UNSUPPORTED`. Evidence toward MQ-008 and nothing more.
 
-Spend for stage B: approximately `$0.20`. Programme total approximately `$5.10`
-against a `$30` ceiling.
+Spend for stage B and for the programme stayed within the programme's
+ceiling; the figures are kept in private operator records.
