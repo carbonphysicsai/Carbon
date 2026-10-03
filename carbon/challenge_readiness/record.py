@@ -33,7 +33,9 @@ import json
 import math
 from pathlib import Path
 
-SCHEMA = "carbon.challenge-readiness.v2"
+from . import admission
+
+SCHEMA = "carbon.challenge-readiness.v3"
 STATUS = "PROPOSED_DEVELOPMENT_DESIGN"
 RECORDS = Path(__file__).resolve().parent / "records"
 
@@ -55,6 +57,7 @@ KEYS = {
     "costs",
     "reviews",
     "training_budget_study",
+    "admission_tests",
     "unresolved",
     "next_experiment",
     "recommendation",
@@ -334,8 +337,8 @@ def _limits(limits, reviews):
             raise ReadinessError("approved_limit_without_scientific_approval", name)
 
 
-def validate(document):
-    """Return the document if it is a valid v2 record; refuse it otherwise."""
+def validate(document, *, repository=admission.ROOT):
+    """Return a valid v3 readiness record; this grants no activation authority."""
     if type(document) is not dict:
         raise ReadinessError("invalid_record")
     if document.get("schema") != SCHEMA:
@@ -396,6 +399,16 @@ def validate(document):
     reviews = document["reviews"]
     _reviews(reviews)
     _training_budget_study(document["training_budget_study"], reviews)
+    try:
+        admission.validate(
+            document["admission_tests"], document["challenge_id"], repository=repository
+        )
+    except admission.AdmissionError as exc:
+        raise ReadinessError("invalid_admission_tests", str(exc)) from exc
+    if reviews["launch"]["state"] == "APPROVED" and admission.blockers(
+        document["admission_tests"]
+    ):
+        raise ReadinessError("launch_approved_before_admission_tests")
     _limits(document["limits"], reviews)
     ok_cases = _pilots(document["pilots"])
     maturity = document["maturity"]
@@ -500,6 +513,7 @@ def summary(document):
         ),
         "reviews": {a: document["reviews"][a]["state"] for a in REVIEW_AXES},
         "recommendation": document["recommendation"]["decision"],
+        "admission_blockers": admission.blockers(document["admission_tests"]),
     }
 
 

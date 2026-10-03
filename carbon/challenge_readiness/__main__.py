@@ -14,12 +14,35 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.challenge_readiness")
     parser.add_argument("command", choices=("table", "validate"))
     parser.add_argument("--records", type=Path, default=RECORDS)
+    parser.add_argument(
+        "--require-admission",
+        action="store_true",
+        help="Exit nonzero unless both admission tracks are accepted for every record",
+    )
     args = parser.parse_args(argv)
     try:
         records = load_all(args.records)
     except ReadinessError as refused:
         print(json.dumps({"refused": refused.code, "detail": refused.detail}))
         return 2
+    if args.require_admission:
+        blocked = {
+            d["challenge_id"]: summary(d)["admission_blockers"]
+            for d, _ in records
+            if summary(d)["admission_blockers"]
+        }
+        if not records or blocked:
+            print(
+                json.dumps(
+                    {
+                        "refused": "admission_not_established",
+                        "blockers": blocked,
+                        "records_examined": len(records),
+                    },
+                    sort_keys=True,
+                )
+            )
+            return 2
     if args.command == "table":
         print(table(records))
     else:

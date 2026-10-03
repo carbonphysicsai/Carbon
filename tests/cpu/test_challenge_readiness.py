@@ -367,8 +367,8 @@ def test_launch_is_refused_until_the_training_budget_study_is_complete():
             readiness.validate(_mutated(BATTERY, unfinished))
         assert refused.value.code == "launch_approved_before_training_budget_study"
 
-    # Specimen: the same record with a completed study and its owner decision
-    # is accepted, so the refusal above is about the study and nothing else.
+    # A completed budget study advances to the separate admission gate. The
+    # joint positive specimen lives in test_challenge_admission.py.
     def complete(document):
         _all_reviews_approved(document)
         document["training_budget_study"] = {
@@ -377,7 +377,9 @@ def test_launch_is_refused_until_the_training_budget_study_is_complete():
             "decision": "OWNER-X",
         }
 
-    readiness.validate(_mutated(BATTERY, complete))
+    with pytest.raises(readiness.ReadinessError) as refused:
+        readiness.validate(_mutated(BATTERY, complete))
+    assert refused.value.code == "launch_approved_before_admission_tests"
 
 
 def test_every_record_starts_without_a_training_budget_study():

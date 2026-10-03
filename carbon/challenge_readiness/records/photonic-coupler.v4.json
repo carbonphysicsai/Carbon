@@ -1,4 +1,24 @@
 {
+  "admission_tests": {
+    "protocol": "carbon.challenge-admission.v1",
+    "scope": null,
+    "tracks": {
+      "construction_integrity": {
+        "acceptance": null,
+        "expansions": [],
+        "findings": [],
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      },
+      "engineering_value": {
+        "acceptance": null,
+        "preregistration": null,
+        "report": null,
+        "state": "NOT_STARTED"
+      }
+    }
+  },
   "challenge_id": "photonic-coupler",
   "costs": [
     {
@@ -181,7 +201,7 @@
       "state": "NOT_STARTED"
     }
   },
-  "schema": "carbon.challenge-readiness.v2",
+  "schema": "carbon.challenge-readiness.v3",
   "sources": [
     "carbonphysicsai/Carbon#345",
     ".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md",

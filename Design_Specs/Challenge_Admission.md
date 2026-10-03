@@ -57,21 +57,13 @@ launch-approved readiness record without accepted, digest-bound evidence.
 `carbon.battery.value.audit` adds a read-only diagnostic of existing EV results.
 Neither module executes hostile code, authenticates a reviewer, or activates
 an exam. Readiness is a maintainer-held record, never a miner assertion.
-
-> **Split note (2026-10-01):** the readiness-record wiring (schema v3
-> records, the `record.py` launch gate and `--require-admission`) lands with
-> #458, which is held on the Ask Carbon release candidate. Until it merges,
-> the readiness gate described here is specified, not enforced: readiness
-> records stay schema v2, and no readiness record can be launch-approved
-> without the owner (the unchanged human-reserved rule).
-
 The existing LIVE/qualification authority must still verify human decisions.
 No generalised construction runtime, new production permission or new score
 formula is enabled by this standard.
 
 The four current portfolio records start with both tracks NOT_STARTED under
-this new standard once the v3 records land (#458). Prior EV results remain
-supporting DEVELOPMENT evidence; these states mean the full admission standard has not run, not that EV1 did not
+this new standard. Prior EV results remain supporting DEVELOPMENT evidence;
+these states mean the full admission standard has not run, not that EV1 did not
 run. Existing readiness catalogue paths stay stable in the v3 schema migration;
 git retains the earlier schema bytes. No historical score or result is changed.
 
@@ -306,10 +298,9 @@ Retest after material changes to any pinned field or discovery of a new exploit.
 Preserve prior results. Record which unchanged evidence remains applicable;
 do not carry acceptance across changed score/runtimes/permissions by filename.
 Release review requires this evidence in addition to the existing qualification
-manifest and training-budget study. This engineering change adds the protocol
-requirement and the admission evidence validator; the readiness-record gate
-lands with #458 (see the split note in §1). It does not claim a new deployed
-runtime interlock or that a challenge has passed.
+manifest and training-budget study. This engineering patch adds the readiness
+record gate and protocol requirement; it does not claim a new deployed runtime
+interlock or that a challenge has passed.
 
 ## 6. The design optimizer (amended §5): scoped, not built
 
@@ -340,10 +331,7 @@ harness:
 Like the divergence command, it exits 1 when any condition fires. It chooses
 no threshold, budget or acceptance.
 
-The two `carbon.challenge_readiness` commands describe the readiness-record
-wiring that lands with #458; until then `--require-admission` does not exist and
-`validate` checks schema v2 records only. The first command validates the
-records, including any retained evidence files.
+The first command validates the records, including any retained evidence files.
 Without `--require-admission`, zero exit means valid records, not accepted
 challenges: inspect `admission_blockers`. The admission flag fails on missing
 acceptance or an empty record set; it is the prospective release-preflight command.
