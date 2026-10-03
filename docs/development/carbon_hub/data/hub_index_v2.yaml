@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T06:19:27Z"
+  captured_at_utc: "2026-10-03T06:21:50Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "28acd590aef0d765e89111bd6367d049ff91908c"
+  authority_snapshot_commit: "dba1b8d97d2f9621d5289c92c6935e9e0682c56d"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10746,6 +10746,18 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T16:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CHALLENGE-MOTOR-01-POOLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CHALLENGE-MOTOR-01 slice 4: the motor's pools are complete (150 TRAIN and 30 PRACTICE, all OK, 149 solved on a RunPod CPU pod; 60 private from the operator-held root on the owner's host only, 59 OK and 1 REFERENCE_INVALID on the reference's periodicity check, charged to the reference). Both baselines are scored through the exam on the private pool: textbook closed form 0.463 (mean torque 0.165, ripple shape 0.761), Gaussian-kernel ridge 0.214 (0.038, 0.391), its hyperparameters chosen on PRACTICE inside a widened declared grid (D11). Readiness record v4 (baselines MEASURED, PROCEED) is relayed to the Workbench. Under the Challenge Roadmap the motor is prior work for the magnetostatics family. Every value is a provisional DEVELOPMENT value; no qualification, reward or LIVE authority."
+    primary_detail: ".agent/tickets/CHALLENGE-MOTOR-01_development_exam.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T19:00:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
