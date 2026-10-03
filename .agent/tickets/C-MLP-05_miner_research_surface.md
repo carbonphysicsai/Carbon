@@ -86,6 +86,17 @@ Both questions were answered on 2026-10-03
   - The agent replies through the same reply note.
   - Earlier campaigns read none.
 
+## Owner answers, 2026-10-03 (OWNER-MINER-RESEARCH-SURFACE-03)
+
+- **Carry messages across epochs (RSURF-D14).** A new epoch's first step
+  carries forward the last 3 messages Carbon's agent read, each with up to 2
+  of its own replies. They are recorded and chained like new messages.
+- **Use the tooling from the page (RSURF-D15 to D18).**
+  - The Tools tab opens a tool session under the campaign's ownership lock,
+    and its panels are the agent's own research tools.
+  - A run's stdout, files and images come through `run_output`.
+  - The demo shows the toolbox working and runs nothing.
+
 ## Boundaries
 
 - DEVELOPMENT and testnet 567. Practice evidence is not qualification. No
