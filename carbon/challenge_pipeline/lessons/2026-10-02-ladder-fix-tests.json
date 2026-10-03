@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-ladder-fix-tests",
+ "recorded_at": "2026-10-02T20:46:14Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_challenge_pipeline.py",
+  "description": "Ran the pipeline tests for the ladder, the lessons log and the generated view."
+ },
+ "expected": "The ladder, the lessons rules and the roadmap text agree.",
+ "observed": "25 passed after one fix: the test that checks every climb step appears in the roadmap found the roadmap's step 4 worded differently from the code.",
+ "keep": [
+  "Tests that hold the roadmap text, Admission §3 and the code to one wording.",
+  "A synthetic second Challenge in the tests, so the ladder never depends on battery."
+ ],
+ "change": [],
+ "protocol_elements": [
+  "construction_ladder",
+  "lessons"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

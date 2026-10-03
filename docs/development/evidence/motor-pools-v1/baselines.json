@@ -1,0 +1,315 @@
+{
+  "calibration": {
+    "train": {
+      "n_references": 150,
+      "smallest_mean_torque_nm": 0.056658081119182
+    },
+    "practice": {
+      "n_references": 30,
+      "smallest_mean_torque_nm": 0.17429777464051632
+    },
+    "private": {
+      "n_references": 59,
+      "gates_hold": true
+    }
+  },
+  "scales": {
+    "s_mean": 2.4779376053642896,
+    "s_ripple": 0.4821404212378807,
+    "n_train": 150
+  },
+  "learned": {
+    "model": "Gaussian-kernel ridge regression (carbon.learned_baseline)",
+    "targets": "the 60-angle torque curve",
+    "n_train": 150,
+    "length": 4.0,
+    "ridge": 0.0001,
+    "at_edge": [],
+    "grid": [
+      {
+        "length": 0.25,
+        "ridge": 1e-08,
+        "score": 0.7418456425418266
+      },
+      {
+        "length": 0.25,
+        "ridge": 1e-06,
+        "score": 0.7418456468225875
+      },
+      {
+        "length": 0.25,
+        "ridge": 0.0001,
+        "score": 0.7418460748559853
+      },
+      {
+        "length": 0.25,
+        "ridge": 0.01,
+        "score": 0.7418884555218165
+      },
+      {
+        "length": 0.25,
+        "ridge": 0.1,
+        "score": 0.7422388255438221
+      },
+      {
+        "length": 0.25,
+        "ridge": 1.0,
+        "score": 0.7440103807599006
+      },
+      {
+        "length": 0.5,
+        "ridge": 1e-08,
+        "score": 0.5449774182028377
+      },
+      {
+        "length": 0.5,
+        "ridge": 1e-06,
+        "score": 0.5449775614378425
+      },
+      {
+        "length": 0.5,
+        "ridge": 0.0001,
+        "score": 0.5449918839333171
+      },
+      {
+        "length": 0.5,
+        "ridge": 0.01,
+        "score": 0.5464141334722641
+      },
+      {
+        "length": 0.5,
+        "ridge": 0.1,
+        "score": 0.5588773828348219
+      },
+      {
+        "length": 0.5,
+        "ridge": 1.0,
+        "score": 0.6329808127100477
+      },
+      {
+        "length": 1.0,
+        "ridge": 1e-08,
+        "score": 0.28397407833538957
+      },
+      {
+        "length": 1.0,
+        "ridge": 1e-06,
+        "score": 0.2839740021376583
+      },
+      {
+        "length": 1.0,
+        "ridge": 0.0001,
+        "score": 0.2839664036273505
+      },
+      {
+        "length": 1.0,
+        "ridge": 0.01,
+        "score": 0.2833778212858548
+      },
+      {
+        "length": 1.0,
+        "ridge": 0.1,
+        "score": 0.28585683725879696
+      },
+      {
+        "length": 1.0,
+        "ridge": 1.0,
+        "score": 0.34167023737202984
+      },
+      {
+        "length": 2.0,
+        "ridge": 1e-08,
+        "score": 0.20569993206932632
+      },
+      {
+        "length": 2.0,
+        "ridge": 1e-06,
+        "score": 0.2056597358103132
+      },
+      {
+        "length": 2.0,
+        "ridge": 0.0001,
+        "score": 0.20202143844771994
+      },
+      {
+        "length": 2.0,
+        "ridge": 0.01,
+        "score": 0.17698560417928835
+      },
+      {
+        "length": 2.0,
+        "ridge": 0.1,
+        "score": 0.20295613104755209
+      },
+      {
+        "length": 2.0,
+        "ridge": 1.0,
+        "score": 0.3258810308291886
+      },
+      {
+        "length": 4.0,
+        "ridge": 1e-08,
+        "score": 0.2738599163990753
+      },
+      {
+        "length": 4.0,
+        "ridge": 1e-06,
+        "score": 0.26527087131306865
+      },
+      {
+        "length": 4.0,
+        "ridge": 0.0001,
+        "score": 0.17300702981329621
+      },
+      {
+        "length": 4.0,
+        "ridge": 0.01,
+        "score": 0.21587363874555268
+      },
+      {
+        "length": 4.0,
+        "ridge": 0.1,
+        "score": 0.31875727154815875
+      },
+      {
+        "length": 4.0,
+        "ridge": 1.0,
+        "score": 0.43534785896827954
+      },
+      {
+        "length": 8.0,
+        "ridge": 1e-08,
+        "score": 0.3625795338425521
+      },
+      {
+        "length": 8.0,
+        "ridge": 1e-06,
+        "score": 0.19275393297862467
+      },
+      {
+        "length": 8.0,
+        "ridge": 0.0001,
+        "score": 0.21685719142853907
+      },
+      {
+        "length": 8.0,
+        "ridge": 0.01,
+        "score": 0.34088351361912783
+      },
+      {
+        "length": 8.0,
+        "ridge": 0.1,
+        "score": 0.4204385912989398
+      },
+      {
+        "length": 8.0,
+        "ridge": 1.0,
+        "score": 0.5514007458221779
+      },
+      {
+        "length": 16.0,
+        "ridge": 1e-08,
+        "score": 0.2138637204426764
+      },
+      {
+        "length": 16.0,
+        "ridge": 1e-06,
+        "score": 0.2191817028613271
+      },
+      {
+        "length": 16.0,
+        "ridge": 0.0001,
+        "score": 0.24667747680438495
+      },
+      {
+        "length": 16.0,
+        "ridge": 0.01,
+        "score": 0.42423613908680147
+      },
+      {
+        "length": 16.0,
+        "ridge": 0.1,
+        "score": 0.4660185056853411
+      },
+      {
+        "length": 16.0,
+        "ridge": 1.0,
+        "score": 0.6702124932814763
+      }
+    ]
+  },
+  "scores": {
+    "practice": {
+      "closed_form": {
+        "n_cases": 30,
+        "n_scored": 30,
+        "n_gate_failed": 0,
+        "n_reference_invalid": 0,
+        "n_failed_infra": 0,
+        "eligible": true,
+        "score": 0.5002085857247547,
+        "components": {
+          "mean": 0.2013709610526001,
+          "ripple": 0.7990462103969093
+        },
+        "important_score": 0.6784503954397987,
+        "n_important": 11,
+        "important_mean_bias_nm": 0.8831816568447127,
+        "gate_failures": {}
+      },
+      "learned": {
+        "n_cases": 30,
+        "n_scored": 30,
+        "n_gate_failed": 0,
+        "n_reference_invalid": 0,
+        "n_failed_infra": 0,
+        "eligible": true,
+        "score": 0.17300702981329621,
+        "components": {
+          "mean": 0.0338751525293639,
+          "ripple": 0.31213890709722847
+        },
+        "important_score": 0.19783244622027682,
+        "n_important": 11,
+        "important_mean_bias_nm": -0.06078735366569322,
+        "gate_failures": {}
+      }
+    },
+    "private": {
+      "closed_form": {
+        "n_cases": 60,
+        "n_scored": 59,
+        "n_gate_failed": 0,
+        "n_reference_invalid": 1,
+        "n_failed_infra": 0,
+        "eligible": true,
+        "score": 0.46304197127772023,
+        "components": {
+          "mean": 0.1650556605833267,
+          "ripple": 0.7610282819721137
+        },
+        "important_score": 0.7412550824040915,
+        "n_important": 16,
+        "important_mean_bias_nm": 0.7902560552791162,
+        "gate_failures": {}
+      },
+      "learned": {
+        "n_cases": 60,
+        "n_scored": 59,
+        "n_gate_failed": 0,
+        "n_reference_invalid": 1,
+        "n_failed_infra": 0,
+        "eligible": true,
+        "score": 0.2143946555683757,
+        "components": {
+          "mean": 0.0376835170227282,
+          "ripple": 0.39110579411402324
+        },
+        "important_score": 0.24797658363417965,
+        "n_important": 16,
+        "important_mean_bias_nm": -0.03359642924439002,
+        "gate_failures": {}
+      }
+    }
+  }
+}

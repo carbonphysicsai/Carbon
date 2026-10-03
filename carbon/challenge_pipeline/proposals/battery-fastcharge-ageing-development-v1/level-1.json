@@ -1,0 +1,89 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 1,
+ "recorded_at": "2026-10-03T02:43:10Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [
+  {
+   "adds": "Per-case normalization of the training loss: each case's trajectory error is divided by that case's target energy before aggregation, so high-energy cases do not dominate the gradient",
+   "attack_surface": "A miner cannot influence the divisor because labels are fixed by the reference. The main risk is that normalization amplifies noise in low-energy cases, potentially degrading validation accuracy if the miner sets the toggle on without sufficient data in that regime",
+   "bounds": "Boolean toggle (on/off), default off; applies to mlp, deeponet and fno only; the divisor is the target energy from the fixed reference label, not the prediction",
+   "id": "objective.relative_loss",
+   "rationale": "Battery trajectories span a wide range of energy content depending on charge rate and initial SOC; without normalization, high-energy cases overwhelm the gradient and the model under-fits low-energy regimes. AMORE's adaptive per-sample loss weighting demonstrates that case-aware error normalization improves operator learning across outputs with different magnitudes",
+   "reconstruction": "Implement a per-case divisor in the training loss that divides each case's squared trajectory error by its target energy (computed from the reference label as the integral of voltage times current over the 30 s grid, or the published target-energy field). Gradients flow only through the numerator because the denominator is a fixed label quantity. Add a boolean recipe field and wire it into the loss computation for all three model families. Ship a test that confirms the divisor equals the label energy and that gradients are unaffected by the denominator.",
+   "sources": [
+    "card:arxiv-2510.12999v2",
+    "card:arxiv-2503.03178v4",
+    "contract:objective.relative_loss"
+   ]
+  },
+  {
+   "adds": "A fixed temporal weight profile applied elementwise to trajectory errors on the 30 s grid, letting the miner emphasise early (OCV relaxation, initial voltage drop) or late (thermal rise, plating margin) portions of the trajectory",
+   "attack_surface": "A miner could select the profile that best matches the validation scoring's temporal sensitivity, effectively focusing model capacity on scored regions. Bounding to three fixed profiles limits the attack to a coarse choice rather than arbitrary curve fitting",
+   "bounds": "Choice among three fixed profiles [uniform, early, late], default uniform; applies to mlp, deeponet and fno only; profiles are pre-defined and not miner-customisable",
+   "id": "objective.time_weighting",
+   "rationale": "Battery fast-charge trajectories have distinct early and late regimes with different sensitivities. Transfer-learning DeepONet work documents stability degradation in long-time prediction, and autoregressive neural operator analysis shows error growth varies with temporal position, motivating explicit temporal weighting of the training loss",
+   "reconstruction": "Implement three fixed temporal weight masks over the 121-point (30 s) grid: uniform (all ones), early (linearly decreasing from 2 to 0, mean-normalized), late (linearly increasing from 0 to 2, mean-normalized). Add a recipe choice field. Apply the selected mask elementwise to per-timestep trajectory errors before summing. Ship a test that each mask is non-negative, sums to the grid length, and that the choice field only accepts the three allowed values.",
+   "sources": [
+    "card:arxiv-2212.04663v1",
+    "card:arxiv-2306.10619v2",
+    "contract:objective.time_weighting"
+   ]
+  },
+  {
+   "adds": "A penalty on the first time-derivative of predicted voltage and temperature trajectories, encouraging the model to match the slope (rate of change) of the reference trajectories on the 30 s grid",
+   "attack_surface": "A high h1_weight can over-smooth the predicted trajectory, suppressing localised errors near voltage cutoff or thermal onset that the base loss would otherwise catch. Bounded weight range and the persistence of the base loss limit this to a regularization trade-off",
+   "bounds": "Float weight in [0.0, 10.0], default 0.0 (disabled); applies to mlp, deeponet and fno only; derivative computed by central finite differences on the fixed grid",
+   "id": "objective.h1_weight",
+   "rationale": "Derivative-informed training improves surrogate accuracy for downstream optimisation tasks where sensitivities matter. DIFNO demonstrates that jointly training on output and derivative samples improves sample complexity and inverse-problem accuracy. TI-DeepONet shows that learning time-derivative fields improves long-term extrapolation stability",
+   "reconstruction": "Compute central finite-difference first derivatives of both predicted and target trajectories on the 30 s grid. Add the L2 norm of the derivative error, multiplied by h1_weight, to the total training loss. Add a float recipe field bounded to [0, 10]. Wire into the loss for all three model families. Ship a test that the derivative penalty is zero when prediction equals target and that the gradient flows through the finite-difference operator.",
+   "sources": [
+    "card:arxiv-2512.14086v2",
+    "card:arxiv-2505.17341v3",
+    "contract:objective.h1_weight"
+   ]
+  },
+  {
+   "adds": "A penalty on the second time-derivative (curvature) of predicted voltage and temperature trajectories, extending the loss into a Sobolev-type training objective on the 30 s grid; realises the Sobolev training concept",
+   "attack_surface": "A high h2_weight can suppress curvature in regions where the true trajectory has sharp transitions (e.g., near the 4.2 V cutoff), trading localised accuracy for global smoothness. Bounded weight range and the persistence of the base loss limit the effect",
+   "bounds": "Float weight in [0.0, 10.0], default 0.0 (disabled); applies to mlp, deeponet and fno only; derivative computed by central finite differences on the fixed grid",
+   "id": "objective.h2_weight",
+   "rationale": "Second-derivative penalties extend Sobolev training to battery trajectories. DIFNO establishes universal approximation in weighted Sobolev spaces and shows derivative-informed training improves accuracy at low sample sizes. Physics-informed DeepONet uses automatic differentiation to impose higher-order physical constraints, demonstrating the value of curvature-aware losses",
+   "reconstruction": "Compute central finite-difference second derivatives of both predicted and target trajectories on the 30 s grid. Add the L2 norm of the second-derivative error, multiplied by h2_weight, to the total training loss. Add a float recipe field bounded to [0, 10]. Wire into the loss for all three model families. Ship a test that the second-derivative penalty is zero when prediction equals target and that it activates the Sobolev training path in the recipe validator.",
+   "sources": [
+    "card:arxiv-2512.14086v2",
+    "card:arxiv-2103.10974v1",
+    "contract:objective.h2_weight"
+   ]
+  },
+  {
+   "adds": "A frequency-weighted trajectory error term computed via FFT on the 30 s grid, penalising high-frequency prediction errors more heavily; realises the spectral weighting concept",
+   "attack_surface": "Spectral weighting could be combined with h1/h2 weights to mask specific frequency bands of error. A miner could suppress high-frequency errors that the validation metric does not score while allowing low-frequency bias. Bounded weight range, the fixed monotonic ramp, and the persistence of the base loss limit the attack",
+   "bounds": "Float weight in [0.0, 10.0], default 0.0 (disabled); applies to mlp, deeponet and fno only; FFT computed on the fixed 121-point grid with a monotonic frequency ramp",
+   "id": "objective.spectral_weight",
+   "rationale": "FNO and its factorised variant demonstrate that frequency-domain representations improve PDE surrogate accuracy. Spectral-aware optimisation (SpecMuon) shows that controlling spectral components of the gradient is critical for stiff, multi-scale problems. F-FNO's separable spectral layers confirm that frequency-domain training improves generalisation",
+   "reconstruction": "Compute the FFT of the trajectory error (prediction minus target) on the 121-point grid. Apply a monotonic frequency ramp (e.g., linear in the mode index, normalised so the DC component has weight 1) to the squared magnitude of the Fourier coefficients. Sum the weighted spectral error, multiply by spectral_weight, and add to the total training loss. Add a float recipe field bounded to [0, 10]. Wire into the loss for all three model families. Ship a test that the spectral penalty is zero when prediction equals target and that the frequency ramp is monotonically increasing.",
+   "sources": [
+    "card:arxiv-2010.08895v3",
+    "card:arxiv-2111.13802v4",
+    "card:arxiv-2602.16167v1",
+    "contract:objective.spectral_weight"
+   ]
+  }
+ ],
+ "left_out": [
+  "objective.pde_weight is left at research_only because no candidate-side governing equation is registered for the DFN battery model; adding a PDE residual loss would require a registered JAX-compatible DFN residual, which does not exist yet",
+  "objective.loss_expressions is excluded because it would allow miners to submit loss functions as code or expressions, opening an executable-submission attack surface that the construction contract does not permit at this level"
+ ],
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
+}

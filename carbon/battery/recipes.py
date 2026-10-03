@@ -200,7 +200,9 @@ class MLP:
         s = dict(settings)
         self.family, self.settings = family, s
         self.width, self.steps = s["width"], s["steps"]
-        self.depth = s["depth"] if family == "mlp" else s["deeponet_depth"]
+        self.depth = s["deeponet_depth"] if family == "deeponet" else s["depth"]
+        # Recipes recorded before the backend existed are JAX recipes.
+        self.backend = s.get("backend", "jax")
         self.lr, self.wd = s["learning_rate"], s["weight_decay"]
         self.rich = s["arrhenius_features"]
         self.pca = s.get("trajectory_components", 0)
@@ -214,6 +216,7 @@ class MLP:
         s = self.settings
         return (
             self.family == "mlp"
+            and self.backend == "jax"
             and all(s[k] == v for k, v in CLASSIC.items())
             and s["batch_size"] >= cases
         )
@@ -274,6 +277,10 @@ class MLP:
             )
             self.zmu, self.zsd = z.mean(0), z.std(0) + 1e-9
         self.classic = self._classic(len(d.case_ids))
+        if self.backend == "pytorch":
+            from . import torch_training
+
+            return torch_training.fit(self, d, y, seed)
         if self.classic:
             return self._fit_classic(d, y, seed)
         return self._fit_general(d, y, seed)
@@ -311,6 +318,11 @@ class MLP:
 
         steps, lr0, wd = self.steps, self.lr, self.wd
         b1, b2, eps = 0.9, 0.999, 1e-8
+        from .training import keep_history, recording_history, take_history
+
+        # Trainer v2 (RSURF-D3): fixed at trace time. Off, this traces the
+        # written-out loop exactly as before.
+        recording = recording_history()
 
         @jax.jit
         def train(p, xx, yy):
@@ -319,7 +331,10 @@ class MLP:
 
             def step(c, i):
                 p, m, v = c
-                g = jax.grad(loss)(p, xx, yy)
+                if recording:
+                    value, g = jax.value_and_grad(loss)(p, xx, yy)
+                else:
+                    g = jax.grad(loss)(p, xx, yy)
                 lr = lr0 * 0.5 * (1 + jnp.cos(jnp.pi * i / steps))
                 m = jax.tree_util.tree_map(lambda a, b: b1 * a + (1 - b1) * b, m, g)
                 v = jax.tree_util.tree_map(lambda a, b: b2 * a + (1 - b2) * b * b, v, g)
@@ -337,29 +352,37 @@ class MLP:
                     m,
                     v,
                 )
-                return (p, m, v), None
+                return (p, m, v), (value if recording else None)
 
-            (p, m, v), _ = jax.lax.scan(
+            (p, m, v), values = jax.lax.scan(
                 step, (p, m, v), jnp.arange(steps, dtype=jnp.float32)
             )
+            if recording:
+                return p, loss(p, xx, yy), values
             return p, loss(p, xx, yy)
 
         t0 = time.perf_counter()
         compiled = train.lower(params, f, z).compile()
         t1 = time.perf_counter()
-        p, final = compiled(params, f, z)
+        out = compiled(params, f, z)
+        p, final = out[0], out[1]
         p = jax.block_until_ready(p)
         t2 = time.perf_counter()
+        if recording:
+            keep_history(enumerate(np.asarray(out[2]).tolist()), steps)
         self.params = [(np.asarray(w), np.asarray(b)) for w, b in p]
         self._net = net
         blob = b"".join(w.tobytes() + b.tobytes() for w, b in self.params)
-        return {
-            "compile_s": t1 - t0,
-            "train_s": t2 - t1,
-            "final_loss": float(final),
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": int(sum(w.size + b.size for w, b in self.params)),
-        }
+        return _with_history(
+            {
+                "compile_s": t1 - t0,
+                "train_s": t2 - t1,
+                "final_loss": float(final),
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": int(sum(w.size + b.size for w, b in self.params)),
+            },
+            take_history(),
+        )
 
     def _network(self, jax, dtype, n_in, n_out):
         """(init, apply) for this family, in the requested precision."""
@@ -462,15 +485,27 @@ class MLP:
             )
         self.params, self._apply = params, apply
         blob = b"".join(a.tobytes() for a in leaves)
-        return {
-            "compile_s": 0.0,
-            "train_s": time.perf_counter() - t0,
-            "final_loss": final,
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": int(sum(a.size for a in leaves)),
-        }
+        from .training import take_history
+
+        return _with_history(
+            {
+                "compile_s": 0.0,
+                "train_s": time.perf_counter() - t0,
+                "final_loss": final,
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": int(sum(a.size for a in leaves)),
+            },
+            take_history(),
+        )
 
     def predict(self, x):
+        if self.backend == "pytorch":
+            from . import torch_training
+
+            z = torch_training.predict(self, features(x, self.rich))
+            return self.s.apply(
+                x, *self.layout.split(self._decode(z)), predict_v0=self.predict_v0
+            )
         import jax
         import jax.numpy as jnp
 
@@ -508,17 +543,28 @@ class Ensemble:
             stats.append(m.fit(d, structure, seed=seed * 1000 + i))
             self.members.append(m)
         blob = "".join(s["params_sha256"] for s in stats).encode()
-        return {
-            "compile_s": sum(s["compile_s"] for s in stats),
-            "train_s": sum(s["train_s"] for s in stats),
-            "final_loss": float(np.mean([s["final_loss"] for s in stats])),
-            "params_sha256": hashlib.sha256(blob).hexdigest(),
-            "n_params": sum(s["n_params"] for s in stats),
-        }
+        history = stats[0].get("loss_history")
+        return _with_history(
+            {
+                "compile_s": sum(s["compile_s"] for s in stats),
+                "train_s": sum(s["train_s"] for s in stats),
+                "final_loss": float(np.mean([s["final_loss"] for s in stats])),
+                "params_sha256": hashlib.sha256(blob).hexdigest(),
+                "n_params": sum(s["n_params"] for s in stats),
+            },
+            None if history is None else {**history, "member": f"1 of {self.k}"},
+        )
 
     def predict(self, x):
         outs = [m.predict(x) for m in self.members]
         return {k: np.mean([o[k] for o in outs], axis=0) for k in outs[0]}
+
+
+def _with_history(stats, history):
+    """Fit statistics, with trainer v2's TRAIN-loss history when recorded."""
+    if history is not None:
+        stats["loss_history"] = history
+    return stats
 
 
 def build(family, settings):
@@ -562,11 +608,20 @@ def _classic_net(p, xx):
 
 
 def _mlp_arrays(model, prefix, arrays):
-    import jax
-
     names = ["mu", "sd"] + (["vm", "tm", "pv", "pt", "zmu", "zsd"] if model.pca else [])
     for name in names:
         arrays[prefix + name] = np.asarray(getattr(model, name))
+    if model.backend == "pytorch":
+        for i, leaf in enumerate(model.params):
+            arrays[f"{prefix}leaf{i:04d}"] = np.asarray(leaf)
+        return {
+            "backend": "pytorch",
+            "classic": False,
+            "x64": False,
+            "leaves": len(model.params),
+        }
+    import jax
+
     leaves = (
         [a for w, b in model.params for a in (w, b)]
         if model.classic
@@ -613,8 +668,6 @@ def export_state(model):
 
 
 def _restore_mlp(family, settings, header, prefix, arrays, layout, structure):
-    import jax
-
     m = MLP(family, settings)
     m.layout, m.s = layout, structure
     m.classic, m.x64 = header["classic"], header["x64"]
@@ -623,6 +676,16 @@ def _restore_mlp(family, settings, header, prefix, arrays, layout, structure):
     ):
         setattr(m, name, arrays[prefix + name])
     leaves = [arrays[f"{prefix}leaf{i:04d}"] for i in range(header["leaves"])]
+    if header.get("backend", "jax") != m.backend:
+        raise ValueError("model state backend differs from its recipe")
+    if m.backend == "pytorch":
+        from . import torch_training
+
+        n_in = features(np.zeros((1, 4)), m.rich).shape[1]
+        n_out = m.mu.size if not m.pca else m.zmu.size
+        return torch_training.restore(m, leaves, n_in, n_out)
+    import jax
+
     if m.classic:
         m.params = [(leaves[i], leaves[i + 1]) for i in range(0, len(leaves), 2)]
         m._net = _classic_net

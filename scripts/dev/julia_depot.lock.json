@@ -1,5 +1,5 @@
 {
   "schema": "carbon.authored-julia.depot-lock.v1",
-  "depot_digest": "sha256:32c72bd8e770667b4982d7a095cdabf900a320e894cb81f957bd38d1c128a47d",
-  "image": "ghcr.io/carbonphysicsai/carbon-julia-depot@sha256:e013596b5496c8e468d3ebc79b0b5df6ab4928926ca43df2580f9f0b3f8d6020"
+  "depot_digest": "sha256:52a6de6cbb0975c21eab0782765eac9f8abb4ea7c2890437b4dc44918a242e81",
+  "image": "ghcr.io/carbonphysicsai/carbon-julia-depot@sha256:aa09e0acfdc0639efdbcee9139f49915f9502f058b09d19692115834f92ad6aa"
 }

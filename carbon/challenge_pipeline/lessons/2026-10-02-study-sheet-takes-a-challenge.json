@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-study-sheet-takes-a-challenge",
+ "recorded_at": "2026-10-02T21:18:06Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_agent_campaign_study.py; tests/cpu/test_graphite_admission_mutations.py; tests/cpu/test_agent_campaign_*.py",
+  "description": "Moved battery's ladder map, pin sources and specimens into carbon/battery/admission_study.py, made the study sheet take a Challenge, wrote battery's sheet and inventory before and after, and ran the study, boundary, controller and mutation suites."
+ },
+ "expected": "Battery's sheet and inventory stay byte-identical; a synthetic second Challenge gets its own; an unmapped capability is refused.",
+ "observed": "82 passed. The before and after files are byte-identical and equal the committed docs/development/mira/level0 files. Battery's old map lacked the hybrid and prediction dimensions its contract uses, so a planner reading the map would have hit an unplaced dimension; the map now places them (GA-D1). Three earlier lessons had estimated recorded_at times and were corrected to the actual write times before this commit.",
+ "keep": [
+  "Prove a refactor of a shared module with a byte comparison of the first Challenge's outputs before and after.",
+  "Register a Challenge's adapter in one hook, as challenge_registry.campaigns does."
+ ],
+ "change": [
+  "A Challenge's ladder map must place every dimension its contract uses, not only its rebuildable ones; check it when the adapter is registered.",
+  "Take a lesson's recorded_at from the clock when it is written, never estimate it."
+ ],
+ "protocol_elements": [
+  "study_sheet",
+  "construction_ladder",
+  "protocol.generalizable"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

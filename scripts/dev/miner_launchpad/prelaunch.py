@@ -10,13 +10,9 @@ Expected dependencies and configured identities are not observations or evidence
 
 from __future__ import annotations
 
-from carbon.development_session.exam_environment import exam_environment
-from carbon.development_session.profile import CHALLENGE
 from carbon.development_session.research_catalog import public_catalog
 from carbon.development_session.research_ledger import SERVICE_LIMITS
-from carbon.development_session.research_profile import PROFILE
 from carbon.reconstruction.profile import DEPENDENCY_SPECS, ENVIRONMENT_ID
-from carbon.scoring.development import rule_digest
 from scripts.dev.miner_launchpad.runner import (
     REQUIRED_RUNTIME_KEYS,
     SUPPORTED_RUNTIME_KEYS,
@@ -71,12 +67,12 @@ def review(cfg):
     research_execution = {"profile": ENVIRONMENT_ID, "backend": "cpu"}
     assurance = None
     if "gpu_research" in runtime:
-        from carbon.development_session.gpu_research import declared_gpu_runtime
+        from carbon.challenge_registry.campaigns import declared_gpu
         from carbon.reconstruction.accelerators import GPU_PROFILE, miner_lane_assurance
 
         try:
-            declared_gpu_runtime(runtime)
-        except ValueError:
+            declared_gpu(runtime)
+        except (ValueError, KeyError, TypeError, LookupError):
             # A declared GPU runtime whose scope is malformed is not a GPU
             # campaign. Reviewing it as one would show a miner a cuda backend
             # the runner would refuse to assemble, which is the mismatch this
@@ -88,6 +84,22 @@ def review(cfg):
                 "backend": GPU_PROFILE.backend.value,
             }
             assurance = miner_lane_assurance()
+    if "remote_gpu" in runtime and assurance is not None:
+        from carbon.challenge_registry.campaigns import declared_remote
+
+        try:
+            scope = declared_remote(runtime)
+        except (ValueError, KeyError, TypeError, LookupError):
+            blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
+        else:
+            # Where the GPU practice runs: the miner's own remote machine or
+            # container. Its address is the profile's and is not shown here.
+            research_execution["remote"] = {
+                "transport": scope["transport"],
+                "image_verified_by": scope["image_verified_by"],
+                "job_transport": scope["job_transport"],
+                "started_stopped_and_billed_by": "YOU; CARBON NEVER DOES",
+            }
     return {
         "schema": "carbon.launchpad.prelaunch-review.v1",
         "experiment_pause": (
@@ -176,16 +188,11 @@ def review(cfg):
             {"name": name, "version": version, "identity": identity}
             for name, version, identity in DEPENDENCY_SPECS
         ],
-        # What the design will be graded on, published beside what the miner
-        # chose to research with. The two are deliberately adjacent and
-        # deliberately separate: the miner picks the left one and is told the
-        # right one.
-        "validator_exam_environment": exam_environment(),
-        "challenge": PROFILE,
-        "challenge_identity": {
-            "id": CHALLENGE.challenge_id,
-            "version": CHALLENGE.version,
-        },
-        "development_rule_digest": rule_digest(),
+        # The Challenge, its exam environment and its rule are the chosen
+        # Challenge's own (C-MLP-04): the miner chooses one at launch from the
+        # catalog, and its description publishes what the design is graded
+        # on, beside what the miner chose to research with.
+        "challenge": "CHOSEN_AT_LAUNCH_FROM_THE_CATALOG",
+        "validator_exam_environment": "PUBLISHED_BY_THE_CHOSEN_CHALLENGE",
         "reconstruction": "Fresh independent DEVELOPMENT reconstruction; practice checkpoints do not replace final evaluation",
     }

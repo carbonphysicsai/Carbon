@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-03-planner-run-3-every-level",
+ "recorded_at": "2026-10-03T03:55:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "campaign_session",
+  "ref": "level-plan-3 under GRAPHITE-GRANT-PLANNER-02",
+  "description": "Battery level-planner session with 43 method cards, the executor's relevance pick from 195 retrieved, at 196,608 input and 32,768 output tokens."
+ },
+ "expected": "One proposal per construction level, 0 to 5, within the $1.50 run ceiling.",
+ "observed": "Six proposals, COMPLETED in six calls. Levels 0, 1, 2 and 5 restate capabilities the battery contract already registers (48, 5, 19 and 6); levels 3 and 4 propose none and say why (no registered numerical routine; Level 4 needs isolation for custom architecture code). Booked $1.097 because the provider reported no charge; the list-price estimate is $0.255. Requests were about 37,300 tokens; replies ran 2,477 to 25,305 output tokens.",
+ "keep": [
+  "Sizing the brief to the input bound, and the output limit for a medium-effort reply.",
+  "Filing every level's proposal as PROPOSED for the contract owner to decide."
+ ],
+ "change": [
+  "The battery contract already spans levels 0, 1, 2 and 5, so the climb starts from a mixed level: record which registered capabilities sit above Level 0 before choosing a level."
+ ],
+ "protocol_elements": [
+  "climb_procedure.graphite_proposal",
+  "construction_ladder"
+ ],
+ "status": "RECORDED",
+ "proposed_revision": null
+}

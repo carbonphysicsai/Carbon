@@ -25,7 +25,7 @@ def main():
     parser.add_argument("--model-authority", type=Path)
     parser.add_argument("--api-key-file", type=Path)
     parser.add_argument("--miner-public", type=Path)
-    parser.add_argument("--miner-password-file", type=Path)
+    parser.add_argument("--signer-socket", type=Path)
     args = parser.parse_args()
     root = args.root
     if not root.is_absolute() or root.is_symlink():
@@ -79,29 +79,25 @@ def main():
             args.model_authority,
             args.api_key_file,
             args.miner_public,
-            args.miner_password_file,
             args.image_manifest,
         )
         if any(value is None for value in required):
             parser.error(
-                "run requires operator config, model authority, API key file, miner public/password files and image manifest"
+                "run requires operator config, model authority, API key file, miner public file and image manifest"
             )
         import time
 
         from .agent import check_authority
 
         check_authority(args.model_authority, now=time.time())
-        # No key is loaded for prepare, plan or status. All private key access
-        # is on this trusted side of the data-only model connection.
-        from carbon.chain.auth import open_external_hotkey
+        # Carbon holds no key: the miner's own signer signs each request.
+        from carbon.chain.external_signer import miner_signer
 
         from .service import LocalMinerConnection
 
         config = load_config(args.operator_config)
         public = json.loads(args.miner_public.read_bytes())
-        key = open_external_hotkey(
-            Path(public["key_file"]), args.miner_password_file, public["hotkey"]
-        )
+        key = miner_signer(public, args.signer_socket)
         if key.ss58_address != public["hotkey"] or public["netuid"] != CARBON_NETUID:
             raise ValueError("miner identity mismatch")
         connection = LocalMinerConnection(

@@ -408,6 +408,7 @@ def test_summary_lists_every_adapter_and_offers_none_without_a_credential():
         "openai-responses",
         "engy-anthropic",
         "engy-chat",
+        "chutes",
         "anthropic",
         "openai-compatible-responses",
         "openai-compatible-chat",

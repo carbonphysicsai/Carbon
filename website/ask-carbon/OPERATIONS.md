@@ -167,6 +167,35 @@ expiry fails the check. The windows are reviewed constants in
 set an expiry more than seven days out. The check makes the review happen; it
 never extends an expiry, which stays a content decision.
 
+Where the check fails: ageing is not a defect in an unrelated change, so per-PR
+CI (`tools/ci-knowledge-check.mjs`) validates with `--time-findings-as-warnings`
+unless the PR edits `knowledge/`. A PR that edits it gets the strict check, and
+so does any run where git cannot compare against `origin/main`; the tool prints
+which mode ran and why. The flag demotes only expiry findings with a readable
+date; a malformed expiry, a changed source and every structural error still
+fail. The strict check runs daily on `main` in the `Ask Carbon freshness`
+workflow, which is where an approaching expiry goes red, and a failure there
+opens a GitHub issue titled "Ask Carbon knowledge freshness check failing" (or
+comments on the open one) listing the findings and the run.
+
+### Shipping a newer Pilot Designer
+
+The release ships `release/pilot-designer.html`, a committed snapshot, and never
+the Workbench's working copy (ASK-CARBON-PILOT-SNAPSHOT-01). So a Workbench
+rebuild cannot change a certified bundle. That includes a relayed readiness
+record.
+
+To ship a newer Pilot Designer, treat it as a release:
+1. Copy `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html`
+   over `release/pilot-designer.html`.
+2. Re-derive the candidate. That means re-fetching the baseline, rebuilding
+   with `--require-complete-bundle`, and recording `pilot_html_sha256`, the
+   bundle identity and the change against live.
+3. Seek the owner's approval of the exact bundle identity.
+
+`tests/bundle-guard.test.mjs` holds the candidate's `pilot_html_sha256` to the
+snapshot, so step 1 cannot land without step 2.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
@@ -324,6 +353,60 @@ Production needs a separate exact owner authorization after the staging report:
 > two integration blocks from the live homepage (must hash to `99be1318…`).
 > Rebuilding the currently deployed revision against that baseline must
 > reproduce the live bundle identity before it is trusted.
+
+> **Candidate 2026-09-30.1: approved for deployment (WEB-QA-11-D2, 2026-10-01).**
+> Bundle `86f51385…` ships the GOAL-WORKBENCH-16 Pilot Designer and retires
+> `/workbench/`. The retired page is the reviewed `site/workbench/index.html`,
+> declared in `site-replacements.json`. The operator follows
+> [`DEPLOY_PACKAGE_2026_10_01.md`](./DEPLOY_PACKAGE_2026_10_01.md), which runs
+> from a public clone:
+> - capture both rollback ids;
+> - re-derive the baseline with `tools/fetch-live-baseline.mjs`;
+> - rebuild, and the identity must be `86f51385…`;
+> - run the static publish with compatibility date `2026-09-12`, then
+>   `wrangler.public-release-active.toml`, verifying with
+>   `tools/verify-publication.mjs` after each.
+>
+> The Worker inputs are byte-identical to the live WEB-QA-10-D1 revision. The
+> repository expects the static rollback target `dc4469a7…`; the id captured at
+> deploy time wins.
+
+**Deployed 2026-10-02.**
+- The operator deployed bundle `86f51385…` as `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`
+  at 01:52:41Z, with 100 % of traffic, replacing `dc4469a7`. `c12d547a` is now
+  the manifest's rollback target.
+- `tools/verify-publication.mjs` against the reproduced bundle is VERIFIED on
+  both hostnames.
+- **The next candidate has one prerequisite.** Live now serves the `/workbench/`
+  replacement (`9a44f683…`), which the manifest still lists at its
+  pre-deployment digest. The next candidate must first fold that replacement
+  into a v4 baseline inventory; until then `tools/fetch-live-baseline.mjs`
+  reports 99/100. *(Done in candidate 2026-10-02.1: manifest v4.)*
+
+> **Candidate 2026-10-02.1: Start mining (approved for deployment,
+> WEB-QA-12-D1, 2026-10-02; not yet deployed).** Bundle `b22f6d1c…`, 106
+> files, under OWNER-WEBSITE-START-MINING-01. Static only, with four changes against live:
+> - the new page `/start-mining/`;
+> - a "Start mining" link on the homepage's Miners card;
+> - the miner page's hero button, which now reads "Start mining";
+> - `sitemap.xml`.
+>
+> The operator follows
+> [`DEPLOY_PACKAGE_2026_10_02.md`](./DEPLOY_PACKAGE_2026_10_02.md).
+>
+> **Manifest v4.** `production-baseline.manifest.json` v4 records what
+> `c12d547a` serves, including `/workbench/` `9a44f683…`, so
+> `site-replacements.json` no longer lists it. Each entry's
+> `change_since_previous_manifest` says how it differs from v3.
+>
+> **Three ways the integrator changes a page.** Each is reviewed in the
+> repository, pinned by digest and verified after staging:
+> - `--site-replacements` replaces a path the manifest verifies;
+> - `--site-additions` (`site-additions.json`) publishes a path the manifest
+>   does not list, and refuses any it does;
+> - `--homepage-edit NAME` applies a named edit from `HOMEPAGE_EDITS` to the
+>   pinned homepage source after its digest check. Its marker must occur
+>   exactly once.
 
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and

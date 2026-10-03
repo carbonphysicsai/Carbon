@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-graphite-level-planner",
+ "recorded_at": "2026-10-02T21:28:50Z",
+ "challenge": "protocol",
+ "stage": "design",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_level_planner.py; tests/cpu/test_graphite_admission_mutations.py; tests/cpu/test_graphite_*.py",
+  "description": "Built Graphite's level planner as a closed Planner task and ran scripted sessions for battery and a synthetic second Challenge, eleven rejection cases, the runner's refusals and six mutation checks, with the existing Graphite and pipeline suites."
+ },
+ "expected": "Every level 0-5 gets a PROPOSED proposal that passes proposals.validate; a reply outside the rules is rejected and recorded; nothing reaches the repository, the contract or an expansion record.",
+ "observed": "All pass after one fix: the live runner's refusals print through phase2's RunnerRefused, a SystemExit that prints its own JSON, so the runner returns after it rather than printing a second line. Computed from battery's contract and map, the Level 0 difference has rebuildable capabilities labelled 1, 2 and 5, objective.loss_expressions among the excluded, and Level 3 empty, as OWNER-CHALLENGE-ROADMAP-03 states. The difference can be checked mechanically from ids, so Carbon checks it rather than writes it.",
+ "keep": [
+  "Graphite writes the proposal text; Carbon checks it against facts computed from the contract and the map.",
+  "Every source must resolve to the brief, so a proposal cannot cite research that was not given to it."
+ ],
+ "change": [
+  "When a live level-planning session is authorized, give the brief the method cards that bear on each level; the fixture index has three synthetic cards."
+ ],
+ "protocol_elements": [
+  "construction_ladder.climb_procedure",
+  "graphite.permissions",
+  "level_proposals"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

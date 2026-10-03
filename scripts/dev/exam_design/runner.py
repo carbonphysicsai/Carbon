@@ -10,6 +10,12 @@ Phases:
   ``REFERENCE_TIMEOUT`` or ``FAILED_INFRA``. Admission stops at the config's
   ``stop_admitting_epoch`` so the pod can export before its deadline.
 * ``host`` - record host identity only.
+* ``value_refs`` / ``value_panel`` - EV4 and the Problem-C optimizer
+  (``value_phases.py``): Carbon's truth service on a shard of reference jobs,
+  and panel reconstruction with the optimizer's grid predictions.
+* ``graphite_practice`` - one Graphite phase-3 proposal (GRAPHITE-01):
+  compile it, verify the staged files Carbon pinned, train and predict public
+  PRACTICE (``carbon.agent_campaign.graphite.pod_phase``).
 
 Progress is rewritten to ``progress.json`` so the status page can report it.
 """
@@ -468,10 +474,23 @@ def main(argv=None) -> int:
             json.dumps(host_info(), indent=1)
         )
         return 0
+    if a.phase == "value_refs":
+        from scripts.dev.exam_design import value_phases
+
+        return value_phases.run_value_refs(cfg, a.out)
+    if a.phase == "value_panel":
+        from scripts.dev.exam_design import value_phases
+
+        return value_phases.run_value_panel(cfg, a.out)
     if a.phase == "train":
         from scripts.dev.exam_design import train_phase
 
         return train_phase.run(cfg, a.out)
+    if a.phase == "graphite_practice":
+        # GRAPHITE-01 phase 3: one Graphite proposal's practice trial.
+        from carbon.agent_campaign.graphite import pod_phase
+
+        return pod_phase.run(cfg, a.out)
     raise SystemExit(f"unknown phase {a.phase}")
 
 

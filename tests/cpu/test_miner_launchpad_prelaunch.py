@@ -41,7 +41,8 @@ def configured_bridge(tmp_path, monkeypatch, *, chain=None):
         "campaigns_root": str(tmp_path / "PRIVATE-SENTINEL-campaigns"),
         "runtime": json.loads(json.dumps(RUNTIME)),
         "paths": {
-            key: str(tmp_path / ("PRIVATE-SENTINEL-" + key)) for key in PATH_FIELDS
+            key: str(tmp_path / ("PRIVATE-SENTINEL-" + key))
+            for key in PATH_FIELDS | {"operator_config"}
         },
         "research_guidance": "Private fixture objective; retain measured feedback.",
     }
@@ -264,19 +265,19 @@ def _well_formed_gpu_scope():
     what this exercises is the review and runner path, which check shape and
     must stop claiming the composition is unavailable once the shape is right.
     """
-    from carbon.development_session.gpu_research import SCHEMA
+    from carbon.development_session.battery_gpu import SCOPE_SCHEMA
 
     return {
-        "schema": SCHEMA,
+        "schema": SCOPE_SCHEMA,
+        "challenge": "battery-fastcharge-ageing-development-v1",
         "profile_digest": "sha256:" + "e" * 64,
         "image": "sha256:" + "f" * 64,
         "image_manifest_digest": "sha256:" + "1" * 64,
-        "assembly": "sha256:" + "2" * 64,
-        "catalogue": "sha256:" + "3" * 64,
-        "public_train_digest": "sha256:" + "4" * 64,
+        "program": "sha256:" + "2" * 64,
         "role": "MINER_RESEARCH",
-        "productive_seconds": 600,
-        "validation_cleanup_seconds": 120,
+        "backends": ["jax"],
+        "jax_platforms": "cuda",
+        "purpose": "speed_only",
         "score": None,
         "official_eligible": False,
     }

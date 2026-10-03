@@ -351,19 +351,37 @@ def _create_server(
     def guidance() -> str:
         if guard is not None:
             guard()
-        return GUIDANCE + (
-            "\nProspectively admitted authored Julia: use kind=workspace, "
-            "action=run_julia, strategy=null and arguments "
-            "{source,files,seconds,hypothesis,expected_effect} and optional "
-            "environment: current (default, newest SciML core and scientific-ML "
-            "stack) or pde (NeuralPDE, MethodOfLines, DataDrivenDiffEq). "
-            "Only named own/public files are staged. Julia 1.13.0 with those pinned, "
-            "precompiled packages executes in the isolated analysis image. "
-            "Runtime package "
-            "installation is unavailable. Save bounded exports under /scratch/output; "
-            "results are MINER_SELF_REPORTED, not reference or training qualification."
-            if adapter.authored_julia_available
-            else ""
+        return (
+            GUIDANCE
+            + (
+                "\nProspectively admitted authored Julia: use kind=workspace, "
+                "action=run_julia, strategy=null and arguments "
+                "{source,files,seconds,hypothesis,expected_effect} and optional "
+                "environment: current (default, newest SciML core and scientific-ML "
+                "stack) or pde (NeuralPDE, MethodOfLines, DataDrivenDiffEq). "
+                "Only named own/public files are staged. Julia 1.13.0 with those pinned, "
+                "precompiled packages executes in the isolated analysis image. "
+                "Runtime package "
+                "installation is unavailable. Save bounded exports under /scratch/output; "
+                "results are MINER_SELF_REPORTED, not reference or training qualification."
+                if adapter.authored_julia_available
+                else ""
+            )
+            + (
+                "\nThis campaign has a GPU lane (RSURF-D20): run_python arguments "
+                "accept device=gpu (default cpu) to run on "
+                + adapter.gpu_lane["label"]
+                + ", in the pinned GPU worker. Isolation there: "
+                + adapter.gpu_lane["isolation"]
+                + (
+                    "; a remote run needs seconds between 40 and 3600"
+                    if adapter.gpu_lane["kind"] == "remote_gpu"
+                    else ""
+                )
+                + ". Write outputs to ../output. run_julia runs on cpu only."
+                if adapter.gpu_lane is not None
+                else ""
+            )
         )
 
     @server.prompt(name="carbon_research_workflow_v1")

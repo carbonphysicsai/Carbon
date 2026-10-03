@@ -1,0 +1,1479 @@
+{
+  "in_band": [
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.7,c2=0.725",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.999828528290685,
+        "plating_margin_v": 0.021400476639032467,
+        "time_to_cv_onset_s": 2447.747829038596
+      },
+      "predicted_margin_bands": 0.0010921764924527724,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 45.508859490110126,
+        "plating_margin_v": 0.02009493758453197,
+        "time_to_cv_onset_s": 2334.9872464234427
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.3,c2=0.45",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 25.0
+      },
+      "predicted": {
+        "peak_temperature_c": 29.654989352512683,
+        "plating_margin_v": 3.445705901066777e-05,
+        "time_to_cv_onset_s": 3313.0065103767247
+      },
+      "predicted_margin_bands": 0.017490892898816127,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 32.73194114403714,
+        "plating_margin_v": 0.009738639198410996,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.3,c2=0.925",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.996666192121076,
+        "plating_margin_v": 0.0221793461109535,
+        "time_to_cv_onset_s": 2240.01615799667
+      },
+      "predicted_margin_bands": 0.021234445088689383,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 46.941600935988504,
+        "plating_margin_v": 0.021105054811841068,
+        "time_to_cv_onset_s": 1994.299566892359
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.1,c2=0.625",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 15.0
+      },
+      "predicted": {
+        "peak_temperature_c": 22.363732573826788,
+        "plating_margin_v": 4.3608702261716545e-05,
+        "time_to_cv_onset_s": 2099.817098986333
+      },
+      "predicted_margin_bands": 0.02213639708716576,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 22.047072761608092,
+        "plating_margin_v": -0.0038438720176712446,
+        "time_to_cv_onset_s": 2109.970201800749
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.5,c2=0.975",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 20.0
+      },
+      "predicted": {
+        "peak_temperature_c": 28.970268518753702,
+        "plating_margin_v": 6.217472342003624e-05,
+        "time_to_cv_onset_s": 3067.0210911478734
+      },
+      "predicted_margin_bands": 0.031560773309663066,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 28.283036030528706,
+        "plating_margin_v": -0.008141563749166419,
+        "time_to_cv_onset_s": 3375.276654785475
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.15,c2=0.825",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99287441533513,
+        "plating_margin_v": 0.021944095932790772,
+        "time_to_cv_onset_s": 2328.2775315581935
+      },
+      "predicted_margin_bands": 0.04538588958515718,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 45.406809385683516,
+        "plating_margin_v": 0.0228878453539912,
+        "time_to_cv_onset_s": 2309.592740927044
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.65,c2=0.8",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99152486046202,
+        "plating_margin_v": 0.020362567989017,
+        "time_to_cv_onset_s": 2257.5588623847834
+      },
+      "predicted_margin_bands": 0.053981780496677026,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 45.23148437255554,
+        "plating_margin_v": 0.018485398040403053,
+        "time_to_cv_onset_s": 2099.092922402108
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=2,c2=0.925",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.05,
+        "t_amb_c": 20.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99300577181626,
+        "plating_margin_v": 0.005769844042363621,
+        "time_to_cv_onset_s": 1888.5262615956572
+      },
+      "predicted_margin_bands": 0.04454922410027219,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 45.44980897191908,
+        "plating_margin_v": 0.0045999360514817934,
+        "time_to_cv_onset_s": 1963.4929043503075
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.7,c2=0.7",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99147041356669,
+        "plating_margin_v": 0.020602506747031547,
+        "time_to_cv_onset_s": 2354.9071753305443
+      },
+      "predicted_margin_bands": 0.05432857600835617,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 45.5047882994491,
+        "plating_margin_v": 0.020690113887156542,
+        "time_to_cv_onset_s": 2432.629115929094
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.75,c2=0.525",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.98939707988986,
+        "plating_margin_v": 0.021380686392273987,
+        "time_to_cv_onset_s": 3232.1024094529894
+      },
+      "predicted_margin_bands": 0.06753452299450866,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 45.7606316747013,
+        "plating_margin_v": 0.023193497240227432,
+        "time_to_cv_onset_s": 3456.5092186804404
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.7,c2=0.35",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 33.54093565716532,
+        "plating_margin_v": 0.04356916447142646,
+        "time_to_cv_onset_s": 3479.774648419132
+      },
+      "predicted_margin_bands": 0.0715401844025196,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 33.43296028436913,
+        "plating_margin_v": 0.04270585869923573,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.5,c2=0.85",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 20.0
+      },
+      "predicted": {
+        "peak_temperature_c": 28.25448397381485,
+        "plating_margin_v": 0.00015454249425706033,
+        "time_to_cv_onset_s": 3318.8782810026555
+      },
+      "predicted_margin_bands": 0.07844796662794941,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 27.189838307752666,
+        "plating_margin_v": -0.001805645040316197,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1,c2=0.9",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 20.0
+      },
+      "predicted": {
+        "peak_temperature_c": 28.68580447424134,
+        "plating_margin_v": 2.5923640359848225e-05,
+        "time_to_cv_onset_s": 779.596585779652
+      },
+      "predicted_margin_bands": 0.013159208304491484,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 28.675696597399565,
+        "plating_margin_v": -0.0028381396806715807,
+        "time_to_cv_onset_s": 866.8909380500388
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.65,c2=1",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99679912785811,
+        "plating_margin_v": 0.015050678672942273,
+        "time_to_cv_onset_s": 1670.382303007401
+      },
+      "predicted_margin_bands": 0.02038772064897466,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 45.26539169550159,
+        "plating_margin_v": 0.014487041960680616,
+        "time_to_cv_onset_s": 1691.1392010600111
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.75,c2=0.725",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 15.0
+      },
+      "predicted": {
+        "peak_temperature_c": 22.33431094616246,
+        "plating_margin_v": 7.188079245049744e-06,
+        "time_to_cv_onset_s": 1156.3337192054257
+      },
+      "predicted_margin_bands": 0.003648771190380581,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 22.357816005067946,
+        "plating_margin_v": -0.0030577747239503867,
+        "time_to_cv_onset_s": 1116.2874099810747
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.35,c2=0.45",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 25.0
+      },
+      "predicted": {
+        "peak_temperature_c": 32.408887115474755,
+        "plating_margin_v": 0.008095845214044573,
+        "time_to_cv_onset_s": 3479.9872489458053
+      },
+      "predicted_margin_bands": 0.004047953712610511,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 32.50334166037322,
+        "plating_margin_v": 0.006627009572338506,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.5,c2=0.875",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 25.0
+      },
+      "predicted": {
+        "peak_temperature_c": 34.454171720726514,
+        "plating_margin_v": 3.476280619482859e-05,
+        "time_to_cv_onset_s": 1534.2273738896467
+      },
+      "predicted_margin_bands": 0.017646094515141417,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 34.4799425449425,
+        "plating_margin_v": -0.002073210968437678,
+        "time_to_cv_onset_s": 1544.8008339113708
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.05,c2=0.725",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 15.0
+      },
+      "predicted": {
+        "peak_temperature_c": 22.401713527621034,
+        "plating_margin_v": 6.393912030492298e-05,
+        "time_to_cv_onset_s": 1150.089546411368
+      },
+      "predicted_margin_bands": 0.0324564062461538,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 22.381277124362953,
+        "plating_margin_v": -0.003002102116257054,
+        "time_to_cv_onset_s": 1104.6234220490205
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.25,c2=0.45",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 43.17585478328017,
+        "plating_margin_v": 0.03840086719418789,
+        "time_to_cv_onset_s": 3479.876936425028
+      },
+      "predicted_margin_bands": 0.039067801578442286,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 43.33101846504235,
+        "plating_margin_v": 0.038070428895311224,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.9,c2=0.425",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 37.49147092685311,
+        "plating_margin_v": 0.006593008153272039,
+        "time_to_cv_onset_s": 3479.8615613934217
+      },
+      "predicted_margin_bands": 0.04394876399312616,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 37.378002000638446,
+        "plating_margin_v": 0.010661445875272044,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.2,c2=0.5",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 15.0
+      },
+      "predicted": {
+        "peak_temperature_c": 19.899151484138926,
+        "plating_margin_v": 0.00011776266434480355,
+        "time_to_cv_onset_s": 1798.6408444024241
+      },
+      "predicted_margin_bands": 0.059778002205484036,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 19.712294828005327,
+        "plating_margin_v": -0.0035357201955504066,
+        "time_to_cv_onset_s": 2032.3057672759232
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.55,c2=0.5",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.36852676233633,
+        "plating_margin_v": 0.028432622293434615,
+        "time_to_cv_onset_s": 3479.7818571471344
+      },
+      "predicted_margin_bands": 0.06925169932242531,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 44.63189728544552,
+        "plating_margin_v": 0.029053402816629277,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.15,c2=0.625",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99914132261175,
+        "plating_margin_v": 0.029939424041153732,
+        "time_to_cv_onset_s": 2800.650119241654
+      },
+      "predicted_margin_bands": 0.005469282727715251,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 45.406809385683516,
+        "plating_margin_v": 0.029989526669733636,
+        "time_to_cv_onset_s": 3005.8332577988813
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.35,c2=0.95",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 20.0
+      },
+      "predicted": {
+        "peak_temperature_c": 29.130009871528017,
+        "plating_margin_v": 1.4578889718799837e-05,
+        "time_to_cv_onset_s": 738.5711742875002
+      },
+      "predicted_margin_bands": 0.007400451633908547,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 29.122641548742422,
+        "plating_margin_v": -0.005328827945845218,
+        "time_to_cv_onset_s": 787.2497379285729
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.5,c2=1",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 25.0
+      },
+      "predicted": {
+        "peak_temperature_c": 36.579362440729746,
+        "plating_margin_v": 2.736289976953271e-05,
+        "time_to_cv_onset_s": 1263.1931377335318
+      },
+      "predicted_margin_bands": 0.01388979683732625,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 36.20075991840281,
+        "plating_margin_v": -0.002073210968437678,
+        "time_to_cv_onset_s": 1314.5415041168174
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.5,c2=1",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 25.0
+      },
+      "predicted": {
+        "peak_temperature_c": 32.725346836469576,
+        "plating_margin_v": 2.9687265233302798e-05,
+        "time_to_cv_onset_s": 2337.3394077692124
+      },
+      "predicted_margin_bands": 0.015069677783402435,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 32.87522611491312,
+        "plating_margin_v": -0.0023001557077482297,
+        "time_to_cv_onset_s": 2399.250741428283
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.15,c2=0.675",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 35.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.993059290089924,
+        "plating_margin_v": 0.02783731325554041,
+        "time_to_cv_onset_s": 2630.9136376965757
+      },
+      "predicted_margin_bands": 0.044208343376278866,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 45.406809385683516,
+        "plating_margin_v": 0.027828546828324193,
+        "time_to_cv_onset_s": 2801.8424859710767
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.8,c2=0.5",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 30.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.991141133480056,
+        "plating_margin_v": 0.018686479538727215,
+        "time_to_cv_onset_s": 3418.507369683699
+      },
+      "predicted_margin_bands": 0.05642590140091612,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 46.02352668136507,
+        "plating_margin_v": 0.02094196437349084,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature",
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.9,c2=0.75",
+      "eligible_members": 99,
+      "in_band": true,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 15.0
+      },
+      "predicted": {
+        "peak_temperature_c": 22.436444267006717,
+        "plating_margin_v": 0.00011442165137385239,
+        "time_to_cv_onset_s": 984.3589020519173
+      },
+      "predicted_margin_bands": 0.05808205653495045,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 22.638571517823948,
+        "plating_margin_v": -0.004346035596593823,
+        "time_to_cv_onset_s": 1043.898767115214
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    }
+  ],
+  "out_of_band": [
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.8,c2=0.65",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 18.93692614308322,
+        "plating_margin_v": 2.9819449042456044e-05,
+        "time_to_cv_onset_s": 2957.474554166305
+      },
+      "predicted_margin_bands": 0.015136776163683271,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 19.701218757272272,
+        "plating_margin_v": -0.0039933037882930586,
+        "time_to_cv_onset_s": 2646.5669689600127
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.5,c2=0.6",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 16.783085625439284,
+        "plating_margin_v": 4.90438543620218e-05,
+        "time_to_cv_onset_s": 2906.099838113604
+      },
+      "predicted_margin_bands": 0.024895357544173505,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 16.784071085775793,
+        "plating_margin_v": -0.0037823907940832324,
+        "time_to_cv_onset_s": 2561.5586226445625
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=0.9,c2=0.625",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "knn-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 20.033694800408725,
+        "plating_margin_v": 6.118858725031218e-05,
+        "time_to_cv_onset_s": 2933.134767254853
+      },
+      "predicted_margin_bands": 0.03106019657376253,
+      "rank": 93,
+      "reference": {
+        "peak_temperature_c": 20.85478929076595,
+        "plating_margin_v": -0.0029428427820310625,
+        "time_to_cv_onset_s": 2624.019636859509
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "OTHER_SIGNAL",
+      "design": "c1=1.95,c2=0.75",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t1500_w128_d3_wd1em4-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 40.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99596730308551,
+        "plating_margin_v": 0.015537883726113776,
+        "time_to_cv_onset_s": 1639.779675701116
+      },
+      "predicted_margin_bands": 0.025685967608234505,
+      "rank": 50,
+      "reference": {
+        "peak_temperature_c": 45.42160906671296,
+        "plating_margin_v": 0.017121849956818154,
+        "time_to_cv_onset_s": 1782.9371542319477
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.7,c2=0.65",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 40.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.866925859573286,
+        "plating_margin_v": 0.034663957830106125,
+        "time_to_cv_onset_s": 3479.9936410471933
+      },
+      "predicted_margin_bands": 0.0020187151767459,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 44.80723943491546,
+        "plating_margin_v": 0.0348484719026244,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1,c2=0.525",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.05,
+        "t_amb_c": 5.0
+      },
+      "predicted": {
+        "peak_temperature_c": 21.14859773349383,
+        "plating_margin_v": 5.889576501809119e-05,
+        "time_to_cv_onset_s": 3356.0701645326612
+      },
+      "predicted_margin_bands": 0.02989632742035086,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 20.24204849419351,
+        "plating_margin_v": -0.005191484765630784,
+        "time_to_cv_onset_s": 3460.1773216649995
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.8,c2=0.475",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 5.0
+      },
+      "predicted": {
+        "peak_temperature_c": 14.959803114845988,
+        "plating_margin_v": 9.399249405042751e-05,
+        "time_to_cv_onset_s": 3095.66457858997
+      },
+      "predicted_margin_bands": 0.04771192591392259,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 15.209758260495732,
+        "plating_margin_v": -0.003597496129954072,
+        "time_to_cv_onset_s": 3337.750494652811
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.6,c2=0.725",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 40.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.98954688696257,
+        "plating_margin_v": 0.028192818725995623,
+        "time_to_cv_onset_s": 1685.8997523733483
+      },
+      "predicted_margin_bands": 0.06658033781801498,
+      "rank": 1,
+      "reference": {
+        "peak_temperature_c": 45.18879886120317,
+        "plating_margin_v": 0.027698268598755835,
+        "time_to_cv_onset_s": 1842.0331257246326
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.55,c2=0.575",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 16.162707561479532,
+        "plating_margin_v": 4.669900044535977e-06,
+        "time_to_cv_onset_s": 1255.8505618863483
+      },
+      "predicted_margin_bands": 0.0023705076368202927,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 16.02417568031092,
+        "plating_margin_v": -0.0030807586378743925,
+        "time_to_cv_onset_s": 1480.6837954398882
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.9,c2=0.5",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.2,
+        "t_amb_c": 5.0
+      },
+      "predicted": {
+        "peak_temperature_c": 15.897594537243918,
+        "plating_margin_v": 5.299249246606616e-05,
+        "time_to_cv_onset_s": 3061.9570292103012
+      },
+      "predicted_margin_bands": 0.0268997423685615,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 16.19021481125634,
+        "plating_margin_v": -0.00468615746507647,
+        "time_to_cv_onset_s": 3126.7727508634866
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1,c2=0.375",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 13.369708109791073,
+        "plating_margin_v": 5.701570180281432e-05,
+        "time_to_cv_onset_s": 2833.6635246264395
+      },
+      "predicted_margin_bands": 0.028941980610565642,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 13.427973449121339,
+        "plating_margin_v": -0.004889150111148214,
+        "time_to_cv_onset_s": 2895.5830352911994
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.5,c2=0.5",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_irw03-s1",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 5.0
+      },
+      "predicted": {
+        "peak_temperature_c": 11.232773704369142,
+        "plating_margin_v": 0.00010771373695447721,
+        "time_to_cv_onset_s": 1275.8506359604542
+      },
+      "predicted_margin_bands": 0.05467702383476001,
+      "rank": 14,
+      "reference": {
+        "peak_temperature_c": 10.488679810976464,
+        "plating_margin_v": -0.006376506329357929,
+        "time_to_cv_onset_s": 1625.0346506616763
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.95,c2=0.775",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 40.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99607412001447,
+        "plating_margin_v": 0.017426937239958806,
+        "time_to_cv_onset_s": 1471.0754982522715
+      },
+      "predicted_margin_bands": 0.025005605003378346,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 45.68619734040317,
+        "plating_margin_v": 0.017121849956818154,
+        "time_to_cv_onset_s": 1697.0282927909866
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.55,c2=0.6",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 16.092544069013243,
+        "plating_margin_v": 6.005864743855588e-05,
+        "time_to_cv_onset_s": 1459.3243811301309
+      },
+      "predicted_margin_bands": 0.03048662306525679,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 16.302933770454786,
+        "plating_margin_v": -0.004442010111461019,
+        "time_to_cv_onset_s": 1393.8538059549317
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.85,c2=0.575",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 16.049857587148832,
+        "plating_margin_v": 7.574076758890859e-05,
+        "time_to_cv_onset_s": 1443.5163035037406
+      },
+      "predicted_margin_bands": 0.03844709014665411,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 16.076800384394346,
+        "plating_margin_v": -0.0029368810831674865,
+        "time_to_cv_onset_s": 1435.5292780259906
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "no_plating_onset"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=0.9,c2=0.4",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.35,
+        "t_amb_c": 10.0
+      },
+      "predicted": {
+        "peak_temperature_c": 16.23340391212686,
+        "plating_margin_v": 0.00010675166515656045,
+        "time_to_cv_onset_s": 3442.2823077051717
+      },
+      "predicted_margin_bands": 0.05418866251602054,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 16.388718112373738,
+        "plating_margin_v": -0.0018281891105861718,
+        "time_to_cv_onset_s": null
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "reach_cv_in_window"
+      ]
+    },
+    {
+      "basis": "a reference-verified constraint FAIL (contract bands) at a point the member predicted to pass; rank from rule_scores.<member>.control-exam-v1",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "design": "c1=1.9,c2=0.775",
+      "eligible_members": 99,
+      "in_band": false,
+      "kind": "RECONSTRUCTED",
+      "member": "mlp_t6000_w256_d3_pca8-s0",
+      "mode": "X",
+      "operating_condition": {
+        "soc0": 0.5,
+        "t_amb_c": 40.0
+      },
+      "predicted": {
+        "peak_temperature_c": 44.99030842545144,
+        "plating_margin_v": 0.019174351395115752,
+        "time_to_cv_onset_s": 1465.1177733554912
+      },
+      "predicted_margin_bands": 0.06172977419466071,
+      "rank": 40,
+      "reference": {
+        "peak_temperature_c": 45.68902018465366,
+        "plating_margin_v": 0.01806457636288247,
+        "time_to_cv_onset_s": 1694.8031520143263
+      },
+      "review_state": "the newest expansion record per Challenge (carbon/reconstruction/expansions/<challenge>/NNNN.json, #468)",
+      "rule": "control-exam-v1",
+      "schema": "carbon.admission-condition.v1",
+      "violated": [
+        "peak_temperature"
+      ]
+    }
+  ]
+}

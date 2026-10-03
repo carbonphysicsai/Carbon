@@ -735,7 +735,9 @@ def load_development_profile(path: Path, *, cleanup_only=False):
         or cfg["schema"] != "carbon.launchpad.runner-profile.v1"
         or cfg["enabled"] is not True
         or type(cfg["paths"]) is not dict
-        or set(cfg["paths"]) != PATH_FIELDS
+        # The workbench host is an operator's: its profile names the
+        # operator configuration (C-MLP-04 made it optional for miners only).
+        or set(cfg["paths"]) != PATH_FIELDS | {"operator_config"}
         or any(
             type(v) is not str or not Path(v).is_absolute()
             for v in cfg["paths"].values()

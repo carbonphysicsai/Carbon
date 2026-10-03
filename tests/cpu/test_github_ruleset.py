@@ -182,7 +182,7 @@ def _base_responses(
             "allow_merge_commit": True,
             "allow_squash_merge": True,
             "allow_rebase_merge": True,
-            "allow_auto_merge": False,
+            "allow_auto_merge": True,
         },
         "repos/carbonphysicsai/Carbon/branches/main": {"commit": {"sha": MAIN_SHA}},
         CHECK_RUNS_ENDPOINT: {
@@ -276,7 +276,7 @@ def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
         "allow_merge_commit": True,
         "allow_squash_merge": False,
         "allow_rebase_merge": False,
-        "allow_auto_merge": False,
+        "allow_auto_merge": True,
     }
 
 
@@ -333,6 +333,35 @@ def test_plan_is_noop_for_normalized_live_state() -> None:
     assert plan.ruleset_action == "NOOP"
     assert plan.ruleset_id == 41
     assert plan.settings_action == "NOOP"
+
+
+def test_auto_merge_is_on_only_with_the_merge_gate_required() -> None:
+    """OWNER-WORKFLOW-SPEED-01: auto-merge is allowed, so the merge manager can
+    arm a PR pinned to its head. It is safe only because the same artifact
+    makes Merge gate a required, unbypassable check on main; otherwise GitHub
+    would merge an armed PR at once, before CI."""
+    artifact = _artifact()
+    assert artifact["repository_settings"]["allow_auto_merge"] is True
+    assert ruleset_module.EXPECTED_REPOSITORY_SETTINGS["allow_auto_merge"] is True
+    assert artifact["ruleset"]["enforcement"] == "active"
+    assert artifact["ruleset"]["bypass_actors"] == []
+    rules = {rule["type"]: rule for rule in artifact["ruleset"]["rules"]}
+    checks = rules["required_status_checks"]["parameters"]["required_status_checks"]
+    assert checks == [{"context": "Merge gate", "integration_id": 15368}]
+    # Live today: auto-merge off. The plan must switch it on.
+    responses = _base_responses()
+    responses["repos/carbonphysicsai/Carbon"].update(
+        {"allow_squash_merge": False, "allow_rebase_merge": False}
+    )
+    responses["repos/carbonphysicsai/Carbon"]["allow_auto_merge"] = False
+    plan = ruleset_module.build_plan(
+        FakeClient(responses),
+        artifact,
+        expected_main=MAIN_SHA,
+        merge_gate_sha=CANDIDATE_SHA,
+        pr_number=PR_NUMBER,
+    )
+    assert plan.settings_action == "PATCH"
 
 
 def test_plan_refuses_non_admin_credentials() -> None:

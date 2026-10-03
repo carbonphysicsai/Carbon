@@ -50,7 +50,7 @@ EXPECTED_REPOSITORY_SETTINGS = {
     "allow_merge_commit": True,
     "allow_squash_merge": False,
     "allow_rebase_merge": False,
-    "allow_auto_merge": False,
+    "allow_auto_merge": True,
 }
 
 

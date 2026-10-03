@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-graphite-admission-regression",
+ "recorded_at": "2026-10-02T22:05:10Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "handoff section 14 suites, the Graphite, agent-campaign, design-search and pipeline suites; scripts/check_quality.py; scripts/dev/check_diff_hygiene.py",
+  "description": "Ran the handoff's regression list with every suite this ticket added, then the quality ratchet and diff hygiene against origin/main, on the canonical workflow."
+ },
+ "expected": "Every suite passes unchanged, the changed Python adds no quality debt, and the diff is clean.",
+ "observed": "728 passed in about 10 minutes; the quality gate passed with all 29 changed Python files clean; diff hygiene exited 0. Meanwhile origin/main moved to #506 (battery Track A Level 0 harness), which appends to .agent/DECISIONS.md and repins the Hub's authority snapshot, so a merge conflicts there and in the generated Hub files, with no overlap in code.",
+ "keep": [
+  "One canonical run of the whole affected list before reporting, with unit, mutation and pipeline suites together."
+ ],
+ "change": [
+  "Merge the newest main before the final regression run when it has moved, so the reported run covers it; the Hub repin conflicts are resolved by taking main's snapshot and re-rendering."
+ ],
+ "protocol_elements": [
+  "regression",
+  "lessons"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-03-SLICE-5-AGENTS",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "C-MLP-03 slice 5: Hermes Agent (Nous Research) is configured in setup, on the miner's machine, with their consent. Setup writes a dedicated Hermes profile, carbon, so the miner's own Hermes configuration is never touched. The profile uses the setup's inference choice as a custom OpenAI-compatible model, with the key only in the profile's owner-only .env. It has one mcp_servers stdio entry running Carbon's MCP server with the miner's runner profile, marked trust: untrusted so Hermes asks before every tool that can change anything. Nothing is written unless the request's consent names exactly those files, and nothing is written when the signer check fails. Hermes leaves the unavailable list, and battery's agent provision is Provided. Mira (autoscience.ai/mira) documents no tool connection, so it is recorded and stopped, as the ticket directs. A Hermes-driven battery campaign is the acceptance. Engineering evidence only; nothing is qualified, and no chain write is made.",
+  "primary_detail": ".agent/tickets/C-MLP-03_miner_environment.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T02:46:38Z"
+}

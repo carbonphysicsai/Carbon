@@ -15,7 +15,11 @@ const OWNER_UPLOADED_SHA256 = "546fb89d7df7de98f191ae9585d9952db773eedff4bf33c06
 const OWNER_UPLOAD_RECONCILIATION = "owner-upload-2026-09-18-plus-workbench-navigation-v1";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
-const PILOT_DESIGNER = resolve(ROOT, "../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html");
+// The Pilot Designer the release ships is a committed snapshot, not the
+// Workbench's working copy: a Workbench or readiness-record change cannot
+// alter a certified bundle. Shipping a newer Pilot Designer is a release
+// step (OPERATIONS.md): refresh this file, then re-derive the candidate.
+export const PILOT_DESIGNER = resolve(ROOT, "release/pilot-designer.html");
 const DEFAULT_BASELINE_MANIFEST = resolve(ROOT, "production-baseline.manifest.json");
 
 // The homepage the bundle publishes is the integrated document, not the
@@ -41,6 +45,74 @@ export const loadBaselineManifest = async (path = DEFAULT_BASELINE_MANIFEST) => 
     seen.add(asset.path);
   }
   return manifest;
+};
+
+// A reviewed, repository-owned file that replaces one verified baseline path in
+// the published bundle (for example a retired page). The baseline manifest
+// still describes live; the replacement is declared separately, pinned by its
+// own digest, and verified again after staging. It may only replace a path the
+// manifest already verifies, never the integrated homepage or the Ask Carbon
+// assets, and never add a path.
+export const loadSiteReplacements = async (path, manifest, assetRelative = "ask-carbon") => {
+  const declared = JSON.parse(await readFile(path, "utf8"));
+  if (!Array.isArray(declared.replacements) || !declared.replacements.length) throw new Error(`Site replacements ${path} lists no replacements.`);
+  const base = dirname(path);
+  const seen = new Set();
+  const result = [];
+  for (const item of declared.replacements) {
+    const baseline = manifest.assets.find((asset) => asset.path === item.path);
+    if (!baseline) throw new Error(`Site replacement ${item.path} is not a verified baseline path; a replacement cannot add a path.`);
+    if (item.path === REPLACED_BY_INTEGRATION || item.path === assetRelative || item.path.startsWith(`${assetRelative}/`)) {
+      throw new Error(`Site replacement ${item.path} would replace the integrated homepage or the Ask Carbon assets.`);
+    }
+    if (seen.has(item.path)) throw new Error(`Site replacement ${item.path} is declared twice.`);
+    seen.add(item.path);
+    if (typeof item.reason !== "string" || !item.reason.trim()) throw new Error(`Site replacement ${item.path} has no reason.`);
+    const source = resolve(base, String(item.source ?? ""));
+    const step = relative(base, source);
+    if (!item.source || step.startsWith("..") || step === "" || step.split(sep).includes("..")) throw new Error(`Site replacement ${item.path} source must be inside ${base}.`);
+    const bytes = await readFile(source);
+    if (!/^[0-9a-f]{64}$/.test(item.sha256 ?? "") || sha256(bytes) !== item.sha256) {
+      throw new Error(`Site replacement ${item.path} source ${item.source} has SHA-256 ${sha256(bytes)}, not the declared ${item.sha256}.`);
+    }
+    result.push({ path: item.path, bytes, sha256: item.sha256, replaces_baseline_sha256: baseline.sha256, reason: item.reason });
+  }
+  return result;
+};
+
+// A reviewed, repository-owned file published at a path live does not serve
+// yet (for example a new page). Like a replacement it is declared separately,
+// pinned by its own digest and verified again after staging. It may only add a
+// path: never one the baseline manifest lists, the integrated homepage or the
+// Ask Carbon assets.
+export const loadSiteAdditions = async (path, manifest, assetRelative = "ask-carbon") => {
+  const declared = JSON.parse(await readFile(path, "utf8"));
+  if (!Array.isArray(declared.additions) || !declared.additions.length) throw new Error(`Site additions ${path} lists no additions.`);
+  const base = dirname(path);
+  const seen = new Set();
+  const result = [];
+  for (const item of declared.additions) {
+    const target = String(item.path ?? "");
+    if (!target || target.startsWith("/") || target.split("/").some((part) => !part || part === "." || part === "..")) {
+      throw new Error(`Site addition ${target} is not a bounded site path.`);
+    }
+    if (manifest.assets.some((asset) => asset.path === target)) throw new Error(`Site addition ${target} is a verified baseline path; an addition cannot replace a path.`);
+    if (target === REPLACED_BY_INTEGRATION || target === assetRelative || target.startsWith(`${assetRelative}/`)) {
+      throw new Error(`Site addition ${target} would replace the integrated homepage or the Ask Carbon assets.`);
+    }
+    if (seen.has(target)) throw new Error(`Site addition ${target} is declared twice.`);
+    seen.add(target);
+    if (typeof item.reason !== "string" || !item.reason.trim()) throw new Error(`Site addition ${target} has no reason.`);
+    const source = resolve(base, String(item.source ?? ""));
+    const step = relative(base, source);
+    if (!item.source || step.startsWith("..") || step === "" || step.split(sep).includes("..")) throw new Error(`Site addition ${target} source must be inside ${base}.`);
+    const bytes = await readFile(source);
+    if (!/^[0-9a-f]{64}$/.test(item.sha256 ?? "") || sha256(bytes) !== item.sha256) {
+      throw new Error(`Site addition ${target} source ${item.source} has SHA-256 ${sha256(bytes)}, not the declared ${item.sha256}.`);
+    }
+    result.push({ path: target, bytes, sha256: item.sha256, reason: item.reason });
+  }
+  return result;
 };
 
 // Regression floor for the redesigned site (live since 2026-09-22): the page
@@ -221,16 +293,36 @@ const parseArgs = (argv) => {
     result[argument.slice(2)] = argv[index + 1];
     index += 1;
   }
-  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload] [--existing-site DIR] [--baseline-manifest PATH] [--require-complete-bundle]");
+  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload] [--homepage-edit NAME] [--existing-site DIR] [--baseline-manifest PATH] [--site-replacements PATH] [--site-additions PATH] [--require-complete-bundle]");
   return result;
 };
 
-const replaceExactlyOnce = (value, marker, replacement, label) => {
+const replaceExactlyOnce = (value, marker, replacement, label, context = "Owner-upload reconciliation") => {
   const first = value.indexOf(marker);
   if (first < 0 || value.indexOf(marker, first + marker.length) >= 0) {
-    throw new Error(`Owner-upload reconciliation expected exactly one ${label} marker.`);
+    throw new Error(`${context} expected exactly one ${label} marker.`);
   }
   return `${value.slice(0, first)}${replacement}${value.slice(first + marker.length)}`;
+};
+
+// Reviewed edits to the pinned homepage source, by name. Each is applied after
+// the source digest check, so the edited homepage is as deterministic as the
+// source; each marker must occur exactly once or the build stops.
+const ARROW_UP_RIGHT = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>';
+export const HOMEPAGE_EDITS = Object.freeze({
+  // OWNER-WEBSITE-START-MINING-01: the Miners card links to /start-mining/.
+  "start-mining-link-v1": (html) => replaceExactlyOnce(
+    html,
+    `<a class="text-link" href="/miners/" aria-label="Learn more for miners">Learn more ${ARROW_UP_RIGHT}</a></article>`,
+    `<a class="text-link" href="/miners/" aria-label="Learn more for miners">Learn more ${ARROW_UP_RIGHT}</a><a class="text-link" href="/start-mining/" style="margin-top:12px">Start mining ${ARROW_UP_RIGHT}</a></article>`,
+    "Miners card",
+    "Homepage edit start-mining-link-v1",
+  ),
+});
+
+export const applyHomepageEdit = (html, name) => {
+  if (!Object.hasOwn(HOMEPAGE_EDITS, name)) throw new Error(`Unknown homepage edit ${name}; known: ${Object.keys(HOMEPAGE_EDITS).join(", ")}.`);
+  return HOMEPAGE_EDITS[name](html);
 };
 
 export const reconcileOwnerUploadedHomepage = (html) => {
@@ -292,6 +384,13 @@ const main = async () => {
   const bundleRoot = dirname(outputPath);
   const outputName = basename(outputPath);
   const manifest = await loadBaselineManifest(args["baseline-manifest"] ? resolve(args["baseline-manifest"]) : undefined);
+  const assetRelativePath = args["asset-prefix"].replace(/^\.\//, "").replace(/^\//, "").replace(/\/$/, "");
+  const replacements = args["site-replacements"] ? await loadSiteReplacements(resolve(args["site-replacements"]), manifest, assetRelativePath) : [];
+  if (replacements.length && !args["existing-site"]) throw new Error("--site-replacements needs --existing-site: a replacement only replaces a verified baseline path.");
+  const additions = args["site-additions"] ? await loadSiteAdditions(resolve(args["site-additions"]), manifest, assetRelativePath) : [];
+  if (additions.length && !args["existing-site"]) throw new Error("--site-additions needs --existing-site: an addition is published beside a verified baseline.");
+  const replacedPaths = new Set(replacements.map((item) => item.path));
+  const keptBaseline = manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION && !replacedPaths.has(asset.path));
 
   // Preview and changed-source builds are inspection artifacts. They never
   // establish production authorization, so they may not claim deployability.
@@ -312,6 +411,8 @@ const main = async () => {
   if (!args["allow-changed-source"] && inputSha256 !== args["expected-sha256"]) {
     throw new Error(`Static source SHA-256 ${inputSha256} does not match reviewed source ${args["expected-sha256"]}. Review the changed homepage before integrating.`);
   }
+  const homepageEdit = args["homepage-edit"] ?? null;
+  if (homepageEdit) input = Buffer.from(applyHomepageEdit(input.toString("utf8"), homepageEdit));
   const integrated = Buffer.from(integrateHtml(input.toString("utf8"), {
     assetPrefix: args["asset-prefix"],
     knowledgeUrl: args["knowledge-url"],
@@ -336,8 +437,15 @@ const main = async () => {
       if (baselineProblems.length) {
         throw new Error(`--existing-site ${existingSite} is not a verified copy of the current production asset set. ${describeProblems(baselineProblems)}. Obtain the authoritative current assets before building a production bundle; do not create placeholder files to satisfy this check.`);
       }
-      // index.html is replaced by the integrated homepage written below.
-      await copyTreeStrict(existingSite, staging, { skip: (path) => path === REPLACED_BY_INTEGRATION });
+      // index.html is replaced by the integrated homepage written below, and
+      // each declared site replacement by its reviewed file.
+      await copyTreeStrict(existingSite, staging, { skip: (path) => path === REPLACED_BY_INTEGRATION || replacedPaths.has(path) });
+      // An addition is written exclusively: a file already at its path in the
+      // supplied site (one the manifest does not list) stops the build.
+      for (const item of [...replacements, ...additions]) {
+        await mkdir(dirname(join(staging, item.path)), { recursive: true });
+        await writeFile(join(staging, item.path), item.bytes, { flag: "wx" });
+      }
     }
     await writeFile(join(staging, outputName), integrated, { flag: "wx" });
     const assetRelative = args["asset-prefix"].replace(/^\.\//, "").replace(/^\//, "");
@@ -358,7 +466,9 @@ const main = async () => {
 
     // Verify the bytes that were actually staged, not the bytes we intended.
     const stagedExpectations = [
-      ...manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION),
+      ...keptBaseline,
+      ...replacements.map((item) => ({ path: item.path, sha256: item.sha256, bytes: item.bytes.length })),
+      ...additions.map((item) => ({ path: item.path, sha256: item.sha256, bytes: item.bytes.length })),
       { path: outputName, sha256: integratedSha256, bytes: integrated.length },
       ...askCarbonAssets,
     ];
@@ -372,7 +482,8 @@ const main = async () => {
     const inventory = await inventoryDirectory(staging);
     const identity = bundleIdentity(inventory);
     const baselinePreserved = args["existing-site"]
-      ? manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION).every((asset) => inventory.some((entry) => entry.path === asset.path && entry.sha256 === asset.sha256))
+      ? keptBaseline.every((asset) => inventory.some((entry) => entry.path === asset.path && entry.sha256 === asset.sha256)) &&
+        [...replacements, ...additions].every((item) => inventory.some((entry) => entry.path === item.path && entry.sha256 === item.sha256))
       : false;
     const inventoryComplete = manifest.inventory_complete === true;
     const rollbackTarget = manifest.deployment_target_observed?.live_version_id;
@@ -400,6 +511,8 @@ const main = async () => {
       supplied_input_sha256: suppliedInputSha256,
       source_reconciliation: sourceReconciliation,
       integration_input_sha256: inputSha256,
+      homepage_edit: homepageEdit,
+      edited_homepage_source_sha256: homepageEdit ? sha256(input) : null,
       output: outputPath,
       output_sha256: integratedSha256,
       asset_directory: join(bundleRoot, assetRelative),
@@ -409,6 +522,8 @@ const main = async () => {
       baseline_manifest_status: manifest.inventory_status,
       baseline_inventory_complete: inventoryComplete,
       baseline_assets_preserved: baselinePreserved,
+      site_replacements: replacements.map(({ path, sha256: digest, replaces_baseline_sha256, reason }) => ({ path, sha256: digest, replaces_baseline_sha256, reason })),
+      site_additions: additions.map(({ path, sha256: digest, reason }) => ({ path, sha256: digest, reason })),
       rollback_target_captured: rollbackCaptured,
       rollback_target_version_id: rollbackCaptured ? rollbackTarget : null,
       preview_only: previewOnly,

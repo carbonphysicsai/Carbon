@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-control-center-signer-early",
+  "recorded_at": "2026-10-02T23:43:32Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "scripts/dev/miner_launchpad/environment_setup.py EnvironmentSetup.signer and POST /api/v1/setup/signer; app.js setup step 1; tests/cpu/test_control_center_easy_mode.py::test_setup_checks_the_signer_first_by_its_public_address",
+    "description": "Step 1, 'Start your signer', could only be confirmed by the Agent step's handshake at step 5, so a miner who had started the signer saw no progress. Step 1 now asks the signer itself: the miner's public hotkey address names the signer's socket, and the same identity handshake the Agent step makes asks which hotkey it holds, before or after registration. Nothing is signed."
+  },
+  "expected": "Confirming the signer needs the registered hotkey, so step 1 must wait for step 5.",
+  "observed": "It needs only the public hotkey address: the socket path is derived from it, and the handshake reads which hotkey the signer holds. Recording it for that address before registration is safe because it counts only while no other hotkey is registered, and once one is, a signer for a different hotkey is refused by name. An address-shaped field never takes a phrase or any other field.",
+  "keep": [
+    "Confirm a step as early as the public facts allow, by the same check a later step makes, instead of deferring its progress.",
+    "Key a pre-registration record to the public address it was made for, and let it count only for that address."
+  ],
+  "change": [
+    "When an ordered list has a step the server cannot confirm yet, look first for a public fact that confirms it now."
+  ],
+  "protocol_elements": [
+    "miner.control_center"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

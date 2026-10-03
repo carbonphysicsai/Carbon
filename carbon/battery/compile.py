@@ -20,6 +20,8 @@ from .contracts import battery_contracts, canonical, digest
 from .recipes import Structure, build
 
 _COMPILED = object()
+#: Families only the PyTorch backend rebuilds (OWNER-PYTORCH-BACKEND-01).
+TORCH_ONLY_FAMILIES = frozenset({"fno"})
 MIN_MEMBER_STEPS = 16
 
 
@@ -87,6 +89,15 @@ def rebuild_issues(family, values, supplied):
     if family == "knn":
         return ()
     v = values
+    # A family only one backend rebuilds names that backend; a miner never
+    # gets a different backend than the one the recipe states.
+    if family in TORCH_ONLY_FAMILIES and v.get("backend") != "pytorch":
+        refuse("parameter.dependency_unsatisfied", "backend")
+        return tuple(issues)
+    # neuraloperator 2.0 builds its spectral weights in complex64 whatever the
+    # requested precision, so an FNO cannot honour float64.
+    if family == "fno" and v["precision"] == "float64":
+        refuse("parameter.dependency_unsatisfied", "precision")
     members = v["ensemble_members"]
     # Members split the step budget exactly; a remainder would be dropped.
     if v["steps"] % members:

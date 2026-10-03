@@ -5,17 +5,21 @@
 # containment from the provider's runtime. It is not validator isolation
 # acceptance.
 #
-# 1. Serves GET /status and GET /out.tar.gz, and only with the matching
-#    X-Probe-Token header; everything else is 404. /out.tar.gz is the results
-#    directory, which holds campaign records only - no credential, environment or
-#    filesystem path outside it is served, and nothing is writable over HTTP.
-# 2. Fetches the Carbon files named in CODE_MANIFEST from the public repository at
-#    CODE_REF and refuses any whose sha256 differs.
+# 1. Serves GET /status, GET /out.tar.gz, GET /files and GET /file/<path>, and only
+#    with the matching X-Probe-Token header; everything else is 404. /out.tar.gz is
+#    the results directory, /files lists its regular files with sha256 and
+#    /file/<path> serves one of them, so a large result can be fetched file by file.
+#    It holds campaign records only - no credential, environment or filesystem path
+#    outside it is served, and nothing is writable over HTTP.
+# 2. Fetches the Carbon files named in CODE_MANIFEST (or CODE_MANIFEST_GZ_B64, the
+#    same JSON gzipped, for a manifest that ships the whole carbon/ package) from the
+#    public repository at CODE_REF and refuses any whose sha256 differs.
 # 3. Installs the wheel overlay named by OVERLAY_LOCK (a path inside the verified
 #    code), refusing any wheel whose sha256 differs from the lock.
 # 4. Runs the phase and records its exit.
 # 5. At PROBE_DEADLINE asks RunPod to terminate this pod with the pod-scoped key.
 import base64
+import concurrent.futures
 import gzip
 import hashlib
 import hmac
@@ -41,8 +45,18 @@ CA = (
     else ""
 )
 CODE_REF = os.environ.get("CODE_REF", "")
-MANIFEST = json.loads(os.environ.get("CODE_MANIFEST", "{}"))
+MANIFEST = json.loads(
+    gzip.decompress(base64.b64decode(os.environ["CODE_MANIFEST_GZ_B64"])).decode()
+    if os.environ.get("CODE_MANIFEST_GZ_B64")
+    else os.environ.get("CODE_MANIFEST", "{}")
+)
 PHASE = os.environ.get("PHASE", "")
+# The module run as the phase: the exam-design runner unless a campaign names
+# its own (the challenge pools run scripts.dev.challenge_pools.pod_phase).
+PHASE_MODULE = os.environ.get("PHASE_MODULE", "scripts.dev.exam_design.runner")
+# A CPU pod's shell start command carries this file in CARBON_BOOT; it is not
+# passed on to the phase.
+os.environ.pop("CARBON_BOOT", None)
 ROOT, OVL, OUT = "/tmp/carbon", "/tmp/overlay", "/tmp/out"
 CTX = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
 STATE = {
@@ -113,11 +127,52 @@ def status_doc():
     return doc
 
 
+def out_files():
+    """Every regular file under OUT (no symlink), with size and sha256."""
+    rows = []
+    for dirpath, dirnames, filenames in os.walk(OUT):
+        dirnames.sort()
+        for name in sorted(filenames):
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path) or not os.path.isfile(path):
+                continue
+            data = Path(path).read_bytes()
+            rows.append(
+                {
+                    "path": os.path.relpath(path, OUT),
+                    "size": len(data),
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                }
+            )
+    return rows
+
+
+def out_file(rel):
+    """One regular file under OUT, or None: no absolute path, no '..', no link."""
+    parts = rel.split("/")
+    if not rel or rel.startswith("/") or any(p in ("", ".", "..") for p in parts):
+        return None
+    path = os.path.join(OUT, *parts)
+    real = os.path.realpath(path)
+    if os.path.islink(path) or not real.startswith(os.path.realpath(OUT) + os.sep):
+        return None
+    return Path(real).read_bytes() if os.path.isfile(real) else None
+
+
 class H(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         ok = TOKEN and hmac.compare_digest(self.headers.get("X-Probe-Token", ""), TOKEN)
+        data = (
+            out_file(self.path[len("/file/") :])
+            if ok and self.path.startswith("/file/")
+            else None
+        )
         if ok and self.path == "/status":
             body, ctype = json.dumps(status_doc()).encode(), "application/json"
+        elif ok and self.path == "/files":
+            body, ctype = json.dumps(out_files()).encode(), "application/json"
+        elif data is not None:
+            body, ctype = data, "application/octet-stream"
         elif ok and self.path == "/out.tar.gz":
             buf = io.BytesIO()
             with tarfile.open(fileobj=buf, mode="w:gz") as tf:
@@ -184,12 +239,21 @@ def main():
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     try:
         STATE["stage"] = "fetching_code"
-        for path, sha in MANIFEST.items():
+
+        def fetch_verified(item):
+            path, sha = item
             data = fetch(
                 f"https://raw.githubusercontent.com/carbonphysicsai/Carbon/{CODE_REF}/{path}"
             )
             if hashlib.sha256(data).hexdigest() != sha:
                 raise RuntimeError(f"code hash mismatch: {path}")
+            return path, data
+
+        # Every file is verified before any is written, and nothing is imported
+        # until all are written.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
+            fetched = list(pool.map(fetch_verified, sorted(MANIFEST.items())))
+        for path, data in fetched:
             dst = os.path.join(ROOT, path)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             Path(dst).write_bytes(data)
@@ -208,7 +272,7 @@ def main():
         env = {
             k: v
             for k, v in os.environ.items()
-            if k not in ("RUNPOD_API_KEY", "CODE_MANIFEST")
+            if k not in ("RUNPOD_API_KEY", "CODE_MANIFEST", "CODE_MANIFEST_GZ_B64")
         }
         # A single overlay goes on the path directly; a multi-phase run gives each child its own.
         single = [os.path.join(OVL, n) for n in overlays] if len(overlays) == 1 else []
@@ -237,7 +301,7 @@ def main():
                 [
                     sys.executable,
                     "-m",
-                    "scripts.dev.exam_design.runner",
+                    PHASE_MODULE,
                     PHASE,
                     "--out",
                     OUT,

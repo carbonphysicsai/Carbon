@@ -4,7 +4,7 @@
   "matching_rule": "A family is suggested when the client's own words, component names or input and output names contain one of its keywords, or its physical processes overlap the client's. Suggestions are ranked by the number of distinct keywords matched, then by physics overlap. A suggestion is a starting point for Carbon review, not an assessment of fit.",
   "source": {
     "path": "Business/Carbon_Fit/workbench/data/challenge_evidence_source_v1.json",
-    "sha256": "sha256:329d4cd9d9a238a7d380d9829628705e9eed0293b5c0d9d1a54a5183c5baba8e"
+    "sha256": "sha256:663d0e304baa25ed796c147eebd12e41988687994d9b30ae66d8632cd4a6aceb"
   },
   "families": [
     {
@@ -289,8 +289,8 @@
       "id": "chip-cold-plate",
       "title": "AI-chip liquid cold plates",
       "record": {
-        "path": "carbon/challenge_readiness/records/chip-cold-plate.v4.json",
-        "sha256": "sha256:39d8a62882699a99bc9ada3f830233d7acdadae636e00669621f03d39a9d8767"
+        "path": "carbon/challenge_readiness/records/chip-cold-plate.v6.json",
+        "sha256": "sha256:cf852de0556ff6fe1464a4b6a084ff3a48c0a52859f413f235527eb589464ddb"
       },
       "matching": {
         "keywords": [
@@ -318,27 +318,49 @@
       "status": "PROPOSED_DEVELOPMENT_DESIGN",
       "decision": {
         "buyer": "Cooling and component suppliers (a hypothesis in #342; no customer demand or paid pilot is claimed).",
-        "engineering_decision": "Choose a channel layout for a single-phase liquid cold plate on a defined chip footprint and heat-load family.",
-        "intended_use": "Predict plate temperatures, coolant outlet temperature and pressure drop across a parameterized straight or serpentine channel family."
+        "engineering_decision": "Choose straight-microchannel dimensions and coolant flow for a single-phase copper cold plate on a 30 x 30 mm die with an axial hot spot, trading the hottest die temperature against pumping power.",
+        "intended_use": "Predict the heated-face peak temperature, its 30-segment profile along the flow, and the pressure drop of the declared OpenFOAM reference over the DEVELOPMENT population; agreement is with that model (the periodic interior of a straight-channel plate), not with a built plate."
       },
       "design_variables": [
         {
-          "description": "Parameters of straight or serpentine channels in a fixed external footprint; not arbitrary topology. The parameter list is not yet fixed.",
-          "name": "channel_geometry",
+          "description": "Channel width, 0.2 to 0.5 (design basis section 2).",
+          "name": "channel_width_mm",
           "unit": "mm",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
+            "channel width",
             "channel",
             "geometry",
-            "layout",
+            "layout"
+          ]
+        },
+        {
+          "description": "Fin width, 0.2 to 0.5.",
+          "name": "fin_width_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "fin width",
             "fin"
           ]
         },
         {
-          "description": "Coolant volume flow; mass or volume flow must be declared explicitly (#342).",
-          "name": "coolant_flow",
-          "unit": "L/min",
+          "description": "Channel depth, 1 to 3.",
+          "name": "channel_depth_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "channel depth",
+            "depth"
+          ]
+        },
+        {
+          "description": "Coolant flow per kW of heat load, 1.25 to 2.0.",
+          "name": "flow_lpm_per_kw",
+          "unit": "L/min/kW",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
@@ -349,8 +371,8 @@
           ]
         },
         {
-          "description": "Coolant inlet temperature.",
-          "name": "inlet_temperature",
+          "description": "Coolant inlet temperature, 30 to 45 (an operating condition).",
+          "name": "inlet_c",
           "unit": "degC",
           "bounds": null,
           "bounds_source": null,
@@ -361,66 +383,149 @@
           ]
         },
         {
-          "description": "Spatial heat flux over the chip footprint.",
-          "name": "heat_load_map",
-          "unit": "W/m^2",
+          "description": "Heat load on the 30 x 30 mm footprint, 500 to 1,500 (an operating condition).",
+          "name": "heat_load_w",
+          "unit": "W",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
             "heat load",
-            "power map",
-            "heat flux",
             "power"
+          ]
+        },
+        {
+          "description": "Peak-to-average ratio of the axial hot band, 1 to 3.",
+          "name": "hotspot_ratio",
+          "unit": "1",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "hot spot",
+            "hotspot",
+            "power map",
+            "heat flux"
+          ]
+        },
+        {
+          "description": "Hot band centre along the flow, 3 to 27.",
+          "name": "hotspot_center_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "hot spot location",
+            "hotspot location"
+          ]
+        },
+        {
+          "description": "Hot band Gaussian width, 1.5 to 3.5.",
+          "name": "hotspot_width_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "hot spot size",
+            "hotspot size"
           ]
         }
       ],
       "outputs": [
         {
-          "description": "Solid temperature at declared query points.",
-          "name": "solid_temperature",
+          "description": "Heated-face peak temperature (predicted).",
+          "name": "peak_c",
           "unit": "degC"
         },
         {
-          "description": "Peak solid temperature.",
-          "name": "peak_temperature",
+          "description": "Heated-face span-mean temperature over 30 one-millimetre segments, inlet first (predicted).",
+          "name": "profile_c",
           "unit": "degC"
         },
         {
-          "description": "Mean solid temperature.",
-          "name": "mean_temperature",
-          "unit": "degC"
-        },
-        {
-          "description": "Coolant outlet temperature.",
-          "name": "outlet_temperature",
-          "unit": "degC"
-        },
-        {
-          "description": "Pressure drop, with its pressure-reference convention declared.",
-          "name": "pressure_drop",
+          "description": "Inlet-to-outlet area-averaged static pressure drop, no headers (predicted).",
+          "name": "pressure_drop_pa",
           "unit": "Pa"
+        },
+        {
+          "description": "Heated-face mean: derived by Carbon as the profile's mean, never predicted.",
+          "name": "mean_c",
+          "unit": "degC"
+        },
+        {
+          "description": "Outlet bulk temperature: derived by Carbon from the energy balance, never predicted.",
+          "name": "outlet_c",
+          "unit": "degC"
         }
       ],
-      "limits": [],
+      "limits": [
+        {
+          "approved": null,
+          "basis": "Provisional DEVELOPMENT value (OWNER-CHALLENGE-DESIGN-01): 4 K below the coolant model's 99 C; the pilot used 1.7 K of it.",
+          "name": "screen_hottest_wall",
+          "proposed": 95.0,
+          "unit": "degC"
+        },
+        {
+          "approved": null,
+          "basis": "The PG25 fits' range; CoolProp refuses 100 C. A case past it is REFERENCE_INVALID.",
+          "name": "reference_fluid_ceiling",
+          "proposed": 99.0,
+          "unit": "degC"
+        },
+        {
+          "approved": null,
+          "basis": "The design basis's laminar check; under the straight-duct transition near 2,300. Pilot maximum 1,341.",
+          "name": "laminar_reynolds",
+          "proposed": 2000.0,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Reference numerical check; at least 100x the rungs' largest (pilot worst 6.9e-10).",
+          "name": "check_mass_imbalance",
+          "proposed": 1e-06,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Reference numerical check on the solver's own enthalpy flows (pilot worst 2.1e-6).",
+          "name": "check_energy_imbalance",
+          "proposed": 1e-05,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Reference numerical check, half-way against final write (pilot worst 1.6e-7 K).",
+          "name": "check_iteration_change",
+          "proposed": 0.001,
+          "unit": "K"
+        },
+        {
+          "approved": null,
+          "basis": "Provisional DEVELOPMENT value: the upper third of the population's closed-form peak range; the optimism diagnostic is reported there.",
+          "name": "important_region_peak",
+          "proposed": 85.0,
+          "unit": "degC"
+        }
+      ],
       "costs": [
+        {
+          "basis": "measured",
+          "evidence": "docs/development/evidence/cold-plate-pilot-v1/records.jsonl",
+          "item": "reference",
+          "unit": "USD marginal per r = 2 case on the owner's local host (849-1,545 s wall at ten-way sharing, about 0.4 core-hours; no cloud price applied)",
+          "usd": 0.0
+        },
+        {
+          "basis": "not_applicable",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD (blockMesh runs inside the reference case)",
+          "usd": null
+        },
         {
           "basis": "unknown",
           "evidence": null,
           "item": "startup",
-          "unit": "USD",
-          "usd": null
-        },
-        {
-          "basis": "unknown",
-          "evidence": null,
-          "item": "mesh",
-          "unit": "USD",
-          "usd": null
-        },
-        {
-          "basis": "unknown",
-          "evidence": null,
-          "item": "reference",
           "unit": "USD",
           "usd": null
         },
@@ -454,12 +559,12 @@
         }
       ],
       "maturity": {
-        "baseline": "NOT_STARTED",
-        "reference_execution": "SCOPED"
+        "baseline": "MEASURED",
+        "reference_execution": "PILOTED"
       },
       "recommendation": {
-        "basis": "No reference pilot has run.",
-        "decision": "NONE"
+        "basis": "All 16 pilot cases ran OK with exact checks (mass 6.9e-10, energy 2.1e-6); the r = 2 reference's discretization (about 0.1 K, 0.33 K worst; Delta p within 1.6 %) is about a tenth of the conventional baseline's error. The pools are complete (400 TRAIN, 100 PRACTICE, 200 private, all OK) and both baselines are scored through the exam on the private pool: the conventional closed form 0.109 (peak 0.138, profile 0.149, pressure 0.041) and the generic kernel-ridge model 0.105 (0.118, 0.182, 0.016). The conventional model with axial spreading is a strong baseline; the generic learned model barely improves on it and is worse on the profile, so a useful surrogate must beat a physics-aware baseline, not a generic one.",
+        "decision": "PROCEED"
       },
       "reviews": {
         "customer": {
@@ -489,26 +594,30 @@
         "state": "NOT_STARTED"
       },
       "unresolved": [
-        "Units, coordinate conventions, geometry validity and physical ranges are not yet specified for domain review.",
-        "Whether the proposed envelope supports laminar flow is unconfirmed.",
-        "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs.",
-        "Solver candidate pinned by digest; its conjugate heat-transfer path (chtMultiRegionFoam), the model, material and coolant identity, and redistribution rights are not yet established."
+        "The generic learned baseline barely improves on the conventional model (private pool 0.105 against 0.109) and is worse on the profile; a physics-aware learned baseline is untested.",
+        "Spanwise heat-map variation, headers and manifolds need a multi-channel domain (about 50x the cost): the recorded v2 expansion.",
+        "Heat capacity is held at the inlet temperature (about 0.1 K on the peak, rung 7) to keep the energy check exact.",
+        "The inlet undershoot (up to 2.3 K, linearUpwind) is reported, not judged; a bounded scheme is untested.",
+        "Miner-path integration is CHALLENGE-COLD-PLATE-02; the registry entry stays RESERVED until then.",
+        "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
       ],
-      "next_experiment": "Select a reproducible simple straight-channel baseline and document the geometry-to-mesh-to-solve-to-output commands (#342 first task), then price the first pilot for owner approval.",
+      "next_experiment": "Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is prior work for laminar internal flow (f04) and steady conduction (f03): the miner path (CHALLENGE-COLD-PLATE-02) and further design, including a physics-aware learned baseline (a learned correction to the conventional model), wait until the family reaches Prioritize after protocol lock.",
       "tracking": "carbonphysicsai/Carbon#342",
       "reference": {
-        "applicability": "Candidate only. The pinned image reproduces laminar parallel-plate flow (rung 1) and the uniform-flux fully developed Nusselt number and energy balance (rung 2), both at second order, under scripts/dev/cold_plate/. No conjugate heat-transfer case, cold-plate geometry, material or coolant has been run; whether the envelope is laminar is not yet confirmed.",
+        "applicability": "The declared box admitted by the population screen; fluid at most 99 C (the coolant model's end) and Re at most 2,000, both checked per case; the periodic interior only (no headers, manifolds, plate edges or spanwise heat maps). Discretization at r = 2: about 0.1 K on the peak for most cases, 0.33 K at the screen edge, and Delta p 0.9 to 1.6 % low (pilot refinements).",
         "evidence": [
-          "scripts/dev/cold_plate/channel_verification/README.md",
-          "scripts/dev/cold_plate/heat_flux_verification/README.md"
+          "scripts/dev/cold_plate/reference/README.md",
+          "docs/development/evidence/cold-plate-pilot-v1/records.jsonl",
+          "docs/development/evidence/cold-plate-rung7/records.jsonl",
+          "scripts/dev/cold_plate/plate_channel/README.md"
         ],
-        "licence": "GPL-3.0 as published upstream; run on the operator host only, redistribution not reviewed",
-        "model": null,
-        "solver": "OpenFOAM v2512, opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319 (candidate)"
+        "licence": "GPL-3.0 as published upstream; run on the operator host only; Carbon writes its inputs and reads its outputs; redistribution not reviewed",
+        "model": "Steady laminar conjugate heat transfer in the periodic cell (half channel, half fin) on the rungs' wall-graded mesh (r = 2, grading 4); PG25 from CoolProp 6.8.0 fits with viscosity, density and conductivity varying and heat capacity held at the inlet; copper C11000, k = 391; axial hot-spot flux as an OpenFOAM expression",
+        "solver": "OpenFOAM v2512 chtMultiRegionSimpleFoam, opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
       },
       "population": {
         "approved": null,
-        "proposed": "One single-phase liquid-cooled plate, one material and coolant, fixed external footprint, parameterized straight or serpentine channels (#342). A proposed development design, not a ratified production population."
+        "proposed": "carbon.cold-plate.development-population.v1: independent uniform draws over the nine-input box, admitted when the closed-form model (with axial spreading) predicts a hottest wetted wall of at most 95 C and Re of at most 2,000 (about 84 % of the box). A proposed DEVELOPMENT population, not a ratified production one."
       },
       "evidence": null
     },
@@ -516,8 +625,8 @@
       "id": "electric-motor-magnetics",
       "title": "Electric motor magnetics",
       "record": {
-        "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v2.json",
-        "sha256": "sha256:a676abb0efed5bad6eadad71ed8ef5aa83939d0df4b4394849b834127157f007"
+        "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+        "sha256": "sha256:120d1e38123e5e5c6f2198fd7050ed054baa635619fee13cedc9b0af2b3dff90"
       },
       "matching": {
         "keywords": [
@@ -544,92 +653,171 @@
       "status": "PROPOSED_DEVELOPMENT_DESIGN",
       "decision": {
         "buyer": "Motor and actuator suppliers (a hypothesis in #344; a magnetic component, not a qualified robotic joint).",
-        "engineering_decision": "Choose a permanent-magnet cross-section that maximizes useful torque under a prospectively specified ripple constraint, at fixed outer size, current and magnet use.",
-        "intended_use": "A small feasibility assessment (#341): whether a bounded magnetic-design candidate exists that Carbon could evaluate, and what its reference would cost."
+        "engineering_decision": "Choose the magnet, airgap, slot and tooth dimensions of a surface-PM cross-section in a fixed 8-pole, 24-slot frame for mean torque against torque ripple, at a given current density and current angle.",
+        "intended_use": "Predict the torque at 60 rotor angles over one 15 degree period of the declared 2D magnetostatic reference (Carbon's own Gmsh and GetDP models, Brauer iron) over the DEVELOPMENT population; agreement is with that model (no end effects, eddy currents, temperature or demagnetization), not with a built machine."
       },
       "design_variables": [
         {
-          "description": "Parameters of one permanent-magnet topology's 2D cross-section; the parameter list is not yet fixed.",
-          "name": "cross_section_geometry",
+          "description": "Radial magnet thickness, 1.5 to 4.0.",
+          "name": "magnet_mm",
           "unit": "mm",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
-            "cross-section",
-            "cross section",
-            "geometry",
-            "slot",
+            "magnet thickness",
             "magnet shape"
           ]
         },
         {
-          "description": "Current and phase.",
-          "name": "phase_current",
-          "unit": "A",
+          "description": "Pole embrace (magnet arc over pole pitch), 0.55 to 0.95.",
+          "name": "embrace",
+          "unit": "1",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "pole embrace",
+            "pole arc"
+          ]
+        },
+        {
+          "description": "Mechanical airgap, 0.3 to 1.0.",
+          "name": "airgap_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "airgap",
+            "air gap"
+          ]
+        },
+        {
+          "description": "Slot opening, 1 to 6.",
+          "name": "slot_open_deg",
+          "unit": "deg",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "slot opening",
+            "slot",
+            "cross-section",
+            "cross section",
+            "geometry"
+          ]
+        },
+        {
+          "description": "Tooth width, 2.5 to 5.0.",
+          "name": "tooth_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "tooth width",
+            "tooth"
+          ]
+        },
+        {
+          "description": "Slot bottom radius, 34 to 42; the geometry must also be buildable (domain.validity).",
+          "name": "slot_bottom_mm",
+          "unit": "mm",
+          "bounds": null,
+          "bounds_source": null,
+          "aliases": [
+            "slot depth",
+            "slot bottom"
+          ]
+        },
+        {
+          "description": "Peak current density in the coil, 0 to 15 (an operating condition).",
+          "name": "current_density_a_mm2",
+          "unit": "A/mm^2",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
             "phase current",
             "current",
-            "excitation"
+            "excitation",
+            "current density"
           ]
         },
         {
-          "description": "Rotor angle.",
-          "name": "rotor_angle",
-          "unit": "rad",
+          "description": "Current angle from the q-axis, 0 to 60 (field weakening; an operating condition).",
+          "name": "current_angle_deg",
+          "unit": "deg",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
-            "rotor angle",
-            "rotor position",
-            "angle",
-            "position"
+            "current angle",
+            "field weakening",
+            "angle"
           ]
         }
       ],
       "outputs": [
         {
-          "description": "Torque over rotor angle.",
-          "name": "torque_angle_curve",
+          "description": "Torque at 60 evenly spaced rotor angles over one 15 degree period, with the phase currents turning with the rotor (predicted).",
+          "name": "torque_nm",
           "unit": "N.m"
         },
         {
-          "description": "Mean torque.",
-          "name": "mean_torque",
+          "description": "Period-mean torque: derived by Carbon from the curve, never predicted.",
+          "name": "mean_torque_nm",
           "unit": "N.m"
         },
         {
-          "description": "Torque ripple; its resolution must be demonstrated (#344).",
-          "name": "torque_ripple",
+          "description": "Peak-to-peak torque ripple: derived by Carbon from the curve, never predicted.",
+          "name": "ripple_pk_pk_nm",
           "unit": "N.m"
-        },
-        {
-          "description": "Selected flux quantities, not yet chosen.",
-          "name": "flux_quantities",
-          "unit": "T"
         }
       ],
-      "limits": [],
+      "limits": [
+        {
+          "approved": null,
+          "basis": "Reference numerical check: the torque at 15 degrees repeats the torque at 0 within this fraction of the largest |torque| (pilot worst 6.3e-5).",
+          "name": "check_periodicity",
+          "proposed": 0.001,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "The periodicity check's absolute floor for near-zero curves; also the motoring gate's allowance.",
+          "name": "check_periodicity_floor",
+          "proposed": 0.001,
+          "unit": "N.m"
+        },
+        {
+          "approved": null,
+          "basis": "Relative increment at which the full Newton loop stops (ticket D3: torque agrees to 1e-11 with 1e-8 where both converge).",
+          "name": "newton_tolerance",
+          "proposed": 1e-06,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Provisional DEVELOPMENT value: the top third of the current range, where saturation acts; the mean-torque bias is reported there, not scored.",
+          "name": "important_region_current_density",
+          "proposed": 10.0,
+          "unit": "A/mm^2"
+        }
+      ],
       "costs": [
+        {
+          "basis": "measured",
+          "evidence": "docs/development/evidence/motor-pilot-v1/records.jsonl",
+          "item": "reference",
+          "unit": "USD marginal per case on the owner's local host (61 rotor positions, 1,072 to 3,417 s wall with six cases sharing the host; about 17 s per position on one core alone; no cloud price applied)",
+          "usd": 0.0
+        },
+        {
+          "basis": "not_applicable",
+          "evidence": null,
+          "item": "mesh",
+          "unit": "USD (Gmsh runs inside the reference case)",
+          "usd": null
+        },
         {
           "basis": "unknown",
           "evidence": null,
           "item": "startup",
-          "unit": "USD",
-          "usd": null
-        },
-        {
-          "basis": "unknown",
-          "evidence": null,
-          "item": "mesh",
-          "unit": "USD",
-          "usd": null
-        },
-        {
-          "basis": "unknown",
-          "evidence": null,
-          "item": "reference",
           "unit": "USD",
           "usd": null
         },
@@ -663,12 +851,12 @@
         }
       ],
       "maturity": {
-        "baseline": "NOT_STARTED",
-        "reference_execution": "SCOPED"
+        "baseline": "MEASURED",
+        "reference_execution": "PILOTED"
       },
       "recommendation": {
-        "basis": "No reference pilot has run.",
-        "decision": "NONE"
+        "basis": "All 17 pilot cases ran OK; the 1,440-node reference is within 0.26 % of peak (0.1 % in mean torque) of the 2,880-node mesh, and 0.25 degree sampling captures the 0.125 degree curve within 8e-5 of peak. The pools are complete (150 TRAIN, 30 PRACTICE, 60 private) and both baselines are scored through the exam on the private pool: textbook closed form 0.463 (mean torque 0.165, ripple shape 0.761), kernel-ridge learned 0.214 (mean 0.038, ripple 0.391). Ripple shape is where both lose most, so the exam separates models.",
+        "decision": "PROCEED"
       },
       "reviews": {
         "customer": {
@@ -698,23 +886,29 @@
         "state": "NOT_STARTED"
       },
       "unresolved": [
-        "Material curves, axial length and the exclusions (end effects, thermal duty, stress, acoustics, drive control) are not yet specified.",
-        "Solver choice, Linux automation and licence are unverified.",
-        "The rotor-angle resolution needed to resolve ripple is not yet demonstrated.",
-        "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs."
+        "One private case of 60 is REFERENCE_INVALID on the reference's periodicity check (0.0012 against 0.001); it is charged to the reference, counted, and scored for no one.",
+        "The iron is a generic Brauer law, not a named steel; the magnets are linear, so demagnetization at deep field weakening is outside the model.",
+        "The 2D model has no end effects, eddy currents or temperature.",
+        "Miner-path integration is CHALLENGE-MOTOR-02; the registry entry stays RESERVED until then.",
+        "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
       ],
-      "next_experiment": "Choose one published reproducible motor benchmark and prove a bounded rotor-angle sweep (#344 first task); this is a feasibility assessment, not a dataset.",
+      "next_experiment": "Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this design is prior work for the magnetostatics family (f09): the miner path (CHALLENGE-MOTOR-02) and further design wait until that family reaches Prioritize after protocol lock, and then follow the common stages and suite.",
       "tracking": "carbonphysicsai/Carbon#344",
       "reference": {
-        "applicability": "Candidate: FEMM or a Linux-capable FEM alternative, to be assessed; host automation and licensing must be verified, not assumed (#344). Nothing is pinned or run.",
-        "evidence": [],
-        "licence": null,
-        "model": null,
-        "solver": null
+        "applicability": "The declared buildable box at currents of 0 to 15 A/mm^2 and angles of 0 to 60 degrees; linear magnets (demagnetization is outside the model); 2D (no end effects). Discretization about 0.26 % of peak torque and 0.1 % in mean torque (pilot refinements); angle sampling within 8e-5 of peak.",
+        "evidence": [
+          "scripts/dev/motor/reference/README.md",
+          "docs/development/evidence/motor-pilot-v1/records.jsonl",
+          "docs/development/evidence/motor-pilot-v1/PROVENANCE.md",
+          "docs/development/evidence/motor-rungs"
+        ],
+        "licence": "GetDP and Gmsh are GPL, run on the operator host only; Carbon writes their inputs and reads their outputs; the benchmark's model files are not used or redistributed",
+        "model": "2D magnetostatics in the vector potential of the GRUCAD 8-pole, 24-slot surface-PM frame (published dimensions; Carbon's own geometry and formulation), radially magnetized magnets Br 1.2 T, Brauer iron with vacuum permeability in parallel, exact rotation on a 1,440-node airgap circle, Arkkio Maxwell-stress torque; damped then full Newton to 1e-6",
+        "solver": "GetDP 3.5.0 and Gmsh 4.15.2 (SHA-256 checked at build) in carbon-motor-reference:dev, built from scripts/dev/motor/reference/Dockerfile; no network; one BLAS thread"
       },
       "population": {
         "approved": null,
-        "proposed": "One permanent-magnet topology with a parameterized 2D cross-section and a stated axial length (#344). A proposed development design, not a ratified production population."
+        "proposed": "carbon.motor.development-population.v1: independent uniform draws over the eight-input box, kept when the geometry is buildable (about 91 % of the box); Q = P, w = 1. A proposed DEVELOPMENT population, not a ratified production one."
       },
       "evidence": null
     },
@@ -722,8 +916,8 @@
       "id": "photonic-coupler",
       "title": "Silicon photonic couplers",
       "record": {
-        "path": "carbon/challenge_readiness/records/photonic-coupler.v3.json",
-        "sha256": "sha256:62e32b8b77227aea484d958e928680e40fd23d21b9b7848efb1632c66b2e314d"
+        "path": "carbon/challenge_readiness/records/photonic-coupler.v4.json",
+        "sha256": "sha256:2338afa6a4f560c782e76066f4c7c1e4525b3a3488ef3390e869e49e8b2b8dfe"
       },
       "matching": {
         "keywords": [
@@ -747,70 +941,109 @@
       "status": "PROPOSED_DEVELOPMENT_DESIGN",
       "decision": {
         "buyer": "Photonic-component designers (a hypothesis in #345).",
-        "engineering_decision": "Choose a coupler geometry for prescribed splitting and transmission over wavelength and fabrication variation.",
-        "intended_use": "Repair first (#345): fix the phase convention and establish coupled-power convergence. No exam design until both are answered."
+        "engineering_decision": "Choose the gap and coupling length of a symmetric silicon directional coupler for a cross-power ratio over a 100 nm band, with its complex response for phase-sensitive circuits.",
+        "intended_use": "Predict the cross power and the unwrapped common phase at five wavelengths of the declared local-supermode reference (10 nm supermode tables) over the DEVELOPMENT population; agreement is with that model, not with 3D FDTD or a fabricated device. A phase-aware test Challenge: for this symmetric family the reference is itself the conventional design method, so it exercises the pipeline on complex outputs rather than demonstrating engineering value (ticket D2)."
       },
       "design_variables": [
         {
-          "description": "Parameters of one coupler family in a fixed material stack; not yet fixed.",
-          "name": "coupler_geometry",
+          "description": "Edge-to-edge coupling gap, 150 to 300.",
+          "name": "gap_nm",
           "unit": "nm",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
             "gap",
-            "coupling length",
-            "geometry",
-            "width"
+            "coupling gap",
+            "geometry"
           ]
         },
         {
-          "description": "Wavelength in a declared band (the diagnostics used 1.50 to 1.60).",
-          "name": "wavelength",
+          "description": "Straight coupling length, 1 to 6; cosine S-bends of 3.0 and 2.0 um to a 1.6 um port pitch are fixed.",
+          "name": "length_um",
           "unit": "um",
           "bounds": null,
           "bounds_source": null,
           "aliases": [
-            "wavelength",
-            "band",
-            "frequency"
+            "coupling length",
+            "length"
           ]
         }
       ],
       "outputs": [
         {
-          "description": "Normalized port powers such as |S31|^2 and |S41|^2.",
-          "name": "port_power",
+          "description": "|S41|^2 at 1.50, 1.525, 1.55, 1.575 and 1.60 um (predicted).",
+          "name": "cross_power",
           "unit": "1"
         },
         {
-          "description": "Complex response phase; not well defined until the mode-sign convention is fixed (RESULT section 9).",
-          "name": "relative_phase",
+          "description": "The unwrapped common phase (phi_even + phi_odd)/2 at the five wavelengths (predicted).",
+          "name": "common_phase_rad",
           "unit": "rad"
+        },
+        {
+          "description": "Complex S31 and S41 per wavelength: derived by Carbon from the two outputs under the port convention (arg(S41/S31) = -pi/2 exactly), never predicted.",
+          "name": "s_parameters",
+          "unit": "1"
         }
       ],
-      "limits": [],
+      "limits": [
+        {
+          "approved": null,
+          "basis": "Reference numerical check: four times the z points may move the cross power by at most this (pilot worst 7e-9).",
+          "name": "check_z_integration_cross",
+          "proposed": 1e-06,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Reference numerical check on the common phase (pilot worst 3.5e-8 rad).",
+          "name": "check_z_integration_phase",
+          "proposed": 0.0001,
+          "unit": "rad"
+        },
+        {
+          "approved": null,
+          "basis": "Table check: every supermode's mirror parity within this of +-1 (built tables: within 1e-6).",
+          "name": "table_parity",
+          "proposed": 0.001,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Table check: every supermode's relative eigen-residual at most this (built tables: about 4e-14).",
+          "name": "table_residual",
+          "proposed": 1e-08,
+          "unit": "1"
+        },
+        {
+          "approved": null,
+          "basis": "Provisional DEVELOPMENT value: the strongest couplers (cross power at 1.55 um of 0.10 or more); the signed cross-power bias is reported there, not scored.",
+          "name": "important_region_cross",
+          "proposed": 0.1,
+          "unit": "1"
+        }
+      ],
       "costs": [
+        {
+          "basis": "measured",
+          "evidence": "carbon/photonic/tables_v1.json",
+          "item": "mesh",
+          "unit": "USD marginal for the 10 nm supermode tables on the owner's local host (205 solves, 1.5 core-hours; no cloud price applied)",
+          "usd": 0.0
+        },
+        {
+          "basis": "measured",
+          "evidence": "docs/development/evidence/photonic-pilot-v1/records.jsonl",
+          "item": "reference",
+          "unit": "USD marginal per case from the committed tables (about 0.1 s on the owner's host)",
+          "usd": 0.0
+        },
         {
           "basis": "unknown",
           "evidence": null,
           "item": "startup",
           "unit": "USD",
           "usd": null
-        },
-        {
-          "basis": "unknown",
-          "evidence": null,
-          "item": "mesh",
-          "unit": "USD",
-          "usd": null
-        },
-        {
-          "basis": "estimated",
-          "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
-          "item": "reference",
-          "unit": "USD per five-wavelength parent case at 20 nm, extrapolated from a measured single-run time of about 265 s (diagnostic, not qualified-truth cost)",
-          "usd": 0.36
         },
         {
           "basis": "unknown",
@@ -842,12 +1075,12 @@
         }
       ],
       "maturity": {
-        "baseline": "NOT_STARTED",
+        "baseline": "MEASURED",
         "reference_execution": "PILOTED"
       },
       "recommendation": {
-        "basis": "Exam design is deferred until the phase convention and coupled-power convergence are repaired: an exam built on an unresolved convention grades the convention (#345; RESULT section 9).",
-        "decision": "DEFER"
+        "basis": "All 12 pilot cases ran OK; the 10 nm reference's remaining mesh error (about 0.3 % in the phase difference, 0.03 rad in the common phase) is about a fiftieth of the closed-form baseline's error (score 1.1 to 1.7); the phase convention is exact by construction; the pools and both baselines are scored through the exam (private pool: closed-form 1.446, learned 5.8e-4).",
+        "decision": "PROCEED"
       },
       "reviews": {
         "customer": {
@@ -877,27 +1110,29 @@
         "state": "NOT_STARTED"
       },
       "unresolved": [
-        "Mode orientation, port reference planes, power normalization and complex phase convention are undefined (#345 task 1).",
-        "Coupled power does not converge at 40/30/20 nm; a 10-15 nm study or a mode-expansion reference is needed.",
-        "Radiated and absorbed energy are not accounted for, so no passivity tolerance is supportable.",
-        "Whether complex S-parameters are supportable is undecided; a power-only variant needs its own explicit contract.",
-        "The solver's licence and redistribution rights are not recorded."
+        "The reference is the local-supermode model, not 3D FDTD; a radiation-inclusive comparison at 10 nm or finer is paid compute (about 14 GPU-hours, costed in the ticket) and needs its own owner grant.",
+        "For the symmetric family the reference is the conventional design method, so a learned model can only reproduce it (ticket D2); the value version is the v2 asymmetric coupler or fabrication variation.",
+        "The tables are not smoothed; their grid-alignment wobble sets the exam's resolution floor near 1e-3.",
+        "Miner-path integration is CHALLENGE-PHOTONIC-02; the registry entry stays RESERVED until then.",
+        "Every value above is a provisional DEVELOPMENT value; scientific, security and launch review are human-reserved."
       ],
-      "next_experiment": "Define the phase convention and reproduce the mode-sign issue with a small diagnostic, then plan a costed finer-mesh or mode-expansion comparison (#345 tasks 1 to 4).",
+      "next_experiment": "Integrate the miner path (CHALLENGE-PHOTONIC-02), then decide whether to build the v2 asymmetric coupler (eigenmode expansion, no paid compute) or fund the costed 3D comparison.",
       "tracking": "carbonphysicsai/Carbon#345",
       "reference": {
-        "applicability": "Diagnostic only: coupled power is unconverged (about 15 % of the coupled fraction at 20 nm) and relative phase flips by about pi across resolutions.",
+        "applicability": "The declared box (gap 150 to 300 nm, length 1 to 6 um, 1.50 to 1.60 um). Mesh error about 0.3 % in the phase difference and 0.03 rad in the common phase; a grid-alignment wobble of at most about 7e-3 rad and 0.5 % in cross power is part of the declared tables. Agreement with 3D FDTD is supported at the 5 to 10 % level only.",
         "evidence": [
-          "docs/development/evidence/exam-design-2026-09-24/photonic-diagnostic/out/records.jsonl",
-          "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9"
+          "scripts/dev/photonic/README.md",
+          "docs/development/evidence/photonic-pilot-v1/records.jsonl",
+          "docs/development/evidence/photonic-tables-v1/build.log",
+          "docs/development/evidence/photonic-pools-v1/baselines.json"
         ],
-        "licence": null,
-        "model": "3D FDTD of an asymmetric directional coupler",
-        "solver": "fdtdx (JAX FDTD), as used in scripts/dev/exam_design/photonic_reference.py"
+        "licence": "Carbon's own code; numpy and scipy are BSD-3-Clause",
+        "model": "Local-supermode model of a symmetric 500 x 220 nm silicon coupler in silica (n 3.48, 1.444): even and odd supermode indices tabulated on a 41-gap ladder at 10 nm and integrated along the gap profile; radiation, reflection and bend loss are outside it",
+        "solver": "Carbon's full-vector FDFD mode solver (carbon/photonic/modes.py) with sub-pixel permittivity averaging; numpy 2.4.6 and scipy 1.17.1 (ARPACK with a fixed start vector)"
       },
       "population": {
         "approved": null,
-        "proposed": "One coupler family, fixed material stack, declared wavelength band and fabrication variations (#345). A proposed development design, not a ratified production population."
+        "proposed": "carbon.photonic-coupler.development-population.v1: independent uniform draws over the gap and length box (Q = P, w = 1). A proposed DEVELOPMENT population, not a ratified production one."
       },
       "evidence": null
     }
@@ -909,7 +1144,7 @@
       "summary": "A bounded development campaign that solved 2,604 battery references without a failure, tested the gates against authored faults, replayed the exam loop over nine batch and rotation settings, and verified a frozen comparison rule on 200 private cases. It is public/synthetic DEVELOPMENT research: nothing in it is scientifically, security or production qualified.",
       "source": {
         "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
-        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+        "sha256": "sha256:38fbd38eb7f3863866464927fed057a2206c3d1ff99c518e3cfaef0fb6d4d2ba"
       },
       "settings": [
         {
@@ -1273,7 +1508,7 @@
       "value": "USD 4.80 billed",
       "source": {
         "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
-        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+        "sha256": "sha256:38fbd38eb7f3863866464927fed057a2206c3d1ff99c518e3cfaef0fb6d4d2ba"
       }
     },
     "training_budget": {

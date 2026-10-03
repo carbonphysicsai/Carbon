@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "GRAPHITE-01",
+  "owner_lane": "technical_lead",
+  "status": "active",
+  "summary": "OWNER-GRAPHITE-01: Carbon builds its own research and testing agent, Graphite, instead of buying Autoscience Mira. Graphite mirrors Mira's published loop (literature, experiments on Carbon's model, verification on Carbon's frozen eval, delivery as PRs) and adds an attacker role for admission Track A. It is built on Carbon's existing research loop, miner tools, workspace, isolated carrier and model-provider layer, acting through the real miner path. It runs behind the #475 campaign controller, and inference is on Chutes or Engy (Engy first, using the owner's model ladder). Targon confidential compute is the future home for client challenges and is not built now. This is a plan only: nothing is built, no spend is authorised, and no exam rule, evaluator authority or qualification changes.",
+  "primary_detail": "docs/development/GRAPHITE_TESTING_AGENT_PLAN.md",
+  "affects": [
+    "WAVE-C/C-09",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T00:30:00Z"
+}

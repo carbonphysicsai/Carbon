@@ -79,6 +79,7 @@ from .challenge import (
 from .pool_store import (
     MAX_INFRA_ATTEMPTS,
     WITHDRAWN,
+    HotkeyWindowUsed,
     PoolStore,
     StateError,
     canonical,
@@ -97,8 +98,8 @@ def _digest(value):
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def rule_digest():
-    return _digest(RULE)
+def rule_digest(rule=RULE):
+    return _digest(rule)
 
 
 def commitment_digest(challenge, contract_digest, strategy_hash):
@@ -140,7 +141,13 @@ class AuthenticatedSubmission:
         receipt = received.receipt
         return AuthenticatedSubmission(
             hotkey=receipt.hotkey,
-            receipt={"sequence": receipt.ref.sequence, "digest": receipt.ref.digest},
+            receipt={
+                "sequence": receipt.ref.sequence,
+                "digest": receipt.ref.digest,
+                # The finalized block of the validator-observed snapshot the
+                # request was authenticated against: rule v2's clock.
+                "block": receipt.finalized_block,
+            },
             challenge_id=gateway.challenge.challenge_id,
             challenge_version=gateway.challenge.version,
             strategy=strategy,
@@ -148,8 +155,52 @@ class AuthenticatedSubmission:
         )
 
 
+def submission_identity(submission):
+    """`(request_digest, submission_id)` for an authenticated submission.
+
+    The same hotkey, recipe and contract always name the same submission, so
+    an intake can tell a miner its submission id before admission runs.
+    """
+    if type(submission) is not AuthenticatedSubmission:
+        raise TypeError("an AuthenticatedSubmission is required")
+    request_digest = _digest(
+        {
+            "hotkey": submission.hotkey,
+            "challenge": [submission.challenge_id, submission.challenge_version],
+            "strategy": submission.strategy,
+            "contract_digest": submission.contract_digest,
+        }
+    )
+    return request_digest, "bsub-" + request_digest[7:39]
+
+
 class CommitmentRequired(PermissionError):
     """The miner has not committed this submission on chain."""
+
+
+class BackendNotServed(PermissionError):
+    """This validator has no worker image for the recipe's backend.
+
+    Not a refusal of the recipe: nothing is recorded, and the miner may
+    submit it to a validator that serves the backend (OWNER-PYTORCH-BACKEND-01).
+    """
+
+    def __init__(self, backend):
+        super().__init__(backend)
+        self.backend = backend
+
+
+class ContractRevised(ValueError):
+    """A recipe admitted under an earlier contract that the current one refuses.
+
+    Raised only for a carried-over deployment. It is Carbon's revision, never
+    the miner's failure: the submission is closed with its named issues and
+    nothing is scored.
+    """
+
+    def __init__(self, issues):
+        super().__init__("contract_revised")
+        self.issues = issues
 
 
 class PublishedCaseRefused(ValueError):
@@ -214,6 +265,11 @@ class BatteryValidator:
         self.material = PublicMaterial.load(repository)
         self.tol, self.scales = frozen_calibration(repository)
         self.pin = journal.root_pin(root)
+        self.rule = store.rule
+        if self.pin.get("scoring_digest") != rule_digest(self.rule):
+            # The root was committed for another rule: its seeds and batches
+            # belong to that rule's pools, never to this one.
+            raise StateError("rule_mismatch", "seed pin names another exam rule")
 
     # --- identities -------------------------------------------------------------
 
@@ -227,8 +283,8 @@ class BatteryValidator:
             "schema": "carbon.battery.validator-identities.v1",
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
             "contract_digest": registered.digest,
-            "rule": RULE,
-            "rule_digest": rule_digest(),
+            "rule": self.rule,
+            "rule_digest": rule_digest(self.rule),
             "calibration_sha256": PREPARE_SHA256,
             "train_v1_sha256": TRAIN_V1_SHA256,
             "ocv_table_sha256": OCV_TABLE_SHA256,
@@ -267,7 +323,7 @@ class BatteryValidator:
         The plaintext is generated from the private root, committed to the
         journal before any use, and kept only in the validator state.
         """
-        count = RULE["screening_batch_size"] if count is None else count
+        count = self.rule["screening_batch_size"] if count is None else count
         batch = make_batch(self.root, self.pin, role, count, duplicates)
         self._refuse_published(batch)
         try:
@@ -344,16 +400,7 @@ class BatteryValidator:
         Idempotent: the same hotkey resubmitting the same recipe under the same
         contract is the same submission, whatever its transport receipt.
         """
-        if type(submission) is not AuthenticatedSubmission:
-            raise TypeError("an AuthenticatedSubmission is required")
-        request = {
-            "hotkey": submission.hotkey,
-            "challenge": [submission.challenge_id, submission.challenge_version],
-            "strategy": submission.strategy,
-            "contract_digest": submission.contract_digest,
-        }
-        request_digest = _digest(request)
-        submission_id = "bsub-" + request_digest[7:39]
+        request_digest, submission_id = submission_identity(submission)
         base = {
             "request_digest": request_digest,
             "hotkey": submission.hotkey,
@@ -399,6 +446,9 @@ class BatteryValidator:
                 [{"code": i.code, "path": list(i.path)} for i in issues],
             )
         recipe = admitted.construction
+        backend = recipe.settings.get("backend", "jax")
+        if backend not in getattr(self.backend, "backends", ("jax",)):
+            raise BackendNotServed(backend)
         commitment = None
         expected = commitment_digest(
             submission.strategy["challenge_id"],
@@ -439,20 +489,70 @@ class BatteryValidator:
             "receipt": submission.receipt,
             "attempt": 0,
         }
-        row, _new = self.store.admit(submission_id, binding=binding, **base)
+        window = None
+        block = (submission.receipt or {}).get("block")
+        if self.rule.get("per_hotkey") is not None:
+            if type(block) is not int:
+                # Rule v2 counts by block; a receipt without one cannot be
+                # placed in a window, so it is not admitted (and not recorded).
+                raise HotkeyWindowUsed(None)
+            start, end = exam.hotkey_window(self.rule, block)
+            window = (start, end, self.rule["per_hotkey"]["scored_per_window"])
+        row, _new = self.store.admit(
+            submission_id, binding=binding, window=window, **base
+        )
         return self.outcome(row["submission_id"])
 
     # --- screening --------------------------------------------------------------------
 
+    def _carried(self, binding):
+        """Whether `binding` was made under an identity this deployment was
+        carried over from (`PoolStore.rebind`, OWNER-BATTERY-CARRYOVER-01).
+
+        Only a recorded earlier identity counts: a binding whose contract or
+        implementation matches neither the current identity nor one the
+        operator carried over from is a mismatch, never a carry-over.
+        """
+        keys = ("contract_digest", "implementation_digest")
+        current = self.store.identities() or {}
+        if all(binding.get(k) == current.get(k) for k in keys):
+            return False
+        return any(
+            all(binding.get(k) == old.get(k) for k in keys)
+            for old in self.store.identity_history()
+        )
+
     def _recipe(self, row):
         from .compile import compile_recipe
 
-        _, recipe = compile_recipe(row["strategy"])
+        carried = self._carried(row["binding"])
+        try:
+            _, recipe = compile_recipe(row["strategy"])
+        except ValueError as refused:
+            if not carried:
+                raise
+            # The recipe was admitted under an earlier contract and the
+            # current one refuses it: Carbon's revision, not the miner's.
+            issues = getattr(getattr(refused, "rejected", None), "issues", ())
+            raise ContractRevised(
+                [{"code": i.code, "path": list(i.path)} for i in issues]
+            ) from None
         if recipe.recipe_digest != row["binding"]["recipe_digest"]:
-            # The recipe Carbon would build now is not the one admitted: the
-            # compiler or contract changed underneath. Never build silently.
-            raise StateError(
-                "artifact_mismatch", "recipe digest differs from admission"
+            if not carried:
+                # The recipe Carbon would build now is not the one admitted:
+                # the compiler or contract changed underneath. Never build
+                # silently.
+                raise StateError(
+                    "artifact_mismatch", "recipe digest differs from admission"
+                )
+            # Carried over: rebuilt under the current contract, and recorded.
+            self.store.note(
+                "recompiled",
+                {
+                    "submission_id": row["submission_id"],
+                    "from": row["binding"]["recipe_digest"],
+                    "to": recipe.recipe_digest,
+                },
             )
         return recipe
 
@@ -520,7 +620,15 @@ class BatteryValidator:
         # reuses a run identity that might still be unresolved.
         attempt = row["binding"]["attempt"]
         try:
-            recipe = self._recipe(row)
+            try:
+                recipe = self._recipe(row)
+            except ContractRevised as revised:
+                self.store.mark(
+                    submission_id,
+                    "INVALID_CONSTRUCTION",
+                    {"code": "contract_revised", "issues": revised.issues},
+                )
+                return self.outcome(submission_id)
             if self.store.model_state(submission_id) is None:
                 state, stats = self.backend.reconstruct(
                     f"rec-{submission_id}-a{attempt}",
@@ -598,7 +706,7 @@ class BatteryValidator:
             "pool_version": pool["version"],
             "active_batches": list(pool["active"]),
             "references": self._reference_identity(pool["active"]),
-            "rule_digest": rule_digest(),
+            "rule_digest": rule_digest(self.rule),
             **agg,
         }
         if inc_rec is not None and inc_rec["score"] is None:
@@ -607,7 +715,7 @@ class BatteryValidator:
             nominated, why = False, "the incumbent has no scorable result on this pool"
         else:
             nominated, why = exam.nominate(
-                record, inc_rec, RULE["equivalence_margin_rel"]
+                record, inc_rec, self.rule["equivalence_margin_rel"]
             )
         record["nomination"] = {
             "nominated": nominated,
@@ -688,8 +796,8 @@ class BatteryValidator:
     def _frozen(self, final_id, incumbent_id, submission_id, record):
         return {
             "schema": "carbon.battery.final-freeze.v1",
-            "rule": exam.ComparisonRule(RULE["equivalence_margin_rel"]).__dict__,
-            "rule_digest": rule_digest(),
+            "rule": exam.ComparisonRule(self.rule["equivalence_margin_rel"]).__dict__,
+            "rule_digest": rule_digest(self.rule),
             "incumbent": incumbent_id,
             "incumbent_recipe": self.store.model_state(incumbent_id)["recipe_digest"],
             "challenger": submission_id,
@@ -740,8 +848,24 @@ class BatteryValidator:
                 ("challenger", final["challenger"]),
             ):
                 source = self.store.submission(model)
-                recipe = self._recipe(source)
-                if recipe.recipe_digest != frozen[role + "_recipe"]:
+                try:
+                    recipe = self._recipe(source)
+                except ContractRevised:
+                    # OWNER-BATTERY-CARRYOVER-01: the incumbent stays the
+                    # winner; a side the current contract refuses is not
+                    # compared, and nothing is promoted.
+                    return self._decide(
+                        final_id,
+                        {
+                            "outcome": exam.INSUFFICIENT,
+                            "reason": f"{role} contract_revised",
+                            "promotable": False,
+                        },
+                        fingerprint,
+                    )
+                if recipe.recipe_digest != frozen[role + "_recipe"] and not (
+                    self._carried(source["binding"])
+                ):
                     raise StateError("artifact_mismatch", role)
                 fresh = f"{final_id}-{role}"
                 if self.store.model_state(fresh) is None:
@@ -867,7 +991,7 @@ class BatteryValidator:
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
             "state": row["state"],
             "evidence": "DEVELOPMENT_SHADOW",
-            "rule": RULE["status"],
+            "rule": self.rule["status"],
             "qualification": False,
             "reward": False,
         }
@@ -885,16 +1009,25 @@ class BatteryValidator:
             }
         score = self.store.score(submission_id)
         pool = self.store.pool()
+        # A sealed rule (v2) shows a miner nothing computed from a hidden
+        # batch: no screening, nomination or finals. No release path exists
+        # yet, so they stay sealed (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+        sealed = exam.sealed(self.rule)
         if score is not None:
-            out["screening"] = score["public"]
-            out["nominated"] = bool(score["record"]["nomination"]["nominated"])
+            if not sealed:
+                out["screening"] = score["public"]
+                out["nominated"] = bool(score["record"]["nomination"]["nominated"])
         elif row["state"] in ("ADMITTED", "RECONSTRUCTED", "FAILED_INFRA"):
             out["waiting"] = (
                 "POOL_NOT_OPEN"
                 if pool is None
                 else ("ROTATION_PENDING" if pool["status"] != "OPEN" else "QUEUED")
             )
-        finals = [self.store.final(f) for (f,) in self._finals_for(submission_id)]
+        finals = (
+            []
+            if sealed
+            else [self.store.final(f) for (f,) in self._finals_for(submission_id)]
+        )
         if finals:
             out["finals"] = [
                 {

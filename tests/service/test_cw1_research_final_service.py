@@ -41,6 +41,7 @@ from carbon.reference_runtime.model import (
     build_reference_request,
     runtime_environment_digest,
 )
+from tests.cpu._signer_harness import in_thread_signer
 
 
 def _bounded_failure_bytes(record):
@@ -281,6 +282,9 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
         },
     }
     monkeypatch.setattr(research_campaign, "CONTROL", strategy)
+    # Carbon holds no key: the miner's own signer signs each request.
+    signing = in_thread_signer(miner)
+    signer = signing.__enter__()
     previous = os.umask(0o077)
     try:
         seeds = frozen_seeds(ledger.root)
@@ -330,7 +334,7 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
                 roles,
                 data,
                 image,
-                miner,
+                signer,
                 config,
             )
 
@@ -365,3 +369,4 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
             assert private not in rendered
     finally:
         os.umask(previous)
+        signing.__exit__(None, None, None)

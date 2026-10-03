@@ -1,0 +1,37 @@
+start 2026-10-02T06:11:59Z commit cdb007f3eceeedc5a8e619727e74610530cab9c8
+27536b0fdfbf2dbc009c7b4839b3b354017e1668b1c666479e830a7b696dbb5c  carbon/photonic/__init__.py
+aee08e4c2830b64aa32bd5ac6044e3549169baa00af1a09ddb4b3e73d447b390  carbon/photonic/analytic.py
+ffcb145d3b0d4712ff14de1b7ec6f687503a92467cf2892409be61c125cf361b  carbon/photonic/coupler.py
+a52029036e7d1207c7e6becf603f9977a1361f65b859f92a8f3e5419e4a137b8  carbon/photonic/domain.py
+d10dda31992271c42cc413348847a663ce95afc952c9c00979faa4986090276b  carbon/photonic/exam.py
+d7ea118974530b351d5ca4278044cb22047ccdae689f952bb486a9f112699db0  carbon/photonic/modes.py
+1b5ead3a55cee75179ed16cd67e9870bd41b536797bd7d279a310d0b9fc84d70  carbon/photonic/population.py
+694fb7f6a9ea4e972b0c457d3643575b2a20cd3a8f32dacb26398a8d5cf97c7e  carbon/photonic/reference.py
+00621fc712c564f9752c46bd557ca2bb2e01b47d31d330a4da94cb541277265f  scripts/dev/photonic/build_tables.py
+begin t5_every4 2026-10-02T06:11:59Z
+{"status": "OK", "reasons": [], "wall_s": 4197.5}
+end t5_every4 exit 0 2026-10-02T07:21:57Z maxrss_kb 2532904
+DONE 2026-10-02T07:21:57Z
+start 2026-10-02T06:11:59Z commit cdb007f3eceeedc5a8e619727e74610530cab9c8
+27536b0fdfbf2dbc009c7b4839b3b354017e1668b1c666479e830a7b696dbb5c  carbon/photonic/__init__.py
+aee08e4c2830b64aa32bd5ac6044e3549169baa00af1a09ddb4b3e73d447b390  carbon/photonic/analytic.py
+ffcb145d3b0d4712ff14de1b7ec6f687503a92467cf2892409be61c125cf361b  carbon/photonic/coupler.py
+a52029036e7d1207c7e6becf603f9977a1361f65b859f92a8f3e5419e4a137b8  carbon/photonic/domain.py
+d10dda31992271c42cc413348847a663ce95afc952c9c00979faa4986090276b  carbon/photonic/exam.py
+d7ea118974530b351d5ca4278044cb22047ccdae689f952bb486a9f112699db0  carbon/photonic/modes.py
+1b5ead3a55cee75179ed16cd67e9870bd41b536797bd7d279a310d0b9fc84d70  carbon/photonic/population.py
+694fb7f6a9ea4e972b0c457d3643575b2a20cd3a8f32dacb26398a8d5cf97c7e  carbon/photonic/reference.py
+00621fc712c564f9752c46bd557ca2bb2e01b47d31d330a4da94cb541277265f  scripts/dev/photonic/build_tables.py
+begin t20_full 2026-10-02T06:11:59Z
+{"status": "OK", "reasons": [], "wall_s": 555.4}
+end t20_full exit 0 2026-10-02T06:21:14Z maxrss_kb 162284
+begin t10_full 2026-10-02T06:21:14Z
+{"status": "OK", "reasons": [], "wall_s": 2725.6}
+end t10_full exit 0 2026-10-02T07:06:40Z maxrss_kb 566680
+begin t20_every4 2026-10-02T07:06:40Z
+{"status": "OK", "reasons": [], "wall_s": 108.6}
+end t20_every4 exit 0 2026-10-02T07:08:29Z maxrss_kb 162980
+begin t20_repeat 2026-10-02T07:08:29Z
+{"status": "OK", "reasons": [], "wall_s": 381.3}
+end t20_repeat exit 0 2026-10-02T07:14:51Z maxrss_kb 163588
+DONE 2026-10-02T07:14:51Z

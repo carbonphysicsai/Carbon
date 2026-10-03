@@ -18,7 +18,8 @@ import uuid
 from pathlib import Path
 
 from carbon import research
-from carbon.chain.auth import BittensorMessageSigner, open_external_hotkey
+from carbon.chain.auth import BittensorMessageSigner
+from carbon.chain.external_signer import miner_signer
 from carbon.chain.models import CARBON_NETUID
 from carbon.development_testnet.operator import load_config
 from carbon.miner_mcp.research import AuthenticatedResearchService
@@ -383,6 +384,14 @@ def frozen_parallel_calls(manifest):
     return plan.get("parallel_calls") if type(plan) is dict else None
 
 
+def frozen_miner_guidance(manifest):
+    """The miner-message rule the campaign froze in its provider plan, or
+    None: a campaign launched before RSURF-D13 reads no messages, and nothing
+    about it is reinterpreted."""
+    plan = manifest.get("provider") if type(manifest) is dict else None
+    return plan.get("miner_guidance") if type(plan) is dict else None
+
+
 def registered_julia_image(root, runtime, analysis):
     """Read the campaign's image record; the caller still verifies its authority.
 
@@ -587,7 +596,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
             SelectionTransport(selection)
     if grant is not None and grant["provider"] != selection.provider_id:
         raise ValueError("the grant names a different model provider")
-    config = load_config(args.operator_config)
+    if getattr(args, "operator_config", None) is not None:
+        config = load_config(args.operator_config)
+    else:
+        from .miner_network import binding_for
+
+        config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")
@@ -600,11 +614,8 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
     if registered is not None and public["hotkey"] != registered:
         raise ValueError("the registered miner differs from this hotkey")
-    key = open_external_hotkey(
-        Path(public["key_file"]),
-        private_file(args.miner_password_file),
-        public["hotkey"],
-    )
+    # The miner's own signer holds the hotkey; Carbon only reaches it.
+    key = miner_signer(public, getattr(args, "signer_socket", None))
     session = root / "research-auth"
     session.mkdir(mode=0o700, exist_ok=True)
     connection = LocalMinerConnection(
@@ -985,6 +996,7 @@ async def run_agent(prepared, *, transport=None):
             challenge=prepared.challenge,
             transport=transport,
             parallel_calls=frozen_parallel_calls(prepared.manifest),
+            miner_guidance=frozen_miner_guidance(prepared.manifest),
             **({} if prepared.selection is None else {"provider": prepared.selection}),
         )
         report(ledger, owner=owner)
@@ -1174,10 +1186,12 @@ def main():
         "operator-config",
         "api-key-file",
         "miner-public",
-        "miner-password-file",
         "quarantine-journal",
     ):
         parser.add_argument("--" + name, type=Path)
+    # Where the miner's `carbon-miner-signer` listens; omitted, the path it
+    # derives from the public hotkey.
+    parser.add_argument("--signer-socket", type=Path)
     # The miner's model provider and model (`model_provider.select`), as a
     # JSON object; omitted, the pinned default. A frozen campaign keeps its own.
     parser.add_argument("--model-selection", type=Path)
@@ -1201,7 +1215,6 @@ def main():
             "operator_config",
             "api_key_file",
             "miner_public",
-            "miner_password_file",
             "quarantine_journal",
         )
     ):

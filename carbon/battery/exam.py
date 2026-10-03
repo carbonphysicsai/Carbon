@@ -52,6 +52,81 @@ DEVELOPMENT_RULE = {
     "important_region_regression_blocks": True,
 }
 
+#: OWNER-BATTERY-SCORING-WINDOW-01 (2026-09-30): rule v2 removes the global
+#: "3 scored per pool version" cap. The owner asked for it removed and for the
+#: replacement to be "whatever way is optimal on bittensor"; the values below
+#: are the executor's provisional development choices under that delegation:
+#:
+#: - **per hotkey, per tempo:** one scored submission per hotkey per 360-block
+#:   window (one Bittensor tempo), aligned to multiples of 360. The cap is per
+#:   hotkey, not per party: it does not stop one party registering several
+#:   hotkeys, and it implies no fairness between parties. Registration burns
+#:   price extra hotkeys; they do not prevent them.
+#: - **rotation by block height:** a fresh screening batch every 3 tempos, so
+#:   one batch is active for about 9 tempos and one hotkey can see it scored
+#:   at most about 9 times. v1 bounded *all miners together* at that number;
+#:   v2 bounds each hotkey, so a batch's total scored observations grow with
+#:   the number of active hotkeys. Whether that aggregate exposure is
+#:   acceptable for the exam is not an engineering value (see the record).
+#: - **never stall miners:** when rotation is due and no batch is ready the
+#:   pool keeps scoring on its current batches and records the overdue
+#:   rotation; v1's `ROTATION_PENDING` stop is not part of v2.
+#:
+#: Everything else is v1's, unchanged. Not production values; nothing here is
+#: scientifically qualified, and v1 results keep their v1 rule.
+DEVELOPMENT_RULE_V2 = {
+    **{k: v for k, v in DEVELOPMENT_RULE.items() if k != "rotate_after_admitted"},
+    "authority": "OWNER-BATTERY-TESTNET-01 OD-2, amended by OWNER-BATTERY-SCORING-WINDOW-01",
+    "rule_version": 2,
+    "per_hotkey": {"scored_per_window": 1, "window_blocks": 360},
+    "rotation": {"basis": "finalized_block", "every_blocks": 1080},
+}
+
+#: The rules a deployment may run, by the name its configuration gives.
+RULES = {"v1": DEVELOPMENT_RULE, "v2": DEVELOPMENT_RULE_V2}
+
+#: OWNER-BATTERY-3B-AND-EXPOSURE-01 (2026-10-01): what a miner may see, by
+#: rule version. A hidden batch, and everything computed from it
+#: (eligibility, gate failures, scores, case counts, pool version, nomination,
+#: finals), is for Carbon and the validators only, before and after its seed
+#: draw. A miner sees it only after Carbon retires the batch and commits it to
+#: the training data pool; retirement by rotation alone releases nothing. No
+#: release path exists yet, so under v2 nothing computed from a hidden batch is
+#: ever shown to a miner.
+#:
+#: Kept outside the rule dict on purpose: it changes what a miner is shown,
+#: never how anything is scored, so it is not part of the scoring digest the
+#: seed pin binds. v2's digest, and every batch and reference prepared under
+#: it, stay valid. v1 (no `rule_version`) has no entry and is unchanged.
+MINER_DISCLOSURE = {
+    2: {
+        "hidden_batch_results": "SEALED",
+        "released_by": "CARBON_COMMIT_TO_TRAINING_POOL",
+        "authority": "OWNER-BATTERY-3B-AND-EXPOSURE-01",
+    },
+}
+
+
+def disclosure(rule):
+    """A rule's miner-disclosure term, or None (v1 discloses as before)."""
+    return MINER_DISCLOSURE.get(rule.get("rule_version"))
+
+
+def sealed(rule):
+    """Whether a rule seals every result computed from a hidden batch."""
+    term = disclosure(rule)
+    return term is not None and term["hidden_batch_results"] == "SEALED"
+
+
+def hotkey_window(rule, block):
+    """`(start, end)` of the per-hotkey window holding `block`, or None."""
+    per = rule.get("per_hotkey")
+    if per is None:
+        return None
+    start = block - block % per["window_blocks"]
+    return start, start + per["window_blocks"]
+
+
 # --- Gates (scripts/dev/exam_design/gates.py) ---
 
 F32_EPS = float(np.finfo(np.float32).eps)

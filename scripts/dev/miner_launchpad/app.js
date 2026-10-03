@@ -15,6 +15,8 @@
   // The Control Center's capability document: every choice this page offers is
   // rendered from it, with its real availability. Never a static list.
   let caps = null;
+  // Bumped on each read, so the views built from it rebuild only then.
+  let capsVersion = 0;
   const CAPS_SCHEMA = "carbon.control-center.capabilities.v1";
   // Every launch-time choice with its true availability, from the options
   // operation - the same one an MCP client reads.
@@ -72,18 +74,115 @@
   function researchNote(parent, text, className = "") {
     const note = document.createElement("p"); note.textContent = text; note.className = className; parent.append(note);
   }
-  // An unavailable thing, shown as such: its reason and what to do next.
-  function unavailableNote(parent, item) {
-    researchNote(parent, "Unavailable: " + words(item.reason) + (item.next_action ? " · Next: " + item.next_action : ""), "reason");
+  // An unavailable thing, shown as such (LINKONLY-D10): one plain sentence,
+  // one link to the place that fixes it, and its code and full next action
+  // behind Details.
+  function unavailableNote(parent, item, extra = []) {
+    const plain = item.plain || {sentence: "Unavailable: " + words(item.reason) + ".", next: null};
+    parent.append(el("p", plain.sentence, "status-line"));
+    if (plain.next) parent.append(link(plain.next, "button fix"));
+    details(parent, "Details", [item.reason ? "Code: " + item.reason : null, item.next_action ? "Next: " + item.next_action : null, ...extra]);
   }
-  function card(parent, title, tag) {
+  function link(go, className = "link") {
+    const anchor = el("a", go.label, className); anchor.href = go.href; return anchor;
+  }
+  function pill(text, kind = "") { return el("span", text, ("pill " + kind).trim()); }
+  function details(parent, summary, lines) {
+    const box = el("details"); box.append(el("summary", summary));
+    const body = el("div", undefined, "detail-body");
+    for (const line of lines.filter(Boolean)) body.append(typeof line === "string" ? el("p", line) : line);
+    box.append(body); parent.append(box);
+    return box;
+  }
+  function card(parent, title, tag, kind) {
     const box = el("div", undefined, "integration card");
     const head = el("div", undefined, "card-head");
     head.append(el("h3", title));
-    if (tag) head.append(el("span", tag, "small-tag"));
+    if (tag) head.append(pill(tag, kind));
     box.append(head); parent.append(box);
     return box;
   }
+  // Rebuild a region only when what it shows changed, keeping open Details
+  // open: a person reading one is never collapsed by the 1.5 s refresh.
+  function rebuild(target, key, build) {
+    if (target.dataset.key === key) return;
+    const open = new Set([...target.querySelectorAll("details[open]")].map(node => node.dataset.key));
+    target.replaceChildren();
+    build(target);
+    [...target.querySelectorAll("details")].forEach((node, index) => { node.dataset.key = String(index); node.open = open.has(String(index)); });
+    target.dataset.key = key;
+  }
+  // A command the miner runs, with a button that copies it.
+  function copyRow(parent, label, command, id) {
+    const row = el("div", undefined, "copy-row");
+    if (label) row.append(el("p", label));
+    const line = el("div", undefined, "copy-line");
+    const code = el("code", command);
+    const button = el("button", "Copy"); button.type = "button"; button.className = "copy";
+    if (id) button.id = id;
+    button.setAttribute("aria-label", "Copy " + (label || "this command"));
+    button.addEventListener("click", async () => {
+      let copied = false;
+      try { await navigator.clipboard.writeText(code.textContent); copied = true; } catch (_) { copied = false; }
+      if (!copied) {
+        // Without clipboard access the command is selected, ready to copy.
+        const range = document.createRange(); range.selectNodeContents(code);
+        const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+        try { copied = document.execCommand("copy"); } catch (_) { copied = false; }
+      }
+      button.textContent = copied ? "Copied" : "Selected";
+      setTimeout(() => { button.textContent = "Copy"; }, 1600);
+    });
+    line.append(code, button); row.append(line); parent.append(row);
+    return code;
+  }
+  // The wiring guide's text data (guide.py), rendered as text: never HTML.
+  function renderSpans(parent, spans) {
+    for (const span of spans || []) {
+      let node;
+      if (span.code) node = el("code", span.text);
+      else if (span.anchor) { node = el("a", span.text); node.href = "#guide/" + span.anchor; }
+      else if (span.strong) node = el("strong", span.text, /^UNVERIFIED/.test(span.text) ? "unverified" : undefined);
+      else node = document.createTextNode(span.text);
+      if (span.strong && (span.code || span.anchor)) { const strong = el("strong"); strong.append(node); node = strong; }
+      parent.append(node);
+    }
+  }
+  function renderList(ordered, items) {
+    const list = el(ordered ? "ol" : "ul");
+    for (const item of items) {
+      const entry = el("li"); renderSpans(entry, item.text);
+      if (item.items?.length) entry.append(renderList(item.ordered, item.items));
+      list.append(entry);
+    }
+    return list;
+  }
+  function renderBlocks(parent, blocks) {
+    for (const block of blocks || []) {
+      if (block.type === "heading") {
+        const heading = el(block.level <= 2 ? "h2" : "h3"); heading.dataset.anchor = "guide/" + block.anchor;
+        renderSpans(heading, block.text); parent.append(heading);
+      } else if (block.type === "paragraph") { const p = el("p"); renderSpans(p, block.text); parent.append(p); }
+      else if (block.type === "list") parent.append(renderList(block.ordered, block.items));
+      else if (block.type === "table") {
+        const wrap = el("div", undefined, "guide-table-wrap"); const table = el("table", undefined, "guide-table");
+        const head = el("tr"); for (const cell of block.header) { const th = el("th"); renderSpans(th, cell); head.append(th); }
+        table.append(head);
+        for (const row of block.rows) { const tr = el("tr"); for (const cell of row) { const td = el("td"); renderSpans(td, cell); tr.append(td); } table.append(tr); }
+        wrap.append(table); parent.append(wrap);
+      }
+    }
+  }
+  // Carbon holds no key: the miner's own `carbon-miner-signer` signs. Each
+  // way reaching it can fail is its own code and its own correction.
+  const SIGNER_HELP = {
+    signer_not_running: "your signer is not running. Start `carbon-miner-signer --wallet NAME --hotkey HOTKEY` in a terminal and leave it open",
+    signer_refused: "your signer declined the request; its terminal shows why",
+    signer_wrong_hotkey: "the signer running holds a different hotkey than this profile's registered miner",
+    signer_timeout: "your signer did not answer in time. Check its terminal",
+    signer_invalid_signature: "your signer returned a signature that does not verify for this hotkey",
+    signer_protocol: "something other than carbon-miner-signer answered on the signer socket"
+  };
   async function api(path, body, key, timeout = 5000) {
     const headers = {Authorization: "Bearer " + token};
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -95,8 +194,12 @@
     });
     const result = await response.json();
     if (!response.ok) {
-      const error = new Error(result.error || "request_failed");
+      const code = result.error || "request_failed";
+      const error = new Error(SIGNER_HELP[code] ? code + ": " + SIGNER_HELP[code] : code);
       error.status = response.status;
+      // A setup refusal names its field and, when there is one, the next step.
+      error.field = result.field || null;
+      error.nextStep = result.next_step || null;
       throw error;
     }
     return result;
@@ -117,6 +220,8 @@
     }
     if (location.hash) store(routeKey, {hash: location.hash});
     render();
+    // Setup shows one step at a time; #setup/<step> names it.
+    if (current.view === "setup") applySetupStep();
   }
   window.addEventListener("hashchange", show);
   // The navigation is built from the page's own views: a view marked data-nav
@@ -145,9 +250,35 @@
     renderCatalogs();
     renderCampaigns();
     renderWizard();
+    if (route().view === "guide") renderGuide(route().id);
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
     $("connect-panel").hidden = connected;
+    // The research surface (research_view.js) redraws with the page.
+    for (const hook of renderHooks) hook();
+  }
+  const renderHooks = [];
+  // ---- The wiring guide, served by this controller (LINKONLY-D10). ----
+  let guideDoc = null;
+  let guideLoading = null;
+  let guideAnchor = null;
+  async function renderGuide(anchor) {
+    const body = $("guide-body");
+    if (!connected) { body.replaceChildren(el("p", "Connect this browser to read the guide.", "hint")); body.dataset.built = ""; return; }
+    if (!guideDoc) {
+      guideLoading ||= api("/api/v1/guide/remote-setup").then(value => { guideDoc = value; }, error => { body.replaceChildren(el("p", "The guide could not be read: " + error.message, "reason")); }).finally(() => { guideLoading = null; });
+      await guideLoading;
+      if (!guideDoc) return;
+    }
+    if (body.dataset.built !== "1") {
+      body.replaceChildren();
+      if (!guideDoc.available) body.append(el("p", "This checkout has no guide at " + guideDoc.source + ".", "reason"));
+      else { $("guide-heading").textContent = guideDoc.title; renderBlocks(body, guideDoc.blocks); }
+      body.dataset.built = "1";
+    }
+    // Scroll once per anchor, not on every refresh.
+    if (anchor && anchor !== guideAnchor) document.querySelector('[data-anchor="guide/' + CSS.escape(anchor) + '"]')?.scrollIntoView();
+    guideAnchor = anchor || null;
   }
   function renderDevelopment() {
     const sources = $("development-sources");
@@ -259,6 +390,8 @@
   async function onboardingRequirements() {
     try {
       const value = await api("/api/v1/onboarding/requirements");
+      // The network this controller registers on, always in view.
+      $("network-pill").textContent = (String(value.network).includes("test") ? "Testnet" : words(value.network)) + " · netuid " + value.netuid;
       const facts = $("onboarding-facts");
       facts.replaceChildren();
       // The cost is shown as Carbon actually knows it. NOT_READ is a different
@@ -316,6 +449,12 @@
             : "Not registered on netuid " + value.netuid + " yet."
         ));
         lines.push(onboardingLine("Research environment: " + value.research_environment));
+        if (action === "confirm" && value.registered && value.confirmed) {
+          // Registered: setup opens at its next step, and reads the chain
+          // again itself.
+          const begun = await setupCall("begin", {address});
+          location.hash = begun ? "#setup/agent" : "#setup/register";
+        }
       } else {
         lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
         lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your coldkey."));
@@ -328,6 +467,758 @@
     }
   }
 
+  // ---- Environment setup (C-MLP-03): six steps, one at a time. ----
+  // OWNER-MINER-COMPUTE-LINK-ONLY-01, LINKONLY-D10: the miner's path is the
+  // same six steps on Overview and here. A step is done only when the
+  // controller confirmed it: registration by its chain read, each check by its
+  // live check, the signer by the Agent step's handshake, the last step by a
+  // campaign on record.
+  // The order an agent follows too (OWNER-MINER-SETUP-AGENT-FIRST-01): who
+  // researches comes before Inference, which only an agent calling setup's
+  // model needs. Step ids are stable anchors: #setup/<id>.
+  const SETUP_STEPS = [
+    ["signer", "Start your signer", "Your signer holds your hotkey on this machine. Carbon never sees your key."],
+    ["register", "Register on the subnet", "Your hotkey must be registered on the subnet. You sign that in your own wallet."],
+    ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
+    ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
+    ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
+    ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
+  ];
+  const SETUP_IDS = SETUP_STEPS.map(([id]) => id);
+  // One step reads Next; others a miner can take now, in any order, read Open.
+  const STATE_LABEL = {done: "Done", next: "Next", open: "Open", waiting: "Waiting", skipped: "Skipped"};
+  // A per-browser convenience only: never a token, key or address.
+  const whereKey = "carbon.control-center.where.v1";
+  let setupState = null;
+  let setupRead = false;
+  let setupVersion = 0;
+  let setupStepShown = null;
+  function setupLine(text, kind) { const line = el("p", text, kind === "error" ? "reason" : ""); return line; }
+  async function readSetup() {
+    if (!connected) return;
+    try { setupState = await api("/api/v1/setup"); }
+    catch (_) { setupState = null; }
+    setupVersion++;
+    renderSetup();
+    render();
+  }
+  // Progress an agent makes over MCP shows here too: the setup records are
+  // shared, so the page reads them again every few seconds and rebuilds only
+  // when they changed, and never under a person's cursor.
+  let setupPolls = 0;
+  let setupPolling = false;
+  function setupKey(value) {
+    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null]);
+  }
+  async function pollSetup() {
+    if (!connected || setupPolling || ++setupPolls % 3) return;
+    setupPolling = true;
+    try {
+      const fresh = await api("/api/v1/setup");
+      const typing = $("setup-body").contains(document.activeElement) && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
+      if (setupKey(fresh) !== setupKey(setupState) && !typing) {
+        setupState = fresh; setupVersion++;
+        // A profile written elsewhere changes what can launch.
+        if (fresh.steps?.review?.profile_written && !caps?.profile?.configured) { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
+        renderSetup(); render();
+      }
+    } catch (_) { /* the next poll tries again */ }
+    finally { setupPolling = false; }
+  }
+  async function setupCall(step, body, timeout = 60000) {
+    try {
+      const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
+      // A step only the miner can take (their signer, their registration):
+      // the exact instruction, not an error, and nothing marked done.
+      if (result.result === "human_action_required") {
+        const box = $("setup-result");
+        box.replaceChildren(el("p", result.for_miner, "reason"));
+        if (result.command) copyRow(box, null, result.command);
+        await readSetup();
+        return false;
+      }
+      // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
+      // compute check deleted Carbon's copy of a rented-GPU key, it says so.
+      const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")));
+      // The written profile changes what can launch: read it again now.
+      if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
+      await readSetup();
+      if (step === "review") refresh();
+      return true;
+    } catch (error) {
+      const text = (error.field ? error.field.replaceAll("_", " ") + ": " : "") + words(error.message) + (error.nextStep ? ". Next: " + error.nextStep : "");
+      $("setup-result").replaceChildren(setupLine(text, "error"));
+      return false;
+    }
+  }
+  // Where the miner is on the path: the controller's own status, the same one
+  // an agent loops on, so the page and the agent never disagree.
+  function journey() {
+    const steps = setupState?.steps || {};
+    const registered = Boolean(setupState?.registered_hotkey);
+    const sendPending = Boolean(steps.compute?.checked && steps.compute.check?.next_step);
+    const profile = Boolean(caps?.profile?.configured);
+    const state = {};
+    for (const row of setupState?.status?.steps || []) state[row.id] = row.state;
+    for (const id of SETUP_IDS) state[id] ||= id === "signer" || id === "register" ? "open" : "waiting";
+    // Step 6 is done with a campaign on record; a written profile is next.
+    if (state.review === "done" && !research.runs.length) state.review = "open";
+    for (const id of SETUP_IDS) if (state[id] === "next") state[id] = "open";
+    const done = Object.fromEntries(SETUP_IDS.map(id => [id, state[id] === "done"]));
+    const skipped = Object.fromEntries(SETUP_IDS.map(id => [id, state[id] === "skipped"]));
+    // The first open step is the one next; the rest can be taken in any order.
+    const current = SETUP_IDS.find(id => state[id] === "open") || null;
+    if (current) state[current] = "next";
+    const ready = ["agent", "inference", "compute"].every(id => done[id] || skipped[id]);
+    return {state, done, skipped, current, registered, ready, profile, sendPending, steps};
+  }
+  function stepTitle(id, j) {
+    if (id === "review" && j.profile && !j.done.review) return "Choose a Challenge and launch";
+    return SETUP_STEPS.find(([step]) => step === id)[1];
+  }
+  function shortKey(value) { return value ? value.slice(0, 6) + "…" + value.slice(-4) : ""; }
+  // A setup choice by the name setup offers it under, not its id.
+  function choiceName(step, id) {
+    return (setupState?.choices?.[step] || []).find(choice => choice.id === id)?.display_name || words(id);
+  }
+  // What a checked step holds, in plain words.
+  function checkedText(id, steps) {
+    if (id === "inference") return choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id;
+    if (id === "compute") return choiceName("compute", steps.compute.choice) + (steps.compute.remote_machine ? " · " + steps.compute.remote_machine.destination + " (" + steps.compute.remote_machine.transport + ")" : "");
+    return choiceName("agent", steps.agent.choice);
+  }
+  function stepSentence(id, j) {
+    const state = j.state[id];
+    const steps = j.steps;
+    if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
+    if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
+    if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
+    if (state === "skipped") return "Skipped: your agent uses its own model.";
+    if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
+    if (id === "compute") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : "Choose where practice runs.";
+    if (id === "agent") return state === "done" ? "Checked: " + checkedText(id, steps) + ", and your signer answered." : "Carbon's agent, or your own agent over MCP.";
+    if (state === "done") return "Campaigns on record: " + research.runs.length + ".";
+    if (state === "waiting") return "Opens when steps 3 to 5 are done.";
+    return j.profile ? "Your profile is loaded. Pick a Challenge that is ready." : "Write your profile, then choose a Challenge.";
+  }
+  function stepHref(id, j) {
+    if (id === "review" && j.profile) return j.done.review ? "#launch" : "#challenges";
+    return "#setup/" + id;
+  }
+  function reachable(id, j) { return id === "signer" || id === "register" || j.registered; }
+  // Why Next cannot be taken from this step yet, or null.
+  function nextProblem(id, j) {
+    if (id === "signer") return null;
+    if (id === "register") return j.registered ? null : "Confirm your registration first.";
+    if (id === "compute" && j.sendPending) return "Send your worker first.";
+    if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
+    return null;
+  }
+  // The step after (or before) `id` on this miner's path: a skipped one is
+  // passed over.
+  function stepFrom(id, direction, j) {
+    let index = SETUP_IDS.indexOf(id) + direction;
+    while (index >= 0 && index < SETUP_IDS.length && j.skipped[SETUP_IDS[index]]) index += direction;
+    return SETUP_IDS[index] || null;
+  }
+  function setupTarget() {
+    const j = journey();
+    const current = route();
+    let wanted = current.view === "setup" && SETUP_IDS.includes(current.id) ? current.id : setupStepShown || j.current || "review";
+    if (!reachable(wanted, j)) wanted = j.state.signer === "next" ? "signer" : "register";
+    return wanted;
+  }
+  // Show one step: its heading, progress, done state, Back and Next.
+  function applySetupStep() {
+    const body = $("setup-body");
+    const panels = body.querySelectorAll("[data-step-panel]");
+    const j = journey();
+    const id = setupTarget();
+    // A result belongs to the step it came from.
+    if (setupStepShown && setupStepShown !== id) $("setup-result").replaceChildren();
+    setupStepShown = id;
+    const index = SETUP_IDS.indexOf(id);
+    for (const panel of panels) panel.hidden = panel.dataset.stepPanel !== id;
+    const [, title, lede] = SETUP_STEPS[index];
+    $("setup-eyebrow").textContent = "Set up · Step " + (index + 1) + " of " + SETUP_STEPS.length;
+    $("setup-heading").textContent = id === "review" ? stepTitle(id, j) : title;
+    $("setup-lede").textContent = lede;
+    const progress = $("setup-progress");
+    progress.replaceChildren();
+    SETUP_STEPS.forEach(([step, label], position) => {
+      const item = el("li", undefined, "is-" + j.state[step]);
+      const button = el("button"); button.type = "button";
+      button.append(el("span", String(position + 1).padStart(2, "0"), "wp-num"), el("span", label));
+      button.disabled = !connected || !setupState || !reachable(step, j);
+      if (step === id) button.setAttribute("aria-current", "step");
+      button.setAttribute("aria-label", "Step " + (position + 1) + ": " + label + " · " + STATE_LABEL[j.state[step]]);
+      button.addEventListener("click", () => { location.hash = "#setup/" + step; });
+      item.append(button); progress.append(item);
+    });
+    const ready = connected && Boolean(setupState);
+    progress.hidden = !ready;
+    $("setup-nav").hidden = !ready;
+    $("setup-back").disabled = index === 0;
+    const problem = nextProblem(id, j);
+    const following = stepFrom(id, 1, j);
+    $("setup-next").hidden = !following;
+    $("setup-next").disabled = Boolean(problem);
+    $("setup-next").textContent = following ? "Next: " + SETUP_STEPS[SETUP_IDS.indexOf(following)][1] : "Next";
+    $("setup-next-reason").textContent = problem || "";
+  }
+  $("setup-back").addEventListener("click", () => {
+    const before = stepFrom(setupStepShown, -1, journey());
+    if (before) location.hash = "#setup/" + before;
+  });
+  $("setup-next").addEventListener("click", () => {
+    const j = journey();
+    const following = stepFrom(setupStepShown, 1, j);
+    if (!following || nextProblem(setupStepShown, j)) return;
+    location.hash = "#setup/" + following;
+  });
+  function setupField(form, name, labelText, type = "text") {
+    const id = "setup-" + form.dataset.step + "-" + name;
+    const label = el("label", labelText); label.htmlFor = id;
+    const input = document.createElement("input");
+    input.id = id; input.name = name; input.type = type; input.autocomplete = "off"; input.spellcheck = false;
+    form.append(label, input);
+    return input;
+  }
+  function setupSelect(form, name, labelText, options) {
+    const id = "setup-" + form.dataset.step + "-" + name;
+    const label = el("label", labelText); label.htmlFor = id;
+    const select = document.createElement("select"); select.id = id; select.name = name;
+    for (const [value, text] of options) { const option = el("option", text); option.value = value; select.append(option); }
+    form.append(label, select);
+    return select;
+  }
+  // One wizard step's panel, with its done state when the controller has one.
+  function stepPanel(parent, id, doneText) {
+    const panel = el("section", undefined, "setup-step"); panel.dataset.stepPanel = id;
+    if (doneText) { const done = el("p", undefined, "step-done"); done.append(pill("Done", "pill-done"), el("span", doneText)); panel.append(done); }
+    parent.append(panel);
+    return panel;
+  }
+  function stepForm(parent, step) {
+    const form = document.createElement("form"); form.dataset.step = step;
+    parent.append(form);
+    return form;
+  }
+  function advanced(parent, summary = "Advanced") {
+    const box = el("details", undefined, "advanced"); box.append(el("summary", summary));
+    const body = el("div", undefined, "detail-body"); body.dataset.step = parent.dataset.step;
+    box.append(body); parent.append(box);
+    return body;
+  }
+  function costNote(form, choice) {
+    if (!choice) return;
+    researchNote(form, "Cost: " + choice.cost_basis, "hint");
+    researchNote(form, "Live check: " + choice.live_check, "hint");
+  }
+  async function confirmRegistration(address) {
+    if (busy || !connected) return;
+    const result = $("setup-result");
+    if (!address) { result.replaceChildren(setupLine("Enter the hotkey address you registered.", "error")); return; }
+    try {
+      const value = await api("/api/v1/onboarding/confirm", {address});
+      if (value.registered && value.confirmed) {
+        if (await setupCall("begin", {address})) location.hash = "#setup/agent";
+        return;
+      }
+      const line = el("p", "Not registered on netuid " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
+      result.replaceChildren(line, link({label: "Wallet & Identity", href: "#wallet"}));
+    } catch (error) {
+      result.replaceChildren(setupLine(error.message, "error"));
+    }
+  }
+  function renderSetup() {
+    const body = $("setup-body");
+    if (!connected) { body.replaceChildren(el("p", "Connect this browser to begin.", "hint")); applySetupStep(); return; }
+    if (!setupState) {
+      body.replaceChildren(el("p", "Setup is off on this controller: start it with a state directory (the installer does).", "reason"));
+      applySetupStep();
+      return;
+    }
+    const offered = setupState.choices || {inference: [], compute: [], agent: []};
+    const steps = setupState.steps || {};
+    const j = journey();
+    body.replaceChildren();
+
+    // 1. Start your signer, then check it: the public hotkey address names
+    // its socket, and the signer says which hotkey it holds. Nothing is
+    // signed, and Carbon never sees the key.
+    const signerHotkey = steps.signer?.hotkey || setupState.registered_hotkey || "";
+    const signer = stepPanel(body, "signer", j.done.signer ? "Your signer answered for " + (signerHotkey || "your registered hotkey") + "." : null);
+    signer.append(el("p", "Start it in your own terminal and leave it open:", "step-lede"));
+    copyRow(signer, null, offered.signer?.command || "carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>", "setup-signer-copy");
+    researchNote(signer, "Use your own wallet and hotkey names. Carbon never asks for your key or its password.", "hint");
+    const signerLabel = el("label", "Your hotkey address (ss58)"); signerLabel.htmlFor = "setup-signer-address";
+    const signerAddress = el("input"); signerAddress.id = "setup-signer-address"; signerAddress.type = "text"; signerAddress.autocomplete = "off"; signerAddress.spellcheck = false; signerAddress.placeholder = "5...";
+    signerAddress.value = signerHotkey || $("onboarding-address").value.trim();
+    const signerCheck = el("button", j.done.signer ? "Check my signer again" : "Check my signer", j.done.signer ? "" : "primary"); signerCheck.type = "button"; signerCheck.id = "setup-signer-check";
+    signerCheck.addEventListener("click", () => {
+      const address = signerAddress.value.trim();
+      if (!address) { $("setup-result").replaceChildren(setupLine("Enter your hotkey address: its public ss58 address, never a key or phrase.", "error")); return; }
+      setupCall("signer", {address});
+    });
+    const signerAction = el("div", undefined, "step-action"); signerAction.append(signerCheck);
+    signer.append(signerLabel, signerAddress, signerAction);
+    researchNote(signer, "This asks your signer which hotkey it holds. Nothing is signed. You can also register first: steps 1 and 2 go in either order.", "hint");
+
+    // 2. Register on the subnet: confirmed here, prepared under Wallet.
+    const register = stepPanel(body, "register", j.registered ? "Registered: " + setupState.registered_hotkey : null);
+    if (!j.registered) {
+      register.append(el("p", "Paste your hotkey address. Carbon reads the chain to confirm it is registered.", "step-lede"));
+      const label = el("label", "Your hotkey address (ss58)"); label.htmlFor = "setup-register-address";
+      const address = el("input"); address.id = "setup-register-address"; address.type = "text"; address.autocomplete = "off"; address.spellcheck = false; address.placeholder = "5...";
+      address.value = steps.signer?.hotkey || $("onboarding-address").value.trim();
+      const confirm = el("button", "Check my registration", "primary go"); confirm.type = "button"; confirm.id = "setup-register-confirm";
+      confirm.addEventListener("click", () => confirmRegistration(address.value.trim()));
+      const action = el("div", undefined, "step-action"); action.append(confirm);
+      register.append(label, address, action);
+      researchNote(register, "Not registered yet? Wallet & Identity prepares the unsigned call; you sign it in your own wallet, paid from your coldkey.", "hint");
+      register.append(link({label: "Register under Wallet & Identity", href: "#wallet"}));
+      // What opens once registration is confirmed.
+      register.append(el("p", "What happens next", "eyebrow"));
+      const next = el("ol", undefined, "guide-steps");
+      next.start = 3;
+      for (const [, title, lede] of SETUP_STEPS.slice(2)) { const item = el("li"); item.append(el("strong", title + ": "), lede); next.append(item); }
+      register.append(next);
+    }
+
+    // 3. Inference.
+    const inferencePanel = stepPanel(body, "inference", steps.inference?.checked ? "Checked: " + checkedText("inference", steps) + "." : null);
+    if (j.skipped.inference) {
+      // The miner's own agent brings its own model.
+      const skip = el("p", undefined, "step-done"); skip.id = "setup-inference-skipped";
+      skip.append(pill("Skipped", "pill-wait"), el("span", "Your agent uses its own model. Set one here only if you also want Carbon's agent."));
+      inferencePanel.prepend(skip);
+    }
+    const inference = stepForm(inferencePanel, "inference");
+    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
+    const model = setupField(inference, "model_id", "Model id");
+    // A generic adapter has no endpoint of its own: the miner names it here,
+    // with an optional declared price (nanodollars per token). Without one the
+    // spend is stated as unknown and no money ceiling can be set.
+    const generic = el("div"); generic.dataset.step = "inference"; inference.append(generic);
+    const endpoint = setupField(generic, "endpoint", "Endpoint URL (https, the full completion route)");
+    const priceBox = advanced(generic, "Your price (optional)");
+    researchNote(priceBox, "Nanodollars per token, the date you read it and where.", "hint");
+    const declared = {};
+    for (const [name, label, type] of [["input_nano", "Input", "number"], ["cached_input_nano", "Cached input", "number"], ["output_nano", "Output (including reasoning)", "number"], ["observed", "Observed (YYYY-MM-DD)", "text"], ["note", "Where this price comes from", "text"]]) {
+      declared[name] = setupField(priceBox, name, label, type);
+    }
+    const key = setupField(inference, "key", "API key (entered once; leave empty to keep the stored key)", "password");
+    researchNote(inference, "Written once to an owner-only file on this machine, never shown again, and sent only to this provider.", "hint");
+    const inferenceCost = el("div"); inference.append(inferenceCost);
+    const describeProvider = () => {
+      const choice = offered.inference.find(c => c.id === provider.value);
+      inferenceCost.replaceChildren();
+      if (choice) researchNote(inferenceCost, "Billed by " + choice.display_name + " to your account. Carbon bills nothing.", "hint");
+      const listed = (choice?.models || []).map(m => m.model_id);
+      const about = details(inferenceCost, "About this provider", []);
+      const aboutBody = about.querySelector(".detail-body");
+      costNote(aboutBody, choice);
+      if (choice) researchNote(aboutBody, "Price: " + choice.pricing, "hint");
+      researchNote(aboutBody, (listed.length ? "Models: " + listed.join(", ") + " (" : "Models: (") + (choice?.model_policy || "") + ")", "hint");
+      generic.hidden = !choice?.needs_endpoint;
+      if (!model.value) model.value = (choice?.models || []).find(m => m.default)?.model_id || listed[0] || "";
+    };
+    const inferenceSpec = () => {
+      const choice = offered.inference.find(c => c.id === provider.value);
+      const spec = {provider_id: provider.value, model_id: model.value.trim()};
+      if (!choice?.needs_endpoint) return spec;
+      spec.endpoint = endpoint.value.trim();
+      if (Object.values(declared).some(input => input.value.trim())) {
+        spec.declared_pricing = {};
+        for (const [name, input] of Object.entries(declared)) {
+          const value = input.value.trim();
+          spec.declared_pricing[name] = input.type === "number" && value !== "" && /^\d+$/.test(value) ? Number(value) : value;
+        }
+      }
+      return spec;
+    };
+    // Consent is to a quoted amount: the server states the check's maximum
+    // cost for this model, the miner ticks to agree to that amount, and only
+    // that amount is sent. Nothing is ticked by default, and any change of
+    // provider or model clears the agreement.
+    const agree = document.createElement("input");
+    agree.type = "checkbox"; agree.id = "setup-inference-consent"; agree.checked = false;
+    const agreeLabel = el("label", "Quoting the cost of this check..."); agreeLabel.htmlFor = agree.id;
+    const agreeRow = el("div", undefined, "consent"); agreeRow.append(agree, agreeLabel);
+    inference.append(agreeRow);
+    const check = el("button", "Check with my key (billed to me)", "primary"); check.disabled = true;
+    inference.append(check);
+    let quote = null, quoting = 0;
+    const requote = async () => {
+      const mine = ++quoting;
+      quote = null; agree.checked = false; check.disabled = true; agree.disabled = true;
+      const wanted = inferenceSpec();
+      if (!wanted.model_id) { agreeLabel.textContent = "Choose a model to see what this check costs."; return; }
+      if (wanted.endpoint === "") { agreeLabel.textContent = "Enter your endpoint to see what this check costs."; return; }
+      try {
+        const answer = await api("/api/v1/setup/quote", wanted, undefined, 15000);
+        if (mine !== quoting) return;
+        quote = answer; agree.disabled = false;
+        agreeLabel.textContent = "I agree to this charge on my own account: " + answer.statement;
+      } catch (error) {
+        if (mine !== quoting) return;
+        agreeLabel.textContent = "No quote: " + (error.field ? error.field + ": " : "") + words(error.message);
+      }
+    };
+    agree.addEventListener("change", () => { check.disabled = !(agree.checked && quote); });
+    provider.addEventListener("change", () => { model.value = ""; describeProvider(); requote(); });
+    model.addEventListener("change", requote);
+    for (const input of [endpoint, ...Object.values(declared)]) input.addEventListener("change", requote);
+    if (steps.inference?.checked) {
+      provider.value = steps.inference.provider_id; model.value = steps.inference.model_id;
+      endpoint.value = steps.inference.endpoint || "";
+      for (const [name, input] of Object.entries(declared)) input.value = steps.inference.declared_pricing?.[name] ?? "";
+    }
+    describeProvider();
+    requote();
+    inference.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!(agree.checked && quote)) return;
+      // The quote was for this exact spec; any edit since re-quoted it.
+      const request = {...inferenceSpec(), consent: {max_cost_nano: quote.max_cost_nano}};
+      if (key.value) request.key = key.value;
+      key.value = "";
+      await setupCall("inference", request);
+    });
+
+    // 4. Compute: "Where's your GPU?" (LINKONLY-D10).
+    // Checked but still waiting for its worker is not done yet.
+    const computeDone = steps.compute?.checked && !j.sendPending ? "Checked: " + checkedText("compute", steps) + "." : null;
+    const computePanel = stepPanel(body, "compute", computeDone);
+    const compute = stepForm(computePanel, "compute");
+    const remoteChoice = offered.compute.find(c => c.needs_remote);
+    const guides = remoteChoice?.guides || {cards: [], notes: []};
+    const where = el("fieldset", undefined, "where"); where.append(el("legend", "Where's your GPU?"));
+    const grid = el("div", undefined, "where-grid"); where.append(grid);
+    compute.append(where);
+    const wherePanel = el("div", undefined, "guide-panel"); wherePanel.id = "setup-guide-panel"; wherePanel.hidden = true;
+    compute.append(wherePanel);
+    // Shown for a GPU choice: the Challenge to practise.
+    const gpuBox = el("div"); gpuBox.dataset.step = "compute"; compute.append(gpuBox);
+    const gpuChallenge = setupSelect(gpuBox, "challenge", "Challenge to practise on the GPU", []);
+    // Your own remote machine or container (OWNER-MINER-COMPUTE-LINK-ONLY-01,
+    // amended 2026-10-02): you start, stop and pay for it; Carbon reaches it
+    // with your own SSH and never starts, stops or bills it.
+    const remoteBox = el("div"); remoteBox.dataset.step = "compute"; compute.append(remoteBox);
+    const destination = setupField(remoteBox, "destination", "SSH destination (user@host, or your ssh-config alias)");
+    const sshPort = setupField(remoteBox, "port", "SSH port (optional; leave empty for your ssh config's)", "number");
+    researchNote(remoteBox, "Make `ssh <destination>` work from this machine without a prompt first: your key in your agent, the host key in your known hosts. Carbon passes no key and installs nothing.", "hint");
+    const missing = el("div"); compute.append(missing);
+    // Everything setup fills in for you, or a miner changes on purpose.
+    const more = advanced(compute, "Advanced: images and transport");
+    const computeChoice = setupSelect(more, "choice", "Where research runs (set by the cards above)", offered.compute.map(c => [c.id, c.display_name]));
+    const transportBox = el("div"); transportBox.dataset.step = "compute"; more.append(transportBox);
+    const transport = setupSelect(transportBox, "transport", "How Carbon reaches it (set by your card)", []);
+    const transportNote = el("div"); transportBox.append(transportNote);
+    const images = setupState.images || {};
+    const installed = setupState.installed || {};
+    const imageNote = field => {
+      const found = images[field];
+      return found?.path ? "Filled in: found by " + found.found_by + "." : "Not found yet.";
+    };
+    const image = setupField(more, "image_manifest", "Your worker image (manifest path)");
+    researchNote(more, imageNote("image_manifest"), "hint");
+    const analysis = setupField(more, "analysis_image_manifest", "Your analysis image (manifest path)");
+    researchNote(more, imageNote("analysis_image_manifest"), "hint");
+    const gpuImageBox = el("div"); gpuImageBox.dataset.step = "compute"; more.append(gpuImageBox);
+    const gpuImage = setupField(gpuImageBox, "gpu_image_manifest", "Your GPU worker image (manifest path)");
+    researchNote(gpuImageBox, imageNote("gpu_image_manifest"), "hint");
+    // Filled in from what scripts/install_miner.sh built here (C-MLP-04), or
+    // where the GPU worker's build script wrote it.
+    image.value = images.image_manifest?.path || installed.image_manifest || "";
+    analysis.value = images.analysis_image_manifest?.path || installed.analysis_image_manifest || "";
+    gpuImage.value = images.gpu_image_manifest?.path || installed.gpu_image_manifest || "";
+    const computeButton = el("button", "Check on this machine", "primary"); computeButton.id = "setup-compute-submit";
+    const commandCodes = [];
+    const fill = command => {
+      const target = destination.value.trim();
+      if (!command.destination || !target) return command.command;
+      return command.command.replace("<destination>", (sshPort.value.trim() ? "-p " + sshPort.value.trim() + " " : "") + target);
+    };
+    const updateCommands = () => { for (const [code, command] of commandCodes) code.textContent = fill(command); };
+    destination.addEventListener("input", updateCommands);
+    sshPort.addEventListener("input", updateCommands);
+    const describeMissing = () => {
+      missing.replaceChildren();
+      if (!image.value.trim() || !analysis.value.trim()) {
+        missing.append(el("p", "Carbon hasn't found your worker images. Build and record them in your Carbon checkout, then reload this page:", "reason"));
+        copyRow(missing, null, images.image_manifest?.build || "scripts/install_miner.sh --no-start");
+      }
+      if (!gpuImageBox.hidden && !gpuImage.value.trim()) {
+        missing.append(el("p", "Build your GPU worker image once (no GPU needed here), then reload this page:", "reason"));
+        copyRow(missing, null, images.gpu_image_manifest?.build || "scripts/dev/accelerator_worker_image.sh");
+      }
+    };
+    for (const input of [image, analysis, gpuImage]) input.addEventListener("input", describeMissing);
+    const describeTransport = () => {
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      const chosen = (choice?.transports || []).find(t => t.id === transport.value);
+      transportNote.replaceChildren();
+      if (chosen?.summary) researchNote(transportNote, chosen.summary, "hint");
+    };
+    transport.addEventListener("change", describeTransport);
+    const describeCompute = () => {
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      gpuBox.hidden = !choice?.needs_gpu_image;
+      gpuImageBox.hidden = !choice?.needs_gpu_image;
+      remoteBox.hidden = !choice?.needs_remote;
+      transportBox.hidden = !choice?.needs_remote;
+      computeButton.textContent = choice?.needs_remote ? "Check my setup over my SSH" : "Check on this machine";
+      const forChallenges = choice?.for_challenges || [];
+      const previous = gpuChallenge.value;
+      gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
+      if ([...gpuChallenge.options].some(option => option.value === previous)) gpuChallenge.value = previous;
+      // Only what is built can be chosen; the endpoint transport says why not.
+      const previousTransport = transport.value;
+      transport.replaceChildren(...(choice?.transports || []).map(item => {
+        const option = el("option", item.display_name + (item.available ? "" : " · not built: " + words(item.reason)));
+        option.value = item.id; option.disabled = !item.available; return option;
+      }));
+      if ([...transport.options].some(option => option.value === previousTransport && !option.disabled)) transport.value = previousTransport;
+      describeTransport();
+      describeMissing();
+    };
+    // The cards: this machine, then each setup the wiring guide covers.
+    const local = offered.compute.filter(c => !c.needs_remote);
+    const cards = [
+      ...local.map(c => ({id: c.id, title: "This machine", sub: c.needs_gpu_image ? "My GPU" : "CPU · the default", choice: c.id})),
+      ...(remoteChoice ? guides.cards.map(g => ({id: g.id, title: g.display_name, sub: g.transport === "ssh-container" ? "Container · SSH" : "Machine with Docker · SSH", choice: remoteChoice.id, transport: g.transport, guide: g})) : []),
+    ];
+    const aboutRemote = (parent, choice) => details(parent, "About remote practice", ["Cost: " + choice.cost_basis, "Live check: " + choice.live_check, choice.note, "Wiring guide: " + choice.guide]);
+    const showWhere = card => {
+      wherePanel.replaceChildren(); commandCodes.length = 0;
+      const choice = offered.compute.find(c => c.id === computeChoice.value);
+      wherePanel.hidden = !card && !choice?.needs_remote;
+      if (!card) {
+        // The remote choice made under Advanced, with no card picked.
+        if (choice?.needs_remote) {
+          wherePanel.append(el("p", "Pick where your GPU runs above to see its steps."));
+          wherePanel.append(link({label: "Open the full guide", href: "#guide"}));
+          aboutRemote(wherePanel, choice);
+        }
+        return;
+      }
+      if (!card.guide) {
+        wherePanel.append(el("h3", card.title + " · " + card.sub));
+        wherePanel.append(el("p", choice.needs_gpu_image ? "Practice runs on your own GPU, for speed only." : "Practice runs in an isolated container on this machine. Nothing is rented."));
+        details(wherePanel, "About this choice", ["Cost: " + choice.cost_basis, "Live check: " + choice.live_check, choice.note]);
+        return;
+      }
+      const g = card.guide;
+      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"));
+      wherePanel.append(head);
+      wherePanel.append(el("p", "You start, stop and pay for it" + (g.id === "own-server" ? "" : " at " + g.display_name) + ". Carbon reaches it with your own SSH and never starts, stops or bills it."));
+      wherePanel.append(el("p", "Your steps, from the guide", "eyebrow"));
+      const steps = el("div", undefined, "guide-steps");
+      if (g.steps.length) renderBlocks(steps, g.steps);
+      else steps.append(el("p", "This checkout has no guide section for it.", "hint"));
+      wherePanel.append(steps);
+      wherePanel.append(el("p", "Commands you run", "eyebrow"));
+      g.commands.forEach((command, index) => commandCodes.push([copyRow(wherePanel, command.label, fill(command), "setup-copy-" + g.id + "-" + index), command]));
+      const full = link({label: "Open the full guide", href: "#guide/" + g.anchor}); full.id = "setup-guide-link";
+      wherePanel.append(full);
+      const notes = el("div", undefined, "hint"); renderBlocks(notes, guides.notes); wherePanel.append(notes);
+      aboutRemote(wherePanel, choice);
+    };
+    const pick = (card, remember) => {
+      for (const input of grid.querySelectorAll("input")) input.checked = Boolean(card) && input.value === card.id;
+      if (card) {
+        computeChoice.value = card.choice;
+        describeCompute();
+        if (card.transport) { transport.value = card.transport; describeTransport(); }
+        if (remember) store(whereKey, {id: card.id});
+      }
+      showWhere(card);
+    };
+    for (const card of cards) {
+      const label = el("label", undefined, "where-card");
+      const input = el("input"); input.type = "radio"; input.name = "setup-where"; input.value = card.id; input.id = "setup-where-" + card.id;
+      input.addEventListener("change", () => pick(card, true));
+      const text = el("span"); text.append(el("strong", card.title), el("small", card.sub));
+      label.append(input, text); grid.append(label);
+    }
+    // A choice made directly in Advanced keeps the cards in step.
+    computeChoice.addEventListener("change", () => {
+      describeCompute();
+      const shown = cards.find(card => card.id === stored(whereKey, {}).id && card.choice === computeChoice.value) || cards.find(card => !card.guide && card.choice === computeChoice.value) || null;
+      pick(shown, false);
+    });
+    const checkedMachine = steps.compute?.remote_machine;
+    const remembered = cards.find(card => card.id === stored(whereKey, {}).id) || null;
+    let initial = cards[0] || null;
+    if (steps.compute?.checked && steps.compute.choice) {
+      initial = steps.compute.choice === remoteChoice?.id
+        ? (remembered?.guide && remembered.transport === checkedMachine?.transport ? remembered : null)
+        : cards.find(card => card.choice === steps.compute.choice) || null;
+      computeChoice.value = steps.compute.choice;
+    } else if (remembered) initial = remembered;
+    if (initial) pick(initial, false);
+    else describeCompute();
+    if (checkedMachine) {
+      transport.value = checkedMachine.transport; destination.value = checkedMachine.destination;
+      sshPort.value = checkedMachine.port ?? "";
+      describeTransport(); updateCommands();
+    }
+    const action = el("div", undefined, "step-action"); action.append(computeButton); compute.append(action);
+    compute.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {choice: computeChoice.value, image_manifest: image.value.trim(), analysis_image_manifest: analysis.value.trim()};
+      if (!gpuBox.hidden) {
+        request.gpu_image_manifest = gpuImage.value.trim();
+        if (gpuChallenge.value) request.challenge = JSON.parse(gpuChallenge.value);
+      }
+      if (!remoteBox.hidden) {
+        request.remote = {transport: transport.value, destination: destination.value.trim()};
+        if (sshPort.value.trim()) request.remote.port = Number(sshPort.value.trim());
+      }
+      await setupCall("compute", request);
+    });
+
+    // Send your worker: a machine with Docker that does not hold the pinned
+    // GPU worker yet. Nothing is sent without consent to that destination and
+    // that image, unticked by default; it streams over your own SSH.
+    const remoteCheck = steps.compute?.check?.remote;
+    if (checkedMachine && checkedMachine.transport === "ssh-docker" && remoteCheck?.worker_image === "missing") {
+      const sendBox = el("section", undefined, "guide-panel"); computePanel.append(sendBox);
+      sendBox.append(el("h3", "Send your worker"));
+      const send = stepForm(sendBox, "send_worker");
+      const workerImage = steps.compute.check.gpu_image;
+      const target = checkedMachine.destination + (checkedMachine.port ? " (port " + checkedMachine.port + ")" : "");
+      researchNote(send, "Your machine does not hold the pinned GPU worker. Carbon can stream it there over your own SSH (docker save | ssh docker load) and check its image ID. It can take minutes.", "hint");
+      const sendAgree = document.createElement("input");
+      sendAgree.type = "checkbox"; sendAgree.id = "setup-send-worker-consent"; sendAgree.checked = false;
+      const sendLabel = el("label", "Send the pinned GPU worker " + workerImage + " to " + target + "."); sendLabel.htmlFor = sendAgree.id;
+      const sendRow = el("div", undefined, "consent"); sendRow.append(sendAgree, sendLabel);
+      send.append(sendRow);
+      const sendButton = el("button", "Send my worker", "primary"); sendButton.disabled = true;
+      sendAgree.addEventListener("change", () => { sendButton.disabled = !sendAgree.checked; });
+      send.append(sendButton);
+      send.addEventListener("submit", async event => {
+        event.preventDefault();
+        if (!sendAgree.checked) return;
+        const consent = {destination: checkedMachine.destination, image: workerImage};
+        if (checkedMachine.port) consent.port = checkedMachine.port;
+        sendButton.disabled = true;
+        $("setup-result").replaceChildren(setupLine("Sending your worker over your SSH. This can take minutes."));
+        await setupCall("send_worker", {consent: {send: consent}}, 3600000);
+      });
+    }
+
+    // 3. Who researches? Carbon's agent, or the miner's own agent over MCP
+    // (OWNER-MINER-SETUP-AGENT-FIRST-01): any MCP client, or Hermes with its
+    // ready-made profile.
+    const agentPanel = stepPanel(body, "agent", steps.agent?.checked ? "Checked: " + checkedText("agent", steps) + ", and your signer answered." : null);
+    const agent = stepForm(agentPanel, "agent");
+    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name]));
+    const agentCost = el("div"); agent.append(agentCost);
+    // Your own agent: the one command, and each client's snippet to copy.
+    const connectBox = el("div", undefined, "guide-panel"); connectBox.id = "setup-agent-connect"; agent.append(connectBox);
+    const describeConnect = choice => {
+      connectBox.replaceChildren();
+      connectBox.hidden = !choice?.connect;
+      if (!choice?.connect) return;
+      const connect = choice.connect;
+      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips Inference: " + choice.skips.inference + ". " + connect.note, "hint"));
+      copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
+      // One disclosure per client: its snippets, its source and what Carbon
+      // has not verified.
+      for (const client of connect.clients) {
+        const body = details(connectBox, client.name, []).querySelector(".detail-body");
+        body.append(el("p", "From " + client.source + ".", "hint"));
+        client.snippets.forEach((snippet, index) => copyRow(body, snippet.label, snippet.text, "setup-agent-" + client.id + "-" + index));
+        for (const note of client.unverified) {
+          const line = el("p", undefined, "hint"); line.append(el("strong", "UNVERIFIED:", "unverified"), " " + note.replace(/^UNVERIFIED: /, "")); body.append(line);
+        }
+      }
+      connectBox.append(el("p", "Then your agent loops on carbon_setup_status until launch; the carbon_setup_workflow_v1 prompt says how. You can finish here too: both doors share one setup.", "hint"));
+    };
+    researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
+    // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
+    // without their consent to the exact files, unticked by default.
+    const hermesBox = el("div"); agent.append(hermesBox);
+    const hermesAgree = document.createElement("input");
+    hermesAgree.type = "checkbox"; hermesAgree.id = "setup-agent-hermes-consent"; hermesAgree.checked = false;
+    const hermesLabel = el("label"); hermesLabel.htmlFor = hermesAgree.id;
+    const hermesRow = el("div", undefined, "consent"); hermesRow.append(hermesAgree, hermesLabel);
+    hermesBox.append(hermesRow);
+    // Miners leave these empty: setup reads Carbon's testnet and its
+    // publisher from the chain. Only an operator running Carbon's deployment
+    // names a config.
+    const agentMore = advanced(agent);
+    const operator = setupField(agentMore, "operator_config", "Operator config (operators only; leave empty)");
+    const socket = setupField(agentMore, "signer_socket", "Signer socket (optional; leave empty for the default)");
+    const describeAgent = () => {
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      agentCost.replaceChildren();
+      const about = details(agentCost, "About this agent", []);
+      costNote(about.querySelector(".detail-body"), choice);
+      describeConnect(choice);
+      hermesBox.hidden = !choice?.needs_consent_to_write;
+      hermesAgree.checked = false;
+      if (choice?.needs_consent_to_write) {
+        hermesLabel.textContent = "Write my Hermes profile: " + (choice.writes || []).join(", ") + ". Then start it with: " + choice.start;
+      }
+    };
+    agentChoice.addEventListener("change", describeAgent);
+    if (steps.agent?.checked && steps.agent.choice) agentChoice.value = steps.agent.choice;
+    describeAgent();
+    const agentAction = el("div", undefined, "step-action"); agentAction.append(el("button", "Check my signer", "primary")); agent.append(agentAction);
+    agent.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {choice: agentChoice.value};
+      if (operator.value.trim()) request.operator_config = operator.value.trim();
+      if (socket.value.trim()) request.signer_socket = socket.value.trim();
+      const choice = offered.agent.find(c => c.id === agentChoice.value);
+      if (choice?.needs_consent_to_write) {
+        if (!hermesAgree.checked) { $("setup-result").replaceChildren(setupLine("consent: tick to agree to the files your Hermes profile needs.")); return; }
+        request.consent = {writes: choice.writes};
+      }
+      await setupCall("agent", request);
+    });
+
+    // 6. Review and launch.
+    const written = Boolean(steps.review?.profile_written);
+    const reviewPanel = stepPanel(body, "review", written ? "Your profile is written." : null);
+    const review = stepForm(reviewPanel, "review");
+    const summary = el("dl", undefined, "review-grid"); review.append(summary);
+    for (const [name, label] of [["agent", "Who researches"], ["inference", "Inference"], ["compute", "Compute"]]) {
+      const state = steps[name] || {};
+      summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
+    }
+    researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    // A validator's intake, when a Challenge's validator runs elsewhere
+    // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
+    // read and checked by that Challenge; nothing is signed.
+    const reviewMore = advanced(review, "Advanced: a validator's intake");
+    const intakeChallenges = offered.intake_challenges || [];
+    const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
+    const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
+    intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
+    const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
+    write.disabled = !steps.review?.ready;
+    const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);
+    if (caps?.profile?.configured) {
+      const go = link({label: "Choose a Challenge", href: "#challenges"}, "button primary"); go.id = "setup-choose-challenge";
+      reviewAction.prepend(go);
+    }
+    review.append(reviewAction);
+    if (!steps.review?.ready) researchNote(review, "Finish steps 3 to 5 first.", "hint");
+    review.addEventListener("submit", async event => {
+      event.preventDefault();
+      const request = {confirm: true};
+      if (intake.value.trim() && intakeChallenge.value) request.intakes = {[intakeChallenge.value]: intake.value.trim()};
+      await setupCall("review", request);
+    });
+    applySetupStep();
+  }
+
   $("onboarding-status").addEventListener("click", () => onboardingCall("status"));
   $("onboarding-prepare").addEventListener("click", () => onboardingCall("prepare"));
   $("onboarding-confirm").addEventListener("click", () => onboardingCall("confirm"));
@@ -337,6 +1228,7 @@
     const value = await api("/api/v1/control-center/capabilities", undefined, undefined, 20000);
     if (value.schema !== CAPS_SCHEMA) throw new Error("unsupported_controller_version");
     caps = value;
+    capsVersion++;
     // A remembered choice is checked against what exists now.
     if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
     if (wizard.agentChoice && !caps.agents.choices.some(choice => choice.id === wizard.agentChoice)) wizard.agentChoice = null;
@@ -371,6 +1263,8 @@
       connected = true;
       land();
       render();
+      if (!setupRead) { setupRead = true; readSetup(); }
+      else pollSetup();
       $("connection-state").textContent = "Connected";
     } catch (error) {
       connected = false;
@@ -490,26 +1384,20 @@
     finally { busy = false; render(); }
   });
   function renderComputeChoices(choices) {
-    // Where the miner may run their own research. Rendered beside the exam
-    // environment on purpose: they choose the first and are told the second.
+    // Where the miner may run their own research, and what each route needs,
+    // beside the exam environment on purpose: they choose the first and are
+    // told the second. Kept behind Details: the route cards above lead.
     const panel = $("exam-environment");
     if (!choices.length) return;
-    const heading = document.createElement("h3");
-    heading.textContent = "Your research compute";
-    panel.append(heading);
+    const box = details(panel, "What each research route needs", []);
+    const body = box.querySelector(".detail-body");
+    body.append(el("h3", "Your research compute"));
     for (const choice of choices.filter(entry => entry.selectable !== false)) {
-      const box = document.createElement("div"); box.className = "integration";
-      const title = document.createElement("strong");
-      title.textContent = choice.id.replaceAll("-", " ");
-      const summary = document.createElement("p"); summary.textContent = choice.summary;
-      box.append(title, summary);
-      if (choice.requires?.length) {
-        researchNote(box, "Needs: " + choice.requires.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
-      }
-      if (choice.not_required?.length) {
-        researchNote(box, "Not needed: " + choice.not_required.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
-      }
-      panel.append(box);
+      const item = el("div", undefined, "integration");
+      item.append(el("strong", choice.id.replaceAll("-", " ")), el("p", choice.summary));
+      if (choice.requires?.length) researchNote(item, "Needs: " + choice.requires.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
+      if (choice.not_required?.length) researchNote(item, "Not needed: " + choice.not_required.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
+      body.append(item);
     }
   }
 
@@ -523,71 +1411,140 @@
       researchNote(panel, "The published exam environment could not be read. It is a disclosure, not a launch requirement; research and submission are unaffected.");
       return;
     }
-    researchNote(panel, "Backend profile: " + contract.backend_profile.profile_id + " · " + contract.backend_profile.backend + " · " + contract.backend_profile.scope);
+    // The plain reading first; the validator's internals behind Details.
     // Declared is not qualified, and the page says which this is.
-    researchNote(panel, "Qualification: declared, not qualified · Backend support " + contract.qualification.backend_support + " · " + contract.qualification.basis);
-    researchNote(panel, "You submit: " + contract.submission.accepted.replaceAll("_", " ").toLowerCase() + ". Not accepted: " + contract.submission.not_accepted.map(value => value.replaceAll("_", " ").toLowerCase()).join("; ") + ".");
-    researchNote(panel, "Your research hardware is not constrained by this contract and does not have to match it. No provider is prescribed, for you or for a validator.");
+    researchNote(panel, "Declared, not qualified: published so you can read it before you submit.", "status-line");
+    researchNote(panel, "You submit: " + contract.submission.accepted.replaceAll("_", " ").toLowerCase() + ". Not accepted: " + contract.submission.not_accepted.map(value => value.replaceAll("_", " ").toLowerCase()).join("; ") + ".", "hint");
+    researchNote(panel, "Your research hardware is not constrained by this contract and does not have to match it. No provider is prescribed, for you or for a validator.", "hint");
+    const inside = details(panel, "Exam environment details", []);
+    const body = inside.querySelector(".detail-body");
+    researchNote(body, "Backend profile: " + contract.backend_profile.profile_id + " · " + contract.backend_profile.backend + " · " + contract.backend_profile.scope);
+    researchNote(body, "Qualification: declared, not qualified · Backend support " + contract.qualification.backend_support + " · " + contract.qualification.basis);
     for (const limitation of contract.known_limitations || []) {
-      researchNote(panel, "Disclosed limitation · " + limitation.statement + " " + limitation.consequence);
+      researchNote(body, "Disclosed limitation · " + limitation.statement + " " + limitation.consequence);
     }
-    const details = document.createElement("details");
-    const label = document.createElement("summary");
-    label.textContent = "Pinned versions, resource envelope and containment";
-    const data = document.createElement("pre"); data.textContent = JSON.stringify(contract, null, 2);
-    data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
-    details.append(label, data); panel.append(details);
+    const full = el("details"); full.append(el("summary", "Pinned versions, resource envelope and containment"));
+    const data = el("pre"); data.textContent = JSON.stringify(contract, null, 2);
+    full.append(data); body.append(full);
   }
 
   // ---- Overview. ----
+  // Get started: the six steps, each done only when the controller confirmed
+  // it, the current one highlighted, and one primary action that goes to it.
+  function renderGettingStarted() {
+    const list = $("getting-started-steps");
+    const primary = $("overview-primary");
+    if (!connected) {
+      list.replaceChildren(el("li", "Connect this browser to see your next step.", "hint"));
+      list.dataset.key = "";
+      primary.textContent = "Get started"; primary.href = "#setup";
+      $("getting-started-progress").textContent = "";
+      return;
+    }
+    const j = journey();
+    const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
+    primary.textContent = j.current ? "Next: " + stepTitle(j.current, j) : "New campaign";
+    primary.href = j.current ? stepHref(j.current, j) : "#launch";
+    $("overview-lede").textContent = j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : "You are set up. Choose a Challenge and launch.";
+    if (list.dataset.key === key) return;
+    list.dataset.key = key;
+    list.replaceChildren();
+    SETUP_IDS.forEach((id, index) => {
+      const state = j.state[id];
+      const item = el("li", undefined, "gs-step is-" + state + (id === j.current ? " is-current" : ""));
+      item.dataset.step = id;
+      if (id === j.current) item.setAttribute("aria-current", "step");
+      const body = el("div", undefined, "gs-body");
+      const title = el("h3"); const go = el("a", stepTitle(id, j)); go.href = stepHref(id, j); title.append(go);
+      body.append(title, el("p", stepSentence(id, j)));
+      item.append(el("span", String(index + 1).padStart(2, "0"), "gs-num"), body, pill(STATE_LABEL[state], "gs-state pill-" + ({done: "done", next: "next", open: "open"}[state] || "wait")));
+      list.append(item);
+    });
+    const count = Object.values(j.state).filter(state => state === "done").length;
+    $("getting-started-progress").textContent = count + " of 6 done";
+  }
   function prerequisites() {
     // What a launch needs, each read from the controller - never assumed met.
     if (!caps) return [];
     const items = [];
     items.push(caps.profile.configured
-      ? {ok: true, text: "Runner profile configured: " + caps.profile.profile_id}
-      : {ok: false, text: "Runner profile: " + words(caps.profile.reason), next: caps.profile.next_action});
-    items.push({ok: null, text: "Subnet registration: read at launch, before anything is recorded.", next: "Check your hotkey under Wallet & Identity.", href: "#wallet"});
+      ? {ok: true, text: "Your runner profile is loaded.", detail: ["Profile: " + caps.profile.profile_id]}
+      : {ok: false, area: "Runner profile", item: caps.profile});
+    items.push({ok: null, text: "Your subnet registration is read at launch, before anything is recorded.", fix: {label: "Check it", href: "#wallet"}});
     const selectable = caps.challenges.filter(entry => entry.selectable);
     items.push(selectable.length
-      ? {ok: true, text: "Challenges you can launch: " + selectable.map(entry => entry.title).join(", ")}
-      : {ok: false, text: "No Challenge can be launched here yet.", next: (caps.challenges.find(entry => entry.implemented) || {}).next_action, href: "#challenges"});
+      ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
+      : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
     const agents = caps.agents.choices.filter(choice => choice.availability === "available");
     items.push(agents.length
-      ? {ok: true, text: "Agents available: " + agents.map(choice => choice.label).join(", ")}
-      : {ok: false, text: "No agent can launch yet.", next: caps.agents.choices[0]?.next_action, href: "#agents"});
+      ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
+      : {ok: false, area: "Agents", item: caps.agents.choices[0]});
     const provider = caps.model.providers.find(item => item.availability === "available");
     items.push(provider
-      ? {ok: true, text: "Model credential configured for " + provider.provider}
-      : {ok: false, text: "No model provider credential configured (only Carbon's autonomous agent needs one).", next: caps.model.providers[0]?.next_action, href: "#agents"});
+      ? {ok: true, text: "Model key set for " + provider.provider + "."}
+      : {ok: false, area: "Model key (only Carbon's own agent needs one)", item: caps.model.providers[0]});
     const compute = computeChoice();
     items.push(compute && compute.availability === "available"
-      ? {ok: true, text: "Compute: " + compute.label}
-      : {ok: false, text: "Compute unavailable: " + words(compute?.reason), next: compute?.next_action, href: "#compute"});
+      ? {ok: true, text: "Compute: " + compute.label + "."}
+      : {ok: false, area: "Compute", item: compute});
     return items;
+  }
+  // One line per need: the same missing cause is said once, with the parts
+  // waiting on it, one fix, and each code behind Details.
+  function renderReadiness(list, items) {
+    list.replaceChildren();
+    const groups = new Map();
+    for (const item of items) {
+      if (item.ok !== false) {
+        const entry = el("li", undefined, item.ok ? "ok" : "pending");
+        entry.append(pill(item.ok ? "Ready" : "At launch", item.ok ? "pill-done" : "pill-wait"), el("span", item.text));
+        if (item.fix) entry.append(link(item.fix));
+        if (item.detail) details(entry, "Details", item.detail);
+        list.append(entry);
+        continue;
+      }
+      const source = item.item || {};
+      const plain = source.plain || {sentence: "Unavailable: " + words(source.reason) + ".", next: null};
+      const key = plain.sentence + "|" + (plain.next?.href || "");
+      if (!groups.has(key)) {
+        const entry = el("li", undefined, "missing");
+        const group = {entry, plain, areas: [], lines: []};
+        groups.set(key, group);
+        list.append(entry);
+      }
+      const group = groups.get(key);
+      group.areas.push(item.area);
+      group.lines.push(item.area + ": " + (source.reason || "unknown") + (source.next_action ? " · " + source.next_action : ""));
+    }
+    for (const group of groups.values()) {
+      group.entry.append(pill("Needed", "pill-need"), el("span", group.plain.sentence));
+      if (group.areas.length > 1) group.entry.append(el("span", "Waiting on it: " + group.areas.join(", ") + ".", "next"));
+      else group.entry.append(el("span", group.areas[0] + ".", "next"));
+      if (group.plain.next) group.entry.append(link(group.plain.next, "button fix"));
+      details(group.entry, "Details", group.lines);
+    }
   }
   function renderChecklist(list, items) {
     list.replaceChildren();
     for (const item of items) {
       const entry = el("li", undefined, item.ok === true ? "ok" : item.ok === false ? "missing" : "pending");
-      entry.append(el("span", item.ok === true ? "Ready" : item.ok === false ? "Missing" : "At launch", "state"), el("span", item.text));
+      entry.append(pill(item.ok === true ? "Ready" : item.ok === false ? "Needed" : "At launch", item.ok === true ? "pill-done" : item.ok === false ? "pill-need" : "pill-wait"), el("span", item.text));
       if (item.next) entry.append(el("span", "Next: " + item.next, "next"));
-      if (item.href) { const link = el("a", "Open", "inline-link"); link.href = item.href; entry.append(link); }
+      if (item.href) { const open = el("a", "Open", "inline-link"); open.href = item.href; entry.append(open); }
       list.append(entry);
     }
   }
   function renderOverview() {
+    renderGettingStarted();
     const list = $("overview-prerequisites");
-    if (!connected || !caps) { list.replaceChildren(el("li", "Connect to read what this controller can do.", "hint")); }
-    else renderChecklist(list, prerequisites());
+    if (!connected || !caps) { list.replaceChildren(el("li", "Connect to read what this controller can do.", "hint")); list.dataset.key = ""; }
+    else rebuild(list, "caps:" + capsVersion, target => renderReadiness(target, prerequisites()));
     const active = $("overview-active");
     active.replaceChildren();
     if (!connected) { researchNote(active, "Connect to see your campaigns.", "hint"); return; }
     const live = research.runs.filter(run => !TERMINAL.includes(run.state));
     if (!research.runs.length) {
-      const empty = el("div", undefined, "empty");
-      empty.append(el("h3", "No campaign yet."), el("p", "Start one with New campaign: choose a Challenge, who researches it, and your limits or none."));
-      active.append(empty);
+      researchNote(active, "No campaigns yet. They appear here once you launch.", "hint");
       return;
     }
     for (const run of (live.length ? live : research.runs.slice(0, 3))) campaignCard(active, run);
@@ -611,42 +1568,54 @@
   }
 
   // ---- Catalog views: Challenges, Agents, Compute, Connections, Wallet. ----
+  // Rebuilt only when what they show changes, so an open Details stays open.
   function renderCatalogs() {
     const views = ["challenge-catalog", "agent-catalog", "compute-catalog", "connection-catalog", "wallet-profile"];
     if (!connected || !caps) {
-      for (const id of views) $(id).replaceChildren(el("p", id === "wallet-profile" ? "" : "Connect to read this controller's capabilities.", "hint"));
+      for (const id of views) { $(id).replaceChildren(el("p", id === "wallet-profile" ? "" : "Connect to read this controller's capabilities.", "hint")); $(id).dataset.key = ""; }
       return;
     }
-    renderChallengeCatalog();
-    renderAgentCatalog();
-    renderComputeCatalog();
-    renderConnections();
-    renderWallet();
+    const key = capsVersion + ":" + setupVersion;
+    rebuild($("challenge-catalog"), key, renderChallengeCatalog);
+    rebuild($("agent-catalog"), key, renderAgentCatalog);
+    rebuild($("compute-catalog"), key, renderComputeCatalog);
+    rebuild($("connection-catalog"), key, renderConnections);
+    rebuild($("wallet-profile"), key, renderWallet);
   }
   function challengeStatus(entry) {
     return entry.status + (entry.selectable ? " · launchable" : "");
   }
-  function renderChallengeCatalog() {
-    const target = $("challenge-catalog");
-    if (target.contains(document.activeElement) && document.activeElement.tagName === "SUMMARY") return;
-    const open = new Set([...target.querySelectorAll("details[open]")].map(node => node.dataset.key));
-    target.replaceChildren();
+  // The card's state in a word: ready, set up first, or why it never is here.
+  function challengePill(entry) {
+    if (entry.selectable) return ["Ready", "pill-done"];
+    if (entry.implemented) return ["Set up first", "pill-need"];
+    return [{RESERVED: "Reserved", DEFERRED: "Deferred", RETIRED: "Retired"}[entry.status] || words(entry.status), "pill-wait"];
+  }
+  function renderChallengeCatalog(target) {
     for (const entry of caps.challenges) {
-      const box = card(target, entry.title, challengeStatus(entry));
-      researchNote(box, entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + words(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""), "hint");
-      if (!entry.selectable) unavailableNote(box, entry);
-      if (entry.implemented) {
-        researchNote(box, "This host: " + (entry.usable_here ? "shows every requirement of " + entry.profile : "has not shown " + entry.missing_here.map(words).join(", ") + " (the launch still reads your profile's runtime)"), "hint");
-        const details = document.createElement("details"); details.dataset.key = entry.challenge_id;
-        details.open = open.has(entry.challenge_id);
-        details.append(el("summary", "Description"));
-        renderDescription(details, entry);
-        box.append(details);
-        const choose = el("button", "Use for a new campaign"); choose.type = "button";
-        choose.disabled = !entry.selectable;
+      const [tag, kind] = challengePill(entry);
+      const box = card(target, entry.title, tag, kind);
+      box.dataset.challenge = entry.challenge_id;
+      if (entry.selectable) {
+        box.append(el("p", "Ready to launch.", "status-line"));
+        const choose = el("button", "Use for a new campaign", "primary"); choose.type = "button";
         choose.addEventListener("click", () => { selectChallenge(entry); location.hash = "#launch"; });
         box.append(choose);
+      } else {
+        box.append(el("p", entry.plain?.sentence || "Unavailable: " + words(entry.reason) + ".", "status-line"));
+        if (entry.plain?.next) box.append(link(entry.plain.next, "button fix"));
       }
+      if (entry.implemented) {
+        const description = details(box, "Description", []);
+        renderDescription(description.querySelector(".detail-body"), entry);
+      }
+      details(box, "Details", [
+        entry.challenge_id + (entry.version ? " · version " + entry.version : "") + " · " + words(entry.portfolio) + (entry.tracking ? " · " + entry.tracking : ""),
+        "Status: " + challengeStatus(entry),
+        entry.implemented ? "This host: " + (entry.usable_here ? "shows every requirement of " + entry.profile : "has not shown " + entry.missing_here.map(words).join(", ") + " (the launch still reads your profile's runtime)") : null,
+        entry.reason ? "Code: " + entry.reason : null,
+        entry.next_action ? "Next: " + entry.next_action : null,
+      ]);
     }
   }
   function renderDescription(parent, entry) {
@@ -672,57 +1641,100 @@
     row("Exam version", "version " + entry.version + (d.contract_digest ? " · contract " + d.contract_digest : "") + (d.exam?.rule?.status ? " · " + words(d.exam.rule.status) : ""));
     row("Limits", Object.entries(entry.tools?.limits || {}).map(([name, detail]) => name + ": " + (typeof detail === "object" ? JSON.stringify(detail) : detail)).join(" · "));
     row("Authority", d.authority);
+    // What the Challenge gives a miner to research with, and what setup can
+    // prepare for it (C-MLP-04): every Challenge reports the same way.
+    if (entry.provisions && !entry.provisions.retired) {
+      row("Research environment", Object.entries(entry.provisions).map(([name, state]) => name + (state.status === "gap" ? ": gap (" + state.reason + ")" : ": provided")).join(" · "));
+    }
+    const offers = entry.setup_offers || {};
+    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.remote_gpu ? "GPU practice on your own remote machine or container" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
     parent.append(grid);
   }
-  function renderAgentCatalog() {
-    const target = $("agent-catalog");
-    target.replaceChildren();
+  const readiness = item => item.availability === "available" ? ["Ready", "pill-done"] : ["Needs setup", "pill-need"];
+  function renderAgentCatalog(target) {
     for (const choice of caps.agents.choices) {
-      const box = card(target, choice.label, choice.availability);
-      researchNote(box, choice.summary);
-      if (choice.command) researchNote(box, "Command: " + choice.command, "code");
+      const box = card(target, choice.label, ...readiness(choice));
+      box.append(el("p", choice.summary, "hint"));
+      if (choice.command && choice.availability === "available") copyRow(box, "Connect your client with:", choice.command);
       if (choice.availability !== "available") unavailableNote(box, choice);
     }
+    // Model providers in one card: a row each, the fix beside the ones that
+    // need it, every credential and code behind Details.
+    const providers = card(target, "Model providers", "Used by Carbon's agent");
+    const rows = el("ul", undefined, "checklist");
     for (const provider of caps.model.providers) {
-      const box = card(target, "Model provider · " + provider.provider, provider.availability);
-      researchNote(box, "Models: " + provider.models.map(model => model.id).join(", ") + " · used by Carbon's autonomous agent only");
-      researchNote(box, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured") + " · held by " + provider.credential.held_by);
-      if (provider.availability !== "available") unavailableNote(box, provider);
+      const entry = el("li", undefined, provider.availability === "available" ? "ok" : "missing");
+      entry.append(pill(...readiness(provider)), el("span", provider.provider));
+      if (provider.availability !== "available") {
+        entry.append(el("span", provider.plain?.sentence || words(provider.reason) + ".", "next"));
+        if (provider.plain?.next) entry.append(link(provider.plain.next));
+      }
+      details(entry, "Details", [
+        "Models: " + provider.models.map(model => model.id).join(", ") + " · used by Carbon's autonomous agent only",
+        "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured") + " · held by " + provider.credential.held_by,
+        provider.reason ? "Code: " + provider.reason : null,
+        provider.next_action ? "Next: " + provider.next_action : null,
+      ]);
+      rows.append(entry);
     }
-    for (const item of [...caps.agents.unavailable, ...caps.model.unavailable]) unavailableNote(card(target, item.id, "unavailable"), item);
+    providers.append(rows);
+    for (const item of [...caps.agents.unavailable, ...caps.model.unavailable]) unavailableNote(card(target, words(item.id), "Not offered", "pill-wait"), item);
   }
-  function renderComputeCatalog() {
-    const target = $("compute-catalog");
-    target.replaceChildren();
-    for (const choice of caps.compute.choices) {
-      const box = card(target, choice.label, choice.availability);
-      researchNote(box, "Lanes: " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
-      researchNote(box, caps.compute.selection, "hint");
-      if (choice.availability !== "available") unavailableNote(box, choice);
+  // Where research runs, side by side (LINKONLY-D10): this machine, and a GPU
+  // the miner runs elsewhere, each with its state and the place to set it.
+  function renderComputeCatalog(target) {
+    const routes = caps.compute.routes || [];
+    const choice = computeChoice();
+    const checked = setupState?.steps?.compute;
+    for (const route of routes) {
+      if (route.id === "this-machine") {
+        const [tag, kind] = route.availability === "available" ? [route.in_use ? "In use" : "Ready", "pill-done"] : ["Needs setup", "pill-need"];
+        const box = card(target, route.label, tag, kind);
+        const facts = choice ? [
+          "Lanes: " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "),
+          caps.compute.selection,
+          "Host facts: " + (choice.host_facts || []).join(", "),
+        ] : [];
+        if (route.availability === "available") {
+          box.append(el("p", "Practice runs in an isolated container here, on the " + route.lane.toUpperCase() + ".", "status-line"));
+          details(box, "Details", facts);
+        } else unavailableNote(box, route, facts);
+        continue;
+      }
+      const set = route.availability === "configured";
+      const box = card(target, route.label, set ? "In use" : "Not set up", set ? "pill-done" : "pill-wait");
+      if (set) box.append(el("p", "In your profile: " + route.transport + ", over your own SSH.", "status-line"));
+      else if (checked?.checked && checked.remote_machine) box.append(el("p", "Checked over your SSH: " + checked.remote_machine.destination + " (" + checked.remote_machine.transport + "). Write your profile to use it.", "status-line"));
+      else box.append(el("p", "Use a GPU you run anywhere: RunPod, Lium, Targon, Vast.ai, Lambda or your own server, reached with your own SSH.", "status-line"));
+      box.append(el("p", "You start, stop and pay for it. Carbon never does.", "hint"));
+      const go = checked?.checked && checked.remote_machine && !set ? {label: "Write your profile", href: "#setup/review"} : route.plain.next;
+      box.append(link(go, set ? "button fix" : "button primary"));
+      details(box, "Details", ["Started, stopped and billed by: " + route.started_stopped_and_billed_by, set ? "Transport: " + route.transport : null]);
     }
-    for (const item of caps.compute.unavailable) unavailableNote(card(target, item.id, "unavailable"), item);
+    for (const item of caps.compute.unavailable) unavailableNote(card(target, words(item.id), "Not offered", "pill-wait"), item);
   }
-  function renderConnections() {
-    const target = $("connection-catalog");
-    target.replaceChildren();
+  function renderConnections(target) {
     const mcp = agentEntry("external_mcp");
     if (mcp) {
-      const box = card(target, "Your own MCP client · stdio", mcp.availability);
-      researchNote(box, "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.");
-      researchNote(box, mcp.command, "code");
+      const box = card(target, "Your own MCP client · stdio", ...readiness(mcp));
+      box.append(el("p", "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.", "hint"));
+      copyRow(box, "Connect your client with:", mcp.command);
       if (mcp.availability !== "available") unavailableNote(box, mcp);
     }
-    for (const item of caps.connections) unavailableNote(card(target, item.id, "unavailable"), item);
+    for (const item of caps.connections) unavailableNote(card(target, words(item.id), "Not offered", "pill-wait"), item);
   }
-  function renderWallet() {
-    const target = $("wallet-profile");
-    target.replaceChildren();
-    const box = card(target, "Research identity", caps.profile.configured ? "configured" : "not configured");
-    if (caps.profile.configured) researchNote(box, "Runner profile " + caps.profile.profile_id + ". Your registered miner is read from it at launch; signing stays in your own wallet.");
-    else unavailableNote(box, caps.profile);
+  function renderWallet(target) {
+    const box = card(target, "Research identity", ...(caps.profile.configured ? ["Ready", "pill-done"] : ["Needs setup", "pill-need"]));
+    if (caps.profile.configured) {
+      box.append(el("p", "Your runner profile is loaded. Your registered miner is read from it at launch; signing stays in your own wallet.", "status-line"));
+      details(box, "Details", ["Runner profile " + caps.profile.profile_id]);
+    } else unavailableNote(box, caps.profile);
+    // Registration is the miner's own transaction: said here, with no link
+    // back to this same page.
     for (const item of caps.wallet) {
-      const entry = card(target, item.id, "your wallet");
-      researchNote(entry, words(item.reason) + " · " + item.next_action);
+      const entry = card(target, "Registration", "Your wallet", "pill-dev");
+      entry.append(el("p", item.plain?.sentence || words(item.reason) + ".", "status-line"));
+      details(entry, "Details", ["Code: " + item.reason, "Next: " + item.next_action]);
     }
   }
 
@@ -755,6 +1767,9 @@
       return;
     }
     if (!run) return;
+    // The research surface draws the campaign from its campaign view, the
+    // document an MCP client reads too (OWNER-MINER-RESEARCH-SURFACE-01).
+    if (window.CarbonResearch) { window.CarbonResearch.detail(detail, run); return; }
     // Never rebuild under a person's cursor: the journey is typed into.
     const active = document.activeElement;
     if (active && detail.contains(active) && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) && detail.dataset.run === run.id) return;
@@ -1251,7 +2266,7 @@
     if (!caps) return;
     researchNote(target, caps.compute.selection, "hint");
     for (const choice of caps.compute.choices) {
-      const box = card(target, choice.label, choice.availability);
+      const box = card(target, choice.label, ...readiness(choice));
       researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
       if (choice.availability !== "available") unavailableNote(box, choice);
     }
@@ -1271,6 +2286,17 @@
     if (entry.tools?.public_material?.length) grid.append(el("dt", "public material"), el("dd", entry.tools.public_material.join(", ")));
     if (entry.tools?.rebuildable_models?.length) grid.append(el("dt", "rebuildable models"), el("dd", entry.tools.rebuildable_models.join(", ")));
     target.append(grid);
+    // The Challenge's own feedback modes; FULL is every Challenge's default.
+    const modes = entry.setup_offers?.feedback_modes || [];
+    if (modes.length > 1) {
+      const id = "wizard-feedback-mode";
+      const label = el("label", "Practice feedback"); label.htmlFor = id;
+      const select = document.createElement("select"); select.id = id;
+      for (const mode of modes) { const option = el("option", words(mode)); option.value = mode; select.append(option); }
+      select.value = modes.includes(wizard.feedbackMode) ? wizard.feedbackMode : "FULL";
+      select.addEventListener("change", () => { wizard.feedbackMode = select.value; saveWizard(); });
+      target.append(label, select);
+    }
     if (entry.tools?.how_to_request_unsupported) researchNote(target, entry.tools.how_to_request_unsupported, "hint");
   }
   function renderResearchPreflight() {
@@ -1492,7 +2518,9 @@
     } catch (error) { message("Research request unresolved: " + error.message, true); }
     finally { busy = false; await refresh(); render(); }
   }
-  $("research-launch").addEventListener("click", async () => {
+  $("research-launch").addEventListener("click", () => launchResearch());
+  // The one launch: the wizard's button and the Launchpad's both call it.
+  async function launchResearch() {
     if (!connected || busy || storageError || !research.preflight.available) return;
     if (!pendingResearch) {
       const problem = stepProblem("review");
@@ -1501,6 +2529,8 @@
       // The Challenge is always sent, exactly: there is no default Challenge.
       pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
       if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
+      // A feedback mode only when the Challenge offers it and it is not FULL.
+      if (wizard.feedbackMode && wizard.feedbackMode !== "FULL" && (entry.setup_offers?.feedback_modes || []).includes(wizard.feedbackMode)) pendingResearch.body.feedback_mode = wizard.feedbackMode;
       // The chosen provider and model, when the agent calls one and the launch
       // carries them; the key file stays in the runner profile.
       const provider = selectedProvider();
@@ -1521,7 +2551,19 @@
       if (run && run.id) location.hash = "#campaigns/" + encodeURIComponent(run.id) + "/overview";
     } catch (error) { message("Research launch not confirmed: " + error.message + ". Retry retains the same request.", true); }
     finally { busy = false; await refresh(); render(); }
-  });
+  }
+  // The research surface (research_view.js) reads this page's state and
+  // calls its operations through this one bridge; it holds none of its own.
+  window.CarbonControlCenter = {
+    api, el, pill, details, link, message,
+    state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch}),
+    challengeEntry, agentEntry, selectedProvider, describeComposition, journey,
+    launch: launchResearch,
+    launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
+    goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
+    researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission,
+    onRender(hook) { renderHooks.push(hook); },
+  };
   buildNavigation();
   show();
   setInterval(refresh, 1500);

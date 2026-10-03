@@ -1,0 +1,116 @@
+{
+ "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+ "controls": {
+  "control-boundary_optimist": {
+   "constraints": {
+    "no_plating_onset": {
+     "false_acceptance": 74,
+     "false_acceptance_rate": 1.0,
+     "false_rejection": 0,
+     "reference_fail": 74,
+     "reference_pass": 160
+    },
+    "peak_temperature": {
+     "false_acceptance": 16,
+     "false_acceptance_rate": 0.23880597014925373,
+     "false_rejection": 0,
+     "reference_fail": 67,
+     "reference_pass": 244
+    }
+   },
+   "worst_constraint": "no_plating_onset",
+   "worst_false_acceptance_rate": 1.0
+  },
+  "control-conservative": {
+   "constraints": {
+    "no_plating_onset": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 80,
+     "reference_fail": 74,
+     "reference_pass": 160
+    },
+    "peak_temperature": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 10,
+     "reference_fail": 67,
+     "reference_pass": 244
+    }
+   },
+   "worst_constraint": "peak_temperature",
+   "worst_false_acceptance_rate": 0.0
+  },
+  "control-localized_sign_error": {
+   "constraints": {
+    "no_plating_onset": {
+     "false_acceptance": 70,
+     "false_acceptance_rate": 0.9459459459459459,
+     "false_rejection": 74,
+     "reference_fail": 74,
+     "reference_pass": 160
+    },
+    "peak_temperature": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 0,
+     "reference_fail": 67,
+     "reference_pass": 244
+    }
+   },
+   "worst_constraint": "no_plating_onset",
+   "worst_false_acceptance_rate": 0.9459459459459459
+  },
+  "control-oracle": {
+   "constraints": {
+    "no_plating_onset": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 0,
+     "reference_fail": 74,
+     "reference_pass": 160
+    },
+    "peak_temperature": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 0,
+     "reference_fail": 67,
+     "reference_pass": 244
+    }
+   },
+   "worst_constraint": "peak_temperature",
+   "worst_false_acceptance_rate": 0.0
+  },
+  "control-rank_preserving_delay": {
+   "constraints": {
+    "no_plating_onset": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 0,
+     "reference_fail": 74,
+     "reference_pass": 160
+    },
+    "peak_temperature": {
+     "false_acceptance": 0,
+     "false_acceptance_rate": 0.0,
+     "false_rejection": 0,
+     "reference_fail": 67,
+     "reference_pass": 244
+    }
+   },
+   "worst_constraint": "peak_temperature",
+   "worst_false_acceptance_rate": 0.0
+  }
+ },
+ "cutoff": null,
+ "important_cases": 311,
+ "schema": "carbon.battery.near-false-acceptance.v1",
+ "scoring_cases": 1588,
+ "scoring_set": {
+  "cases": 1588,
+  "note": "hidden duplicates are not in this set, so the paired_repeat gate is not exercised here",
+  "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+  "sha256": "88df01aacec5222fabd0c6dada9d7f414662534997f22addd5a40352b4d730c6"
+ },
+ "state": "DESCRIPTIVE"
+}

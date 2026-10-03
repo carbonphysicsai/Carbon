@@ -29,6 +29,7 @@ jobs:
       c03_worker_required: ${{ steps.delivery.outputs.c03_worker_required }}
       workbench_required: ${{ steps.delivery.outputs.workbench_required }}
       julia_service_required: ${{ steps.delivery.outputs.julia_service_required }}
+      hub_required: ${{ steps.hub.outputs.hub_required }}
     steps:
       - name: Resolve the current exact candidate
         id: candidate
@@ -78,6 +79,21 @@ jobs:
           CARBON_EVENT_REF: ${{ github.ref }}
           CARBON_EVENT_SHA: ${{ github.sha }}
         run: ./scripts/dev/ci_preflight.sh
+      - name: Read whether the protected Merge gate still requires the Hub
+        id: hub
+        env:
+          BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          # The owner retired the Development Hub as a merge requirement
+          # (2026-10-03). Merge gate runs the protected base's gate, so the Hub
+          # job runs only while that gate still names it.
+          gate="$(git show "${BASE_SHA}:scripts/dev/check_merge_gate.py")"
+          if grep -q '"hub_validation"' <<< "${gate}"; then
+            echo "hub_required=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "hub_required=false" >> "${GITHUB_OUTPUT}"
+          fi
 
 
   canonical:
@@ -85,10 +101,17 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
     needs: preflight
     runs-on: ubuntu-24.04
-    # The full canonical lane took 53 of 60 minutes before the battery JAX
-    # suites; they need more than the remaining headroom. A time limit is not
-    # a test, so raising it drops no coverage.
+    # Six runners share the canonical command: scripts/dev/ci.sh splits the
+    # default CPU suite by test file (scripts/dev/ci_shard.py) and runs every
+    # other lane whole on one shard. The job's result succeeds only when every
+    # shard does. A candidate whose ci.sh predates sharding runs its full
+    # serial command on shard 0, which is why the limit keeps the serial
+    # headroom; a time limit is not a test, so it drops no coverage.
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,31 +119,58 @@ jobs:
           ref: ${{ needs.preflight.outputs.candidate_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Select this shard's share of the canonical command
+        id: shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          if grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh; then
+            echo "Shard ${SHARD} of 6 runs its share of the canonical command."
+            echo "run=true" >> "${GITHUB_OUTPUT}"
+          elif [[ "${SHARD}" == 0 ]]; then
+            echo "This candidate's ci.sh predates sharding: shard 0 runs its full serial command."
+            echo "run=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "This candidate's ci.sh predates sharding: shard 0 runs its full serial command, so shard ${SHARD} runs nothing."
+            echo "run=false" >> "${GITHUB_OUTPUT}"
+          fi
       - name: Run bounded public Ask Carbon acceptance
+        if: matrix.shard == 0
         run: |
           npm test --prefix website/ask-carbon
-          npm run validate --prefix website/ask-carbon
+          # Card and release expiry fail only a PR that edits the knowledge;
+          # any git failure is strict. It prints which mode ran and why. The
+          # scheduled Ask Carbon freshness workflow keeps expiry an error.
+          node website/ask-carbon/tools/ci-knowledge-check.mjs
       - name: Install pinned uv
+        if: steps.shard.outputs.run == 'true'
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           version: "0.12.7"
           enable-cache: true
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
+        if: steps.shard.outputs.run == 'true'
         env:
-          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+          CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
         run: ./scripts/dev/bootstrap.sh
       - name: Install pinned independent MCP client runtime
+        if: steps.shard.outputs.run == 'true'
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24.19.0"
       - name: Install locked independent MCP client
+        if: steps.shard.outputs.run == 'true'
         run: |
           npm install --global pnpm@11.19.0 --ignore-scripts
           pnpm --dir tests/service/mcp_typescript install --frozen-lockfile --ignore-scripts
       - name: Run canonical local/CI command
+        if: steps.shard.outputs.run == 'true'
         env:
-          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+          CARBON_CI_SHARD: ${{ matrix.shard }}/6
+          CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
+          CARBON_REQUIRE_TORCH: "1"
           CARBON_REQUIRE_CHAIN_SDK: "1"
           CARBON_REQUIRE_TYPESCRIPT_INTEROP: "1"
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
@@ -130,7 +180,8 @@ jobs:
           CARBON_REQUIRE_DOCKER_TESTS: "1"
         run: ./scripts/dev/ci.sh
       - name: Upload quality inventory
-        if: always()
+        # The quality ratchet runs on shard 0, which writes the inventory.
+        if: always() && matrix.shard == 0
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: quality-inventory
@@ -146,7 +197,7 @@ jobs:
     timeout-minutes: 90
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
-      CARBON_UV_GROUPS: "chain archive science-jax mcp"
+      CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -291,7 +342,7 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
         env:
-          CARBON_UV_GROUPS: "archive"
+          CARBON_UV_GROUPS: "chain archive"
         run: ./scripts/dev/bootstrap.sh
       - name: Run contract-authority acceptance
         env:
@@ -300,7 +351,7 @@ jobs:
 
   hub-validation:
     name: Development Hub validation
-    if: needs.preflight.outputs.change_scope != 'DERIVED_DOCUMENTATION'
+    if: needs.preflight.outputs.hub_required == 'true' && needs.preflight.outputs.change_scope != 'DERIVED_DOCUMENTATION'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -436,7 +487,7 @@ jobs:
           # the CANDIDATE classifier. A change to the classifier therefore has to
           # avoid touching any path the two versions would score differently.
           if [[ "${BASE_SHA}" == "d1d07bb408a2b68efed70baf7e11ec22bb180c9d" ]]; then
-            printf '%s\n' "7718c70b39bfc269bafe7e308243a866a9184095a36d8dfa551ab5161a187c0e  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
+            printf '%s\n' "ddfd11795b6da89339160e9f78fbf7b8978fa81420fbcbcd6d4f7ac5defce06e  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
             printf '%s\n' "8f061b9f5f7ce705d8824358ef34d38e1578b17c5965b088fa81e945ce2b987a  .carbon-gate-candidate/scripts/dev/development_scope.py" | sha256sum --check --strict
             classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
             echo "Using owner-authorized exact DEVELOPMENT classifier migration; protected-base Merge gate retained."
@@ -581,11 +632,21 @@ jobs:
           if [[ "${derived_scope}" == "RUNTIME_FULL" && "${derived_image}" == false ]]; then
             image_args=(--dev-image-required false)
           fi
-          python3 "${gate}" "${image_args[@]}" \
+          # HUB-RETIREMENT BEGIN
+          # A gate that still names the Hub job receives its result; once the
+          # Hub is retired from the gate, the job must have been skipped.
+          hub_args=()
+          if grep -q '"hub_validation"' "${gate}"; then
+            hub_args=(--hub-validation "${{ needs.hub-validation.result }}")
+          else
+            [[ "${{ needs.hub-validation.result }}" == skipped ]] \
+              || { echo "Unexpected Development Hub job result." >&2; exit 1; }
+          fi
+          # HUB-RETIREMENT END
+          python3 "${gate}" "${image_args[@]}" "${hub_args[@]}" \
             --scope "${derived_scope}" \
             --preflight "${{ needs.preflight.result }}" \
             --canonical "${{ needs.canonical.result }}" \
             --dev-image "${{ needs.dev-image.result }}" \
             --contract-authority "${{ needs.contract-authority.result }}" \
-            --hub-validation "${{ needs.hub-validation.result }}" \
             --derived-documentation "${{ needs.derived-documentation.result }}"

@@ -291,6 +291,9 @@ uv run --locked --group science-jax --group chain --group archive python -m carb
 After separate model-run approval and finalized miner registration, the trusted
 operator invokes the real agent. Approval binds the emitted proposal digest,
 validity interval and exact USD cap. Secrets are local files, never chat inputs.
+The miner's hotkey is never one of them: start `carbon-miner-signer` first and
+Carbon signs each request through it
+([MINER_EXTERNAL_SIGNER.md](MINER_EXTERNAL_SIGNER.md)).
 
 ```bash
 uv run --locked --group science-jax --group chain --group archive python -m carbon.development_session run \
@@ -298,8 +301,7 @@ uv run --locked --group science-jax --group chain --group archive python -m carb
   --operator-config "$SESSION/development-testnet.json" \
   --model-authority /absolute/private/model-authority.json \
   --api-key-file /absolute/private/openai-api-key \
-  --miner-public /absolute/private/operator/miner-session-public.json \
-  --miner-password-file /absolute/private/operator/secrets/wallet-password
+  --miner-public /absolute/private/operator/miner-session-public.json
 ```
 
 Each completed authenticated submission produces `source-<submission-id>.json`

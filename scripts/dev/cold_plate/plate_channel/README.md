@@ -374,7 +374,26 @@ by 0.6 points (−1.09 % to −0.48 %).
 
 | Case | Channels | U (m/s) | Re | Peak base (K) | Mean base (K) | Coolant rise (K) | Δp (Pa) | Hydraulic power (W) |
 |---|---|---|---|---|---|---|---|---|
-{table}
+| nominal (0.3 / 0.3 / 2 mm, 1.5 L/min/kW) | 50 | 0.833 | 325 | 351.29 (78.1 °C) | 343.98 | 9.98 | 5,243 | 0.131 |
+| channel width 0.2 mm | 59 | 1.059 | 288 | 341.64 (68.5 °C) | 336.09 | 9.81 | 14,072 | 0.352 |
+| channel width 0.5 mm | 37 | 0.676 | 403 | 369.90 (96.8 °C) | 359.09 | 9.85 | 1,787 | 0.045 |
+| fin width 0.2 mm | 59 | 0.706 | 275 | 348.95 (75.8 °C) | 342.16 | 9.81 | 4,404 | 0.110 |
+| fin width 0.5 mm | 37 | 1.126 | 439 | 356.08 (82.9 °C) | 347.90 | 9.85 | 7,230 | 0.181 |
+| channel depth 1 mm | 50 | 1.667 | 574 | 363.31 (90.2 °C) | 352.79 | 9.98 | 12,556 | 0.314 |
+| channel depth 3 mm | 50 | 0.556 | 226 | 346.61 (73.5 °C) | 340.65 | 9.98 | 3,301 | 0.083 |
+| flow 1.25 L/min/kW | 50 | 0.694 | 270 | 353.63 (80.5 °C) | 345.78 | 11.98 | 4,327 | 0.090 |
+| flow 2.0 L/min/kW | 50 | 1.111 | 433 | 348.02 (74.9 °C) | 341.44 | 7.48 | 7,127 | 0.238 |
+
+**This table was restored on 2026-10-01.**
+- The original commit left it as an unrendered `{table}` placeholder.
+- The nine cases were rerun with rung 6's commands.
+- They reproduce every figure the original text recorded:
+  - peak 341.6-369.9 K, Δp 1.8-14.1 kPa, Re 226-574;
+  - each one-factor difference quoted below.
+- The rerun conserved mass to 7e-10 and energy to 2e-8. Its peaks agree
+  between iterations 2,000 and 4,000 to 2e-7 K.
+- The rerun took 427-739 s per case, with up to ten cases sharing the host.
+  The timings above are the original run's.
 
 **What the sweep shows,** within this model, one factor at a time:
 - **Narrower channels** (0.2 mm): **9.7 K cooler** peak than nominal, at
@@ -519,3 +538,194 @@ the walls, where the fluid is hottest.
 - The next step is temperature-dependent viscosity, which OpenFOAM supports
   with a polynomial transport model.
 - Its effect on the peak and on Δp is not measured here.
+
+
+---
+
+# Rung 6d: temperature-dependent viscosity
+
+**What changed.**
+- `generate.py --viscosity polynomial` (design sets only) lets PG25 viscosity
+  vary with temperature.
+  - μ(T) is a degree-4 polynomial fitted to the same pinned CoolProp 6.8.0
+    model over 30-50 °C, with a maximum relative residual of 1.6e-5. The
+    coefficients and the fitted points are in `../DESIGN_BASIS.md`.
+  - Only viscosity varies. ρ, c_p and the conductivity keep their
+    constant-property values at the inlet temperature.
+- **An OpenFOAM detail.** v2512 accepts `polynomial` transport only with
+  `hPolynomial` thermo and a polynomial equation of state. So c_p and ρ
+  become degree-0 polynomials, with the same constants as before.
+- The default, `--viscosity constant`, writes byte-identical cases to
+  before.
+- `analyze.py` additionally reports the fluid temperature range and the
+  fluid volume above 50 °C for a variable-viscosity case.
+
+**How it ran.**
+- The nominal geometry at 30, 40 and 45 °C inlet: r = 2,
+  `--wall-grading 4`, 1.5 L/min per kW, 4,000 iterations.
+- **A control isolates the thermo change from the viscosity change.** It is
+  the 40 °C case written through the polynomial path with μ held at the
+  constant 1.3530 mPa·s. It reproduces rung 6c's 40 °C row exactly: 38.14 K,
+  30.83 K, 9.98 K, 5,243 Pa. So every difference below is viscosity.
+
+## Result (2026-10-01, this host)
+
+**All four cases ran.**
+- Mass is conserved to about 1e-10 and energy to about 2e-8.
+- Every tabulated quantity is identical at iterations 2,000 and 4,000, to
+  the precision shown.
+- Each case took about 6 minutes on local CPU.
+
+| Inlet | | Peak − inlet | Mean base − inlet | Coolant rise | Δp |
+|---|---|---|---|---|---|
+| 30 °C | constant μ (6c) | 38.51 K | 31.15 K | 9.99 K | 6,788 Pa |
+| | **variable μ** | **37.37 K** | **30.11 K** | 9.99 K | **4,798 Pa** (−29.3 %) |
+| 40 °C | constant μ (6c) | 38.14 K | 30.83 K | 9.98 K | 5,243 Pa |
+| | **variable μ** | **37.28 K** | **30.00 K** | 9.98 K | **3,927 Pa** (−25.1 %) |
+| 45 °C | constant μ (6c) | 37.98 K | 30.69 K | 9.98 K | 4,681 Pa |
+| | **variable μ** | **37.33 K** | **30.00 K** | 9.98 K | **3,623 Pa** (−22.6 %) |
+
+**The pressure drop is what changes.** It falls by 23-29 %. Most of the
+fluid is warmer than the inlet, and the warmest fluid sits at the walls,
+where the shear is.
+
+**The peak falls by 0.65-1.14 K.** Thinner fluid near the hot base carries
+heat slightly better. The coolant rise is set by the energy balance and does
+not change.
+
+**The developed-gradient check does not apply.** The exact duct series
+assumes one viscosity across the section. Here viscosity varies across and
+along the channel, so `analyze.py` reports the check `NOT_APPLICABLE` rather
+than as an error. Mass and energy conservation remain the exact checks.
+
+**The fit is extrapolated in the hottest fluid.**
+- The fluid next to the heated base reaches 64 °C (30 °C inlet), 74 °C
+  (40 °C) and 79 °C (45 °C).
+- Of the fluid volume, 12 %, 35 % and 52 % respectively lies above the 30-50 °C
+  fitted range.
+- There the polynomial overstates viscosity against the same model: +0.5 %
+  at 60 °C, +5 % at 70 °C and +25 % at 80 °C.
+- **So these runs understate the effect of variable viscosity,** most at
+  45 °C inlet. The direction is known; the size is not measured here.
+
+**What this rung does not cover.**
+- A viscosity fit over the fluid's actual range (about 30-80 °C).
+- Temperature-dependent conductivity, density and heat capacity.
+- Mesh refinement with variable viscosity.
+- The rung 6 exclusions: headers, manifolds, serpentines, plate-edge
+  spreading, non-uniform heat maps and the TIM.
+
+## Next
+
+1. **Refit μ(T) over 30-80 °C** from the same pinned model, so no fluid is
+   extrapolated. Rerun these three cases and report the change.
+2. **Serpentine channels and a whole plate with headers.**
+3. **The #342 pilot proposal,** priced for owner approval before it runs.
+   Whether a production reference needs variable viscosity is now measured
+   at the nominal point: about 25 % on Δp and under 1.2 K on the peak.
+
+
+---
+
+# Rung 6e: a viscosity fit over the fluid's whole range
+
+**Why.** Rung 6d fitted μ(T) over 30-50 °C, but up to 52 % of its fluid sat
+above 50 °C, where that polynomial overstates viscosity by up to 25 %. Rung 6d
+predicted that its runs therefore understate the effect of variable viscosity.
+This rung measures by how much.
+
+**What changed.**
+- `fit_viscosity.py` (new) refits μ(T) from the same pinned model: CoolProp
+  6.8.0, `INCOMP::MPG[0.25]`, 2 bar.
+  - It tries degrees 2-7 and judges each on coefficients written as text and
+    read back, exactly as OpenFOAM reads them.
+  - Its selection rule is written in the script before it is applied: the
+    lowest degree that stays positive over 250-500 K with a written residual
+    within 1e-4; otherwise the smallest residual.
+  - It refuses a range outside the model's own validity. CoolProp refuses
+    100 °C itself.
+- **Two new fits,** both degree 6 and both positive over 250-500 K. Their
+  coefficients are in `generate.py` and `../DESIGN_BASIS.md`.
+  - **30-80 °C:** largest relative residual 2.3e-5. It covers rung 6d's
+    hottest fluid, 79 °C.
+  - **30-99 °C:** largest relative residual 1.7e-4. It covers the coolant
+    model's whole range above the lowest inlet, which is what a population
+    whose fluid reaches 99 °C needs.
+  - **Odd degrees were rejected.** Degrees 3, 5 and 7 go negative between
+    112 and 140 °C, where a solver iterate could stray.
+- `generate.py --viscosity` gains `polynomial-30-80` and `polynomial-30-99`.
+  - `polynomial` keeps its rung-6d meaning, so the rung-6d command still
+    writes byte-identical cases.
+  - This was checked for all six rung-6c/6d cases: no file differs except
+    `case.json`, which now records the fit's name and range.
+- `analyze.py` reads the fit's range from `case.json`, rather than assuming
+  30-50 °C. It reports the fluid volume above and below that range, and keeps
+  the fraction above 50 °C for comparison with rung 6d.
+
+**How it ran.** Rung 6d's three cases, unchanged except for the fit: the
+nominal geometry at 30, 40 and 45 °C inlet, r = 2, `--wall-grading 4`,
+1.5 L/min per kW, 4,000 iterations. Each case ran once with each new fit.
+
+## Result (2026-10-01, this host)
+
+**All six cases ran.**
+- Mass is conserved to about 3e-10 and energy to about 1e-8.
+- Every quantity below agrees between iterations 2,000 and 4,000 to 3e-7 K
+  and 1e-6 Pa.
+- **No fluid lies outside either fit.** The hottest is 64.1, 73.9 and
+  78.8 °C.
+
+**The two new fits agree to 1e-4 K on the peak and 0.003 Pa on Δp.** Within
+its range the fit is no longer a source of error, so the table shows one row
+per inlet.
+
+| Inlet | | Peak − inlet | Mean base − inlet | Coolant rise | Δp |
+|---|---|---|---|---|---|
+| 30 °C | constant μ (6c) | 38.51 K | 31.15 K | 9.99 K | 6,788 Pa |
+| | 30-50 °C fit (6d) | 37.37 K | 30.11 K | 9.99 K | 4,798 Pa |
+| | **30-80 °C fit (6e)** | **37.35 K** | **30.10 K** | 9.99 K | **4,796 Pa** |
+| 40 °C | constant μ (6c) | 38.14 K | 30.83 K | 9.98 K | 5,243 Pa |
+| | 30-50 °C fit (6d) | 37.28 K | 30.00 K | 9.98 K | 3,927 Pa |
+| | **30-80 °C fit (6e)** | **37.16 K** | **29.94 K** | 9.98 K | **3,901 Pa** |
+| 45 °C | constant μ (6c) | 37.98 K | 30.69 K | 9.98 K | 4,681 Pa |
+| | 30-50 °C fit (6d) | 37.33 K | 30.00 K | 9.98 K | 3,623 Pa |
+| | **30-80 °C fit (6e)** | **37.06 K** | **29.86 K** | 9.98 K | **3,560 Pa** |
+
+**Rung 6d's prediction holds, and the correction is small.**
+- Against rung 6d, the peak falls by a further 0.02, 0.12 and 0.27 K.
+- Δp falls by a further 0.05, 0.65 and 1.74 %.
+- The correction grows with the inlet temperature, as the share of fluid
+  above 50 °C does (12, 35 and 52 %).
+
+**The whole effect of variable viscosity at the nominal point,** against
+constant viscosity at the inlet temperature:
+
+| Inlet | Peak | Δp |
+|---|---|---|
+| 30 °C | −1.16 K | −29.4 % |
+| 40 °C | −0.98 K | −25.6 % |
+| 45 °C | −0.92 K | −23.9 % |
+
+**Host contention is real.**
+- The 30-80 °C runs took 434-440 s with three cases on the host.
+- The 30-99 °C runs took 684-712 s, alongside eight other two-CPU cases.
+- The host is a 12th-generation Core i7-12700H with 20 logical CPUs, six
+  performance and eight efficiency cores. Throughput is measured, not
+  assumed from its CPU count, before any campaign is priced.
+
+**What this rung does not cover.**
+- Temperature-dependent conductivity, density and heat capacity.
+- Mesh refinement with variable viscosity.
+- The rung 6 exclusions: headers, manifolds, serpentines, plate-edge
+  spreading, non-uniform heat maps and the TIM.
+
+## Next
+
+1. **Let every PG25 property vary,** and measure the effect against this
+   rung. The CoolProp model's density, heat capacity and conductivity are
+   exact cubics in T, so they fit without residual.
+2. **A non-uniform heat map.**
+   - The pinned image's `externalWallHeatFluxTemperature` takes `q` as a
+     `PatchFunction1`, including `type expression` in the face position.
+   - So an axial hot spot needs no face ordering and no compiled code.
+3. **The #342 pilot,** with the reference that results.

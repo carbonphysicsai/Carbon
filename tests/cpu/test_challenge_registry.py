@@ -79,12 +79,15 @@ def test_implemented_is_not_usable_until_the_host_has_it():
     with pytest.raises(challenges.ProfileUnavailable, match="not usable here"):
         challenges.resolve(BATTERY, "1.0", "cpu_research", host=NOTHING)
     challenges.resolve(BATTERY, "1.0", "cpu_research", host=EVERYTHING)
-    (row,) = [
-        p
+    rows = {
+        p["profile"]: p
         for c in challenges.catalog(NOTHING)["challenges"]
         if c["challenge_id"] == BATTERY
         for p in c["profiles"]
-    ]
+    }
+    # CPU practice, and the miner's own GPU for speed (C-MLP-03 slice 3).
+    assert set(rows) == {"cpu_research", "gpu_research"}
+    row = rows["cpu_research"]
     assert row["implemented"] is True and row["usable_here"] is False
     assert set(row["missing_here"]) == set(profile.requirements)
 
@@ -222,5 +225,8 @@ def test_battery_states_the_scope_of_its_submission_exclusions():
 
     scope = describe(BATTERY, "1.0")["exclusion_scope"]
     assert "JAX" in scope["submission"] and "PyBaMM" in scope["submission"]
+    # OWNER-PYTORCH-BACKEND-01: PyTorch is an approved runtime, Julia is not.
+    assert "JAX or PyTorch" in scope["submission"]
+    assert "Julia submission" in scope["submission"]
     text = " ".join(scope["not_excluded"])
     assert "TRAIN" in text and "truth service" in text

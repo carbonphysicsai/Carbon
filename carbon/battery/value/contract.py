@@ -61,6 +61,12 @@ CONSTRAINT_QUANTITIES = {
 }
 
 
+#: Decision-case id prefixes and model panels a contract may name. EV1's
+#: contract omits both and gets "ev1" (its case ids and panel are unchanged).
+CASE_PREFIXES = ("ev1", "ev2", "ev4", "ev5")
+PANELS = ("ev1", "ev2", "ev4", "ev5")
+
+
 class ContractError(ValueError):
     def __init__(self, code, detail=""):
         super().__init__(f"{code}: {detail}" if detail else code)
@@ -133,6 +139,36 @@ def validate(document):
         raise ContractError("baseline_outside_candidates")
     for profile in document["scoring_candidates"]["weight_profiles"]:
         parse(profile)
+    # Optional fields, added for EV2; EV1 omits them and keeps its digest.
+    prefix = document.get("case_prefix", "ev1")
+    if type(prefix) is not str or prefix not in CASE_PREFIXES:
+        raise ContractError("case_prefix", ",".join(CASE_PREFIXES))
+    if document.get("panel", "ev1") not in PANELS:
+        raise ContractError("panel", ",".join(PANELS))
+    ids = [p["id"] for p in document["scoring_candidates"]["weight_profiles"]]
+    for profile in document["scoring_candidates"].get("decision_aware_profiles", []):
+        parse(profile)
+        ids.append(profile["id"])
+    if len(set(ids)) != len(ids):
+        raise ContractError("profile_duplicate")
+    # Optional, added for EV4: the pre-registered paired comparison (H1).
+    paired = document["acceptance"].get("paired_comparison")
+    if paired is not None:
+        from .scoring import CONTROL
+
+        rules = {CONTROL, *ids}
+        if paired.get("proposed_rule") not in rules or paired.get(
+            "deciding_rule"
+        ) not in rules - {paired.get("proposed_rule")}:
+            raise ContractError("paired_comparison", "two distinct declared rules")
+        if (
+            paired.get("split") != "verification"
+            or type(paired.get("replicates")) is not int
+            or paired["replicates"] < 1
+            or type(paired.get("rng_seed")) is not int
+            or not 0 < paired.get("level", 0) < 1
+        ):
+            raise ContractError("paired_comparison", "split, replicates, seed, level")
     if document["data_scope"]["classification"] != "PUBLIC_SYNTHETIC":
         # Client studies need the private execution route; this public runner
         # never accepts client material (GOAL-WORKBENCH-15 E8).
@@ -176,6 +212,12 @@ def scenarios(contract, split=None):
     ]
 
 
+def case_id(contract, scenario, candidate, index):
+    """A decision case's id; it carries no reference information."""
+    prefix = contract.get("case_prefix", "ev1")
+    return f"{prefix}:{scenario['id']}:{candidate['id']}:{index}"
+
+
 def decision_cases(contract, split=None):
     """Every (scenario, candidate, condition) the decision needs, as reference
     jobs. Case ids carry no reference information."""
@@ -185,7 +227,7 @@ def decision_cases(contract, split=None):
             for index, (t_amb, soc0) in enumerate(scenario["conditions"]):
                 jobs.append(
                     {
-                        "case_id": f"ev1:{scenario['id']}:{candidate['id']}:{index}",
+                        "case_id": case_id(contract, scenario, candidate, index),
                         "scenario": scenario["id"],
                         "candidate": candidate["id"],
                         "condition": index,

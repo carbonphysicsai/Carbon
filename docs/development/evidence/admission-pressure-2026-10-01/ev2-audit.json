@@ -1,0 +1,210 @@
+{
+  "admission_status": "NOT_ESTABLISHED",
+  "common_resolved_scenarios": 3,
+  "contract_digest": "sha256:1877091055d1dac2515da5aa05bf4f0ad56cf3376045d73086dcf1f0848ce743",
+  "coverage": {
+    "deeponet-s0": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.16666666666666666,
+      "unsafe_selections": 1
+    },
+    "deeponet-s1": {
+      "resolved": 5,
+      "scheduled": 8,
+      "unresolved_or_missing": 3,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "knn-s0": {
+      "resolved": 7,
+      "scheduled": 8,
+      "unresolved_or_missing": 1,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "knn15-s0": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.16666666666666666,
+      "unsafe_selections": 1
+    },
+    "mlp-s0": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp-s1": {
+      "resolved": 5,
+      "scheduled": 8,
+      "unresolved_or_missing": 3,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp-s2": {
+      "resolved": 4,
+      "scheduled": 8,
+      "unresolved_or_missing": 4,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_ens3-s0": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_half-s0": {
+      "resolved": 7,
+      "scheduled": 8,
+      "unresolved_or_missing": 1,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_half-s1": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_localized-s0": {
+      "resolved": 5,
+      "scheduled": 8,
+      "unresolved_or_missing": 3,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_localized-s1": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.16666666666666666,
+      "unsafe_selections": 1
+    },
+    "mlp_plus-s0": {
+      "resolved": 6,
+      "scheduled": 8,
+      "unresolved_or_missing": 2,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    },
+    "mlp_wide-s0": {
+      "resolved": 7,
+      "scheduled": 8,
+      "unresolved_or_missing": 1,
+      "unsafe_fraction_of_resolved": 0.0,
+      "unsafe_selections": 0
+    }
+  },
+  "eligible_reconstructed_members": [
+    "deeponet-s0",
+    "deeponet-s1",
+    "knn-s0",
+    "knn15-s0",
+    "mlp-s0",
+    "mlp-s1",
+    "mlp-s2",
+    "mlp_ens3-s0",
+    "mlp_half-s0",
+    "mlp_half-s1",
+    "mlp_localized-s0",
+    "mlp_localized-s1",
+    "mlp_plus-s0",
+    "mlp_wide-s0"
+  ],
+  "evidence_class": "RETROSPECTIVE_DEVELOPMENT_DIAGNOSTIC",
+  "excluded_ineligible_members": [
+    "mlp_raw-s0"
+  ],
+  "limitations": [
+    "Retrospective diagnostic only; no untouched confirmation or acceptance.",
+    "Controls are excluded from real-model correlation; they require a separate attack report.",
+    "Recipe grouping is not independent-family evidence; seed replicas are not independent methods.",
+    "No confidence interval or practical-effect threshold is established by this audit.",
+    "Common-case statistics omit unresolved outcomes; omission can bias the ranking.",
+    "Existing summary correlations may include gate-ineligible models; this audit excludes them.",
+    "Incomplete verification coverage requires a preregistered sensitivity analysis."
+  ],
+  "rules": {
+    "control-exam-v1": {
+      "concordant_pairs": 45,
+      "discordant_pairs": 14,
+      "eligible_member_tau_on_common_cases": 0.4230726900006656,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6884869911026371,
+      "tied_pairs": 32
+    },
+    "dar-p0-r100-a0": {
+      "concordant_pairs": 35,
+      "discordant_pairs": 24,
+      "eligible_member_tau_on_common_cases": 0.150122567419591,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.38914482105801224,
+      "tied_pairs": 32
+    },
+    "dar-p0-r30-a70": {
+      "concordant_pairs": 40,
+      "discordant_pairs": 19,
+      "eligible_member_tau_on_common_cases": 0.28659762871012834,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6286185570937121,
+      "tied_pairs": 32
+    },
+    "dar-p0-r50-a50": {
+      "concordant_pairs": 38,
+      "discordant_pairs": 21,
+      "eligible_member_tau_on_common_cases": 0.2320076041939134,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6286185570937121,
+      "tied_pairs": 32
+    },
+    "p0-r20-a80": {
+      "concordant_pairs": 45,
+      "discordant_pairs": 14,
+      "eligible_member_tau_on_common_cases": 0.4230726900006656,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6884869911026371,
+      "tied_pairs": 32
+    },
+    "p0-r30-a70": {
+      "concordant_pairs": 45,
+      "discordant_pairs": 14,
+      "eligible_member_tau_on_common_cases": 0.4230726900006656,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6884869911026371,
+      "tied_pairs": 32
+    },
+    "p0-r40-a60": {
+      "concordant_pairs": 44,
+      "discordant_pairs": 15,
+      "eligible_member_tau_on_common_cases": 0.3957776777425582,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": 0.6884869911026371,
+      "tied_pairs": 32
+    },
+    "p45-r30-a25": {
+      "concordant_pairs": 0,
+      "discordant_pairs": 0,
+      "eligible_member_tau_on_common_cases": null,
+      "full_verification_coverage": false,
+      "recipe_groups": 9,
+      "recipe_median_tau_on_common_cases": null,
+      "tied_pairs": 0
+    }
+  },
+  "schema": "carbon.engineering-value-audit.v1",
+  "verification_scenarios": 8
+}

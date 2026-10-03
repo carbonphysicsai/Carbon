@@ -31,7 +31,18 @@ def _text_fields(body, fields):
     return {k: body[k][:4096] for k in fields if type(body.get(k)) is str}
 
 
-BATTERY_FEEDBACK_SCHEMA = "carbon.battery.permitted-feedback.v1"
+def feedback_schemas():
+    """The permitted-feedback schemas the implemented Challenges' validators
+    return, each read from its own campaign (C-MLP-04)."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+
+    return {
+        campaign.feedback_schema
+        for _entry, campaign in implemented_campaigns()
+        if campaign.feedback_schema is not None
+    }
+
+
 #: What the Submission view shows of a validator outcome: only fields the
 #: permitted feedback already carries for this miner, never more.
 _SCREENING_FIELDS = (
@@ -64,7 +75,7 @@ def _validator_outcome(epoch, path):
         document = json.loads(path.read_bytes())
         outcome = document["outcome"]
         if (
-            document.get("schema") != BATTERY_FEEDBACK_SCHEMA
+            document.get("schema") not in feedback_schemas()
             or document.get("epoch") != epoch
             or type(outcome) is not dict
             or type(outcome.get("state")) is not str
@@ -174,7 +185,9 @@ def project(row, root):
         # A campaign with no agent calls no model: say so, never a default.
         agent="manual" if manifest.get("agent") == "none" else "carbon-autoresearch",
         reasoning=manifest["provider"].get("model"),
-        compute="local-isolated-cpu",
+        # Where its practice runs, from its frozen runtime (RSURF-D19):
+        # until 2026-10-03 this said CPU for every campaign.
+        compute=_compute(manifest.get("runtime")),
         runtime_revision=manifest["implementation"]["revision"],
         images=manifest["images"],
         agent_policy=_text_fields(
@@ -436,3 +449,15 @@ def project(row, root):
                     }
                 )
     return value
+
+
+def _compute(runtime):
+    """`local-isolated-cpu`, `local-isolated-gpu` or `remote-gpu:<transport>`,
+    from a campaign's frozen runtime, as the runner's preflight names them."""
+    runtime = runtime if type(runtime) is dict else {}
+    remote = runtime.get("remote_gpu")
+    if type(remote) is list and remote and type(remote[0]) is dict:
+        return "remote-gpu:" + str(remote[0].get("transport"))[:32]
+    if "gpu_research" in runtime:
+        return "local-isolated-gpu"
+    return "local-isolated-cpu"

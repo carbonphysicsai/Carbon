@@ -238,6 +238,27 @@ def test_refused_feedback_is_journalled_only_when_a_campaign_exists(tmp_path):
     assert result["reason"] == "contract_incompatibility"
 
 
+def _names(path):
+    """Every module imported and every identifier used in `path`'s syntax
+    tree: what the code reaches, not what its strings happen to spell."""
+    import ast
+    from pathlib import Path
+
+    tree = ast.parse(Path(path).read_text())
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            found.add(node.module or "")
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Name):
+            found.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            found.add(node.attr)
+    return found
+
+
 def test_only_an_agent_can_reach_the_no_campaign_refusal():
     """The refusal is written for an agent because only an agent gets there.
 
@@ -247,18 +268,147 @@ def test_only_an_agent_can_reach_the_no_campaign_refusal():
     the thing dispatch requires, and the message would be papering over a flow
     bug rather than reporting a state.
 
-    Pinned structurally: `ResearchMinerTools` is entered only through the MCP
-    adapter, and the browser's runner never touches the sdk. Asserted over the
-    source of both doors, so a future edit that wires the browser straight into
-    the sdk fails here and has to decide what a person should be told.
+    OWNER-MINER-RESEARCH-SURFACE-03 gave the page the research tools, so the
+    old premise - the browser never touches them - no longer holds and the
+    intent is pinned over the path the page takes instead (RSURF-D22):
+    - the browser doors never import the research SDK or name
+      `ResearchMinerTools` (their syntax tree, not their strings: the page
+      serves an asset called research_tools.js);
+    - the page reaches tools only through the tool door, whose adapter comes
+      from an opener for a named, owned campaign - for the runner,
+      `standard_cli.attached`, the campaign attach under the campaign's lock;
+    - every SDK that attach builds carries the campaign's ledger, so the SDK's
+      no-campaign branch cannot run there;
+    - the MCP adapter remains the door that reaches the SDK directly.
+    `test_the_page_cannot_meet_the_no_campaign_refusal` proves it by behaviour.
     """
+    import ast
+    import inspect
     from pathlib import Path
 
-    runner = Path("scripts/dev/miner_launchpad/runner.py").read_text()
-    controller = Path("scripts/dev/miner_launchpad/controller.py").read_text()
-    for door in (runner, controller):
-        assert "ResearchMinerTools" not in door
-        assert "research_tools" not in door
+    from scripts.dev.miner_launchpad import tool_door
+
+    for door in (
+        "scripts/dev/miner_launchpad/runner.py",
+        "scripts/dev/miner_launchpad/controller.py",
+    ):
+        names = _names(door)
+        assert "ResearchMinerTools" not in names, door
+        assert "carbon.development_session.research_tools" not in names, door
+        assert "research_tools" not in names, door
+    # The page's door to the tools builds no SDK of its own.
+    assert "ResearchMinerTools" not in _names(tool_door.__file__)
+    # The runner's opener is the campaign attach, for the campaign's own root.
+    opener = inspect.getsource(tool_door.runner_opener)
+    assert "standard_cli import attached" in opener
+    assert "owned_campaign(campaign)" in opener
+    # Every SDK the attach builds carries the campaign's ledger.
+    from carbon.miner_mcp import standard_cli
+
+    attach = ast.parse(inspect.getsource(standard_cli.attached_profile))
+    built = [
+        node
+        for node in ast.walk(attach)
+        if isinstance(node, ast.Call)
+        and getattr(node.func, "id", None) == "ResearchMinerTools"
+    ]
+    assert len(built) == 1
+    ledger = next(k.value for k in built[0].keywords if k.arg == "ledger")
+    assert isinstance(ledger, ast.Name) and ledger.id == "ledger"
+    assigned = [
+        node.value
+        for node in ast.walk(attach)
+        if isinstance(node, ast.Assign)
+        and any(getattr(t, "id", None) == "ledger" for t in node.targets)
+    ]
+    assert assigned and all(
+        getattr(value.func, "id", None) == "CampaignLedger" for value in assigned
+    )
 
     adapter = Path("carbon/miner_mcp/standard.py").read_text()
     assert "_sdk.call(" in adapter, "the MCP door is the one that does reach it"
+
+
+def test_the_page_cannot_meet_the_no_campaign_refusal(tmp_path, monkeypatch):
+    """By behaviour (RSURF-D22): with no open session, no page call reaches a
+    tool, an adapter or the SDK; a session opens only through the campaign
+    attach for the campaign's own root; and the demo's session never enters
+    the SDK's own call, where "no campaign" lives."""
+    import contextlib
+
+    from carbon.development_session.research_tools import (
+        PREFIX,
+        PreDispatchRefusal,
+        ResearchMinerTools,
+    )
+    from carbon.miner_mcp import standard_cli
+    from scripts.dev.miner_launchpad import tool_door
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    reached = []
+
+    @contextlib.asynccontextmanager
+    async def attached(configuration, campaign):
+        reached.append(campaign)
+        raise ValueError("existing unfinished campaign required")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(standard_cli, "attached", attached)
+
+    class Host:
+        configuration = tmp_path / "profile.json"
+
+        def owned_campaign(self, campaign):
+            if campaign != "c":
+                raise Rejected("research_run_unavailable", 404)
+            return {"id": "c", "root": str(tmp_path / "abc123"), "kind": "product"}
+
+        def configured(self):
+            return {"profile_id": "p"}
+
+        def registration(self, profile):
+            return None
+
+    host = Host()
+    host.tool_sessions = tool_door.ToolSessions(tool_door.runner_opener(host))
+    call = {"tool": PREFIX + "get_prior", "arguments": {"operation_id": "x" * 16}}
+    for action, value in (
+        ("call", call),
+        ("start", {"arguments": {}}),
+        ("observe", {"task_id": "rtsk_" + "0" * 64}),
+        ("cancel", {"task_id": "rtsk_" + "0" * 64}),
+    ):
+        with pytest.raises(Rejected) as refused:
+            tool_door.route(host, "c", action, value)
+        assert refused.value.code == "tools_session_not_open"
+    # Someone else's campaign is refused before anything is opened.
+    with pytest.raises(Rejected):
+        tool_door.route(host, "theirs", "open", {})
+    assert reached == []
+    # Opening goes through the campaign attach for the campaign's own root,
+    # and a failed attach leaves no session: nothing without a campaign.
+    with pytest.raises(Rejected) as refused:
+        tool_door.route(host, "c", "open", {})
+    assert refused.value.code == "tools_unavailable_for_campaign"
+    assert reached == ["abc123"]
+    assert host.tool_sessions.state("c")["open"] is False
+
+    # The demo's session answers from its fixture, never from the SDK's own
+    # call; the SDK it holds would refuse with "no campaign" if it were.
+    from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
+    from scripts.dev.miner_launchpad.tool_fixture import FixtureTools, fixture_adapter
+
+    runner = FixtureRunner()
+    adapter = fixture_adapter(FixtureTools(runner), runner.principal)
+    sdk = adapter._sdk
+    assert sdk.call.__func__ is FixtureTools.call
+    assert sdk.task_call.__func__ is FixtureTools.task_call
+    import asyncio
+
+    with pytest.raises(PreDispatchRefusal):
+        asyncio.run(ResearchMinerTools.call(sdk, PREFIX + "get_prior", {}, "x" * 16))
+    door = tool_door.ToolDoor(adapter)
+    for tool in door.describe()["tools"]:
+        assert "NO_CAMPAIGN" not in str(
+            asyncio.run(door.call(tool["name"], {"operation_id": "page-" + "0" * 24}))
+        )

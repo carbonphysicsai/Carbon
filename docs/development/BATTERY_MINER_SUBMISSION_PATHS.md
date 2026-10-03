@@ -1,9 +1,161 @@
-# Battery: how a miner's submission reaches the validator (decision brief)
+# Battery: how a miner's submission reaches the validator
 
-**Status.** This is a brief for the owner. **Nothing here is implemented or
-chosen.** Both paths are approved in principle in the same OD-7 row of
-OWNER-BATTERY-TESTNET-01 (`.agent/DECISIONS.md`, 2026-09-25). No record picks
-between them.
+**Status (2026-09-30).** The owner chose the intake
+(OWNER-BATTERY-INTAKE-01, `.agent/DECISIONS.md`): "mainnet intake will be
+hosted by validator images, but we are testing now … intake has to be
+wherever it needs to be for testnet testing. But ensure we have the design
+right for the mainnet switch." The intake is now **built and tested**
+(`carbon/battery/intake.py`, `carbon/battery/intake_client.py`,
+`tests/cpu/test_battery_intake.py`). It binds loopback unless its
+configuration names the owner's exposure record. **The owner approved that
+exposure on 2026-10-02 (OWNER-INTAKE-EXPOSURE-01)**: testnet 567, the battery
+Challenge, today's routes and limits, with TLS terminated in the intake. The
+brief below the next section is the original
+decision brief, kept as written.
+
+## The decision, checked against Bittensor
+
+**What the Bittensor documentation says** (read 2026-09-30 from
+`https://www.bittensor.com/llms.txt`; docs.learnbittensor.org now redirects
+there). The pinned SDK is `bittensor==11.1.0`.
+
+- **v11 has no networking stack.** "v11 contains no miner/validator
+  networking stack": Axon, Dendrite and Synapse are gone. A subnet runs its
+  own HTTP server and client and authenticates with `btauth/1`
+  (`bt.http_auth.sign` / `verify`). Source: the migration guide,
+  "Axon, Dendrite, and Synapse are gone". The installed module's own
+  docstring says the same (`bittensor/http_auth.py`).
+- **Validators may be reachable.** The validating guide: "Publish your
+  endpoint with `serve-axon` if your subnet's protocol requires validators to
+  be reachable." The chain's `serve_axon` needs only a registered hotkey,
+  with no validator-permit check (`pallets/subtensor/src/subnets/serving.rs`).
+  The pinned SDK exposes `SubtensorModule.serve_axon` and `serve_axon_tls`.
+- **The default direction is the other way.** In the mining guide validators
+  find miners through the miners' on-chain axon info. No official page names
+  a subnet where miners push to validators. So validator-hosted intake is
+  **permitted and documented as an option, not the default.**
+- **`btauth/1` does not check registration.** "Authentication says who;
+  whether they may call you is your policy." Carbon's NET-2 journal does: a
+  hotkey not in the validator's snapshot is `TRANSPORT_IDENTITY`.
+- **Commitments are small.** At most 3 fields per commitment, `Raw` up to
+  128 B, `BigRaw` up to 512 B, a hash field, and about 3,100 bytes per
+  account per subnet per epoch (pallet source at the chain commit read, not
+  re-read from netuid 567). A recipe is too large to put on chain; its
+  SHA-256 fits in one hash field.
+
+**So the owner's statement is consistent with Bittensor**, with one caveat:
+it is the documented option, not the default pattern. The default pattern for
+an artifact (third-party subnets 9 and 37, not official guidance) is "commit a
+hash on chain, validators fetch the artifact from a store".
+
+## The design, testnet now and mainnet later
+
+| | Testnet now | Mainnet switch |
+|---|---|---|
+| Where the intake runs | this host, next to the one validator deployment | inside every validator image |
+| Receiver | the testnet validator hotkey (config `receiver`) | each validator's own hotkey |
+| How a miner finds it | the URL the owner publishes | the validator's on-chain axon (`serve_axon_tls`) |
+| Authentication | `btauth/1` + NET-2 journal (registration, replay, per-hotkey rate) | the same |
+| Binding across validators | none (one validator) | the OD-7(a) recipe-hash commitment, so every validator admits the same recipe at the same block |
+| Exposure | loopback; public only with a recorded §4 exposure decision | each validator operator's own exposure |
+
+**What makes the switch a configuration change, not a redesign:**
+- **A request is bound to one validator.** `btauth/1` signs the receiver
+  hotkey, so a signed submission cannot be replayed to another validator.
+  At mainnet a miner signs one copy per validator.
+- **No request causes a chain read.** One refresher per intake reads the
+  metagraph every 12 s; a request must name one of the last five snapshots
+  it observed (`snapshot_unknown` otherwise). This was the amplification risk
+  in the original brief, and it is removed by construction.
+- **Admission is asynchronous and durable.** A received submission is in the
+  intake's inbox before the answer (202 with its submission id) is sent. One
+  worker admits and advances it through the deployment's single daemon,
+  under the deployment's single-writer lock. The id is the daemon's own
+  (`daemon.submission_identity`), so it is known before admission runs.
+- **The miner signs.** `intake_client` builds the exact bytes and sends
+  bytes with headers the miner produced. It has no signing code; a test holds
+  that, with the docstring's own signing example as its specimen.
+- **Status is the miner's own.** `battery_status` returns the daemon's
+  allow-listed outcome only to the hotkey that submitted; any other hotkey
+  gets `not_found`, never "exists but not yours".
+
+**What is still missing, and whose it is:**
+- **The exposure decision (owner): recorded.** OWNER-INTAKE-EXPOSURE-01
+  (2026-10-02). A public bind names it and terminates TLS in the intake, or
+  the listener refuses (`intake_exposure_unrecorded`,
+  `intake_exposure_needs_tls`). Exposing a host stays an operator action.
+- **The commitment reader (Testnet lane, then owner bounds).** Needed at
+  mainnet, where several validators must agree on what was submitted. It
+  needs the owner's count per day, window, fee cap and expiry.
+- **The Launchpad seam (Launchpad lane).** `campaign.py` still signs and
+  evaluates in process. For a miner's own machine it posts to the intake
+  with `intake_client` instead, and the miner's tooling signs.
+- **Pre-authentication limits behind a proxy.** The per-peer bucket keys on
+  the socket peer. Behind a TLS proxy every request shares one peer, so a
+  proxied deployment terminates TLS in the intake (`tls_cert`/`tls_key`) or
+  needs a trusted-proxy header rule first.
+
+## Security status: implemented; exposure approved by the owner
+
+The intake is implemented and tested. The owner approved its exposure on
+2026-10-02 (OWNER-INTAKE-EXPOSURE-01), for the recorded scope only, with the
+items below on file and not fixed. Tests hold the gate; they are not a
+security audit. A public listener is AGENTS §13 work:
+untrusted input, authentication and reachability. OD-3 as recorded approves
+a security review of two images, the GPU validator reconstruction image and
+the PyBaMM truth image. It does not cover a listener. The OD-7(b) row's
+phrase "covered by the OD-3 security review" is therefore not read as
+covering this intake. Exposure needs its own record, which the listener
+checks for by name.
+
+**Limits before authentication, held by tests.** Every request goes through
+the peer's token bucket, then the global in-flight cap. Only then is a body
+read, a message parsed or a signature checked.
+`test_limits_apply_before_authentication` sends a validly signed submission
+over each limit and asserts that the real verifier, wrapped in a counter, was
+never called. Its specimen is the same signed request from a fresh peer,
+which is verified and received.
+`test_over_http_a_limited_request_has_no_body_read` holds the same ordering
+over a real socket. Both tests fail when the limits are moved after the route.
+
+**For the security review to examine** (known, not fixed here):
+- `ThreadingHTTPServer` starts one thread per accepted connection before any
+  limit applies. A slow client holds its thread for up to the 10 s socket
+  timeout, so the number of connections is bounded by the operating system,
+  not by the intake.
+- The bucket table is cleared when it exceeds 4,096 peers. A party with many
+  source addresses can reset every peer's bucket.
+- Behind a proxy every request has one peer (above).
+- The listener runs on the host that holds the validator's private root, seed
+  journal, pool state and service key (next section).
+
+## What the intake changes for a remote miner, and what it does not
+
+**Today.** A battery submission is signed and evaluated in-process on the
+host that holds the validator's private root, the seed journal, the pool
+state and the service key (`campaign.py` through `deployment`). A miner on
+another machine has no way to submit.
+
+**What the intake changes.** The signature moves to the miner. A miner's own
+tooling signs a `btauth/1` request bound to this validator's hotkey, and the
+intake authenticates it against an observed metagraph snapshot, journals it
+against replay, and answers with a submission id. The private root, seed
+journal, pool state and service key never leave the host, and nothing in an
+answer carries them. Status is allow-listed and readable only by the
+submitting hotkey.
+
+**What it does not change.**
+- **Evaluation still runs on the same host**, under the same single daemon
+  and lock. The intake carries submissions to it and adds no isolation
+  between the listener and that private state. Exposing it puts an
+  internet-reachable parser on that host, which is why the exposure is a
+  security decision.
+- **A listener without a client transport still leaves a miner unable to
+  submit.** `intake_client` builds the bytes, but nothing a miner runs uses
+  it yet. The Launchpad seam is still open (above). Until it lands, and until
+  the exposure is recorded, a remote miner cannot submit.
+- It binds no submission across validators. That is OD-7(a)'s commitment, at
+  mainnet.
 
 **The problem.** The owner's goal is: "I want to go to launchpad from the
 website and set up an agent to run on testnet in the control center. I want

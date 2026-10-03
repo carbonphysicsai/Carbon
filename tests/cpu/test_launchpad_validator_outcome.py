@@ -9,10 +9,13 @@ Synthetic feedback documents; the projection code is real.
 
 import json
 
-from scripts.dev.miner_launchpad.projection import (
-    BATTERY_FEEDBACK_SCHEMA,
-    _validator_outcome,
-)
+from carbon.challenge_registry.campaigns import campaign_for_id
+from scripts.dev.miner_launchpad.projection import _validator_outcome
+
+# The schema comes from the Challenge's own campaign (C-MLP-04).
+BATTERY_FEEDBACK_SCHEMA = campaign_for_id(
+    "battery-fastcharge-ageing-development-v1"
+).feedback_schema
 
 
 def feedback(tmp_path, epoch=1, **outcome_changes):

@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-remote-setup-regression-run",
+  "recorded_at": "2026-10-02T23:05:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "117 files: tests/cpu launchpad, Control Center, battery, remote, rented, miner, registry and standard tests, tests/invariants and tests/service standard-MCP and battery: 1 failed, 1354 passed, 8 skipped in 16 min; after the fix, tests/service/test_standard_mcp_cli.py and test_miner_remote_setup.py: 40 passed",
+    "description": "The broad regression run after the remote-setup wiring, through scripts/dev/canonical.sh."
+  },
+  "expected": "No regression outside the remote route: the attach door builds a remote runner only for a campaign that declares remote practice.",
+  "observed": "One regression. The standard CLI attach door resolved the campaign's Challenge to build its remote runner before the registration read, even for a runtime with no remote practice. A test that holds 'registration before any campaign write' uses a manifest naming no Challenge, so the attach failed earlier than that test's specimen expects. Resolving the Challenge only when the runtime declares remote_gpu, as the battery door already did, fixed it. Focused runs had not covered the service suite.",
+  "keep": [
+    "Run the service suites that drive both campaign doors whenever a door gains a step, not only the CPU tests next to the change.",
+    "A new door step that applies to one runtime kind is guarded by that runtime key, so every other campaign's ordering is unchanged."
+  ],
+  "change": [
+    "Start a long regression run in the background with a long enough timeout, and check its summary before the hub commit, so a fix lands before the hub repin."
+  ],
+  "protocol_elements": [
+    "door changes are checked against both doors' ordering tests",
+    "a runtime-specific step is guarded by its runtime key"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

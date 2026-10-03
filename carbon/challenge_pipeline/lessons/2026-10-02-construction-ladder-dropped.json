@@ -1,0 +1,34 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-construction-ladder-dropped",
+ "recorded_at": "2026-10-02T20:26:18Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "PR 498, agent/challenge-pipeline at 6448377b0",
+  "description": "Implemented Challenge Roadmap rev 2.1 as the pipeline package and its generated view."
+ },
+ "expected": "The pipeline carries every element of the construction and testing protocol already in authority.",
+ "observed": "The construction ladder (Challenge_Admission.md §3, Levels 0-5) was missing from the roadmap, the pipeline records, suite v1 and the leaderboard, and the rev 2.1 backend wording read as executable submissions. The owner caught it before merge.",
+ "keep": [
+  "Transcribe owner documents exactly, then reconcile them."
+ ],
+ "change": [
+  "Reconcile every roadmap element against the authority documents it touches (Challenge Admission, the Graphite plan, the construction contracts) before building, and record the classification."
+ ],
+ "protocol_elements": [
+  "roadmap",
+  "construction_ladder"
+ ],
+ "proposed_revision": {
+  "target": "Challenge Roadmap rev 2.2",
+  "text": "Make the construction ladder the spine of construction iteration: every Challenge starts at Level 0 and climbs one level at a time by the climb procedure, frozen evidence and the leaderboard name the level, and suite vectors are scoped by level."
+ },
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-02",
+  "ref": "OWNER-CHALLENGE-ROADMAP-03"
+ }
+}

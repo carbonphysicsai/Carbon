@@ -62,6 +62,7 @@ def provider_plan(agent, budget, selection=None):
     plan exactly as before selection existed, any other adds its record."""
     if agent == "none":
         return {"agent": "none", "model_calls": 0}
+    from carbon.development_session import miner_guidance
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         check_budget,
@@ -93,6 +94,10 @@ def provider_plan(agent, budget, selection=None):
         # Frozen with the plan: a provider that returns several tool calls in
         # one turn gets the first run and the rest refused, not a stopped run.
         "parallel_calls": PARALLEL_CALLS,
+        # Frozen with the plan (RSURF-D13): the agent reads the miner's
+        # Conversation messages at each step as recorded guidance. A plan
+        # frozen before the amendment has no rule and reads none.
+        "miner_guidance": miner_guidance.RULE,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
@@ -252,9 +257,11 @@ def manifest_document(
 
 
 async def prepare_battery(args, *, ledger=None, campaign):
-    from carbon.chain.auth import open_external_hotkey
+    from carbon.chain.external_signer import miner_signer
     from carbon.chain.models import CARBON_NETUID
+    from carbon.compute.retired import refuse_rented
     from carbon.development_session.data import write_once
+    from carbon.development_session.miner_network import binding_for
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_campaign import (
         PreparedCampaign,
@@ -271,7 +278,6 @@ async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.development_session.research_report import report
     from carbon.development_session.research_tools import ResearchMinerTools
     from carbon.development_session.service import LocalMinerConnection
-    from carbon.development_testnet.operator import load_config
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 
     root = args.root
@@ -284,6 +290,9 @@ async def prepare_battery(args, *, ledger=None, campaign):
     product = getattr(args, "product", None)
     if frozen is None and product is None:
         raise ValueError("a battery campaign is a product campaign")
+    # A campaign frozen for the retired rented GPU is refused by name before
+    # anything is opened or reached (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+    refuse_rented(frozen.get("runtime") if frozen is not None else product.runtime)
     ledger = ledger if ledger is not None else CampaignLedger(root)
     if ledger.root != root or ledger.admission is not None:
         raise ValueError("a battery campaign never consumes a development grant")
@@ -321,15 +330,28 @@ async def prepare_battery(args, *, ledger=None, campaign):
         raise ValueError("analysis/trusted image parent differs")
     declared = frozen["runtime"] if frozen is not None else product.runtime
     julia_image = host_julia_image(root, declared, analysis)
+    gpu_image = host_gpu_image(root, declared)
     runtime = research_runtime(
         declared,
         implementation=implementation,
         images=[image.image_id, analysis.image_id],
         julia_image=julia_image,
+        gpu_image=gpu_image,
     )
     if declared != runtime:
         raise ValueError("configured runtime differs from the battery runtime")
-    config = load_config(args.operator_config)
+    # Practice on the miner's own remote setup, when the runtime declares it:
+    # built by battery's campaign from the profile's machine, and refused
+    # before anything is reached when it differs from the frozen transport
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+    remote = None
+    if "remote_gpu" in runtime:
+        remote = _own_campaign(campaign).remote_runner(
+            runtime, getattr(args, "remote_machine", None), gpu_image
+        )
+    # The operator configuration where an operator runs one, otherwise the
+    # miner's own network file (C-MLP-04): the chain context and publisher.
+    config = binding_for(args)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")
@@ -340,11 +362,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
     )
     if public["hotkey"] != registered:
         raise ValueError("the registered miner differs from this hotkey")
-    key = open_external_hotkey(
-        Path(public["key_file"]),
-        private_file(args.miner_password_file),
-        public["hotkey"],
-    )
+    # The miner's own signer holds the hotkey; Carbon only reaches it.
+    key = miner_signer(public, getattr(args, "signer_socket", None))
     session = root / "research-auth"
     session.mkdir(mode=0o700, exist_ok=True)
     connection = LocalMinerConnection(
@@ -373,6 +392,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             implementation=implementation,
             images=runtime["images"],
             julia_image=julia_image,
+            gpu_image=gpu_image,
         )
     ledger.freeze(manifest)
     composition = None
@@ -384,6 +404,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
             analysis=analysis,
             connection=connection,
             julia_image=julia_image,
+            gpu_image=gpu_image,
+            remote=remote,
         )
         sdk = ResearchMinerTools(
             connection=connection,
@@ -431,6 +453,8 @@ def compose(
     julia_image=None,
     runner=None,
     backend=None,
+    gpu_image=None,
+    remote=None,
 ):
     """The battery composition and the wrapper that authenticates for it.
 
@@ -438,6 +462,10 @@ def compose(
     (`host_julia_image`), or None. It reaches only the research executor's
     `run_julia`; practice, the recipe compiler, discovery and submission are
     composed identically with or without it.
+
+    `remote` is the campaign's practice runner on the miner's own remote
+    setup (`ChallengeCampaign.remote_runner`), or None. It changes only where
+    GPU practice runs, never what it scores.
 
     The gateway is the connection's own: the same chain context, publisher,
     observed registration, verifier and receipt journal. Only its Challenge
@@ -458,6 +486,8 @@ def compose(
         root=REPOSITORY,
         runner=runner,
         backend=backend,
+        gpu_image=gpu_image,
+        remote=remote,
     )
     composition = make_battery_research_service(
         root=ledger.root / "research-tasks",
@@ -469,6 +499,12 @@ def compose(
         cleanup_only=cleanup_only,
         julia_image=julia_image,
     )
+    if gpu_image is not None:
+        # The code cell's GPU lane (RSURF-D20): the same pinned GPU worker and,
+        # when the runtime declares it, the same remote route as practice.
+        from carbon.development_session.gpu_code_cell import GpuLane
+
+        composition.executor.gpu = GpuLane(image=gpu_image, remote=remote)
     base = connection.service.gateway
     gateway = AuthenticatedGateway(
         base.context,
@@ -484,12 +520,33 @@ def compose(
     )
 
 
-#: A battery runtime may name these keys and no others. GPU research is not
-#: among them: its scope (`gpu_research.gpu_scope`) binds Burgers' GPU recipe
-#: catalogue and Burgers' public TRAIN cases, and battery has no GPU practice
-#: lane to run it, so a declared GPU scope is refused rather than frozen as a
-#: composition this campaign does not have.
-RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+#: A battery runtime may name these keys and no others. `gpu_research` is
+#: battery's own GPU practice scope (`carbon.development_session.battery_gpu`, C-MLP-03 slice 3);
+#: Burgers' GPU scope binds Burgers material and is refused by its schema.
+#: `remote_gpu` runs that GPU practice on the miner's own remote machine or
+#: container (`carbon.compute.remote_route`, OWNER-MINER-COMPUTE-LINK-ONLY-01).
+#: `rented_gpu` is retired and refused by name before a runtime is composed.
+RUNTIME_KEYS = frozenset(
+    {"implementation", "images", "authored_research", "gpu_research", "remote_gpu"}
+)
+
+
+def _own_campaign(campaign):
+    """Battery's `ChallengeCampaign`: the one the research path passed, or
+    the registry's own."""
+    if campaign is not None:
+        return campaign
+    from carbon.challenge_registry.campaigns import campaign_for_id
+
+    return campaign_for_id(CHALLENGE.challenge_id)
+
+
+def host_gpu_image(root, declared):
+    """The GPU worker image this campaign's runtime declares, verified against
+    the record installed in the campaign root; None without GPU practice."""
+    from carbon.development_session.battery_gpu import registered_gpu_image
+
+    return registered_gpu_image(root, declared)
 
 
 def host_julia_image(root, declared, analysis):
@@ -511,33 +568,52 @@ def host_julia_image(root, declared, analysis):
     return available_julia_image(root, analysis)
 
 
-def research_runtime(declared, *, implementation, images, julia_image):
+def research_runtime(declared, *, implementation, images, julia_image, gpu_image=None):
     """The runtime this host composes for a battery campaign declaring `declared`.
 
     The research images are research tools only. Nothing here reaches the
-    recipe compiler, practice, the contract digest or a submission.
+    recipe compiler, the contract digest or a submission. A GPU image changes
+    only where practice runs, never what it scores.
     """
     extra = set(declared) - RUNTIME_KEYS
     if extra:
         raise ValueError(
-            "battery has no research composition for "
-            + ", ".join(sorted(extra))
-            + " (GPU research binds Burgers material)"
+            "battery has no research composition for " + ", ".join(sorted(extra))
         )
     runtime = {"implementation": implementation, "images": images}
     if julia_image is not None and "authored_research" in declared:
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(julia_image)]
+    if "gpu_research" in declared:
+        from carbon.development_session.battery_gpu import gpu_scope
+
+        if gpu_image is None:
+            raise ValueError("a GPU practice runtime needs its installed GPU image")
+        runtime["gpu_research"] = [gpu_scope(gpu_image)]
+    if "remote_gpu" in declared:
+        from carbon.compute.remote_route import declared_remote, remote_scope
+
+        if gpu_image is None:
+            raise ValueError("remote GPU practice needs its installed GPU image")
+        # The miner's transport, recomposed against this host's GPU worker:
+        # the frozen scope must name the worker it actually runs.
+        transport = declared_remote(declared)["transport"]
+        runtime["remote_gpu"] = [
+            remote_scope(CHALLENGE.challenge_id, gpu_image, transport)
+        ]
     return runtime
 
 
-def check_attached(manifest, *, implementation, images, julia_image=None):
+def check_attached(
+    manifest, *, implementation, images, julia_image=None, gpu_image=None
+):
     """An attach re-checks the frozen battery binding it serves.
 
     `julia_image` is the host's verified authored Julia image
-    (`host_julia_image`); the frozen runtime must equal, exactly, the one this
-    host composes with it.
+    (`host_julia_image`) and `gpu_image` its verified GPU worker
+    (`host_gpu_image`); the frozen runtime must equal, exactly, the one this
+    host composes with them.
     """
     from carbon.reconstruction.capability_registry import contract_digest
 
@@ -559,6 +635,7 @@ def check_attached(manifest, *, implementation, images, julia_image=None):
         implementation=implementation,
         images=images,
         julia_image=julia_image,
+        gpu_image=gpu_image,
     ):
         raise ValueError("campaign runtime differs from the battery runtime")
 
@@ -570,8 +647,21 @@ def is_battery(manifest):
 
 
 def evaluation_config(prepared):
-    """The operator's validator deployment for this campaign, or None."""
-    return getattr(prepared.args, "battery_validator", None)
+    """The operator's validator deployment for this campaign, or None.
+
+    Read from the profile's per-Challenge `validators` (C-MLP-04), or from a
+    profile's legacy `battery_validator` path, interpreted as before."""
+    found = (getattr(prepared.args, "validators", None) or {}).get(
+        CHALLENGE.challenge_id
+    )
+    return found or getattr(prepared.args, "battery_validator", None)
+
+
+def _intake(prepared):
+    """The validator intake for this Challenge: the profile's per-Challenge
+    `intakes` (C-MLP-04), or a legacy `battery_intake`."""
+    found = (getattr(prepared.args, "intakes", None) or {}).get(CHALLENGE.challenge_id)
+    return found or getattr(prepared.args, "battery_intake", None)
 
 
 async def evaluate_candidate(prepared, epoch, record):
@@ -596,6 +686,11 @@ async def evaluate_candidate(prepared, epoch, record):
     from .deployment import EvaluationUnavailable, evaluate, validator
 
     config = evaluation_config(prepared)
+    intake = _intake(prepared)
+    if config is None and intake is not None:
+        # The validator runs elsewhere: submit through its intake, signed by
+        # the miner's own signer (C-MLP-03 slice 6).
+        return await _evaluate_through_intake(prepared, epoch, record, intake)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
     try:
@@ -640,6 +735,43 @@ async def evaluate_candidate(prepared, epoch, record):
         "schema": "carbon.battery.permitted-feedback.v1",
         "epoch": epoch,
         "outcome": outcome,
+        "official_eligible": False,
+        "reward": False,
+    }
+
+
+async def _evaluate_through_intake(prepared, epoch, record, url):
+    """One frozen candidate through the validator's intake; see
+    `remote_submission`. The epoch is consumed only by a verdict."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from .remote_submission import IntakeRefusal, submit_and_wait
+
+    try:
+        status, answer, submission_id = await asyncio.to_thread(
+            submit_and_wait,
+            url,
+            prepared.sdk.connection.miner_key,
+            root=prepared.ledger.root,
+            epoch=epoch,
+            strategy=record["strategy"],
+            contract_digest=record.get("contract_digest")
+            or prepared.manifest["contract_digest"],
+        )
+    except IntakeRefusal as refused:
+        raise OperationRefused(refused.code) from None
+    except OSError:
+        raise OperationRefused("intake_unreachable") from None
+    if answer.get("state") == "FAILED_INFRA_EXHAUSTED":
+        raise OperationRefused("evaluation_failed_infra")
+    from .intake_client import describe
+
+    return {
+        "schema": "carbon.battery.permitted-feedback.v1",
+        "epoch": epoch,
+        "outcome": answer,
+        "via": {"intake": url, "submission_id": submission_id},
+        "description": describe(status, answer),
         "official_eligible": False,
         "reward": False,
     }

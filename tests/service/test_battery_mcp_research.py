@@ -150,7 +150,12 @@ def battery_campaign(root, monkeypatch, agent="none", budget=None):
         "profile_id": "fixture-profile",
         "principal": "operator-alice",
         "enabled": True,
-        "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
+        # An operator's profile names its configuration (C-MLP-04 made it
+        # optional for miners, who name a miner_network instead).
+        "paths": {
+            name: str(root / (name + ".json"))
+            for name in PATH_FIELDS | {"operator_config"}
+        },
         "accepted_revision": runtime["implementation"]["revision"],
         "campaigns_root": str(campaigns),
         "runtime": runtime,
@@ -254,13 +259,17 @@ def deployment_config(root, repository_refs):
     on the loaded daemon object; no configuration field can.
     """
     from carbon.battery import deployment
+    from carbon.battery.daemon import rule_digest
 
     folder = root / "evaluation"
     folder.mkdir(mode=0o700)
     private_root = seeds.PrivateRoot.create(folder / "root.bin")
     journal = seeds.SeedJournal(folder / "journal.jsonl")
     journal.commit_root(
-        private_root, seeds.seed_pin("sha256:" + "a" * 64, "sha256:" + "b" * 64)
+        # The deployment's own rule (v1 by default): a validator refuses a root
+        # committed for another rule (`rule_mismatch`).
+        private_root,
+        seeds.seed_pin("sha256:" + "a" * 64, rule_digest()),
     )
     config = {
         "schema": deployment.SCHEMA,

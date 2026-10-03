@@ -111,6 +111,10 @@ class Experiment:
             raise ExperimentError("contract_mismatch", "manifest contract changed")
         return document
 
+    def _members(self):
+        """The panel the frozen contract names (EV1's by default)."""
+        return pn.members(self.contract().get("panel", "ev1"))
+
     # --- 1. freeze -----------------------------------------------------------------
 
     def freeze(self, contract_path=None):
@@ -131,8 +135,14 @@ class Experiment:
             "candidates": ev.candidates(document),
             "decision_cases": len(ev.decision_cases(document)),
             "panel": [
-                {"member": m, "family": f, "strategy": s, "seed": seed}
-                for m, f, s, seed in pn.members()
+                {
+                    "member": m,
+                    "family": f,
+                    "backbone": pn.family(s),
+                    "strategy": s,
+                    "seed": seed,
+                }
+                for m, f, s, seed in pn.members(document.get("panel", "ev1"))
             ],
             "controls": list(pn.CONTROLS),
             "scoring_set": scoring_identity,
@@ -199,10 +209,13 @@ class Experiment:
         return {"status": "SOLVED", **summary}
 
     def import_references(self, records_path):
-        """Ingest records solved elsewhere (the truth container). Only this
-        experiment's case ids are kept; nothing already recorded is replaced."""
+        """Ingest records solved elsewhere (the truth container or a pod).
+        Only this experiment's case ids and terminal records are kept:
+        FAILED_INFRA is never a reference, so it never blocks a later solve
+        of the same case. Nothing already recorded is replaced."""
+        terminal = {"OK", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT"}
         wanted = {job["case_id"]: job for job in self._jobs()}
-        have = {r["case_id"] for r in self._reference_records()}
+        have = set(self.reference_map())
         added = 0
         with self.references_path.open("a") as out:
             for line in Path(records_path).read_text().splitlines():
@@ -210,7 +223,12 @@ class Experiment:
                     continue
                 record = json.loads(line)
                 job = wanted.get(record.get("case_id"))
-                if job is None or record["case_id"] in have or record.get("refined"):
+                if (
+                    job is None
+                    or record["case_id"] in have
+                    or record.get("refined")
+                    or record.get("status") not in terminal
+                ):
                     continue
                 inputs = record.get("inputs") or {}
                 if any(
@@ -256,50 +274,55 @@ class Experiment:
             from ..worker import DirectBackend
 
             backend = DirectBackend(self.repository)
-        from ..compile import compile_recipe
-
-        store, scoring_ids, _ = sc.scoring_set(self.repository)
-        decision_inputs = {
-            job["case_id"]: {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
-            for job in ev.decision_cases(self.contract())
-        }
-        scoring_inputs = {
-            c: dict(store.refs[c]["inputs"])
-            for c in scoring_ids
-            if store.refs[c].get("inputs")
-        }
+        inputs = panel_inputs(self.contract(), self.repository)
         done = []
-        for member, _family, strategy, seed in pn.members():
+        for member, _family, strategy, seed in self._members():
             if only is not None and member not in only:
                 continue
             path = self._prediction_path(member)
             if path.exists():
                 continue
-            _, recipe = compile_recipe(strategy)
-            started = time.monotonic()
-            state, stats = backend.reconstruct(f"ev1-rec-{member}", recipe, seed)
-            trained = time.monotonic() - started
-            started = time.monotonic()
-            predictions = backend.infer(
-                f"ev1-inf-{member}", state, {**scoring_inputs, **decision_inputs}
-            )
-            predicted = time.monotonic() - started
-            write_once(
-                path,
-                _gzip_json(
-                    {
-                        "member": member,
-                        "recipe_digest": recipe.recipe_digest,
-                        "seed": seed,
-                        "reconstruction": dict(backend.identity),
-                        "fit": stats,
-                        "seconds": {"reconstruction": trained, "prediction": predicted},
-                        "predictions": predictions,
-                    }
-                ),
-            )
+            bundle, _state = member_bundle(backend, member, strategy, seed, inputs)
+            write_once(path, bundle_bytes(bundle))
             done.append(member)
         return {"reconstructed": done}
+
+    def import_predictions(self, source):
+        """Copy prediction bundles made elsewhere (a pod's `value_panel`
+        phase) into this root, write-once. Only members of the frozen panel
+        are accepted, each with its own recipe digest and seed; a bundle
+        already here is never replaced."""
+        from ..compile import compile_recipe
+
+        expected = {}
+        for member, _label, strategy, seed in self._members():
+            _, recipe = compile_recipe(strategy)
+            expected[member] = (recipe.recipe_digest, seed)
+        copied, kept = [], []
+        for path in sorted(Path(source).glob("*.json.gz")):
+            member = path.name[: -len(".json.gz")]
+            if member not in expected:
+                raise ExperimentError("prediction_not_in_panel", member)
+            body = path.read_bytes()
+            bundle = json.loads(gzip.decompress(body))
+            if (
+                bundle.get("member") != member
+                or (
+                    bundle.get("recipe_digest"),
+                    bundle.get("seed"),
+                )
+                != expected[member]
+            ):
+                raise ExperimentError("artifact_mismatch", member)
+            target = self._prediction_path(member)
+            if target.exists():
+                if target.read_bytes() != body:
+                    raise ExperimentError("prediction_conflict", member)
+                kept.append(member)
+                continue
+            write_once(target, body)
+            copied.append(member)
+        return {"imported": copied, "already_present": kept}
 
     def _member_predictions(self, member):
         path = self._prediction_path(member)
@@ -314,7 +337,9 @@ class Experiment:
         refs = self.reference_map()
         jobs = ev.decision_cases(contract)
         unsolved = [j["case_id"] for j in jobs if j["case_id"] not in refs]
-        members = [m for m, *_ in pn.members() if not self._prediction_path(m).exists()]
+        members = [
+            m for m, *_ in self._members() if not self._prediction_path(m).exists()
+        ]
         return unsolved, members
 
     def evaluate(self):
@@ -327,7 +352,7 @@ class Experiment:
         from ..compile import compile_recipe
 
         bundles = {}
-        for member, _family, strategy, seed in pn.members():
+        for member, _family, strategy, seed in self._members():
             bundle = self._member_predictions(member)
             _, recipe = compile_recipe(strategy)
             if (
@@ -338,8 +363,18 @@ class Experiment:
                 # silently reinterpreted under this contract.
                 raise ExperimentError("artifact_mismatch", member)
             bundles[member] = bundle
+        kinds = pn.kinds(self.contract().get("panel", "ev1"))
         results = evaluate(
-            self.contract(), self.reference_map(), bundles, self.repository
+            self.contract(),
+            self.reference_map(),
+            bundles,
+            self.repository,
+            families_by_member={
+                member: pn.family(strategy)
+                for member, _label, strategy, _seed in self._members()
+                if kinds[member] == "RECONSTRUCTED"
+            },
+            kinds_by_member=kinds,
         )
         results["manifest_digest"] = ev.digest(self.manifest())
         out = self._dir("results")
@@ -347,7 +382,12 @@ class Experiment:
         (out / "results.json").chmod(0o600)
         from .report import render
 
-        (out / "report.md").write_text(render(results))
+        (out / "report.md").write_text(
+            render(
+                results,
+                experiment=self.contract().get("case_prefix", "ev1").upper(),
+            )
+        )
         (out / "report.md").chmod(0o600)
         return results
 
@@ -380,7 +420,7 @@ class Experiment:
         seconds = {"reference_solves": 0.0, "reconstruction": 0.0, "prediction": 0.0}
         for record in records:
             seconds["reference_solves"] += float(record.get("wall_s") or 0.0)
-        for member, *_ in pn.members():
+        for member, *_ in self._members():
             path = self._prediction_path(member)
             if path.exists():
                 meta = json.loads(gzip.decompress(path.read_bytes()))["seconds"]
@@ -413,11 +453,15 @@ class Experiment:
                 ),
             },
             "panel": {
-                "members": len(pn.members()),
+                "members": len(self._members()),
                 "missing": members,
             },
             "resources_seconds": seconds,
-            "paid_resources": "none (local CPU)",
+            "paid_resources": (
+                "none (local CPU)"
+                if manifest["contract"]["budgets"]["compute"].startswith("CPU")
+                else manifest["contract"]["budgets"]["compute"]
+            ),
         }
 
     def export(self, out):
@@ -435,6 +479,53 @@ class Experiment:
         }
 
 
+# --- reconstruction, shared by the local panel stage and the pod phase -------------------------
+
+
+def panel_inputs(contract, repository):
+    """Every input a panel member predicts: the scoring set and the
+    contract's decision cases (inputs only, never a reference value)."""
+    store, scoring_ids, _ = sc.scoring_set(repository)
+    decision_inputs = {
+        job["case_id"]: {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
+        for job in ev.decision_cases(contract)
+    }
+    scoring_inputs = {
+        c: dict(store.refs[c]["inputs"])
+        for c in scoring_ids
+        if store.refs[c].get("inputs")
+    }
+    return {**scoring_inputs, **decision_inputs}
+
+
+def member_bundle(backend, member, strategy, seed, inputs):
+    """Reconstruct one member and predict `inputs`. Returns the prediction
+    bundle `Experiment.panel` writes and the trained state."""
+    from ..compile import compile_recipe
+
+    _, recipe = compile_recipe(strategy)
+    started = time.monotonic()
+    state, stats = backend.reconstruct(f"ev1-rec-{member}", recipe, seed)
+    trained = time.monotonic() - started
+    started = time.monotonic()
+    predictions = backend.infer(f"ev1-inf-{member}", state, inputs)
+    predicted = time.monotonic() - started
+    bundle = {
+        "member": member,
+        "recipe_digest": recipe.recipe_digest,
+        "seed": seed,
+        "reconstruction": dict(backend.identity),
+        "fit": stats,
+        "seconds": {"reconstruction": trained, "prediction": predicted},
+        "predictions": predictions,
+    }
+    return bundle, state
+
+
+def bundle_bytes(bundle):
+    return _gzip_json(bundle)
+
+
 # --- the evaluation, a pure function of its inputs -------------------------------------------
 
 
@@ -443,11 +534,38 @@ def _quantities(contract, predictions, scenario, candidates):
     out = {}
     for candidate in candidates:
         for index in range(len(scenario["conditions"])):
-            case_id = f"ev1:{scenario['id']}:{candidate['id']}:{index}"
-            outputs = predictions.get(case_id)
+            outputs = predictions.get(ev.case_id(contract, scenario, candidate, index))
             if outputs is None:
                 return None
             out[(candidate["id"], index)] = d.measure(contract, outputs)
+    return out
+
+
+def _boundary_optimist_check(rules, scores, reconstructed, components):
+    """EV2 hypothesis H2, per rule: does the rule score the boundary-optimist
+    control below every eligible reconstructed member? None when the control
+    is absent or the rule is not measurable."""
+    name = "control-boundary_optimist"
+    if name not in scores:
+        return None
+    eligible = [m for m in reconstructed if components[m]["eligible"]]
+    out = {}
+    for rule in rules:
+        mine = scores[name][rule]
+        others = [scores[m][rule] for m in eligible]
+        if (
+            isinstance(mine, str)
+            or mine is None
+            or not others
+            or any(isinstance(v, str) or v is None for v in others)
+        ):
+            out[rule] = None
+            continue
+        out[rule] = {
+            "below_every_eligible_member": all(mine < v for v in others),
+            "members_scored_below_it": sum(1 for v in others if v <= mine),
+            "eligible_members": len(others),
+        }
     return out
 
 
@@ -477,16 +595,31 @@ def _mean(values):
 
 
 def evaluate(
-    contract, reference_records, member_predictions, repository, controls=True
+    contract,
+    reference_records,
+    member_predictions,
+    repository,
+    controls=True,
+    families_by_member=None,
+    kinds_by_member=None,
 ):
-    """Every member's decisions, every rule's scores, and their comparison."""
+    """Every member's decisions, every rule's scores, and their comparison.
+
+    `kinds_by_member` names each panel member's kind; a member it does not
+    name is RECONSTRUCTED. An ATTACK_CONSTRUCTION member is decided, verified
+    and scored like any other, and kept out of the real-member pools."""
     candidates = ev.candidates(contract)
     baseline_id = ev.candidate_id(contract["baseline"]["protocol"])
     store, scoring_ids, scoring_identity = sc.scoring_set(repository)
     predictions = {
         member: bundle["predictions"] for member, bundle in member_predictions.items()
     }
-    kinds = {member: "RECONSTRUCTED" for member in predictions}
+    kinds = {
+        member: (kinds_by_member or {}).get(member, "RECONSTRUCTED")
+        for member in predictions
+    }
+    if not set(kinds.values()) <= {"RECONSTRUCTED", "ATTACK_CONSTRUCTION"}:
+        raise ExperimentError("panel_kind", "members are rebuilt from recipes")
     if controls:
         decision_refs = {
             c: r for c, r in reference_records.items() if r.get("status") == "OK"
@@ -504,7 +637,7 @@ def evaluate(
         refs = {}
         for candidate in candidates:
             for index in range(len(scenario["conditions"])):
-                case_id = f"ev1:{scenario['id']}:{candidate['id']}:{index}"
+                case_id = ev.case_id(contract, scenario, candidate, index)
                 if case_id in reference_records:
                     refs[(candidate["id"], index)] = reference_records[case_id]
         reference = d.assess_reference(contract, scenario, candidates, refs)
@@ -527,12 +660,16 @@ def evaluate(
                 "agreement": agreement,
             }
     components = {
-        member: sc.components(preds, scoring_ids, store)
+        member: sc.components(preds, scoring_ids, store, contract)
         for member, preds in predictions.items()
     }
     scores = {member: sc.rule_scores(contract, c) for member, c in components.items()}
     rules = [sc.CONTROL] + [
-        p["id"] for p in contract["scoring_candidates"]["weight_profiles"]
+        p["id"]
+        for p in (
+            contract["scoring_candidates"]["weight_profiles"]
+            + contract["scoring_candidates"].get("decision_aware_profiles", [])
+        )
     ]
 
     def loss(member, split):
@@ -608,6 +745,9 @@ def evaluate(
         for family, members in families.items()
     }
     summary = {
+        "boundary_optimist_check": _boundary_optimist_check(
+            rules, scores, reconstructed, components
+        ),
         "question": contract["acceptance"]["success_condition"],
         "chosen_rule_on_development": chosen,
         "chosen_rule_tau_verification": (
@@ -624,7 +764,7 @@ def evaluate(
             for m in everyone
         },
     }
-    return {
+    results = {
         "schema": RESULT_SCHEMA,
         "contract_digest": ev.digest(contract),
         "scoring_set": scoring_identity,
@@ -643,6 +783,36 @@ def evaluate(
             "evidence_class": "PUBLIC_SYNTHETIC_DEVELOPMENT",
         },
     }
+    if families_by_member:
+        results["families"] = _family_diversity(families_by_member, summary)
+    if contract["acceptance"].get("paired_comparison"):
+        # EV4 onward: the pre-registered hypotheses, from this result only.
+        from .hypotheses import evaluate as hypotheses
+
+        results["hypotheses"] = hypotheses(contract, results)
+    return results
+
+
+def _family_diversity(families_by_member, summary):
+    """Members, eligible members and verification loss range per architecture
+    family (mlp, deeponet, knn), so the report shows the panel's diversity."""
+    out = {}
+    for member, family in sorted(families_by_member.items()):
+        row = out.setdefault(
+            family, {"members": 0, "eligible": 0, "loss_verification": []}
+        )
+        info = summary["members"].get(member)
+        if info is None:
+            continue
+        row["members"] += 1
+        row["eligible"] += info["eligible"] is True
+        if info["loss_verification"] is not None:
+            row["loss_verification"].append(info["loss_verification"])
+    for row in out.values():
+        losses = row.pop("loss_verification")
+        row["loss_verification_min"] = min(losses, default=None)
+        row["loss_verification_max"] = max(losses, default=None)
+    return out
 
 
 def _stability(contract, predictions, scoring_ids, store, rules, reconstructed, scores):
@@ -653,7 +823,9 @@ def _stability(contract, predictions, scoring_ids, store, rules, reconstructed, 
         excluded = set(ids)
         kept = [c for c in scoring_ids if c not in excluded]
         partial[name] = {
-            m: sc.rule_scores(contract, sc.components(predictions[m], kept, store))
+            m: sc.rule_scores(
+                contract, sc.components(predictions[m], kept, store, contract)
+            )
             for m in reconstructed
         }
 

@@ -1,0 +1,5552 @@
+{
+ "batch": "cold-plate-train-remaining-v1",
+ "purpose": "the cold plate's public TRAIN cases not yet recorded on the owner's host, moved to a RunPod CPU pod (owner approval 2026-10-02); each case keeps its pool's case_id and options",
+ "population": "carbon.cold-plate.development-population.v1",
+ "label": "carbon.cold-plate.pools-v1.train",
+ "cases": [
+  {
+   "case_id": "train-0092",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.36642181675365015,
+    "fin_width_mm": 0.42162466286561173,
+    "channel_depth_mm": 1.5990644240733558,
+    "flow_lpm_per_kw": 1.3752841933688604,
+    "inlet_c": 40.96320789262661,
+    "heat_load_w": 1145.1283433178728,
+    "hotspot_ratio": 1.1877400390993738,
+    "hotspot_center_mm": 10.318314890121123,
+    "hotspot_width_mm": 2.78332025867362
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0093",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4669411163656329,
+    "fin_width_mm": 0.34366683012004684,
+    "channel_depth_mm": 1.8838230881520523,
+    "flow_lpm_per_kw": 1.6981904890890687,
+    "inlet_c": 35.8904450159423,
+    "heat_load_w": 1043.9347329663028,
+    "hotspot_ratio": 1.6134792610546347,
+    "hotspot_center_mm": 20.571303615727437,
+    "hotspot_width_mm": 2.507567687256361
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0094",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4624738838447813,
+    "fin_width_mm": 0.2314631241207744,
+    "channel_depth_mm": 2.2094335241610388,
+    "flow_lpm_per_kw": 1.5100761936483897,
+    "inlet_c": 42.47376681383527,
+    "heat_load_w": 752.8047492687738,
+    "hotspot_ratio": 2.2223544188380635,
+    "hotspot_center_mm": 17.469585141674663,
+    "hotspot_width_mm": 2.580761569617364
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0095",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2179656199219197,
+    "fin_width_mm": 0.4685310863509932,
+    "channel_depth_mm": 1.6758338775111334,
+    "flow_lpm_per_kw": 1.956570353818825,
+    "inlet_c": 38.286788787817315,
+    "heat_load_w": 545.2964039273767,
+    "hotspot_ratio": 2.7471900614489853,
+    "hotspot_center_mm": 18.42699338355285,
+    "hotspot_width_mm": 3.4995185119396686
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0096",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3251640742841397,
+    "fin_width_mm": 0.20171109708637286,
+    "channel_depth_mm": 2.827256532248059,
+    "flow_lpm_per_kw": 1.5709811000908218,
+    "inlet_c": 40.152967107789124,
+    "heat_load_w": 831.5076669788459,
+    "hotspot_ratio": 1.7222886914187487,
+    "hotspot_center_mm": 16.909246559197925,
+    "hotspot_width_mm": 1.9292652788778797
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0097",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3258366156480246,
+    "fin_width_mm": 0.21328386000573643,
+    "channel_depth_mm": 2.7476067368694697,
+    "flow_lpm_per_kw": 1.3316732829791447,
+    "inlet_c": 33.05578331569922,
+    "heat_load_w": 536.3651834777629,
+    "hotspot_ratio": 2.6651984115672827,
+    "hotspot_center_mm": 22.75087140213756,
+    "hotspot_width_mm": 1.824600498317266
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0098",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2033701575537325,
+    "fin_width_mm": 0.442097278116939,
+    "channel_depth_mm": 1.2116000101390356,
+    "flow_lpm_per_kw": 1.4144891246384255,
+    "inlet_c": 31.436416875971286,
+    "heat_load_w": 830.503137293776,
+    "hotspot_ratio": 1.9681364766952463,
+    "hotspot_center_mm": 18.30935475941478,
+    "hotspot_width_mm": 2.0287486714696126
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0099",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3758729006799369,
+    "fin_width_mm": 0.41821420795734643,
+    "channel_depth_mm": 1.9321284765047049,
+    "flow_lpm_per_kw": 1.7312730100144207,
+    "inlet_c": 33.82723744254589,
+    "heat_load_w": 775.5230508086611,
+    "hotspot_ratio": 2.1129727957755526,
+    "hotspot_center_mm": 8.154878615391809,
+    "hotspot_width_mm": 3.0120091694324858
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0100",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4220618641219538,
+    "fin_width_mm": 0.24674159758000896,
+    "channel_depth_mm": 1.0886933881985443,
+    "flow_lpm_per_kw": 1.9486607499590813,
+    "inlet_c": 35.681356075991665,
+    "heat_load_w": 1336.0906408223289,
+    "hotspot_ratio": 1.9535842406156458,
+    "hotspot_center_mm": 9.992567730349531,
+    "hotspot_width_mm": 2.605811349578479
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0101",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.36989853706863907,
+    "fin_width_mm": 0.3075646950354041,
+    "channel_depth_mm": 1.404404790793927,
+    "flow_lpm_per_kw": 1.5728171532936912,
+    "inlet_c": 35.718567035026695,
+    "heat_load_w": 895.7237308591126,
+    "hotspot_ratio": 1.8744719416890663,
+    "hotspot_center_mm": 18.286650687313358,
+    "hotspot_width_mm": 2.136308793322085
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0102",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.41483332379869836,
+    "fin_width_mm": 0.23033791019268074,
+    "channel_depth_mm": 2.571483009897669,
+    "flow_lpm_per_kw": 1.7817782583180497,
+    "inlet_c": 43.744505319636644,
+    "heat_load_w": 569.1348982473946,
+    "hotspot_ratio": 1.901930481449141,
+    "hotspot_center_mm": 24.239237668346767,
+    "hotspot_width_mm": 2.3753528704271307
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0103",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.38238055512312263,
+    "fin_width_mm": 0.37669572347539837,
+    "channel_depth_mm": 2.4232217372445017,
+    "flow_lpm_per_kw": 1.5381021031392854,
+    "inlet_c": 30.688780305291694,
+    "heat_load_w": 696.4475588142943,
+    "hotspot_ratio": 1.2539513283601074,
+    "hotspot_center_mm": 12.251217094334283,
+    "hotspot_width_mm": 2.632390116226042
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0104",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.46741552885012255,
+    "fin_width_mm": 0.23456462707610407,
+    "channel_depth_mm": 1.77067779918402,
+    "flow_lpm_per_kw": 1.9995516929221526,
+    "inlet_c": 41.67971725176212,
+    "heat_load_w": 1010.7399034693801,
+    "hotspot_ratio": 1.903042220415395,
+    "hotspot_center_mm": 14.992813755902933,
+    "hotspot_width_mm": 2.06168291712458
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0105",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.32523670823955975,
+    "fin_width_mm": 0.45289550672701273,
+    "channel_depth_mm": 2.29611038346261,
+    "flow_lpm_per_kw": 1.3422757484117611,
+    "inlet_c": 33.97880801592345,
+    "heat_load_w": 1152.267299384463,
+    "hotspot_ratio": 2.2299324269881535,
+    "hotspot_center_mm": 15.039102651349104,
+    "hotspot_width_mm": 2.456564564431921
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0106",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.461553689835883,
+    "fin_width_mm": 0.3781686276484003,
+    "channel_depth_mm": 2.4245275396802333,
+    "flow_lpm_per_kw": 1.7876904325637253,
+    "inlet_c": 31.584073707957366,
+    "heat_load_w": 902.0203751025633,
+    "hotspot_ratio": 2.3093724730513285,
+    "hotspot_center_mm": 14.559606187487809,
+    "hotspot_width_mm": 3.4297252537875615
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0107",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21527235355965293,
+    "fin_width_mm": 0.24431032512362127,
+    "channel_depth_mm": 1.472655780294676,
+    "flow_lpm_per_kw": 1.4477287649896802,
+    "inlet_c": 36.80083890368425,
+    "heat_load_w": 1194.34868838504,
+    "hotspot_ratio": 2.42265520860296,
+    "hotspot_center_mm": 4.178300348968276,
+    "hotspot_width_mm": 2.660770010183543
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0108",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2377947114672889,
+    "fin_width_mm": 0.3573255320043148,
+    "channel_depth_mm": 2.5498483969376196,
+    "flow_lpm_per_kw": 1.8228836899580383,
+    "inlet_c": 34.91331703279475,
+    "heat_load_w": 831.7981426821318,
+    "hotspot_ratio": 1.3868021127014034,
+    "hotspot_center_mm": 3.9096718186942594,
+    "hotspot_width_mm": 1.7224435517157082
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0109",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24244268169411404,
+    "fin_width_mm": 0.4729748913164072,
+    "channel_depth_mm": 2.283056489451311,
+    "flow_lpm_per_kw": 1.6029558918456814,
+    "inlet_c": 41.44604675482343,
+    "heat_load_w": 779.4278017346305,
+    "hotspot_ratio": 2.7112476984271483,
+    "hotspot_center_mm": 24.23530013499326,
+    "hotspot_width_mm": 3.270457075999137
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0110",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30497230299357514,
+    "fin_width_mm": 0.47973119424099425,
+    "channel_depth_mm": 1.658100820566513,
+    "flow_lpm_per_kw": 1.642951600209723,
+    "inlet_c": 37.5731844863153,
+    "heat_load_w": 749.3487995722218,
+    "hotspot_ratio": 2.570372885305515,
+    "hotspot_center_mm": 24.131754462932967,
+    "hotspot_width_mm": 3.1177477339681574
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0111",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4627783344841471,
+    "fin_width_mm": 0.3846917112722782,
+    "channel_depth_mm": 1.6112602920474595,
+    "flow_lpm_per_kw": 1.9761594357959438,
+    "inlet_c": 33.75687522332301,
+    "heat_load_w": 1207.279748498685,
+    "hotspot_ratio": 1.0862218877105911,
+    "hotspot_center_mm": 15.725541140742415,
+    "hotspot_width_mm": 2.2984297748085383
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0112",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30574674610066294,
+    "fin_width_mm": 0.27575684393604066,
+    "channel_depth_mm": 1.8025818167052785,
+    "flow_lpm_per_kw": 1.9469639865321324,
+    "inlet_c": 37.74066255768374,
+    "heat_load_w": 819.24752666062,
+    "hotspot_ratio": 1.9375812394621013,
+    "hotspot_center_mm": 7.608592182023827,
+    "hotspot_width_mm": 3.4091180798286276
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0113",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.41423744359714887,
+    "fin_width_mm": 0.46303294223823327,
+    "channel_depth_mm": 1.3926448810562446,
+    "flow_lpm_per_kw": 1.5763198599336736,
+    "inlet_c": 34.55276973534378,
+    "heat_load_w": 645.2426134921521,
+    "hotspot_ratio": 1.7390225054859025,
+    "hotspot_center_mm": 22.5351920504163,
+    "hotspot_width_mm": 2.151644684345772
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0114",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.25014673478410476,
+    "fin_width_mm": 0.341177582256468,
+    "channel_depth_mm": 2.4766438308011622,
+    "flow_lpm_per_kw": 1.44613037579292,
+    "inlet_c": 42.15901850110634,
+    "heat_load_w": 1361.0751549770134,
+    "hotspot_ratio": 1.502922169331088,
+    "hotspot_center_mm": 6.154450291300387,
+    "hotspot_width_mm": 1.948071746808929
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0115",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3687627853378404,
+    "fin_width_mm": 0.23800230342115278,
+    "channel_depth_mm": 2.881025244669945,
+    "flow_lpm_per_kw": 1.9322676761974233,
+    "inlet_c": 39.86998989447363,
+    "heat_load_w": 1110.7012925338897,
+    "hotspot_ratio": 1.118159409006561,
+    "hotspot_center_mm": 22.03301757416954,
+    "hotspot_width_mm": 2.9998226696832395
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0116",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3069802701023583,
+    "fin_width_mm": 0.3868498109579547,
+    "channel_depth_mm": 2.7218978414646395,
+    "flow_lpm_per_kw": 1.9663671599402894,
+    "inlet_c": 34.655324670038944,
+    "heat_load_w": 1118.4320189807374,
+    "hotspot_ratio": 1.1001369457557806,
+    "hotspot_center_mm": 24.79455608329566,
+    "hotspot_width_mm": 2.348473934824127
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0117",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30346515928985573,
+    "fin_width_mm": 0.32907597474872474,
+    "channel_depth_mm": 1.423321479753327,
+    "flow_lpm_per_kw": 1.9770209232835618,
+    "inlet_c": 41.968543364984875,
+    "heat_load_w": 887.8855822146993,
+    "hotspot_ratio": 1.1174397966326088,
+    "hotspot_center_mm": 6.0741893983451085,
+    "hotspot_width_mm": 1.6325460132283587
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0118",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4049789739986796,
+    "fin_width_mm": 0.3445929955429905,
+    "channel_depth_mm": 1.116822533603879,
+    "flow_lpm_per_kw": 1.4875399572980434,
+    "inlet_c": 34.24100461933363,
+    "heat_load_w": 958.5551148019058,
+    "hotspot_ratio": 2.5759117112076053,
+    "hotspot_center_mm": 15.103090458394991,
+    "hotspot_width_mm": 1.6278676468053772
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0119",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.49325307969613014,
+    "fin_width_mm": 0.3589172710645416,
+    "channel_depth_mm": 1.873684937658832,
+    "flow_lpm_per_kw": 1.4092257411373708,
+    "inlet_c": 35.71829959867331,
+    "heat_load_w": 802.8812527241014,
+    "hotspot_ratio": 2.1942635279231757,
+    "hotspot_center_mm": 11.051914051024557,
+    "hotspot_width_mm": 2.079532360980833
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0120",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24656945096227492,
+    "fin_width_mm": 0.3466181832160234,
+    "channel_depth_mm": 2.295152935042841,
+    "flow_lpm_per_kw": 1.6360585124466238,
+    "inlet_c": 32.134312011648774,
+    "heat_load_w": 783.2966751227711,
+    "hotspot_ratio": 2.5050497042722712,
+    "hotspot_center_mm": 14.266876266010392,
+    "hotspot_width_mm": 2.2978810523067184
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0121",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.25786766034025993,
+    "fin_width_mm": 0.2185520771176559,
+    "channel_depth_mm": 1.1656869873107116,
+    "flow_lpm_per_kw": 1.7956471897727129,
+    "inlet_c": 32.82823621701099,
+    "heat_load_w": 1403.3472275507504,
+    "hotspot_ratio": 1.4878334493106133,
+    "hotspot_center_mm": 9.822810532206013,
+    "hotspot_width_mm": 1.8399320829076082
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0122",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23192820940014702,
+    "fin_width_mm": 0.45279085327680296,
+    "channel_depth_mm": 1.600100549951691,
+    "flow_lpm_per_kw": 1.7695737912090177,
+    "inlet_c": 43.19489154286333,
+    "heat_load_w": 1085.0041986067713,
+    "hotspot_ratio": 2.2550237930999115,
+    "hotspot_center_mm": 17.538475435071007,
+    "hotspot_width_mm": 2.4540967575764188
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0123",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.20058658033436344,
+    "fin_width_mm": 0.3808866650865793,
+    "channel_depth_mm": 1.3869823165444872,
+    "flow_lpm_per_kw": 1.7483986660478132,
+    "inlet_c": 43.969859138924804,
+    "heat_load_w": 547.8454621967921,
+    "hotspot_ratio": 1.9934110010326438,
+    "hotspot_center_mm": 22.929290802523337,
+    "hotspot_width_mm": 2.250523760031186
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0124",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3827863003529892,
+    "fin_width_mm": 0.24731523458488727,
+    "channel_depth_mm": 1.1324658338354259,
+    "flow_lpm_per_kw": 1.686587497739411,
+    "inlet_c": 37.962209143876194,
+    "heat_load_w": 1243.9073056969532,
+    "hotspot_ratio": 2.4999240807439946,
+    "hotspot_center_mm": 7.857416030857084,
+    "hotspot_width_mm": 2.400641141536288
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0125",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.48963090873951054,
+    "fin_width_mm": 0.20895327637021105,
+    "channel_depth_mm": 1.3640950783617505,
+    "flow_lpm_per_kw": 1.9879236090023373,
+    "inlet_c": 36.27609800250888,
+    "heat_load_w": 934.1693930129059,
+    "hotspot_ratio": 2.3634835934052707,
+    "hotspot_center_mm": 17.640287243382495,
+    "hotspot_width_mm": 2.134788166636966
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0126",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.343716405295356,
+    "fin_width_mm": 0.27466049846164586,
+    "channel_depth_mm": 1.7080849881977103,
+    "flow_lpm_per_kw": 1.8812992217064863,
+    "inlet_c": 33.98568381733483,
+    "heat_load_w": 699.0978791640492,
+    "hotspot_ratio": 1.0736384271258654,
+    "hotspot_center_mm": 8.965243933202125,
+    "hotspot_width_mm": 3.102963159378124
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0127",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22311466384724074,
+    "fin_width_mm": 0.39087514476400753,
+    "channel_depth_mm": 1.8527343821878328,
+    "flow_lpm_per_kw": 1.6632935124143247,
+    "inlet_c": 39.45756776002629,
+    "heat_load_w": 622.0473184883464,
+    "hotspot_ratio": 1.8297854620826288,
+    "hotspot_center_mm": 6.1775705131153265,
+    "hotspot_width_mm": 2.027332117762379
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0128",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4876572130314931,
+    "fin_width_mm": 0.26464369392182185,
+    "channel_depth_mm": 1.0516643201141254,
+    "flow_lpm_per_kw": 1.803857673726574,
+    "inlet_c": 39.595697164607586,
+    "heat_load_w": 1113.012834471907,
+    "hotspot_ratio": 2.4657658673214566,
+    "hotspot_center_mm": 3.098005745468442,
+    "hotspot_width_mm": 1.6085338734717907
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0129",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3543500884519254,
+    "fin_width_mm": 0.4882196061242658,
+    "channel_depth_mm": 1.972926350772283,
+    "flow_lpm_per_kw": 1.8923183780056703,
+    "inlet_c": 43.04380267134239,
+    "heat_load_w": 783.9643567198927,
+    "hotspot_ratio": 1.670003348367283,
+    "hotspot_center_mm": 26.24921275931415,
+    "hotspot_width_mm": 2.5323642194167206
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0130",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47126339117340493,
+    "fin_width_mm": 0.39013185923924376,
+    "channel_depth_mm": 1.3698524779862034,
+    "flow_lpm_per_kw": 1.344541117167574,
+    "inlet_c": 36.75993547951199,
+    "heat_load_w": 661.4747660515219,
+    "hotspot_ratio": 1.6100676864430876,
+    "hotspot_center_mm": 25.555148693926483,
+    "hotspot_width_mm": 2.8054691805158276
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0131",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.408122033179497,
+    "fin_width_mm": 0.4186511676380742,
+    "channel_depth_mm": 1.859517219713562,
+    "flow_lpm_per_kw": 1.9149826309938054,
+    "inlet_c": 35.361754762982095,
+    "heat_load_w": 1259.4472022365117,
+    "hotspot_ratio": 1.5655061647046657,
+    "hotspot_center_mm": 8.503322578112027,
+    "hotspot_width_mm": 3.4127851332312344
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0132",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.38845273979728845,
+    "fin_width_mm": 0.3071340667357191,
+    "channel_depth_mm": 2.8875228876925383,
+    "flow_lpm_per_kw": 1.7737059383793636,
+    "inlet_c": 37.788130517319345,
+    "heat_load_w": 504.5829760547732,
+    "hotspot_ratio": 1.7653832261886797,
+    "hotspot_center_mm": 16.69813946377128,
+    "hotspot_width_mm": 1.5435398490808692
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0133",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21921471638374124,
+    "fin_width_mm": 0.3390392378666351,
+    "channel_depth_mm": 1.2248963183323283,
+    "flow_lpm_per_kw": 1.5443810582292226,
+    "inlet_c": 31.354553197736927,
+    "heat_load_w": 1425.9397411424766,
+    "hotspot_ratio": 1.4371268838742701,
+    "hotspot_center_mm": 15.897764448425352,
+    "hotspot_width_mm": 1.5398673520965953
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0134",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3919908854393813,
+    "fin_width_mm": 0.4251964407295932,
+    "channel_depth_mm": 2.0901247062320687,
+    "flow_lpm_per_kw": 1.5093927776740363,
+    "inlet_c": 39.24849995797289,
+    "heat_load_w": 559.9244596129801,
+    "hotspot_ratio": 2.9197294527940176,
+    "hotspot_center_mm": 5.7641486204828585,
+    "hotspot_width_mm": 3.104215659426597
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0135",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4562700230477864,
+    "fin_width_mm": 0.3009510730799392,
+    "channel_depth_mm": 2.1253921089207553,
+    "flow_lpm_per_kw": 1.8293422532113568,
+    "inlet_c": 38.484144474978315,
+    "heat_load_w": 1143.8986204544367,
+    "hotspot_ratio": 1.8820632722815784,
+    "hotspot_center_mm": 15.26119806157262,
+    "hotspot_width_mm": 1.6769709641494022
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0136",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2109866796757637,
+    "fin_width_mm": 0.40384982203000774,
+    "channel_depth_mm": 2.462422380316208,
+    "flow_lpm_per_kw": 1.3472164964237467,
+    "inlet_c": 43.4144701818621,
+    "heat_load_w": 551.8726331812289,
+    "hotspot_ratio": 1.0133113845470276,
+    "hotspot_center_mm": 21.248720706052495,
+    "hotspot_width_mm": 3.400694039661029
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0137",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2434556684092309,
+    "fin_width_mm": 0.39994529608937246,
+    "channel_depth_mm": 1.1441001644354591,
+    "flow_lpm_per_kw": 1.952357667419631,
+    "inlet_c": 31.14289259264731,
+    "heat_load_w": 1439.3906633744748,
+    "hotspot_ratio": 1.6776189617199304,
+    "hotspot_center_mm": 18.39759301872879,
+    "hotspot_width_mm": 2.373411516305481
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0138",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.29636027512555946,
+    "fin_width_mm": 0.4915574232070243,
+    "channel_depth_mm": 2.244438252002727,
+    "flow_lpm_per_kw": 1.6782963915521627,
+    "inlet_c": 37.81099036559789,
+    "heat_load_w": 623.0975076938006,
+    "hotspot_ratio": 1.5792405238107812,
+    "hotspot_center_mm": 17.171873203591744,
+    "hotspot_width_mm": 3.3477570976470323
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0139",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2630441675765978,
+    "fin_width_mm": 0.21959715402438187,
+    "channel_depth_mm": 1.6846759999344976,
+    "flow_lpm_per_kw": 1.4421594907408002,
+    "inlet_c": 42.19784873232084,
+    "heat_load_w": 521.632691847155,
+    "hotspot_ratio": 1.848436412214419,
+    "hotspot_center_mm": 8.890668073663996,
+    "hotspot_width_mm": 2.607193925517559
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0140",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3946588244913625,
+    "fin_width_mm": 0.22042121382891622,
+    "channel_depth_mm": 1.0559398582697574,
+    "flow_lpm_per_kw": 1.2725498977945986,
+    "inlet_c": 40.1211012015995,
+    "heat_load_w": 1160.3486494513922,
+    "hotspot_ratio": 2.3869859993526905,
+    "hotspot_center_mm": 9.257249535226721,
+    "hotspot_width_mm": 2.0275480506956733
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0141",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30461478424241906,
+    "fin_width_mm": 0.20950444093228798,
+    "channel_depth_mm": 1.789558418049564,
+    "flow_lpm_per_kw": 1.2897602138657729,
+    "inlet_c": 34.939611958322715,
+    "heat_load_w": 1011.4786005157778,
+    "hotspot_ratio": 1.1371902370148914,
+    "hotspot_center_mm": 14.229357065908232,
+    "hotspot_width_mm": 3.24292950089564
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0142",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.37547175677797606,
+    "fin_width_mm": 0.45704726228694537,
+    "channel_depth_mm": 2.178284756450181,
+    "flow_lpm_per_kw": 1.3467239620999192,
+    "inlet_c": 42.66934624565788,
+    "heat_load_w": 978.1542259268076,
+    "hotspot_ratio": 2.9024230108568014,
+    "hotspot_center_mm": 8.585541502078932,
+    "hotspot_width_mm": 2.8160832150197788
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0143",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2046370155118884,
+    "fin_width_mm": 0.22406850187906882,
+    "channel_depth_mm": 2.6561210173044714,
+    "flow_lpm_per_kw": 1.990577129625748,
+    "inlet_c": 40.235808566164444,
+    "heat_load_w": 800.614965141572,
+    "hotspot_ratio": 2.171259434869972,
+    "hotspot_center_mm": 15.817478325022098,
+    "hotspot_width_mm": 3.103093353838589
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0144",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2321586000901575,
+    "fin_width_mm": 0.47446008403563705,
+    "channel_depth_mm": 1.2555175829076344,
+    "flow_lpm_per_kw": 1.513030804047626,
+    "inlet_c": 33.187477669339394,
+    "heat_load_w": 1169.9150862630872,
+    "hotspot_ratio": 2.31970458788161,
+    "hotspot_center_mm": 5.749854808120889,
+    "hotspot_width_mm": 2.6347309417931557
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0145",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3981907102342338,
+    "fin_width_mm": 0.3047619046347217,
+    "channel_depth_mm": 1.663434013117144,
+    "flow_lpm_per_kw": 1.9757185625548503,
+    "inlet_c": 35.02540806265676,
+    "heat_load_w": 829.0913670651884,
+    "hotspot_ratio": 1.1660370375493996,
+    "hotspot_center_mm": 20.211138991345635,
+    "hotspot_width_mm": 2.7904242873740728
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0146",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3005983755255849,
+    "fin_width_mm": 0.3817855175926998,
+    "channel_depth_mm": 2.931637476105916,
+    "flow_lpm_per_kw": 1.2712712418185539,
+    "inlet_c": 39.68765335130269,
+    "heat_load_w": 1062.0397883084759,
+    "hotspot_ratio": 1.1877560968173688,
+    "hotspot_center_mm": 20.776457478765522,
+    "hotspot_width_mm": 2.9066439904576864
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0147",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23413574475588997,
+    "fin_width_mm": 0.421202230725668,
+    "channel_depth_mm": 2.868911858784818,
+    "flow_lpm_per_kw": 1.717765282839697,
+    "inlet_c": 34.64798716675331,
+    "heat_load_w": 875.8607130026735,
+    "hotspot_ratio": 1.567888429125126,
+    "hotspot_center_mm": 22.507925997342433,
+    "hotspot_width_mm": 3.3089054845170884
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0148",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30755731547900617,
+    "fin_width_mm": 0.3564445312711496,
+    "channel_depth_mm": 1.5317209043645643,
+    "flow_lpm_per_kw": 1.938985574909377,
+    "inlet_c": 33.33129711317173,
+    "heat_load_w": 1272.820497561399,
+    "hotspot_ratio": 2.412647760234574,
+    "hotspot_center_mm": 14.96676458233403,
+    "hotspot_width_mm": 1.7943623328181728
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0149",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3372934078551112,
+    "fin_width_mm": 0.25251443372677157,
+    "channel_depth_mm": 1.9245136533529423,
+    "flow_lpm_per_kw": 1.4151014575027543,
+    "inlet_c": 36.84530574418743,
+    "heat_load_w": 972.709821730273,
+    "hotspot_ratio": 2.6702871526356615,
+    "hotspot_center_mm": 18.58200608186808,
+    "hotspot_width_mm": 2.091254337715257
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0150",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2794154846061727,
+    "fin_width_mm": 0.4235463484538885,
+    "channel_depth_mm": 1.2472553332729552,
+    "flow_lpm_per_kw": 1.827669257492911,
+    "inlet_c": 31.64593735853568,
+    "heat_load_w": 802.8122879217349,
+    "hotspot_ratio": 2.1331830717468283,
+    "hotspot_center_mm": 6.483378266099503,
+    "hotspot_width_mm": 1.9943839467054194
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0151",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4457540348702181,
+    "fin_width_mm": 0.26791189554981487,
+    "channel_depth_mm": 2.2293292358151575,
+    "flow_lpm_per_kw": 1.7704772024840842,
+    "inlet_c": 38.99353554778331,
+    "heat_load_w": 1195.3210978038196,
+    "hotspot_ratio": 1.5171685097451881,
+    "hotspot_center_mm": 11.619451808271677,
+    "hotspot_width_mm": 2.3876680404636224
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0152",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2010261872765295,
+    "fin_width_mm": 0.33139208615378934,
+    "channel_depth_mm": 2.025531887240958,
+    "flow_lpm_per_kw": 1.9326898880995986,
+    "inlet_c": 32.63492062122175,
+    "heat_load_w": 1226.902373959478,
+    "hotspot_ratio": 1.5388543553996816,
+    "hotspot_center_mm": 22.84795909038614,
+    "hotspot_width_mm": 2.2467273584339846
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0153",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.44581795906189825,
+    "fin_width_mm": 0.4942817314284238,
+    "channel_depth_mm": 2.8822775184395426,
+    "flow_lpm_per_kw": 1.5556778555918318,
+    "inlet_c": 35.78556436146638,
+    "heat_load_w": 1279.6434155643792,
+    "hotspot_ratio": 2.2404978489385634,
+    "hotspot_center_mm": 17.251656721358408,
+    "hotspot_width_mm": 2.3854997334020975
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0154",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2599565127243177,
+    "fin_width_mm": 0.28853064076143975,
+    "channel_depth_mm": 1.1935815425713137,
+    "flow_lpm_per_kw": 1.5003610763052164,
+    "inlet_c": 42.05148780826873,
+    "heat_load_w": 809.4225893527496,
+    "hotspot_ratio": 2.8534212572166613,
+    "hotspot_center_mm": 14.589126733519691,
+    "hotspot_width_mm": 2.3157479570778188
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0155",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.252294645792409,
+    "fin_width_mm": 0.3928417653918125,
+    "channel_depth_mm": 2.0730439287008093,
+    "flow_lpm_per_kw": 1.350782326477722,
+    "inlet_c": 30.284715696337468,
+    "heat_load_w": 536.164943202517,
+    "hotspot_ratio": 2.8562942149727935,
+    "hotspot_center_mm": 17.978232484318184,
+    "hotspot_width_mm": 3.367550163426537
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0156",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.34036015600703673,
+    "fin_width_mm": 0.28270763124355897,
+    "channel_depth_mm": 2.2312372448379776,
+    "flow_lpm_per_kw": 1.7526251069221541,
+    "inlet_c": 42.951973885649856,
+    "heat_load_w": 1303.9944817918367,
+    "hotspot_ratio": 1.3033651651922318,
+    "hotspot_center_mm": 9.871533544691367,
+    "hotspot_width_mm": 3.2568004958528975
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0157",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2988323810171709,
+    "fin_width_mm": 0.4647119185157109,
+    "channel_depth_mm": 2.9071288053840316,
+    "flow_lpm_per_kw": 1.535198158137245,
+    "inlet_c": 39.35639404384615,
+    "heat_load_w": 1036.9497915140737,
+    "hotspot_ratio": 2.3276996954154074,
+    "hotspot_center_mm": 22.023930924562116,
+    "hotspot_width_mm": 3.2066149589131765
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0158",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3530364482728289,
+    "fin_width_mm": 0.2957400929802939,
+    "channel_depth_mm": 1.515054778040547,
+    "flow_lpm_per_kw": 1.7398193594897489,
+    "inlet_c": 44.47865523192347,
+    "heat_load_w": 828.8156245964392,
+    "hotspot_ratio": 2.2316645323911213,
+    "hotspot_center_mm": 22.497685505968136,
+    "hotspot_width_mm": 2.3979656036847024
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0159",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2500030179535639,
+    "fin_width_mm": 0.409051741158045,
+    "channel_depth_mm": 1.6872148029279546,
+    "flow_lpm_per_kw": 1.580192231794625,
+    "inlet_c": 39.694932259739,
+    "heat_load_w": 978.3618966905188,
+    "hotspot_ratio": 1.456015770158889,
+    "hotspot_center_mm": 12.337294502353407,
+    "hotspot_width_mm": 3.161459172341988
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0160",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22840037389290646,
+    "fin_width_mm": 0.44746418429890716,
+    "channel_depth_mm": 2.8387157952435,
+    "flow_lpm_per_kw": 1.6835308452884308,
+    "inlet_c": 40.95146248221614,
+    "heat_load_w": 1191.1897417984587,
+    "hotspot_ratio": 1.4418707463092204,
+    "hotspot_center_mm": 17.957728789063246,
+    "hotspot_width_mm": 2.3083775335670937
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0161",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47568037567384375,
+    "fin_width_mm": 0.3565128916590661,
+    "channel_depth_mm": 1.2692462150494854,
+    "flow_lpm_per_kw": 1.7536847661616486,
+    "inlet_c": 30.282959185694907,
+    "heat_load_w": 703.1846591417057,
+    "hotspot_ratio": 2.3065121809612252,
+    "hotspot_center_mm": 17.207487109398,
+    "hotspot_width_mm": 3.1259967829467428
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0162",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3590502642002975,
+    "fin_width_mm": 0.4817107471826504,
+    "channel_depth_mm": 1.198350067161726,
+    "flow_lpm_per_kw": 1.4374969861201343,
+    "inlet_c": 38.302189860912016,
+    "heat_load_w": 923.5208419196008,
+    "hotspot_ratio": 1.5599216305359582,
+    "hotspot_center_mm": 21.564438996369503,
+    "hotspot_width_mm": 3.290169840469107
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0163",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3445046265799787,
+    "fin_width_mm": 0.4451688346561525,
+    "channel_depth_mm": 2.7757806727286782,
+    "flow_lpm_per_kw": 1.8225670500925015,
+    "inlet_c": 32.94077675290325,
+    "heat_load_w": 561.0118137126901,
+    "hotspot_ratio": 2.824433813918494,
+    "hotspot_center_mm": 3.0846529229253328,
+    "hotspot_width_mm": 1.5142133567182754
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0164",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24098464089380373,
+    "fin_width_mm": 0.2728106341945011,
+    "channel_depth_mm": 2.696268756994151,
+    "flow_lpm_per_kw": 1.2661053604740045,
+    "inlet_c": 36.42631687509585,
+    "heat_load_w": 1130.9577227380532,
+    "hotspot_ratio": 2.6348963920521786,
+    "hotspot_center_mm": 18.291558588206037,
+    "hotspot_width_mm": 1.9300243160519375
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0165",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4828017646971138,
+    "fin_width_mm": 0.23426362713253485,
+    "channel_depth_mm": 2.2045413496469166,
+    "flow_lpm_per_kw": 1.3507266429636633,
+    "inlet_c": 32.686027554993046,
+    "heat_load_w": 947.4681695039474,
+    "hotspot_ratio": 1.4441457852265238,
+    "hotspot_center_mm": 3.3405186339759014,
+    "hotspot_width_mm": 3.110906864102736
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0166",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.49610569642057145,
+    "fin_width_mm": 0.27818265953971444,
+    "channel_depth_mm": 1.0382086867471834,
+    "flow_lpm_per_kw": 1.2577299876366548,
+    "inlet_c": 33.17946176445961,
+    "heat_load_w": 694.8536473783108,
+    "hotspot_ratio": 1.3402007352018617,
+    "hotspot_center_mm": 6.095521168142921,
+    "hotspot_width_mm": 2.3165277630701864
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0167",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.39233182791804516,
+    "fin_width_mm": 0.3076232000777118,
+    "channel_depth_mm": 1.0008200324165555,
+    "flow_lpm_per_kw": 1.6343419337799778,
+    "inlet_c": 30.82024148218408,
+    "heat_load_w": 969.0836686666623,
+    "hotspot_ratio": 1.64086817273161,
+    "hotspot_center_mm": 10.750805749929008,
+    "hotspot_width_mm": 2.180793783049615
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0168",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3690669321611156,
+    "fin_width_mm": 0.42636627622994017,
+    "channel_depth_mm": 2.2885385836340477,
+    "flow_lpm_per_kw": 1.4048509565200609,
+    "inlet_c": 35.622254767569096,
+    "heat_load_w": 1392.949544965381,
+    "hotspot_ratio": 1.0416813331294197,
+    "hotspot_center_mm": 18.236130549506484,
+    "hotspot_width_mm": 2.6715992207297363
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0169",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3296941015453614,
+    "fin_width_mm": 0.2087612318748353,
+    "channel_depth_mm": 2.041445424017365,
+    "flow_lpm_per_kw": 1.8010199058538203,
+    "inlet_c": 38.03781921729437,
+    "heat_load_w": 760.7488070784411,
+    "hotspot_ratio": 2.2609730243711885,
+    "hotspot_center_mm": 20.578929487934005,
+    "hotspot_width_mm": 1.9056639094064483
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0170",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21124680045363223,
+    "fin_width_mm": 0.31109603254169504,
+    "channel_depth_mm": 2.981491531175256,
+    "flow_lpm_per_kw": 1.8617508836970806,
+    "inlet_c": 42.17084173786478,
+    "heat_load_w": 1015.390116091241,
+    "hotspot_ratio": 1.5139397777304127,
+    "hotspot_center_mm": 21.04856679532022,
+    "hotspot_width_mm": 3.491211526596192
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0171",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.32973722194390165,
+    "fin_width_mm": 0.3677089665002391,
+    "channel_depth_mm": 1.4525853580339103,
+    "flow_lpm_per_kw": 1.9437573266960912,
+    "inlet_c": 35.40547212039237,
+    "heat_load_w": 1444.683574859625,
+    "hotspot_ratio": 1.7452649187478448,
+    "hotspot_center_mm": 3.8191383068655034,
+    "hotspot_width_mm": 1.7253048371355624
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0172",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.33461293753356125,
+    "fin_width_mm": 0.47147516561026864,
+    "channel_depth_mm": 2.525652976565567,
+    "flow_lpm_per_kw": 1.9285851659693307,
+    "inlet_c": 32.97547136727658,
+    "heat_load_w": 762.1654764573334,
+    "hotspot_ratio": 2.7669763440976967,
+    "hotspot_center_mm": 17.767517202503882,
+    "hotspot_width_mm": 1.6230991135197914
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0173",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.43994903203362723,
+    "fin_width_mm": 0.20838080887777408,
+    "channel_depth_mm": 2.5776272059222114,
+    "flow_lpm_per_kw": 1.8946298520458504,
+    "inlet_c": 31.531091930307177,
+    "heat_load_w": 1328.2736606621352,
+    "hotspot_ratio": 2.8415119998678238,
+    "hotspot_center_mm": 20.340813473144635,
+    "hotspot_width_mm": 2.113662582189535
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0174",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.37580788813947474,
+    "fin_width_mm": 0.43298756034723107,
+    "channel_depth_mm": 1.647899557290328,
+    "flow_lpm_per_kw": 1.3026737770638743,
+    "inlet_c": 31.316108621545634,
+    "heat_load_w": 1429.0000848107693,
+    "hotspot_ratio": 1.5865815047268905,
+    "hotspot_center_mm": 9.154442018247467,
+    "hotspot_width_mm": 3.2161883273284824
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0175",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2022735371173795,
+    "fin_width_mm": 0.2187399874215231,
+    "channel_depth_mm": 2.5011214630034573,
+    "flow_lpm_per_kw": 1.4954457649217043,
+    "inlet_c": 40.43635686663737,
+    "heat_load_w": 1283.9445298093979,
+    "hotspot_ratio": 1.1705115836138662,
+    "hotspot_center_mm": 6.227979109477961,
+    "hotspot_width_mm": 3.0320168730667754
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0176",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4246167451981537,
+    "fin_width_mm": 0.22793656304493637,
+    "channel_depth_mm": 2.5207166187677186,
+    "flow_lpm_per_kw": 1.7767339705289698,
+    "inlet_c": 33.7257012932799,
+    "heat_load_w": 557.6795393968306,
+    "hotspot_ratio": 1.8834403207490298,
+    "hotspot_center_mm": 14.920148531200386,
+    "hotspot_width_mm": 2.8808580195598577
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0177",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3706995623398782,
+    "fin_width_mm": 0.21518581445990909,
+    "channel_depth_mm": 1.4696927948272833,
+    "flow_lpm_per_kw": 1.9564637582212425,
+    "inlet_c": 40.42567390632654,
+    "heat_load_w": 844.6805171920487,
+    "hotspot_ratio": 1.8538708714319347,
+    "hotspot_center_mm": 19.198240545931213,
+    "hotspot_width_mm": 1.655360916807971
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0178",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2688918375815151,
+    "fin_width_mm": 0.49479415165033563,
+    "channel_depth_mm": 1.2055901453303743,
+    "flow_lpm_per_kw": 1.3192874859281487,
+    "inlet_c": 31.846710852068874,
+    "heat_load_w": 1492.2240598667524,
+    "hotspot_ratio": 1.5316197851840103,
+    "hotspot_center_mm": 12.181492684269662,
+    "hotspot_width_mm": 3.343836856519616
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0179",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22758814270120983,
+    "fin_width_mm": 0.3869106931836851,
+    "channel_depth_mm": 2.6385380723482976,
+    "flow_lpm_per_kw": 1.4615072129383389,
+    "inlet_c": 37.52732860887442,
+    "heat_load_w": 880.7852153148467,
+    "hotspot_ratio": 1.5180156337182793,
+    "hotspot_center_mm": 4.360632304234347,
+    "hotspot_width_mm": 1.9272027506005192
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0180",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.20068772474823907,
+    "fin_width_mm": 0.4890018022313815,
+    "channel_depth_mm": 1.3412388556335555,
+    "flow_lpm_per_kw": 1.3385242452836343,
+    "inlet_c": 42.05728010776769,
+    "heat_load_w": 699.8434609670086,
+    "hotspot_ratio": 1.5039464756330898,
+    "hotspot_center_mm": 16.249644258342972,
+    "hotspot_width_mm": 1.7915101975997647
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0181",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4210114305036536,
+    "fin_width_mm": 0.38645470190775727,
+    "channel_depth_mm": 2.3745862764636865,
+    "flow_lpm_per_kw": 1.9203235097218112,
+    "inlet_c": 31.170498750525265,
+    "heat_load_w": 705.1464540561587,
+    "hotspot_ratio": 2.2342093376080254,
+    "hotspot_center_mm": 25.753474150162493,
+    "hotspot_width_mm": 3.4225851197856194
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0182",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.217937855984529,
+    "fin_width_mm": 0.2251439808136333,
+    "channel_depth_mm": 2.922637265774805,
+    "flow_lpm_per_kw": 1.5163805841346927,
+    "inlet_c": 32.08059793997685,
+    "heat_load_w": 675.6306626385721,
+    "hotspot_ratio": 1.3503723868990745,
+    "hotspot_center_mm": 4.459804526287782,
+    "hotspot_width_mm": 2.7784044086078548
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0183",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3935521735573322,
+    "fin_width_mm": 0.4876051311550973,
+    "channel_depth_mm": 2.945759034005241,
+    "flow_lpm_per_kw": 1.6692257991816666,
+    "inlet_c": 39.88437332564751,
+    "heat_load_w": 793.386361231091,
+    "hotspot_ratio": 2.0157583173882605,
+    "hotspot_center_mm": 23.375048042638564,
+    "hotspot_width_mm": 1.9305550705760741
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0184",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.33209360236523267,
+    "fin_width_mm": 0.485058432939813,
+    "channel_depth_mm": 2.5345802293936845,
+    "flow_lpm_per_kw": 1.6529293006925871,
+    "inlet_c": 35.24187205912064,
+    "heat_load_w": 652.1050614249348,
+    "hotspot_ratio": 1.2849979418765716,
+    "hotspot_center_mm": 5.600679326336076,
+    "hotspot_width_mm": 2.831969301291676
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0185",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2915309922078194,
+    "fin_width_mm": 0.3263662939786459,
+    "channel_depth_mm": 1.7576858440586185,
+    "flow_lpm_per_kw": 1.611351356988609,
+    "inlet_c": 35.94969462495525,
+    "heat_load_w": 1172.7070177783526,
+    "hotspot_ratio": 2.4357630402328088,
+    "hotspot_center_mm": 21.147469450565186,
+    "hotspot_width_mm": 1.705957666214004
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0186",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.20861468788081888,
+    "fin_width_mm": 0.373598528470684,
+    "channel_depth_mm": 2.21916866766406,
+    "flow_lpm_per_kw": 1.7487619212201213,
+    "inlet_c": 36.72911202187131,
+    "heat_load_w": 758.5418442595679,
+    "hotspot_ratio": 2.945996750016868,
+    "hotspot_center_mm": 13.857198513955446,
+    "hotspot_width_mm": 3.388911194615246
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0187",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.26092407840013904,
+    "fin_width_mm": 0.4654258104740611,
+    "channel_depth_mm": 2.0352845798869303,
+    "flow_lpm_per_kw": 1.8556494579348024,
+    "inlet_c": 40.90219798611473,
+    "heat_load_w": 943.9832030157955,
+    "hotspot_ratio": 2.648876973496175,
+    "hotspot_center_mm": 17.644000268437285,
+    "hotspot_width_mm": 1.578245055488508
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0188",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24362237965637806,
+    "fin_width_mm": 0.2706000064615951,
+    "channel_depth_mm": 2.5604529373941762,
+    "flow_lpm_per_kw": 1.8371225251324366,
+    "inlet_c": 30.716034408226285,
+    "heat_load_w": 726.5447074694705,
+    "hotspot_ratio": 1.41435831705204,
+    "hotspot_center_mm": 16.798097167270324,
+    "hotspot_width_mm": 2.961586846041674
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0189",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2199020485193362,
+    "fin_width_mm": 0.4549859944343869,
+    "channel_depth_mm": 1.3955378456441323,
+    "flow_lpm_per_kw": 1.3937209257276026,
+    "inlet_c": 38.81192302083668,
+    "heat_load_w": 1157.1466189234673,
+    "hotspot_ratio": 1.8356090444558673,
+    "hotspot_center_mm": 22.902589495999273,
+    "hotspot_width_mm": 3.04331097401288
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0190",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2076003284846312,
+    "fin_width_mm": 0.43708118411732744,
+    "channel_depth_mm": 1.6567182013934472,
+    "flow_lpm_per_kw": 1.9685426936716115,
+    "inlet_c": 37.923783503385444,
+    "heat_load_w": 940.2653525827441,
+    "hotspot_ratio": 2.266048032111034,
+    "hotspot_center_mm": 3.212921200606866,
+    "hotspot_width_mm": 3.3024124370400516
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0191",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3717859286868952,
+    "fin_width_mm": 0.4839616785899306,
+    "channel_depth_mm": 2.0986773684175093,
+    "flow_lpm_per_kw": 1.8821156852810326,
+    "inlet_c": 38.23243239287899,
+    "heat_load_w": 1444.8310265317568,
+    "hotspot_ratio": 1.1290627192643519,
+    "hotspot_center_mm": 12.24249604028239,
+    "hotspot_width_mm": 2.042077913155873
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0192",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3855176417919725,
+    "fin_width_mm": 0.49286504034014983,
+    "channel_depth_mm": 2.022512688431422,
+    "flow_lpm_per_kw": 1.8951178225322032,
+    "inlet_c": 41.09821999768725,
+    "heat_load_w": 756.6212490291311,
+    "hotspot_ratio": 2.0856833531779007,
+    "hotspot_center_mm": 14.338330692866261,
+    "hotspot_width_mm": 2.00250154181121
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0193",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.43263371639367393,
+    "fin_width_mm": 0.2933651092896506,
+    "channel_depth_mm": 1.5553755278132106,
+    "flow_lpm_per_kw": 1.5718375179363133,
+    "inlet_c": 36.891127051562115,
+    "heat_load_w": 694.1386279014196,
+    "hotspot_ratio": 2.8817808866142576,
+    "hotspot_center_mm": 12.678757953719193,
+    "hotspot_width_mm": 2.3181372377717526
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0194",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.303784769954746,
+    "fin_width_mm": 0.3810126297998576,
+    "channel_depth_mm": 1.3042358930523832,
+    "flow_lpm_per_kw": 1.4503231909676446,
+    "inlet_c": 39.80775721021625,
+    "heat_load_w": 676.2883852604173,
+    "hotspot_ratio": 2.850511577513818,
+    "hotspot_center_mm": 10.52514690428514,
+    "hotspot_width_mm": 2.3496449991838464
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0195",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.27330546305586695,
+    "fin_width_mm": 0.4105826893434248,
+    "channel_depth_mm": 1.2916520756457146,
+    "flow_lpm_per_kw": 1.3062384084834047,
+    "inlet_c": 33.3761692495779,
+    "heat_load_w": 857.3195884471594,
+    "hotspot_ratio": 2.375439144141553,
+    "hotspot_center_mm": 14.906225845346896,
+    "hotspot_width_mm": 3.2040905154705555
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0196",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40675350764869334,
+    "fin_width_mm": 0.30197046991665394,
+    "channel_depth_mm": 2.775940111176037,
+    "flow_lpm_per_kw": 1.6834077946226667,
+    "inlet_c": 39.79551545387615,
+    "heat_load_w": 1107.8407515242882,
+    "hotspot_ratio": 2.0754876217010674,
+    "hotspot_center_mm": 7.601711541737667,
+    "hotspot_width_mm": 1.6060210104306523
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0197",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2857039496437019,
+    "fin_width_mm": 0.3952746635747483,
+    "channel_depth_mm": 2.168787280801987,
+    "flow_lpm_per_kw": 1.9403147139169967,
+    "inlet_c": 43.73012622324931,
+    "heat_load_w": 1028.4818609799172,
+    "hotspot_ratio": 2.35288516975338,
+    "hotspot_center_mm": 13.311491709623038,
+    "hotspot_width_mm": 1.770038870990645
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0198",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.35792409463138025,
+    "fin_width_mm": 0.49546049275744664,
+    "channel_depth_mm": 2.181567790667514,
+    "flow_lpm_per_kw": 1.6559739820411876,
+    "inlet_c": 39.21863620870568,
+    "heat_load_w": 1300.161387403678,
+    "hotspot_ratio": 2.104624846076123,
+    "hotspot_center_mm": 9.406134307193497,
+    "hotspot_width_mm": 1.9380045228684002
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0199",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.36989574745934706,
+    "fin_width_mm": 0.41884814758165856,
+    "channel_depth_mm": 2.600510398760216,
+    "flow_lpm_per_kw": 1.7755234784283926,
+    "inlet_c": 42.86351553157961,
+    "heat_load_w": 684.5923871425093,
+    "hotspot_ratio": 2.8519790511230485,
+    "hotspot_center_mm": 10.737635762276582,
+    "hotspot_width_mm": 2.5410110411627533
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0200",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.49037941343266495,
+    "fin_width_mm": 0.28499325967923206,
+    "channel_depth_mm": 1.242382394227512,
+    "flow_lpm_per_kw": 1.3037006722897981,
+    "inlet_c": 43.197004706918165,
+    "heat_load_w": 668.4884315362717,
+    "hotspot_ratio": 2.955586133137528,
+    "hotspot_center_mm": 3.667277365598782,
+    "hotspot_width_mm": 3.126443990891837
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0201",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21109523582856357,
+    "fin_width_mm": 0.4440227499310142,
+    "channel_depth_mm": 2.353226090504746,
+    "flow_lpm_per_kw": 1.676308015729962,
+    "inlet_c": 33.52167864352337,
+    "heat_load_w": 1128.8974833267496,
+    "hotspot_ratio": 1.1991912249438677,
+    "hotspot_center_mm": 10.299590426350706,
+    "hotspot_width_mm": 3.207715478286221
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0202",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3609623946224827,
+    "fin_width_mm": 0.24204374913199128,
+    "channel_depth_mm": 1.376394291533681,
+    "flow_lpm_per_kw": 1.377084446301597,
+    "inlet_c": 35.664455217818805,
+    "heat_load_w": 743.4098074150265,
+    "hotspot_ratio": 2.256399702074094,
+    "hotspot_center_mm": 25.15203128995599,
+    "hotspot_width_mm": 2.3623731844775655
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0203",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2534596951494343,
+    "fin_width_mm": 0.21867576863795188,
+    "channel_depth_mm": 1.5353943331093143,
+    "flow_lpm_per_kw": 1.7410155219319137,
+    "inlet_c": 39.61798066684496,
+    "heat_load_w": 812.6885379322387,
+    "hotspot_ratio": 1.808856843201569,
+    "hotspot_center_mm": 4.764326655654771,
+    "hotspot_width_mm": 3.3795111609104524
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0204",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2600488816798835,
+    "fin_width_mm": 0.23964225724411325,
+    "channel_depth_mm": 1.3169347431876983,
+    "flow_lpm_per_kw": 1.834269976991427,
+    "inlet_c": 37.242034381325965,
+    "heat_load_w": 991.3387887535577,
+    "hotspot_ratio": 1.3557596351568426,
+    "hotspot_center_mm": 23.13165025426147,
+    "hotspot_width_mm": 1.7974406081256744
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0205",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47191771087034684,
+    "fin_width_mm": 0.4596185564833156,
+    "channel_depth_mm": 1.9153134016012496,
+    "flow_lpm_per_kw": 1.7926757269780629,
+    "inlet_c": 32.34633682219404,
+    "heat_load_w": 856.5115932871602,
+    "hotspot_ratio": 1.1040765038626854,
+    "hotspot_center_mm": 12.001827043133758,
+    "hotspot_width_mm": 1.5580476894952486
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0206",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.48194746338343314,
+    "fin_width_mm": 0.49622177783110233,
+    "channel_depth_mm": 2.408453718680728,
+    "flow_lpm_per_kw": 1.4892789212505535,
+    "inlet_c": 36.446508805001706,
+    "heat_load_w": 699.4556617333666,
+    "hotspot_ratio": 1.2679742293707208,
+    "hotspot_center_mm": 15.102070687862074,
+    "hotspot_width_mm": 2.2066017335444323
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0207",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.28802358626064767,
+    "fin_width_mm": 0.467055538766481,
+    "channel_depth_mm": 2.615577695141489,
+    "flow_lpm_per_kw": 1.8755222331112766,
+    "inlet_c": 44.78144604021932,
+    "heat_load_w": 819.9042567918718,
+    "hotspot_ratio": 2.272498338212115,
+    "hotspot_center_mm": 25.541669692431306,
+    "hotspot_width_mm": 3.1819695642231753
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0208",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22228693797978988,
+    "fin_width_mm": 0.33640964922479855,
+    "channel_depth_mm": 2.817474916080246,
+    "flow_lpm_per_kw": 1.8504725944029339,
+    "inlet_c": 30.232607519604834,
+    "heat_load_w": 1250.0163370747077,
+    "hotspot_ratio": 2.7113853490506408,
+    "hotspot_center_mm": 11.243221242239139,
+    "hotspot_width_mm": 2.4484508576595267
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0209",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2911658704203529,
+    "fin_width_mm": 0.3165482730721525,
+    "channel_depth_mm": 1.4657716503392306,
+    "flow_lpm_per_kw": 1.4916884188920592,
+    "inlet_c": 30.6187180328194,
+    "heat_load_w": 1430.7374403259548,
+    "hotspot_ratio": 1.0602617928080464,
+    "hotspot_center_mm": 22.45834222617267,
+    "hotspot_width_mm": 2.0228460007704054
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0210",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.31919917359448124,
+    "fin_width_mm": 0.45848292046923467,
+    "channel_depth_mm": 2.626855971529328,
+    "flow_lpm_per_kw": 1.2680029476235306,
+    "inlet_c": 30.03165829002239,
+    "heat_load_w": 1200.7792738266799,
+    "hotspot_ratio": 1.8369948410548735,
+    "hotspot_center_mm": 14.119586861591532,
+    "hotspot_width_mm": 2.9093118526301067
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0211",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3400094823567562,
+    "fin_width_mm": 0.4968690424283817,
+    "channel_depth_mm": 1.955440235981632,
+    "flow_lpm_per_kw": 1.597296684239714,
+    "inlet_c": 31.666538183802516,
+    "heat_load_w": 1101.699925728767,
+    "hotspot_ratio": 1.0442361497744985,
+    "hotspot_center_mm": 12.90566608030662,
+    "hotspot_width_mm": 2.648883787107184
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0212",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4747777003756523,
+    "fin_width_mm": 0.4869810641608871,
+    "channel_depth_mm": 2.197511930176789,
+    "flow_lpm_per_kw": 1.6821302444210924,
+    "inlet_c": 42.220654437469165,
+    "heat_load_w": 523.7926536598733,
+    "hotspot_ratio": 1.6105090040166332,
+    "hotspot_center_mm": 18.008724251635623,
+    "hotspot_width_mm": 2.4735288440067382
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0213",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2834023605236995,
+    "fin_width_mm": 0.36587867795346707,
+    "channel_depth_mm": 2.1405489647182625,
+    "flow_lpm_per_kw": 1.8822430477196261,
+    "inlet_c": 44.85509877842108,
+    "heat_load_w": 1022.7919171306629,
+    "hotspot_ratio": 2.6575230113284327,
+    "hotspot_center_mm": 14.072849453012157,
+    "hotspot_width_mm": 3.191272238008531
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0214",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3631190113850087,
+    "fin_width_mm": 0.4466018954472211,
+    "channel_depth_mm": 1.0565824633484162,
+    "flow_lpm_per_kw": 1.6776276817582834,
+    "inlet_c": 39.61623511669689,
+    "heat_load_w": 788.9398255476897,
+    "hotspot_ratio": 2.7538156293549862,
+    "hotspot_center_mm": 15.429091450166847,
+    "hotspot_width_mm": 2.403799353006197
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0215",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.44163290938602845,
+    "fin_width_mm": 0.49550956698107457,
+    "channel_depth_mm": 1.9790581542320511,
+    "flow_lpm_per_kw": 1.4661519433248262,
+    "inlet_c": 41.608227425175656,
+    "heat_load_w": 821.432238907626,
+    "hotspot_ratio": 2.0458232060486403,
+    "hotspot_center_mm": 8.082952940678869,
+    "hotspot_width_mm": 3.325476462052956
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0216",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.48906245534937687,
+    "fin_width_mm": 0.4153093686789231,
+    "channel_depth_mm": 2.6226673222457486,
+    "flow_lpm_per_kw": 1.3482588976279475,
+    "inlet_c": 43.81612074981115,
+    "heat_load_w": 742.5596638450406,
+    "hotspot_ratio": 2.0953112490989714,
+    "hotspot_center_mm": 17.82235729509484,
+    "hotspot_width_mm": 3.2141991341810403
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0217",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.31969283864674625,
+    "fin_width_mm": 0.2859025177634989,
+    "channel_depth_mm": 1.4867207315490951,
+    "flow_lpm_per_kw": 1.6238685344701498,
+    "inlet_c": 42.51680396399518,
+    "heat_load_w": 546.892259139451,
+    "hotspot_ratio": 2.805695945481875,
+    "hotspot_center_mm": 26.33196175366849,
+    "hotspot_width_mm": 2.5254588189122886
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0218",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.43006394403384784,
+    "fin_width_mm": 0.44662403703143194,
+    "channel_depth_mm": 2.5645494641877886,
+    "flow_lpm_per_kw": 1.5585184444395572,
+    "inlet_c": 38.26549409446465,
+    "heat_load_w": 1015.6463599925947,
+    "hotspot_ratio": 2.354293314959536,
+    "hotspot_center_mm": 9.831117488579089,
+    "hotspot_width_mm": 1.5229488285864454
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0219",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.28480854675472167,
+    "fin_width_mm": 0.4801036210849842,
+    "channel_depth_mm": 1.4657971474123284,
+    "flow_lpm_per_kw": 1.9380854490702797,
+    "inlet_c": 42.18512458663968,
+    "heat_load_w": 1207.2063598062896,
+    "hotspot_ratio": 1.648304571162043,
+    "hotspot_center_mm": 10.181593059421347,
+    "hotspot_width_mm": 3.4006100721574697
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0220",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.27523004450527144,
+    "fin_width_mm": 0.44838027360246047,
+    "channel_depth_mm": 2.4543464677787457,
+    "flow_lpm_per_kw": 1.5202002557124121,
+    "inlet_c": 44.515891692571316,
+    "heat_load_w": 996.2927066271031,
+    "hotspot_ratio": 2.491409272605419,
+    "hotspot_center_mm": 5.210867784582959,
+    "hotspot_width_mm": 2.8551070646851837
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0221",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3817787619028421,
+    "fin_width_mm": 0.3897112546956086,
+    "channel_depth_mm": 1.4727101819947055,
+    "flow_lpm_per_kw": 1.5641878130777198,
+    "inlet_c": 36.487350127744804,
+    "heat_load_w": 510.6899090570862,
+    "hotspot_ratio": 1.8287943879610074,
+    "hotspot_center_mm": 14.955061201131143,
+    "hotspot_width_mm": 2.3994338363846746
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0222",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.382265777583391,
+    "fin_width_mm": 0.20101272517210675,
+    "channel_depth_mm": 1.4556018998920017,
+    "flow_lpm_per_kw": 1.8005739919219317,
+    "inlet_c": 33.8079660101665,
+    "heat_load_w": 1284.3642141474843,
+    "hotspot_ratio": 1.5870730052789366,
+    "hotspot_center_mm": 18.995606529975998,
+    "hotspot_width_mm": 1.9800534277184147
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0223",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.20106341266665242,
+    "fin_width_mm": 0.2708173885690383,
+    "channel_depth_mm": 2.8474671061459245,
+    "flow_lpm_per_kw": 1.2643954061009235,
+    "inlet_c": 39.86193840151537,
+    "heat_load_w": 845.4898966498047,
+    "hotspot_ratio": 1.6706500482102569,
+    "hotspot_center_mm": 19.608529635406853,
+    "hotspot_width_mm": 1.7768382348900569
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0224",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3494336587424226,
+    "fin_width_mm": 0.28951296947089644,
+    "channel_depth_mm": 2.687509427051979,
+    "flow_lpm_per_kw": 1.9825641329263786,
+    "inlet_c": 40.82679353801108,
+    "heat_load_w": 1042.3424043580267,
+    "hotspot_ratio": 1.6334448768275638,
+    "hotspot_center_mm": 19.22430130979014,
+    "hotspot_width_mm": 2.4286448550318083
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0225",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.38397911837035115,
+    "fin_width_mm": 0.4818888423790367,
+    "channel_depth_mm": 2.290470636599532,
+    "flow_lpm_per_kw": 1.3130203280818686,
+    "inlet_c": 36.0508769183826,
+    "heat_load_w": 972.0086952231911,
+    "hotspot_ratio": 1.103401909396262,
+    "hotspot_center_mm": 14.43153334771796,
+    "hotspot_width_mm": 2.9761853695828164
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0226",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2562067419884514,
+    "fin_width_mm": 0.45098995896316635,
+    "channel_depth_mm": 2.030920012127564,
+    "flow_lpm_per_kw": 1.5332569005477181,
+    "inlet_c": 40.228618807620364,
+    "heat_load_w": 1482.2507048063242,
+    "hotspot_ratio": 1.8578333569898884,
+    "hotspot_center_mm": 8.827727149927235,
+    "hotspot_width_mm": 1.858052178287496
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0227",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4294935505140066,
+    "fin_width_mm": 0.26654390916357473,
+    "channel_depth_mm": 2.14815611545286,
+    "flow_lpm_per_kw": 1.5596971899354757,
+    "inlet_c": 36.03924603675674,
+    "heat_load_w": 903.4758563354596,
+    "hotspot_ratio": 2.8324896156242625,
+    "hotspot_center_mm": 7.027562804219676,
+    "hotspot_width_mm": 3.4466728465479393
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0228",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21788909770383783,
+    "fin_width_mm": 0.2840777067532943,
+    "channel_depth_mm": 2.5021746611326283,
+    "flow_lpm_per_kw": 1.7351809884951073,
+    "inlet_c": 40.84560590405928,
+    "heat_load_w": 785.1049007067744,
+    "hotspot_ratio": 2.7829379375069783,
+    "hotspot_center_mm": 26.573427760220422,
+    "hotspot_width_mm": 3.4390521959199853
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0229",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.39973934923398624,
+    "fin_width_mm": 0.36063272275121094,
+    "channel_depth_mm": 1.1867906802766899,
+    "flow_lpm_per_kw": 1.7790888075859441,
+    "inlet_c": 31.28191671033711,
+    "heat_load_w": 583.6986831975705,
+    "hotspot_ratio": 1.5603998939813994,
+    "hotspot_center_mm": 17.07562831528132,
+    "hotspot_width_mm": 1.9500070825310394
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0230",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23743875897869074,
+    "fin_width_mm": 0.33335124135814154,
+    "channel_depth_mm": 2.2742157675192147,
+    "flow_lpm_per_kw": 1.844459531073888,
+    "inlet_c": 44.05552850412673,
+    "heat_load_w": 1345.3476364265211,
+    "hotspot_ratio": 1.2790733325536081,
+    "hotspot_center_mm": 20.332487569494887,
+    "hotspot_width_mm": 2.899571349690838
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0231",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3054088811348401,
+    "fin_width_mm": 0.4274201558414662,
+    "channel_depth_mm": 2.454970199630693,
+    "flow_lpm_per_kw": 1.457019590181552,
+    "inlet_c": 35.29429237733462,
+    "heat_load_w": 1282.2252889041833,
+    "hotspot_ratio": 2.4866612629272256,
+    "hotspot_center_mm": 16.28471409711515,
+    "hotspot_width_mm": 1.5960763322975235
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0232",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2625969441430179,
+    "fin_width_mm": 0.2560661582145741,
+    "channel_depth_mm": 1.2193545935014263,
+    "flow_lpm_per_kw": 1.546204266528096,
+    "inlet_c": 31.655612287592746,
+    "heat_load_w": 788.4537745921914,
+    "hotspot_ratio": 2.127554694953581,
+    "hotspot_center_mm": 12.71860754349623,
+    "hotspot_width_mm": 3.0386554572386055
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0233",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3416944576570896,
+    "fin_width_mm": 0.43280255877258766,
+    "channel_depth_mm": 2.6914984485813376,
+    "flow_lpm_per_kw": 1.6436821201001939,
+    "inlet_c": 43.05256012133149,
+    "heat_load_w": 1014.2958850130149,
+    "hotspot_ratio": 2.201144881613107,
+    "hotspot_center_mm": 13.964112734309715,
+    "hotspot_width_mm": 2.140554246620153
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0234",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3471716285012767,
+    "fin_width_mm": 0.4948468802410307,
+    "channel_depth_mm": 1.2501909736856858,
+    "flow_lpm_per_kw": 1.9232476427830725,
+    "inlet_c": 34.24379687761683,
+    "heat_load_w": 1154.5134355155956,
+    "hotspot_ratio": 1.3813981841594907,
+    "hotspot_center_mm": 19.20613904242238,
+    "hotspot_width_mm": 3.17935436267645
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0235",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30520677713025124,
+    "fin_width_mm": 0.24512316288737146,
+    "channel_depth_mm": 2.414986062474403,
+    "flow_lpm_per_kw": 1.9555523462273783,
+    "inlet_c": 34.206111190249864,
+    "heat_load_w": 1402.966550443818,
+    "hotspot_ratio": 2.9292390618163733,
+    "hotspot_center_mm": 12.123280908303792,
+    "hotspot_width_mm": 2.522714961220422
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0236",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22855221345613805,
+    "fin_width_mm": 0.4432983081179017,
+    "channel_depth_mm": 1.68637368389246,
+    "flow_lpm_per_kw": 1.8832669139785279,
+    "inlet_c": 40.56539416702269,
+    "heat_load_w": 1189.320396140828,
+    "hotspot_ratio": 2.65180220238045,
+    "hotspot_center_mm": 12.711659548152976,
+    "hotspot_width_mm": 1.8137204810155736
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0237",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23525691682918184,
+    "fin_width_mm": 0.3670900651242047,
+    "channel_depth_mm": 1.3923039362595402,
+    "flow_lpm_per_kw": 1.8377136144154718,
+    "inlet_c": 42.93390969833611,
+    "heat_load_w": 1298.416575609187,
+    "hotspot_ratio": 2.469162326246659,
+    "hotspot_center_mm": 5.96490419289171,
+    "hotspot_width_mm": 2.2975662253972127
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0238",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.44845832447859163,
+    "fin_width_mm": 0.2312809163733685,
+    "channel_depth_mm": 2.198221352363972,
+    "flow_lpm_per_kw": 1.8088961369432168,
+    "inlet_c": 33.63820673463045,
+    "heat_load_w": 1358.7758507008723,
+    "hotspot_ratio": 1.8263747174446565,
+    "hotspot_center_mm": 19.682493520685096,
+    "hotspot_width_mm": 2.4382739994919183
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0239",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2042526762720368,
+    "fin_width_mm": 0.2577294880580919,
+    "channel_depth_mm": 2.3857934016567532,
+    "flow_lpm_per_kw": 1.4256322583453158,
+    "inlet_c": 38.43402533905473,
+    "heat_load_w": 1126.6682447937264,
+    "hotspot_ratio": 1.062558783158149,
+    "hotspot_center_mm": 7.914288241229101,
+    "hotspot_width_mm": 3.0651024158696667
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0240",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.253147454711696,
+    "fin_width_mm": 0.284211580919647,
+    "channel_depth_mm": 1.1044454310384626,
+    "flow_lpm_per_kw": 1.8478221237069388,
+    "inlet_c": 42.21917449442812,
+    "heat_load_w": 1095.5293032193845,
+    "hotspot_ratio": 1.4392208367059502,
+    "hotspot_center_mm": 7.186265130265598,
+    "hotspot_width_mm": 2.0905447197335523
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0241",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23964252637457978,
+    "fin_width_mm": 0.41531763444265896,
+    "channel_depth_mm": 2.430754546905355,
+    "flow_lpm_per_kw": 1.65433906821233,
+    "inlet_c": 41.81452628523449,
+    "heat_load_w": 664.5321189491963,
+    "hotspot_ratio": 2.159075394951036,
+    "hotspot_center_mm": 15.798392613555333,
+    "hotspot_width_mm": 2.5451745590405297
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0242",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.37013905679682246,
+    "fin_width_mm": 0.282147495613688,
+    "channel_depth_mm": 2.478482527926454,
+    "flow_lpm_per_kw": 1.7989471052924264,
+    "inlet_c": 44.285406447542755,
+    "heat_load_w": 1441.0427684638014,
+    "hotspot_ratio": 1.669191285693039,
+    "hotspot_center_mm": 6.571870210337469,
+    "hotspot_width_mm": 1.605507164917542
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0243",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2303801186604059,
+    "fin_width_mm": 0.41653804214776,
+    "channel_depth_mm": 1.6461034436701099,
+    "flow_lpm_per_kw": 1.9717553835228931,
+    "inlet_c": 38.81674470118226,
+    "heat_load_w": 1392.647279924508,
+    "hotspot_ratio": 2.0010915432296685,
+    "hotspot_center_mm": 20.316538919897035,
+    "hotspot_width_mm": 1.8198026135909433
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0244",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.38933590667568463,
+    "fin_width_mm": 0.40581969557975184,
+    "channel_depth_mm": 2.81859735579744,
+    "flow_lpm_per_kw": 1.261494271097825,
+    "inlet_c": 30.830154928514705,
+    "heat_load_w": 945.8391172078996,
+    "hotspot_ratio": 2.9576875821854385,
+    "hotspot_center_mm": 4.7704874170388045,
+    "hotspot_width_mm": 2.9320791482767925
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0245",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3621184325430795,
+    "fin_width_mm": 0.4090727866329039,
+    "channel_depth_mm": 2.3260735727896327,
+    "flow_lpm_per_kw": 1.6867854518738412,
+    "inlet_c": 42.47551860459975,
+    "heat_load_w": 614.1815258701961,
+    "hotspot_ratio": 2.54917995894937,
+    "hotspot_center_mm": 7.941911883224195,
+    "hotspot_width_mm": 2.8959373326855067
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0246",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.41594505675135296,
+    "fin_width_mm": 0.4954315760662779,
+    "channel_depth_mm": 1.3003433106206275,
+    "flow_lpm_per_kw": 1.9739682974392116,
+    "inlet_c": 35.32832849371892,
+    "heat_load_w": 546.7493791064861,
+    "hotspot_ratio": 2.0226925415446733,
+    "hotspot_center_mm": 17.421133289851145,
+    "hotspot_width_mm": 2.6273048050509864
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0247",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.45449112765268557,
+    "fin_width_mm": 0.40296578201050465,
+    "channel_depth_mm": 2.170575020719836,
+    "flow_lpm_per_kw": 1.6912607865967715,
+    "inlet_c": 30.68137222243637,
+    "heat_load_w": 741.5954498458796,
+    "hotspot_ratio": 1.5994095772998922,
+    "hotspot_center_mm": 19.963614998495217,
+    "hotspot_width_mm": 2.380936913213997
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0248",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2712281921436488,
+    "fin_width_mm": 0.3946595943552325,
+    "channel_depth_mm": 2.228623048034472,
+    "flow_lpm_per_kw": 1.4092515614320666,
+    "inlet_c": 42.2831134625725,
+    "heat_load_w": 509.101277420495,
+    "hotspot_ratio": 2.896294843276813,
+    "hotspot_center_mm": 9.82492304116079,
+    "hotspot_width_mm": 2.5838409004576843
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0249",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2715896605255099,
+    "fin_width_mm": 0.38121731552494376,
+    "channel_depth_mm": 1.5654816521580077,
+    "flow_lpm_per_kw": 1.6986902866076798,
+    "inlet_c": 32.01530117626947,
+    "heat_load_w": 1487.5612229220274,
+    "hotspot_ratio": 2.3790370240190972,
+    "hotspot_center_mm": 10.53447195657017,
+    "hotspot_width_mm": 2.9517487427279008
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0250",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.253001308208851,
+    "fin_width_mm": 0.426996211750298,
+    "channel_depth_mm": 2.4469018826813524,
+    "flow_lpm_per_kw": 1.4328707832649945,
+    "inlet_c": 36.835358588203604,
+    "heat_load_w": 1109.0329359193045,
+    "hotspot_ratio": 1.0317918292073749,
+    "hotspot_center_mm": 23.617169965898803,
+    "hotspot_width_mm": 3.282571174070698
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0251",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2156772655577868,
+    "fin_width_mm": 0.3728693100439264,
+    "channel_depth_mm": 2.663542208899295,
+    "flow_lpm_per_kw": 1.8544110855095186,
+    "inlet_c": 41.70135736986977,
+    "heat_load_w": 1321.2583745737124,
+    "hotspot_ratio": 2.8353286377664935,
+    "hotspot_center_mm": 15.590291513984074,
+    "hotspot_width_mm": 3.0113764011715864
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0252",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.44209273331669824,
+    "fin_width_mm": 0.3061814730974164,
+    "channel_depth_mm": 2.6549684613943922,
+    "flow_lpm_per_kw": 1.9548426416814302,
+    "inlet_c": 33.462363299582506,
+    "heat_load_w": 938.525658896782,
+    "hotspot_ratio": 1.1687036395706056,
+    "hotspot_center_mm": 4.980926139675606,
+    "hotspot_width_mm": 2.532779458606953
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0253",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40941619928596773,
+    "fin_width_mm": 0.27297974433388195,
+    "channel_depth_mm": 1.9587419697285349,
+    "flow_lpm_per_kw": 1.5353796344175379,
+    "inlet_c": 41.24239741722084,
+    "heat_load_w": 677.6532056845459,
+    "hotspot_ratio": 1.0803597731670451,
+    "hotspot_center_mm": 18.165987962621585,
+    "hotspot_width_mm": 1.9612859924326094
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0254",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.36398538580934703,
+    "fin_width_mm": 0.23461627240812605,
+    "channel_depth_mm": 1.8108343317998066,
+    "flow_lpm_per_kw": 1.2924195386977446,
+    "inlet_c": 40.933916570393464,
+    "heat_load_w": 692.9901394736779,
+    "hotspot_ratio": 1.2695927426177744,
+    "hotspot_center_mm": 19.09392460020441,
+    "hotspot_width_mm": 1.9366034495835327
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0255",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3822960395375846,
+    "fin_width_mm": 0.2576113870349767,
+    "channel_depth_mm": 1.9080162975004913,
+    "flow_lpm_per_kw": 1.5814759432930945,
+    "inlet_c": 36.093294854554706,
+    "heat_load_w": 1126.87921697533,
+    "hotspot_ratio": 2.7202613534698097,
+    "hotspot_center_mm": 7.482659993006483,
+    "hotspot_width_mm": 3.223306509543914
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0256",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.31296036086406276,
+    "fin_width_mm": 0.20730347655704232,
+    "channel_depth_mm": 1.6884090190199463,
+    "flow_lpm_per_kw": 1.8481701730286835,
+    "inlet_c": 38.64417548277657,
+    "heat_load_w": 1203.2842983641588,
+    "hotspot_ratio": 2.267056500749419,
+    "hotspot_center_mm": 13.076488925012537,
+    "hotspot_width_mm": 3.1862499308036254
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0257",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2913943259936052,
+    "fin_width_mm": 0.37164502601487204,
+    "channel_depth_mm": 2.35169915376287,
+    "flow_lpm_per_kw": 1.5343523647202466,
+    "inlet_c": 44.36244210431887,
+    "heat_load_w": 1391.1764818351858,
+    "hotspot_ratio": 2.137057682150746,
+    "hotspot_center_mm": 5.280951216395141,
+    "hotspot_width_mm": 3.3506451656747798
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0258",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3313649841917382,
+    "fin_width_mm": 0.20641416629585582,
+    "channel_depth_mm": 1.6295778744146292,
+    "flow_lpm_per_kw": 1.592602126037963,
+    "inlet_c": 41.39287479150938,
+    "heat_load_w": 1064.6004272959367,
+    "hotspot_ratio": 2.3692511762825474,
+    "hotspot_center_mm": 6.644743761555516,
+    "hotspot_width_mm": 1.8010467604033036
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0259",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.41943051317067626,
+    "fin_width_mm": 0.35008227187497354,
+    "channel_depth_mm": 1.0293234788081187,
+    "flow_lpm_per_kw": 1.3233054665148152,
+    "inlet_c": 43.194864408229,
+    "heat_load_w": 618.0945600585313,
+    "hotspot_ratio": 1.055901711817515,
+    "hotspot_center_mm": 4.127718480318163,
+    "hotspot_width_mm": 1.961218845929439
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0260",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4459295560918032,
+    "fin_width_mm": 0.3381314279778542,
+    "channel_depth_mm": 2.603504136325045,
+    "flow_lpm_per_kw": 1.9534958068921366,
+    "inlet_c": 30.264531587349357,
+    "heat_load_w": 1177.1030741209997,
+    "hotspot_ratio": 2.8612030553683274,
+    "hotspot_center_mm": 6.826604819310144,
+    "hotspot_width_mm": 2.38315793497965
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0261",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4410899156968222,
+    "fin_width_mm": 0.4826454919462012,
+    "channel_depth_mm": 2.243274134978358,
+    "flow_lpm_per_kw": 1.422130757234502,
+    "inlet_c": 42.80928669089612,
+    "heat_load_w": 1066.2927088955798,
+    "hotspot_ratio": 1.612780386916008,
+    "hotspot_center_mm": 14.64009312859054,
+    "hotspot_width_mm": 2.960175069006991
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0262",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21606254695219068,
+    "fin_width_mm": 0.37415716235401475,
+    "channel_depth_mm": 2.7203141833713333,
+    "flow_lpm_per_kw": 1.4724090307402582,
+    "inlet_c": 41.95266699675142,
+    "heat_load_w": 537.4376104918567,
+    "hotspot_ratio": 1.1050922263878553,
+    "hotspot_center_mm": 17.45268670524874,
+    "hotspot_width_mm": 1.6465487682934565
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0263",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2703896448638304,
+    "fin_width_mm": 0.4766659075074142,
+    "channel_depth_mm": 1.202995673169254,
+    "flow_lpm_per_kw": 1.7681010115334463,
+    "inlet_c": 36.25741604656006,
+    "heat_load_w": 1084.9444925959008,
+    "hotspot_ratio": 1.7041256171141719,
+    "hotspot_center_mm": 18.582740875994922,
+    "hotspot_width_mm": 3.456749012651697
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0264",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23462374527401914,
+    "fin_width_mm": 0.46783444445856637,
+    "channel_depth_mm": 2.657492371891805,
+    "flow_lpm_per_kw": 1.8195750597936442,
+    "inlet_c": 40.01817819151652,
+    "heat_load_w": 1408.2583234676824,
+    "hotspot_ratio": 1.9873608526151938,
+    "hotspot_center_mm": 4.857901937639204,
+    "hotspot_width_mm": 2.7901617970699175
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0265",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4294859446581833,
+    "fin_width_mm": 0.40053400968801367,
+    "channel_depth_mm": 2.082774396064666,
+    "flow_lpm_per_kw": 1.830813053345532,
+    "inlet_c": 31.63418794561483,
+    "heat_load_w": 1411.1994696357074,
+    "hotspot_ratio": 1.473923510922357,
+    "hotspot_center_mm": 9.502449656873473,
+    "hotspot_width_mm": 2.210194770518524
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0266",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.219389192526032,
+    "fin_width_mm": 0.2631900207293189,
+    "channel_depth_mm": 2.0517595503273793,
+    "flow_lpm_per_kw": 1.5490961547905955,
+    "inlet_c": 32.29813083854242,
+    "heat_load_w": 938.2270811842079,
+    "hotspot_ratio": 1.111118775214146,
+    "hotspot_center_mm": 18.39030496262568,
+    "hotspot_width_mm": 3.4282597792616647
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0267",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2347041971192152,
+    "fin_width_mm": 0.3387259935967507,
+    "channel_depth_mm": 1.210704056832271,
+    "flow_lpm_per_kw": 1.5951047185473843,
+    "inlet_c": 42.88925183651975,
+    "heat_load_w": 1365.1430934812292,
+    "hotspot_ratio": 1.2504313410106733,
+    "hotspot_center_mm": 4.757382696912599,
+    "hotspot_width_mm": 2.5349957793424807
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0268",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3927919531723911,
+    "fin_width_mm": 0.26681303085416075,
+    "channel_depth_mm": 1.4456447886019173,
+    "flow_lpm_per_kw": 1.3678737573760642,
+    "inlet_c": 35.53003537306841,
+    "heat_load_w": 646.5371120556036,
+    "hotspot_ratio": 1.1225273946043566,
+    "hotspot_center_mm": 19.377590387343613,
+    "hotspot_width_mm": 3.1817934573045
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0269",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.26419497681764254,
+    "fin_width_mm": 0.4733219475038477,
+    "channel_depth_mm": 2.489087544113576,
+    "flow_lpm_per_kw": 1.3727392083779637,
+    "inlet_c": 44.2682834915867,
+    "heat_load_w": 558.2432943185718,
+    "hotspot_ratio": 2.975522232543798,
+    "hotspot_center_mm": 8.116943146874018,
+    "hotspot_width_mm": 3.1058262741278506
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0270",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4586259991228637,
+    "fin_width_mm": 0.3148885354048851,
+    "channel_depth_mm": 2.8066842630710687,
+    "flow_lpm_per_kw": 1.5861406143746042,
+    "inlet_c": 40.84735392447378,
+    "heat_load_w": 793.1107742304325,
+    "hotspot_ratio": 2.8536509843429005,
+    "hotspot_center_mm": 3.7314575876315814,
+    "hotspot_width_mm": 2.806719180774862
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0271",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30245333821091547,
+    "fin_width_mm": 0.2776513177224712,
+    "channel_depth_mm": 2.722893337416526,
+    "flow_lpm_per_kw": 1.9596739257955167,
+    "inlet_c": 39.89157222712295,
+    "heat_load_w": 886.0627082264832,
+    "hotspot_ratio": 2.687477866470977,
+    "hotspot_center_mm": 4.273564788572369,
+    "hotspot_width_mm": 2.3896652810111174
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0272",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21278348924565585,
+    "fin_width_mm": 0.21000761105695487,
+    "channel_depth_mm": 1.5931261937406145,
+    "flow_lpm_per_kw": 1.4427554889309195,
+    "inlet_c": 40.32900006234658,
+    "heat_load_w": 995.7140549086052,
+    "hotspot_ratio": 1.5818814640668926,
+    "hotspot_center_mm": 17.150347168101895,
+    "hotspot_width_mm": 2.210991807685697
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0273",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.32005362931192083,
+    "fin_width_mm": 0.4180655201504352,
+    "channel_depth_mm": 1.6677905117080407,
+    "flow_lpm_per_kw": 1.8857884288857676,
+    "inlet_c": 31.584860519998255,
+    "heat_load_w": 1180.8200471547289,
+    "hotspot_ratio": 1.9392903640229586,
+    "hotspot_center_mm": 21.396462823071786,
+    "hotspot_width_mm": 2.8732981588441713
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0274",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.46279748985319175,
+    "fin_width_mm": 0.3521637296281986,
+    "channel_depth_mm": 2.0919191112004984,
+    "flow_lpm_per_kw": 1.4355395427685171,
+    "inlet_c": 36.301125154462746,
+    "heat_load_w": 890.7231530726427,
+    "hotspot_ratio": 2.4510504672091944,
+    "hotspot_center_mm": 13.707894744549941,
+    "hotspot_width_mm": 3.1764759268343896
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0275",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2631015346008862,
+    "fin_width_mm": 0.4063630930279769,
+    "channel_depth_mm": 2.814913781742595,
+    "flow_lpm_per_kw": 1.7666541756664382,
+    "inlet_c": 43.29485286829408,
+    "heat_load_w": 668.8242175200393,
+    "hotspot_ratio": 2.2997253571370093,
+    "hotspot_center_mm": 25.3892498088536,
+    "hotspot_width_mm": 2.576199157897128
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0276",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40814981656355853,
+    "fin_width_mm": 0.28360798513379915,
+    "channel_depth_mm": 1.4564105327007877,
+    "flow_lpm_per_kw": 1.3202538586170462,
+    "inlet_c": 33.12809878180483,
+    "heat_load_w": 858.2792772357559,
+    "hotspot_ratio": 1.7935661500928175,
+    "hotspot_center_mm": 13.34063443666853,
+    "hotspot_width_mm": 3.365126859046138
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0277",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.26109142996078166,
+    "fin_width_mm": 0.27932396442089724,
+    "channel_depth_mm": 2.032882930073505,
+    "flow_lpm_per_kw": 1.9494893221419454,
+    "inlet_c": 37.004065175180465,
+    "heat_load_w": 696.140371080169,
+    "hotspot_ratio": 2.351655318532498,
+    "hotspot_center_mm": 25.48606000481568,
+    "hotspot_width_mm": 2.5124675489973964
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0278",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2665080707812834,
+    "fin_width_mm": 0.22736866476203682,
+    "channel_depth_mm": 1.489480680906759,
+    "flow_lpm_per_kw": 1.4509706452310216,
+    "inlet_c": 44.07639921212878,
+    "heat_load_w": 605.9332168776061,
+    "hotspot_ratio": 2.466947874618202,
+    "hotspot_center_mm": 12.179104441414413,
+    "hotspot_width_mm": 2.6979228788731198
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0279",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40621241149778176,
+    "fin_width_mm": 0.412405758879237,
+    "channel_depth_mm": 2.138958652289653,
+    "flow_lpm_per_kw": 1.3935855566546345,
+    "inlet_c": 38.09410885776776,
+    "heat_load_w": 804.4958952394272,
+    "hotspot_ratio": 1.4070120540627467,
+    "hotspot_center_mm": 18.123641147493547,
+    "hotspot_width_mm": 2.2700027538614123
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0280",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3205343037292059,
+    "fin_width_mm": 0.3329299356067502,
+    "channel_depth_mm": 1.5978428237439593,
+    "flow_lpm_per_kw": 1.3849070099687342,
+    "inlet_c": 30.941888328165778,
+    "heat_load_w": 746.5019235381138,
+    "hotspot_ratio": 1.223907468868907,
+    "hotspot_center_mm": 20.108051583048905,
+    "hotspot_width_mm": 1.5552175030484394
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0281",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3981354704886888,
+    "fin_width_mm": 0.34158201212197614,
+    "channel_depth_mm": 2.32179951976652,
+    "flow_lpm_per_kw": 1.7721273934083819,
+    "inlet_c": 32.96356069954042,
+    "heat_load_w": 1237.6694830454594,
+    "hotspot_ratio": 2.525741186934922,
+    "hotspot_center_mm": 15.519465574311141,
+    "hotspot_width_mm": 1.729306240131547
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0282",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47638224956913355,
+    "fin_width_mm": 0.24506584776288232,
+    "channel_depth_mm": 2.2896650267401863,
+    "flow_lpm_per_kw": 1.8179391350214738,
+    "inlet_c": 36.04562693452285,
+    "heat_load_w": 1194.0037192188665,
+    "hotspot_ratio": 2.6274789298672605,
+    "hotspot_center_mm": 4.653613656269408,
+    "hotspot_width_mm": 3.143143610639215
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0283",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2384051585729243,
+    "fin_width_mm": 0.4475125803187059,
+    "channel_depth_mm": 2.176528586010884,
+    "flow_lpm_per_kw": 1.509831769164532,
+    "inlet_c": 37.21367319534844,
+    "heat_load_w": 1138.7715728147064,
+    "hotspot_ratio": 1.1187500717995593,
+    "hotspot_center_mm": 16.22233136718446,
+    "hotspot_width_mm": 3.339114305057713
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0284",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4370967119582981,
+    "fin_width_mm": 0.29795609019444114,
+    "channel_depth_mm": 1.2906045414388991,
+    "flow_lpm_per_kw": 1.3858900707362234,
+    "inlet_c": 42.346738744477534,
+    "heat_load_w": 770.0460888311221,
+    "hotspot_ratio": 1.027025386852333,
+    "hotspot_center_mm": 15.09877797590183,
+    "hotspot_width_mm": 2.8845358111129524
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0285",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.48095613881089455,
+    "fin_width_mm": 0.3707924964461916,
+    "channel_depth_mm": 2.8171089010708483,
+    "flow_lpm_per_kw": 1.5740517327860868,
+    "inlet_c": 39.61275847535814,
+    "heat_load_w": 575.9753021318166,
+    "hotspot_ratio": 2.9074933361828683,
+    "hotspot_center_mm": 5.515516257495826,
+    "hotspot_width_mm": 3.355445815042069
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0286",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3315932376361501,
+    "fin_width_mm": 0.3435275160891349,
+    "channel_depth_mm": 1.9667090839223615,
+    "flow_lpm_per_kw": 1.5509642459684279,
+    "inlet_c": 32.31504030282285,
+    "heat_load_w": 1200.701925884954,
+    "hotspot_ratio": 2.124645520845294,
+    "hotspot_center_mm": 14.499379067199431,
+    "hotspot_width_mm": 1.5289269444548172
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0287",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22312751660923366,
+    "fin_width_mm": 0.22785684780916143,
+    "channel_depth_mm": 2.5974957941585464,
+    "flow_lpm_per_kw": 1.5067584711540745,
+    "inlet_c": 42.77200185728501,
+    "heat_load_w": 1383.7573407788077,
+    "hotspot_ratio": 1.7179176207663847,
+    "hotspot_center_mm": 25.71458420788106,
+    "hotspot_width_mm": 1.9632531126467512
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0288",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4879144736492007,
+    "fin_width_mm": 0.4683778068303256,
+    "channel_depth_mm": 1.972125223361386,
+    "flow_lpm_per_kw": 1.9005458603901462,
+    "inlet_c": 38.78654068797291,
+    "heat_load_w": 738.394488004932,
+    "hotspot_ratio": 2.9992322732444023,
+    "hotspot_center_mm": 12.990377060979299,
+    "hotspot_width_mm": 2.244176664897238
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0289",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.32754965249508006,
+    "fin_width_mm": 0.45071317653794357,
+    "channel_depth_mm": 2.5700022630895427,
+    "flow_lpm_per_kw": 1.4985912928266567,
+    "inlet_c": 39.42452329289222,
+    "heat_load_w": 800.4710856229635,
+    "hotspot_ratio": 1.3852867977466192,
+    "hotspot_center_mm": 12.641566486457508,
+    "hotspot_width_mm": 2.066723001972627
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0290",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21446134473657574,
+    "fin_width_mm": 0.2794598180471326,
+    "channel_depth_mm": 1.4134867930211736,
+    "flow_lpm_per_kw": 1.5575348524798964,
+    "inlet_c": 32.799913480242225,
+    "heat_load_w": 969.8763382452576,
+    "hotspot_ratio": 1.2637064728347678,
+    "hotspot_center_mm": 25.778988394400287,
+    "hotspot_width_mm": 3.273920808159357
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0291",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3012154845466579,
+    "fin_width_mm": 0.26078801460195256,
+    "channel_depth_mm": 1.818953967305382,
+    "flow_lpm_per_kw": 1.705900446672155,
+    "inlet_c": 38.67227623266059,
+    "heat_load_w": 508.6833812719457,
+    "hotspot_ratio": 1.7610429694541638,
+    "hotspot_center_mm": 7.660843538728114,
+    "hotspot_width_mm": 2.909224278443607
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0292",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3025433228918063,
+    "fin_width_mm": 0.42115932310209325,
+    "channel_depth_mm": 1.6920005799091815,
+    "flow_lpm_per_kw": 1.3242761245467713,
+    "inlet_c": 36.18361809588032,
+    "heat_load_w": 944.7827941684004,
+    "hotspot_ratio": 1.0190199629836294,
+    "hotspot_center_mm": 3.3385091873084027,
+    "hotspot_width_mm": 3.126153526924657
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0293",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.252355973176166,
+    "fin_width_mm": 0.24358246410296877,
+    "channel_depth_mm": 2.136975976590935,
+    "flow_lpm_per_kw": 1.764403131587639,
+    "inlet_c": 31.476621926595158,
+    "heat_load_w": 1406.8555722308183,
+    "hotspot_ratio": 2.708194027726284,
+    "hotspot_center_mm": 18.35804068186068,
+    "hotspot_width_mm": 2.843552811095333
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0294",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.33685483329603033,
+    "fin_width_mm": 0.3058270551479533,
+    "channel_depth_mm": 1.9342715353809001,
+    "flow_lpm_per_kw": 1.8572604603647909,
+    "inlet_c": 39.79736196123554,
+    "heat_load_w": 922.7254787081451,
+    "hotspot_ratio": 1.481481047347123,
+    "hotspot_center_mm": 3.319989205117401,
+    "hotspot_width_mm": 3.1367971259366887
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0295",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23192654744057178,
+    "fin_width_mm": 0.37164965527426364,
+    "channel_depth_mm": 2.8224722517394913,
+    "flow_lpm_per_kw": 1.758068051906685,
+    "inlet_c": 31.272207971017885,
+    "heat_load_w": 916.4000981525737,
+    "hotspot_ratio": 1.2398717745098682,
+    "hotspot_center_mm": 3.0742642433239498,
+    "hotspot_width_mm": 2.4696640642305487
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0296",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.283209708458116,
+    "fin_width_mm": 0.336462646678795,
+    "channel_depth_mm": 2.7624891470123565,
+    "flow_lpm_per_kw": 1.6554555150797856,
+    "inlet_c": 41.092553980344356,
+    "heat_load_w": 972.9766513194356,
+    "hotspot_ratio": 2.903931591595496,
+    "hotspot_center_mm": 8.44047138664455,
+    "hotspot_width_mm": 2.9906091111053144
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0297",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3882207202446375,
+    "fin_width_mm": 0.494398868563322,
+    "channel_depth_mm": 2.124455039603537,
+    "flow_lpm_per_kw": 1.6011857949501094,
+    "inlet_c": 37.55659405045752,
+    "heat_load_w": 979.0950362946752,
+    "hotspot_ratio": 1.056359344010718,
+    "hotspot_center_mm": 18.113615118189266,
+    "hotspot_width_mm": 2.802427713535409
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0298",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.25323617202163856,
+    "fin_width_mm": 0.34039476853238615,
+    "channel_depth_mm": 1.7830876576737382,
+    "flow_lpm_per_kw": 1.6250686907010894,
+    "inlet_c": 40.69671064396137,
+    "heat_load_w": 581.9990141812963,
+    "hotspot_ratio": 2.6707099629398483,
+    "hotspot_center_mm": 26.448474267916808,
+    "hotspot_width_mm": 1.6552561723768426
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0299",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47852294014432445,
+    "fin_width_mm": 0.4798766427103088,
+    "channel_depth_mm": 2.2042815075027935,
+    "flow_lpm_per_kw": 1.7459932517262866,
+    "inlet_c": 30.34513147589374,
+    "heat_load_w": 531.169750568643,
+    "hotspot_ratio": 1.6100014120018513,
+    "hotspot_center_mm": 23.608628784534922,
+    "hotspot_width_mm": 2.983210616762795
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0300",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3108108960316806,
+    "fin_width_mm": 0.41598438679744454,
+    "channel_depth_mm": 2.562783115763634,
+    "flow_lpm_per_kw": 1.5033201648452494,
+    "inlet_c": 41.41749737832587,
+    "heat_load_w": 1292.1193830437212,
+    "hotspot_ratio": 2.5400127509993866,
+    "hotspot_center_mm": 16.206114911675012,
+    "hotspot_width_mm": 1.596399404856913
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0301",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.319172250234186,
+    "fin_width_mm": 0.3692721940718402,
+    "channel_depth_mm": 2.224322260836529,
+    "flow_lpm_per_kw": 1.2789341332266084,
+    "inlet_c": 39.31906707041933,
+    "heat_load_w": 933.8085900005685,
+    "hotspot_ratio": 1.2849839709436877,
+    "hotspot_center_mm": 12.482879037122768,
+    "hotspot_width_mm": 3.0539537154492686
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0302",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.42556759476737577,
+    "fin_width_mm": 0.3503579013016632,
+    "channel_depth_mm": 1.8704821990880531,
+    "flow_lpm_per_kw": 1.4841163580146377,
+    "inlet_c": 39.45387587165409,
+    "heat_load_w": 662.980694352008,
+    "hotspot_ratio": 2.869490269177733,
+    "hotspot_center_mm": 25.904834661599654,
+    "hotspot_width_mm": 1.6695652371696785
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0303",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.42703167636202427,
+    "fin_width_mm": 0.3225772378057283,
+    "channel_depth_mm": 2.995474725324672,
+    "flow_lpm_per_kw": 1.868245055681635,
+    "inlet_c": 37.78732922588375,
+    "heat_load_w": 517.7798695989568,
+    "hotspot_ratio": 1.5400645565836706,
+    "hotspot_center_mm": 3.6441780241813815,
+    "hotspot_width_mm": 2.029110324406661
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0304",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47898002259386874,
+    "fin_width_mm": 0.45710720248782816,
+    "channel_depth_mm": 2.6671582354199677,
+    "flow_lpm_per_kw": 1.735371403537508,
+    "inlet_c": 41.42829993128998,
+    "heat_load_w": 842.6366029719434,
+    "hotspot_ratio": 2.6999588494442035,
+    "hotspot_center_mm": 14.77135308982367,
+    "hotspot_width_mm": 3.22985763544252
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0305",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2814484369161643,
+    "fin_width_mm": 0.3494494136725482,
+    "channel_depth_mm": 2.441531381790841,
+    "flow_lpm_per_kw": 1.744411663937517,
+    "inlet_c": 30.019600160990993,
+    "heat_load_w": 614.9719914739904,
+    "hotspot_ratio": 1.24548252865502,
+    "hotspot_center_mm": 18.871789539526382,
+    "hotspot_width_mm": 1.6344741096054467
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0306",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.31397275069302666,
+    "fin_width_mm": 0.4393982475178002,
+    "channel_depth_mm": 1.1810343309793132,
+    "flow_lpm_per_kw": 1.352329600940444,
+    "inlet_c": 39.7287544982261,
+    "heat_load_w": 1035.8531326207972,
+    "hotspot_ratio": 1.1157682814171164,
+    "hotspot_center_mm": 21.516719708677595,
+    "hotspot_width_mm": 2.361784752423656
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0307",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3097699405091992,
+    "fin_width_mm": 0.45136850087212044,
+    "channel_depth_mm": 1.2840348061028959,
+    "flow_lpm_per_kw": 1.2846191579313495,
+    "inlet_c": 35.76716819068123,
+    "heat_load_w": 1201.932131846738,
+    "hotspot_ratio": 1.2911953151330042,
+    "hotspot_center_mm": 17.34026141467904,
+    "hotspot_width_mm": 2.6929528556250117
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0308",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4295094636380873,
+    "fin_width_mm": 0.21069345352997207,
+    "channel_depth_mm": 1.232915830204293,
+    "flow_lpm_per_kw": 1.9584622303275672,
+    "inlet_c": 33.23992543934243,
+    "heat_load_w": 1452.2459756720125,
+    "hotspot_ratio": 2.2049829097650804,
+    "hotspot_center_mm": 12.85977264868644,
+    "hotspot_width_mm": 1.7821518918990982
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0309",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4144138884086792,
+    "fin_width_mm": 0.3639919372873651,
+    "channel_depth_mm": 1.6477118325894007,
+    "flow_lpm_per_kw": 1.961580290914756,
+    "inlet_c": 30.825281591225433,
+    "heat_load_w": 883.3877867584636,
+    "hotspot_ratio": 1.6011355104978386,
+    "hotspot_center_mm": 11.736540967394808,
+    "hotspot_width_mm": 2.547072274437795
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0310",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.29664753404715255,
+    "fin_width_mm": 0.3581873583042333,
+    "channel_depth_mm": 1.1908100588040627,
+    "flow_lpm_per_kw": 1.3092661326949053,
+    "inlet_c": 37.255469600904114,
+    "heat_load_w": 778.9732207393162,
+    "hotspot_ratio": 2.8339542774531625,
+    "hotspot_center_mm": 13.538586494202217,
+    "hotspot_width_mm": 2.2270186548703697
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0311",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.47600149358550903,
+    "fin_width_mm": 0.31949333478230163,
+    "channel_depth_mm": 1.5606530588154635,
+    "flow_lpm_per_kw": 1.576846503204647,
+    "inlet_c": 30.31498568663366,
+    "heat_load_w": 574.7967938767833,
+    "hotspot_ratio": 1.7119965032876878,
+    "hotspot_center_mm": 6.164409217287187,
+    "hotspot_width_mm": 1.6790067494951417
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0312",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3689623032142898,
+    "fin_width_mm": 0.39961451462423847,
+    "channel_depth_mm": 2.367642563753388,
+    "flow_lpm_per_kw": 1.9804251206573589,
+    "inlet_c": 33.91241042190502,
+    "heat_load_w": 1232.7462343584361,
+    "hotspot_ratio": 1.7322727469472095,
+    "hotspot_center_mm": 22.928173254397795,
+    "hotspot_width_mm": 1.8227407231785804
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0313",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.34162446119051537,
+    "fin_width_mm": 0.49470368098298195,
+    "channel_depth_mm": 2.9772488536057717,
+    "flow_lpm_per_kw": 1.656611861184828,
+    "inlet_c": 35.02779316929589,
+    "heat_load_w": 1234.440950916975,
+    "hotspot_ratio": 2.8242441552215025,
+    "hotspot_center_mm": 22.127087981028275,
+    "hotspot_width_mm": 2.505260994615525
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0314",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2700691749026604,
+    "fin_width_mm": 0.3457971348519776,
+    "channel_depth_mm": 1.1781875447114631,
+    "flow_lpm_per_kw": 1.6265484204672085,
+    "inlet_c": 34.40653513876978,
+    "heat_load_w": 957.4254000264862,
+    "hotspot_ratio": 2.181670815704811,
+    "hotspot_center_mm": 22.52735141701414,
+    "hotspot_width_mm": 2.3838115637061836
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0315",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.27345600232925865,
+    "fin_width_mm": 0.3689366361376758,
+    "channel_depth_mm": 1.2787760834000659,
+    "flow_lpm_per_kw": 1.5057410499327524,
+    "inlet_c": 39.04170418283712,
+    "heat_load_w": 897.7915736004693,
+    "hotspot_ratio": 1.9667995583591635,
+    "hotspot_center_mm": 5.717632284603712,
+    "hotspot_width_mm": 2.336527669956955
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0316",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4658866790740198,
+    "fin_width_mm": 0.2665268287804394,
+    "channel_depth_mm": 2.4182834008198757,
+    "flow_lpm_per_kw": 1.7228518403800468,
+    "inlet_c": 40.2337844784634,
+    "heat_load_w": 701.1937901569074,
+    "hotspot_ratio": 2.1283280020311954,
+    "hotspot_center_mm": 4.504168663620787,
+    "hotspot_width_mm": 1.6184079217438012
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0317",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.39400619932324976,
+    "fin_width_mm": 0.3659566473672322,
+    "channel_depth_mm": 2.953282535484206,
+    "flow_lpm_per_kw": 1.7216481660458087,
+    "inlet_c": 33.394400124726175,
+    "heat_load_w": 902.1713309559689,
+    "hotspot_ratio": 2.971831822808931,
+    "hotspot_center_mm": 8.783076506379274,
+    "hotspot_width_mm": 2.355302799026701
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0318",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40754242855609624,
+    "fin_width_mm": 0.34348568777101346,
+    "channel_depth_mm": 2.59839071806432,
+    "flow_lpm_per_kw": 1.6008081212011884,
+    "inlet_c": 42.3415079060414,
+    "heat_load_w": 1014.7850925613626,
+    "hotspot_ratio": 1.4403011519651578,
+    "hotspot_center_mm": 5.7308316888785855,
+    "hotspot_width_mm": 2.542388185440306
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0319",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24544432785553555,
+    "fin_width_mm": 0.20938565524141245,
+    "channel_depth_mm": 1.5493544888071158,
+    "flow_lpm_per_kw": 1.2940019840832133,
+    "inlet_c": 37.543698549540856,
+    "heat_load_w": 747.8448007145953,
+    "hotspot_ratio": 2.2290196759169394,
+    "hotspot_center_mm": 4.166749443085904,
+    "hotspot_width_mm": 3.1406315377938196
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0320",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21311233539805446,
+    "fin_width_mm": 0.4311968751241423,
+    "channel_depth_mm": 2.7660343738682402,
+    "flow_lpm_per_kw": 1.7338255546773915,
+    "inlet_c": 35.87886409443075,
+    "heat_load_w": 734.8821887511435,
+    "hotspot_ratio": 1.2501449213764115,
+    "hotspot_center_mm": 5.476007364149822,
+    "hotspot_width_mm": 3.3438060016945768
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0321",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2979660609570268,
+    "fin_width_mm": 0.38673621681594167,
+    "channel_depth_mm": 1.9845224577553062,
+    "flow_lpm_per_kw": 1.7503071525201113,
+    "inlet_c": 32.936124357882825,
+    "heat_load_w": 1080.4492284251032,
+    "hotspot_ratio": 1.784360703828468,
+    "hotspot_center_mm": 9.250985960639074,
+    "hotspot_width_mm": 2.3142188956764613
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0322",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24553962702548388,
+    "fin_width_mm": 0.4899652058054025,
+    "channel_depth_mm": 2.473723864879294,
+    "flow_lpm_per_kw": 1.803471394867813,
+    "inlet_c": 39.7087923093521,
+    "heat_load_w": 807.0895873379222,
+    "hotspot_ratio": 1.418435998348097,
+    "hotspot_center_mm": 21.572264127090065,
+    "hotspot_width_mm": 1.6998808588116527
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0323",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24124195821692004,
+    "fin_width_mm": 0.20438604883878086,
+    "channel_depth_mm": 2.9399040885064025,
+    "flow_lpm_per_kw": 1.9865370227087722,
+    "inlet_c": 35.785881166988574,
+    "heat_load_w": 1088.3763113044674,
+    "hotspot_ratio": 2.666686003304478,
+    "hotspot_center_mm": 15.56841635974563,
+    "hotspot_width_mm": 2.558122521163766
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0324",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3463005591350852,
+    "fin_width_mm": 0.2717697898787908,
+    "channel_depth_mm": 2.1029652212390806,
+    "flow_lpm_per_kw": 1.406658516531746,
+    "inlet_c": 42.416804710122044,
+    "heat_load_w": 587.053928352504,
+    "hotspot_ratio": 1.876601962981899,
+    "hotspot_center_mm": 21.71500396970375,
+    "hotspot_width_mm": 2.2103254670116104
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0325",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3141752979138944,
+    "fin_width_mm": 0.48474790753744934,
+    "channel_depth_mm": 1.3563754593241786,
+    "flow_lpm_per_kw": 1.7327056418343263,
+    "inlet_c": 34.03582443247274,
+    "heat_load_w": 546.2079782035039,
+    "hotspot_ratio": 1.5334871812581448,
+    "hotspot_center_mm": 26.68793423222195,
+    "hotspot_width_mm": 2.819687314703697
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0326",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2705097142296564,
+    "fin_width_mm": 0.3315335798445955,
+    "channel_depth_mm": 1.1765025131567015,
+    "flow_lpm_per_kw": 1.5272594476872488,
+    "inlet_c": 35.23888901653429,
+    "heat_load_w": 640.9941704392703,
+    "hotspot_ratio": 1.8611133857499922,
+    "hotspot_center_mm": 12.858750634037559,
+    "hotspot_width_mm": 1.7924564486709693
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0327",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.27702614087823313,
+    "fin_width_mm": 0.4067510191296431,
+    "channel_depth_mm": 2.425445366618444,
+    "flow_lpm_per_kw": 1.5167758464620347,
+    "inlet_c": 37.7916253618427,
+    "heat_load_w": 577.1595470043411,
+    "hotspot_ratio": 1.4402856034486637,
+    "hotspot_center_mm": 19.270061763890244,
+    "hotspot_width_mm": 2.4361104973080163
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0328",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.40072568755747984,
+    "fin_width_mm": 0.3610099257708102,
+    "channel_depth_mm": 1.8858066103884417,
+    "flow_lpm_per_kw": 1.9959142139883626,
+    "inlet_c": 43.81867929118613,
+    "heat_load_w": 1227.255119929209,
+    "hotspot_ratio": 1.9707115063310388,
+    "hotspot_center_mm": 12.5302390074096,
+    "hotspot_width_mm": 2.721267799103686
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0329",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3043911246999817,
+    "fin_width_mm": 0.39712196112469234,
+    "channel_depth_mm": 2.6238427573574876,
+    "flow_lpm_per_kw": 1.844604711364147,
+    "inlet_c": 38.7449158674164,
+    "heat_load_w": 1433.8488044342716,
+    "hotspot_ratio": 1.9887463968154424,
+    "hotspot_center_mm": 20.639168632832565,
+    "hotspot_width_mm": 3.1013204730690305
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0330",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.34406615971558036,
+    "fin_width_mm": 0.299710656304646,
+    "channel_depth_mm": 1.3690857116738622,
+    "flow_lpm_per_kw": 1.2646328285360346,
+    "inlet_c": 35.19186015087408,
+    "heat_load_w": 1023.2080865808596,
+    "hotspot_ratio": 1.1323898624184163,
+    "hotspot_center_mm": 7.510598319743741,
+    "hotspot_width_mm": 2.7973902733410267
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0331",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3307366163372,
+    "fin_width_mm": 0.20472042910160435,
+    "channel_depth_mm": 1.8864219185638693,
+    "flow_lpm_per_kw": 1.8119915379408877,
+    "inlet_c": 35.84646856312256,
+    "heat_load_w": 1047.9209973578472,
+    "hotspot_ratio": 2.121207475564042,
+    "hotspot_center_mm": 17.64205561372578,
+    "hotspot_width_mm": 2.293167326844304
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0332",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.33903988181946954,
+    "fin_width_mm": 0.46627569640736777,
+    "channel_depth_mm": 2.3042354518406043,
+    "flow_lpm_per_kw": 1.8433391900661127,
+    "inlet_c": 30.34177837104903,
+    "heat_load_w": 1464.7864134672404,
+    "hotspot_ratio": 2.8675330098937213,
+    "hotspot_center_mm": 11.476449059921137,
+    "hotspot_width_mm": 2.446217719155299
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0333",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.42158407007837606,
+    "fin_width_mm": 0.25539675925675287,
+    "channel_depth_mm": 1.4703787840185583,
+    "flow_lpm_per_kw": 1.4157616473750039,
+    "inlet_c": 42.88201098492986,
+    "heat_load_w": 864.5826617061741,
+    "hotspot_ratio": 1.34052148811031,
+    "hotspot_center_mm": 11.511433481129973,
+    "hotspot_width_mm": 2.9938020166588117
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0334",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3297637521666754,
+    "fin_width_mm": 0.20554314423180806,
+    "channel_depth_mm": 2.5555052387357238,
+    "flow_lpm_per_kw": 1.4666214646535947,
+    "inlet_c": 35.14830691510526,
+    "heat_load_w": 1271.3698781917005,
+    "hotspot_ratio": 2.3892345329876363,
+    "hotspot_center_mm": 6.385241698930682,
+    "hotspot_width_mm": 1.7267721972284702
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0335",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23128434593049035,
+    "fin_width_mm": 0.21588858962762697,
+    "channel_depth_mm": 1.802498313336396,
+    "flow_lpm_per_kw": 1.5750334006498083,
+    "inlet_c": 31.749088853070045,
+    "heat_load_w": 717.5300166173711,
+    "hotspot_ratio": 2.9855343536471963,
+    "hotspot_center_mm": 16.11458720799355,
+    "hotspot_width_mm": 1.6119668202870827
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0336",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3089305747246248,
+    "fin_width_mm": 0.41859138195251033,
+    "channel_depth_mm": 2.735794880317303,
+    "flow_lpm_per_kw": 1.4654557336442324,
+    "inlet_c": 39.4090528082392,
+    "heat_load_w": 755.7289140599935,
+    "hotspot_ratio": 2.2158326488775524,
+    "hotspot_center_mm": 9.919588824772916,
+    "hotspot_width_mm": 2.485770999752787
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0337",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4251593862454133,
+    "fin_width_mm": 0.3432944562805744,
+    "channel_depth_mm": 1.2055272947296476,
+    "flow_lpm_per_kw": 1.8192009444065227,
+    "inlet_c": 38.83639754790661,
+    "heat_load_w": 587.1671766038266,
+    "hotspot_ratio": 1.662670857568321,
+    "hotspot_center_mm": 8.413805327512774,
+    "hotspot_width_mm": 2.071729596061509
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0338",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4177912322224725,
+    "fin_width_mm": 0.2757859936810218,
+    "channel_depth_mm": 1.812586945723641,
+    "flow_lpm_per_kw": 1.4047119861421404,
+    "inlet_c": 35.77124227395083,
+    "heat_load_w": 825.5672897034408,
+    "hotspot_ratio": 2.5778904915209955,
+    "hotspot_center_mm": 14.197405742475311,
+    "hotspot_width_mm": 2.226073736587285
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0339",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4711023910335642,
+    "fin_width_mm": 0.4098741895893796,
+    "channel_depth_mm": 1.676707902580229,
+    "flow_lpm_per_kw": 1.4879383692745924,
+    "inlet_c": 38.30561999360163,
+    "heat_load_w": 993.9013638969097,
+    "hotspot_ratio": 1.926204427168691,
+    "hotspot_center_mm": 4.302752579940036,
+    "hotspot_width_mm": 3.406354945835352
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0340",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2055114227850154,
+    "fin_width_mm": 0.24339525284384458,
+    "channel_depth_mm": 1.9735488690364045,
+    "flow_lpm_per_kw": 1.8309900494514033,
+    "inlet_c": 38.741773614551846,
+    "heat_load_w": 1071.9524139293048,
+    "hotspot_ratio": 1.5924491151947422,
+    "hotspot_center_mm": 21.792617385200366,
+    "hotspot_width_mm": 1.7561981196708432
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0341",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3361226318896231,
+    "fin_width_mm": 0.4178879205967004,
+    "channel_depth_mm": 1.9822491730278138,
+    "flow_lpm_per_kw": 1.3618437494156412,
+    "inlet_c": 34.690426813070864,
+    "heat_load_w": 1262.2515760572996,
+    "hotspot_ratio": 2.53093095943903,
+    "hotspot_center_mm": 4.433363055607253,
+    "hotspot_width_mm": 3.1599031742047137
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0342",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.353333464834208,
+    "fin_width_mm": 0.27608813953349914,
+    "channel_depth_mm": 2.361584646910542,
+    "flow_lpm_per_kw": 1.4937726292219125,
+    "inlet_c": 43.531088498622864,
+    "heat_load_w": 1183.2833537093939,
+    "hotspot_ratio": 1.7672914507389066,
+    "hotspot_center_mm": 22.033844705700353,
+    "hotspot_width_mm": 2.029816004989738
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0343",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.43308483986066143,
+    "fin_width_mm": 0.38425246139181707,
+    "channel_depth_mm": 1.741151458512882,
+    "flow_lpm_per_kw": 1.757303671222352,
+    "inlet_c": 33.981125451178805,
+    "heat_load_w": 1315.0220087537944,
+    "hotspot_ratio": 1.1667337056956832,
+    "hotspot_center_mm": 4.109176723909577,
+    "hotspot_width_mm": 2.6190323047829605
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0344",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.48180731513482,
+    "fin_width_mm": 0.43786987165836744,
+    "channel_depth_mm": 1.619069247324742,
+    "flow_lpm_per_kw": 1.6226766728460054,
+    "inlet_c": 32.44702707657042,
+    "heat_load_w": 819.0429746606055,
+    "hotspot_ratio": 2.885625271502282,
+    "hotspot_center_mm": 13.130078254649566,
+    "hotspot_width_mm": 2.16334677977843
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0345",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22367208661771654,
+    "fin_width_mm": 0.22469785727598168,
+    "channel_depth_mm": 2.5267043976888472,
+    "flow_lpm_per_kw": 1.7973772370456176,
+    "inlet_c": 41.166492117923134,
+    "heat_load_w": 903.8908023428451,
+    "hotspot_ratio": 2.653423435728392,
+    "hotspot_center_mm": 9.716517230206607,
+    "hotspot_width_mm": 3.3979791569025792
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0346",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24986234794824352,
+    "fin_width_mm": 0.4748640439726345,
+    "channel_depth_mm": 1.5620328659848939,
+    "flow_lpm_per_kw": 1.7957748715929753,
+    "inlet_c": 30.464331961059152,
+    "heat_load_w": 1320.1017367449622,
+    "hotspot_ratio": 1.3925343569301232,
+    "hotspot_center_mm": 20.01235424477196,
+    "hotspot_width_mm": 1.525245034844603
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0347",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.33304481124196084,
+    "fin_width_mm": 0.31742230869434374,
+    "channel_depth_mm": 2.741437543042359,
+    "flow_lpm_per_kw": 1.7812549143937393,
+    "inlet_c": 31.37064145485763,
+    "heat_load_w": 648.1827034042016,
+    "hotspot_ratio": 2.480772354785966,
+    "hotspot_center_mm": 11.29860799352116,
+    "hotspot_width_mm": 2.046249709276237
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0348",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.31658718798362223,
+    "fin_width_mm": 0.2746380444720068,
+    "channel_depth_mm": 2.1451342186880824,
+    "flow_lpm_per_kw": 1.3165857962040386,
+    "inlet_c": 39.37137911069696,
+    "heat_load_w": 942.9410526131007,
+    "hotspot_ratio": 2.2526479099836534,
+    "hotspot_center_mm": 9.903992997192557,
+    "hotspot_width_mm": 3.39477449472379
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0349",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21365746193866625,
+    "fin_width_mm": 0.21733414601543355,
+    "channel_depth_mm": 2.79223080301347,
+    "flow_lpm_per_kw": 1.9675837029845922,
+    "inlet_c": 33.48330974656949,
+    "heat_load_w": 639.7994146090549,
+    "hotspot_ratio": 1.1555158378506203,
+    "hotspot_center_mm": 7.470758464246196,
+    "hotspot_width_mm": 2.8045900379974094
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0350",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3724888867854965,
+    "fin_width_mm": 0.4049034352618549,
+    "channel_depth_mm": 1.7495183707853657,
+    "flow_lpm_per_kw": 1.673738970353908,
+    "inlet_c": 38.59032385405561,
+    "heat_load_w": 762.5763540217594,
+    "hotspot_ratio": 1.8498203552083434,
+    "hotspot_center_mm": 7.100288772796391,
+    "hotspot_width_mm": 2.938667047858017
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0351",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.34786573691562506,
+    "fin_width_mm": 0.28150183357377734,
+    "channel_depth_mm": 1.5285114496860464,
+    "flow_lpm_per_kw": 1.5954728119243262,
+    "inlet_c": 43.97241300097275,
+    "heat_load_w": 504.99113362147364,
+    "hotspot_ratio": 1.0694992138323265,
+    "hotspot_center_mm": 8.048385824090683,
+    "hotspot_width_mm": 2.311478522627467
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0352",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.26809892235867494,
+    "fin_width_mm": 0.49828981743103873,
+    "channel_depth_mm": 2.324923998130151,
+    "flow_lpm_per_kw": 1.537879201649099,
+    "inlet_c": 37.45263986185199,
+    "heat_load_w": 1361.0962137396066,
+    "hotspot_ratio": 1.576491327517604,
+    "hotspot_center_mm": 4.179058404949966,
+    "hotspot_width_mm": 2.1638214147189085
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0353",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3639487381803177,
+    "fin_width_mm": 0.37319223477602376,
+    "channel_depth_mm": 2.9801064329747473,
+    "flow_lpm_per_kw": 1.918609840258597,
+    "inlet_c": 43.7673864797472,
+    "heat_load_w": 918.9902661751037,
+    "hotspot_ratio": 2.7024534914720846,
+    "hotspot_center_mm": 13.50611253626586,
+    "hotspot_width_mm": 1.660573709075073
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0354",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4128424342584023,
+    "fin_width_mm": 0.32892500541851166,
+    "channel_depth_mm": 1.8672685421820254,
+    "flow_lpm_per_kw": 1.4341602687889752,
+    "inlet_c": 42.43666853421611,
+    "heat_load_w": 1180.8034890538088,
+    "hotspot_ratio": 2.486878643159523,
+    "hotspot_center_mm": 6.315240565250396,
+    "hotspot_width_mm": 2.254022443464066
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0355",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.444440472766494,
+    "fin_width_mm": 0.3647653170230517,
+    "channel_depth_mm": 1.9708012331465388,
+    "flow_lpm_per_kw": 1.2622841666132678,
+    "inlet_c": 30.518933125889564,
+    "heat_load_w": 1388.1851775042423,
+    "hotspot_ratio": 2.8642280665848663,
+    "hotspot_center_mm": 4.3998996952462095,
+    "hotspot_width_mm": 2.2523924858236595
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0356",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.45662155873895094,
+    "fin_width_mm": 0.21976298575559627,
+    "channel_depth_mm": 2.4936586946773094,
+    "flow_lpm_per_kw": 1.2574571584183936,
+    "inlet_c": 35.32792822126689,
+    "heat_load_w": 810.0686775767377,
+    "hotspot_ratio": 2.4752911117191583,
+    "hotspot_center_mm": 20.8805993655523,
+    "hotspot_width_mm": 3.0348617846907837
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0357",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.345698390041135,
+    "fin_width_mm": 0.2939959433230094,
+    "channel_depth_mm": 2.396132675672897,
+    "flow_lpm_per_kw": 1.854989605790119,
+    "inlet_c": 42.58301540877672,
+    "heat_load_w": 638.2211949875053,
+    "hotspot_ratio": 2.478315086504188,
+    "hotspot_center_mm": 19.1008675653209,
+    "hotspot_width_mm": 2.1900341334444917
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0358",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3461927278784279,
+    "fin_width_mm": 0.4000220693197645,
+    "channel_depth_mm": 2.3820074823276327,
+    "flow_lpm_per_kw": 1.7457284007058467,
+    "inlet_c": 37.315971079338404,
+    "heat_load_w": 665.0702421524911,
+    "hotspot_ratio": 1.6419592440091235,
+    "hotspot_center_mm": 21.23940581743925,
+    "hotspot_width_mm": 2.041146277143256
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0359",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3890375901376268,
+    "fin_width_mm": 0.3402000584530097,
+    "channel_depth_mm": 1.6918779150054495,
+    "flow_lpm_per_kw": 1.936494894140017,
+    "inlet_c": 40.3827131767021,
+    "heat_load_w": 1323.6328358985852,
+    "hotspot_ratio": 1.2970875521709504,
+    "hotspot_center_mm": 21.828221280351542,
+    "hotspot_width_mm": 2.7041671048600397
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0360",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3815142281734534,
+    "fin_width_mm": 0.4700425694071217,
+    "channel_depth_mm": 1.8942250236367888,
+    "flow_lpm_per_kw": 1.894216000290497,
+    "inlet_c": 44.291193018498944,
+    "heat_load_w": 509.3418168687195,
+    "hotspot_ratio": 1.0983514138412416,
+    "hotspot_center_mm": 23.379318717394455,
+    "hotspot_width_mm": 3.380032882648062
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0361",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2958584254774623,
+    "fin_width_mm": 0.3893689838399801,
+    "channel_depth_mm": 1.4557910510375023,
+    "flow_lpm_per_kw": 1.902517695229835,
+    "inlet_c": 33.30366608540739,
+    "heat_load_w": 1210.9497240117307,
+    "hotspot_ratio": 1.994629517339779,
+    "hotspot_center_mm": 22.645416136613413,
+    "hotspot_width_mm": 2.9841269299212163
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0362",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.44504222392104525,
+    "fin_width_mm": 0.20175525408154138,
+    "channel_depth_mm": 2.5155493648777982,
+    "flow_lpm_per_kw": 1.3038266912513659,
+    "inlet_c": 40.89552446893351,
+    "heat_load_w": 870.5486884686723,
+    "hotspot_ratio": 1.3370730040137104,
+    "hotspot_center_mm": 22.72664682162417,
+    "hotspot_width_mm": 2.767926825574415
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0363",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.29209017019121136,
+    "fin_width_mm": 0.4642968112460223,
+    "channel_depth_mm": 2.072746521938684,
+    "flow_lpm_per_kw": 1.305834412022862,
+    "inlet_c": 38.361911247797956,
+    "heat_load_w": 1478.058502517143,
+    "hotspot_ratio": 1.1774954739997117,
+    "hotspot_center_mm": 19.432344102034488,
+    "hotspot_width_mm": 2.0977281393523026
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0364",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.34780154006507125,
+    "fin_width_mm": 0.44070509773858696,
+    "channel_depth_mm": 2.0434877276746004,
+    "flow_lpm_per_kw": 1.6920461133772924,
+    "inlet_c": 43.43256945125702,
+    "heat_load_w": 522.3572101764247,
+    "hotspot_ratio": 1.8482610960173196,
+    "hotspot_center_mm": 19.606034673422627,
+    "hotspot_width_mm": 2.627635753671183
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0365",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4927277238393306,
+    "fin_width_mm": 0.22631785681495104,
+    "channel_depth_mm": 2.93718103448247,
+    "flow_lpm_per_kw": 1.2573894022290268,
+    "inlet_c": 35.12871238932748,
+    "heat_load_w": 1121.1292900557291,
+    "hotspot_ratio": 1.286636168756826,
+    "hotspot_center_mm": 13.833802691605285,
+    "hotspot_width_mm": 2.202808328680008
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0366",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4452633752525389,
+    "fin_width_mm": 0.23934044252212375,
+    "channel_depth_mm": 2.9024213325657393,
+    "flow_lpm_per_kw": 1.7846627092868932,
+    "inlet_c": 42.50972091690377,
+    "heat_load_w": 799.0601889576358,
+    "hotspot_ratio": 2.658756566363669,
+    "hotspot_center_mm": 14.284765841146015,
+    "hotspot_width_mm": 2.6905226894718908
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0367",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2083519710179744,
+    "fin_width_mm": 0.24414209514876828,
+    "channel_depth_mm": 2.099523059098459,
+    "flow_lpm_per_kw": 1.433027566751898,
+    "inlet_c": 32.91136329013991,
+    "heat_load_w": 1109.0024563686788,
+    "hotspot_ratio": 1.0038343218631738,
+    "hotspot_center_mm": 10.502517270335447,
+    "hotspot_width_mm": 3.078154554150569
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0368",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.271721035340628,
+    "fin_width_mm": 0.48359756105216256,
+    "channel_depth_mm": 2.2802717120495246,
+    "flow_lpm_per_kw": 1.7985134026644554,
+    "inlet_c": 31.918883250284697,
+    "heat_load_w": 1328.4499499234903,
+    "hotspot_ratio": 1.2501661519242542,
+    "hotspot_center_mm": 25.485438965622766,
+    "hotspot_width_mm": 3.2765127036256096
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0369",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3103106000594945,
+    "fin_width_mm": 0.3031917470090996,
+    "channel_depth_mm": 1.581776742071031,
+    "flow_lpm_per_kw": 1.8178461528248757,
+    "inlet_c": 35.59776096661101,
+    "heat_load_w": 788.8501153215441,
+    "hotspot_ratio": 2.958442172992053,
+    "hotspot_center_mm": 26.88532677613535,
+    "hotspot_width_mm": 2.510588415625855
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0370",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3649328796098553,
+    "fin_width_mm": 0.338414816242382,
+    "channel_depth_mm": 1.4287035298476711,
+    "flow_lpm_per_kw": 1.3342061254265145,
+    "inlet_c": 43.00713612969218,
+    "heat_load_w": 507.5221515214,
+    "hotspot_ratio": 2.761888398026969,
+    "hotspot_center_mm": 25.98723351445998,
+    "hotspot_width_mm": 2.8403807796701233
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0371",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.28781742610139893,
+    "fin_width_mm": 0.4325741942234997,
+    "channel_depth_mm": 1.5974558304425899,
+    "flow_lpm_per_kw": 1.5365286187325304,
+    "inlet_c": 35.52522311859335,
+    "heat_load_w": 964.2590482909978,
+    "hotspot_ratio": 2.5597033018697415,
+    "hotspot_center_mm": 13.327684635373188,
+    "hotspot_width_mm": 2.607476046782131
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0372",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2603597569049567,
+    "fin_width_mm": 0.47243012789836203,
+    "channel_depth_mm": 2.8228649022948735,
+    "flow_lpm_per_kw": 1.3748783354701102,
+    "inlet_c": 36.78148703085356,
+    "heat_load_w": 513.164354381188,
+    "hotspot_ratio": 2.6072102771843166,
+    "hotspot_center_mm": 10.536214254903852,
+    "hotspot_width_mm": 2.8551499203275146
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0373",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.42702406351924627,
+    "fin_width_mm": 0.30627661697449193,
+    "channel_depth_mm": 1.750921870315682,
+    "flow_lpm_per_kw": 1.392956563030257,
+    "inlet_c": 31.05350841135527,
+    "heat_load_w": 968.3246762586107,
+    "hotspot_ratio": 1.5682912631107513,
+    "hotspot_center_mm": 8.261156378817732,
+    "hotspot_width_mm": 2.4151156380029764
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0374",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.29203525309150197,
+    "fin_width_mm": 0.35013789346130997,
+    "channel_depth_mm": 1.1838247388133398,
+    "flow_lpm_per_kw": 1.3824150842098746,
+    "inlet_c": 42.342375282081576,
+    "heat_load_w": 664.143454076341,
+    "hotspot_ratio": 1.9366576854877424,
+    "hotspot_center_mm": 16.090935697840564,
+    "hotspot_width_mm": 3.147080406694524
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0375",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.24435306000865964,
+    "fin_width_mm": 0.45375216191189927,
+    "channel_depth_mm": 1.3595059292097857,
+    "flow_lpm_per_kw": 1.5350134697064948,
+    "inlet_c": 32.09325328691693,
+    "heat_load_w": 1312.2046241759253,
+    "hotspot_ratio": 1.2242678622061836,
+    "hotspot_center_mm": 6.251565953795162,
+    "hotspot_width_mm": 2.755020412612061
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0376",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2442145618582319,
+    "fin_width_mm": 0.4085791282272412,
+    "channel_depth_mm": 1.1309130668149472,
+    "flow_lpm_per_kw": 1.5260063361700449,
+    "inlet_c": 34.413573693365564,
+    "heat_load_w": 1183.4412580189385,
+    "hotspot_ratio": 1.2448605601255707,
+    "hotspot_center_mm": 3.6286050324288697,
+    "hotspot_width_mm": 2.0349311384863995
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0377",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21414803862542153,
+    "fin_width_mm": 0.203745391082812,
+    "channel_depth_mm": 2.5137090877379555,
+    "flow_lpm_per_kw": 1.3764174459110683,
+    "inlet_c": 43.483910820512534,
+    "heat_load_w": 1108.377107464254,
+    "hotspot_ratio": 2.754935188105012,
+    "hotspot_center_mm": 23.596935047936626,
+    "hotspot_width_mm": 1.755081499014966
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0378",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4517019801970696,
+    "fin_width_mm": 0.32655565755594096,
+    "channel_depth_mm": 2.0022950468738747,
+    "flow_lpm_per_kw": 1.951150431960859,
+    "inlet_c": 34.90075134256017,
+    "heat_load_w": 842.7695966513302,
+    "hotspot_ratio": 2.179705808556002,
+    "hotspot_center_mm": 3.3441316920977915,
+    "hotspot_width_mm": 2.800765367088512
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0379",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.4728145024857384,
+    "fin_width_mm": 0.3420097381139884,
+    "channel_depth_mm": 2.0743606747075165,
+    "flow_lpm_per_kw": 1.4362651159227555,
+    "inlet_c": 44.60523646723711,
+    "heat_load_w": 1268.3195339781369,
+    "hotspot_ratio": 1.8986808842487561,
+    "hotspot_center_mm": 4.391748975533993,
+    "hotspot_width_mm": 2.408913033176315
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0380",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22142569998505227,
+    "fin_width_mm": 0.2785476893578229,
+    "channel_depth_mm": 2.7787935040158365,
+    "flow_lpm_per_kw": 1.5222345839901,
+    "inlet_c": 32.87860660756529,
+    "heat_load_w": 1138.8547030739637,
+    "hotspot_ratio": 2.555592274659169,
+    "hotspot_center_mm": 24.46081738129555,
+    "hotspot_width_mm": 2.1737774775145966
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0381",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.21239104962315777,
+    "fin_width_mm": 0.4109420780295667,
+    "channel_depth_mm": 2.0849882926178696,
+    "flow_lpm_per_kw": 1.8930840034986387,
+    "inlet_c": 31.47402481180163,
+    "heat_load_w": 904.7653391130957,
+    "hotspot_ratio": 1.603115415857671,
+    "hotspot_center_mm": 3.2061711048890853,
+    "hotspot_width_mm": 2.325971450589676
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0382",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.36046943459309333,
+    "fin_width_mm": 0.4156917029116999,
+    "channel_depth_mm": 1.3796925156012443,
+    "flow_lpm_per_kw": 1.6645174628865902,
+    "inlet_c": 33.957611011043085,
+    "heat_load_w": 1323.6666267984401,
+    "hotspot_ratio": 1.2712175802246695,
+    "hotspot_center_mm": 17.54711514342353,
+    "hotspot_width_mm": 1.9251592429957831
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0383",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2008059891822649,
+    "fin_width_mm": 0.482769270794626,
+    "channel_depth_mm": 2.8475892951860384,
+    "flow_lpm_per_kw": 1.283966897457596,
+    "inlet_c": 42.309945235846264,
+    "heat_load_w": 1180.4214548762989,
+    "hotspot_ratio": 1.0721815877323364,
+    "hotspot_center_mm": 3.239742727512305,
+    "hotspot_width_mm": 3.469465398460512
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0384",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.27919604077079185,
+    "fin_width_mm": 0.3064008182778796,
+    "channel_depth_mm": 2.220321265314647,
+    "flow_lpm_per_kw": 1.4700221938589457,
+    "inlet_c": 41.61281258887826,
+    "heat_load_w": 646.9368646490592,
+    "hotspot_ratio": 2.1103824095680705,
+    "hotspot_center_mm": 16.733907399429967,
+    "hotspot_width_mm": 1.5334783534887821
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0385",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3262889635135169,
+    "fin_width_mm": 0.2085552151661509,
+    "channel_depth_mm": 1.1006959886119694,
+    "flow_lpm_per_kw": 1.477370235145902,
+    "inlet_c": 37.63753373233686,
+    "heat_load_w": 1412.6492545101605,
+    "hotspot_ratio": 1.3027193934969705,
+    "hotspot_center_mm": 18.633681363652496,
+    "hotspot_width_mm": 3.3089382878532456
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0386",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3657333607669686,
+    "fin_width_mm": 0.26662034472808904,
+    "channel_depth_mm": 2.585904602003288,
+    "flow_lpm_per_kw": 1.4147139697593394,
+    "inlet_c": 34.65842527921981,
+    "heat_load_w": 839.628555488225,
+    "hotspot_ratio": 1.9018538480474603,
+    "hotspot_center_mm": 9.018600567119503,
+    "hotspot_width_mm": 1.5423499988836584
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0387",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2628750163497631,
+    "fin_width_mm": 0.351274547331353,
+    "channel_depth_mm": 2.440247062266757,
+    "flow_lpm_per_kw": 1.4330482917195222,
+    "inlet_c": 34.898165690449666,
+    "heat_load_w": 877.7456324293944,
+    "hotspot_ratio": 1.2618066876125984,
+    "hotspot_center_mm": 8.934293116737887,
+    "hotspot_width_mm": 3.446527687154334
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0388",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30935420456984464,
+    "fin_width_mm": 0.25839828639000617,
+    "channel_depth_mm": 2.6438022392467975,
+    "flow_lpm_per_kw": 1.5191411767002116,
+    "inlet_c": 36.57903291468314,
+    "heat_load_w": 731.3159957851792,
+    "hotspot_ratio": 1.706325873145309,
+    "hotspot_center_mm": 13.08910260688376,
+    "hotspot_width_mm": 3.3746040287940358
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0389",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.49092531287671287,
+    "fin_width_mm": 0.22341841528592365,
+    "channel_depth_mm": 1.3724081327628512,
+    "flow_lpm_per_kw": 1.66570741437064,
+    "inlet_c": 38.269655323840404,
+    "heat_load_w": 783.5954457470391,
+    "hotspot_ratio": 1.8342532191288803,
+    "hotspot_center_mm": 10.125094796540932,
+    "hotspot_width_mm": 2.6721923601913957
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0390",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.22445356147618664,
+    "fin_width_mm": 0.3136238179272098,
+    "channel_depth_mm": 1.088108819075182,
+    "flow_lpm_per_kw": 1.6748954118368284,
+    "inlet_c": 37.81579010585887,
+    "heat_load_w": 1283.0366813363753,
+    "hotspot_ratio": 1.0014611361024441,
+    "hotspot_center_mm": 9.030449536119582,
+    "hotspot_width_mm": 1.7724500575696118
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0391",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.2523570464681418,
+    "fin_width_mm": 0.34976425582149573,
+    "channel_depth_mm": 2.4868635716447374,
+    "flow_lpm_per_kw": 1.5198431594829438,
+    "inlet_c": 44.16982286933836,
+    "heat_load_w": 836.5623109284801,
+    "hotspot_ratio": 2.665455866958739,
+    "hotspot_center_mm": 14.568986320479219,
+    "hotspot_width_mm": 3.1588712591401817
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0392",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.23441624506617195,
+    "fin_width_mm": 0.22998843503116084,
+    "channel_depth_mm": 1.346187582258128,
+    "flow_lpm_per_kw": 1.441892792569096,
+    "inlet_c": 40.55050929936239,
+    "heat_load_w": 1096.134820563016,
+    "hotspot_ratio": 1.6666189609985749,
+    "hotspot_center_mm": 25.221625599270514,
+    "hotspot_width_mm": 2.6532616483093383
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0393",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3740472703963098,
+    "fin_width_mm": 0.3135145070477432,
+    "channel_depth_mm": 2.2417965752614366,
+    "flow_lpm_per_kw": 1.5190339387462968,
+    "inlet_c": 39.586140668373154,
+    "heat_load_w": 883.9212243167641,
+    "hotspot_ratio": 2.476013657130287,
+    "hotspot_center_mm": 3.1794977954415344,
+    "hotspot_width_mm": 2.0910448045988996
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0394",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.30598739399338704,
+    "fin_width_mm": 0.29178280890645897,
+    "channel_depth_mm": 1.0763802351492577,
+    "flow_lpm_per_kw": 1.7739805634533705,
+    "inlet_c": 36.12575479837689,
+    "heat_load_w": 576.8523410259688,
+    "hotspot_ratio": 2.6312900839279463,
+    "hotspot_center_mm": 15.30616527503293,
+    "hotspot_width_mm": 2.0170009517760956
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0395",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.42797005955053047,
+    "fin_width_mm": 0.23009866600844853,
+    "channel_depth_mm": 2.6491219516506606,
+    "flow_lpm_per_kw": 1.382859659990498,
+    "inlet_c": 34.12559503038114,
+    "heat_load_w": 541.4955250216236,
+    "hotspot_ratio": 1.4338888945963204,
+    "hotspot_center_mm": 11.99309332684727,
+    "hotspot_width_mm": 1.844420065835094
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0396",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.3020081321046486,
+    "fin_width_mm": 0.4764789682367892,
+    "channel_depth_mm": 2.9151758839983986,
+    "flow_lpm_per_kw": 1.7610059376561726,
+    "inlet_c": 40.635458283652625,
+    "heat_load_w": 761.0088358215756,
+    "hotspot_ratio": 1.271514586090374,
+    "hotspot_center_mm": 10.326529586348428,
+    "hotspot_width_mm": 2.9703721350001113
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0397",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.26297988770776004,
+    "fin_width_mm": 0.28650271634211016,
+    "channel_depth_mm": 1.4788377150396492,
+    "flow_lpm_per_kw": 1.580001447915719,
+    "inlet_c": 42.70976717935733,
+    "heat_load_w": 553.388701073281,
+    "hotspot_ratio": 2.2884037714035834,
+    "hotspot_center_mm": 8.83706833723819,
+    "hotspot_width_mm": 3.2216523264783463
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0398",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.28392636579294345,
+    "fin_width_mm": 0.22479451426951394,
+    "channel_depth_mm": 1.2389230917887457,
+    "flow_lpm_per_kw": 1.4322407323196031,
+    "inlet_c": 44.69145356616889,
+    "heat_load_w": 522.265443583448,
+    "hotspot_ratio": 1.8290254886055186,
+    "hotspot_center_mm": 23.542255829329026,
+    "hotspot_width_mm": 1.6127305325192185
+   },
+   "options": {
+    "iterations": 2000
+   }
+  },
+  {
+   "case_id": "train-0399",
+   "kind": "ordinary",
+   "inputs": {
+    "channel_width_mm": 0.45873891988391036,
+    "fin_width_mm": 0.428838867543769,
+    "channel_depth_mm": 2.306037587674203,
+    "flow_lpm_per_kw": 1.4431158435363083,
+    "inlet_c": 42.94427033368701,
+    "heat_load_w": 813.9573333087878,
+    "hotspot_ratio": 1.9367079577682276,
+    "hotspot_center_mm": 13.782351551125947,
+    "hotspot_width_mm": 2.364049249297291
+   },
+   "options": {
+    "iterations": 2000
+   }
+  }
+ ]
+}

@@ -8,6 +8,7 @@ dependencies = []
 
 [project.scripts]
 carbon-mcp = "carbon.miner_mcp.standard_cli:main"
+carbon-miner-signer = "carbon_miner_signer:main"
 
 [build-system]
 requires = ["setuptools==84.0.0"]

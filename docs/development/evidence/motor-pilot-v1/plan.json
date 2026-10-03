@@ -1,0 +1,280 @@
+{
+  "batch": "motor-pilot-v1",
+  "population": "carbon.motor.development-population.v1",
+  "label": "carbon.motor.pilot-v1",
+  "draws": {
+    "ordinary": 8,
+    "difficult": 4331
+  },
+  "cases": [
+    {
+      "case_id": "ordinary-1",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 1.7838670965737786,
+        "embrace": 0.9498287300009318,
+        "airgap_mm": 0.8984599718640103,
+        "slot_open_deg": 5.221215807725,
+        "tooth_mm": 3.0711169426796383,
+        "slot_bottom_mm": 41.45853938333243,
+        "current_density_a_mm2": 7.325044936403965,
+        "current_angle_deg": 57.52229911971995
+      }
+    },
+    {
+      "case_id": "ordinary-2",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 1.7748665287747267,
+        "embrace": 0.8502643026930421,
+        "airgap_mm": 0.7885833223512027,
+        "slot_open_deg": 2.086085601935864,
+        "tooth_mm": 3.4191451147347323,
+        "slot_bottom_mm": 40.81345338208873,
+        "current_density_a_mm2": 9.03292063935259,
+        "current_angle_deg": 36.451389762998154
+      }
+    },
+    {
+      "case_id": "ordinary-3",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 3.3090620914764144,
+        "embrace": 0.5552025045009985,
+        "airgap_mm": 0.5300826012990616,
+        "slot_open_deg": 4.364442346948421,
+        "tooth_mm": 4.158516713034464,
+        "slot_bottom_mm": 37.63954664455183,
+        "current_density_a_mm2": 8.855366774376577,
+        "current_angle_deg": 40.435663491539266
+      }
+    },
+    {
+      "case_id": "ordinary-4",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 2.373076826908482,
+        "embrace": 0.8315430063178331,
+        "airgap_mm": 0.3434551700012747,
+        "slot_open_deg": 2.6198602133312963,
+        "tooth_mm": 2.820378082018153,
+        "slot_bottom_mm": 38.853951216742956,
+        "current_density_a_mm2": 13.969178348678119,
+        "current_angle_deg": 23.70074451511777
+      }
+    },
+    {
+      "case_id": "ordinary-5",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 2.1760659465712986,
+        "embrace": 0.8945770754477358,
+        "airgap_mm": 0.7208827827217518,
+        "slot_open_deg": 3.5363199132220866,
+        "tooth_mm": 3.2447944754499427,
+        "slot_bottom_mm": 40.692264038116626,
+        "current_density_a_mm2": 5.457214685293841,
+        "current_angle_deg": 46.01000741285904
+      }
+    },
+    {
+      "case_id": "ordinary-6",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 2.7672175545352964,
+        "embrace": 0.6792213583336368,
+        "airgap_mm": 0.5767564520709563,
+        "slot_open_deg": 5.6392507181808424,
+        "tooth_mm": 3.1160524078041263,
+        "slot_bottom_mm": 39.63642885566428,
+        "current_density_a_mm2": 9.87552718876722,
+        "current_angle_deg": 57.981058489079636
+      }
+    },
+    {
+      "case_id": "ordinary-7",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 3.832367173965949,
+        "embrace": 0.7027975454614581,
+        "airgap_mm": 0.37676768583048126,
+        "slot_open_deg": 4.440783148100452,
+        "tooth_mm": 2.6768777436439337,
+        "slot_bottom_mm": 39.02959768191978,
+        "current_density_a_mm2": 0.4596586777273237,
+        "current_angle_deg": 21.13298492016343
+      }
+    },
+    {
+      "case_id": "ordinary-8",
+      "kind": "ordinary",
+      "inputs": {
+        "magnet_mm": 3.2923057692053748,
+        "embrace": 0.9017934724388144,
+        "airgap_mm": 0.5784385563334421,
+        "slot_open_deg": 4.611324177652518,
+        "tooth_mm": 3.2870335460662936,
+        "slot_bottom_mm": 36.87918935016224,
+        "current_density_a_mm2": 1.0839978412633111,
+        "current_angle_deg": 7.192741981140436
+      }
+    },
+    {
+      "case_id": "difficult-1-deep-saturation",
+      "kind": "corner",
+      "inputs": {
+        "magnet_mm": 3.409808352451238,
+        "embrace": 0.8849501844579062,
+        "airgap_mm": 0.9475290149192019,
+        "slot_open_deg": 3.858121742963216,
+        "tooth_mm": 2.5650591024792497,
+        "slot_bottom_mm": 41.97315564574734,
+        "current_density_a_mm2": 14.827924880811919,
+        "current_angle_deg": 34.48168719444068
+      }
+    },
+    {
+      "case_id": "difficult-2-sharpest-cogging",
+      "kind": "corner",
+      "inputs": {
+        "magnet_mm": 2.1940616263326644,
+        "embrace": 0.7271580167360738,
+        "airgap_mm": 0.3039607534898082,
+        "slot_open_deg": 5.982350570674694,
+        "tooth_mm": 3.49233789553083,
+        "slot_bottom_mm": 36.75135333926559,
+        "current_density_a_mm2": 12.956183919804728,
+        "current_angle_deg": 36.64387187154001
+      }
+    },
+    {
+      "case_id": "difficult-3-weakest-field",
+      "kind": "corner",
+      "inputs": {
+        "magnet_mm": 1.5153618584874686,
+        "embrace": 0.6998990039035511,
+        "airgap_mm": 0.9921777006111745,
+        "slot_open_deg": 2.6996585919313354,
+        "tooth_mm": 3.2598448227996304,
+        "slot_bottom_mm": 34.96408028501263,
+        "current_density_a_mm2": 6.240023197355317,
+        "current_angle_deg": 22.117713905832186
+      }
+    },
+    {
+      "case_id": "difficult-4-field-weakening",
+      "kind": "corner",
+      "inputs": {
+        "magnet_mm": 3.19863752056973,
+        "embrace": 0.6359752088038756,
+        "airgap_mm": 0.6995566491987872,
+        "slot_open_deg": 5.978089343652842,
+        "tooth_mm": 2.6241249264710893,
+        "slot_bottom_mm": 38.385652239598016,
+        "current_density_a_mm2": 14.737286897061988,
+        "current_angle_deg": 57.593496660025984
+      }
+    },
+    {
+      "case_id": "ordinary-1-n2880",
+      "kind": "refinement",
+      "inputs": {
+        "magnet_mm": 1.7838670965737786,
+        "embrace": 0.9498287300009318,
+        "airgap_mm": 0.8984599718640103,
+        "slot_open_deg": 5.221215807725,
+        "tooth_mm": 3.0711169426796383,
+        "slot_bottom_mm": 41.45853938333243,
+        "current_density_a_mm2": 7.325044936403965,
+        "current_angle_deg": 57.52229911971995
+      },
+      "options": {
+        "n_gap": 2880,
+        "h_max": 0.5,
+        "angle_steps": 15
+      },
+      "pairs_with": "ordinary-1"
+    },
+    {
+      "case_id": "ordinary-2-n2880",
+      "kind": "refinement",
+      "inputs": {
+        "magnet_mm": 1.7748665287747267,
+        "embrace": 0.8502643026930421,
+        "airgap_mm": 0.7885833223512027,
+        "slot_open_deg": 2.086085601935864,
+        "tooth_mm": 3.4191451147347323,
+        "slot_bottom_mm": 40.81345338208873,
+        "current_density_a_mm2": 9.03292063935259,
+        "current_angle_deg": 36.451389762998154
+      },
+      "options": {
+        "n_gap": 2880,
+        "h_max": 0.5,
+        "angle_steps": 15
+      },
+      "pairs_with": "ordinary-2"
+    },
+    {
+      "case_id": "difficult-1-deep-saturation-n2880",
+      "kind": "refinement",
+      "inputs": {
+        "magnet_mm": 3.409808352451238,
+        "embrace": 0.8849501844579062,
+        "airgap_mm": 0.9475290149192019,
+        "slot_open_deg": 3.858121742963216,
+        "tooth_mm": 2.5650591024792497,
+        "slot_bottom_mm": 41.97315564574734,
+        "current_density_a_mm2": 14.827924880811919,
+        "current_angle_deg": 34.48168719444068
+      },
+      "options": {
+        "n_gap": 2880,
+        "h_max": 0.5,
+        "angle_steps": 15
+      },
+      "pairs_with": "difficult-1-deep-saturation"
+    },
+    {
+      "case_id": "difficult-2-sharpest-cogging-n2880",
+      "kind": "refinement",
+      "inputs": {
+        "magnet_mm": 2.1940616263326644,
+        "embrace": 0.7271580167360738,
+        "airgap_mm": 0.3039607534898082,
+        "slot_open_deg": 5.982350570674694,
+        "tooth_mm": 3.49233789553083,
+        "slot_bottom_mm": 36.75135333926559,
+        "current_density_a_mm2": 12.956183919804728,
+        "current_angle_deg": 36.64387187154001
+      },
+      "options": {
+        "n_gap": 2880,
+        "h_max": 0.5,
+        "angle_steps": 15
+      },
+      "pairs_with": "difficult-2-sharpest-cogging"
+    },
+    {
+      "case_id": "ordinary-2-n2880-a120",
+      "kind": "diagnostic",
+      "inputs": {
+        "magnet_mm": 1.7748665287747267,
+        "embrace": 0.8502643026930421,
+        "airgap_mm": 0.7885833223512027,
+        "slot_open_deg": 2.086085601935864,
+        "tooth_mm": 3.4191451147347323,
+        "slot_bottom_mm": 40.81345338208873,
+        "current_density_a_mm2": 9.03292063935259,
+        "current_angle_deg": 36.451389762998154
+      },
+      "options": {
+        "n_gap": 2880,
+        "h_max": 0.5,
+        "angle_steps": 120,
+        "positions": 31
+      },
+      "pairs_with": "ordinary-2"
+    }
+  ]
+}

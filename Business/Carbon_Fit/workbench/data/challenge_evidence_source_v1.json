@@ -90,28 +90,48 @@
         "fluid"
       ],
       "variable_aliases": {
-        "channel_geometry": [
+        "channel_width_mm": [
+          "channel width",
           "channel",
           "geometry",
-          "layout",
+          "layout"
+        ],
+        "fin_width_mm": [
+          "fin width",
           "fin"
         ],
-        "coolant_flow": [
+        "channel_depth_mm": [
+          "channel depth",
+          "depth"
+        ],
+        "flow_lpm_per_kw": [
           "flow rate",
           "coolant flow",
           "mass flow",
           "flow"
         ],
-        "inlet_temperature": [
+        "inlet_c": [
           "inlet temperature",
           "inlet",
           "supply temperature"
         ],
-        "heat_load_map": [
+        "heat_load_w": [
           "heat load",
-          "power map",
-          "heat flux",
           "power"
+        ],
+        "hotspot_ratio": [
+          "hot spot",
+          "hotspot",
+          "power map",
+          "heat flux"
+        ],
+        "hotspot_center_mm": [
+          "hot spot location",
+          "hotspot location"
+        ],
+        "hotspot_width_mm": [
+          "hot spot size",
+          "hotspot size"
         ]
       },
       "evidence": null
@@ -139,23 +159,43 @@
         "solid"
       ],
       "variable_aliases": {
-        "cross_section_geometry": [
-          "cross-section",
-          "cross section",
-          "geometry",
-          "slot",
+        "magnet_mm": [
+          "magnet thickness",
           "magnet shape"
         ],
-        "phase_current": [
+        "embrace": [
+          "pole embrace",
+          "pole arc"
+        ],
+        "airgap_mm": [
+          "airgap",
+          "air gap"
+        ],
+        "slot_open_deg": [
+          "slot opening",
+          "slot",
+          "cross-section",
+          "cross section",
+          "geometry"
+        ],
+        "tooth_mm": [
+          "tooth width",
+          "tooth"
+        ],
+        "slot_bottom_mm": [
+          "slot depth",
+          "slot bottom"
+        ],
+        "current_density_a_mm2": [
           "phase current",
           "current",
-          "excitation"
+          "excitation",
+          "current density"
         ],
-        "rotor_angle": [
-          "rotor angle",
-          "rotor position",
-          "angle",
-          "position"
+        "current_angle_deg": [
+          "current angle",
+          "field weakening",
+          "angle"
         ]
       },
       "evidence": null
@@ -180,16 +220,14 @@
         "electromagnetic"
       ],
       "variable_aliases": {
-        "coupler_geometry": [
+        "gap_nm": [
           "gap",
-          "coupling length",
-          "geometry",
-          "width"
+          "coupling gap",
+          "geometry"
         ],
-        "wavelength": [
-          "wavelength",
-          "band",
-          "frequency"
+        "length_um": [
+          "coupling length",
+          "length"
         ]
       },
       "evidence": null
