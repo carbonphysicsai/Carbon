@@ -31,6 +31,12 @@ git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
   to `control-center.log` in the owner-only state directory, never the
   journal. Without `--service`, the installer starts the Control Center in its
   own terminal and first prints the command that starts it again.
+  - A user service does not inherit your shell's environment: no SSH agent
+    (`SSH_AUTH_SOCK`) and no `~/.local/bin` on its PATH. A remote setup that
+    needs your SSH agent, or Hermes installed there, works from a Control
+    Center started in a terminal.
+  - It stops when you log out unless your system keeps user services running
+    (`loginctl enable-linger`, your choice); on WSL, systemd must be on.
 - **Updating.** `--update` moves the checkout to the latest main, or to
   `--ref`, which must be in main. If that revision's installer differs, the
   new installer carries on. It rebuilds the images, including a GPU worker

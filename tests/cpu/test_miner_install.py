@@ -132,7 +132,7 @@ FAKE_CHECKOUT = {
 }
 FAKE_PYTHON = """#!/bin/sh
 echo "python $*" >> "$CARBON_TEST_LOG"
-case "$1" in -c) exec python3 "$@" ;; esac
+case "$1" in -c) exec "$CARBON_TEST_REAL_PYTHON" "$@" ;; esac
 case "$2" in
   carbon.development_session.research_image)
     mkdir -p .carbon-artifacts/research-images
@@ -236,6 +236,8 @@ class Sandbox:
                 "CARBON_STATE_DIR": str(self.state),
                 "CARBON_TEST_LOG": str(self.log),
                 "CARBON_TEST_PYTHON": str(self.tmp / "python"),
+                # The canonical image's interpreter is not on /usr/bin.
+                "CARBON_TEST_REAL_PYTHON": sys.executable,
                 "CARBON_TEST_CONTROL_CENTER": str(self.tmp / "control-center"),
                 "CARBON_TEST_DOCKER_ROOT": str(self.tmp / "docker-root"),
                 **env,
