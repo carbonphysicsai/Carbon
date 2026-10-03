@@ -71,9 +71,32 @@
   function out(parent) { const node = el("pre", "", "rs-out"); node.hidden = true; parent.append(node); return node; }
   function show(node, value) {
     node.hidden = false;
-    let text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    let text = typeof value === "string" ? value : readable(value);
     if (text.length > SHOW_MAX) text = text.slice(0, SHOW_MAX) + "\n… shortened here; the full result is the tool's.";
     node.textContent = text;
+  }
+  // A tool's answer as a person reads it (LP-PROD-F): one "name: value" line
+  // per field, nested fields indented, lists as "- " items, text unquoted.
+  // Still text: nothing in it is parsed or run.
+  function readable(value, depth = 0) {
+    const pad = "  ".repeat(depth);
+    const scalar = item => item === null ? "none" : typeof item === "string" ? item : typeof item === "boolean" ? (item ? "yes" : "no") : String(item);
+    const flat = item => item === null || typeof item !== "object" || (Array.isArray(item) ? !item.length : !Object.keys(item).length);
+    if (flat(value)) return pad + (Array.isArray(value) ? "(none)" : value && typeof value === "object" ? "(empty)" : scalar(value));
+    const lines = [];
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (flat(item)) lines.push(pad + "- " + (Array.isArray(item) ? "(none)" : item && typeof item === "object" ? "(empty)" : scalar(item)));
+        else lines.push(pad + "-", readable(item, depth + 1));
+      }
+    } else {
+      for (const [key, item] of Object.entries(value)) {
+        const label = key.replaceAll("_", " ");
+        if (flat(item)) lines.push(pad + label + ": " + (Array.isArray(item) ? "(none)" : item && typeof item === "object" ? "(empty)" : scalar(item)));
+        else lines.push(pad + label + ":", readable(item, depth + 1));
+      }
+    }
+    return lines.join("\n");
   }
   function opId() {
     const bytes = new Uint8Array(12); crypto.getRandomValues(bytes);
@@ -441,29 +464,52 @@
     const practiceArea = el("div", undefined, "rs-run");
     box.append(button("Practice this recipe", "primary", () => { const s = strategy(); if (s) startTask(w, practiceArea, {kind: "practice", strategy: s, action: null, arguments: null, hypothesis: hypothesis.value, expected_effect: effect.value}); }), practiceArea);
     // Freeze and submit are the operations, with their own gates; they need
-    // the campaign's lock, so the session closes first (RSURF-D16).
+    // the campaign's lock, so the session closes first (RSURF-D16). Each is
+    // sent under one idempotency key kept until it is answered (LP-PROD-F):
+    // a retry after a timeout replays the request, never meets its own first
+    // attempt as campaign_busy. What it did is read from the campaign's
+    // record, as text, and followed until it is done or refused.
     const reason = input("text", "", "Why this candidate"); reason.placeholder = "What your practice showed";
     field(box, "Freeze: why this candidate", reason);
-    const opArea = el("p", "", "hint");
+    const freeze = button("Close the tools and freeze this recipe", "", async () => {
+      const s = strategy(); if (!s) return;
+      if (!reason.value.trim()) { say(w, "Say why this candidate first.", "reason"); return; }
+      if (!window.confirm("Close the tools and freeze this recipe as this epoch's candidate?")) return;
+      await operation(w, freeze, "freeze_candidate", {campaign: w.id, strategy: s, reason: reason.value.trim()}, "Freezing");
+    });
+    const submit = button("Close the tools and submit the candidate", "", async () => {
+      if (!window.confirm("Close the tools and submit your frozen candidate (DEVELOPMENT)?")) return;
+      await operation(w, submit, "submit", {campaign: w.id}, "Submitting");
+    });
     box.append(el("div", undefined, "rs-actions"));
-    box.lastChild.append(
-      button("Close the tools and freeze this recipe", "", async () => {
-        const s = strategy(); if (!s) return;
-        if (!reason.value.trim()) { opArea.textContent = "Say why this candidate first."; return; }
-        if (!window.confirm("Close the tools and freeze this recipe as this epoch's candidate?")) return;
-        await close(w);
-        try { const r = await CC.api("/api/v1/operations/freeze_candidate", {campaign: w.id, strategy: s, reason: reason.value.trim(), idempotency_key: opId()}, undefined, 60000); opArea.textContent = "Frozen: " + JSON.stringify(r).slice(0, 400); }
-        catch (error) { opArea.textContent = "Freeze: " + errorText(error); }
-      }),
-      button("Close the tools and submit the candidate", "", async () => {
-        if (!window.confirm("Close the tools and submit your frozen candidate (DEVELOPMENT)?")) return;
-        await close(w);
-        try { const r = await CC.api("/api/v1/operations/submit", {campaign: w.id, idempotency_key: opId()}, undefined, 60000); opArea.textContent = "Submitted: " + JSON.stringify(r).slice(0, 400); }
-        catch (error) { opArea.textContent = "Submit: " + errorText(error); }
-      }),
-    );
-    box.append(opArea);
+    box.lastChild.append(freeze, submit);
+    para(box, "What freeze or submit did shows above the tools, which close first.", "hint");
     body.append(box);
+  }
+  // The bench's own status line: kept across the tools closing and opening,
+  // because freeze and submit close them first.
+  function say(w, text, className = "hint") {
+    CC.setText(w.opLine, text);
+    if (w.opLine.className !== className) w.opLine.className = className;
+    w.opLine.hidden = !text;
+  }
+  async function operation(w, control, name, body, doing) {
+    control.disabled = true;
+    try {
+      say(w, "Closing the tools…");
+      await close(w);
+      say(w, doing + ": sending…");
+      const outcome = await CC.keyedOperation(name, body, 60000);
+      if (outcome.ok) { CC.watch(name, w.id, outcome.value); w.following = name; follow(w); }
+      else say(w, (outcome.refused ? "Refused" : "Not confirmed") + ": " + errorText(outcome.error).replace(/\.$/, "") + (outcome.kept ? ". Trying again sends the same request under the same key: if it started, it is replayed, never run twice." : "."), "reason");
+    } finally { control.disabled = false; }
+  }
+  // The operation's progress and ending, from the campaign's own record.
+  function follow(w) {
+    if (!w.following) return;
+    const run = (CC.state().research?.runs || []).find(item => item.id === w.id);
+    const status = run ? CC.watchStatus(run) : null;
+    if (status) say(w, status.text, status.kind === "refused" ? "reason" : status.kind === "done" ? "status-line" : "hint");
   }
 
   function designPanel(w, body) {
@@ -555,6 +601,7 @@
   function draw(w) {
     w.node.replaceChildren(el("h3", "Use the tools"));
     sessionBar(w, w.node);
+    w.node.append(w.opLine);
     if (!w.state?.open) return;
     w.resultList = null;
     const body = el("div", undefined, "rs-bench");
@@ -573,14 +620,19 @@
     if (!id) return;
     let w = benches.get(id);
     if (!w) {
-      w = {id, doc, node: el("section", undefined, "rs-panel rs-workbench"), state: null, tasks: [], files: []};
+      w = {id, doc, node: el("section", undefined, "rs-panel rs-workbench"), state: null, tasks: [], files: [], opLine: el("p", "", "hint")};
+      w.opLine.setAttribute("role", "status"); w.opLine.hidden = true;
       benches.set(id, w);
       w.doc = doc;
       draw(w);
       refresh(w);
     }
     w.doc = doc;
-    panel.append(w.node);
+    // Moved in only when it is not already there: moving a node blurs what
+    // is focused in it, and a refresh must never take focus from an editor.
+    if (w.node.parentNode !== panel) panel.append(w.node);
   }
-  window.CarbonTools = {mount};
+  window.CarbonTools = {mount, readable};
+  // Each page refresh moves a freeze or submit's line on, from the record.
+  CC.onRender(() => { for (const w of benches.values()) follow(w); });
 })();

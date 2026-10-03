@@ -105,6 +105,10 @@ legend{padding:0}
 .controls button{flex:1;min-width:96px;text-transform:capitalize}
 .sticky-controls{position:sticky;top:72px;z-index:2;background:var(--bg);padding:8px 0;margin:8px 0}
 .consent{display:flex;gap:12px;align-items:flex-start;margin:18px 0;padding:14px 16px;background:var(--bg);border:1px solid var(--border)}
+/* A launch's own actions, and a campaign card's last refusal (LP-PROD-F). */
+.launch-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.refusal-note{display:flex;flex-direction:column;gap:2px;margin-top:6px;padding-left:10px;border-left:3px solid var(--red)}
+.refusal-note p{margin:0;font-size:14px}
 .consent input{margin-top:4px;flex:none}
 .consent label{margin:0;font-weight:400;font-size:15px}
 

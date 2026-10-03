@@ -17,6 +17,7 @@ authority, starts nothing and reads no chain.
 from __future__ import annotations
 
 import functools
+import shlex
 
 SCHEMA = "carbon.control-center.capabilities.v1"
 
@@ -334,7 +335,39 @@ def _challenges(profile_state, host):
     return result
 
 
-def _agents(options, refusal):
+#: Choices this document shares with setup are named as setup names them
+#: (`environment_setup.choices`), so one choice reads the same on every page
+#: (LP-PROD-F). Held to setup's names by test.
+AUTONOMOUS_LABEL = "Carbon's autonomous research agent"
+OWN_AGENT_LABEL = "Your own agent, over MCP"
+LOCAL_CPU_LABEL = "This machine (CPU)"
+LOCAL_GPU_LABEL = "This machine (your GPU)"
+REMOTE_LABEL = "Your own remote machine or container"
+#: The MCP command when no runner profile is loaded here: the miner names it.
+MCP_PLACEHOLDER = "carbon-mcp --configuration <your runner profile>"
+
+
+def _mcp_connection(profile_path):
+    """How the miner's own MCP client starts Carbon's server for this
+    controller's runner profile: the real command, with the profile's path,
+    when one is loaded (LP-PROD-F); the placeholder otherwise. Naming the path
+    loads nothing: the server verifies the profile when it starts."""
+    if profile_path is None:
+        return {"command": MCP_PLACEHOLDER, "profile_path": None}
+    from carbon.miner_mcp.agent_connection import connection_instructions
+
+    try:
+        connection = connection_instructions(configuration=profile_path)
+    except Exception:  # noqa: BLE001 - the placeholder still connects a client
+        return {"command": MCP_PLACEHOLDER, "profile_path": None}
+    return {
+        "command": shlex.join(connection["command"]),
+        "profile_path": str(profile_path),
+        "client_configuration": connection["client_configuration"],
+    }
+
+
+def _agents(options, refusal, profile_path=None):
     offered = {a["value"]: a for a in (options or {}).get("agents", [])}
 
     def state(launch_agent):
@@ -359,7 +392,7 @@ def _agents(options, refusal):
         "choices": [
             {
                 "id": "autonomous",
-                "label": "Carbon's autonomous agent",
+                "label": AUTONOMOUS_LABEL,
                 "summary": "Carbon's agent researches, freezes and submits within your budget.",
                 "launch_agent": "autonomous",
                 "uses_model": True,
@@ -375,7 +408,7 @@ def _agents(options, refusal):
             },
             {
                 "id": "external_mcp",
-                "label": "Your own agent over MCP",
+                "label": OWN_AGENT_LABEL,
                 "summary": (
                     "Launches with no Carbon agent; your own MCP client drives "
                     "practice, freeze and submit through the same operations, "
@@ -384,7 +417,7 @@ def _agents(options, refusal):
                 "launch_agent": "none",
                 "uses_model": False,
                 "door": "stdio",
-                "command": "carbon-mcp --configuration <your runner profile>",
+                **_mcp_connection(profile_path),
                 **state("none"),
             },
         ],
@@ -401,16 +434,46 @@ def _implemented_transport():
     return value["provider"], value["model"]
 
 
-def _model(options, refusal):
+def _setup_choice(cfg):
+    """The provider and model the runner profile's setup chose
+    (`model_selection`), or None. Only the two ids: its endpoint, price and
+    key file stay in the profile."""
+    chosen = (cfg or {}).get("model_selection")
+    if type(chosen) is not dict:
+        return None
+    provider_id, model_id = chosen.get("provider_id"), chosen.get("model_id")
+    if type(provider_id) is not str or type(model_id) is not str or not model_id:
+        return None
+    return {"provider_id": provider_id, "model_id": model_id}
+
+
+def _with_setup_model(row, setup):
+    """A provider row offering setup's model when setup chose this provider
+    and the adapter does not list that model (LP-PROD-F): Chutes, Anthropic
+    and the OpenAI-compatible adapters list none, so without it their Model
+    step could never be passed. The launch then names setup's own choice,
+    which the runner validates exactly as setup did."""
+    if setup is None or setup["provider_id"] != row["id"]:
+        return row
+    if any(model["id"] == setup["model_id"] for model in row["models"]):
+        return row
+    model = {"id": setup["model_id"], "availability": "available", "from_setup": True}
+    return {**row, "models": [*row["models"], model]}
+
+
+def _model(options, refusal, cfg=None):
     """Model providers the miner can choose, each with its own credential.
 
     The miner chooses the provider and model and supplies the credential; Carbon
     holds none. The pinned default is reported first, from the agent's own
     transport rather than named as Carbon's model; the registered provider
     adapters follow, each available only when the runner profile configures
-    its key file. A launch names one with `model_provider` and `model`.
+    its key file. A launch names one with `model_provider` and `model`. The
+    model setup chose is `setup_choice`, listed under its provider, so the
+    page can preselect it; a launch naming none runs with it.
     """
     provider, model = _implemented_transport()
+    setup = _setup_choice(cfg)
     if options is None:
         credential = {"configured": None, "basis": "NOT_READ: " + refusal["reason"]}
         state = _unavailable(refusal["reason"], refusal["next_action"])
@@ -428,23 +491,25 @@ def _model(options, refusal):
                 "Point api_key_file in your runner profile at your own key file.",
             )
         )
+    rows = [
+        {
+            "id": "openai-responses",
+            "provider": provider,
+            "models": [{"id": model, "availability": "available"}],
+            "credential": {
+                "reference": "api_key_file in your runner profile",
+                "held_by": "you; Carbon never stores or transmits it",
+                **credential,
+            },
+            **state,
+        },
+        *_registered_providers(options, refusal),
+    ]
     return {
         "used_by": ["autonomous"],
         "chosen_by": "miner",
-        "providers": [
-            {
-                "id": "openai-responses",
-                "provider": provider,
-                "models": [{"id": model, "availability": "available"}],
-                "credential": {
-                    "reference": "api_key_file in your runner profile",
-                    "held_by": "you; Carbon never stores or transmits it",
-                    **credential,
-                },
-                **state,
-            },
-            *_registered_providers(options, refusal),
-        ],
+        "providers": [_with_setup_model(row, setup) for row in rows],
+        "setup_choice": setup,
         "launch_field": ["model_provider", "model"],
         "selection": (
             "The launch carries model_provider and model. The key file is the "
@@ -556,16 +621,19 @@ def _compute(cfg, options, refusal, host):
         transport = cfg["remote_machine"]["transport"]
         choice = {
             "id": "remote-machine",
-            "label": "Your own remote machine or container · " + transport,
+            "label": REMOTE_LABEL + " · " + transport,
             "lane": "remote-gpu",
             "transport": transport,
             "started_stopped_and_billed_by": "you; Carbon never does",
         }
     else:
+        # Named as setup names it; the isolated Docker worker is how it runs.
+        gpu = "gpu_research" in runtime
         choice = {
             "id": "local-isolated-worker",
-            "label": "This machine · isolated Docker worker",
-            "lane": "gpu" if "gpu_research" in runtime else "cpu",
+            "label": LOCAL_GPU_LABEL if gpu else LOCAL_CPU_LABEL,
+            "lane": "gpu" if gpu else "cpu",
+            "isolation": "an isolated Docker worker on this machine",
         }
     return {
         "choices": [
@@ -589,6 +657,8 @@ def _routes(cfg, local):
     the one place that sets it up."""
     runtime = (cfg or {}).get("runtime", {})
     remote = (cfg or {}).get("remote_machine") if "remote_gpu" in runtime else None
+    # The two routes are the Compute page's side-by-side headings (LINKONLY-
+    # D10), not setup's choices: their own plain names stay.
     here = {
         "id": "this-machine",
         "label": "This machine",
@@ -668,14 +738,16 @@ def control_center(runner=None):
     options, options_refusal = _options(runner)
     refusal = options_refusal or NO_PROFILE
     host = _host_facts(cfg)
+    # The loaded profile's own path, for the MCP command: only once it loads.
+    profile_path = getattr(runner, "configuration", None) if cfg is not None else None
     return {
         "schema": SCHEMA,
         "mode": "DEVELOPMENT",
         "authority": "Discovery grants no authority; nothing here is qualified, paid or on chain.",
         "profile": profile_state,
         "challenges": _challenges(profile_state, host),
-        "agents": _agents(options, refusal),
-        "model": _model(options, refusal),
+        "agents": _agents(options, refusal, profile_path),
+        "model": _model(options, refusal, cfg),
         "compute": _compute(cfg, options, refusal, host),
         "budget": _budget(),
         "launch": _launch(),
