@@ -165,7 +165,9 @@ def workspace_fields(action):
     # exactly required.
     optional = {"environment"} if action == "run_julia" else set()
     if action in {"run_python", "run_julia"}:
-        optional = optional | {"seconds"}
+        # `device`: cpu (the default) or gpu, on the campaign's GPU lane
+        # (RSURF-D20). Absent, a request means what it always has.
+        optional = optional | {"seconds", "device"}
     return frozenset(expected), frozenset(optional)
 
 
@@ -211,6 +213,9 @@ class PublicResearchExecutor:
         self.workspace = ResearchWorkspace(ledger, owner)
         self.public_material, self.practice = public_material, practice
         self.julia_image = julia_image
+        # The campaign's GPU lane for the code cell (RSURF-D20), set by its
+        # composition from the frozen runtime; None runs every cell on CPU.
+        self.gpu = None
         self.cleanup_only = cleanup_only
         if cleanup_only:
             ledger.retained_owner(owner)
@@ -337,6 +342,24 @@ class PublicResearchExecutor:
                 "expected_effect": args["expected_effect"],
             },
         )
+        from .gpu_code_cell import DEVICES
+
+        device = args.get("device", "cpu")
+        if device not in DEVICES:
+            raise ValueError("device is cpu or gpu")
+        if device == "gpu":
+            if spec.action == "run_julia":
+                raise ValueError("run_julia runs on cpu: no CUDA in its environments")
+            if self.gpu is None:
+                raise ValueError("this campaign has no GPU lane")
+            from . import gpu_code_cell
+
+            return gpu_code_cell.run(
+                self,
+                identity=identity,
+                args=args,
+                files=self.workspace.snapshot(args["files"]),
+            )
         runner, image, selection = run_script, self.image, {}
         if spec.action == "run_julia":
             from .julia_analysis import DEFAULT_ENVIRONMENT, ENVIRONMENTS, run_julia
@@ -371,12 +394,20 @@ class PublicResearchExecutor:
                 "worker": failure.result,
                 "workspace_exports": [],
             }
-        # Import only the bounded validated export into the owner's scratch space.
-        # No path from miner output is ever interpreted as a host source path.
+        return {
+            "provenance": "MINER_SELF_REPORTED",
+            "worker": result,
+            "workspace_exports": self.export(identity, result),
+        }
+
+    def export(self, identity, result, *, skip=frozenset()):
+        """Import only the bounded validated export into the owner's scratch
+        space. No path from miner output is ever interpreted as a host source
+        path. `skip` names files that are the carrier's, not the program's."""
         snapshot = self.ledger.root / result["operation"] / "snapshot"
         exported = []
         for relative, fingerprint in result["files"].items():
-            if "/" in relative:
+            if "/" in relative or relative in skip:
                 continue  # nested checkpoint bundles remain retained by task
             body = (snapshot / relative).read_bytes()
             if digest(body) != fingerprint:
@@ -392,11 +423,7 @@ class PublicResearchExecutor:
             if len(body) <= 8 * 1024**2 and len(name) <= 96:
                 self.workspace.put(name, body)
                 exported.append(name)
-        return {
-            "provenance": "MINER_SELF_REPORTED",
-            "worker": result,
-            "workspace_exports": exported,
-        }
+        return exported
 
     def cancel(self, identity):
         request_cancel(self.ledger, owner=self.owner, identity=identity)

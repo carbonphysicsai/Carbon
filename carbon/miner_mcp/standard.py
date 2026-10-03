@@ -177,7 +177,9 @@ def _arguments(operation, supplied):
         (
             "strategy"
             if key == "strategy_json"
-            else "arguments" if key == "arguments_json" else key
+            else "arguments"
+            if key == "arguments_json"
+            else key
         )
         for key in FIELDS[operation]
     }
@@ -357,6 +359,14 @@ class ResearchToolAdapter:
         except (ValueError, TypeError, AttributeError):
             return False
         return True
+
+    @property
+    def gpu_lane(self):
+        """The campaign's GPU lane for the code cell (RSURF-D20), described,
+        or None. Discovery only: execution rechecks it before dispatch."""
+        self._check_binding()
+        lane = getattr(getattr(self._sdk.composition, "executor", None), "gpu", None)
+        return None if lane is None else lane.describe()
 
     async def call(self, request: ResearchToolRequest) -> ResearchToolResult:
         self._check_binding()

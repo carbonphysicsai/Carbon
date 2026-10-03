@@ -17,6 +17,7 @@ validator's settings, and the validator's cannot be loosened through this one.
 from __future__ import annotations
 
 import os
+import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,6 +33,10 @@ from carbon.reconstruction.worker.model import (
 )
 
 LANE = "carbon.miner-research.unlimited.v1"
+#: An NVIDIA device UUID: the only device a miner-lane container may hold.
+_GPU_UUID = re.compile(r"GPU-[0-9a-fA-F-]{8,64}")
+#: What attaching it adds, and nothing else (RSURF-D20).
+GPU_CAPABILITIES = "compute,utility"
 
 
 @dataclass(frozen=True)
@@ -43,11 +48,18 @@ class MinerResearchLaunch:
     launch_digest: str
     input_directory: Path
     scratch_directory: Path
+    #: The host's installed GPU, by UUID, for a GPU code cell (RSURF-D20).
+    #: None for every CPU run, whose arguments are exactly as before.
+    gpu_device: str | None = None
 
     def __post_init__(self):
         exact_token(self.container_name)
         exact_digest(self.image_id)
         exact_digest(self.launch_digest)
+        if self.gpu_device is not None and (
+            type(self.gpu_device) is not str or not _GPU_UUID.fullmatch(self.gpu_device)
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
         for directory in (self.input_directory, self.scratch_directory):
             if (
                 not directory.is_absolute()
@@ -142,7 +154,26 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
         f"OPENBLAS_NUM_THREADS={threads}",
         "--env",
         f"MKL_NUM_THREADS={threads}",
+        *_gpu_arguments(launch.gpu_device),
         launch.image_id,
+    ]
+
+
+def _gpu_arguments(device):
+    """The one device, through the NVIDIA runtime; nothing for a CPU run."""
+    if device is None:
+        return []
+    return [
+        "--runtime",
+        "nvidia",
+        "--gpus",
+        f"device={device}",
+        "--label",
+        f"carbon.accelerator.device={device}",
+        "--env",
+        f"NVIDIA_VISIBLE_DEVICES={device}",
+        "--env",
+        f"NVIDIA_DRIVER_CAPABILITIES={GPU_CAPABILITIES}",
     ]
 
 
@@ -167,6 +198,8 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         raise WorkerFailure(WorkerCode.POLICY)
     by_target = {item.get("Destination"): item for item in mounts}
     security = host.get("SecurityOpt") or []
+    if not _gpu_exactly(launch.gpu_device, host, config):
+        raise WorkerFailure(WorkerCode.POLICY)
     if (
         value.get("Image") != launch.image_id
         or config.get("User") != f"{WORKER_UID}:{WORKER_GID}"
@@ -179,7 +212,7 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         or host.get("CapAdd")
         or sorted(host.get("CapDrop") or []) != ["ALL"]
         or host.get("Devices")
-        or host.get("DeviceRequests")
+        or (launch.gpu_device is None and host.get("DeviceRequests"))
         or host.get("PortBindings")
         or host.get("PublishAllPorts")
         or "no-new-privileges=true" not in security
@@ -191,12 +224,35 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         raise WorkerFailure(WorkerCode.POLICY)
     return {
         "lane": LANE,
+        "gpu_device": launch.gpu_device,
         "network": host.get("NetworkMode"),
         "read_only_root": True,
         "memory": host.get("Memory") or None,
         "nano_cpus": host.get("NanoCpus") or None,
         "pids_limit": host.get("PidsLimit") or None,
     }
+
+
+def _gpu_exactly(device, host, config):
+    """No GPU for a CPU run; for a GPU code cell, exactly the one device,
+    through the NVIDIA runtime, and nothing else added."""
+    env = dict(item.split("=", 1) for item in config.get("Env") or [] if "=" in item)
+    label = (config.get("Labels") or {}).get("carbon.accelerator.device")
+    requests = host.get("DeviceRequests") or []
+    if device is None:
+        # A CPU run is checked exactly as before: no device requested.
+        return not requests
+    return (
+        host.get("Runtime") == "nvidia"
+        and len(requests) == 1
+        and type(requests[0]) is dict
+        and requests[0].get("DeviceIDs") == [device]
+        and not requests[0].get("Count")
+        and ["gpu"] in (requests[0].get("Capabilities") or [])
+        and env.get("NVIDIA_VISIBLE_DEVICES") == device
+        and env.get("NVIDIA_DRIVER_CAPABILITIES") == GPU_CAPABILITIES
+        and label == device
+    )
 
 
 class MinerOutputRefused(ValueError):

@@ -499,6 +499,12 @@ def compose(
         cleanup_only=cleanup_only,
         julia_image=julia_image,
     )
+    if gpu_image is not None:
+        # The code cell's GPU lane (RSURF-D20): the same pinned GPU worker and,
+        # when the runtime declares it, the same remote route as practice.
+        from carbon.development_session.gpu_code_cell import GpuLane
+
+        composition.executor.gpu = GpuLane(image=gpu_image, remote=remote)
     base = connection.service.gateway
     gateway = AuthenticatedGateway(
         base.context,
