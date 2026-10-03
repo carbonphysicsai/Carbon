@@ -17939,8 +17939,9 @@ the option the owner selected, verbatim.
   before trainer v2. Recording reads the loss and changes no update.
   - Checked for JAX on CPU: identical `params_sha256` with recording on and
     off, for the classic MLP, the general MLP and DeepONet.
-  - PyTorch follows the same rule, reading the loss each update already
-    computes. It was not run in this environment, which has no PyTorch.
+  - Checked for PyTorch in the canonical environment: identical
+    `params_sha256` with recording on and off, for the MLP, the FNO and an
+    FNO ensemble. The trainer reads the loss each update already computes.
 - **The new version.** The trainer module bytes are part of
   `contracts.implementation_digest()`, so the battery implementation identity
   changes prospectively.
