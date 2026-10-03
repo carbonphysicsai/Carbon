@@ -24,7 +24,9 @@ SOURCE = (
 T_AMB_DEVELOPMENT = (6, 16, 26, 35)
 SOC0_DEVELOPMENT = (0.10, 0.30, 0.46)
 T_AMB_VERIFICATION = (10, 20, 30, 39)
-SOC0_VERIFICATION = (0.07, 0.20, 0.38)
+#: 0.24, not 0.20: OWNER-EV5-Q1-01 counts EV4's protected optimizer grid
+#: (soc0 0.05/0.20/0.35/0.50) as EV4 conditions.
+SOC0_VERIFICATION = (0.07, 0.24, 0.38)
 
 EV5_DEVELOPMENT = tuple(
     (float(t), float(s)) for t in T_AMB_DEVELOPMENT for s in SOC0_DEVELOPMENT
