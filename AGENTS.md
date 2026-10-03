@@ -575,8 +575,10 @@ under `.agent/DELEGATED_DECISION_PROTOCOL.md`.
 
 Prefer one ticket → one reviewable branch/diff.
 
-Use normal merge commits only. Do not squash, rebase-merge, or enable auto-
-merge. Merge when the ready PR revision has passed its scope-required automated
+Use normal merge commits only. Do not squash or rebase-merge. Only the merge
+manager arms GitHub auto-merge (OWNER-WORKFLOW-SPEED-01): merge-commit method,
+pinned to the PR's exact head, and only while the live ruleset requires `Merge
+gate` on main. Merge when the ready PR revision has passed its scope-required automated
 checks and `Merge gate`, no applicable owner block or real merge conflict remains,
 and the merge operation uses the expected-head race guard. Human review, GPT
 receipts, review-thread bookkeeping, repeated clean-pass quotas, and post-merge

@@ -46,10 +46,20 @@ be optimized. The canonical CI job now runs on 8 parallel shards (#532).
    moving is not a reason to re-merge. Merge main only when GitHub reports a
    conflict or the PR needs something main now has, and then just before the
    final push, after the repo's fast checks on the merge result.
-4. **Merge the moment you are green.** A green, mergeable PR is merged at once
-   with the expected-head guard (`gh pr merge --merge --match-head-commit
-   <sha>`); it never waits for a later check-in. The sharded canonical job
-   takes about 10-15 minutes.
+4. **Merge the moment you are green.** The merge manager arms GitHub
+   auto-merge on each queued PR, pinned to its head:
+
+   ```bash
+   gh pr merge <N> --auto --merge --match-head-commit <sha>
+   ```
+
+   GitHub merges it the moment its `Merge gate` passes. The ruleset makes that
+   check required on main for every head, so nothing untested merges even if
+   the branch moves. Arm independent PRs together; arm dependent ones one at a
+   time, in order. Disarm with `gh pr merge <N> --disable-auto`. Without the
+   live ruleset, never arm auto-merge: merge a green PR at once with
+   `gh pr merge --merge --match-head-commit <sha>`. The sharded canonical job
+   takes about 10-20 minutes.
 5. **Priority lane.** When a PR has had to merge main twice because of
    conflicts while green or in CI, its owner adds the label `merge-priority`.
    Before merging anything, every agent checks for an open PR carrying
@@ -78,5 +88,10 @@ be optimized. The canonical CI job now runs on 8 parallel shards (#532).
 - The Merge gate no longer requires the Hub job. Merge gate runs the protected
   base's gate, so the Hub job runs only while that gate still names it.
 
-A merge queue (GitHub merging each PR onto the latest main in order) remains a
-separate owner decision: the repository's rules forbid auto-merge.
+- Auto-merge is allowed (owner, 2026-10-03), together with the versioned
+  ruleset `.github/rulesets/main.v1.json`, applied with
+  `scripts/dev/apply_github_ruleset.py`:
+  - `Merge gate` is required on main, with no bypass actors;
+  - main accepts only pull requests, merged with merge commits;
+  - force-pushes and deletion of main are blocked;
+  - no human review is required, and branches need not be up to date.

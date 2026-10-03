@@ -1,4 +1,4 @@
-## 2026-10-03 — OWNER-WORKFLOW-SPEED-01: retire the Development Hub, shard CI, one decision per file
+## 2026-10-03 — OWNER-WORKFLOW-SPEED-01: retire the Development Hub, shard CI, one decision per file, one merge manager, auto-merge
 
 **Owner, verbatim, in session on 2026-10-03:**
 - "You are the head of PR management. Fix this Merging Main issue AND the
@@ -8,6 +8,12 @@
   canonical job on 8 parallel shards: "Approve both".
 - "tell all sessions to go through you for optimized merge priority and
   keeping main in optimal state"
+- "Your role is to receive, order, and push our PRs as efficiently as we can
+  to keep work moving"
+- On the proposal to allow auto-merge with the ruleset (repository and
+  apply-tool change, applying the ruleset with "Allow auto-merge" on, and the
+  merge manager arming pinned auto-merge): "if you think this is best for our
+  workflow and is safe lets do it", then "Approve all three".
 
 **Context.** Under OWNER-MERGE-HYGIENE-01 (same day, `.agent/DECISIONS.md`),
 every PR still committed generated Hub files and a Hub snapshot repin and
@@ -35,7 +41,16 @@ untouched PRs when main's Hub data moved.
    designated merge-manager session ("PR Head" on 2026-10-03), which owns merge
    order, the `merge-priority` lane, any merge of main into a branch, and the
    health of `main` (`docs/development/MERGE_HYGIENE.md` rule 0).
+6. **Auto-merge is allowed, only with the required check live.**
+   - `.github/rulesets/main.v1.json` now sets `allow_auto_merge: true`.
+   - `scripts/dev/apply_github_ruleset.py` applies the ruleset and verifies it:
+     `Merge gate` required on main with no bypass actors, pull requests only,
+     merge commits only, no force-push or deletion, no required review, and no
+     up-to-date requirement.
+   - The merge manager arms `gh pr merge --auto --merge --match-head-commit
+     <sha>`. GitHub then merges only a head whose own `Merge gate` passed.
+   - This amends AGENTS.md §18 ("do not enable auto-merge").
 
 **Unchanged.** Every scientific, security, economic and delivery rule; the
-`Merge gate` requirement itself; what any test asserts. A merge queue remains
-a separate owner decision.
+`Merge gate` requirement itself; what any test asserts. A GitHub merge queue
+remains a separate owner decision.
