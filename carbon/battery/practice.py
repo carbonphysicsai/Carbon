@@ -86,9 +86,12 @@ for staged, module in (
     shutil.copyfile(work / staged, lab / module)
 sys.path.insert(0, str(work))
 
-from carbon_battery_lab import recipes  # noqa: E402
+from carbon_battery_lab import recipes, training  # noqa: E402
 from carbon_battery_lab.domain import INPUTS, TrainingData  # noqa: E402
 
+# Trainer v2 (RSURF-D3): practice records a capped TRAIN-loss history for the
+# learning curve. The validator's reconstruction program never turns it on.
+training.record_training_history(True)
 recipe = json.loads((work / "recipe.json").read_text())
 train = TrainingData.from_records(
     [
@@ -246,15 +249,24 @@ def feedback(summary, fit, *, recipe, backend, worker):
         "summary": _summary(summary),
         "fit": _summary(
             {
-                k: fit[k]
-                for k in (
-                    "final_loss",
-                    "train_s",
-                    "compile_s",
-                    "n_params",
-                    "params_sha256",
-                )
-                if k in fit
+                **{
+                    k: fit[k]
+                    for k in (
+                        "final_loss",
+                        "train_s",
+                        "compile_s",
+                        "n_params",
+                        "params_sha256",
+                    )
+                    if k in fit
+                },
+                # Trainer v2's TRAIN-loss history, when the worker recorded a
+                # well-formed one (RSURF-D3); anything else is left out.
+                **(
+                    {"loss_history": _history(fit["loss_history"])}
+                    if _history(fit.get("loss_history")) is not None
+                    else {}
+                ),
             }
         ),
         "backend": backend,
@@ -264,6 +276,39 @@ def feedback(summary, fit, *, recipe, backend, worker):
         "official_eligible": False,
         "scientific_qualification": False,
     }
+
+
+def _history(value):
+    """A worker's TRAIN-loss history, bounded and checked, or None."""
+    import math
+
+    from .training import HISTORY_POINTS
+
+    if type(value) is not dict or type(value.get("points")) is not list:
+        return None
+    if not 1 <= len(value["points"]) <= HISTORY_POINTS:
+        return None
+    points = []
+    for point in value["points"]:
+        if (
+            type(point) is not list
+            or len(point) != 2
+            or type(point[0]) is not int
+            or isinstance(point[1], bool)
+            or not isinstance(point[1], (int, float))
+            or not math.isfinite(point[1])
+        ):
+            return None
+        points.append([point[0], float(point[1])])
+    if [p[0] for p in points] != sorted({p[0] for p in points}):
+        return None
+    kept = {"points": points}
+    for key in ("trainer", "objective", "member"):
+        if type(value.get(key)) is str:
+            kept[key] = value[key][:160]
+    if type(value.get("updates")) is int:
+        kept["updates"] = value["updates"]
+    return kept
 
 
 def _summary(summary):

@@ -2,18 +2,22 @@
 
 `LocalContainer` stands in for the miner's SSH into an `ssh-container`
 setup: `run` executes each fixed script in real bash, with only the tools a
-container has on PATH, and `tunnel` is the identity, because the job server
-the script starts listens on this machine's loopback. The worker's Python is
-a wrapper that runs this interpreter, so the script starts the real
-`carbon.compute.job_server` as a real process. No SSH connection is made.
+container has on PATH. `tunnel` is a `local_tunnel`: an owner-only Unix
+socket relayed to the job server's port on this machine's loopback, as ssh's
+forward relays it to the machine. The worker's Python is a wrapper that runs
+this interpreter, so the script starts the real `carbon.compute.job_server`
+as a real process. No SSH connection is made.
 """
 
 from __future__ import annotations
 
 import json
 import shutil
+import socket
 import subprocess
 import sys
+import tempfile
+import threading
 from pathlib import Path
 
 from carbon.compute import remote_container
@@ -26,23 +30,75 @@ from carbon.compute.remote_transport import SSHContainer
 TOOLS = ("mkdir", "rm", "setsid", "sleep", "head", "tr", "grep", "cat")
 
 
-class Process:
-    """The tunnel's ssh process, as a fixture: it records being closed."""
+def _pump(source, sink):
+    try:
+        while chunk := source.recv(65536):
+            sink.sendall(chunk)
+    except OSError:
+        pass
+    finally:
+        try:
+            sink.shutdown(socket.SHUT_WR)
+        except OSError:
+            pass
 
-    def __init__(self):
-        self.closed = False
+
+class Relay:
+    """The tunnel's ssh process, as a fixture: it serves the tunnel's Unix
+    socket and relays each connection to `port` on this machine's loopback.
+    It records being closed."""
+
+    def __init__(self, path: str, port: int):
+        self.closed, self.port = False, port
+        self.listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.listener.bind(path)
+        self.listener.listen()
+        self.listener.settimeout(0.2)
+        threading.Thread(target=self._accept, daemon=True).start()
+
+    def _accept(self):
+        while not self.closed:
+            try:
+                client, _ = self.listener.accept()
+            except TimeoutError:
+                continue
+            except OSError:
+                return
+            threading.Thread(target=self._relay, args=(client,), daemon=True).start()
+
+    def _relay(self, client):
+        with client:
+            try:
+                upstream = socket.create_connection(("127.0.0.1", self.port), 30)
+            except OSError:
+                return
+            with upstream:
+                back = threading.Thread(target=_pump, args=(upstream, client))
+                back.start()
+                _pump(client, upstream)
+                back.join(60)
 
     def poll(self):
         return 0 if self.closed else None
 
     def terminate(self):
         self.closed = True
+        self.listener.close()
 
     def wait(self, timeout=None):
         return 0
 
     def kill(self):
-        self.closed = True
+        self.terminate()
+
+
+def local_tunnel(port: int) -> Tunnel:
+    """A tunnel to the job server listening on this machine's loopback
+    `port`, made as `SSHClient.tunnel` makes one: its socket in a new
+    owner-only directory."""
+    tunnel = Tunnel(None, tempfile.mkdtemp(prefix="carbon-tunnel-"))
+    tunnel.process = Relay(tunnel.path, port)
+    return tunnel
 
 
 class LocalContainer:
@@ -71,8 +127,9 @@ class LocalContainer:
             return TIMED_OUT, b""
         return completed.returncode, completed.stdout[:MAX_STDOUT_BYTES]
 
-    def tunnel(self, remote):
-        tunnel = Tunnel(Process(), remote)
+    def tunnel(self, remote, *, host="127.0.0.1"):
+        # The container's loopback is this machine's.
+        tunnel = local_tunnel(remote)
         self.tunnels.append(tunnel)
         return tunnel
 

@@ -62,6 +62,13 @@ class FakeDocker:
             raise WorkerFailure(WorkerCode.RUNTIME)
         return self.state
 
+    def stream_kept(self, arguments, operation, *, timeout):
+        # The miner lane keeps both streams, whatever the outcome (RSURF-D21).
+        (operation / "stderr.txt").write_bytes(b"")
+        return self.stream_to_file(
+            arguments, operation / "stdout.txt", maximum=None, timeout=timeout
+        )
+
     def stream_to_file(self, arguments, destination, *, maximum, timeout):
         self.commands.append(list(arguments))
         destination.write_bytes(b"")

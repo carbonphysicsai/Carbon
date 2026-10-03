@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carbon | Miner Control Center · Development</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/research.css">
   <script src="/app.js" defer></script>
+  <script src="/research_charts.js" defer></script>
+  <script src="/research_view.js" defer></script>
+  <script src="/research_tools.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -19,9 +23,11 @@
     <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
     <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
 
-    <section id="overview" class="view" data-nav="Overview" aria-labelledby="overview-heading">
+    <section id="overview" class="view" data-nav="Launchpad" aria-labelledby="overview-heading">
       <div class="view-head"><div><p class="eyebrow section-label">Miner Control Center</p><h1 id="overview-heading">Your research, in one place.</h1><p id="overview-lede" class="lede">Set up once. Then choose a Challenge and launch.</p></div><a id="overview-primary" class="button primary" href="#setup">Get started</a></div>
+      <div id="active-campaign" class="rs-active-wrap" hidden></div>
       <section id="getting-started" class="panel get-started" aria-labelledby="getting-started-heading"><div class="panel-heading"><h2 id="getting-started-heading">Get started</h2><span id="getting-started-progress" class="eyebrow"></span></div><ol id="getting-started-steps" class="gs-steps"><li class="gs-step"><span class="gs-num">00</span><div><p class="hint">Connect this browser to see your next step.</p></div></li></ol></section>
+      <section id="launchpad-strip" class="panel rs-strip-panel" aria-label="Launch a new campaign"><p class="hint">Connect this browser to see your setup.</p></section>
       <h2 class="section-title">Your campaigns</h2>
       <div id="overview-active" class="cards"><p class="hint">Connect to see your campaigns.</p></div>
       <h2 class="section-title">Before you launch</h2>
@@ -29,7 +35,7 @@
       <p class="notice">This is your space and your compute. Carbon does not cap what you spend and does not approve your access: subnet registration is the only admission, read at launch. DEVELOPMENT only: no official qualification, reward or chain write.</p>
     </section>
 
-    <section id="campaigns" class="view" data-nav="Campaigns" aria-labelledby="campaigns-heading" hidden>
+    <section id="campaigns" class="view" data-nav="My Campaigns" aria-labelledby="campaigns-heading" hidden>
       <div class="view-head"><div><p class="eyebrow section-label">Campaigns</p><h1 id="campaigns-heading">Campaigns</h1></div><a class="button primary" href="#launch">New campaign</a></div>
       <div id="research-runs" class="campaign-list"></div>
       <div id="campaign-detail" class="campaign-detail" hidden></div>

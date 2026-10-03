@@ -339,10 +339,32 @@ class ResearchFixture:
         assert identity == self.record["id"]
         return self.record
 
+    # The research surface's detail view reads the campaign view document
+    # through the operations table (RSURF-D1): the campaign gate and the body
+    # a runner gives it, built from this fixture's own record.
+    def owned_campaign(self, identity):
+        from scripts.dev.miner_launchpad.controller import Rejected
+
+        if self.record is None or identity != self.record["id"]:
+            raise Rejected("research_run_unavailable", 404)
+        return {"id": identity, "root": None, "kind": "fixture"}
+
+    def campaign_view_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad.campaign_view import build
+
+        return build(
+            self.record,
+            view=None,
+            contract=None,
+            notes=[],
+            feedback_mode="FULL",
+            predictions=lambda task: (None, "engineering_fixture"),
+        )
+
     def control(self, identity, action):
         record = self.get(identity)
         record["state"] = {
-            "pause": "PAUSE_REQUESTED",
+            "pause": "PAUSED",
             "resume": "RUNNING",
             "stop": "STOPPING",
             "reconcile": "STOPPED",
@@ -793,22 +815,67 @@ def run():
                     load(session, origin)
                     connect(session, token)
                     click(session, "research-launch")
+                    # The campaign detail is the research surface (RSURF-D1):
+                    # every panel is drawn from the campaign view document the
+                    # operations table builds from the runner's own record.
+                    fixture_id = research.record["id"]
+                    detail_text = (
+                        "document.getElementById('campaign-detail').textContent"
+                    )
+
+                    def tab(name):
+                        session.evaluate(
+                            "location.hash = "
+                            + json.dumps("#campaigns/" + fixture_id + "/" + name)
+                        )
+                        wait(
+                            session,
+                            "document.querySelector('#campaign-detail .rs-tab')?.dataset.tab === "
+                            + json.dumps(name),
+                        )
+
+                    def control(action):
+                        return (
+                            "document.querySelector('#campaign-detail .rs-head [data-action="
+                            + action
+                            + "]')"
+                        )
+
+                    # The retried launch is confirmed (it moves the page to the
+                    # campaign), and only then is the campaign's view read.
                     wait(
                         session,
-                        "document.getElementById('campaign-detail').textContent.includes('UI FIXTURE')",
+                        "document.getElementById('message').textContent.includes('Research launch recorded')",
                     )
+                    wait(
+                        session,
+                        "document.querySelector('#campaign-detail .rs-id')?.textContent === "
+                        + json.dumps(fixture_id),
+                    )
+                    # The record's own agent, as the campaign's settings say.
+                    tab("settings")
+                    wait(session, detail_text + ".includes('UI FIXTURE')")
+                    tab("live")
+                    # The practice run's two-point training curve, drawn.
+                    wait(
+                        session,
+                        "document.querySelectorAll('#campaign-detail figure[data-chart=learning_curve] svg circle').length === 2",
+                    )
+                    # Its descriptive score, on the practice trend.
                     assert session.evaluate(
-                        "document.querySelectorAll('.practice-result svg circle').length === 2"
+                        "document.querySelector('#campaign-detail figure[data-chart=trend_score]').textContent.includes('0.42')"
                     )
+                    # Spend from the miner's own ledger: reported plus
+                    # uncertain, never the available balance.
                     assert session.evaluate(
-                        "document.querySelector('.practice-result').textContent.includes('ENGINEERING_FIXTURE_GATE')"
+                        "[...document.querySelectorAll('#campaign-detail .rs-tile')].some(t => t.textContent.includes('Model spend') && t.textContent.includes('$0.00500'))"
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.research-usage').textContent.includes('uncertain: $0.00300000')"
+                    tab("submission")
+                    wait(
+                        session,
+                        detail_text + ".includes('No DEVELOPMENT outcome yet.')",
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.development-result').textContent.includes('no independent result')"
-                    )
+                    tab("live")
                     session.evaluate(
                         "document.querySelector('#campaign-detail details').open = true"
                     )
@@ -817,32 +884,38 @@ def run():
                     }
                     wait(
                         session,
-                        "document.querySelector('#campaign-detail').textContent.includes('UI FIXTURE updated hypothesis')",
+                        detail_text + ".includes('UI FIXTURE updated hypothesis')",
                     )
+                    # A user-opened panel stays open when the view refreshes.
                     assert session.evaluate(
                         "document.querySelector('#campaign-detail details').open"
                     )
                     research.record["experiments"][0]["inline_curve"][0][
                         "data_loss"
                     ] = None
+                    # A curve with a missing point is not drawn, and says so.
                     wait(
                         session,
-                        "document.querySelectorAll('.practice-result svg').length === 0",
+                        "!document.querySelector('#campaign-detail figure[data-chart=learning_curve]')",
                     )
-                    assert session.evaluate(
-                        "document.querySelector('.practice-result').textContent.includes('Training curve unavailable')"
-                    )
+                    assert session.evaluate(detail_text + ".includes('Not recorded.')")
                     research.record["experiments"][0]["inline_curve"][0][
                         "data_loss"
                     ] = 0.5
+                    wait(
+                        session,
+                        "Boolean(document.querySelector('#campaign-detail figure[data-chart=learning_curve]'))",
+                    )
                     original_research_recent = research.recent
                     research.recent = unavailable
                     wait(
                         session,
                         "document.getElementById('connection-state').textContent === 'Connection interrupted'",
                     )
+                    # No control can be sent while the connection is down.
                     assert session.evaluate(
-                        "[...document.querySelectorAll('#campaign-detail button')].every(b => b.disabled)"
+                        "[...document.querySelectorAll('#campaign-detail [data-action]')].length >= 4"
+                        " && [...document.querySelectorAll('#campaign-detail [data-action]')].every(b => b.disabled)"
                     )
                     research.recent = original_research_recent
                     wait(
@@ -853,32 +926,23 @@ def run():
                         "document.querySelector('#campaign-detail details').open"
                     )
                     for action, observed in (
-                        ("pause", "PAUSE_REQUESTED"),
+                        ("pause", "PAUSED"),
                         ("resume", "RUNNING"),
                         ("stop", "STOPPING"),
                         ("reconcile", "STOPPED"),
                     ):
+                        wait(session, "!" + control(action) + ".disabled")
+                        session.evaluate(control(action) + ".click()")
                         wait(
                             session,
-                            "![...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
-                            + json.dumps(action)
-                            + ").disabled",
-                        )
-                        session.evaluate(
-                            "[...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
-                            + json.dumps(action)
-                            + ").click()"
-                        )
-                        wait(
-                            session,
-                            "document.getElementById('campaign-detail').textContent.includes("
-                            + json.dumps(observed)
-                            + ")",
+                            "document.querySelector('#campaign-detail .rs-meta .pill')?.textContent === "
+                            + json.dumps(observed),
                         )
                     assert len(research.keys) == 1
-                    assert "UI FIXTURE stop reason" in session.evaluate(
-                        "document.getElementById('campaign-detail').textContent"
-                    )
+                    # The agent's stop reason, as an epoch outcome.
+                    tab("reasoning")
+                    wait(session, detail_text + ".includes('UI FIXTURE stop reason')")
+                    tab("submission")
                     research.record["final_results"] = [
                         {
                             "status": "VERIFIED_SOURCE",
@@ -890,23 +954,20 @@ def run():
                     ]
                     wait(
                         session,
-                        "document.querySelector('.development-result').textContent.includes('ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED')",
+                        detail_text
+                        + ".includes('engineering fixture complete unresolved')",
                     )
                     assert session.evaluate(
-                        "document.querySelector('.development-result').textContent.includes('improvement: false')"
+                        detail_text
+                        + ".includes('accepted DEVELOPMENT improvement: false')"
                     )
                     research.record["final_results"] = [
                         {"status": "READBACK_UNAVAILABLE", "result": None}
                     ]
-                    wait(
-                        session,
-                        "document.querySelector('.development-result').textContent.includes('Readback unavailable')",
-                    )
+                    wait(session, detail_text + ".includes('readback unavailable')")
                     assert (
-                        "ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED"
-                        not in session.evaluate(
-                            "document.getElementById('campaign-detail').textContent"
-                        )
+                        "engineering fixture complete unresolved"
+                        not in session.evaluate(detail_text)
                     )
                     load(session, origin)
                     connect(session, token)
@@ -970,8 +1031,8 @@ def run():
                         # Monitoring and stop stay usable: the campaign's own
                         # controls, and the rehearsal's in the Development area.
                         assert session.evaluate(
-                            "[...document.querySelectorAll('#campaign-detail button')]"
-                            ".find(b => b.textContent === 'stop').getBoundingClientRect().width >= 44"
+                            "document.querySelector('#campaign-detail .rs-head [data-action=stop]')"
+                            ".getBoundingClientRect().width >= 44"
                         ), width
                         goto(session, "#development")
                         assert session.evaluate(
@@ -982,6 +1043,19 @@ def run():
                         # finger can hit; and a real Enter on one moves the
                         # working surface to that view. Development is listed
                         # apart from the primary views.
+                        if width < 900:
+                            # On a phone the rail is behind Menu (C-MLP-05): a
+                            # person opens it, and then every view is in reach.
+                            assert session.evaluate(
+                                "document.getElementById('rail-toggle').getBoundingClientRect().height >= 44"
+                            )
+                            session.evaluate(
+                                "document.getElementById('rail-toggle').click()"
+                            )
+                            wait(
+                                session,
+                                "document.documentElement.classList.contains('rail-open')",
+                            )
                         listed = session.evaluate(
                             "JSON.stringify([...document.querySelectorAll('#tool-nav a')]"
                             ".map(a => [a.getAttribute('href'), a.textContent,"
@@ -992,9 +1066,11 @@ def run():
                             ".map(s => ['#' + s.id, s.dataset.nav, true]))"
                         )
                         assert json.loads(listed) == json.loads(marked), (width, listed)
+                        # The research surface's names (C-MLP-05): Launchpad
+                        # and My Campaigns head the rail.
                         assert [entry[1] for entry in json.loads(listed)] == [
-                            "Overview",
-                            "Campaigns",
+                            "Launchpad",
+                            "My Campaigns",
                             "Challenges",
                             "Agents",
                             "Compute",
@@ -1162,10 +1238,30 @@ def journey():
                     choose(session, "wizard-challenge", FIXTURE_CHALLENGE["id"])
                     choose(session, "research-agent", "manual")
                     click(session, "research-launch")
-                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    # The launch opens the campaign. With no agent, the person
+                    # practises under Experiments and freezes and submits
+                    # under Submission: the research surface's tabs (C-MLP-05).
+                    wait(session, "/^#campaigns\\/[^/]+\\//.test(location.hash)")
                     run_id = session.evaluate(
-                        "document.querySelector('.journey').id.slice('journey-'.length)"
+                        "decodeURIComponent(location.hash.split('/')[1])"
                     )
+
+                    def journey_tab(name):
+                        session.evaluate(
+                            "location.hash = "
+                            + json.dumps("#campaigns/" + run_id + "/" + name)
+                        )
+                        wait(
+                            session,
+                            "document.querySelector('#campaign-detail .rs-tab')?.dataset.tab === "
+                            + json.dumps(name),
+                        )
+
+                    journey_tab("experiments")
+                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    assert session.evaluate(
+                        "document.querySelector('.journey').id"
+                    ) == ("journey-" + run_id)
                     campaign = root / "campaigns" / run_id
                     # A refusal through the real route: submitting with nothing
                     # frozen is a named 409, never a 500 - the shared table's
@@ -1202,14 +1298,26 @@ def journey():
                     assert "unet1d" in families
                     # The freeze is refused before any practice: a candidate
                     # must have a practice result.
+                    journey_tab("submission")
+                    wait(
+                        session,
+                        f"Boolean(document.getElementById('journey-freeze-{run_id}'))",
+                    )
                     assert session.evaluate(
                         f"document.getElementById('journey-freeze-{run_id}').disabled"
+                    )
+                    journey_tab("experiments")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-practice-{run_id}').disabled === false",
                     )
                     session.evaluate(
                         f"const h=document.getElementById('journey-hypothesis-{run_id}');"
                         "h.value='wider FNO lowers data loss';h.dispatchEvent(new Event('input'))"
                     )
                     click(session, f"journey-practice-{run_id}")
+                    # Once practised, the recipe can be frozen under Submission.
+                    journey_tab("submission")
                     wait(
                         session,
                         f"document.getElementById('journey-freeze-{run_id}') && !document.getElementById('journey-freeze-{run_id}').disabled",

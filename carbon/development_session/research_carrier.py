@@ -13,6 +13,7 @@ import re
 import time
 from contextlib import ExitStack, contextmanager
 from contextvars import ContextVar
+from functools import partial
 
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
@@ -53,12 +54,26 @@ os.execv('/opt/carbon-worker/bin/python',['python','-I','/input/program.py'])
 """
 
 
-def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
-    """Run miner Python only on explicitly staged public/own file bytes."""
+def run_script(
+    ledger, *, owner, identity, source, files, image, seconds=600, accelerator=None
+):
+    """Run miner Python only on explicitly staged public/own file bytes.
+
+    `accelerator=MINER_GPU` runs it on the host's installed GPU, in the
+    campaign's pinned GPU worker image (RSURF-D20, owner, 2026-10-03): the
+    same miner lane and isolation with the device attached. Omitted, it runs
+    in the CPU analysis image exactly as before.
+    """
     from .research_image import ResearchImageIdentity
 
-    if type(image) is not ResearchImageIdentity:
-        raise ValueError("miner scripts require the separate analysis image")
+    if accelerator is None:
+        if type(image) is not ResearchImageIdentity:
+            raise ValueError("miner scripts require the separate analysis image")
+    else:
+        from .gpu_practice import is_gpu_image
+
+        if accelerator != MINER_GPU or not is_gpu_image(image):
+            raise ValueError("a GPU code cell runs the campaign's pinned GPU worker")
     if type(source) is not str or not source:
         raise ValueError("research source required")
     return _run(
@@ -74,6 +89,7 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         miner_authored=True,
+        **({} if accelerator is None else {"accelerator": accelerator}),
     )
 
 
@@ -272,11 +288,12 @@ def _run_locked(
         request["execution_contract"] = execution_contract
     device = None
     if accelerator is not None:
-        # Carbon's own fixed practice program on the miner's own GPU (C-MLP-03
-        # slice 3). The device is the host's installed record, bound to this
-        # request, so a replaced or withdrawn record is a different request.
-        # Absent for every CPU run, so their identities are unchanged.
-        if accelerator != MINER_GPU or miner_lane:
+        # The miner's own GPU: Carbon's fixed practice program (C-MLP-03 slice
+        # 3), or the miner's own code cell (RSURF-D20). The device is the
+        # host's installed record, bound to this request, so a replaced or
+        # withdrawn record is a different request. Absent for every CPU run,
+        # so their identities are unchanged.
+        if accelerator != MINER_GPU or (miner_lane and not miner_authored):
             raise ValueError("unsupported accelerator request")
         device = _gpu_device()
         request["accelerator"] = {
@@ -356,11 +373,17 @@ def _run_locked(
             from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
             from .research_image import verify_image
 
-            if type(image) is JuliaResearchImageIdentity:
+            if device is not None:
+                # A GPU code cell: the pinned GPU worker and the host's GPU
+                # readiness, checked as GPU practice checks them.
+                checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+                _check_gpu_host(cli, image, device)
+            elif type(image) is JuliaResearchImageIdentity:
                 verify_julia_image(image, cli)
+                checked = doctor(image_id=image.image_id, cli=cli)
             else:
                 verify_image(image, cli)
-            checked = doctor(image_id=image.image_id, cli=cli)
+                checked = doctor(image_id=image.image_id, cli=cli)
         else:
             checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
             if device is not None:
@@ -370,25 +393,13 @@ def _run_locked(
             # visible.
             raise ValueError("research host ineligible")
     except Exception:
-        # Nothing was created: no container command has been issued. That is
-        # a fact of this process, not an inference from absence, so settle now
-        # as infrastructure failure keeping the full reservation - no refund.
-        before_finish()
-        ledger.finish(
-            identity,
+        _settle_nothing_created(
+            ledger,
             owner=owner,
-            state="FAILED_INFRA",
-            actual=resources,
-            result={
-                "schema": "carbon.autoresearch.worker-reconciliation.v1",
-                "operation": operation.name,
-                "state": "FAILED_INFRA",
-                "worker_created": False,
-                "cleanup_observed": True,
-                "accounting": "full original reservation retained as conservative consumption",
-                "scientific_outcome": "UNRESOLVED",
-                "retry_dispatched": False,
-            },
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            before_finish=before_finish,
         )
         raise
     if miner_lane:
@@ -413,6 +424,7 @@ def _run_locked(
             resources=resources,
             miner_authored=miner_authored,
             before_finish=before_finish,
+            device=device,
         )
     worker = _worker_profile(device)
     create_attempted = False
@@ -543,7 +555,8 @@ def _run_locked(
 
 
 #: The one accelerator a carrier run may ask for: the miner's own GPU, for
-#: Carbon's fixed practice program (never a miner-authored script).
+#: Carbon's fixed practice program or, in the miner lane's isolated
+#: container, the miner's own code cell (RSURF-D20).
 MINER_GPU = "MINER_OWN_GPU"
 
 
@@ -616,6 +629,34 @@ def _miner_guard(seconds):
     return liveness_reaper.controller_guard()
 
 
+def _settle_nothing_created(
+    ledger, *, owner, identity, operation, resources, before_finish
+):
+    """Settle an operation refused before any container command.
+
+    Nothing was created: no container command has been issued. That is a
+    fact of this process, not an inference from absence, so settle now as
+    infrastructure failure keeping the full reservation - no refund.
+    """
+    before_finish()
+    ledger.finish(
+        identity,
+        owner=owner,
+        state="FAILED_INFRA",
+        actual=resources,
+        result={
+            "schema": "carbon.autoresearch.worker-reconciliation.v1",
+            "operation": operation.name,
+            "state": "FAILED_INFRA",
+            "worker_created": False,
+            "cleanup_observed": True,
+            "accounting": "full original reservation retained as conservative consumption",
+            "scientific_outcome": "UNRESOLVED",
+            "retry_dispatched": False,
+        },
+    )
+
+
 def _run_miner_lane(
     ledger,
     *,
@@ -638,8 +679,13 @@ def _run_miner_lane(
     resources,
     miner_authored,
     before_finish,
+    device=None,
 ):
     """Run the miner's own research: isolated, no Carbon limits.
+
+    `device` is the host's installed GPU record for a GPU code cell
+    (RSURF-D20): the same container with that one device attached, under the
+    same device lease as GPU practice. None for every CPU run.
 
     Same lifecycle as Carbon's lane - durable intent, exact-label removal,
     cancellation, a digest of every output - in the miner lane's container,
@@ -659,17 +705,59 @@ def _run_miner_lane(
         prepare_scratch,
     )
 
-    scratch = prepare_scratch(operation / "scratch")
-    run = MinerResearchLaunch(name, image.image_id, launch, stage, scratch)
+    try:
+        scratch = prepare_scratch(operation / "scratch")
+        run = MinerResearchLaunch(
+            name,
+            image.image_id,
+            launch,
+            stage,
+            scratch,
+            **({} if device is None else {"gpu_device": device.device_uuid}),
+        )
+    except Exception:
+        # Refused before any container command: settle now, as the prechecks
+        # do, rather than leave the reservation for reconciliation.
+        _settle_nothing_created(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            before_finish=before_finish,
+        )
+        raise
     # No deadline unless the miner asked for one; a very long transport bound
     # stands in for "none" where the CLI needs a number.
     unbounded = 10 * 365 * 24 * 3600
     create_attempted = False
     failure = None
+    lease = ExitStack()
+    slot = ExitStack()
     try:
+        if device is not None:
+            from carbon.reconstruction.worker.accelerator_runtime import (
+                miner_device_lease,
+                reject_existing_device_containers,
+                shared_host_lease,
+            )
+
+            # The same lease GPU practice takes: one run on the device at a
+            # time, on this host.
+            lease.enter_context(miner_device_lease(device.device_uuid))
+            # And the shared Carbon slot across check-then-create. Validator
+            # GPU work holds that slot for its whole run and checks for
+            # labelled device containers under it, so neither side can pass
+            # its check while the other is between check and create. Once
+            # created, this run's device label is what the other side sees.
+            slot.enter_context(shared_host_lease())
+            reject_existing_device_containers(cli=cli)
         _check_cancel(ledger, owner, identity)
         create_attempted = True
-        cli.run(create_arguments(run), timeout=30)
+        try:
+            cli.run(create_arguments(run), timeout=30)
+        finally:
+            slot.close()
         _check_cancel(ledger, owner, identity)
         if seconds is not None:
             spawn_watchdog(
@@ -684,10 +772,12 @@ def _run_miner_lane(
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)
         try:
-            cli.stream_to_file(
+            # The last 64 KiB of stdout and of stderr are kept, whatever the
+            # outcome (RSURF-D21). A Docker double supplies its own.
+            keep = getattr(cli, "stream_kept", None) or partial(stream_kept, cli)
+            keep(
                 ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
-                operation / "stdout.txt",
-                maximum=1024**4,
+                operation,
                 timeout=unbounded if seconds is None else max(1, seconds),
             )
         except WorkerFailure as error:
@@ -709,13 +799,21 @@ def _run_miner_lane(
             )
         write_once(operation / "resources.json", canonical({"isolation": isolation}))
     finally:
-        if create_attempted:
-            remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
-            remaining = cli.run(
-                ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
-            )
-            if remaining.stdout.strip():
-                raise ValueError("research cleanup uncertain; capacity stays reserved")
+        try:
+            if create_attempted:
+                remove_exact_container(
+                    cli=cli, container_name=name, launch_digest=launch
+                )
+                remaining = cli.run(
+                    ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+                )
+                if remaining.stdout.strip():
+                    raise ValueError(
+                        "research cleanup uncertain; capacity stays reserved"
+                    )
+        finally:
+            slot.close()
+            lease.close()
     if failure is not None:
         _settle_miner_failure(
             ledger,
@@ -796,6 +894,106 @@ def _run_miner_lane(
 
 
 _DOCKER_OWN_EXITS = frozenset({125, 126, 127})
+
+#: What a miner-lane run keeps of its stdout and of its stderr: the last
+#: 64 KiB of each, for successful and failed runs alike (RSURF-D21, owner,
+#: 2026-10-03: "Keep both, capped").
+KEPT_BYTES = 64 * 1024
+STDOUT_FILE, STDERR_FILE = "stdout.txt", "stderr.txt"
+
+
+class _Tail:
+    """The last `limit` bytes of a stream, in bounded memory."""
+
+    def __init__(self, limit):
+        self.limit, self.buffer = limit, bytearray()
+
+    def add(self, block):
+        self.buffer += block
+        if len(self.buffer) > 2 * self.limit:
+            del self.buffer[: -self.limit]
+
+    def value(self):
+        return bytes(self.buffer[-self.limit :])
+
+
+def stream_kept(cli, arguments, operation, *, timeout):
+    """Run one fixed Docker command for the miner lane, keeping the last
+    `KEPT_BYTES` of its stdout and of its stderr in `operation`, whatever the
+    outcome. A timeout or nonzero exit raises `WorkerFailure(RUNTIME)` with
+    the diagnostic `DockerCLI.stream_to_file` gives, so a failure is
+    classified exactly as before; a large stderr no longer fails a run.
+    """
+    import os
+    import selectors
+    import subprocess
+
+    from carbon.reconstruction.worker.docker_runtime import _stop_process
+    from carbon.reconstruction.worker.model import DIAGNOSTIC_BYTES
+
+    if type(timeout) not in (int, float) or timeout <= 0:
+        raise WorkerFailure(WorkerCode.INVALID)
+    environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
+    for key in (
+        "DOCKER_HOST",
+        "DOCKER_CONTEXT",
+        "DOCKER_TLS_VERIFY",
+        "DOCKER_CERT_PATH",
+    ):
+        if key in os.environ:
+            environment[key] = os.environ[key]
+    stdout, stderr = _Tail(KEPT_BYTES), _Tail(KEPT_BYTES)
+    head = bytearray()
+    process = None
+    try:
+        process = subprocess.Popen(
+            [cli.executable, *arguments],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+        )
+        selector = selectors.DefaultSelector()
+        selector.register(process.stdout, selectors.EVENT_READ, stdout)
+        selector.register(process.stderr, selectors.EVENT_READ, stderr)
+        deadline = time.monotonic() + float(timeout)
+        while selector.get_map():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise WorkerFailure(
+                    WorkerCode.RUNTIME, private_diagnostic=b"stream command timed out"
+                )
+            for key, _ in selector.select(timeout=min(remaining, 0.25)):
+                block = os.read(key.fd, 1 << 16)
+                if not block:
+                    selector.unregister(key.fileobj)
+                    continue
+                key.data.add(block)
+                if key.data is stderr and len(head) < DIAGNOSTIC_BYTES:
+                    head.extend(block[: DIAGNOSTIC_BYTES - len(head)])
+        code = process.wait(timeout=1)
+        if code != 0:
+            raise WorkerFailure(
+                WorkerCode.RUNTIME,
+                private_diagnostic=(
+                    f"exit={code}\nstderr:\n".encode("ascii") + bytes(head)
+                )[:DIAGNOSTIC_BYTES],
+            )
+    except WorkerFailure:
+        if process is not None:
+            _stop_process(process)
+        raise
+    except (OSError, subprocess.SubprocessError):
+        if process is not None:
+            _stop_process(process)
+        raise WorkerFailure(
+            WorkerCode.RUNTIME, private_diagnostic=bytes(head)
+        ) from None
+    finally:
+        for name, tail in ((STDOUT_FILE, stdout), (STDERR_FILE, stderr)):
+            path = operation / name
+            if not path.exists():
+                write_once(path, tail.value())
 
 
 def _observed_miner_failure(cli, name, error, seconds, started):

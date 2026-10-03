@@ -686,6 +686,11 @@ def train(*, network, f, z, sw, gw, trajectory, settings, seed, order, dtype):
     avg = [p.detach().clone() for p in params]
     everything = torch.arange(n)
     adversary = None
+    from .training import keep_history, recording_history
+
+    # Trainer v2 (RSURF-D3): read the loss each update already computes.
+    recording = recording_history()
+    history = []
     for i in range(steps):
         idx = (
             everything if batch >= n else torch.randperm(n, generator=generator)[:batch]
@@ -703,6 +708,8 @@ def train(*, network, f, z, sw, gw, trajectory, settings, seed, order, dtype):
             value, g = gradient(perturbed, idx, i)
         else:
             value, g = gradient(params, idx, i)
+        if recording:
+            history.append((i, float(value)))
         if s["clip_norm"] > 0:
             norm = torch.sqrt(sum(torch.sum(x * x) for x in g))
             factor = min(1.0, s["clip_norm"] / (float(norm) + 1e-12))
@@ -724,6 +731,8 @@ def train(*, network, f, z, sw, gw, trajectory, settings, seed, order, dtype):
                 count = i - tail + 1
                 for a, p in zip(avg, params):
                     a.add_((p - a) / count)
+    if recording:
+        keep_history(history, steps)
     if s["optimizer_family"] == "free_adamw":
         final = opt.evaluation_params()
     elif use_ema:
@@ -797,7 +806,9 @@ def fit(model, d, y, seed):
     model.params, model._network_torch = leaves, network
     final = float(np.mean((zhat - z) ** 2 * gw[None, :]) * gw.size)
     blob = b"".join(a.tobytes() for a in leaves)
-    return {
+    from .training import take_history
+
+    stats = {
         "compile_s": 0.0,
         "train_s": time.perf_counter() - t0,
         "final_loss": final,
@@ -805,6 +816,10 @@ def fit(model, d, y, seed):
         "n_params": int(sum(a.size for a in leaves)),
         "backend": TORCH_BACKEND,
     }
+    history = take_history()
+    if history is not None:
+        stats["loss_history"] = history
+    return stats
 
 
 def trajectory(model, dtype):

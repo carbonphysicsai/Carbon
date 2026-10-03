@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-toolbox-conversation",
+  "recorded_at": "2026-10-03T02:10:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_research_toolbox_conversation.py and the research-surface, setup, door and journey suites after merging agent-first setup: 296 passed, 3 skipped; the demo walked at the pane's width and at 390 px",
+    "description": "The owner's second request: where the JAX, PyTorch and Julia tooling is, and where to talk to your agent. Built as the Tools tab and a Toolbox on each Challenge card, and as a Conversation between the miner and their own agent; then merged with the agent-first setup branch."
+  },
+  "expected": "A toolbox drawn from records rather than a list, and a conversation that any MCP agent can join without gaining any authority.",
+  "observed": "Almost all of the toolbox already existed as data: the description's backends and workflow, the registry's Julia status and blocker, the exam environment's pinned versions and the protocol's workspace actions. Only one line per workspace action had to be written, and a test holds that set equal to the protocol's. The conversation fits the journal: one note per message, with its time and digest. Agents read with a cursor and reply by sequence. Letting Carbon's own agent read the messages conflicts with C-MLP-02-D6 (a frozen task, no browser-authored prompts, no second prompt store), so that part stopped and fails closed with an owner question. The merge conflicted only in DECISIONS.md, where both branches appended; the strip then had to follow setup's own-agent Inference skip.",
+  "keep": [
+    "Before writing a list into a page, look for the record that already holds it; pin any text you must add to that record's set with a test.",
+    "Give a human-only channel (the miner's message) its own door, and give agents only the read and the reply.",
+    "When a new input would reach Carbon's own agent, check the decisions that freeze its inputs first."
+  ],
+  "change": [
+    "Merge a sibling branch at a coherent point, before your own surface grows further, and re-run the parity tests of both."
+  ],
+  "protocol_elements": [
+    "the toolbox is a function of the Challenge's records and the host's lanes",
+    "miner messages are guidance to the miner's own agent and change nothing frozen at launch"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -147,8 +147,8 @@ class RemoteRunner:
         return record
 
     def _start(self, name, record, seconds):
-        """Check the setup holds the pinned worker, then start the job; its
-        port on the machine's loopback."""
+        """Check the setup holds the pinned worker, then start the job; where
+        it listens on the machine (`JobEndpoint`)."""
         self.transport.verify(self.worker.image)
         return self.transport.start(
             name,
@@ -227,11 +227,14 @@ class RemoteRunner:
         try:
             tunnel = None
             try:
-                port = self._start(name, record, seconds)
-                tunnel = self.transport.tunnel(port)
+                endpoint = self._start(name, record, seconds)
+                tunnel = self.transport.tunnel(endpoint)
+                # The job is reached only through the tunnel's owner-only Unix
+                # socket, never a local TCP port.
                 job = self.job(
                     tunnel.url,
                     record["token"],
+                    transport=tunnel.transport,
                     cancelled=lambda: _cancel_requested(ledger, owner, identity),
                 )
                 now = job.clock()
