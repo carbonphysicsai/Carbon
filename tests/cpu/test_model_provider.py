@@ -842,6 +842,13 @@ def _transport(opener):
             True,
             "transient_server",
         ),
+        # A provider's own charge report (Engy) with no usage: may have been
+        # billed, so it is not booked at zero (LP-PROD-A review).
+        (
+            b'{"error": {"code": "server_error"}, "x_engy": {"charged_micro": 5}}',
+            True,
+            "transient_server",
+        ),
     ],
 )
 def test_an_unavailable_server_is_read_from_its_status_and_body(

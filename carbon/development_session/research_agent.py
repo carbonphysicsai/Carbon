@@ -8,9 +8,10 @@ how each is retried and settled (OWNER-LAUNCHPAD-PROD-01):
 
 * a failure that incurred no charge (`model_provider.RETRY_SAFE`) - a rate
   limit or overload (429, 529), a server that answered 502 or 503 with no
-  usage object, or a connection refused (or a name unresolved) before
-  anything was sent - is recorded as its own finished operation, counted
-  with no token charge, and the request is sent again under a *new* identity
+  usage object or charge report, or a connection refused (or a name
+  unresolved) before anything was sent - is recorded as its own finished
+  operation, counted with no token charge, and the request is sent again
+  under a *new* identity
   (`-rlN`) and a *new* reservation. The wait is exponential backoff with
   jitter (`retry_wait`), never shorter than the provider's Retry-After. Retries
   stop after `MAX_AUTOMATIC_RETRIES`, or once the next wait would take the
@@ -30,23 +31,30 @@ how each is retried and settled (OWNER-LAUNCHPAD-PROD-01):
   research loop) gets it back, described by `incomplete_reply`; any other
   caller gets the historical refusal;
 * a transient server error after the request was sent, a timeout, a dropped
-  connection, a reply without usable usage, a different model, a charge above
-  the reservation or anything unrecognised may have been processed and
-  charged: the full reservation stays, the operation stays unresolved, and
-  nothing is resent. What is known is journalled beside the call
-  (`uncertain.json`). An explicit settlement (`settle_uncertain_call`, reached
-  through the campaign's reconcile action) books the full reservation as the
-  call's charge - never less than the provider can have charged - and
+  connection, a reply without usable usage, usage beyond the reserved token
+  limits, a different model, a charge above the reservation or anything
+  unrecognised may have been processed and charged: the full reservation
+  stays, the operation stays unresolved, and nothing is resent. What is known
+  is journalled beside the call (`uncertain.json`). An explicit settlement
+  (`settle_uncertain_call`, reached through the campaign's reconcile action
+  only) books the full reservation as the call's charge - the most the
+  request could cost at the selection's prices within its token limits - and
   journals it; the next call of that turn then goes out under a fresh
-  identity with its own reservation. Nothing settles a call automatically.
+  identity with its own reservation. A call whose provider reported a charge,
+  or usage, costing more than that is refused settlement, never booked under
+  it. Nothing settles a call automatically, and nothing settles a call that
+  is still in flight: every call holds the campaign's provider-call lease
+  until it is booked, and a settlement must take it exclusively.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import random
 import re
 import time
+from contextlib import contextmanager
 
 from .data import write_once
 from .model_provider import (
@@ -176,6 +184,73 @@ class ProviderCallFailed(ValueError):
             "resumable": self.resumable,
             "requires_settlement": self.requires_settlement,
             "next_step": NEXT_STEPS[self.outcome],
+        }
+
+
+#: What a miner does next after a reply Carbon cannot book
+#: (`ProviderCallUnresolved.report`), by the reason `uncertain.json` records.
+UNRESOLVED_NEXT_STEPS = {
+    "usage_unavailable": (
+        "The provider's reply carried no usable token usage, so its charge is "
+        "unknown. Reconcile the campaign: Carbon books the call at its full "
+        "reservation, and the next resume sends it under a new identity."
+    ),
+    "usage_beyond_bounds": (
+        "The provider reported more tokens than the request reserved, at a "
+        "charge still within the call's reservation. Reconcile the campaign: "
+        "Carbon books the full reservation, and the next resume sends the call "
+        "under a new identity."
+    ),
+    "usage_exceeds_reservation": (
+        "The provider reported token usage that costs more than the call's "
+        "reservation, which Carbon's ledger cannot book. Check the call against "
+        "your provider's own usage record; Carbon will not settle it, so the "
+        "campaign stays stopped for reconciliation."
+    ),
+    "model_mismatch": (
+        "The provider answered with a different model than the one selected, "
+        "and Carbon does not know that model's price. Reconciling books the "
+        "selected model's full reservation with that caveat recorded; check the "
+        "call against your provider's own usage record."
+    ),
+    "charge_exceeds_reservation": (
+        "The provider reported a charge above the call's reservation, which "
+        "Carbon's ledger cannot book. Check the call against your provider's "
+        "own usage record; Carbon will not settle it, so the campaign stays "
+        "stopped for reconciliation."
+    ),
+}
+
+
+class ProviderCallUnresolved(ValueError):
+    """A reply came back but Carbon cannot book it: no usable usage, usage
+    beyond the reserved limits, a different model, or a charge above the
+    reservation. The call stays `RESERVED` with its full reservation until the
+    campaign is reconciled (`settle_uncertain_call`), which may refuse it.
+
+    A `ValueError` with the message it always had, so a caller that handled
+    one handles this unchanged; `reason` is what `uncertain.json` records,
+    and `report()` the miner-facing record, as for `ProviderCallFailed`.
+    """
+
+    resumable = False
+    requires_settlement = True
+    outcome = ProviderOutcome.UNKNOWN
+
+    def __init__(self, message, *, reason):
+        super().__init__(message)
+        self.reason = reason
+
+    def report(self):
+        """The unresolved call as a miner-facing record with its closed code
+        and next step; never provider text."""
+        return {
+            "schema": FAILURE_REPORT,
+            "code": "provider_" + self.reason,
+            "outcome": self.outcome.value,
+            "resumable": False,
+            "requires_settlement": True,
+            "next_step": UNRESOLVED_NEXT_STEPS[self.reason],
         }
 
 
@@ -315,6 +390,10 @@ def request_model(
     `accept_incomplete` returns a reply the provider ended early, metered;
     without it such a reply raises, as it always has. `sleep` and `jitter`
     default to `time.sleep` and `random.random`, read at call time.
+
+    Each attempt holds the campaign's provider-call lease (`PROVIDER_LEASE`)
+    from before its reservation until it is booked or left unresolved, so no
+    settlement can book it meanwhile; a backoff wait holds none.
     """
     sleep = time.sleep if sleep is None else sleep
     jitter = random.random if jitter is None else jitter
@@ -322,18 +401,19 @@ def request_model(
     waited = 0
     while True:
         try:
-            return _request_once(
-                ledger,
-                owner=owner,
-                identity=attempt_identity(identity, attempt),
-                request=request,
-                credential_file=credential_file,
-                phase=phase,
-                transport=transport,
-                provider=provider,
-                anchor=anchor,
-                accept_incomplete=accept_incomplete,
-            )
+            with _provider_lease(ledger):
+                return _request_once(
+                    ledger,
+                    owner=owner,
+                    identity=attempt_identity(identity, attempt),
+                    request=request,
+                    credential_file=credential_file,
+                    phase=phase,
+                    transport=transport,
+                    provider=provider,
+                    anchor=anchor,
+                    accept_incomplete=accept_incomplete,
+                )
         except _Passed as passed:
             attempt += 1
             if not passed.fresh:
@@ -378,10 +458,13 @@ def _rejected(failure, *, fresh):
     )
 
 
-def _uncertain(directory, identity, reason, failure=None):
+def _uncertain(directory, identity, reason, failure=None, metered=None):
     """Journal what is known about a call left unresolved, beside it, for the
     settlement and the views. Best effort: the call's own failure is what the
-    caller raises, and a settlement without this record reads it as unknown."""
+    caller raises, and a settlement without this record reads it as unknown
+    and checks the retained reply itself. `metered` is the charge the reply's
+    own usage implies at the selection's prices, where it reported usage
+    beyond the reserved limits (`_beyond_bounds`)."""
     try:
         write_once(
             directory / "uncertain.json",
@@ -391,11 +474,55 @@ def _uncertain(directory, identity, reason, failure=None):
                     "identity": identity,
                     "reason": reason,
                     "provider_failure": None if failure is None else failure.record(),
+                    "metered_nanodollars": metered,
                 }
             ),
         )
     except (OSError, ValueError):
         pass
+
+
+def _beyond_bounds(response, selection):
+    """Why a reply's usage could not be booked, and the charge it implies.
+
+    `usage_cost` refuses usage that is missing or malformed, and usage that
+    reports whole token counts beyond the request's reserved limits (a chat
+    provider may count reasoning outside its output cap). The second still
+    says what the call cost: at the selection's prices, every input token at
+    the higher of its uncached and cached price (cache detail is not trusted
+    here), or the provider's own reported charge where its adapter reports
+    one. Returns (reason, nanodollars): `usage_unavailable` with None;
+    `usage_exceeds_reservation` when that charge is above the money
+    reservation, which the ledger cannot book; otherwise
+    `usage_beyond_bounds`, with None for an unpriced selection, whose money
+    is not metered."""
+    usage = response.get("usage")
+    tokens = (
+        (usage.get("input_tokens"), usage.get("output_tokens"))
+        if type(usage) is dict
+        else (None, None)
+    )
+    if any(type(count) is not int or count < 0 for count in tokens):
+        return "usage_unavailable", None
+    settings, pricing = selection.settings, selection.pricing
+    if (
+        tokens[0] <= settings.max_input_tokens
+        and tokens[1] <= settings.max_output_tokens
+    ):
+        # Within the limits, so the cache or reasoning detail is malformed.
+        return "usage_unavailable", None
+    if pricing is None:
+        return "usage_beyond_bounds", None
+    metered = (
+        tokens[0] * max(pricing.input_nano, pricing.cached_input_nano)
+        + tokens[1] * pricing.output_nano
+    )
+    report = provider_report(response, selection)
+    if report is not None and report["charged_micro"] is not None:
+        metered = report["charged_micro"] * 1000
+    if metered > selection.reservation_nano:
+        return "usage_exceeds_reservation", metered
+    return "usage_beyond_bounds", metered
 
 
 def _retained(directory, retained):
@@ -423,6 +550,47 @@ def _replay(admission, directory, provider, accept_incomplete):
             "provider outcome uncertain; reconciliation required, no resend"
         )
     return _retained(directory, retained)
+
+
+#: The campaign's provider-call lease (LP-PROD-A), beside its ledger. Every
+#: model call holds it shared from before its reservation until it is booked;
+#: a settlement takes it exclusively and never waits for it, so it cannot
+#: settle a call that is still being admitted or is in flight, in this process
+#: or another. The OS releases a lease when its holder exits.
+PROVIDER_LEASE = "provider-calls.lock"
+
+
+@contextmanager
+def _provider_lease(ledger, *, exclusive=False):
+    """Hold the campaign's provider-call lease: shared for a call, waiting for
+    a settlement in progress; exclusive for a settlement, refused at once
+    (`call_in_flight`) while any call holds it. A host without POSIX file
+    locks cannot show that no call is in flight, so it never settles."""
+    try:
+        import fcntl
+    except ImportError:  # pragma: no cover - not POSIX
+        fcntl = None
+    if fcntl is None:  # pragma: no cover - not POSIX
+        if exclusive:
+            raise SettlementRefused("call_in_flight")
+        yield
+        return
+    descriptor = os.open(
+        ledger.root / PROVIDER_LEASE,
+        os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW,
+        0o600,
+    )
+    try:
+        if not exclusive:
+            fcntl.flock(descriptor, fcntl.LOCK_SH)
+        else:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                raise SettlementRefused("call_in_flight") from None
+        yield
+    finally:
+        os.close(descriptor)
 
 
 def _request_once(
@@ -552,9 +720,10 @@ def _request_once(
     write_once(directory / "response.json", body)
     try:
         usage = usage_cost(response.get("usage"), provider)
-    except ValueError:
-        _uncertain(directory, identity, "usage_unavailable")
-        raise
+    except ValueError as error:
+        reason, metered = _beyond_bounds(response, provider)
+        _uncertain(directory, identity, reason, metered=metered)
+        raise ProviderCallUnresolved(str(error), reason=reason) from None
     reported = response.get("model")
     # The pinned model must come back exactly. A model the miner named may come
     # back as a dated snapshot of that name, which is recorded.
@@ -564,8 +733,9 @@ def _request_once(
         or not reported.startswith(provider.model_id + "-")
     ):
         _uncertain(directory, identity, "model_mismatch")
-        raise ValueError(
-            "different provider model; retained usage needs reconciliation"
+        raise ProviderCallUnresolved(
+            "different provider model; retained usage needs reconciliation",
+            reason="model_mismatch",
         )
     # A reply the provider ended early stays FAILED_INFRA, as it always was
     # recorded, with its exact metered charge; `incomplete` says how it ended.
@@ -573,10 +743,16 @@ def _request_once(
     report = provider_report(response, provider)
     charge = settled_charge(usage, report, provider)
     if priced and charge["nanodollars"] > provider.reservation_nano:
-        _uncertain(directory, identity, "charge_exceeds_reservation")
-        raise ValueError(
+        _uncertain(
+            directory,
+            identity,
+            "charge_exceeds_reservation",
+            metered=charge["nanodollars"],
+        )
+        raise ProviderCallUnresolved(
             "provider-reported charge exceeds the reservation; retained for "
-            "reconciliation"
+            "reconciliation",
+            reason="charge_exceeds_reservation",
         )
     result = {
         "request_digest": request_digest,
@@ -642,7 +818,11 @@ def incomplete_reply(response, max_output_tokens):
     reason = details.get("reason") if type(details) is dict else None
     if reason is None:
         reason = response.get("provider_stop_reason")
-    reason = _code(_INCOMPLETE_REASONS.get(reason, reason)) or "unknown"
+    # Untrusted: a reason that is not a string (a list, an object) is
+    # `unknown`, never a lookup that raises before the call is booked.
+    reason = (
+        _code(_INCOMPLETE_REASONS.get(reason, reason)) if type(reason) is str else None
+    ) or "unknown"
     usage = response.get("usage")
     produced = usage.get("output_tokens") if type(usage) is dict else None
     return {
@@ -675,11 +855,38 @@ SETTLEMENT_REFUSALS = {
         "ledger cannot book; reconcile it against the provider's own usage "
         "record before this campaign makes another call"
     ),
+    "usage_exceeds_reservation": (
+        "the provider reported token usage beyond what the call reserved, and "
+        "nothing Carbon recorded shows its charge fits the reservation, which "
+        "is all the ledger can book; reconcile it against the provider's own "
+        "usage record before this campaign makes another call"
+    ),
+    "call_in_flight": (
+        "a model call of this campaign is still being admitted or in flight "
+        "(it holds the campaign's provider-call lease), or this host cannot "
+        "show that none is; settle once it has ended or its process has exited"
+    ),
+    "control_fenced": (
+        "this is not the campaign's reconcile action: settle only from the "
+        "reconcile action, under the campaign's owner lock and its current "
+        "control generation"
+    ),
 }
 SETTLEMENT_ACCOUNTING = (
     "The call's outcome is unknown, so its full reservation is booked as its "
-    "charge: never less than the provider can have charged. The provider's own "
-    "charge, which may be lower or nothing, is not known to Carbon."
+    "charge: the most the request could cost at the selection's prices within "
+    "the token limits it reserved. A call whose provider reported a charge, or "
+    "token usage, costing more than that is refused settlement instead. The "
+    "provider's own charge, which may be lower or nothing, is not known to "
+    "Carbon."
+)
+#: Recorded on a settlement of a call answered by another model (LP-PROD-A):
+#: booked, with what the booking does not prove.
+MODEL_CAVEAT = (
+    "The provider reported serving a different model than the one selected. "
+    "Carbon does not know that model's price, so the booked reservation is the "
+    "selected model's maximum, not a proven upper bound on this call's charge; "
+    "check the call against the provider's own usage record."
 )
 SETTLEMENT_RESEND = (
     "Nothing is resent by this settlement. The next model call of this turn goes "
@@ -709,19 +916,62 @@ def _read_record(path, schema):
     return value if type(value) is dict and value.get("schema") == schema else None
 
 
-def _reported_above(path, reservation):
-    """Whether a retained reply reports a provider charge above the call's
-    money reservation (Engy's `x_engy.charged_micro`)."""
-    reserved = reservation.get("provider_nanodollars")
-    if reserved is None or not path.is_file() or path.is_symlink():
-        return False
+def _retained_json(path):
+    """A retained call file as JSON, or None when absent or unreadable."""
+    if not path.is_file() or path.is_symlink():
+        return None
     try:
-        response = json.loads(path.read_bytes())
+        return json.loads(path.read_bytes())
     except ValueError:
-        return False
-    report = response.get("x_engy") if type(response) is dict else None
+        return None
+
+
+def _figures_refusal(response, request, reservation, known):
+    """The refusal a retained reply's own figures demand, read from the
+    retained files whatever `uncertain.json` says (it is written best effort,
+    and a call left unresolved before it existed has none):
+
+    * a provider-reported charge (Engy's `x_engy.charged_micro`) above the
+      money reservation: `charge_exceeds_reservation`;
+    * more output tokens than the retained request reserved: settled only
+      where the call's own journal, written with the selection's prices,
+      shows that the charge its usage implies fits the reservation
+      (`usage_beyond_bounds`); otherwise `usage_exceeds_reservation`.
+
+    A call with no money reservation (an unpriced selection) books no money,
+    so nothing it reported can exceed what is booked."""
+    reserved = reservation.get("provider_nanodollars")
+    if reserved is None or type(response) is not dict:
+        return None
+    report = response.get("x_engy")
     charged = report.get("charged_micro") if type(report) is dict else None
-    return type(charged) is int and charged * 1000 > reserved
+    if type(charged) is int and charged * 1000 > reserved:
+        return "charge_exceeds_reservation"
+    usage = response.get("usage")
+    produced = usage.get("output_tokens") if type(usage) is dict else None
+    limit = request.get("max_output_tokens") if type(request) is dict else None
+    if type(produced) is int and type(limit) is int and produced > limit:
+        metered = known.get("metered_nanodollars")
+        if not (
+            known.get("reason") == "usage_beyond_bounds"
+            and type(metered) is int
+            and 0 <= metered <= reserved
+        ):
+            return "usage_exceeds_reservation"
+    return None
+
+
+def _other_model(response, request):
+    """Whether a retained reply names a model other than the request's (a
+    dated snapshot of it counts as the same)."""
+    reported = response.get("model") if type(response) is dict else None
+    selected = request.get("model") if type(request) is dict else None
+    return (
+        type(reported) is str
+        and type(selected) is str
+        and reported != selected
+        and not reported.startswith(selected + "-")
+    )
 
 
 def _settlement(ledger, owner, identity):
@@ -755,10 +1005,16 @@ def _settlement(ledger, owner, identity):
         raise SettlementRefused("request_changed")
     known = _read_record(directory / "uncertain.json", UNCERTAIN_CALL) or {}
     reason = _code(known.get("reason")) or "outcome_unknown"
-    if reason == "charge_exceeds_reservation" or _reported_above(
-        response_file, reservation
-    ):
-        raise SettlementRefused("charge_exceeds_reservation")
+    if reason in ("charge_exceeds_reservation", "usage_exceeds_reservation"):
+        raise SettlementRefused(reason)
+    request, response = _retained_json(request_file), _retained_json(response_file)
+    refusal = _figures_refusal(response, request, reservation, known)
+    if refusal is not None:
+        raise SettlementRefused(refusal)
+    # Another model's price is unknown: booked, with that said (LP-PROD-A).
+    mismatch = reason == "model_mismatch" or (
+        not known and _other_model(response, request)
+    )
     return row[2], {
         "schema": PROVIDER_SETTLEMENT,
         "identity": identity,
@@ -768,58 +1024,106 @@ def _settlement(ledger, owner, identity):
         "response_retained": response_file.exists(),
         "booked": reservation,
         "accounting": SETTLEMENT_ACCOUNTING,
+        "caveat": MODEL_CAVEAT if mismatch else None,
         "resend": SETTLEMENT_RESEND,
         "retry_dispatched": False,
     }
+
+
+def _settle(ledger, owner, identity):
+    """Settle one call; the caller holds the exclusive provider-call lease."""
+    from .research_ledger import ReconcileFenced
+
+    fingerprint, settlement = _settlement(ledger, owner, identity)
+    if fingerprint is None:
+        return settlement
+    try:
+        # Checked before anything is journalled, and again in the booking's
+        # own transaction (`finish(reconciling=True)`).
+        ledger.assert_reconciling(owner)
+    except ReconcileFenced:
+        raise SettlementRefused("control_fenced") from None
+    directory = _call_directory(ledger, owner, identity)
+    directory.mkdir(mode=0o700, exist_ok=True)
+    write_once(directory / "settlement.json", canonical(settlement))
+    try:
+        ledger.finish(
+            identity,
+            owner=owner,
+            state="FAILED_INFRA",
+            actual=settlement["booked"],
+            result={"request_digest": fingerprint, "provider_settlement": settlement},
+            reconciling=True,
+        )
+    except ReconcileFenced:
+        raise SettlementRefused("control_fenced") from None
+    return settlement
 
 
 def settle_uncertain_call(ledger, *, owner, identity):
     """Settle one model call whose outcome is unknown; returns its settlement.
 
     The explicit, journalled end of a call left `RESERVED` (a timeout, a
-    dropped connection, a 5xx after sending, a reply without usable usage, a
-    different model): its full reservation is booked as its charge, so spend
-    is never under-counted, and the operation finishes `FAILED_INFRA` with the
-    settlement as its result. The settlement is journalled beside the call
-    (`settlement.json`) before the ledger books it. Nothing is resent here;
-    the next `request_model` of that turn passes the settled identity and
-    sends the request under the next one, with its own reservation.
+    dropped connection, a 5xx after sending, a reply without usable usage or
+    with usage beyond its limits, a different model): its full reservation -
+    the most the request could cost at the selection's prices within its
+    token limits - is booked as its charge, and the operation finishes
+    `FAILED_INFRA` with the settlement as its result. The settlement is
+    journalled beside the call (`settlement.json`) before the ledger books it.
+    A call answered by another model is booked with `caveat` (`MODEL_CAVEAT`):
+    that model's price is unknown. Nothing is resent here; the next
+    `request_model` of that turn passes the settled identity and sends the
+    request under the next one, with its own reservation.
 
-    Called only by the campaign's reconcile action, by its owner-lock holder
-    under a fresh control generation; never automatically. Idempotent: a
-    settled call returns its settlement. Refused (`SettlementRefused`, the
-    operation unchanged): another owner's or a missing operation, one that is
-    not a model call, a call whose outcome is known, a retained request that
-    differs from the reserved one, and a provider-reported charge above the
-    reservation, which the ledger cannot book.
+    Fenced, so a call that may still complete is never booked and then sent
+    again: it takes the campaign's provider-call lease exclusively, without
+    waiting (`call_in_flight` while any model call of the campaign is being
+    admitted or in flight), and books only as the campaign's reconcile action
+    (`control_fenced` otherwise: `CampaignLedger.assert_reconciling`, again in
+    the booking's own transaction). Never automatic.
+
+    Idempotent: a settled call returns its settlement. Refused
+    (`SettlementRefused`, the operation unchanged): another owner's or a
+    missing operation, one that is not a model call, a call whose outcome is
+    known, a retained request that differs from the reserved one, a
+    provider-reported charge or token usage costing more than the reservation
+    (which the ledger cannot book), and the two fences above.
     """
     fingerprint, settlement = _settlement(ledger, owner, identity)
     if fingerprint is None:
         return settlement
-    directory = _call_directory(ledger, owner, identity)
-    directory.mkdir(mode=0o700, exist_ok=True)
-    write_once(directory / "settlement.json", canonical(settlement))
-    ledger.finish(
-        identity,
-        owner=owner,
-        state="FAILED_INFRA",
-        actual=settlement["booked"],
-        result={"request_digest": fingerprint, "provider_settlement": settlement},
-    )
-    return settlement
+    with _provider_lease(ledger, exclusive=True):
+        return _settle(ledger, owner, identity)
+
+
+def _unresolved(ledger, owner):
+    return [
+        op
+        for op in ledger.status(owner=owner)["operations"]
+        if op["state"] == "RESERVED" and op["reservation"].get("provider_attempts") == 1
+    ]
 
 
 def uncertain_calls(ledger, *, owner):
     """This owner's model calls whose outcome is unknown, oldest first: what is
-    known about each, what a settlement would book, and why one would be
-    refused (`refusal`, a `SETTLEMENT_REFUSALS` code, or None)."""
+    known about each, what a settlement would book, its `caveat`, and why one
+    would be refused (`refusal`, a `SETTLEMENT_REFUSALS` code, or None). A
+    call still in flight is listed too, refused `call_in_flight`. The
+    reconcile fence (`control_fenced`) is checked when the reconcile action
+    settles, not here: this list is shown before it runs."""
+    pending = _unresolved(ledger, owner)
+    if not pending:
+        return []
+    try:
+        with _provider_lease(ledger, exclusive=True):
+            busy = False
+    except SettlementRefused:
+        busy = True
     rows = []
-    for op in ledger.status(owner=owner)["operations"]:
-        if op["state"] != "RESERVED" or op["reservation"].get("provider_attempts") != 1:
-            continue
+    for op in pending:
         try:
             _, settlement = _settlement(ledger, owner, op["id"])
-            refusal = None
+            refusal = "call_in_flight" if busy else None
         except SettlementRefused as refused:
             settlement, refusal = None, refused.code
         rows.append(
@@ -830,6 +1134,7 @@ def uncertain_calls(ledger, *, owner):
                     None if settlement is None else settlement["response_retained"]
                 ),
                 "booked_on_settlement": op["reservation"],
+                "caveat": None if settlement is None else settlement["caveat"],
                 "refusal": refusal,
             }
         )
@@ -838,16 +1143,27 @@ def uncertain_calls(ledger, *, owner):
 
 def settle_uncertain_calls(ledger, *, owner):
     """Settle every model call of this owner whose outcome is unknown: the
-    reconcile action's entry point. Returns the settlements made and each
-    refusal with its code; a refused call stays unresolved."""
+    reconcile action's entry point, under one exclusive provider-call lease.
+    Returns the settlements made and each refusal with its code; a refused
+    call stays unresolved. While any call is in flight, every one is refused
+    `call_in_flight` and nothing is booked."""
+    pending = [op["id"] for op in _unresolved(ledger, owner)]
     settled, refused = [], []
-    for row in uncertain_calls(ledger, owner=owner):
-        try:
-            settled.append(
-                settle_uncertain_call(ledger, owner=owner, identity=row["identity"])
-            )
-        except SettlementRefused as refusal:
-            refused.append({"identity": row["identity"], "code": refusal.code})
+    if not pending:
+        return {"settled": settled, "refused": refused}
+    try:
+        with _provider_lease(ledger, exclusive=True):
+            for identity in pending:
+                try:
+                    settled.append(_settle(ledger, owner, identity))
+                except SettlementRefused as refusal:
+                    refused.append({"identity": identity, "code": refusal.code})
+    except SettlementRefused as busy:
+        # Only the lease is refused out here; each call's refusal is above.
+        return {
+            "settled": [],
+            "refused": [{"identity": i, "code": busy.code} for i in pending],
+        }
     return {"settled": settled, "refused": refused}
 
 

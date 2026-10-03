@@ -149,12 +149,13 @@ class ErrorSemantics:
     status in `rate_limit_statuses`, or any response whose error code is in
     `overload_codes`, is a rate limit: rejected before generation and safe to
     retry under a new reservation. A status in `unavailable_statuses` whose
-    body carries no usage object is a server that answered it could not take
-    the request (502, 503, 529): rejected before generation and retried the
-    same way (OWNER-LAUNCHPAD-PROD-01, LP-PROD-A). Every other failure - any
-    other 5xx, a 5xx that reports usage, a timeout, a dropped connection, an
-    unreadable body - keeps its full reservation, because the request may
-    have been processed.
+    body carries no usage object (and no provider charge report, Engy's
+    `x_engy`) is a server that answered it could not take the request (502,
+    503, 529): rejected before generation and retried the same way
+    (OWNER-LAUNCHPAD-PROD-01, LP-PROD-A). Every other failure - any other
+    5xx, a 5xx that reports usage or a charge, a timeout, a dropped
+    connection, an unreadable body - keeps its full reservation, because the
+    request may have been processed.
     """
 
     unbilled_rejections: tuple[int, ...]
@@ -919,7 +920,8 @@ class ProviderOutcome(enum.Enum):
     INVALID_REQUEST = "invalid_request"
     TRANSIENT_SERVER = "transient_server"
     UNKNOWN = "unknown"
-    #: A 502, 503 or 529 whose body carries no usage object (LP-PROD-A).
+    #: A 502, 503 or 529 whose body carries no usage object and no provider
+    #: charge report (LP-PROD-A).
     SERVER_UNAVAILABLE = "server_unavailable"
     #: The connection was refused or the provider's name did not resolve:
     #: nothing was sent (LP-PROD-A).
@@ -942,7 +944,8 @@ class ProviderHTTPError(Exception):
     """A provider HTTP rejection reduced to what classification needs.
 
     Only the status, the provider's machine-readable error code, a bounded
-    Retry-After and whether the body carried a usage object survive; the
+    Retry-After and whether the body carried a usage object or a provider
+    charge report (`usage_reported`) survive; the
     message text, which can echo request or credential material, is
     discarded here.
     """
@@ -1209,8 +1212,11 @@ def _exchange(opener, outgoing, timeout, limit):
         try:
             parsed = json.loads(rejected.read(64 * 1024))
             if type(parsed) is dict:
-                # A body that reports usage may have been generated and billed.
-                usage = parsed.get("usage") is not None
+                # A body that reports usage, or a provider charge (Engy's
+                # `x_engy`), may have been generated and billed.
+                usage = (
+                    parsed.get("usage") is not None or parsed.get("x_engy") is not None
+                )
             error = parsed.get("error") if type(parsed) is dict else None
             if type(error) is dict:
                 # OpenAI names it `code`; Anthropic Messages names it `type`.
@@ -1331,7 +1337,13 @@ def _incomplete(status, stop_reason):
     `unknown`); nothing for a completed one."""
     if status == "completed":
         return {}
-    reason = _INCOMPLETE_REASONS.get(stop_reason, stop_reason)
+    # Untrusted: a stop reason that is not a string is `unknown`, never a
+    # lookup that raises.
+    reason = (
+        _INCOMPLETE_REASONS.get(stop_reason, stop_reason)
+        if type(stop_reason) is str
+        else None
+    )
     return {"incomplete_details": {"reason": _code(reason) or "unknown"}}
 
 

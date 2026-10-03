@@ -20,9 +20,11 @@ from test_product_campaign_ledger import OWNER, product
 from carbon.development_session import model_provider as mp
 from carbon.development_session import research_agent as ra
 from carbon.development_session.research_agent import (
+    MODEL_CAVEAT,
     PROVIDER_SETTLEMENT,
     RESERVATION_NANO,
     ProviderCallFailed,
+    ProviderCallUnresolved,
     SettlementRefused,
     incomplete_reply,
     provider_turns,
@@ -31,6 +33,8 @@ from carbon.development_session.research_agent import (
     settle_uncertain_calls,
     uncertain_calls,
 )
+from carbon.development_session.research_control import CampaignControl
+from carbon.development_session.research_ledger import CampaignLedger, ReconcileFenced
 
 METERED = 100 * 250 + 10 * 2000
 
@@ -282,10 +286,14 @@ def test_settlement_books_the_full_reservation_and_the_turn_goes_on(
     (pending,) = uncertain_calls(meter, owner="alice")
     assert pending["identity"] == "model-1" and pending["reason"] == reason
     assert pending["refusal"] is None
+    # Another model's price is unknown: booked, with that said beforehand.
+    caveat = MODEL_CAVEAT if reason == "model_mismatch" else None
+    assert pending["caveat"] == caveat
     settlement = settle_uncertain_call(meter, owner="alice", identity="model-1")
     assert settlement["schema"] == PROVIDER_SETTLEMENT
     assert settlement["reason"] == reason and settlement["retry_dispatched"] is False
     assert settlement["booked"]["provider_nanodollars"] == RESERVATION_NANO
+    assert settlement["caveat"] == caveat
     # Journalled beside the call, and booked: never less than can be charged.
     journal = json.loads((directory(meter, "model-1") / "settlement.json").read_bytes())
     assert journal == settlement
@@ -391,9 +399,20 @@ def test_settlement_refuses_what_it_cannot_settle(tmp_path):
     }
 
 
+def reconcile(meter):
+    """What the reconcile action does first, under the campaign's owner lock:
+    a fresh control generation, the campaign observed RECONCILING."""
+    meter.generation = CampaignControl(meter).acquire()
+    return meter
+
+
 def test_a_controlled_campaign_dispatches_again_only_after_settlement(tmp_path):
     """A product campaign refuses every model call while one call's outcome
-    is unknown; the reconcile action's settlement is what unblocks it."""
+    is unknown; the reconcile action's settlement is what unblocks it.
+
+    Changed with the settlement fence (LP-PROD-A review): the settlement now
+    runs as the reconcile action does, after `CampaignControl.acquire`; the
+    run's own holder, still RUNNING, is refused (`control_fenced`)."""
     meter = product(tmp_path)
     transport, calls = script(TimeoutError("timed out"), completed())
     call = {**args(transport), "owner": OWNER}
@@ -401,9 +420,204 @@ def test_a_controlled_campaign_dispatches_again_only_after_settlement(tmp_path):
         request_model(meter, **call)
     with pytest.raises(ValueError, match="reconcile before dispatch"):
         request_model(meter, **{**call, "identity": "model-2"})
-    result = settle_uncertain_calls(meter, owner=OWNER)
+    assert settle_uncertain_calls(meter, owner=OWNER) == {
+        "settled": [],
+        "refused": [{"identity": "model-1", "code": "control_fenced"}],
+    }
+    result = settle_uncertain_calls(reconcile(meter), owner=OWNER)
     assert [s["identity"] for s in result["settled"]] == ["model-1"]
     assert result["refused"] == []
     assert request_model(meter, **call) == completed()
     assert len(calls) == 2
     assert uncertain_calls(meter, owner=OWNER) == []
+
+
+# -- the settlement fences (LP-PROD-A review) ---------------------------------
+
+
+def test_a_running_or_stale_holder_never_settles(tmp_path):
+    """Only the campaign's reconcile action books a settlement: the run's own
+    holder (RUNNING) and a holder whose generation another acquire superseded
+    are refused, before anything is journalled and again in the booking's own
+    transaction."""
+    meter = product(tmp_path)
+    transport, _ = script(TimeoutError("timed out"))
+    with pytest.raises(ProviderCallFailed):
+        request_model(meter, **{**args(transport), "owner": OWNER})
+    folder = directory(meter, "model-1", owner=OWNER)
+    with pytest.raises(SettlementRefused) as refused:
+        settle_uncertain_call(meter, owner=OWNER, identity="model-1")
+    assert refused.value.code == "control_fenced"
+    reconcile(meter)
+    # A second holder acquires after it: the first one's generation is stale.
+    second = reconcile(CampaignLedger(meter.root, clock=lambda: 1000))
+    with pytest.raises(SettlementRefused, match="control_fenced"):
+        settle_uncertain_call(meter, owner=OWNER, identity="model-1")
+    with pytest.raises(ReconcileFenced):
+        meter.finish(
+            "model-1",
+            owner=OWNER,
+            state="FAILED_INFRA",
+            actual=operation_of(meter, OWNER, "model-1")["reservation"],
+            result={"fixture": True},
+            reconciling=True,
+        )
+    assert not (folder / "settlement.json").exists()
+    assert operation_of(meter, OWNER, "model-1")["state"] == "RESERVED"
+    # The current holder settles it.
+    settlement = settle_uncertain_call(second, owner=OWNER, identity="model-1")
+    assert settlement["identity"] == "model-1"
+    assert operation_of(meter, OWNER, "model-1")["state"] == "FAILED_INFRA"
+
+
+def test_a_call_in_flight_is_never_settled(tmp_path):
+    """A call holds the campaign's provider-call lease from before its
+    reservation until it is booked, so a settlement - in this process or
+    another - never books it and lets a later call send it again."""
+    meter = ledger(tmp_path)
+    seen = {}
+
+    def transport(value):
+        # model-1 is in flight here.
+        try:
+            settle_uncertain_call(meter, owner="alice", identity="model-1")
+        except SettlementRefused as refused:
+            seen["code"] = refused.code
+        seen["listed"] = uncertain_calls(meter, owner="alice")
+        seen["batch"] = settle_uncertain_calls(meter, owner="alice")
+        raise TimeoutError("timed out")
+
+    with pytest.raises(ProviderCallFailed):
+        request_model(meter, **args(transport))
+    assert seen["code"] == "call_in_flight"
+    (row,) = seen["listed"]
+    assert row["identity"] == "model-1" and row["refusal"] == "call_in_flight"
+    assert seen["batch"] == {
+        "settled": [],
+        "refused": [{"identity": "model-1", "code": "call_in_flight"}],
+    }
+    assert operation(meter, "model-1")["state"] == "RESERVED"
+    # Once the call has ended, the same settlement goes through.
+    (row,) = uncertain_calls(meter, owner="alice")
+    assert row["refusal"] is None
+    settlement = settle_uncertain_call(meter, owner="alice", identity="model-1")
+    assert settlement["reason"] == "transport_outcome_unknown"
+
+
+def operation_of(meter, owner, identity):
+    (op,) = [
+        op for op in meter.status(owner=owner)["operations"] if op["id"] == identity
+    ]
+    return op
+
+
+# -- usage beyond the reserved limits (LP-PROD-A review) ----------------------
+
+
+def test_usage_costing_more_than_the_reservation_is_never_settled(tmp_path):
+    """A reply whose own usage meters above the reservation (50,000 output
+    tokens against a 2,048 limit) is not booked at the reservation: settling
+    it would under-count spend. Refused, whether or not the call's journal
+    survives."""
+    meter = ledger(tmp_path)
+    over = completed(usage={"input_tokens": 100, "output_tokens": 50000})
+    transport, _ = script(over)
+    with pytest.raises(ProviderCallUnresolved) as unresolved:
+        request_model(meter, **args(transport))
+    assert unresolved.value.reason == "usage_exceeds_reservation"
+    report = unresolved.value.report()
+    assert report["code"] == "provider_usage_exceeds_reservation"
+    assert report["requires_settlement"] and not report["resumable"]
+    journal = json.loads((directory(meter, "model-1") / "uncertain.json").read_bytes())
+    assert journal["reason"] == "usage_exceeds_reservation"
+    assert journal["metered_nanodollars"] == 100 * 250 + 50000 * 2000
+    assert journal["metered_nanodollars"] > RESERVATION_NANO
+    (pending,) = uncertain_calls(meter, owner="alice")
+    assert pending["refusal"] == "usage_exceeds_reservation"
+    with pytest.raises(SettlementRefused, match="usage_exceeds_reservation"):
+        settle_uncertain_call(meter, owner="alice", identity="model-1")
+    # Read from the retained reply itself when no record says why.
+    (directory(meter, "model-1") / "uncertain.json").unlink()
+    with pytest.raises(SettlementRefused, match="usage_exceeds_reservation"):
+        settle_uncertain_call(meter, owner="alice", identity="model-1")
+    assert operation(meter, "model-1")["state"] == "RESERVED"
+
+
+def test_usage_beyond_the_limits_that_fits_the_reservation_is_settled(tmp_path):
+    """A few output tokens over the limit (a chat provider counting reasoning
+    outside its cap) still cost less than the reservation: the journal says
+    so, with the charge, and the settlement books the reservation. Without
+    that journal nothing shows the charge fits, so it is refused."""
+    meter = ledger(tmp_path)
+    over = completed(usage={"input_tokens": 100, "output_tokens": 2100})
+    transport, _ = script(over, over)
+    with pytest.raises(ProviderCallUnresolved, match="exceeds reservation") as raised:
+        request_model(meter, **args(transport))
+    assert raised.value.reason == "usage_beyond_bounds"
+    journal = json.loads((directory(meter, "model-1") / "uncertain.json").read_bytes())
+    assert journal["metered_nanodollars"] == 100 * 250 + 2100 * 2000
+    settlement = settle_uncertain_call(meter, owner="alice", identity="model-1")
+    assert settlement["reason"] == "usage_beyond_bounds"
+    assert settlement["booked"]["provider_nanodollars"] == RESERVATION_NANO
+    assert RESERVATION_NANO >= journal["metered_nanodollars"]
+    with pytest.raises(ProviderCallUnresolved):
+        request_model(meter, **args(transport, identity="model-2"))
+    (directory(meter, "model-2") / "uncertain.json").unlink()
+    with pytest.raises(SettlementRefused, match="usage_exceeds_reservation"):
+        settle_uncertain_call(meter, owner="alice", identity="model-2")
+
+
+def test_a_reply_without_usage_is_typed_and_reported(tmp_path):
+    meter = ledger(tmp_path)
+    transport, _ = script({**completed(), "usage": None})
+    with pytest.raises(ProviderCallUnresolved, match="usage missing") as raised:
+        request_model(meter, **args(transport))
+    assert raised.value.report() == {
+        "schema": ra.FAILURE_REPORT,
+        "code": "provider_usage_unavailable",
+        "outcome": "unknown",
+        "resumable": False,
+        "requires_settlement": True,
+        "next_step": ra.UNRESOLVED_NEXT_STEPS["usage_unavailable"],
+    }
+
+
+def test_a_settlement_without_a_journal_still_names_another_model(tmp_path):
+    """A call left unresolved before `uncertain.json` existed: the caveat is
+    read from the retained reply."""
+    meter = ledger(tmp_path)
+    transport, _ = script(completed("another-model"))
+    with pytest.raises(ProviderCallUnresolved, match="different provider model"):
+        request_model(meter, **args(transport))
+    (directory(meter, "model-1") / "uncertain.json").unlink()
+    settlement = settle_uncertain_call(meter, owner="alice", identity="model-1")
+    assert settlement["reason"] == "outcome_unknown"
+    assert settlement["caveat"] == MODEL_CAVEAT
+
+
+# -- an untrusted stop reason (LP-PROD-A review) ------------------------------
+
+
+@pytest.mark.parametrize("reason", [["max_tokens"], {"why": "length"}, 7])
+def test_a_stop_reason_that_is_not_a_string_is_unknown(tmp_path, reason):
+    """It used to raise TypeError before the call was booked, leaving a
+    metered reply unresolved."""
+    reply = {
+        **cut_off(),
+        "incomplete_details": {"reason": reason},
+    }
+    assert incomplete_reply(reply, 2048)["reason"] == "unknown"
+    meter = ledger(tmp_path)
+    transport, _ = script(reply)
+    request_model(meter, **args(transport, accept_incomplete=True))
+    op = operation(meter, "model-1")
+    assert op["state"] == "FAILED_INFRA"
+    assert op["result"]["incomplete"]["reason"] == "unknown"
+    translated = mp.chat_response(
+        {
+            "model": "m",
+            "choices": [{"message": {"content": "x"}, "finish_reason": reason}],
+            "usage": {"prompt_tokens": 3, "completion_tokens": 4},
+        }
+    )
+    assert translated["incomplete_details"] == {"reason": "unknown"}

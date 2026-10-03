@@ -226,6 +226,12 @@ def _check_product(manifest):
         raise ValueError("a product campaign never carries a development grant")
 
 
+class ReconcileFenced(ValueError):
+    """A booking reserved for the campaign's reconcile action, attempted by a
+    caller that is not it: another owner, a stale control generation, or a
+    campaign that is running rather than reconciling (LP-PROD-A)."""
+
+
 def _vector(value):
     if type(value) is not dict or set(value) - set(DIMENSIONS):
         raise ValueError("unknown resource dimension")
@@ -334,6 +340,41 @@ class CampaignLedger:
             raise ValueError("retained campaign ownership changed")
         _check_product(manifest)
         return manifest
+
+    def assert_reconciling(self, owner, *, db=None):
+        """Prove the caller is this campaign's reconcile action; admits no work.
+
+        For a controlled campaign: the retained owner under the live control
+        generation (`retained_owner`), with the campaign observed
+        `RECONCILING`. `CampaignControl.acquire` sets that, and the reconcile
+        action calls it under the campaign's owner lock; a run's first
+        dispatch checkpoint leaves it. So a stale or second holder, another
+        owner, and a campaign that is running are all refused
+        (`ReconcileFenced`). The development CLI's own campaign (VERSION) has
+        no control to prove, and nothing is checked.
+
+        Settling a model call whose outcome is unknown
+        (`research_agent.settle_uncertain_call`) calls this, and `finish` with
+        `reconciling=True` repeats it in the same transaction as the booking,
+        as `_reserve` asserts dispatch control in its own (LP-PROD-A).
+        """
+        if db is None:
+            with self.db() as connection:
+                return self.assert_reconciling(owner, db=connection)
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        if row is None:
+            raise ReconcileFenced("frozen campaign required")
+        if not self.controlled(json.loads(row[0])):
+            return
+        try:
+            self.retained_owner(owner, db=db)
+            control = db.execute(
+                "SELECT observed FROM launchpad_control WHERE id=1"
+            ).fetchone()
+        except (ValueError, OSError, sqlite3.Error):
+            raise ReconcileFenced("not the campaign's reconcile action") from None
+        if control is None or control[0] != "RECONCILING":
+            raise ReconcileFenced("not the campaign's reconcile action")
 
     @contextmanager
     def db(self):
@@ -639,11 +680,12 @@ class CampaignLedger:
 
         return settle_sequence(self, parent, owner=owner)
 
-    def finish(self, identity, *, owner, state, actual, result):
+    def finish(self, identity, *, owner, state, actual, result, reconciling=False):
         # FAILED_MINER: the miner's own program was observed to fail (its
         # allowance elapsed, OOM kill, nonzero exit, refused output). Distinct
         # from FAILED_INFRA, which is Carbon's or the host's; both keep the
-        # full reservation.
+        # full reservation. `reconciling`: only the campaign's reconcile
+        # action may book this (`assert_reconciling`, same transaction).
         if state not in {"SUCCEEDED", "FAILED_INFRA", "FAILED_MINER", "CANCELLED"}:
             raise ValueError("terminal state required")
         actual = _vector(actual)
@@ -652,6 +694,8 @@ class CampaignLedger:
             raise ValueError("bounded result required")
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
+            if reconciling:
+                self.assert_reconciling(owner, db=db)
             if db.execute(
                 "SELECT 1 FROM operation_sequences WHERE parent=?", (identity,)
             ).fetchone():
