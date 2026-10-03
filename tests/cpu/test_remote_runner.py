@@ -40,7 +40,6 @@ from carbon.compute.remote_machine import (
     JOB_PORT,
     NO_WORKER_IMAGE,
     RemoteMachineError,
-    Tunnel,
 )
 from carbon.compute.remote_runner import START_COMMAND, RemoteRunner, RemoteWorker
 from carbon.compute.remote_transport import SSHDocker
@@ -56,25 +55,6 @@ out = work.parent / "output"
 data = json.loads((work / "inputs.json").read_text())
 (out / "predictions.json").write_text(json.dumps({"sum": sum(data)}))
 """
-
-
-class Process:
-    """The tunnel's ssh process, as a fixture: it records being closed."""
-
-    def __init__(self):
-        self.closed = False
-
-    def poll(self):
-        return 0 if self.closed else None
-
-    def terminate(self):
-        self.closed = True
-
-    def wait(self, timeout=None):
-        return 0
-
-    def kill(self):
-        self.closed = True
 
 
 #: Where the real start script says the job container listens: its address on
@@ -132,10 +112,13 @@ class FakeRemote:
         return port[0]
 
     def tunnel(self, remote, *, host="127.0.0.1"):
-        # The forward targets the container's private address and job port;
-        # here that is the job server's thread on this machine's loopback.
+        # The forward targets the container's private address and job port.
+        # Here the job server is a thread on this machine's loopback, and the
+        # tunnel's Unix socket relays to it, as ssh's forward relays.
         assert (host, remote) == (CONTAINER_ADDRESS, JOB_PORT)
-        tunnel = Tunnel(Process(), self.served)
+        from remote_container_fixture import local_tunnel
+
+        tunnel = local_tunnel(self.served)
         self.tunnels.append(tunnel)
         return tunnel
 
@@ -230,7 +213,9 @@ def test_a_trial_starts_one_container_runs_the_job_and_removes_it(tmp_path):
     assert CONTAINER_NAME.fullmatch(name)
     assert machine.removed == [name]
     (tunnel,) = machine.tunnels
-    assert tunnel.process.closed
+    # The job was reached through the tunnel's Unix socket, whose directory
+    # is gone with it.
+    assert tunnel.process.closed and not Path(tunnel.directory).exists()
     # The job ran the staged program on the staged inputs.
     snapshot = ledger.root / result["operation"] / "snapshot"
     assert json.loads((snapshot / "predictions.json").read_bytes()) == {"sum": 6}

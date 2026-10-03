@@ -7,12 +7,21 @@ key of the miner's ever reaches the job.
 
 Every response body is bounded and every archive is flat files only, so a
 job can return nothing but its own output files.
+
+A job is reached over HTTPS, or through an SSH tunnel whose local end is an
+owner-only Unix socket (`UnixTransport`). Plain HTTP over TCP is never used:
+another user of the controller's machine could hold a local TCP port and
+receive the job's token.
 """
 
 from __future__ import annotations
 
+import http.client
 import json
+import os
 import secrets
+import socket
+import stat
 import tarfile
 import time
 import urllib.error
@@ -24,6 +33,11 @@ from .job_server import MAX_OUTPUT_BYTES, MAX_STAGE_BYTES, PROGRAM, pack, unpack
 #: Polls are short: proxies and tunnels may close long requests, so a run is
 #: started asynchronously and its state read until it ends.
 POLL_SECONDS = 5.0
+#: The base URL of a job reached through an SSH tunnel. It names no host or
+#: port: every request goes over the tunnel's Unix socket.
+TUNNEL_URL = "http://carbon-job"
+#: Bound on an error response body, as `_urllib` reads it.
+MAX_ERROR_BYTES = 65536
 
 
 class RemoteJobFailure(Exception):
@@ -50,7 +64,73 @@ def _urllib(method, url, *, body, headers, timeout):
         ) as response:
             return response.status, response.read(MAX_OUTPUT_BYTES + 1)
     except urllib.error.HTTPError as refused:
-        return refused.code, refused.read(65536)
+        return refused.code, refused.read(MAX_ERROR_BYTES)
+
+
+def owned_socket(path: str) -> bool:
+    """True only when `path` is a Unix socket this user owns, not a link, in
+    a directory this user owns that no one else may enter (mode 0700)."""
+    try:
+        directory = os.lstat(os.path.dirname(path))
+        found = os.lstat(path)
+    except OSError:
+        return False
+    uid = os.getuid()
+    return (
+        stat.S_ISDIR(directory.st_mode)
+        and directory.st_uid == uid
+        and stat.S_IMODE(directory.st_mode) == 0o700
+        and stat.S_ISSOCK(found.st_mode)
+        and found.st_uid == uid
+    )
+
+
+class _UnixConnection(http.client.HTTPConnection):
+    """An HTTP connection over a Unix socket, checked before connecting."""
+
+    def __init__(self, path: str, timeout: float):
+        super().__init__("carbon-job", timeout=timeout)
+        self._socket_path = path
+
+    def connect(self):
+        if not owned_socket(self._socket_path):
+            raise ConnectionRefusedError("the tunnel's socket is not this user's")
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        try:
+            sock.settimeout(self.timeout)
+            sock.connect(self._socket_path)
+        except BaseException:
+            sock.close()
+            raise
+        self.sock = sock
+
+
+class UnixTransport:
+    """HTTP to a job through an SSH tunnel's Unix socket, with `_urllib`'s
+    signature and bounds: no redirect is followed, a success body is read to
+    MAX_OUTPUT_BYTES + 1 and an error body to MAX_ERROR_BYTES. The socket is
+    checked to be this user's before every connection; nothing goes over
+    TCP."""
+
+    def __init__(self, path: str):
+        if type(path) is not str or not os.path.isabs(path):
+            raise ValueError("a tunnel's socket is an absolute path")
+        self.path = path
+
+    def __call__(self, method, url, *, body, headers, timeout):
+        if type(url) is not str or not url.startswith(TUNNEL_URL + "/"):
+            raise ValueError("a tunnel carries only its own job's requests")
+        connection = _UnixConnection(self.path, timeout)
+        try:
+            connection.request(
+                method, url[len(TUNNEL_URL) :], body=body, headers=headers
+            )
+            response = connection.getresponse()
+            if 200 <= response.status < 300:
+                return response.status, response.read(MAX_OUTPUT_BYTES + 1)
+            return response.status, response.read(MAX_ERROR_BYTES)
+        finally:
+            connection.close()
 
 
 class RemoteJob:
@@ -66,10 +146,17 @@ class RemoteJob:
         sleep: Callable[[float], None] = time.sleep,
         cancelled: Callable[[], bool] = lambda: False,
     ):
-        # HTTPS, or this machine's loopback: the local end of an SSH port
-        # forward, so the token and inputs travel inside SSH. Plain HTTP to
-        # another host is refused.
-        if not base_url.startswith(("https://", "http://127.0.0.1:")):
+        # HTTPS, or an SSH tunnel's owner-only Unix socket on this machine
+        # (`TUNNEL_URL` with a `UnixTransport`, and only together), so the
+        # token and inputs travel inside TLS or SSH. Plain HTTP over TCP is
+        # refused, to another host or to a local port another user could
+        # hold.
+        if type(base_url) is not str:
+            raise ValueError("a remote job is reached over https or a local tunnel")
+        if isinstance(transport, UnixTransport):
+            if base_url != TUNNEL_URL:
+                raise ValueError("a tunnel's job is reached at its tunnel URL only")
+        elif not base_url.startswith("https://"):
             raise ValueError("a remote job is reached over https or a local tunnel")
         self.base, self.token = base_url.rstrip("/"), token
         self.transport, self.clock, self.sleep = transport, clock, sleep

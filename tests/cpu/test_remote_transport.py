@@ -12,8 +12,14 @@ PATH, and start the real job server as a real process. What is held:
   and the image by ID on a machine; the worker runtime and its build identity
   in a container, any difference refused;
 - a container job is one process in its own directory, on the container's
-  loopback, its environment through a deleted file; stopping it stops only the
-  processes whose environment names that directory, then removes it;
+  loopback, its environment through a deleted file, with a record the
+  controller keeps (its start and its server's session);
+- stopping it stops the processes whose environment names that directory and
+  those in the server's session or process group, never anything else, then
+  removes the directory; cleanup is confirmed only when nothing of the job's
+  and nothing of this user's started since the job remains, so a process the
+  job detached into its own session leaves cleanup unconfirmed, as does a
+  process that cannot be stopped or a missing record;
 - the build identity Carbon reads is the one every worker image is built with.
 """
 
@@ -22,6 +28,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -306,9 +313,13 @@ def started(ssh, python, jobs, *, env=(("CARBON_JOB_TOKEN", TOKEN),), **options)
     return ssh.run(script, timeout=60)
 
 
-def stopped(ssh, jobs, **options):
+def stopped(ssh, jobs, stdout=b"", **options):
+    """The stop script's exit status, with the record from the start
+    script's `stdout` (none when it printed none)."""
+    record = remote_container.job_record(stdout)
     code, _ = ssh.run(
-        remote_container.stop_script(NAME, root=str(jobs), **options), timeout=60
+        remote_container.stop_script(NAME, root=str(jobs), record=record, **options),
+        timeout=60,
     )
     return code
 
@@ -327,6 +338,26 @@ def job_pids(directory):
     return found
 
 
+def alive(pid):
+    """Whether `pid` still runs: present, and neither a zombie nor dead."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    return stat.rsplit(")", 1)[1].split()[0] not in ("Z", "X")
+
+
+def killed(pid):
+    """SIGKILL `pid` and wait until it no longer runs."""
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    deadline = time.monotonic() + 10
+    while alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+
+
 def test_a_job_process_serves_one_job_on_loopback_and_is_cleaned_up(tmp_path):
     _, ssh, python = container(tmp_path, image())
     jobs = tmp_path / "container" / "jobs"
@@ -338,19 +369,27 @@ def test_a_job_process_serves_one_job_on_loopback_and_is_cleaned_up(tmp_path):
         # Its directory is owner-only, and the environment file is gone.
         assert directory.stat().st_mode & 0o777 == 0o700
         assert not (directory / "env").exists()
-        # The server listens on loopback only, in its own session.
+        # The server listens on loopback only, in its own session, which is
+        # the session the start script recorded for the controller.
         (pid,) = job_pids(directory)
         assert os.getsid(pid) == pid
-        job = RemoteJob(f"http://127.0.0.1:{port}", TOKEN, sleep=lambda _: None)
-        result, output = job.run(
-            {"inputs.json": b"[1, 2]", "program.py": PROGRAM},
-            ready_deadline=time.monotonic() + 30,
-            run_deadline=time.monotonic() + 60,
-        )
+        assert remote_container.job_record(stdout).session == pid
+        tunnel = ssh.tunnel(port)
+        try:
+            job = RemoteJob(
+                tunnel.url, TOKEN, transport=tunnel.transport, sleep=lambda _: None
+            )
+            result, output = job.run(
+                {"inputs.json": b"[1, 2]", "program.py": PROGRAM},
+                ready_deadline=time.monotonic() + 30,
+                run_deadline=time.monotonic() + 60,
+            )
+        finally:
+            tunnel.close()
         assert result["state"] == "DONE"
         assert json.loads(output["predictions.json"]) == {"sum": 3}
     finally:
-        assert stopped(ssh, jobs) == 0
+        assert stopped(ssh, jobs, stdout) == 0
     assert not directory.exists() and job_pids(directory) == []
 
 
@@ -373,10 +412,10 @@ def test_stopping_kills_a_process_that_ignores_the_request(tmp_path):
         "while :; do sleep 0.2; done\n"
     )
     stubborn.chmod(0o755)
-    code, _ = started(ssh, stubborn, jobs)
+    code, stdout = started(ssh, stubborn, jobs)
     assert code == 0
     assert job_pids(jobs / NAME)
-    assert stopped(ssh, jobs, grace_seconds=1) == 0
+    assert stopped(ssh, jobs, stdout, grace_seconds=1) == 0
     assert job_pids(jobs / NAME) == [] and not (jobs / NAME).exists()
 
 
@@ -384,11 +423,19 @@ def test_stopping_leaves_every_other_process_alone(tmp_path):
     _, ssh, _ = container(tmp_path, image())
     jobs = tmp_path / "container" / "jobs"
     other = jobs / ("carbon-job-" + "f" * 24)
+    # Another job's process, of this user, started before this job.
     bystander = subprocess.Popen(
         ["sleep", "30"], env={"CARBON_JOB_ROOT": str(other), "PATH": os.environ["PATH"]}
     )
+    time.sleep(0.1)  # Ten clock ticks: it started strictly before the job.
+    server = tmp_path / "server"
+    server.write_text('#!/bin/bash\necho 1 > "$CARBON_JOB_PORT_FILE"\nexec sleep 300\n')
+    server.chmod(0o755)
     try:
-        assert stopped(ssh, jobs) == 0
+        code, stdout = started(ssh, server, jobs)
+        assert code == 0 and job_pids(jobs / NAME)
+        assert stopped(ssh, jobs, stdout) == 0
+        assert job_pids(jobs / NAME) == []
         assert bystander.poll() is None
     finally:
         bystander.send_signal(signal.SIGKILL)
@@ -401,22 +448,140 @@ def test_a_job_whose_server_never_answers_is_refused_by_code(tmp_path):
     silent = tmp_path / "silent"
     silent.write_text("#!/bin/bash\nexec sleep 30\n")
     silent.chmod(0o755)
-    code, _ = started(ssh, silent, jobs, wait_seconds=1)
+    code, stdout = started(ssh, silent, jobs, wait_seconds=1)
     try:
         assert code == rm.JOB_SERVER_NOT_STARTED
         assert rm.failure_for(code).code == "job_server_not_started"
     finally:
-        assert stopped(ssh, jobs) == 0
+        # The record was printed before the wait, so the server is still
+        # found and the cleanup confirmed.
+        assert stopped(ssh, jobs, stdout) == 0
+    assert job_pids(jobs / NAME) == []
 
 
 def test_an_existing_job_directory_is_never_reused(tmp_path):
     _, ssh, python = container(tmp_path, image())
     jobs = tmp_path / "container" / "jobs"
     (jobs / NAME).mkdir()
-    code, _ = started(ssh, python, jobs)
+    code, stdout = started(ssh, python, jobs)
     assert code == rm.JOB_DIRECTORY_PRESENT
     assert rm.failure_for(code).code == "job_directory_present"
-    assert stopped(ssh, jobs) == 0
+    # Nothing started, so there is no record: the leftover directory is
+    # removed, but without a record cleanup is never confirmed.
+    assert remote_container.job_record(stdout) is None
+    assert stopped(ssh, jobs, stdout) == 1
+    assert not (jobs / NAME).exists()
+
+
+# --- ssh-container: what a job leaves behind --------------------------------------------
+
+
+def detaching(tmp_path, *, own_session):
+    """A job "server" that leaves a child behind, detached from itself (a
+    double fork) with an empty environment, in the server's session or, with
+    `own_session`, in a session of its own (`setsid`). It writes its port
+    only once the child runs, so the child is there when the start returns;
+    the child's process ID is written for the test."""
+    pidfile = tmp_path / "detached.pid"
+    env, setsid, sleep, tr = (shutil.which(t) for t in ("env", "setsid", "sleep", "tr"))
+    launch = (
+        f"{setsid} {env} -i {sleep} 300" if own_session else f"{env} -i {sleep} 300"
+    )
+    server = tmp_path / "detaching"
+    server.write_text(
+        "#!/bin/bash\n"
+        f"( {launch} </dev/null >/dev/null 2>&1 & echo $! > {pidfile} )\n"
+        f"read -r child < {pidfile}\n"
+        f"until [ \"$({tr} '\\0' ' ' < /proc/$child/cmdline 2>/dev/null)\" = "
+        f'"{sleep} 300 " ]; do {sleep} 0.05; done\n'
+        'echo 1 > "$CARBON_JOB_PORT_FILE"\n'
+        f"exec {sleep} 300\n"
+    )
+    server.chmod(0o755)
+    return server, pidfile
+
+
+def test_a_detached_child_left_in_the_jobs_session_is_stopped_and_confirmed(tmp_path):
+    transport, _, _ = container(tmp_path, image())
+    jobs = tmp_path / "container" / "jobs"
+    server, pidfile = detaching(tmp_path, own_session=False)
+    transport.start(
+        NAME, image(), (("CARBON_JOB_TOKEN", TOKEN),), (str(server),), timeout=60
+    )
+    child = int(pidfile.read_text())
+    try:
+        (pid,) = job_pids(jobs / NAME)
+        # Its environment names nothing, but it is in the server's session.
+        assert alive(child) and os.getsid(child) == os.getsid(pid) == pid
+        assert transport.cleanup(NAME) is True
+        assert not alive(child) and not alive(pid)
+        assert not (jobs / NAME).exists()
+    finally:
+        killed(child)
+
+
+def test_a_child_detached_into_its_own_session_leaves_cleanup_unconfirmed(tmp_path):
+    transport, _, _ = container(tmp_path, image())
+    jobs = tmp_path / "container" / "jobs"
+    server, pidfile = detaching(tmp_path, own_session=True)
+    transport.start(
+        NAME, image(), (("CARBON_JOB_TOKEN", TOKEN),), (str(server),), timeout=60
+    )
+    child = int(pidfile.read_text())
+    try:
+        assert alive(child) and os.getsid(child) == child
+        assert transport.cleanup(NAME) is False
+        # Only the job's marked and session processes were signalled: the
+        # child still runs, and cleanup said so.
+        assert alive(child)
+        assert job_pids(jobs / NAME) == [] and not (jobs / NAME).exists()
+    finally:
+        killed(child)
+    # Once it is gone, the record the controller kept confirms the cleanup.
+    assert transport.cleanup(NAME) is True
+
+
+def test_a_job_process_that_cannot_be_stopped_leaves_cleanup_unconfirmed(tmp_path):
+    _, ssh, _ = container(tmp_path, image())
+    jobs = tmp_path / "container" / "jobs"
+    server = tmp_path / "server"
+    server.write_text('#!/bin/bash\necho 1 > "$CARBON_JOB_PORT_FILE"\nexec sleep 300\n')
+    server.chmod(0o755)
+    code, stdout = started(ssh, server, jobs)
+    assert code == 0
+    try:
+        # `kill` does nothing here, as if the job's processes could not be
+        # signalled.
+        script = "kill() { return 0; }\n" + remote_container.stop_script(
+            NAME,
+            root=str(jobs),
+            record=remote_container.job_record(stdout),
+            grace_seconds=1,
+        )
+        code, _ = ssh.run(script, timeout=60)
+        assert code == 1
+        assert job_pids(jobs / NAME)
+    finally:
+        for pid in job_pids(jobs / NAME):
+            killed(pid)
+
+
+def test_a_job_record_is_exactly_the_start_scripts_line():
+    record = remote_container.job_record(b"carbon-job-record 512 77\n127.0.0.1:1\n")
+    assert record == remote_container.JobRecord(512, 77)
+    for stdout in (
+        b"",
+        b"127.0.0.1:1\n",
+        b"carbon-job-record 512 77\ncarbon-job-record 512 78\n",
+        b"carbon-job-record 512 1\n",
+        b"carbon-job-record 512 0\n",
+        b"carbon-job-record 512 9999999\n",
+        b"carbon-job-record -5 77\n",
+        b"carbon-job-record 512 77 extra\n",
+    ):
+        assert remote_container.job_record(stdout) is None
+    with pytest.raises(ValueError, match="job record"):
+        remote_container.stop_script(NAME, record=(512, 77))
 
 
 def test_a_container_without_the_workers_python_starts_nothing(tmp_path):

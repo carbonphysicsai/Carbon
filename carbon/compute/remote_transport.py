@@ -306,6 +306,10 @@ class SSHContainer(RemoteTransport):
         if type(unsandboxed_code_cell) is not bool:
             raise ValueError("unsandboxed_code_cell is the miner's true or false")
         self.unsandboxed_code_cell = unsandboxed_code_cell
+        # Each started job's record (`remote_container.JobRecord`), by name:
+        # held here on the controller, never in the container, so cleanup can
+        # find and confirm the job whatever the job did there.
+        self._records = {}
 
     def _identity(self, image) -> None:
         script = remote_container.identity_script(
@@ -333,7 +337,15 @@ class SSHContainer(RemoteTransport):
         script = remote_container.start_script(
             name=name, env=env, command=command, root=self.root
         )
-        endpoint = self._started(script, timeout)
+        code, stdout = self.ssh.run(script, timeout=timeout)
+        # Kept even when the start fails: a server that was launched but never
+        # answered is still found and stopped.
+        record = remote_container.job_record(stdout)
+        if record is not None:
+            self._records[name] = record
+        if code != 0:
+            raise failure_for(code)
+        endpoint = job_endpoint(stdout)
         # A process in the miner's container listens on its loopback only.
         if endpoint.host != "127.0.0.1":
             raise RemoteMachineError(
@@ -342,7 +354,13 @@ class SSHContainer(RemoteTransport):
         return endpoint
 
     def cleanup(self, name) -> bool:
-        return self._cleaned(remote_container.stop_script(name, root=self.root))
+        record = self._records.get(name)
+        cleaned = self._cleaned(
+            remote_container.stop_script(name, root=self.root, record=record)
+        )
+        if cleaned:
+            self._records.pop(name, None)
+        return cleaned
 
 
 def transport_for(machine: RemoteMachine, *, ssh=SSHClient) -> RemoteTransport:
