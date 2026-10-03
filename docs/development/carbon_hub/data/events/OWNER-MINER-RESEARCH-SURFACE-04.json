@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "OWNER-MINER-RESEARCH-SURFACE-04",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "OWNER-MINER-RESEARCH-SURFACE-04 (owner, 2026-10-03: \"on jax and pytorch CPU? where's the GPU option?\"; \"Yes, GPU code cell\"; \"Keep both, capped\"). Built in C-MLP-05. RSURF-D19: the campaign record states its compute from its frozen runtime (it had said CPU for every campaign). The Tools tab shows where practice and the code cell run (CPU, this machine's GPU, or the remote GPU with its transport and destination), each GPU lane with why it is not set up, and that the validator rebuilds on its published jax-cpu environment, so a GPU speeds up the miner's own research only. Each practice run says CPU or GPU. RSURF-D20: run_python takes device=cpu|gpu on the campaign's GPU lane, refused before dispatch when it cannot run. Local GPU uses the same isolated miner container with only the host's device attached, running the pinned GPU worker. Remote GPU uses the miner's own route and SSH, and Carbon starts, stops and bills nothing. Each run records its device, and run_julia refuses gpu because its environments have no CUDA. This needs a dedicated security review (AGENTS.md section 13). RSURF-D21: the miner lane keeps the last 64 KiB of stdout and of stderr for successful and failed runs, shown through run_output as plain text. DEVELOPMENT, testnet 567.",
+  "primary_detail": ".agent/tickets/C-MLP-05_miner_research_surface.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-03T03:46:39Z"
+}
