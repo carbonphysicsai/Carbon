@@ -225,6 +225,48 @@ provider's current documentation before relying on any of it.
   SSH jump host set in your `~/.ssh/config`).
 - **Stop it yourself:** it is yours; nothing runs there between trials.
 
+## Automate setup with your agent
+
+Your own agent can take setup's steps for you over MCP, against the same
+setup records as the Control Center: each sees the other's progress
+(OWNER-MINER-SETUP-AGENT-FIRST-01).
+
+1. **Connect it.** Run `python -m carbon.miner_mcp.standard_cli` from your
+   Carbon checkout's environment. Add `--state-dir` if your Control Center
+   uses another state directory. With no runner profile it serves the open
+   tier and setup.
+   - The Control Center's step 3, "Who researches?", under "Your own agent,
+     over MCP", shows the exact command for this machine and snippets for
+     Claude Code, Codex and Hermes, from each client's documentation (read
+     2026-10-02). **UNVERIFIED:** Carbon has not run these clients against
+     the server.
+2. **Loop on status.** Call `carbon_setup_status`. It returns the steps done,
+   the next step, what that step is missing (closed codes) and the exact next
+   call with its arguments schema. Make that call, then ask status again,
+   until the next step is `launch`. The prompt `carbon_setup_workflow_v1`
+   states the loop.
+3. **The order:** start your signer, register on the subnet, who researches,
+   inference, compute, review and launch. Inference is skipped for your own
+   agent: it uses its own model.
+4. **Two steps stay yours.** Starting your signer and signing your
+   registration are never an agent's. The call answers
+   `human_action_required` with the exact instruction or command; do it, and
+   status shows it done.
+5. **Your model key is a file, never a value.** Carbon's agent needs one. Put
+   the key alone in a file only you can read (`umask 077 && cat >
+   ~/.carbon/model.key`), and give the agent its absolute path for
+   `model_key_file`. The MCP door refuses a key passed as a value, and a file that
+   is a link or readable by anyone else.
+6. **Tools appear as you go.** Status, the signer check and registration are
+   there from the start. The later steps appear once your registration is
+   confirmed, and launch and the research operations once review writes your
+   profile. A result that adds tools names them in `tools_added`; list the
+   tools again.
+
+Compute stays your own: the agent sends your SSH destination and the
+transport from your provider's notes above. Carbon still starts, stops and
+bills nothing.
+
 ## Why there is no endpoint transport
 
 LINKONLY-D7 records why `endpoint` is designed and not built.
