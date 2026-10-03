@@ -212,7 +212,10 @@
       note.append(el("span", "Billed by your provider to you. Carbon bills nothing.", "hint"));
       tile("Model spend · your ledger", money(t.spend.used_nanodollars), note);
     } else tile("Model spend · your ledger", "No ledger yet", el("span", "Appears once the campaign ledger exists.", "hint"));
-    tile("Practice runs", String(t.practice_runs.completed) + (typeof t.practice_runs.attempted === "number" ? " of " + t.practice_runs.attempted + " attempted" : ""), t.trials && typeof t.trials.ceiling === "number" ? el("span", "Trials used " + t.trials.used + " of your " + t.trials.ceiling, "hint") : el("span", "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
+    const runs = el("div");
+    if (typeof t.practice_runs.attempted === "number") runs.append(el("span", "completed, of " + t.practice_runs.attempted + " attempted", "hint"));
+    runs.append(el("span", t.trials && typeof t.trials.ceiling === "number" ? "Trials used " + t.trials.used + " of your " + t.trials.ceiling : "Trials used " + (t.trials ? t.trials.used : 0) + " · no cap set", "hint"));
+    tile("Practice runs", String(t.practice_runs.completed), runs);
     tile("Compute", t.compute.backend ? words(t.compute.backend).toLowerCase() : (t.compute.lane || "unavailable"), el("span", typeof t.compute.numerical_seconds === "number" ? t.compute.numerical_seconds + " s of worker time" : "Worker time appears once a trial runs.", "hint"));
     parent.append(grid);
   }
@@ -590,6 +593,7 @@
     head.append(el("h2", "Launch a new campaign"), el("span", "Agent first · your accounts", "eyebrow"));
     target.append(head);
     const list = el("ol", undefined, "rs-strip");
+    list.style.setProperty("--cards", String(cards.length));
     cards.forEach((card, index) => {
       const item = el("li", undefined, "rs-card" + (card.id === "review" && !problem ? " is-ready" : ""));
       item.dataset.card = card.id;

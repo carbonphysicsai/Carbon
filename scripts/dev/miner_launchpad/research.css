@@ -38,7 +38,7 @@ body { background: var(--bg); color: var(--fg); }
 
 /* Launchpad strip */
 .rs-strip-panel { margin: 24px 0 8px; }
-.rs-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.rs-strip { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--cards, 6), minmax(0, 1fr)); gap: 10px; }
 .rs-card { position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 14px 14px 12px; border: 1px solid var(--border); background: var(--bg); }
 .rs-card strong { font-size: 16px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .rs-card .hint { font-size: 13px; margin: 0; }
@@ -151,6 +151,9 @@ a.rs-change:hover { background: var(--muted); }
 .ch-figure[data-kind="bars"] .ch-swatch.ch-current { background: var(--fg); }
 .ch-figure[data-kind="bars"] .ch-swatch.ch-previous { background: var(--input); }
 
+@media (max-width: 1180px) {
+  .rs-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (max-width: 1100px) {
   .rs-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .rs-case-charts { grid-template-columns: 1fr; }
