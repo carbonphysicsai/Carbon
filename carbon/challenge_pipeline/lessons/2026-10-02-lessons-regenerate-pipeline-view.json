@@ -26,5 +26,10 @@
   "target": "lessons",
   "text": "The committed pipeline view lists only lessons awaiting a decision (PROPOSED) and links to carbon/challenge_pipeline/lessons/ for the rest, without a count. Adding a RECORDED entry then changes no committed file but the entry itself, and parallel branches no longer conflict in the view."
  },
- "status": "PROPOSED"
+ "status": "ADOPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "OWNER-CHALLENGE-ROADMAP-03: asked whether to adopt this revision, the owner answered \"yes\""
+ }
 }

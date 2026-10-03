@@ -140,12 +140,8 @@ No family has frozen Track A or B results yet.
 
 One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
-adopts or declines it; nothing is applied silently.
+adopts or declines it; nothing is applied silently. This view lists only the
+revisions awaiting a decision; `python -m carbon.challenge_pipeline lessons`
+lists every entry.
 
-19 entries: 15 recorded, 1 proposed, 3 adopted, 0 declined.
-
-**Awaiting a decision:**
-
-| Lesson | Challenge | Target | Proposed revision |
-| --- | --- | --- | --- |
-| 2026-10-02-lessons-regenerate-pipeline-view | protocol | lessons | The committed pipeline view lists only lessons awaiting a decision (PROPOSED) and links to carbon/challenge_pipeline/lessons/ for the rest, without a count. Adding a RECORDED entry then changes no committed file but the entry itself, and parallel branches no longer conflict in the view. |
+Nothing awaits a decision.

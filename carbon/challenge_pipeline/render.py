@@ -229,23 +229,22 @@ def render():
         )
         if prior:
             out.append(f"  Prior work: {prior}.")
-    entries = load_lessons(protocol)
-    pending = open_revisions(entries)
+    # Only what awaits a decision, and no counts: adding a lessons entry then
+    # changes no committed file but the entry itself, so parallel branches
+    # never conflict here (lesson 2026-10-02-lessons-regenerate-pipeline-view).
+    pending = open_revisions(load_lessons(protocol))
     out += [
         "",
         "## Lessons and proposed revisions",
         "",
         "One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson",
         "that should change the protocol is a proposed revision until a named owner",
-        "adopts or declines it; nothing is applied silently.",
-        "",
-        f"{len(entries)} entries: "
-        + ", ".join(
-            f"{sum(e['status'] == s for e in entries)} {s.lower()}"
-            for s in ("RECORDED", "PROPOSED", "ADOPTED", "DECLINED")
-        )
-        + ".",
+        "adopts or declines it; nothing is applied silently. This view lists only the",
+        "revisions awaiting a decision; `python -m carbon.challenge_pipeline lessons`",
+        "lists every entry.",
     ]
+    if not pending:
+        out += ["", "Nothing awaits a decision."]
     if pending:
         out += [
             "",
