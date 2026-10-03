@@ -39,12 +39,20 @@ def _feedback_modes():
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
 FIELDS = {
-    "agent": ("string", "Who selects: autonomous (Carbon's agent) or none (you)."),
+    "agent": (
+        "string",
+        (
+            "Who selects: autonomous (Carbon's agent) or none (you, or your "
+            "own agent over MCP). Setup's names are accepted too: "
+            "carbon-autonomous means autonomous, own-agent means none."
+        ),
+    ),
     "idempotency_key": (
         "string",
         (
-            "16-80 letters, digits, - or _, one per action: a retry with the "
-            "same key and request replays it; another request under it is refused."
+            "16-80 letters, digits, - or _ (no '.' or ':', unlike a research "
+            "operation_id), one per action: a retry with the same key and "
+            "request replays it; another request under it is refused."
         ),
     ),
     "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
@@ -67,7 +75,13 @@ FIELDS = {
             "Required; there is no default Challenge."
         ),
     ),
-    "challenge_version": ("string", "The exact version of that Challenge."),
+    "challenge_version": (
+        "string",
+        (
+            "The exact version of that Challenge, as carbon_challenges_v1__list "
+            "gives it. Required with challenge to launch."
+        ),
+    ),
     "model_provider": (
         "string",
         (
@@ -137,6 +151,307 @@ FIELDS = {
         ),
     ),
 }
+
+#: Setup's names for who researches, accepted wherever launch's are
+#: (LP-PROD-B): an agent that read them in carbon_setup_status sends them as
+#: they were. Normalised before every gate, so a replay under either name is
+#: the same request and the campaign records only launch's own value.
+AGENT_ALIASES = {"carbon-autonomous": "autonomous", "own-agent": "none"}
+
+#: The closed values of a field, for the schemas both doors publish. The
+#: bodies still check them; this states them up front instead of leaving a
+#: client to learn them from refusals.
+CHOICES = {
+    "agent": ("none", "autonomous", *AGENT_ALIASES),
+    "action": ("stop", "pause", "reconcile"),
+    "note_kind": ("hypothesis", "plan", "observation", "reply"),
+}
+
+#: Fields an operation's body refuses to run without, by its own specific
+#: code (`challenge_required`, `challenge_version_unsupported`), which the
+#: closed-request gate therefore leaves optional. Schemas mark them required
+#: so a client learns it before calling; a door that omits one still gets the
+#: body's specific refusal rather than a generic one.
+BODY_REQUIRED = {"launch": frozenset({"challenge", "challenge_version"})}
+
+
+def takes_owner_lock(name, request):
+    """Whether this call's body takes the campaign's ownership lock - which
+    a research attachment (`carbon_attach_campaign`, the page's tool session)
+    holds for as long as it lasts, so the call answers `campaign_busy` until
+    it is released."""
+    return name in {"practice", "freeze_candidate", "submit", "resume"} or (
+        name == "halt"
+        and type(request) is dict
+        and request.get("action") == "reconcile"
+    )
+
+
+#: For a refusal code: the request field to correct (or None when no field is
+#: to blame) and the next step. A client branches on the code; the step is
+#: fixed text per code, never a caller's value echoed back. A code not listed
+#: here is still a closed code (`refusal` gives it the generic step).
+REFUSALS = {
+    "closed_request_required": (
+        None,
+        (
+            "send exactly the arguments schema: every required field and only "
+            "declared ones"
+        ),
+    ),
+    "research_profile_unavailable": (
+        None,
+        (
+            "your runner profile is missing, disabled or unreadable: finish setup "
+            "(carbon_setup_status), or check the profile this server was started with"
+        ),
+    ),
+    "research_profile_mismatch": (
+        "profile",
+        (
+            "omit profile, or send the profile_id of the runner profile this "
+            "server was started with"
+        ),
+    ),
+    "registration_required": (
+        None,
+        (
+            "register your hotkey on the subnet in your own wallet "
+            "(carbon_onboarding_prepare gives the unsigned call), then retry"
+        ),
+    ),
+    "registration_unreadable": (None, "the chain could not be read; retry shortly"),
+    "registration_wrong_network": (
+        None,
+        (
+            "your runner profile names another network than the subnet's; correct "
+            "the profile (carbon_setup_status)"
+        ),
+    ),
+    "signer_not_running": (
+        None,
+        (
+            "ask the miner to start carbon-miner-signer for the registered hotkey "
+            "in their own terminal and leave it open, then retry; Carbon holds no key"
+        ),
+    ),
+    "signer_refused": (
+        None,
+        "the signer declined; its terminal shows why. Correct that, then retry",
+    ),
+    "signer_wrong_hotkey": (
+        None,
+        (
+            "the running signer holds another hotkey: start it for the registered "
+            "hotkey, then retry"
+        ),
+    ),
+    "signer_timeout": (
+        None,
+        "the signer did not answer in time; check its terminal, then retry",
+    ),
+    "signer_invalid_signature": (
+        None,
+        "restart carbon-miner-signer, then retry; nothing it signed was used",
+    ),
+    "signer_protocol": (
+        None,
+        (
+            "something other than carbon-miner-signer answers on the signer "
+            "socket; stop it and start carbon-miner-signer"
+        ),
+    ),
+    "challenge_required": (
+        "challenge",
+        "send challenge and challenge_version as carbon_challenges_v1__list gives them",
+    ),
+    "challenge_unknown": (
+        "challenge",
+        "choose a Challenge from carbon_challenges_v1__list",
+    ),
+    "challenge_retired": (
+        "challenge",
+        (
+            "this Challenge is retired from research; choose another from "
+            "carbon_challenges_v1__list"
+        ),
+    ),
+    "challenge_deferred": (
+        "challenge",
+        "this Challenge is not open yet; choose another from carbon_challenges_v1__list",
+    ),
+    "challenge_not_implemented": (
+        "challenge",
+        (
+            "this Challenge is reserved, not implemented; choose another from "
+            "carbon_challenges_v1__list"
+        ),
+    ),
+    "challenge_version_unsupported": (
+        "challenge_version",
+        "send the version carbon_challenges_v1__list gives for that Challenge",
+    ),
+    "gpu_scope_is_for_another_challenge": (
+        "challenge",
+        (
+            "your GPU practice was set up for another Challenge: launch that one, "
+            "or set up compute again for this one (carbon_setup_compute)"
+        ),
+    ),
+    "invalid_agent": (
+        "agent",
+        (
+            "send none (you or your own agent select) or autonomous (Carbon's "
+            "agent); own-agent and carbon-autonomous are accepted too"
+        ),
+    ),
+    "invalid_idempotency_key": (
+        "idempotency_key",
+        (
+            "16-80 letters, digits, - or _; on launch you may omit it and the "
+            "server generates one"
+        ),
+    ),
+    "research_launch_replay_conflict": (
+        "idempotency_key",
+        (
+            "this key already launched a different request: send that request "
+            "unchanged to replay it, or use a new key"
+        ),
+    ),
+    "operation_replay_conflict": (
+        "idempotency_key",
+        (
+            "this key already names a different request: send that request "
+            "unchanged to replay it, or use a new key"
+        ),
+    ),
+    "invalid_budget": (
+        "budget",
+        (
+            "send only ceilings, elapsed_seconds or final_reserve within their "
+            "bounds; carbon_options lists them"
+        ),
+    ),
+    "research_review_changed": (
+        "review_digest",
+        "review again (carbon_setup_review) and send the review digest it gives",
+    ),
+    "invalid_feedback_mode": (
+        "feedback_mode",
+        "send one of the feedback modes carbon_options lists, or omit it for FULL",
+    ),
+    "feedback_mode_not_offered_by_challenge": (
+        "feedback_mode",
+        (
+            "send a mode this Challenge offers (its description lists them), or "
+            "omit it for FULL"
+        ),
+    ),
+    "model_provider_required": (
+        "model_provider",
+        (
+            "name the provider for this model or these settings (carbon_options "
+            "lists them)"
+        ),
+    ),
+    "unknown_model_provider": (
+        "model_provider",
+        "send a provider carbon_options lists",
+    ),
+    "model_selection_refused": (
+        "model",
+        "send a model and settings within the provider's bounds (carbon_options)",
+    ),
+    "model_selection_needs_the_autonomous_agent": (
+        "agent",
+        "a model is only for agent=autonomous: send that, or omit the model fields",
+    ),
+    "model_provider_endpoint_not_configured": (
+        "model_provider",
+        "configure this provider's endpoint in setup (carbon_setup_inference) first",
+    ),
+    "model_provider_credential_not_configured": (
+        "model_provider",
+        "add this provider's key file in setup (carbon_setup_inference) first",
+    ),
+    "campaign_busy": (
+        "campaign",
+        (
+            "another operation or session holds this campaign: if this session "
+            "attached it, call carbon_detach_campaign; otherwise wait until "
+            "carbon_observe shows it settled, then retry"
+        ),
+    ),
+    "freeze_a_candidate_first": (
+        "campaign",
+        "freeze a practiced recipe (carbon_freeze_candidate), then submit",
+    ),
+    "retired_grant_campaign": (
+        "campaign",
+        "this campaign takes no new work; observe or stop it, and launch a new one",
+    ),
+    "research_run_unavailable": (
+        "campaign",
+        "use the id your launch returned for one of your own campaigns",
+    ),
+    "campaign_journal_not_ready": (
+        "campaign",
+        "the campaign is still being prepared; retry once carbon_observe shows it running",
+    ),
+    "strategy_json_invalid": ("strategy", "send the recipe as a JSON object"),
+    "strategy_object_required": ("strategy", "send the recipe as a JSON object"),
+    "invalid_research_control": ("action", "send stop, pause or reconcile"),
+    "note_kind_unknown": (
+        "note_kind",
+        "send hypothesis, plan, observation or reply",
+    ),
+    "bounded_note_required": ("note", "send 1 to 2000 characters of plain text"),
+    "reply_to_unknown_message": (
+        "reply_to",
+        "reply to a sequence carbon_messages listed",
+    ),
+    "reply_to_only_for_replies": (
+        "reply_to",
+        "send reply_to only with note_kind=reply",
+    ),
+    "limit_out_of_bounds": ("limit", "send 1 to 100, or omit it for 50"),
+    "research_task_id_required": (
+        "task",
+        "send rtsk_ and 64 hex digits, from the run's start_research_task result",
+    ),
+    "run_output_unavailable": (
+        "task",
+        (
+            "send a finished run of this campaign; the run may still be going "
+            "(get_research_result shows it)"
+        ),
+    ),
+    "not_a_workspace_run": (
+        "task",
+        (
+            "run_output reads run_python and run_julia runs; carbon_campaign_view "
+            "shows practice trials"
+        ),
+    ),
+}
+
+#: The step for a code with no entry above.
+GENERIC_STEP = (
+    "the code names what to correct; the tool's arguments schema and "
+    "carbon_options list what each field accepts"
+)
+
+
+def refusal(code):
+    """A refused call's closed body: the code, the field to correct when one
+    is to blame, and the next step - the JSON both doors can send."""
+    field, step = REFUSALS.get(code, (None, GENERIC_STEP))
+    body = {"error": code, "next_step": step}
+    if field is not None:
+        body["field"] = field
+    return body
+
 
 #: The gates, in the only order they run. `replay` is read-only and precedes
 #: registration so a lost response replays without a chain read. Launch
@@ -278,12 +593,13 @@ OPERATIONS = {
         Operation(
             "run_output",
             "A finished workspace run's own output (run_python or run_julia): "
-            "its retained stdout, the last 64 KiB as text; the files it "
-            "exported to your workspace; and any raster image among them "
-            "inline as base64 (PNG, JPEG, GIF or WebP; at most 1 MiB each, "
-            "3 MiB and 6 images in all). Self-reported, untrusted text. The "
-            "sandbox keeps no stderr, and no stdout when the program fails. "
-            "Reads only.",
+            "its retained stdout and stderr, the last 64 KiB of each as text, "
+            "for successful and failed runs alike (a run recorded before "
+            "stderr was kept has none); where it ran; the files it exported "
+            "to your workspace; and any raster image among them (PNG, JPEG, "
+            "GIF or WebP; at most 1 MiB each, 3 MiB and 6 images in all) - "
+            "over MCP as image content, in the browser inline. Self-reported, "
+            "untrusted text. Reads only.",
             frozenset({"campaign", "task"}),
             frozenset(),
             ("request", "profile", "campaign"),
@@ -391,6 +707,10 @@ def perform(host, name, request):
     for gate in op.gates:
         if gate == "request":
             _closed(op, request)
+            agent = request.get("agent")
+            if type(agent) is str and agent in AGENT_ALIASES:
+                # Setup's name for the same choice; never the caller's dict.
+                request = {**request, "agent": AGENT_ALIASES[agent]}
         elif gate == "profile":
             try:
                 # New work needs an enabled, runnable profile. Reading and

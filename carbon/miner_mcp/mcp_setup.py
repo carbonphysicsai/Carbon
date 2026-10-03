@@ -19,8 +19,10 @@ confirmed the registration, and are added to the live server when it does.
 When review writes the runner profile, the registered tier's operations
 (launch, observe, practice, freeze, submit, halt, resume, attach) are added
 the same way (`open_tier.attach_operations`), so the agent goes on to launch
-without reconnecting. The pinned SDK sends no list-changed notification, so
-each result that adds tools names them and a client re-lists.
+without reconnecting. A session that reconnects after review gets them at
+once (`SetupDoor.install`). Each change is announced to the client as a
+tools list change (`open_tier.announce`), and each result that adds tools
+names them in `tools_added`, for a client that ignores the announcement.
 
 Refusals are closed codes, with the field and a next step. Starting the
 signer and signing the registration stay the miner's: those calls answer a
@@ -52,9 +54,11 @@ Loop until launch:
    with the miner's agreement to that charge; send the model key only as
    `model_key_file`, the absolute path to an owner-only file the miner made.
 4. A refusal is a closed `error` with `field` and `next_step`; a result that
-   adds tools names them in `tools_added`: list the tools again.
-5. When `next.step` is "launch", setup is done: carbon_launch is available
-   in this session.
+   adds tools names them in `tools_added`: list the tools again (the server
+   also announces the change).
+5. When `next.step` is "launch", setup is done. `next.call.in_this_session`
+   says whether carbon_launch is in this session; if it is not, reconnect
+   with `next.call.reconnect`.
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and
@@ -105,11 +109,13 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
     from mcp.server.mcpserver.tools import Tool
     from pydantic import Field, create_model
 
+    from carbon.miner_mcp.open_tier import announce
     from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.environment_setup import SetupRefused
     from scripts.dev.miner_launchpad.setup_operations import (
         FIELDS,
         MCP,
+        NEXT_STEPS,
         SETUP_OPERATIONS,
         perform,
     )
@@ -127,7 +133,7 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
             parameters[field] = (annotation, Field(default, description=meaning))
         model = create_model("setup_" + op.name, __base__=strict, **parameters)
 
-        async def invoke(**arguments):
+        async def invoke(ctx=None, **arguments):
             if guard is not None:
                 guard()
             request = {k: v for k, v in arguments.items() if v is not None}
@@ -140,8 +146,13 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
                     _refusal(refused.code, refused.field, refused.next_step)
                 ) from None
             except Rejected as refused:
-                raise ToolError(_refusal(refused.code)) from None
+                raise ToolError(
+                    _refusal(refused.code, next_step=NEXT_STEPS.get(refused.code))
+                ) from None
             added = list(await after(op.name, payload)) if after is not None else []
+            if added:
+                # The SDK announces nothing when a registry grows; this does.
+                await announce(ctx, tools=True)
             return result_model(operation=op.name, payload=payload, tools_added=added)
 
         return Tool(
@@ -151,13 +162,17 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
             parameters=model.model_json_schema(),
             fn_metadata=exact(arg_model=model, output_model=result_model),
             is_async=True,
+            context_kwarg="ctx",
         )
 
     return [tool_for(op) for op in SETUP_OPERATIONS.values() if op.tier == tier]
 
 
-def make_status_tool(setup, *, guard=None, campaigns=None):
-    """`carbon_setup_status`: where setup stands and the exact next call."""
+def make_status_tool(setup, *, guard=None, campaigns=None, launch_available=None):
+    """`carbon_setup_status`: where setup stands and the exact next call.
+
+    `launch_available`, a callable, says whether this session has
+    `carbon_launch` now, so the launch step never names a tool it lacks."""
     from mcp.server.mcpserver.tools import Tool
     from pydantic import BaseModel, ConfigDict, JsonValue, create_model
 
@@ -175,8 +190,11 @@ def make_status_tool(setup, *, guard=None, campaigns=None):
         if guard is not None:
             guard()
         count = campaigns() if campaigns is not None else None
+        launch = launch_available() if launch_available is not None else None
         return StatusResult(
-            payload=await asyncio.to_thread(status, setup, door=MCP, campaigns=count)
+            payload=await asyncio.to_thread(
+                status, setup, door=MCP, campaigns=count, launch_available=launch
+            )
         )
 
     return Tool(
@@ -226,15 +244,19 @@ class SetupDoor:
 
     def install(self):
         """Status and the open-tier steps now; the registered steps too when
-        setup has already confirmed the registration."""
+        setup has already confirmed the registration; and the registered
+        tier's operations too when review already wrote the profile - a
+        session reconnecting after review gets what the one before it had."""
         from scripts.dev.miner_launchpad.setup_operations import OPEN
 
+        registry = self.server._tool_manager._tools
         added = self._add(
             [
                 make_status_tool(
                     self.setup,
                     guard=self.guard,
                     campaigns=lambda: self.count() if self.count else None,
+                    launch_available=lambda: "carbon_launch" in registry,
                 ),
                 *make_setup_tools(
                     self.setup, tier=OPEN, guard=self.guard, after=self.after
@@ -248,8 +270,23 @@ class SetupDoor:
                 self.guard()
             return WORKFLOW
 
-        if self.setup.state()["registered_hotkey"] is not None:
+        state = self.setup.state()
+        if state["registered_hotkey"] is not None:
             added += self._registered()
+        if (
+            self.attach_operations is not None
+            and state["steps"]["review"]["profile_written"]
+            and not self.operations
+        ):
+            try:
+                names = self.attach_operations(self.setup.profile_path)
+            except Exception:  # noqa: BLE001 - an unusable profile adds nothing
+                # Status then says launch is not in this session and how to
+                # reconnect, rather than the server failing to start.
+                names = None
+            if names is not None:
+                added += list(names)
+                self.operations = True
         return added
 
     def _registered(self):
@@ -275,9 +312,15 @@ class SetupDoor:
         if name == "review" and written and not self.operations:
             if self.attach_operations is None:
                 return []
-            names = await asyncio.to_thread(
-                self.attach_operations, self.setup.profile_path
-            )
+            # Claimed before the await: a parallel review finds it claimed and
+            # adds nothing, rather than attaching a second campaign host.
             self.operations = True
+            try:
+                names = await asyncio.to_thread(
+                    self.attach_operations, self.setup.profile_path
+                )
+            except BaseException:
+                self.operations = False
+                raise
             return list(names)
         return []

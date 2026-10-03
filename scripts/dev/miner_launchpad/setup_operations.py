@@ -164,9 +164,30 @@ FIELDS = {
     "key": ("string", "Browser only: the key, pasted once."),
     "image_manifest": ("string", "Absolute path; status gives the one it found."),
     "analysis_image_manifest": ("string", "Absolute path; status gives it."),
-    "gpu_image_manifest": ("string", "Absolute path; status gives it."),
-    "challenge": ("object", "{id, version} of a Challenge status lists."),
-    "remote": ("object", "{transport, destination, port?} of your own setup."),
+    "gpu_image_manifest": (
+        "string",
+        (
+            "Absolute path; status gives it. Only with a GPU choice (this "
+            "machine's GPU, or your remote machine): required there, refused "
+            "with the CPU choice (gpu_image_is_for_the_gpu_choice)."
+        ),
+    ),
+    "challenge": (
+        "object",
+        (
+            "{id, version} of a Challenge status lists under options.challenge "
+            "- the one your GPU practice is set up for. Only with a GPU choice "
+            "(this machine's GPU, or your remote machine): required there, "
+            "refused with the CPU choice (challenge_is_for_the_gpu_choice)."
+        ),
+    ),
+    "remote": (
+        "object",
+        (
+            "{transport, destination, port?} of your own setup. Only with the "
+            "remote choice: required there, refused otherwise."
+        ),
+    ),
     "confirm": ("boolean", "true"),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
 }
@@ -181,6 +202,13 @@ NEXT_STEPS = {
     "hotkey_address_required": "send your public hotkey ss58 address",
     "key_must_be_a_file_on_this_door": (
         "put the key alone in an owner-only file and send model_key_file"
+    ),
+    "challenge_is_for_the_gpu_choice": (
+        "leave challenge out with the CPU choice: it names the Challenge GPU "
+        "practice is set up for"
+    ),
+    "gpu_image_is_for_the_gpu_choice": (
+        "leave gpu_image_manifest out with the CPU choice"
     ),
 }
 
@@ -296,10 +324,46 @@ def perform(setup, name: str, request, *, door: str):
         raise
 
 
-def status(setup, *, door: str, campaigns=None) -> dict:
+def _launch_call(setup, door, launch_available):
+    """The launch entry: where launch is, said only of tools that exist.
+
+    `launch_available` is the MCP door's own answer - whether `carbon_launch`
+    is in this session - or None where the door does not say. A session
+    without it is told how to get it (LP-PROD-B), never sent to a tool it
+    does not have.
+    """
+    call = {"tool": "carbon_launch", "http": "POST /api/v1/research"}
+    if door != MCP or launch_available is None:
+        call["note"] = (
+            "the registered tier's launch operation; its arguments schema lists "
+            "every field"
+        )
+    elif launch_available:
+        call["in_this_session"] = True
+        call["note"] = (
+            "carbon_launch is in this session; its arguments schema lists every "
+            "field (challenge and challenge_version are required)"
+        )
+    else:
+        call["in_this_session"] = False
+        profile = getattr(setup, "profile_path", None)
+        call["reconnect"] = "carbon-mcp --configuration " + (
+            str(profile) if profile is not None else "<your runner profile>"
+        )
+        call["note"] = (
+            "carbon_launch is not in this session: reconnect your MCP client "
+            "with the reconnect command (your runner profile, which review "
+            "wrote), then call carbon_launch"
+        )
+    return call
+
+
+def status(setup, *, door: str, campaigns=None, launch_available=None) -> dict:
     """Where setup stands and the exact next call (OWNER-MINER-SETUP-AGENT-
     FIRST-01). `campaigns`, when the door knows it, is how many campaigns
-    this miner's profile has; one or more means launch is done."""
+    this miner's profile has; one or more means launch is done.
+    `launch_available`, when the door knows it, is whether this session
+    already has `carbon_launch` (`_launch_call`)."""
     from scripts.dev.miner_launchpad.environment_setup import (
         OWN_AGENT,
         USES_SETUP_MODEL,
@@ -367,12 +431,7 @@ def status(setup, *, door: str, campaigns=None) -> dict:
         result["next"] = {
             "step": "launch",
             "done": launched,
-            "call": {
-                "tool": "carbon_launch",
-                "http": "POST /api/v1/research",
-                "note": "the registered tier's launch operation; carbon_operations "
-                "lists its fields",
-            },
+            "call": _launch_call(setup, door, launch_available),
         }
         return result
     step = nxt["id"]
