@@ -148,4 +148,4 @@ One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
 adopts or declines it; nothing is applied silently.
 
-11 entries: 9 recorded, 0 proposed, 2 adopted, 0 declined.
+27 entries: 25 recorded, 0 proposed, 2 adopted, 0 declined.
