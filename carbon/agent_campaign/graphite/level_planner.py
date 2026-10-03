@@ -59,6 +59,7 @@ from carbon.challenge_pipeline.ladder import CLIMB_PROCEDURE, LEVELS
 from carbon.challenge_pipeline.state import PROTOCOL
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.reconstruction.capability_registry import Status
 
 from ..study import planning_level, study_for
@@ -74,23 +75,30 @@ REJECTION_SCHEMA = "carbon.graphite.level-proposal-rejection.v1"
 SESSION_SCHEMA = "carbon.graphite.level-planner-session.v1"
 TASK = "level-proposal"
 ROLE = RoleName.PLANNER
-#: The most method cards one brief carries; choose them with `card_ids`.
-MAX_CARDS = 24
-#: Six levels, with room for rate-limit retries.
-MAX_CALLS = 24
+#: The most method cards one brief may carry; choose them with `card_ids`.
+#: What binds in practice is the request size: `plan` refuses a brief whose
+#: largest request exceeds the input bound, before any call.
+MAX_CARDS = 64
+#: Six levels, with room for two rate-limit retries.
+MAX_CALLS = 8
 #: A brief carries the whole contract and the chosen cards; a Level-0 reply
-#: cites the rebuildable surface.
+#: cites the rebuildable surface. Before a call reports its usage the bound
+#: counts one token per request byte, so the input setting is what decides
+#: how many cards fit (about 47 of the battery snapshot's). 32,768 output
+#: tokens: a medium-effort reply ran past 8,192 in level-plan-2.
 SETTINGS = {
-    "max_input_tokens": 65536,
-    "max_output_tokens": 8192,
+    "max_input_tokens": 196608,
+    "max_output_tokens": 32768,
     "reasoning_effort": "medium",
-    "timeout_seconds": 300,
+    "timeout_seconds": 600,
 }
 ISOLATED = (4, 5)
 #: The grants a live planner session may run under: the executor proposes
 #: them and the owner approves them (OWNER-GRAPHITE-05). Each one's call cap
 #: covers MAX_CALLS at SETTINGS (see the grants README).
-PLANNER_GRANTS = frozenset({"GRAPHITE-GRANT-PLANNER-01"})
+#: GRAPHITE-GRANT-PLANNER-01 was derived for the earlier settings and its
+#: two runs are used; it is not accepted at these settings.
+PLANNER_GRANTS = frozenset({"GRAPHITE-GRANT-PLANNER-02"})
 _SOURCE = re.compile(r"^(card|result|contract):(\S+)$")
 _RESULT_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 
@@ -429,6 +437,18 @@ class LevelPlanner:
         document = brief(challenge, index=index, results=results, card_ids=card_ids)
         brief_digest = digest(canonical(document))
         session = self.task.session(run_id, brief_digest)
+        # The largest level's exact request against the input bound (one
+        # token per byte before any reported usage): a brief that cannot
+        # fit is refused here, before any call, rather than stopped later.
+        bound = SETTINGS["max_input_tokens"] - CONTEXT_RESERVE_TOKENS
+        largest = max(
+            len(canonical(self.task.request(session.selection, item(document, level))))
+            for level in LEVELS
+        )
+        if largest > bound:
+            raise BriefRefused(
+                "brief_too_large", f"{largest} request bytes; the bound is {bound}"
+            )
         directory = self.task.run_dir(run_id)
         brief_path = directory / "brief.json"
         if not brief_path.exists():

@@ -73,6 +73,8 @@ TRIAGE_SETTINGS = {
 MAX_CALLS_PER_RUN = 3000
 _LIMITS = {
     "provider timeout cannot fit remaining campaign time": "elapsed_seconds",
+    # The request outgrew the input bound: a size limit, not an outage.
+    "cumulative history/schema token reservation exhausted": "input_tokens",
     "campaign elapsed-time exhausted or clock regressed": "elapsed_seconds",
 }
 

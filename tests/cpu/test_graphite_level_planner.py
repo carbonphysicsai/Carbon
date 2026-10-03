@@ -438,7 +438,7 @@ def test_the_live_runner_needs_an_owner_only_key_and_the_planner_grant(
             grant_document(
                 grant_id="graphite-test-grant"
                 if case == "other_grant"
-                else "GRAPHITE-GRANT-PLANNER-01"
+                else "GRAPHITE-GRANT-PLANNER-02"
             )
         )
     )
@@ -449,7 +449,7 @@ def test_the_live_runner_needs_an_owner_only_key_and_the_planner_grant(
     refusal = json.loads(capsys.readouterr().out.splitlines()[0])
     assert refusal == {"status": "REFUSED", "reason_code": code}
     # Refused before the snapshot is even read, so before any call.
-    assert lp.PLANNER_GRANTS == {"GRAPHITE-GRANT-PLANNER-01"}
+    assert lp.PLANNER_GRANTS == {"GRAPHITE-GRANT-PLANNER-02"}
 
 
 def test_the_planner_grant_covers_its_calls():
@@ -460,7 +460,7 @@ def test_the_planner_grant_covers_its_calls():
     document = json.loads(
         (
             lp.PROTOCOL.parents[2]
-            / "docs/development/graphite/grants/GRAPHITE-GRANT-PLANNER-01.json"
+            / "docs/development/graphite/grants/GRAPHITE-GRANT-PLANNER-02.json"
         ).read_text()
     )
     planner_grant = SpendingGrant.from_document(document)
@@ -469,9 +469,9 @@ def test_the_planner_grant_covers_its_calls():
     call = Decimal(
         lp.SETTINGS["max_input_tokens"] * 680 + lp.SETTINGS["max_output_tokens"] * 1500
     ) / Decimal(10**9)
-    assert call == Decimal("0.056852480")
+    assert call == Decimal("0.182845440")
     cap = int(planner_grant.worst_case_run_cost // call)
-    assert cap == 43 and lp.MAX_CALLS <= cap
+    assert cap == 8 and lp.MAX_CALLS <= cap
     assert planner_grant.max_runtime_s == cap * lp.SETTINGS["timeout_seconds"]
     assert (
         planner_grant.permitted_runs * planner_grant.worst_case_run_cost
@@ -479,6 +479,25 @@ def test_the_planner_grant_covers_its_calls():
         <= planner_grant.monetary_ceiling
     )
     assert planner_grant.provider == "graphite" and planner_grant.max_concurrency == 1
+
+
+def test_a_brief_too_large_for_one_request_is_refused_before_any_call(
+    tmp_path, monkeypatch
+):
+    # level-plan-1 (2026-10-03): 24 cards made a 115 KB request against a
+    # 61,440-byte bound and stopped mislabelled as an incomplete response.
+    monkeypatch.setitem(lp.SETTINGS, "max_input_tokens", 20000)
+    job, _ = planner(tmp_path, [])
+    with pytest.raises(lp.BriefRefused) as refused:
+        job.plan("too-big", BATTERY, index=FIXTURE_INDEX, results=RESULTS)
+    assert refused.value.code == "brief_too_large"
+
+
+def test_an_input_bound_stop_is_a_size_limit_not_an_outage():
+    from carbon.agent_campaign.graphite.triage import _stopped
+
+    stop = _stopped("cumulative history/schema token reservation exhausted", False)
+    assert stop == {"status": "STOPPED_CAP", "dimension": "input_tokens"}
 
 
 def test_an_injection_inside_a_card_is_data(tmp_path):
