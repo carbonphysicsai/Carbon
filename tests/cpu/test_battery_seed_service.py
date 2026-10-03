@@ -5,11 +5,13 @@ Claims tested:
   from its revealed root, so the service is the campaign's own rule;
 - a root is accepted only from an owner-only regular 32-byte file, and never
   prints, pickles or appears in a public projection;
-- every private batch carries hidden duplicates with opaque ids;
+- every private batch carries hidden duplicates with opaque ids, shuffled
+  among the originals so that no position marks a repeat;
 - a batch is usable only after its fingerprint is committed, and is revealed
   only after it retires, verifiably against the earlier commitment.
 """
 
+import hashlib
 import json
 import os
 import pickle
@@ -33,6 +35,19 @@ def root_file(tmp_path, data=None, mode=0o600):
 @pytest.fixture
 def root(tmp_path):
     return seeds.PrivateRoot.load(root_file(tmp_path))
+
+
+def fixed_root(tmp_path, n):
+    """The n-th fixed test root: the same bytes on every run."""
+    folder = tmp_path / f"fixed-{n}"
+    folder.mkdir()
+    data = hashlib.sha256(b"seed-service-test-root/%d" % n).digest()
+    return seeds.PrivateRoot.load(root_file(folder, data))
+
+
+def duplicate_positions(batch):
+    duplicates = dict(batch.duplicates)
+    return tuple(i for i, (c, _) in enumerate(batch.cases) if c in duplicates)
 
 
 PIN = seeds.seed_pin("sha256:" + "1" * 64, "sha256:" + "2" * 64)
@@ -94,11 +109,8 @@ def test_every_private_batch_hides_duplicates(root):
     for case_id, _ in batch.cases:
         assert "dup" not in case_id and "repeat" not in case_id
         assert len(case_id.rsplit("-", 1)[1]) == 16
-    # Duplicates are not all at the end.
-    positions = [
-        i for i, (c, _) in enumerate(batch.cases) if c in dict(batch.duplicates)
-    ]
-    assert positions != [18, 19]
+    # Positions are tested over fixed roots below: for any one random root the
+    # duplicates may legitimately sit anywhere, including last.
     # The same root gives the same batch; a different role, a different one.
     assert (
         seeds.make_batch(root, PIN, "pscreen-b00", 20).fingerprint == batch.fingerprint
@@ -110,6 +122,29 @@ def test_every_private_batch_hides_duplicates(root):
         seeds.make_batch(root, PIN, "pverify", 20, duplicates=0)
     with pytest.raises(ValueError):
         seeds.PrivateBatch("x", batch.cases, ())
+
+
+def test_duplicates_are_shuffled_among_the_originals(tmp_path):
+    # Over 20 fixed roots the duplicates reach every position of a 20-case
+    # batch, in pairs that vary with the root. Without the shuffle every batch
+    # would end with them, at (18, 19), and both checks would fail.
+    pairs = [
+        duplicate_positions(
+            seeds.make_batch(fixed_root(tmp_path, n), PIN, "pscreen-b00", 20)
+        )
+        for n in range(20)
+    ]
+    assert {i for pair in pairs for i in pair} == set(range(20))
+    assert len(set(pairs)) > 10
+
+
+def test_a_shuffle_may_put_both_duplicates_last(tmp_path):
+    # A uniform shuffle puts both duplicates last in about 1 batch in 190, and
+    # this fixed root is one. The earlier test asserted otherwise for a random
+    # root, so it failed about once in 190 runs on a correct batch. Forbidding
+    # this order would make the last positions a sign of an original.
+    batch = seeds.make_batch(fixed_root(tmp_path, 285), PIN, "pscreen-b00", 20)
+    assert duplicate_positions(batch) == (18, 19)
 
 
 def test_commit_before_use_and_reveal_only_after_retirement(tmp_path, root):
