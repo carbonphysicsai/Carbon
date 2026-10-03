@@ -34,6 +34,10 @@ STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
     "/style.css": ("style.css", "text/css; charset=utf-8"),
+    # The research surface (OWNER-MINER-RESEARCH-SURFACE-01).
+    "/research.css": ("research.css", "text/css; charset=utf-8"),
+    "/research_charts.js": ("research_charts.js", "text/javascript; charset=utf-8"),
+    "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
     # Carbon's wordmark and the website's Montreal font, served from this
     # controller so the page loads nothing from the internet. The font files
     # are the website's own (their digests are the website baseline

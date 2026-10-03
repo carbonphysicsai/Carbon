@@ -323,8 +323,8 @@ def test_primary_navigation_is_the_control_center_and_rehearsal_is_development()
     parsed = views()
     primary = [label for _, label, group in parsed.views if group is None]
     assert primary == [
-        "Overview",
-        "Campaigns",
+        "Launchpad",
+        "My Campaigns",
         "Challenges",
         "Agents",
         "Compute",

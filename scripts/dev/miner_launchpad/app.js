@@ -254,7 +254,10 @@
     $("settings-recheck").disabled = !connected || busy;
     // Connected: the token form steps aside; interrupted or new, it returns.
     $("connect-panel").hidden = connected;
+    // The research surface (research_view.js) redraws with the page.
+    for (const hook of renderHooks) hook();
   }
+  const renderHooks = [];
   // ---- The wiring guide, served by this controller (LINKONLY-D10). ----
   let guideDoc = null;
   let guideLoading = null;
@@ -1695,6 +1698,9 @@
       return;
     }
     if (!run) return;
+    // The research surface draws the campaign from its campaign view, the
+    // document an MCP client reads too (OWNER-MINER-RESEARCH-SURFACE-01).
+    if (window.CarbonResearch) { window.CarbonResearch.detail(detail, run); return; }
     // Never rebuild under a person's cursor: the journey is typed into.
     const active = document.activeElement;
     if (active && detail.contains(active) && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) && detail.dataset.run === run.id) return;
@@ -2443,7 +2449,9 @@
     } catch (error) { message("Research request unresolved: " + error.message, true); }
     finally { busy = false; await refresh(); render(); }
   }
-  $("research-launch").addEventListener("click", async () => {
+  $("research-launch").addEventListener("click", () => launchResearch());
+  // The one launch: the wizard's button and the Launchpad's both call it.
+  async function launchResearch() {
     if (!connected || busy || storageError || !research.preflight.available) return;
     if (!pendingResearch) {
       const problem = stepProblem("review");
@@ -2474,7 +2482,19 @@
       if (run && run.id) location.hash = "#campaigns/" + encodeURIComponent(run.id) + "/overview";
     } catch (error) { message("Research launch not confirmed: " + error.message + ". Retry retains the same request.", true); }
     finally { busy = false; await refresh(); render(); }
-  });
+  }
+  // The research surface (research_view.js) reads this page's state and
+  // calls its operations through this one bridge; it holds none of its own.
+  window.CarbonControlCenter = {
+    api, el, pill, details, link, message,
+    state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch}),
+    challengeEntry, agentEntry, selectedProvider, describeComposition,
+    launch: launchResearch,
+    launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
+    goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
+    researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission,
+    onRender(hook) { renderHooks.push(hook); },
+  };
   buildNavigation();
   show();
   setInterval(refresh, 1500);
