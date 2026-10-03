@@ -5,8 +5,9 @@ Each program runs through run_julia - the isolated, network-free miner lane -
 and asserts a numerical result rather than only that a package loads: a solved
 ODE against its exact solution, a symbolic derivative, an Enzyme gradient
 against a finite difference, a NeuralPDE problem built from a symbolic PDE, and
-the challenge kit labelling a case with the trusted solver. Everything here is
-self-reported research; nothing is qualified.
+the challenge kit labelling a case with the trusted solver; and CUDA.jl loads
+offline without a GPU. Everything here is self-reported research; nothing is
+qualified.
 """
 
 from __future__ import annotations
@@ -92,6 +93,36 @@ end
     values = run(image, tmp_path, "sciml-current", source, "current")
     assert values["ode_error"] < 1e-7
     assert values["gradient_gap"] < 1e-5
+
+
+def test_current_loads_cuda_offline_without_a_gpu(image, tmp_path):
+    """JULIA-GPU-01 slice 1: CUDA.jl is in the depot with its toolkit fixed.
+
+    In the network-free miner lane with no GPU attached, CUDA loads and finds
+    the CUDA 13.0 runtime and compiler artifacts already in the image (nothing
+    can be fetched here), reports itself not functional, and the device
+    runtime compiled at build time is in the depot. Running on a GPU is slice
+    2; nothing here is qualified.
+    """
+    source = r"""
+using CUDA
+runtime = CUDA.CUDACore.CUDA_Runtime
+compiler = CUDA.CUDACore.CUDA_Compiler
+@assert runtime.is_available() && isdir(runtime.artifact_dir)
+@assert compiler.is_available() && isdir(compiler.artifact_dir)
+compiled = "/opt/carbon-julia-analysis/depot/scratchspaces/61eb1bfa-7361-4325-ad38-22787b887f55/compiled"
+libraries = [f for (_, _, files) in walkdir(compiled) for f in files if endswith(f, ".bc")]
+open("/scratch/output/result.json", "w") do io
+    print(io, "{\"functional\":", CUDA.functional(),
+          ",\"toolkit\":\"", runtime.host_platform["cuda"],
+          "\",\"local_toolkit\":\"", runtime.host_platform["cuda_local"],
+          "\",\"device_runtimes\":", length(libraries), "}")
+end
+"""
+    values = run(image, tmp_path, "cuda-offline", source, "current")
+    assert values["functional"] is False
+    assert values["toolkit"] == "13.0" and values["local_toolkit"] == "false"
+    assert values["device_runtimes"] > 0
 
 
 def test_pde_builds_a_physics_informed_problem_from_a_symbolic_pde(image, tmp_path):

@@ -8,7 +8,8 @@ its content, and nothing from the Carbon source tree:
 - the Julia version and checksum-pinned archive, and the pinned base the
   Julia-only build image starts from;
 - the portable CPU target;
-- each environment's committed Project.toml and Manifest.toml;
+- each environment's committed Project.toml and Manifest.toml, and its
+  LocalPreferences.toml where it has one;
 - each environment's worker bootstrap;
 - this module's own bytes, which are the depot's whole recipe.
 
@@ -65,6 +66,14 @@ ANALYSIS_ROOT = "/opt/carbon-julia-analysis"
 #: target - so one image serves every miner's host rather than the builder's.
 CPU_TARGET = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"
 
+#: The environments that carry CUDA.jl (JULIA-GPU-01). Their committed
+#: LocalPreferences.toml fixes the CUDA toolkit, because a GPU-less build host
+#: and a network-off run can never choose one by inspecting a driver.
+CUDA_ENVIRONMENTS = ("current",)
+#: GPUCompiler's package UUID: its scratch space holds the GPU device runtime
+#: that `CUDA.precompile_runtime()` builds, the one scratch space kept.
+GPUCOMPILER_UUID = "61eb1bfa-7361-4325-ad38-22787b887f55"
+
 DEPOT_LABEL = "org.opencontainers.image.carbon.authored-julia.depot"
 TREE_LABEL = "org.opencontainers.image.carbon.authored-julia.depot-tree"
 VERSION_LABEL = "org.opencontainers.image.carbon.julia.version"
@@ -80,6 +89,19 @@ def environment_files(name):
         (directory / "Project.toml").read_bytes(),
         (directory / "Manifest.toml").read_bytes(),
     )
+
+
+def environment_preferences(name):
+    """The committed LocalPreferences.toml bytes for one environment, or None.
+
+    Compile-time preferences decide which binary artifacts Pkg installs and
+    how packages compile (the CUDA toolkit, for one), so they are a depot
+    input exactly like the manifest.
+    """
+    if name not in ENVIRONMENTS:
+        raise ValueError("unknown authored Julia environment")
+    path = ENVIRONMENT_ROOT / name / "LocalPreferences.toml"
+    return path.read_bytes() if path.exists() else None
 
 
 def bootstrap_for(name):
@@ -128,6 +150,11 @@ def depot_document():
             name: {
                 "project": digest(environment_files(name)[0]),
                 "manifest": digest(environment_files(name)[1]),
+                "preferences": (
+                    None
+                    if environment_preferences(name) is None
+                    else digest(environment_preferences(name))
+                ),
                 "bootstrap": digest(bootstrap_for(name).encode()),
             }
             for name in ENVIRONMENTS
@@ -155,11 +182,26 @@ RUN tar -xzf /tmp/carbon-julia.tar.gz -C /opt \\
 """
 
 
-LAZY_ARTIFACTS = """using Pkg, Pkg.Artifacts
+#: Lazy artifacts (MKL's OpenMP runtime, among others) are fetched on first
+#: use, which a network-off image can never do; this installs every one at
+#: build time, for the host platform. A CUDA JLL is the exception: its toolkit
+#: is chosen by the package's own selection hook, which `Pkg.instantiate`
+#: already ran under the environment's LocalPreferences.toml, lazy artifacts
+#: included. The host platform carries no `cuda` tag, so sweeping such a
+#: package here would install an arbitrary second toolkit.
+LAZY_ARTIFACTS = """using Pkg, Pkg.Artifacts, TOML
+entries(value) = value isa AbstractVector ? value : [value]
+cuda_tagged(toml) = any(
+    entry -> haskey(entry, "cuda"),
+    (entry for value in values(TOML.parsefile(toml)) for entry in entries(value)))
 for (root, dirs, files) in walkdir(joinpath(first(DEPOT_PATH), "packages"))
     if "Artifacts.toml" in files
+        toml = joinpath(root, "Artifacts.toml")
+        if isfile(joinpath(root, ".pkg", "select_artifacts.jl")) && cuda_tagged(toml)
+            continue
+        end
         Pkg.Artifacts.ensure_all_artifacts_installed(
-            joinpath(root, "Artifacts.toml"); include_lazy=true, quiet_download=true)
+            toml; include_lazy=true, quiet_download=true)
     end
 end
 """
@@ -178,12 +220,18 @@ def fetch_recipe(base):
         "-e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false)'"
         for name in ENVIRONMENTS
     )
+    # The preferences arrive with the manifest, before anything is installed:
+    # they decide which toolkit artifacts Pkg selects.
     copies = "\n".join(
-        f"COPY {name}/Project.toml {name}/Manifest.toml {ANALYSIS_ROOT}/{name}/"
+        f"COPY {name}/Project.toml {name}/Manifest.toml"
+        + (
+            f" {name}/LocalPreferences.toml"
+            if environment_preferences(name) is not None
+            else ""
+        )
+        + f" {ANALYSIS_ROOT}/{name}/"
         for name in ENVIRONMENTS
     )
-    # Lazy artifacts (MKL's OpenMP runtime, among others) are fetched on first
-    # use, which a network-off image can never do; install every one now.
     return f"""FROM {base}
 USER 0:0
 {copies}
@@ -207,16 +255,37 @@ def precompile_recipe(base, packages, fingerprint):
         "-e 'using Pkg; Pkg.precompile(; strict=true)'"
         for name in ENVIRONMENTS
     )
+    # The GPU device runtime, compiled once here for every supported device
+    # rather than by every GPU run. It lands in GPUCompiler's scratch space in
+    # this depot, the only scratch space kept; the build fails if nothing was
+    # compiled. (GPUCompiler reads its cache from the first depot only, so a
+    # GPU run seeds its writable depot from this copy.)
+    runtime = f"{ANALYSIS_ROOT}/depot/scratchspaces/{GPUCOMPILER_UUID}"
+    device_runtime = "".join(
+        f"    && JULIA_PROJECT={ANALYSIS_ROOT}/{name} {JULIA_ROOT}/bin/julia "
+        "--startup-file=no --history-file=no --threads=1 "
+        "-e 'using CUDA; CUDA.precompile_runtime()' \\\n"
+        for name in CUDA_ENVIRONMENTS
+    )
+    keep_runtime = (
+        f"    && find {ANALYSIS_ROOT}/depot/scratchspaces -mindepth 1 -maxdepth 1 "
+        f"! -name {GPUCOMPILER_UUID} -exec rm -rf {{}} + \\\n"
+        f"    && find {runtime} -mindepth 1 -maxdepth 1 ! -name compiled "
+        "-exec rm -rf {} + \\\n"
+        f"    && ls {runtime}/compiled/*/*/runtime_*.bc >/dev/null \\\n"
+        if CUDA_ENVIRONMENTS
+        else f"    && rm -rf {ANALYSIS_ROOT}/depot/scratchspaces \\\n"
+    )
     return f"""FROM {packages} AS packages
 FROM {base}
 USER 0:0
 COPY --from=packages {ANALYSIS_ROOT} {ANALYSIS_ROOT}
 RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_OFFLINE=true \\
       JULIA_CPU_TARGET='{CPU_TARGET}' HOME=/tmp TMPDIR=/tmp \\
-    && rm -rf {ANALYSIS_ROOT}/depot/compiled \\
+    && rm -rf {ANALYSIS_ROOT}/depot/compiled {ANALYSIS_ROOT}/depot/scratchspaces \\
     && {precompile} \\
-    && rm -rf {ANALYSIS_ROOT}/depot/logs {ANALYSIS_ROOT}/depot/scratchspaces \\
-    && chmod -R a+rX,a-w {ANALYSIS_ROOT}
+{device_runtime}    && rm -rf {ANALYSIS_ROOT}/depot/logs \\
+{keep_runtime}    && chmod -R a+rX,a-w {ANALYSIS_ROOT}
 LABEL {DEPOT_LABEL}="{fingerprint}" \\
       {VERSION_LABEL}="{VERSION}" \\
       {ARCHIVE_LABEL}="{ARCHIVE}"
