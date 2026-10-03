@@ -10,8 +10,14 @@ Claims tested, each absence paired with the same check finding a presence:
   workspace state its own run changed;
 - the executor reads the same check, so a request that reaches it anyway
   completes as REQUEST_REFUSED, never as an infrastructure failure;
-- a run's result returns bounded stdout and stderr tails and, on a nonzero
-  exit, the traceback's tail; read_file returns text as text, up to 64 KiB;
+- through the standard MCP door, such a refusal must arrive as a refusal
+  that dispatched nothing (pending LP-PROD-B's door, a strict xfail);
+- a run's result - CPU, Julia, local and remote GPU - returns stdout and
+  stderr tails and, on a nonzero exit, the traceback with its first and last
+  lines, each bounded as delivered;
+- read_file keeps its historical shape and 4 KiB under the historical rule;
+  under v2 it returns 8 KiB once, as text when it is text, and one maximal
+  read fits beside the battery agent's real first request;
 - capability requests, the roadmap and demand read the campaign's own
   Challenge registry, and Burgers' stays the default;
 - an unserved practice backend is refused before dispatch, naming the
@@ -49,6 +55,7 @@ from carbon.development_session.research_tools import (
     registered_correction,
     tools_for_sdk,
 )
+from carbon.miner_mcp.standard import AdapterFailure
 from carbon.reconstruction import capability_registry as registry
 
 BATTERY = registry.BATTERY_CHALLENGE
@@ -93,22 +100,7 @@ def ledger(path, *, ceilings=None, provider=None):
 def door(tmp_path):
     """The SDK over a real composition; no connection, so nothing can be
     dispatched: a refusal must come first."""
-    meter = ledger(tmp_path / "ledger")
-    composition = make_research_service(
-        root=tmp_path / "tasks",
-        ledger=meter,
-        owner="alice",
-        image=SimpleNamespace(),
-        public_material=lambda *a: pytest.fail("refused request executed"),
-        practice=lambda *a: pytest.fail("refused request executed"),
-    )
-    sdk = ResearchMinerTools(
-        connection=None,
-        wrapper=None,
-        composition=composition,
-        ledger=meter,
-        owner="alice",
-    )
+    sdk, meter, composition = sdk_for(tmp_path)
     try:
         yield sdk, meter, composition
     finally:
@@ -188,6 +180,12 @@ def test_check_design_given_a_discovery_example_with_its_verdict_is_named(door):
             "capability_request_reason_unknown",
             "arguments_json.request.reason",
         ),
+        # A reason that is not even a string is named as a reason too.
+        (
+            {**CAPABILITY, "reason": [SENTINEL]},
+            "capability_request_reason_unknown",
+            "arguments_json.request.reason",
+        ),
         (
             {**CAPABILITY, "verification": ""},
             "capability_request_text_bounded",
@@ -229,24 +227,57 @@ def test_notebook_kind_is_named_with_the_kinds(door):
     assert "hypothesis, decision, notebook" in result["correction"]
 
 
-def test_read_file_count_over_the_cap_is_named(door):
-    sdk, meter, composition = door
-    composition.executor.workspace.put("notes.txt", b"x")
-    result = refused(
-        sdk,
-        meter,
-        workspace("read_file", {"name": "notes.txt", "offset": 0, "count": 65537}),
+def sdk_for(path, *, provider=None):
+    """`door`'s SDK over a ledger whose run plan is `provider`."""
+    meter = ledger(path / "ledger", provider=provider)
+    composition = make_research_service(
+        root=path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: pytest.fail("refused request executed"),
+        practice=lambda *a: pytest.fail("refused request executed"),
     )
-    assert (result["correction_code"], result["field"]) == (
-        "read_file_range",
-        "arguments_json.count",
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
     )
-    # Specimen: the cap itself is accepted.
-    sdk._request(
-        "start_research_task",
-        workspace("read_file", {"name": "notes.txt", "offset": 0, "count": 65536}),
-        "lp-prod-d-read-cap-0001",
-    )
+    return sdk, meter, composition
+
+
+@pytest.mark.parametrize(
+    ("provider", "limit"),
+    [(None, 4096), ({"agent": "autonomous", "research_tools": TOOLS_RULE}, 8192)],
+)
+def test_read_file_count_over_the_cap_is_named(tmp_path, provider, limit):
+    """The historical rule keeps its 4 KiB; v2 reads 8 KiB. Either way the
+    refusal names the field and the campaign's own maximum."""
+    sdk, meter, composition = sdk_for(tmp_path, provider=provider)
+    try:
+        composition.executor.workspace.put("notes.txt", b"x")
+        result = refused(
+            sdk,
+            meter,
+            workspace(
+                "read_file", {"name": "notes.txt", "offset": 0, "count": limit + 1}
+            ),
+        )
+        assert (result["correction_code"], result["field"]) == (
+            "read_file_range",
+            "arguments_json.count",
+        )
+        assert "Allowed here: " + str(limit) + "." in result["correction"]
+        # Specimen: the cap itself is accepted.
+        sdk._request(
+            "start_research_task",
+            workspace("read_file", {"name": "notes.txt", "offset": 0, "count": limit}),
+            "lp-prod-d-read-cap-0001",
+        )
+    finally:
+        composition.tasks.close()
 
 
 def test_a_missing_file_is_named_for_read_and_for_a_run(door):
@@ -410,6 +441,61 @@ def test_run_text_source_files_and_seconds_values_are_named(door):
             f"lp-prod-d-run-values-{index:04d}",
         )
         assert (result["correction_code"], result["field"]) == (code, field)
+
+
+def test_a_run_reserves_only_the_names_its_own_carrier_stages(door):
+    """Every run's carrier stages program.py; run_julia's stages program.jl
+    too. So run_python may stage an own file named program.jl, as it always
+    could, and run_julia may not."""
+    from carbon.development_session.research_tasks import (
+        WorkspaceRequestRefused,
+        check_workspace_request,
+    )
+
+    sdk, _, composition = door
+    composition.executor.workspace.put("program.jl", b"println(1)")
+    run = {
+        "source": "print(open('program.jl').read())",
+        "files": ["program.jl"],
+        "seconds": 60,
+        "hypothesis": "h",
+        "expected_effect": "e",
+    }
+    request = sdk._request(
+        "start_research_task", workspace("run_python", run), "lp-prod-d-stage-0001"
+    )
+    assert request.task_spec.action == "run_python"
+    with pytest.raises(WorkspaceRequestRefused) as refusal:
+        check_workspace_request(composition.executor, "run_julia", run)
+    assert (refusal.value.code, refusal.value.choices) == (
+        "run_files_invalid",
+        ("program.jl", "program.py"),
+    )
+
+
+def test_what_no_named_check_covers_still_names_the_tool(door, monkeypatch):
+    """The catch-all refusal names the tool and the arguments as a whole,
+    never the exception text behind it."""
+    sdk, meter, _ = door
+
+    def refusing(*args):
+        raise TypeError("PRIVATE-CONSTRUCTOR-TEXT")
+
+    monkeypatch.setattr(research, "DryValidateRequest", refusing)
+    result = asyncio.run(
+        sdk.call(
+            PREFIX + "dry_validate", {"strategy_json": "{}"}, "lp-prod-d-catchall-0001"
+        )
+    )
+    assert result["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert (result["correction_code"], result["field"]) == (
+        "tool_value_invalid",
+        "arguments",
+    )
+    assert "The tool: dry_validate." in result["correction"]
+    assert registered_correction(result)
+    assert "PRIVATE-CONSTRUCTOR-TEXT" not in canonical(result).decode()
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
 
 
 def test_an_oversized_arguments_object_is_named(door):
@@ -717,19 +803,115 @@ def test_program_output_returns_bounded_tails_and_the_traceback(tmp_path):
     )
     output = program_output(meter, name, observation="NONZERO_EXIT")
     assert output["stdout_tail"].endswith("loss=0.25\n")
-    assert len(output["stdout_tail"].encode()) <= OUTPUT_TAIL_BYTES
-    assert output["traceback_tail"].startswith("Traceback (most recent call last):")
-    assert "ZeroDivisionError" in output["traceback_tail"]
+    assert len(canonical(output["stdout_tail"])) - 2 <= OUTPUT_TAIL_BYTES
+    assert output["traceback"].startswith("Traceback (most recent call last):")
+    assert "ZeroDivisionError" in output["traceback"]
     # Bytes that are not UTF-8 are replaced, never an error.
     assert output["stderr_tail"].endswith("��")
     # Specimen: a successful run has no traceback field; a missing kept file
-    # is None, and a name that is a path is never read.
-    assert "traceback_tail" not in program_output(meter, name)
+    # is None, and a name that is a path - or anything but a run's own
+    # operation folder - is never read.
+    assert "traceback" not in program_output(meter, name)
     assert program_output(meter, "operation-absent")["stdout_tail"] is None
-    assert program_output(meter, "../operation-a") == {
-        "stdout_tail": None,
-        "stderr_tail": None,
-    }
+    (meter.root / "stdout.txt").write_bytes(b"the ledger root's own file")
+    for path in ("../operation-a", "..", ".", "", "operation-a/..", "stdout.txt"):
+        assert program_output(meter, path) == {
+            "stdout_tail": None,
+            "stderr_tail": None,
+        }, path
+
+
+def delivered(text):
+    """A text field's size as a result delivers it: JSON, escaped."""
+    return len(canonical(text)) - 2
+
+
+def test_each_output_field_is_bounded_as_the_result_delivers_it(tmp_path):
+    """Bytes that are not UTF-8 become U+FFFD and control characters are
+    escaped, each six bytes of JSON: a tail is cut to fit as delivered, not
+    as read, so 4 KiB read never reaches the model as 24 KiB."""
+    from carbon.development_session.research_carrier import (
+        OUTPUT_TAIL_BYTES,
+        program_output,
+    )
+
+    meter = CampaignLedger(tmp_path)
+    name = _operation(
+        meter,
+        "operation-escaped",
+        stdout=b"\xff" * 10_000,
+        stderr=b"Traceback (most recent call last):\n" + b"\x1b[31m!" * 3000,
+    )
+    output = program_output(meter, name, observation="NONZERO_EXIT")
+    # Full to within one escaped character (six bytes), never over.
+    for key in ("stdout_tail", "stderr_tail"):
+        assert OUTPUT_TAIL_BYTES - 6 < delivered(output[key]) <= OUTPUT_TAIL_BYTES
+    assert set(output["stdout_tail"]) == {"�"}
+    # A long traceback keeps both ends and a note, within the same bound.
+    assert OUTPUT_TAIL_BYTES // 2 < delivered(output["traceback"]) <= OUTPUT_TAIL_BYTES
+    # Specimen: plain text keeps exactly its last 4096 bytes.
+    plain = _operation(meter, "operation-plain", stdout=b"x" * 10_000)
+    assert program_output(meter, plain)["stdout_tail"] == "x" * OUTPUT_TAIL_BYTES
+
+
+def test_a_long_traceback_keeps_its_first_and_last_lines(tmp_path):
+    """Julia's error message opens its block; Python's exception closes it.
+    A traceback longer than the bound keeps both ends, with what was left
+    out counted between them."""
+    from carbon.development_session.research_carrier import (
+        OUTPUT_TAIL_BYTES,
+        program_output,
+    )
+
+    meter = CampaignLedger(tmp_path)
+    frames = b"".join(
+        b"  [%d] step(u::Vector{Float64}, p::NamedTuple)\n"
+        b"    @ Main /input/program.jl:%d\n" % (index, index)
+        for index in range(200)
+    )
+    julia = (
+        b"   Resolving package versions...\n"
+        b"ERROR: LoadError: DimensionMismatch: arrays could not be broadcast "
+        b"to a common size\nStacktrace:\n"
+        + frames
+        + b"in expression starting at /input/program.jl:12\n"
+    )
+    assert len(julia) > 2 * OUTPUT_TAIL_BYTES
+    output = program_output(
+        meter,
+        _operation(meter, "operation-julia", stderr=julia),
+        observation="NONZERO_EXIT",
+    )
+    trace = output["traceback"]
+    assert trace.startswith("ERROR: LoadError: DimensionMismatch")
+    assert trace.endswith("in expression starting at /input/program.jl:12\n")
+    assert "characters left out by Carbon" in trace
+    assert delivered(trace) <= OUTPUT_TAIL_BYTES
+    # Why the start is kept: the stderr tail alone has lost the message.
+    assert "DimensionMismatch" not in output["stderr_tail"]
+    python = (
+        b"Traceback (most recent call last):\n"
+        + b'  File "/input/program.py", line 9, in f\n    return f()\n' * 400
+        + b"RecursionError: maximum recursion depth exceeded\n"
+    )
+    trace = program_output(
+        meter,
+        _operation(meter, "operation-python", stderr=python),
+        observation="NONZERO_EXIT",
+    )["traceback"]
+    assert trace.startswith("Traceback (most recent call last):")
+    assert trace.endswith("RecursionError: maximum recursion depth exceeded\n")
+    assert delivered(trace) <= OUTPUT_TAIL_BYTES
+    # Specimen: a traceback that fits is returned whole.
+    short = b"ERROR: LoadError: UndefVarError: `x` not defined\nStacktrace:\n"
+    assert (
+        program_output(
+            meter,
+            _operation(meter, "operation-short", stderr=b"warning\n" + short),
+            observation="NONZERO_EXIT",
+        )["traceback"]
+        == short.decode()
+    )
 
 
 def test_a_run_result_carries_its_output_and_a_failure_its_traceback(
@@ -772,7 +954,7 @@ def test_a_run_result_carries_its_output_and_a_failure_its_traceback(
     )
     result = executor._workspace_action(spec, "rtsk_" + "1" * 64)
     assert result["program_output"]["stdout_tail"] == "hello\n"
-    assert "traceback_tail" not in result["program_output"]
+    assert "traceback" not in result["program_output"]
 
     from carbon.reconstruction.worker.model import WorkerCode
 
@@ -789,22 +971,102 @@ def test_a_run_result_carries_its_output_and_a_failure_its_traceback(
     monkeypatch.setattr(research_tasks, "run_script", failing)
     result = executor._workspace_action(spec, "rtsk_" + "2" * 64)
     assert result["outcome"] == "MINER_PROGRAM_FAILED"
-    assert result["program_output"]["traceback_tail"].endswith("ValueError: bad\n")
+    assert result["program_output"]["traceback"].endswith("ValueError: bad\n")
 
 
-def test_read_file_returns_text_and_a_larger_slice(tmp_path):
-    from carbon.development_session.research_tasks import PublicResearchExecutor
+def test_a_run_julia_result_carries_its_output_and_its_error(tmp_path, monkeypatch):
+    """run_julia on cpu returns what the program printed exactly as run_python
+    does, and a failed run its Julia error from its first line."""
+    from carbon.development_session import julia_analysis, research_tasks
+    from carbon.development_session.research_carrier import (
+        MINER_FAILURE_SCHEMA,
+        MinerProgramFailure,
+    )
+    from carbon.reconstruction.worker.model import WorkerCode
 
-    executor = PublicResearchExecutor(
-        ledger=CampaignLedger(tmp_path),
+    meter = CampaignLedger(tmp_path / "ledger")
+    executor = research_tasks.PublicResearchExecutor(
+        ledger=meter,
         owner="alice",
         image=SimpleNamespace(),
         public_material=lambda *a: None,
         practice=lambda *a: None,
     )
-    body = ("é" * 40_000).encode()
-    executor.workspace.put("notes.txt", body)
-    executor.workspace.put("data.bin", bytes(range(256)))
+    # Admitting authored Julia is its own grant (test_authored_julia); only
+    # what a run returns is under test here.
+    executor.julia_image = SimpleNamespace(image_id="sha256:" + "7" * 64)
+    error = b"ERROR: LoadError: UndefVarError: `x` not defined\nStacktrace:\n"
+    name = _operation(meter, "operation-jl", stdout=b"loss 0.5\n", stderr=error)
+    (meter.root / name / "snapshot").mkdir()
+    spec = SimpleNamespace(
+        action="run_julia",
+        arguments_json=canonical(
+            {
+                "source": "println(1)",
+                "files": [],
+                "seconds": 60,
+                "hypothesis": "h",
+                "expected_effect": "e",
+            }
+        ).decode(),
+    )
+    ran = []
+
+    def run_julia(ledger_, **kwargs):
+        ran.append(kwargs)
+        return {"operation": name, "files": {}}
+
+    monkeypatch.setattr(julia_analysis, "run_julia", run_julia)
+    result = executor._workspace_action(spec, "rtsk_" + "7" * 64)
+    assert ran[0]["image"] is executor.julia_image
+    assert result["program_output"] == {
+        "stdout_tail": "loss 0.5\n",
+        "stderr_tail": error.decode(),
+    }
+
+    def failing(ledger_, **kwargs):
+        raise MinerProgramFailure(
+            {
+                "schema": MINER_FAILURE_SCHEMA,
+                "operation": name,
+                "failure_code": WorkerCode.RUNTIME.value,
+                "observation": "NONZERO_EXIT",
+            }
+        )
+
+    monkeypatch.setattr(julia_analysis, "run_julia", failing)
+    failed = executor._workspace_action(spec, "rtsk_" + "8" * 64)
+    assert failed["outcome"] == "MINER_PROGRAM_FAILED"
+    assert failed["program_output"]["traceback"] == error.decode()
+
+
+@pytest.mark.parametrize("rule", [None, TOOLS_RULE])
+def test_read_file_returns_its_rules_encoding(tmp_path, rule):
+    """The historical rule's read is exactly what it was: base64 alone, at
+    most 4 KiB. v2 reads 8 KiB and returns the bytes once: text as text,
+    anything else - or text that escapes larger than its base64 - as base64."""
+    from carbon.development_session.research_tasks import (
+        READ_FILE_MAX_BYTES,
+        PublicResearchExecutor,
+    )
+
+    assert set(READ_FILE_MAX_BYTES) == {None, *research_tools.TOOLS_RULES}
+    provider = None if rule is None else {"agent": "autonomous", "research_tools": rule}
+    executor = PublicResearchExecutor(
+        ledger=ledger(tmp_path / "ledger", provider=provider),
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: None,
+        practice=lambda *a: None,
+    )
+    limit = READ_FILE_MAX_BYTES[rule]
+    files = {
+        "notes.txt": b"loss = 0.25\n" * 2000,
+        "accents.txt": ("é" * 8000).encode(),
+        "data.bin": bytes(range(256)) * 64,
+    }
+    for name, body in files.items():
+        executor.workspace.put(name, body)
 
     def read(name, offset, count):
         spec = SimpleNamespace(
@@ -815,14 +1077,25 @@ def test_read_file_returns_text_and_a_larger_slice(tmp_path):
         )
         return executor._workspace_action(spec, "rtsk_" + "3" * 64)
 
-    text = read("notes.txt", 0, 65536)
-    assert base64.b64decode(text["content_base64"]) == body[:65536]
-    assert text["content_utf8"] == "é" * 32768
-    # A cut through a character, or bytes that are not text: base64 only.
-    assert read("notes.txt", 1, 10)["content_utf8"] is None
-    assert read("data.bin", 0, 256)["content_utf8"] is None
     with pytest.raises(ValueError, match="bounded byte range"):
-        read("notes.txt", 0, 65537)
+        read("notes.txt", 0, limit + 1)
+    text = read("notes.txt", 0, limit)
+    if rule is None:
+        assert limit == 4096
+        assert set(text) == {"name", "digest", "bytes", "offset", "content_base64"}
+        assert base64.b64decode(text["content_base64"]) == files["notes.txt"][:limit]
+        return
+    assert text["content_utf8"] == files["notes.txt"][:limit].decode()
+    assert text["content_base64"] is None
+    # Not UTF-8 (bytes, or a cut through a character), or text that escapes
+    # to six bytes a character: base64, once.
+    for name, offset in (("data.bin", 0), ("accents.txt", 1), ("accents.txt", 0)):
+        value = read(name, offset, limit)
+        assert value["content_utf8"] is None, name
+        assert (
+            base64.b64decode(value["content_base64"])
+            == files[name][offset : offset + limit]
+        )
 
 
 # ---- 3. Each Challenge's registry, Burgers' by default.
@@ -917,12 +1190,15 @@ def test_the_historical_tools_are_unchanged_and_v2_changes_text_only():
     assert [t["parameters"] for t in TOOLS_V2] == [t["parameters"] for t in TOOLS]
     start = next(t for t in TOOLS_V2 if t["name"] == PREFIX + "start_research_task")
     text = start["description"]
+    from carbon.development_session.research_tasks import READ_FILE_MAX_BYTES
+
     for phrase in (
         "device?: cpu (the default) or gpu",
         "../output",
         "program_output",
         "content_utf8",
-        "count: 1 to 65536",
+        "count: 1 to " + str(READ_FILE_MAX_BYTES[TOOLS_RULE]) + "}",
+        "stays in your context",
         "spends one research-trial slot",
         "expected_digest is the file's current digest",
         "REJECTED_BEFORE_DISPATCH",
@@ -968,38 +1244,292 @@ def test_the_v2_surface_names_nothing_of_burgers():
 # ---- 4/6. The battery agent's research environment, under the rule.
 
 
-def test_the_battery_observation_states_the_gpu_lane_and_practice_backends():
-    from carbon.battery import campaign
-    from carbon.development_session.gpu_code_cell import GpuLane
+def gpu_worker():
+    """A pinned GPU worker identity (its lock is the GPU profile's)."""
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+    from carbon.reconstruction.worker.model import WorkerImageIdentity
 
-    def prepared(rule, lane):
+    value = "sha256:" + "9" * 64
+    return WorkerImageIdentity(
+        image_id=value,
+        config_digest=value,
+        source_tree_digest="sha256:" + "a" * 64,
+        wheel_digest="sha256:" + "b" * 64,
+        lock_digest=GPU_PROFILE.environment_lock_digest,
+        base_image_digest="sha256:" + "1" * 64,
+        build_recipe_digest="sha256:" + "d" * 64,
+        entrypoint_digest="sha256:" + "e" * 64,
+    )
+
+
+def battery_composition(path, provider, *, gpu_image=None, remote=None):
+    """A real battery composition (`battery.campaign.compose`) over a frozen
+    ledger whose run plan is `provider`. Only the authenticated gateway it
+    wraps is a stand-in: nothing here is signed or dispatched."""
+    from carbon.battery import campaign
+
+    meter = ledger(path, provider=provider)
+    context = object()
+    gateway = SimpleNamespace(
+        context=context,
+        receiver="receiver",
+        adapter=None,
+        verifier=None,
+        journal=SimpleNamespace(context=context),
+        clock_ns=lambda: 0,
+    )
+    composition, _wrapper = campaign.compose(
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(image_id="fixture-cpu", lock_digest=None),
+        analysis=SimpleNamespace(image_id="fixture-analysis"),
+        connection=SimpleNamespace(service=SimpleNamespace(gateway=gateway)),
+        runner=lambda *a, **k: pytest.fail("practice ran"),
+        backend={"kind": "TEST_ONLY"},
+        gpu_image=gpu_image,
+        remote=remote,
+    )
+    with meter.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    prepared = SimpleNamespace(manifest=json.loads(row[0]), composition=composition)
+    return meter, composition, prepared
+
+
+def test_the_battery_observation_states_the_gpu_lane_and_practice_backends(tmp_path):
+    """Read from a real composition, so a renamed attribute fails here rather
+    than reading as "cpu only"."""
+    from carbon.battery import campaign
+
+    def observed(path, rule, **lane):
         provider = {"agent": "autonomous"}
         if rule is not None:
             provider["research_tools"] = rule
-        executor = SimpleNamespace(
-            gpu=lane,
-            practice=SimpleNamespace(backends=("jax",), gpu_image=None),
-            julia_image=None,
-        )
-        return SimpleNamespace(
-            manifest={"provider": provider},
-            composition=SimpleNamespace(executor=executor),
-        )
+        _, composition, prepared = battery_composition(path, provider, **lane)
+        try:
+            return campaign.agent_observation(prepared, 1, None)
+        finally:
+            composition.tasks.close()
 
-    historical = campaign.agent_observation(prepared(None, None), 1, None)
-    assert "research_environment" not in historical
-    without = campaign.agent_observation(prepared(TOOLS_RULE, None), 1, None)[
+    assert "research_environment" not in observed(tmp_path / "historical", None)
+    cpu = observed(tmp_path / "cpu", TOOLS_RULE)["research_environment"]
+    assert cpu["gpu_lane"] is None
+    assert cpu["code_cell_devices"] == (
+        "cpu only: this campaign was launched without a GPU lane, so "
+        "run_python takes device=cpu (the default)"
+    )
+    assert cpu["practice_backends"] == ["jax"]
+    assert (cpu["practice_device"], cpu["authored_julia"]) == ("cpu", False)
+    local = observed(tmp_path / "gpu", TOOLS_RULE, gpu_image=gpu_worker())[
         "research_environment"
     ]
-    assert without["gpu_lane"] is None
-    assert without["code_cell_devices"].startswith("cpu only")
-    assert without["practice_backends"] == ["jax"]
-    lane = GpuLane(image=SimpleNamespace(image_id="sha256:" + "9" * 64))
-    with_lane = campaign.agent_observation(prepared(TOOLS_RULE, lane), 1, None)[
-        "research_environment"
+    assert local["gpu_lane"]["kind"] == "local_gpu"
+    assert local["practice_device"] == "gpu"
+    assert local["code_cell_devices"] == (
+        "cpu (the default) or gpu: run_python takes device=gpu on the lane above"
+    )
+    remote = observed(
+        tmp_path / "remote",
+        TOOLS_RULE,
+        gpu_image=gpu_worker(),
+        remote=SimpleNamespace(
+            transport=SimpleNamespace(name="ssh-docker", sandboxed=True)
+        ),
+    )["research_environment"]
+    assert remote["gpu_lane"]["kind"] == "remote_gpu"
+    assert remote["gpu_lane"]["actions"] == ["run_python"]
+
+
+def test_the_code_cell_sentence_never_offers_more_than_the_lane_runs():
+    """The sentence and the lane's own description agree: a remote lane runs
+    run_python only, and run_julia is named only with authored Julia."""
+    from carbon.battery.campaign import _code_cell_devices
+    from carbon.development_session.gpu_code_cell import GpuLane
+
+    local = GpuLane(image=gpu_worker()).describe()
+    remote = GpuLane(
+        image=gpu_worker(),
+        remote=SimpleNamespace(transport=SimpleNamespace(name="x", sandboxed=True)),
+    ).describe()
+    assert _code_cell_devices(local, True) == (
+        "cpu (the default) or gpu: run_python and run_julia take device=gpu on "
+        "the lane above, run_julia in the lane's julia_environments only"
+    )
+    assert _code_cell_devices(remote, True) == (
+        "cpu (the default) or gpu: run_python takes device=gpu on the lane "
+        "above; run_julia runs on cpu only"
+    )
+    assert _code_cell_devices(None, True).endswith(
+        "run_python and run_julia take device=cpu (the default)"
+    )
+
+
+def test_one_maximal_read_fits_beside_the_battery_agents_first_request(tmp_path):
+    """A read as large as the v2 tool allows, done as the first call, must
+    not end the epoch at the context admission ceiling.
+
+    Built from the real battery composition, run plan, observation, prompt and
+    tools, and the reply envelope the SDK returns as the model sees it
+    (`research_loop.model_view`), carried in the history as a JSON string.
+    Counted with no token anchor - every byte a token - which is the bound
+    research_loop applies before a turn reports its tokens. The worst cases
+    are text one third quotes (escaped twice, yet no larger than base64 once
+    escaped, so it stays text) and bytes that come back as base64.
+    """
+    from carbon.battery import campaign
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.development_session import miner_guidance
+    from carbon.development_session.model_provider import DEFAULT_SELECTION
+    from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
+    from carbon.development_session.research_agent_policy import (
+        AUTONOMOUS,
+        STOP_TOOL,
+        prompt_for,
+    )
+    from carbon.development_session.research_loop import SELECTION_TOOL, model_view
+    from carbon.development_session.research_tasks import READ_FILE_MAX_BYTES
+
+    # Fixture ceilings only: a battery plan needs finite ones to be built.
+    plan = campaign.provider_plan(
+        "autonomous",
+        {"ceilings": {"provider_attempts": 96, "provider_nanodollars": 10**10}},
+    )
+    plan["research_tools"] = TOOLS_RULE
+    meter, composition, prepared = battery_composition(tmp_path, plan)
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
+    )
+    history = [
+        {
+            "role": "user",
+            "content": canonical(
+                campaign.agent_observation(prepared, 1, None)
+            ).decode(),
+        }
     ]
-    assert with_lane["gpu_lane"]["kind"] == "local_gpu"
-    assert "device=gpu" in with_lane["code_cell_devices"]
+    request = {
+        "model": DEFAULT_SELECTION.model_id,
+        "instructions": prompt_for(AUTONOMOUS, CHALLENGE),
+        "input": history,
+        "tools": tools_for_sdk(sdk)
+        + [SELECTION_TOOL, STOP_TOOL, miner_guidance.REPLY_TOOL],
+        "parallel_tool_calls": False,
+        "store": False,
+        "max_output_tokens": DEFAULT_SELECTION.settings.max_output_tokens,
+        "reasoning": {"effort": "low"},
+    }
+    # The campaign froze v2, so its agent is offered the v2 text.
+    assert tools_for_sdk(sdk) is TOOLS_V2
+    bound = DEFAULT_SELECTION.settings.max_input_tokens - CONTEXT_RESERVE_TOKENS
+    limit = READ_FILE_MAX_BYTES[TOOLS_RULE]
+    contents = {
+        "plain.txt": (b"loss = 0.123456, step = 42\n" * 1000, "content_utf8"),
+        "quotes.txt": (b'ab"' * 4000, "content_utf8"),
+        "binary.bin": (bytes(range(256)) * 64, "content_base64"),
+        "control.txt": (bytes(range(1, 32)) * 1000, "content_base64"),
+    }
+    try:
+        for number, (name, (body, encoding)) in enumerate(contents.items()):
+            assert len(body) >= limit
+            composition.executor.workspace.put(name, body)
+            args = workspace("read_file", {"count": limit, "name": name, "offset": 0})
+            start = sdk._request(
+                "start_research_task", args, f"lp-prod-d-maximal-{number:04d}"
+            )
+            reply = composition.service.call(
+                research.ServiceCall(
+                    research.RESEARCH_NAMESPACE, "start_research_task", start
+                )
+            )
+            done = composition.tasks.run_queued_task(reply.result.task.task_id)
+            envelope = {
+                "protocol": research.RESEARCH_NAMESPACE,
+                "operation": "start_research_task",
+                "reply": research_tools.public_wire(reply),
+                "terminal_task": research_tools.public_wire(done),
+                "public_result": composition.executor.public_result(done),
+                "requires_reconciliation": False,
+            }
+            result = envelope["public_result"]["result"]
+            assert result[encoding] is not None, name
+            call = {
+                "type": "function_call",
+                "id": "fc_" + "0" * 48,
+                "call_id": "call_" + "0" * 24,
+                "name": PREFIX + "start_research_task",
+                "arguments": json.dumps(args),
+                "status": "completed",
+            }
+            output = {
+                "type": "function_call_output",
+                "call_id": call["call_id"],
+                "output": canonical(model_view(envelope)).decode(),
+            }
+            after = canonical({**request, "input": [*history, call, output]})
+            assert len(after) <= bound, (name, len(after), bound)
+    finally:
+        composition.tasks.close()
+
+
+# ---- 1 (door). A value refusal crosses the standard MCP door as refused.
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AdapterFailure,
+    reason=(
+        "LP-PROD-B: carbon/miner_mcp/standard.py _result accepts a correction "
+        "only for start_research_task, only without its field, tool or listed "
+        "choices, and reports anything else as INVALID_RESULT that may have "
+        "dispatched. It must verify a refusal with "
+        "research_tools.registered_correction. Strict: when the door is "
+        "fixed this passes, and the mark must go."
+    ),
+)
+def test_a_value_refusal_crosses_the_standard_mcp_door_as_refused(door):
+    from carbon.miner_mcp.standard import (
+        AdapterCode,
+        ResearchToolAdapter,
+        ResearchToolRequest,
+    )
+
+    sdk, meter, _ = door
+    adapter = ResearchToolAdapter(sdk, principal="alice")
+    operation_id = "lp-prod-d-door-refusal-0001"
+    try:
+        result = asyncio.run(
+            adapter.call(
+                ResearchToolRequest(
+                    "start_research_task",
+                    operation_id,
+                    {
+                        "kind": "workspace",
+                        "strategy": None,
+                        "action": "read_file",
+                        "arguments": {"name": "absent.txt", "offset": 0, "count": 1},
+                        "hypothesis": "read my notes",
+                        "expected_effect": "their content",
+                    },
+                )
+            )
+        )
+    except AdapterFailure as failure:
+        # What the door must stop doing: call a refusal that dispatched
+        # nothing an invalid result that may have dispatched.
+        assert failure.code is AdapterCode.INVALID_RESULT, failure.code
+        assert meter.status(owner="alice")["used"]["research_trials"] == 0
+        raise
+    payload = result.payload
+    assert payload["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert payload["correction_code"] == "workspace_file_missing"
+    assert payload["field"].endswith(".name")
+    assert "No file of that name" in payload["correction"]
+    assert result.requires_reconciliation is False
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
+    assert sdk.composition.tasks.started_task(sdk.challenge, operation_id) is None
 
 
 # ---- 7. The battery discovery document.

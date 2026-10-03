@@ -208,7 +208,12 @@ def capability_request_refusal(request, challenge=None):
         )
     if set(request) - CAPABILITY_FIELDS - {"capability"}:
         return "capability_request_field_unexpected", "arguments_json.request", closed
-    if request["reason"] not in CAPABILITY_REASONS:
+    # A reason sent as a list or object is named as a reason too: checked
+    # by type first, since such a value cannot even be looked up.
+    if (
+        type(request["reason"]) is not str
+        or request["reason"] not in CAPABILITY_REASONS
+    ):
         return (
             "capability_request_reason_unknown",
             "arguments_json.request.reason",

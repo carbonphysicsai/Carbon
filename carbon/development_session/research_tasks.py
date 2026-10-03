@@ -147,18 +147,68 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             return load_canonical(self._requests[task_id], StartResearchTaskRequest)
 
 
-#: The most bytes one `read_file` returns (LP-PROD-D). It was 4 KiB of base64;
-#: 64 KiB now, with text also returned as `content_utf8`. Even worst-case
-#: escaped, both encodings stay well inside the 1 MiB public result bound.
-READ_FILE_MAX_BYTES = 64 * 1024
+#: The most bytes one `read_file` returns, by the campaign's research tools
+#: rule (`research_tools.frozen_tools_rule`; None is the historical rule).
+#: Historical: 4 KiB as `content_base64`, exactly as before. Under v2
+#: (LP-PROD-D): 8 KiB, returned once - as `content_utf8` when the bytes are
+#: UTF-8 text no longer escaped than base64, otherwise as `content_base64`
+#: (`read_file_content`). Whatever a read returns stays in the agent's
+#: context for the rest of its epoch, and a request is admitted only within
+#: max_input_tokens less a reserve (61440 at the default selection). 8 KiB is
+#: the most whose worst case - 16 KiB of escaped text, carried in the
+#: history as a JSON string - still fits beside the battery agent's first
+#: request (about 34 KB) as its first tool result; 12 KiB does not. A test
+#: checks that fit against the real request (test_lp_prod_research_tools).
+READ_FILE_MAX_BYTES = {None: 4096, "carbon.autoresearch.research-tools.v2": 8192}
 #: The notebook kinds a miner (or their agent) may write.
 NOTEBOOK_KINDS = ("hypothesis", "decision", "notebook")
 #: The actions that run the miner's own program in the miner lane.
 RUN_ACTIONS = frozenset({"run_python", "run_julia"})
-#: Names the carrier stages itself; a run's own files may not take them.
-RESERVED_STAGE_NAMES = frozenset({"program.py", "program.jl"})
 #: The bound on a run's prospective hypothesis and expected effect.
 RUN_TEXT = 2048
+
+
+def reserved_stage_names(action):
+    """The names the carrier stages itself for `action`, which a run's own
+    files may not take: every run's `program.py` (the carrier refuses it in
+    any stage) and, for run_julia, its program `program.jl` too."""
+    return frozenset(
+        {"program.py", "program.jl"} if action == "run_julia" else {"program.py"}
+    )
+
+
+def read_file_limit(executor):
+    """The most bytes one `read_file` returns for this executor's campaign:
+    the limit its frozen research tools rule sets (`READ_FILE_MAX_BYTES`)."""
+    from .research_tools import campaign_tools_rule
+
+    return READ_FILE_MAX_BYTES[campaign_tools_rule(getattr(executor, "ledger", None))]
+
+
+def read_file_content(chunk, rule):
+    """One read's bytes as its result carries them, by research tools rule.
+
+    The historical rule returns `content_base64` alone, as it always has. v2
+    returns the bytes once, never both encodings: `content_utf8` when they
+    decode as UTF-8 and their JSON-escaped text is no longer than their
+    base64 (ordinary text always is), otherwise `content_base64`; the other
+    is null. Text full of control or non-ASCII characters escapes to up to
+    six bytes per byte, so it comes back as base64 rather than cost the
+    model's context several times its size.
+    """
+    encoded = base64.b64encode(chunk).decode("ascii")
+    if rule is None:
+        return {"content_base64": encoded}
+    try:
+        text = chunk.decode("utf-8")
+    except UnicodeDecodeError:
+        text = None
+    if text is not None and len(canonical(text)) - 2 > len(encoded):
+        text = None
+    return {
+        "content_utf8": text,
+        "content_base64": encoded if text is None else None,
+    }
 
 
 class WorkspaceRequestRefused(ValueError):
@@ -269,9 +319,10 @@ def check_workspace_request(executor, action, args, *, state=True):
             )
     elif action == "read_file":
         _workspace_name(args["name"], "arguments_json.name")
+        limit = read_file_limit(executor)
         for name, low, high in (
             ("offset", 0, None),
-            ("count", 1, READ_FILE_MAX_BYTES),
+            ("count", 1, limit),
         ):
             value = args[name]
             if (
@@ -283,6 +334,7 @@ def check_workspace_request(executor, action, args, *, state=True):
                     "read_file_range",
                     "arguments_json." + name,
                     "bounded byte range required",
+                    (str(limit),),
                 )
         if state and workspace.current_digest(args["name"]) is None:
             _refuse(
@@ -380,14 +432,15 @@ def _check_run(executor, action, args, workspace, *, state):
             "arguments_json.files",
             "distinct workspace selection required",
         )
+    reserved = reserved_stage_names(action)
     for name in files:
         _workspace_name(name, "arguments_json.files")
-        if name in RESERVED_STAGE_NAMES:
+        if name in reserved:
             _refuse(
                 "run_files_invalid",
                 "arguments_json.files",
                 "closed stage required",
-                tuple(sorted(RESERVED_STAGE_NAMES)),
+                tuple(sorted(reserved)),
             )
     seconds = args.get("seconds")
     if seconds is not None and (type(seconds) is not int or seconds < 1):
@@ -716,8 +769,11 @@ class PublicResearchExecutor:
             )
 
     def _read_file(self, args):
-        """One bounded slice of an own file: base64 always, and the same bytes
-        as text in `content_utf8` when they are UTF-8 (null when not)."""
+        """One bounded slice of an own file, encoded as the campaign's
+        research tools rule says (`read_file_content`): base64 alone under
+        the historical rule, exactly as before; under v2 the bytes once, as
+        text when they are text."""
+        from .research_tools import campaign_tools_rule
         from .research_workspace import WorkspaceFileMissing
 
         offset, count = args["offset"], args["count"]
@@ -729,18 +785,14 @@ class PublicResearchExecutor:
                 "arguments_json.name",
                 "workspace artifact unavailable",
             )
-        chunk = body[offset : offset + count]
-        try:
-            text = chunk.decode("utf-8")
-        except UnicodeDecodeError:
-            text = None
         return {
             "name": args["name"],
             "digest": digest(body),
             "bytes": len(body),
             "offset": offset,
-            "content_base64": base64.b64encode(chunk).decode("ascii"),
-            "content_utf8": text,
+            **read_file_content(
+                body[offset : offset + count], campaign_tools_rule(self.ledger)
+            ),
         }
 
     def program_output(self, worker):

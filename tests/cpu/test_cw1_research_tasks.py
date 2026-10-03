@@ -128,8 +128,9 @@ def test_owned_files_roundtrip_and_closed_arguments(tmp_path):
         done = p.run_queued_task(task.task_id)
         assert done.state is research.ResearchTaskState.SUCCEEDED
     assert e.public_result(done)["result"]["content_base64"] == "cHVibGlj"
-    # Text reads back as text too (LP-PROD-D).
-    assert e.public_result(done)["result"]["content_utf8"] == "public"
+    # This campaign froze no research tools rule: its read is base64 alone,
+    # exactly as before. Text read back as text is the v2 rule's (LP-PROD-D).
+    assert "content_utf8" not in e.public_result(done)["result"]
     # A field the action does not take completes as a typed refusal naming
     # the arguments, never as an infrastructure failure (LP-PROD-D), and the
     # path sent is not repeated.

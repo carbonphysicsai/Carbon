@@ -934,34 +934,89 @@ _DOCKER_OWN_EXITS = frozenset({125, 126, 127})
 #: 2026-10-03: "Keep both, capped").
 KEPT_BYTES = 64 * 1024
 STDOUT_FILE, STDERR_FILE = "stdout.txt", "stderr.txt"
-#: What a code cell's result returns of what the program printed: the last
-#: 4 KiB of its stdout and of its stderr, and on a nonzero exit the tail of
-#: its traceback (LP-PROD-D). An engineering bound on what reaches a model's
-#: context per call, not a limit on the program: the kept 64 KiB stay in the
-#: operation folder.
+#: What a code cell's result returns of what the program printed: the end of
+#: its stdout and of its stderr and, on a nonzero exit, its traceback, each at
+#: most 4 KiB as the result delivers it - JSON-escaped, so a byte that needs
+#: an escape counts for every byte of its escape (LP-PROD-D). An engineering
+#: bound on what reaches a model's context per call, not a limit on the
+#: program: the kept 64 KiB stay in the operation folder.
 OUTPUT_TAIL_BYTES = 4096
 #: Where a traceback starts, in the order looked for: Python's, then Julia's.
 _TRACEBACK_MARKERS = (b"Traceback (most recent call last):", b"ERROR: ")
+#: What a long traceback keeps of its start: Julia's error message is its
+#: first line, Python's exception its last, so a long one keeps both ends.
+_TRACEBACK_HEAD = 2048
+#: The note between a long traceback's two ends; `{}` is how many characters
+#: were left out. Room is kept for it within `OUTPUT_TAIL_BYTES`.
+_ELIDED = "\n[... {} characters left out by Carbon ...]\n"
+_ELIDED_ROOM = 64
+#: A run's operation folder: a direct child of the ledger root, never a path.
+_OPERATION_FOLDER = re.compile(r"operation-[A-Za-z0-9_.-]{1,160}\Z", re.ASCII)
+
+
+def _escaped(character):
+    """One character's size as a result delivers it: JSON, escaped exactly as
+    `canonical` escapes it (a control or non-ASCII character is \\uXXXX)."""
+    return len(json.dumps(character)) - 2
+
+
+def _bounded(text, limit, *, end):
+    """The longest end (`end=True`) or start of `text` whose JSON-escaped
+    size is at most `limit`, cut between whole characters. Reads no further
+    than the cut."""
+    total = count = 0
+    for character in reversed(text) if end else text:
+        size = _escaped(character)
+        if total + size > limit:
+            break
+        total, count = total + size, count + 1
+    return text[len(text) - count :] if end else text[:count]
 
 
 def _text_tail(body):
-    """The last `OUTPUT_TAIL_BYTES` of `body` as text; bytes that are not
-    UTF-8 (or a character the cut split) become U+FFFD, never an error."""
-    return body[-OUTPUT_TAIL_BYTES:].decode("utf-8", "replace")
+    """The end of `body` as text, at most `OUTPUT_TAIL_BYTES` as delivered.
+    Bytes that are not UTF-8 (or a character the cut split) become U+FFFD,
+    never an error; the escaped text still fits."""
+    return _bounded(
+        body[-OUTPUT_TAIL_BYTES:].decode("utf-8", "replace"),
+        OUTPUT_TAIL_BYTES,
+        end=True,
+    )
+
+
+def _traceback_text(block):
+    """One traceback, from its marker on, at most `OUTPUT_TAIL_BYTES` as
+    delivered: whole when it fits, otherwise its start and its end with the
+    number of characters left out between them. Its start holds Julia's
+    `ERROR: <message>` and the outermost frames; its end holds Python's
+    exception line and Julia's `in expression starting at <file>:<line>`."""
+    text = block.decode("utf-8", "replace")
+    whole = _bounded(text, OUTPUT_TAIL_BYTES, end=False)
+    if len(whole) == len(text):
+        return text
+    head = _bounded(text, _TRACEBACK_HEAD, end=False)
+    tail = _bounded(
+        text[len(head) :],
+        OUTPUT_TAIL_BYTES - _TRACEBACK_HEAD - _ELIDED_ROOM,
+        end=True,
+    )
+    return head + _ELIDED.format(len(text) - len(head) - len(tail)) + tail
 
 
 def program_output(ledger, operation, *, observation=None):
     """What the miner's program printed, bounded, for its own result.
 
-    `operation` is the run's operation folder name, from its worker result.
-    Each tail is None where no kept file exists (a replayed or reconciled
-    operation from before output was kept). On `NONZERO_EXIT`, the last
-    traceback in the kept stderr is returned from its start, its own last
-    `OUTPUT_TAIL_BYTES` if longer, so the exception line is always there even
-    when the program printed more after it. The output is the miner's own,
-    self-reported and untrusted: it is returned to them, never interpreted.
+    `operation` is the run's operation folder name, from its worker result;
+    anything but a flat `operation-...` name reads nothing. Each tail is None
+    where no kept file exists (a replayed or reconciled operation from before
+    output was kept). On `NONZERO_EXIT`, `traceback` is the last traceback in
+    the kept stderr (`_traceback_text`): Python's or Julia's, with both its
+    first and its last lines kept when it is long, so the error is there in
+    either language even when the program printed more after it. The output
+    is the miner's own, self-reported and untrusted: it is returned to them,
+    never interpreted.
     """
-    if type(operation) is not str or "/" in operation or not operation:
+    if type(operation) is not str or not _OPERATION_FOLDER.match(operation):
         return {"stdout_tail": None, "stderr_tail": None}
     folder = ledger.root / operation
 
@@ -982,7 +1037,7 @@ def program_output(ledger, operation, *, observation=None):
             start = stderr.rfind(marker)
             if start >= 0:
                 break
-        value["traceback_tail"] = None if start < 0 else _text_tail(stderr[start:])
+        value["traceback"] = None if start < 0 else _traceback_text(stderr[start:])
     return value
 
 

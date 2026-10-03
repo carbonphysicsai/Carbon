@@ -186,8 +186,10 @@ TASK_CORRECTIONS = {
         "one of them."
     ),
     "read_file_range": (
-        "read_file reads count bytes, 1 to 65536, from offset, 0 or more, of "
-        "one of your files. inventory lists each file's size in bytes."
+        "read_file reads count bytes from offset, 0 or more, of one of your "
+        "files: count is at least 1 and at most this campaign's per-call "
+        "maximum, listed below, so read a longer file in several calls. "
+        "inventory lists each file's size in bytes."
     ),
     "workspace_name_invalid": (
         "A workspace file name is flat, never a path: 1 to 96 letters, digits, "
@@ -472,9 +474,11 @@ DESCRIPTIONS_V2 = {
         "public_material {name: a name the discovery document lists} writes "
         "that public document or data to your workspace; "
         "inventory {} lists your files with their size and digest; "
-        "read_file {name, offset: 0 or more, count: 1 to 65536} returns the "
-        "bytes as content_base64 and, when they are UTF-8 text, as "
-        "content_utf8 (null otherwise); "
+        "read_file {name, offset: 0 or more, count: 1 to 8192} returns the "
+        "bytes once: as content_utf8 when they are UTF-8 text that JSON "
+        "escapes to no more than its base64 (ordinary text does), otherwise "
+        "as content_base64, the other null; what a read returns stays in "
+        "your context for the rest of the epoch, so read only what you need; "
         "write_file {name, content_base64, expected_digest}: expected_digest "
         "is the file's current digest as inventory or read_file reports it, "
         "or null for a new file, so a write never overwrites a change you "
@@ -506,8 +510,9 @@ DESCRIPTIONS_V2 = {
         "(/scratch/output), top level and at most 8 MiB each, are exported to "
         "your workspace as <last 20 characters of the task id>-<name> and "
         "listed in workspace_exports. Its result returns program_output: the "
-        "last 4096 bytes of stdout and of stderr and, on a nonzero exit, the "
-        "tail of the traceback. "
+        "end of stdout and of stderr (stdout_tail, stderr_tail) and, on a "
+        "nonzero exit, the traceback (its first and last lines when it is "
+        "long), each at most 4096 bytes as JSON text. "
         "A request refused before dispatch returns REJECTED_BEFORE_DISPATCH "
         "with correction_code, field and correction: nothing started and no "
         "research-trial slot was charged; correct the named field and call "
@@ -1116,9 +1121,16 @@ class ResearchMinerTools:
                 tool=operation,
             )
         except (ValueError, TypeError, KeyError):
-            # What no named check covers: the request as a whole, still
-            # refused before anything could start.
-            return self.rejected(operation, args, identity)
+            # What no named check covers: the request's arguments as a whole,
+            # still refused before anything could start, and the tool named.
+            return self.rejected(
+                operation,
+                args,
+                identity,
+                correction="tool_value_invalid",
+                field="arguments",
+                tool=operation,
+            )
         # Authentication and execution exceptions remain operational stops. Only
         # the pre-dispatch closed request validation above is repairable feedback.
         cleanup_registration = getattr(

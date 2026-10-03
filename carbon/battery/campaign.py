@@ -862,27 +862,51 @@ def research_environment(prepared, rule):
     its practice serves on this host, and whether authored Julia is offered.
     Nothing here is evaluation material, and nothing grants anything.
     """
-    executor = getattr(getattr(prepared, "composition", None), "executor", None)
-    lane = getattr(executor, "gpu", None)
-    practice = getattr(executor, "practice", None)
-    backends = getattr(practice, "backends", None)
-    gpu_practice = getattr(practice, "gpu_image", None) is not None
+    # The composition's own executor and practice, never a default: a
+    # campaign is composed before its agent observes anything, so a missing
+    # one is an error here, not a quiet "cpu only".
+    executor = prepared.composition.executor
+    lane = executor.gpu
+    practice = executor.practice
+    julia = executor.julia_image is not None
+    described = None if lane is None else lane.describe()
     return {
         "rule": rule,
-        "gpu_lane": None if lane is None else lane.describe(),
-        "code_cell_devices": (
-            "cpu only: this campaign was launched without a GPU lane, so "
-            "run_python and run_julia take device=cpu (the default)"
-            if lane is None
-            else "cpu (the default) or gpu: run_python and run_julia take "
-            "device=gpu on the lane above"
-        ),
-        "practice_backends": None if backends is None else list(backends),
-        "practice_device": "gpu" if gpu_practice else "cpu",
+        "gpu_lane": described,
+        "code_cell_devices": _code_cell_devices(described, julia),
+        "practice_backends": list(practice.backends),
+        "practice_device": "gpu" if practice.gpu_image is not None else "cpu",
         "practice_note": (
             "a practice whose recipe names a backend outside practice_backends "
             "is refused before it starts (backend_not_served) and charges "
             "nothing"
         ),
-        "authored_julia": getattr(executor, "julia_image", None) is not None,
+        "authored_julia": julia,
     }
+
+
+def _code_cell_devices(described, julia):
+    """Which code-cell actions take device=gpu here: those the lane's own
+    description lists (`GpuLane.describe`) among those this campaign offers
+    (run_julia only with authored Julia). Never more than the lane runs: a
+    remote lane runs run_python only."""
+    offered = ["run_python", "run_julia"] if julia else ["run_python"]
+
+    def said(names, verb):
+        return " and ".join(names) + " " + (verb if len(names) > 1 else verb + "s")
+
+    if described is None:
+        return (
+            "cpu only: this campaign was launched without a GPU lane, so "
+            + said(offered, "take")
+            + " device=cpu (the default)"
+        )
+    on_gpu = [name for name in offered if name in described["actions"]]
+    text = "cpu (the default) or gpu: " + said(on_gpu, "take") + " device=gpu"
+    text += " on the lane above"
+    if "run_julia" in on_gpu:
+        text += ", run_julia in the lane's julia_environments only"
+    cpu_only = [name for name in offered if name not in on_gpu]
+    if cpu_only:
+        text += "; " + said(cpu_only, "run") + " on cpu only"
+    return text
