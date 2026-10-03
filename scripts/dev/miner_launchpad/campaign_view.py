@@ -311,6 +311,8 @@ def experiment_rows(own, view):
                     "train_s": finite(fit.get("train_s")),
                 },
                 "backend": _str(backend.get("kind"), 64),
+                # CPU or GPU, and where (RSURF-D19), from the run's own record.
+                "ran_on": ran_on(backend),
                 # What this run actually ran on (RSURF-D11): the framework
                 # its recipe named (None: the Challenge's default) and the
                 # pinned image the worker record names.
@@ -352,6 +354,27 @@ def _curve(experiment):
         steps.append(step)
         losses.append(loss)
     return steps, losses
+
+
+#: A practice run's backend record kind, as the page says it (RSURF-D19).
+RAN_ON = {
+    "ISOLATED_CARRIER": "CPU (isolated sandbox)",
+    "ISOLATED_CARRIER_GPU": "GPU (this machine)",
+    "REMOTE_GPU": "GPU (your remote setup)",
+}
+
+
+def ran_on(backend):
+    """CPU or GPU, and where, from a practice run's backend record."""
+    label = RAN_ON.get(backend.get("kind"))
+    if label is None:
+        return None
+    extra = [
+        _str(backend.get(key), 64)
+        for key in ("device_kind", "transport")
+        if type(backend.get(key)) is str
+    ]
+    return label + (" · " + " · ".join(extra) if extra else "")
 
 
 def comparison(rows, view):
@@ -1326,11 +1349,20 @@ def _carbon_agent(root, facts):
 
 
 def campaign_toolbox(host, challenge, own):
-    """The toolbox for this campaign's Challenge, with its pinned images."""
+    """The toolbox for this campaign's Challenge, with its pinned images and
+    where it runs (RSURF-D19)."""
     from scripts.dev.miner_launchpad import toolbox
 
     try:
-        value = toolbox.build(challenge, lanes=toolbox.host_lanes(host))
+        try:
+            machine = host.configured().get("remote_machine")
+        except Exception:  # noqa: BLE001 - no profile: no destination to show
+            machine = None
+        value = toolbox.build(
+            challenge,
+            lanes=toolbox.host_lanes(host),
+            compute=toolbox.campaign_compute(own.get("compute"), machine),
+        )
     except Exception:  # noqa: BLE001 - an unreadable toolbox is shown as such
         return {"status": "UNAVAILABLE"}
     if value is not None:

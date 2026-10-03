@@ -44,9 +44,13 @@ NOTES_MAX = 200
 #: each state to show (one configured, two not).
 LANES = {
     "julia": {"availability": "configured"},
-    "gpu": {"availability": "unavailable", "reason": "no_gpu_runtime_declared"},
+    "gpu": {"availability": "configured"},
     "remote_gpu": {"availability": "unavailable", "reason": "no_remote_machine_set_up"},
 }
+#: The fixture campaign runs on "this machine's GPU" (made up), so the demo
+#: shows where a GPU campaign runs (RSURF-D19). Its GPU worker serves JAX
+#: families only, as the pinned GPU worker does.
+COMPUTE = "local-isolated-gpu"
 #: A short sample conversation: the miner's messages and the agent's replies.
 CONVERSATION = (
     (
@@ -126,6 +130,9 @@ class FixtureRunner:
             for m in (contract or {}).get("rebuildable_models", [])
             if m.get("selector")
         ] or ["mlp"]
+        # A GPU campaign practises the families its GPU worker serves; the
+        # one family only PyTorch rebuilds is not among them.
+        selectors = [s for s in selectors if s != "fno"] or ["mlp"]
         self.backbones = [selectors[i % len(selectors)] for i in range(RUNS)]
         self.notes = [
             {
@@ -171,7 +178,7 @@ class FixtureRunner:
         # The toolbox, working, on synthetic answers (RSURF-D18): the real
         # tools and validation over an SDK that can dispatch nothing.
         from scripts.dev.miner_launchpad.tool_door import ToolSessions
-        from scripts.dev.miner_launchpad.tool_fixture import TASK as FIXTURE_TASK
+        from scripts.dev.miner_launchpad.tool_fixture import TASKS as FIXTURE_TASKS
         from scripts.dev.miner_launchpad.tool_fixture import (
             FixtureTools,
             fixture_opener,
@@ -179,7 +186,7 @@ class FixtureRunner:
 
         self.tools = FixtureTools(self)
         self.tool_sessions = ToolSessions(
-            fixture_opener(self, self.tools), seed_tasks=(FIXTURE_TASK,)
+            fixture_opener(self, self.tools), seed_tasks=FIXTURE_TASKS
         )
 
     # ---- What the controller and the operations table ask of a host.
@@ -313,10 +320,12 @@ class FixtureRunner:
     def toolbox(self):
         from scripts.dev.miner_launchpad import toolbox
 
-        value = toolbox.build(self.challenge, lanes=LANES)
+        value = toolbox.build(
+            self.challenge, lanes=LANES, compute=toolbox.campaign_compute(COMPUTE)
+        )
         if value is not None:
             value["campaign_images"] = [
-                "fixture-worker-image",
+                "fixture-gpu-worker-image",
                 "fixture-analysis-image",
             ]
             value["evidence"] = EVIDENCE
@@ -381,10 +390,9 @@ class FixtureRunner:
                         },
                     },
                     "backend": {
-                        "kind": EVIDENCE,
-                        "image": "fixture-torch-worker-image"
-                        if self.backbones[run - 1] == "fno"
-                        else "fixture-worker-image",
+                        "kind": "ISOLATED_CARRIER_GPU",
+                        "device_kind": "synthetic GPU",
+                        "image": "fixture-gpu-worker-image",
                     },
                     "accepted_improvement": False,
                     "adaptively_seen": True,
@@ -401,10 +409,10 @@ class FixtureRunner:
             "challenge": self.challenge,
             "agent": "carbon-autoresearch",
             "reasoning": "fixture-provider:fixture-model",
-            "compute": "local-isolated-cpu",
+            "compute": COMPUTE,
             "admission": EVIDENCE,
             "runtime_revision": "fixture",
-            "images": ["fixture-worker-image", "fixture-analysis-image"],
+            "images": ["fixture-gpu-worker-image", "fixture-analysis-image"],
             "started_unix": started,
             "deadline_unix": None,
             "attempted_experiments": RUNS + 1,

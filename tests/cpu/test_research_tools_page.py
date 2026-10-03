@@ -30,6 +30,7 @@ from scripts.dev.miner_launchpad.research_fixture import CAMPAIGN, FixtureRunner
 from scripts.dev.miner_launchpad.tool_fixture import (
     REFUSED,
     TASK,
+    TASKS,
     FixtureTools,
     fixture_adapter,
     plot_png,
@@ -286,7 +287,14 @@ def test_stdout_is_a_bounded_tail_and_text_is_shown_as_it_reads():
     assert len(doc["stdout"].encode()) <= run_output.STDOUT_MAX
     assert doc["stdout"].endswith("�end")  # a bidi override cannot hide
     assert doc["stdout_truncated_to_last_bytes"] == run_output.STDOUT_MAX
-    assert doc["carrier"]["stderr"].startswith("not kept")
+    # Kept for successful and failed runs alike (RSURF-D21); a run recorded
+    # before then has none, and says so.
+    assert doc["stderr"] is None and "failed runs" in doc["carrier"]["kept"]
+    both = run_output.document(
+        TASK, {"worker": {}}, stdout=b"out", stderr=b"err" * 30000, exports=[]
+    )
+    assert len(both["stderr"].encode()) == run_output.STDOUT_MAX
+    assert both["stderr_truncated_to_last_bytes"] == run_output.STDOUT_MAX
 
 
 def test_images_are_recognised_by_their_bytes_and_bounded():
@@ -426,7 +434,7 @@ def test_the_demo_shows_a_workspace_a_finished_run_and_a_validation():
     runner = FixtureRunner()
     state = tool_door.route(runner, CAMPAIGN, "open", {})
     try:
-        assert state["open"] and state["tasks"] == [TASK]
+        assert state["open"] and state["tasks"] == list(TASKS) and TASK in TASKS
         start = PREFIX + "start_research_task"
         listed = tool_door.route(
             runner,

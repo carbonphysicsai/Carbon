@@ -106,6 +106,8 @@ class ToolDoor:
                 for action in actions
             ],
             "run_julia_available": julia,
+            # The campaign's GPU lane for the code cell, or None (RSURF-D20).
+            "gpu_lane": self.adapter.gpu_lane,
         }
 
     async def call(self, name, arguments):
@@ -367,7 +369,8 @@ class ToolSessions:
         result = session.run(session.door.start(value["arguments"]), CALL_SECONDS)
         if result.get("ok") and result.get("task"):
             with self.lock:
-                session.tasks = (session.tasks + [result["task"]["taskId"]])[-50:]
+                # Newest first, as the page lists them.
+                session.tasks = ([result["task"]["taskId"]] + session.tasks)[:50]
         return result
 
     def observe(self, campaign, value, *, cancel=False):

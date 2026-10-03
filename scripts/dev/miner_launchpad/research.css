@@ -232,3 +232,10 @@ a.rs-change:hover { background: var(--muted); }
 .rs-viewer h4, .rs-run h4 { margin: 10px 0 4px; font-size: 14px; overflow-wrap: anywhere; }
 .rs-files td { overflow-wrap: anywhere; }
 .rs-files button { min-height: 32px; padding: 2px 10px; margin-right: 6px; }
+
+/* Where a campaign runs (RSURF-D19). */
+.rs-where { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0 0 12px; }
+.rs-where dt { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); padding-top: 3px; }
+.rs-where dd { margin: 0; overflow-wrap: anywhere; }
+.rs-runs-on { font-size: 14px; font-weight: 600; }
+@media (max-width: 560px) { .rs-where { grid-template-columns: minmax(0, 1fr); } .rs-where dd { margin-bottom: 6px; } }

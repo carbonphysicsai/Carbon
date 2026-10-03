@@ -145,9 +145,86 @@ def for_request(host, request, lanes=None):
         raise Rejected("challenge_has_no_toolbox", 404) from None
 
 
-def build(challenge, *, lanes=None):
+#: Where the validator rebuilds, said plainly beside any GPU (RSURF-D19).
+VALIDATOR_STAYS = (
+    "The validator rebuilds your frozen recipe on its own published exam "
+    "environment ({backend} today), so a GPU speeds up your own research only."
+)
+SET_UP_GPU = "#setup/compute"
+
+
+def _gpu_frameworks():
+    """The frameworks the pinned GPU worker serves: its own profile names
+    them (carbon_<framework>_cuda...)."""
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    return ("jax",) if "_jax_" in GPU_PROFILE.profile_id else ()
+
+
+def campaign_compute(compute, remote_machine=None):
+    """Where a campaign's practice and GPU code cell run, from its record:
+    `compute` is its `local-isolated-cpu`, `local-isolated-gpu` or
+    `remote-gpu:<transport>`; `remote_machine` is the runner profile's
+    (transport, destination, port), shown to the miner only."""
+    if type(compute) is not str:
+        return None
+    if compute.startswith("remote-gpu:"):
+        transport = compute.removeprefix("remote-gpu:")[:32]
+        machine = remote_machine if type(remote_machine) is dict else {}
+        destination = machine.get("destination")
+        where = transport + (
+            ", " + str(destination)[:128] if type(destination) is str else ""
+        )
+        return {
+            "kind": "remote_gpu",
+            "label": "your remote GPU (" + where + ")",
+            "transport": transport,
+            "destination": destination if type(destination) is str else None,
+        }
+    if compute == "local-isolated-gpu":
+        return {"kind": "local_gpu", "label": "your GPU (this machine)"}
+    if compute == "local-isolated-cpu":
+        return {"kind": "cpu", "label": "CPU (the isolated sandbox on this machine)"}
+    return {"kind": "unknown", "label": compute[:64]}
+
+
+def where(compute, lanes, exam_backend):
+    """Where this campaign runs, and what each GPU lane on this host is
+    (RSURF-D19). `compute` is `campaign_compute(...)` or None (no campaign:
+    chosen at launch)."""
+    gpu = None if compute is None else compute["kind"] in ("local_gpu", "remote_gpu")
+    lane_states = {
+        name: _availability(lanes.get(name)) for name in ("gpu", "remote_gpu")
+    }
+    return {
+        "practice": compute
+        or {
+            "kind": "chosen_at_launch",
+            "label": "chosen at launch from your compute setup",
+        },
+        "code_cell": {
+            "cpu": "CPU (the isolated analysis sandbox), always available",
+            "gpu": compute["label"] if gpu else None,
+            "gpu_reason": None
+            if gpu
+            else (
+                "This campaign was launched without a GPU: its compute is frozen at launch."
+                if compute is not None
+                else "Launch a campaign with a GPU to run code cells on it."
+            ),
+        },
+        "lanes": lane_states,
+        "set_up_gpu": None
+        if any(state["available"] for state in lane_states.values())
+        else SET_UP_GPU,
+        "validator": VALIDATOR_STAYS.format(backend=exam_backend),
+    }
+
+
+def build(challenge, *, lanes=None, compute=None):
     """The toolbox for one Challenge on this host. `lanes` is
-    `host_lanes(host)`, or None when no host is known."""
+    `host_lanes(host)`, or None when no host is known. `compute` is
+    `campaign_compute(...)` for a campaign's toolbox, or None."""
     if type(challenge) is not dict or type(challenge.get("id")) is not str:
         return None
     sources = json.loads(_sources(challenge["id"], challenge.get("version")))
@@ -191,15 +268,28 @@ def build(challenge, *, lanes=None):
             if challenge["id"] in (p.get("challenges") or [])
         ],
     ]
+    served_on_gpu = _gpu_frameworks()
+    on_gpu = compute is not None and compute["kind"] in ("local_gpu", "remote_gpu")
     for name, families in backends.items():
         # A validator profile names its backend as "<framework>-<device>".
         profile = next(
             (p for p in profiles if str(p["backend"]).split("-")[0] == name), None
         )
+        if compute is None:
+            runs_on = "where your campaign runs: CPU, or a GPU you set up"
+        elif not on_gpu or name in served_on_gpu:
+            runs_on = compute["label"]
+        else:
+            runs_on = (
+                "not served on this campaign's GPU: the pinned GPU worker "
+                "carries " + ", ".join(served_on_gpu or ("no framework",)) + " only"
+            )
         runtimes.append(
             {
                 "id": name,
                 "role": "Used for practice and rebuilt by the validator",
+                # Where this campaign's practice runs it (RSURF-D19).
+                "runs_on": runs_on,
                 "families": families,
                 "default": backend_control.get("default") == name,
                 "validator_environment": None
@@ -365,6 +455,9 @@ def build(challenge, *, lanes=None):
                     name: _availability(lanes.get(name))
                     for name in ("julia", "gpu", "remote_gpu")
                 },
+                # Where this campaign runs, every GPU lane and why one is not
+                # set up, and where the validator stays (RSURF-D19).
+                "where": where(compute, lanes, str(exam["backend_profile"]["backend"])),
                 "agent": {
                     "operations": (
                         "carbon-mcp --configuration <your runner profile>: the "

@@ -26,12 +26,14 @@
     another_session: "Another session holds this campaign: most likely your own agent attached it with carbon_attach_campaign. Ask it to call carbon_detach_campaign, or let it run the tools for you; then open the tools here.",
   };
   const PYTHON = [
-    "# Runs in the isolated analysis image, on the workspace files you pick.",
-    "# Files you write to /scratch/output come back to your workspace, and",
-    "# images among them show below. The sandbox keeps stdout, not stderr.",
-    "import sys",
-    "sys.stderr = sys.stdout",
-    "print(\"hello from the analysis image\")",
+    "# Runs isolated, on the workspace files you pick: in the CPU analysis",
+    "# image, or on your GPU if you choose it. Files you write to ../output",
+    "# come back to your workspace, and images among them show below. The",
+    "# last 64 KiB of stdout and of stderr are kept, even when it fails.",
+    "from pathlib import Path",
+    "",
+    "out = Path(\"../output\")",
+    "print(\"hello from the code cell\")",
     "",
   ].join("\n");
   const JULIA = "# Runs in the pinned Julia environment, research only.\nprintln(\"hello from Julia\")\n";
@@ -124,7 +126,8 @@
 
   // ---- The session: open, close, and who holds the campaign. ----
   function merge(w) {
-    for (const taskId of (w.state?.tasks || []).slice().reverse()) if (!w.tasks.includes(taskId)) w.tasks.push(taskId);
+    // The session lists its tasks newest first.
+    for (const taskId of w.state?.tasks || []) if (!w.tasks.includes(taskId)) w.tasks.push(taskId);
   }
   async function refresh(w) {
     try { w.state = await CC.api(path(w)); w.error = null; merge(w); }
@@ -160,12 +163,14 @@
     if (w.doc.fixture) para(parent, "Synthetic fixture: the tools are the real ones, answering from made-up data. Nothing runs, and nothing reaches a campaign.", "hint");
   }
 
-  function costLine(w, action) {
+  function costLine(w, action, device) {
     const trials = w.doc.tiles?.trials;
     const used = trials ? trials.used + (trials.ceiling == null ? " (no ceiling set)" : " of your " + trials.ceiling) : "unknown";
     const limit = (w.doc.toolbox?.workspace || []).find(a => a.id === action)?.limits;
-    const wall = typeof limit === "number" ? "up to " + limit + " s" : limit ? String(limit) : "your allowance, or none";
-    return "Costs 1 research trial of your own budget: used " + used + ". Wall time: " + wall + ". Research only, never part of a submission.";
+    const lane = w.state?.gpu_lane;
+    const wall = device === "gpu" && lane?.kind === "remote_gpu" ? "required, " + lane.seconds[0] + " to " + lane.seconds[1] + " s on your remote GPU" : typeof limit === "number" ? "up to " + limit + " s" : limit ? String(limit) : "your allowance, or none";
+    const where = device === "gpu" && lane ? " Runs on " + lane.label + ", in the campaign's pinned GPU worker image (its packages differ from the CPU sandbox), with the same isolation, on your machine and your bill. The validator stays on CPU." : " Runs on CPU, in the isolated analysis sandbox.";
+    return "Costs 1 research trial of your own budget: used " + used + ". Wall time: " + wall + "." + where + " Research only, never part of a submission.";
   }
 
   function workspacePanel(w, body) {
@@ -258,14 +263,22 @@
     field(box, "Language", language, julia ? null : "run_julia is not available on this host: " + (w.doc.toolbox?.julia?.run_julia?.reason || "not configured") + ".");
     const environment = select([["current", "current: newest SciML core"], ["pde", "pde: NeuralPDE, MethodOfLines, DataDrivenDiffEq"]], "current", "Julia environment");
     const envField = field(box, "Julia environment", environment); envField.parentElement.hidden = true;
+    // CPU or GPU, per run, only when this campaign has a GPU lane (RSURF-D20).
+    const lane = w.state.gpu_lane;
+    const device = select([["cpu", "CPU (isolated analysis sandbox)"], ...(lane ? [["gpu", lane.label]] : [])], "cpu", "Device");
+    field(box, "Runs on", device, lane ? "Choose per run. run_julia runs on CPU: its environments have no CUDA." : "CPU only: this campaign was launched without a GPU. Set one up in Set up, Compute, for your next campaign.");
+    device.disabled = !lane;
     const source = input("textarea", PYTHON, "Source"); source.className = "rs-code"; source.rows = 12;
     field(box, "Source", source);
     language.addEventListener("change", () => {
       const isJulia = language.value === "run_julia";
       envField.parentElement.hidden = !isJulia;
       if (source.value === PYTHON || source.value === JULIA) source.value = isJulia ? JULIA : PYTHON;
-      cost.textContent = costLine(w, language.value);
+      if (isJulia) device.value = "cpu";
+      device.disabled = !lane || isJulia;
+      cost.textContent = costLine(w, language.value, device.value);
     });
+    device.addEventListener("change", () => { cost.textContent = costLine(w, language.value, device.value); });
     const files = el("div", undefined, "rs-checks");
     field(box, "Files to stage", files, "Only the files you tick are copied in; refresh the workspace to see new ones.");
     const drawFiles = () => {
@@ -290,6 +303,8 @@
       const args = {source: source.value, files: [...files.querySelectorAll("input:checked")].map(i => i.value), hypothesis: hypothesis.value, expected_effect: effect.value};
       if (seconds.value) args.seconds = Number(seconds.value);
       if (language.value === "run_julia") args.environment = environment.value;
+      // Absent, a request runs on CPU exactly as before; only a GPU run says so.
+      if (device.value === "gpu") args.device = "gpu";
       await startTask(w, result, {kind: "workspace", strategy: null, action: language.value, arguments: args, hypothesis: hypothesis.value, expected_effect: effect.value});
     }), result);
     body.append(box);
@@ -340,10 +355,13 @@
     }
   }
   function runOutput(area, doc) {
-    para(area, doc.outcome === "SUCCEEDED" ? "Your program finished. Its output is self-reported." : "Your program failed (" + words(doc.failure_code) + "). The sandbox keeps no stdout for a failed run.", doc.outcome === "SUCCEEDED" ? "hint" : "reason");
+    para(area, doc.outcome === "SUCCEEDED" ? "Your program finished. Its output is self-reported." : "Your program failed (" + words(doc.failure_code) + "). The last of its output and errors is below.", doc.outcome === "SUCCEEDED" ? "hint" : "reason");
+    if (doc.ran_on) para(area, "Ran on: " + doc.ran_on.label + (doc.ran_on.device_kind ? " · " + doc.ran_on.device_kind : "") + (doc.ran_on.transport ? " · " + doc.ran_on.transport : ""), "rs-runs-on");
     area.append(el("h4", "stdout" + (doc.stdout_truncated_to_last_bytes ? " (the last " + doc.stdout_truncated_to_last_bytes + " bytes)" : "")));
     area.append(el("pre", doc.stdout ?? "(none kept)", "rs-out"));
-    para(area, "stderr: " + doc.carrier.stderr + ". " + doc.carrier.tip, "hint");
+    area.append(el("h4", "stderr" + (doc.stderr_truncated_to_last_bytes ? " (the last " + doc.stderr_truncated_to_last_bytes + " bytes)" : "")));
+    area.append(el("pre", doc.stderr ?? "(none kept: a run recorded before error output was kept)", "rs-out"));
+    para(area, "Kept: " + doc.carrier.kept + ". Outputs: " + doc.carrier.outputs + ".", "hint");
     if (!doc.files.length) { para(area, "It wrote no files.", "hint"); return; }
     area.append(el("h4", "Files it wrote to your workspace"));
     const list = el("ul", undefined, "rs-out-files");

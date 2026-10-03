@@ -4,16 +4,18 @@ The research protocol returns a run by reference: its worker record and the
 names of the files it exported to the miner's workspace. `run_output` is the
 one read-only operation, in the shared table, that both doors use to show
 the rest:
-- the run's retained stdout, the last `STDOUT_MAX` bytes, as text;
+- the run's retained stdout and stderr, the last `STDOUT_MAX` bytes of
+  each, as text, for successful and failed runs alike (RSURF-D21);
+- the device it ran on: CPU, this machine's GPU or the remote GPU
+  (RSURF-D20);
 - its exported files, with name, size and media type;
 - each raster image among them, recognised by its bytes (PNG, JPEG, GIF,
   WebP), inline as base64 within `IMAGE_MAX`, `IMAGES_TOTAL` and
   `IMAGES_COUNT`. SVG and every other type is listed, never inlined.
 
-It is the miner's own program's output, run on public and own files in the
-isolated analysis image, and it stays MINER_SELF_REPORTED, untrusted text.
-The unchanged carrier keeps no stderr, and keeps no stdout when the program
-fails; the document says so instead of implying otherwise.
+It is the miner's own program's output, run on public and own files, and
+it stays MINER_SELF_REPORTED, untrusted text. A run recorded before the
+carrier kept stderr (2026-10-03) has none, and the document says so.
 """
 
 from __future__ import annotations
@@ -38,12 +40,10 @@ _UNSAFE = re.compile(
     "\\u202a-\\u202e\\u2066-\\u2069]"
 )
 CARRIER = {
-    "stderr": "not kept: the sandbox treats it as a private diagnostic",
-    "failed_run_stdout": "not kept: a program that fails keeps no stdout",
-    "tip": (
-        "Print to stdout, or write files to /scratch/output, to see them "
-        "here. In Python, sys.stderr = sys.stdout sends errors to stdout."
+    "kept": (
+        "the last 64 KiB of stdout and of stderr, for successful and failed runs alike"
     ),
+    "outputs": "files your program writes to ../output (/scratch/output in the sandbox)",
 }
 _SIGNATURES = (
     (b"\x89PNG\r\n\x1a\n", "image/png"),
@@ -75,9 +75,10 @@ def check_task(task):
     return task
 
 
-def document(task, result, *, stdout, exports):
-    """The run's output document. `stdout` is the retained bytes or None;
-    `exports` is [(name, body or None)] in the run's export order."""
+def document(task, result, *, stdout, exports, stderr=None):
+    """The run's output document. `stdout` and `stderr` are the retained
+    bytes or None; `exports` is [(name, body or None)] in the run's export
+    order."""
     worker = result.get("worker") if type(result.get("worker")) is dict else {}
     failed = result.get("outcome") == "MINER_PROGRAM_FAILED"
     files, inlined, total = [], 0, 0
@@ -97,11 +98,15 @@ def document(task, result, *, stdout, exports):
         elif kind is not None:
             entry["not_inlined"] = "over the image bounds; read it with read_file"
         files.append(entry)
-    tail = None
-    truncated = False
-    if stdout is not None:
-        truncated = len(stdout) > STDOUT_MAX
-        tail = text(stdout[-STDOUT_MAX:])
+
+    def kept(body):
+        if body is None:
+            return None, False
+        return text(body[-STDOUT_MAX:]), len(body) > STDOUT_MAX
+
+    tail, truncated = kept(stdout)
+    errors, errors_truncated = kept(stderr)
+    device = result.get("device") if type(result.get("device")) is dict else None
     return {
         "schema": SCHEMA,
         "task": task,
@@ -110,6 +115,9 @@ def document(task, result, *, stdout, exports):
         "failure_code": worker.get("failure_code") if failed else None,
         "stdout": tail,
         "stdout_truncated_to_last_bytes": STDOUT_MAX if truncated else None,
+        "stderr": errors,
+        "stderr_truncated_to_last_bytes": STDOUT_MAX if errors_truncated else None,
+        "ran_on": _ran_on(device),
         "files": files,
         "more_files": max(0, len(exports) - EXPORTS_MAX),
         "bounds": {
@@ -122,6 +130,34 @@ def document(task, result, *, stdout, exports):
         "shown_as": "untrusted text and raster images, never HTML",
         "official_eligible": False,
     }
+
+
+def _ran_on(device):
+    """Where the run ran, from its own record: a run without a device record
+    ran on CPU, as every run before the GPU code cell did."""
+    if device is None:
+        return {"kind": "cpu", "label": "CPU (isolated sandbox)"}
+    kind = device.get("kind")
+    label = {
+        "local_gpu": "GPU (this machine)",
+        "remote_gpu": "GPU (your remote setup)",
+    }.get(kind)
+    if label is None:
+        return {"kind": "unknown", "label": "unknown"}
+    found = {"kind": kind, "label": label}
+    for key in ("device_kind", "transport", "image"):
+        if type(device.get(key)) is str:
+            found[key] = device[key][:160]
+    return found
+
+
+def _tail(path):
+    if not path.is_file() or path.is_symlink():
+        return None
+    with path.open("rb") as handle:
+        size = path.stat().st_size
+        handle.seek(max(0, size - STDOUT_MAX - 1))
+        return handle.read()
 
 
 def for_campaign(root, owner, task):
@@ -153,15 +189,11 @@ def for_campaign(root, owner, task):
     if result.get("provenance") != "MINER_SELF_REPORTED" or not worker:
         # Only a workspace run has output of this kind.
         raise Rejected("not_a_workspace_run", 409)
-    stdout = None
+    stdout = stderr = None
     operation = worker.get("operation")
     if type(operation) is str and _OPERATION.fullmatch(operation):
-        path = root / operation / "stdout.txt"
-        if path.is_file() and not path.is_symlink():
-            with path.open("rb") as handle:
-                size = path.stat().st_size
-                handle.seek(max(0, size - STDOUT_MAX - 1))
-                stdout = handle.read()
+        stdout = _tail(root / operation / "stdout.txt")
+        stderr = _tail(root / operation / "stderr.txt")
     workspace = ResearchWorkspace(ledger, owner)
     exports = []
     for name in result.get("workspace_exports") or []:
@@ -171,4 +203,4 @@ def for_campaign(root, owner, task):
             exports.append((name, workspace.get(name)))
         except ValueError:
             exports.append((name, None))
-    return document(task, result, stdout=stdout, exports=exports)
+    return document(task, result, stdout=stdout, stderr=stderr, exports=exports)

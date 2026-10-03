@@ -348,11 +348,27 @@
   // ---- The toolbox (RSURF-D11): read from the Challenge's own records. ----
   function renderToolbox(parent, tb, compact) {
     if (!tb || tb.status === "UNAVAILABLE") { para(parent, "This Challenge's toolbox could not be read.", "empty-state"); return; }
+    // Where this campaign runs: CPU, this machine's GPU or the remote GPU,
+    // and why a GPU lane is not set up (RSURF-D19). Never hidden.
+    if (tb.where) {
+      const where = section(parent, "Where this runs", "CPU or GPU");
+      const list = el("dl", undefined, "rs-where");
+      list.append(el("dt", "Practice"), el("dd", tb.where.practice.label));
+      list.append(el("dt", "Code cell"), el("dd", tb.where.code_cell.cpu + (tb.where.code_cell.gpu ? "; or " + tb.where.code_cell.gpu + ", per run" : ". GPU: " + tb.where.code_cell.gpu_reason)));
+      for (const [name, label] of [["gpu", "GPU on this machine"], ["remote_gpu", "Your remote GPU"]]) {
+        const lane = tb.where.lanes[name];
+        list.append(el("dt", label), el("dd", lane.available === true ? "set up" : lane.available === false ? "not set up: " + words(lane.reason) : "could not be read"));
+      }
+      where.append(list);
+      if (tb.where.set_up_gpu) where.append(anchor("Set up a GPU", tb.where.set_up_gpu, "button"));
+      para(where, tb.where.validator, "rs-cost");
+    }
     const runtimes = section(parent, "Runtimes", "Practice and the validator");
     const grid = el("div", undefined, "rs-runtimes");
     for (const r of tb.runtimes) {
       const box = el("div", undefined, "rs-runtime");
       box.append(el("p", r.id + (r.default ? " · default" : ""), "eyebrow"), el("strong", r.role), el("span", "Families: " + r.families, "hint"));
+      if (r.runs_on) box.append(el("span", "This campaign runs it on: " + r.runs_on, "rs-runs-on"));
       if (r.pinned.length) box.append(el("span", "Pinned: " + r.pinned.slice(0, 4).map(d => d.name + " " + d.version).join(", ") + (r.pinned.length > 4 ? " and " + (r.pinned.length - 4) + " more" : ""), "hint"));
       if (r.validator_environment) box.append(el("span", "Validator environment: " + r.validator_environment.environment_id + " " + r.validator_environment.environment_version, "hint"));
       grid.append(box);
@@ -492,7 +508,7 @@
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
       // What the run actually ran on: its recipe's framework (or the
       // Challenge's default) and the worker record's backend and image.
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend ? words(r.backend).toLowerCase() : null, r.image].filter(Boolean).join(" · ") || "–"));
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.ran_on || (r.backend ? words(r.backend).toLowerCase() : null), r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);

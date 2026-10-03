@@ -6,7 +6,9 @@ SDK under them has no connection, no composition and no ledger, so nothing
 can be dispatched; its answers come from here:
 - a small in-memory workspace a miner can read and edit (it never leaves this
   process);
-- one finished `run_python`, with stdout and a PNG plot drawn here;
+- three finished `run_python` runs: one on CPU with stdout and a PNG plot
+  drawn here, one tagged as run on the campaign's (synthetic) GPU, and one
+  that failed, with the stdout and stderr it kept (RSURF-D20, D21);
 - a `dry_validate`, which is the registry's own pure structural check;
 - every start of new work (a run, a practice trial, a cancel) is refused as
   `fixture_read_only`.
@@ -25,6 +27,24 @@ from carbon.development_session.profile import canonical, digest
 
 EVIDENCE = "SYNTHETIC_FIXTURE"
 TASK = "rtsk_" + hashlib.sha256(b"fixture-run-python").hexdigest()
+GPU_TASK = "rtsk_" + hashlib.sha256(b"fixture-run-python-gpu").hexdigest()
+FAILED_TASK = "rtsk_" + hashlib.sha256(b"fixture-run-python-failed").hexdigest()
+#: Newest first, as the page lists them.
+TASKS = (FAILED_TASK, GPU_TASK, TASK)
+GPU_IMAGE = "fixture-gpu-worker-image"
+GPU_STDOUT = (
+    "SYNTHETIC FIXTURE: no program ran.\n"
+    "jax default backend: gpu\n"
+    "devices: [synthetic GPU 0]\n"
+    "fit 2000 steps in 3.1 s\n"
+)
+FAILED_STDOUT = "SYNTHETIC FIXTURE: no program ran.\nloading train-summary.json\n"
+FAILED_STDERR = (
+    "Traceback (most recent call last):\n"
+    '  File "/input/program.py", line 7, in <module>\n'
+    '    print(summary["capacity_fade"])\n'
+    "KeyError: 'capacity_fade'\n"
+)
 CREATED_MICROS = 1_790_000_000_000_000
 REFUSED = {
     "status": "REJECTED_BEFORE_DISPATCH",
@@ -98,7 +118,11 @@ def plot_png(width=360, height=220):
     )
 
 
-def _exports():
+def _exports(task=TASK):
+    if task == GPU_TASK:
+        return [GPU_TASK[-20:] + "-timing.json"]
+    if task == FAILED_TASK:
+        return []
     return [
         TASK[-20:] + "-capacity_fade.png",
         TASK[-20:] + "-capacity_fade.json",
@@ -117,6 +141,7 @@ def initial_workspace():
         "train-summary.json": canonical({"cases": 128, "fixture": True}),
         plot: plot_png(),
         values: json.dumps(fade).encode(),
+        _exports(GPU_TASK)[0]: canonical({"fit_seconds": 3.1, "fixture": True}),
     }
 
 
@@ -252,33 +277,55 @@ class FixtureTools:
         }
 
     def _task(self, task_id, operation):
-        if task_id != TASK:
+        if task_id not in TASKS:
             return self._envelope(
                 operation, {"status": "ERROR", "result": {"code": "TASK_UNKNOWN"}}
             )
         return self._envelope(
             operation,
             {"status": "OK", "evidence": EVIDENCE},
-            task=TASK,
-            result=self.finished_run(),
+            task=task_id,
+            result=self.finished_run(task_id),
         )
 
-    def finished_run(self):
-        return {
-            "provenance": "MINER_SELF_REPORTED",
-            "worker": {
-                "schema": "carbon.autoresearch.worker-result.v1",
-                "operation": "fixture-operation",
-                "files": {
-                    "capacity_fade.png": "synthetic",
-                    "capacity_fade.json": "synthetic",
-                },
-                "scientific_qualification": False,
-                "official_eligible": False,
+    def finished_run(self, task=TASK):
+        worker = {
+            "schema": "carbon.autoresearch.worker-result.v1",
+            "operation": "fixture-operation",
+            "files": {
+                "capacity_fade.png": "synthetic",
+                "capacity_fade.json": "synthetic",
             },
-            "workspace_exports": _exports(),
+            "scientific_qualification": False,
+            "official_eligible": False,
+        }
+        result = {
+            "provenance": "MINER_SELF_REPORTED",
+            "worker": worker,
+            "workspace_exports": _exports(task),
             "evidence": EVIDENCE,
         }
+        if task == GPU_TASK:
+            # As a GPU code cell records the device it ran on (RSURF-D20).
+            result["worker"] = {**worker, "files": {"timing.json": "synthetic"}}
+            result["device"] = {
+                "kind": "local_gpu",
+                "label": "your GPU (this machine)",
+                "device_kind": "synthetic GPU",
+                "image": GPU_IMAGE,
+            }
+        if task == FAILED_TASK:
+            result["outcome"] = "MINER_PROGRAM_FAILED"
+            result["worker"] = {
+                "schema": "carbon.autoresearch.miner-program-failure.v1",
+                "operation": "fixture-failed-operation",
+                "state": "FAILED_MINER",
+                "failure_code": "RUNTIME",
+                "observation": "NONZERO_EXIT",
+                "scientific_qualification": False,
+                "official_eligible": False,
+            }
+        return result
 
     def _start(self, args, identity):
         if args["kind"] != "workspace" or args["action"] in {"run_python", "run_julia"}:
@@ -367,14 +414,20 @@ class FixtureTools:
         from scripts.dev.miner_launchpad.controller import Rejected
         from scripts.dev.miner_launchpad.run_output import check_task, document
 
-        if check_task(task) != TASK:
+        if check_task(task) not in TASKS:
             raise Rejected("run_output_unavailable", 404)
+        stdout, stderr = {
+            TASK: (STDOUT, ""),
+            GPU_TASK: (GPU_STDOUT, ""),
+            FAILED_TASK: (FAILED_STDOUT, FAILED_STDERR),
+        }[task]
         return {
             **document(
-                TASK,
-                self.finished_run(),
-                stdout=STDOUT.encode(),
-                exports=[(name, self.files.get(name)) for name in _exports()],
+                task,
+                self.finished_run(task),
+                stdout=stdout.encode(),
+                stderr=stderr.encode(),
+                exports=[(name, self.files.get(name)) for name in _exports(task)],
             ),
             "evidence": EVIDENCE,
         }
@@ -385,6 +438,7 @@ def fixture_adapter(tools, principal):
     composition or ledger, answered by `tools`."""
     from types import SimpleNamespace
 
+    from carbon.development_session.gpu_code_cell import GpuLane
     from carbon.development_session.research_tools import ResearchMinerTools
     from carbon.miner_mcp.standard import ResearchToolAdapter
 
@@ -392,7 +446,13 @@ def fixture_adapter(tools, principal):
         connection=None,
         wrapper=None,
         composition=SimpleNamespace(
-            executor=SimpleNamespace(owner=principal, julia_image=None)
+            executor=SimpleNamespace(
+                owner=principal,
+                julia_image=None,
+                # The campaign's (synthetic) GPU lane, so the code cell offers
+                # the choice; every run is still refused (RSURF-D18, D20).
+                gpu=GpuLane(image=SimpleNamespace(image_id=GPU_IMAGE)),
+            )
         ),
         ledger=None,
         owner=principal,
