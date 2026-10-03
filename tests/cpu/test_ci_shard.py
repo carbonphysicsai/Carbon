@@ -75,8 +75,31 @@ def test_a_malformed_weights_file_is_refused(tmp_path, document):
 def test_the_committed_weights_file_is_well_formed():
     if ci_shard.WEIGHTS_PATH.is_file():
         assert ci_shard.load_measured()
+        assert set(ci_shard.load_lanes()) <= set(range(8))
     else:
         assert ci_shard.load_measured() == {}
+
+
+def test_lanes_steer_the_heaviest_files_to_lane_free_shards():
+    weights = {"heavy.py": 600.0, **{f"t{n}.py": 30.0 for n in range(40)}}
+    lanes = {0: 150.0, 1: 140.0}
+    shards = ci_shard.partition(weights, 4, lanes)
+    assert "heavy.py" in shards[2]  # the first shard with no lane
+    assigned = sorted(path for shard in shards for path in shard)
+    assert assigned == sorted(weights)
+    # Lane n runs on shard n mod count, so fewer shards still take every lane.
+    folded = ci_shard.partition({"a.py": 1.0}, 2, {0: 5.0, 3: 9.0})
+    assert folded == [["a.py"], []]
+
+
+@pytest.mark.parametrize(
+    "lanes", ['{"x": 1}', '{"0": -1}', '{"0": true}', "[1, 2]", '"text"']
+)
+def test_malformed_lane_seconds_are_refused(tmp_path, lanes):
+    path = tmp_path / "weights.json"
+    path.write_text('{"seconds": {}, "lane_seconds": ' + lanes + "}")
+    with pytest.raises(ValueError):
+        ci_shard.load_lanes(path)
 
 
 def _suite(tmp_path: Path) -> Path:
@@ -93,6 +116,8 @@ def _run(suite: Path, shard: str | None) -> subprocess.CompletedProcess[str]:
     environment = {
         key: value for key, value in os.environ.items() if key != ci_shard.ENVIRONMENT
     }
+    # The synthetic suite is balanced by test counts, not the committed weights.
+    environment[ci_shard.WEIGHTS_ENVIRONMENT] = str(suite / "no-weights.json")
     if shard is not None:
         environment[ci_shard.ENVIRONMENT] = shard
     return subprocess.run(
