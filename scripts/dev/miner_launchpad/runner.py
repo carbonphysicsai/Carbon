@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
+from carbon.compute import retired
 from carbon.development_session import research_guidance as guidance
 from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
@@ -50,8 +51,11 @@ PATH_FIELDS = {
 #: Retired with external signing: Carbon no longer reads a password to decrypt
 #: the miner's key. A profile naming it is refused with this code, so the
 #: miner learns to start `carbon-miner-signer` instead of it being ignored.
+#: `compute_credential` was the rented-GPU provider key file (C-MLP-03 slice
+#: 4), retired by OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon rents no compute.
 RETIRED_PATH_FIELDS = {
-    "miner_password_file": "miner_password_file_retired_start_signer"
+    "miner_password_file": "miner_password_file_retired_start_signer",
+    "compute_credential": retired.RENTED_GPU_RETIRED,
 }
 #: Paths a profile may add. `battery_validator` is the legacy (C-MLP-03) name
 #: of an operator's validator deployment for the one Challenge it was written
@@ -60,8 +64,6 @@ RETIRED_PATH_FIELDS = {
 #: another way.
 #: `signer_socket` is where the miner's `carbon-miner-signer` listens, when
 #: not at the path derived from their public hotkey.
-#: `compute_credential` is the miner's rented-GPU provider key file, required
-#: exactly when the runtime declares a rented GPU (C-MLP-03 slice 4).
 #: `operator_config` (an operator's own deployment) or `miner_network` (the
 #: chain context and publisher setup reads for a miner, C-MLP-04): exactly one
 #: names the network a campaign talks to.
@@ -69,7 +71,6 @@ NETWORK_PATH_FIELDS = {"operator_config", "miner_network"}
 OPTIONAL_PATH_FIELDS = {
     "battery_validator",
     "signer_socket",
-    "compute_credential",
 } | NETWORK_PATH_FIELDS
 
 PROFILE_FIELDS = {
@@ -201,7 +202,6 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "authored_research",
     "scientific_tasks",
     "gpu_research",
-    "rented_gpu",
 }
 
 
@@ -311,6 +311,9 @@ def validated_profile(cfg):
         for field, code in RETIRED_PATH_FIELDS.items():
             if field in cfg["paths"]:
                 raise Rejected(code, 409)
+    if retired.declares_rented(cfg["runtime"]):
+        # A rented GPU is refused by name, never read as another runtime.
+        raise Rejected(retired.RENTED_GPU_RETIRED, 409)
     if (
         type(cfg["paths"]) is not dict
         or set(cfg["paths"]) - OPTIONAL_PATH_FIELDS != PATH_FIELDS
@@ -348,11 +351,6 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
-    if ("rented_gpu" in runtime) != ("compute_credential" in cfg["paths"]):
-        raise ValueError(
-            "compute_credential is required exactly when the runtime declares "
-            "rented_gpu"
-        )
     if LEGACY_INTAKE in cfg and not _intake_url(cfg[LEGACY_INTAKE]):
         raise ValueError("battery_intake is an https URL or a loopback URL")
     if "intakes" in cfg:
@@ -722,13 +720,6 @@ class RunnerAdapter:
                 declared_gpu(runtime)
             except (ValueError, KeyError, TypeError, LookupError):
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
-        if "rented_gpu" in runtime:
-            from carbon.challenge_registry.campaigns import declared_rented
-
-            try:
-                declared_rented(runtime)
-            except (ValueError, KeyError, TypeError, LookupError):
-                raise Rejected("research_runtime_interface_unavailable", 409) from None
         return cfg
 
     def preflight(self):
@@ -752,13 +743,9 @@ class RunnerAdapter:
                     else DEFAULT_PROVIDER
                 ),
                 "compute": (
-                    "rented-gpu:" + cfg["runtime"]["rented_gpu"][0]["provider"]
-                    if "rented_gpu" in cfg["runtime"]
-                    else (
-                        "local-isolated-gpu"
-                        if "gpu_research" in cfg["runtime"]
-                        else "local-isolated-cpu"
-                    )
+                    "local-isolated-gpu"
+                    if "gpu_research" in cfg["runtime"]
+                    else "local-isolated-cpu"
                 ),
                 # Registration is read at launch, before anything is recorded.
                 # A budget is the miner's to set at launch or not at all.
@@ -782,6 +769,14 @@ class RunnerAdapter:
                     "profile": None,
                     "status": "PROFILE_V1_RETIRED",
                     "reason": "This profile names a development grant. Launching needs only subnet registration now: replace grant_file and account_ref with campaigns_root and the runtime your campaign runs on (runner-profile v2).",
+                }
+            if refused.code == retired.RENTED_GPU_RETIRED:
+                return {
+                    "available": False,
+                    "profile": None,
+                    "status": "RENTED_GPU_RETIRED",
+                    "reason": "This profile names a GPU rented with your provider key. Set up compute again in Set up your environment. "
+                    + retired.NEXT_STEP,
                 }
             return self._unavailable()
         except Exception:  # noqa: BLE001 - private configuration errors stay private.
