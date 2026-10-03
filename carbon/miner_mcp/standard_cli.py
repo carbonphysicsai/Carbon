@@ -39,6 +39,51 @@ from carbon.miner_mcp.standard import ResearchToolAdapter
 from carbon.miner_mcp.standard_server import create_stdio_server
 
 
+class AttachRefused(ValueError):
+    """An attachment refused by a named check (LP-PROD-C D8).
+
+    `code` is closed and listed in `supervisor.NEXT_ACTIONS`, which says what
+    to do next. The message is the historical one, so a caller or test that
+    matched it is unchanged; a door shows the code and its next action, never
+    the message (which may name a check's internals)."""
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+#: Where `_check` notes which check an unnamed failure happened in.
+_CHECK = "_carbon_attach_check"
+
+
+@contextlib.contextmanager
+def _check(code):
+    """Name the check a failure inside happened in, as `code`, without
+    changing the exception: callers and tests still see its own type. A
+    failure that already names itself (a typed code, or an inner check) keeps
+    its own name."""
+    try:
+        yield
+    except Exception as exc:
+        if refusal_code(exc) is None:
+            with contextlib.suppress(Exception):
+                setattr(exc, _CHECK, code)
+        raise
+
+
+def refusal_code(exc):
+    """Which check refused an attachment: a held campaign lock is
+    `campaign_busy`; a typed failure answers its own closed code (an
+    `AttachRefused`, a `Rejected`, a signer failure); otherwise the check it
+    happened in, or None. Never the message."""
+    from scripts.dev.miner_launchpad.controller import LockHeld
+    from scripts.dev.miner_launchpad.supervisor import exception_code
+
+    if isinstance(exc, LockHeld):
+        return "campaign_busy"
+    return exception_code(exc) or getattr(exc, _CHECK, None)
+
+
 @dataclass(frozen=True)
 class OperatorProfile:
     """One attachable campaign and the profile that names it.
@@ -70,24 +115,35 @@ def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorPr
     from carbon.compute.retired import refuse_rented
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    cfg = validated_profile(private_json(path))
+    with _check("runner_profile_unusable"):
+        cfg = validated_profile(private_json(path))
     if cfg["enabled"] is not True and not cleanup_only:
-        raise ValueError("closed enabled operator profile required")
+        raise AttachRefused(
+            "research_dispatch_disabled", "closed enabled operator profile required"
+        )
     if (
         type(campaign) is not str
         or len(campaign) != 32
         or any(c not in "0123456789abcdef" for c in campaign)
     ):
-        raise ValueError("a campaign id from this profile's campaigns is required")
+        raise AttachRefused(
+            "campaign_not_found",
+            "a campaign id from this profile's campaigns is required",
+        )
     root = Path(cfg["campaigns_root"]) / campaign
+    unfinished = "existing unfinished campaign required"
+    if not root.is_dir():
+        raise AttachRefused("campaign_not_found", unfinished)
+    if not cleanup_only and (root / "campaign-complete.json").exists():
+        raise AttachRefused("campaign_complete", unfinished)
     if (
-        not root.is_dir()
-        or (not cleanup_only and (root / "campaign-complete.json").exists())
-        or not (root / "campaign.sqlite3").is_file()
+        not (root / "campaign.sqlite3").is_file()
         or (root / "campaign.sqlite3").is_symlink()
     ):
-        raise ValueError("existing unfinished campaign required")
-    manifest = private_json(root / "campaign-manifest.json")
+        raise AttachRefused("campaign_not_prepared", unfinished)
+    # A launch that was admitted and never prepared has no frozen manifest.
+    with _check("campaign_not_prepared"):
+        manifest = private_json(root / "campaign-manifest.json")
     # A campaign frozen for the retired rented GPU is refused by name before
     # anything is opened or reached (OWNER-MINER-COMPUTE-LINK-ONLY-01).
     refuse_rented(manifest.get("runtime"))
@@ -95,22 +151,32 @@ def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorPr
         manifest.get("schema") != PRODUCT
         or manifest.get("principal") != cfg["principal"]
         or manifest.get("campaign_id") != "cmp-" + campaign
-        or manifest.get("implementation", {}).get("revision")
-        != cfg["accepted_revision"]
     ):
-        raise ValueError("the campaign differs from this profile")
+        raise AttachRefused(
+            "campaign_manifest_differs", "the campaign differs from this profile"
+        )
+    if manifest.get("implementation", {}).get("revision") != cfg["accepted_revision"]:
+        raise AttachRefused(
+            "campaign_revision_differs", "the campaign differs from this profile"
+        )
     if cleanup_only:
-        meter = CampaignLedger(root)
-        meter.generation = CampaignControl(meter).status()["generation"]
-        if meter.retained_owner(manifest["owner"]) != manifest:
-            raise ValueError("retained cleanup profile differs")
+        with _check("campaign_manifest_differs"):
+            meter = CampaignLedger(root)
+            meter.generation = CampaignControl(meter).status()["generation"]
+            retained = meter.retained_owner(manifest["owner"])
+        if retained != manifest:
+            raise AttachRefused(
+                "campaign_manifest_differs", "retained cleanup profile differs"
+            )
     return OperatorProfile(path, cfg, campaign, root, manifest, cleanup_only)
 
 
 def _prepared_tasks(root, *, cleanup_only=False):
     path = root / "research-tasks" / "research-tasks.sqlite3"
     if not path.is_file() or path.is_symlink():
-        raise ValueError("existing prepared research tasks required")
+        raise AttachRefused(
+            "campaign_not_prepared", "existing prepared research tasks required"
+        )
     with sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True) as db:
         for (encoded,) in db.execute("SELECT view FROM tasks"):
             task = research.load_canonical(encoded, research.ResearchTaskView)
@@ -118,8 +184,11 @@ def _prepared_tasks(root, *, cleanup_only=False):
                 research.ResearchTaskState.RUNNING,
                 research.ResearchTaskState.CANCEL_REQUESTED,
             }:
-                raise ValueError(
-                    "uncertain task requires existing controller reconciliation"
+                # Its outcome is unknown: observe and cancel it with
+                # --cleanup-only, never by starting new research over it.
+                raise AttachRefused(
+                    "task_left_running",
+                    "uncertain task requires existing controller reconciliation",
                 )
 
 
@@ -137,18 +206,28 @@ def _runtime(profile):
 
     cfg = profile.document
     paths = {name: Path(value) for name, value in cfg["paths"].items()}
-    implementation = accepted_implementation(cfg["accepted_revision"])
-    image = load_image_identity(paths["image_manifest"])
-    verify_current_worker(image, implementation)
-    if (
-        not profile.cleanup_only
-        and not doctor(image_id=image.image_id, image_identity=image).eligible
-    ):
-        raise ValueError("accepted numerical host unavailable")
-    analysis = load_analysis_image(paths["analysis_image_manifest"])
-    verify_image(analysis)
+    # This checkout and its worker images are the ones the profile accepted:
+    # not, after an update the installer has not accepted yet.
+    with _check("carbon_updated_rerun_installer"):
+        implementation = accepted_implementation(cfg["accepted_revision"])
+        image = load_image_identity(paths["image_manifest"])
+        verify_current_worker(image, implementation)
+    with _check("runtime_unavailable"):
+        eligible = (
+            profile.cleanup_only
+            or doctor(image_id=image.image_id, image_identity=image).eligible
+        )
+    if not eligible:
+        raise AttachRefused(
+            "runtime_unavailable", "accepted numerical host unavailable"
+        )
+    with _check("carbon_updated_rerun_installer"):
+        analysis = load_analysis_image(paths["analysis_image_manifest"])
+        verify_image(analysis)
     if analysis.parent_image != image.image_id:
-        raise ValueError("analysis image parent differs")
+        raise AttachRefused(
+            "carbon_updated_rerun_installer", "analysis image parent differs"
+        )
     runtime = {
         "implementation": implementation,
         "images": [image.image_id, analysis.image_id],
@@ -156,14 +235,15 @@ def _runtime(profile):
     from carbon.challenge_registry.campaigns import campaign_for_manifest
 
     # Each Challenge's campaign re-checks its own frozen binding.
-    campaign = campaign_for_manifest(profile.manifest)
-    campaign.check_attached(
-        profile.manifest,
-        implementation=implementation,
-        images=runtime["images"],
-        julia_image=_authored_image(profile, analysis),
-        gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
-    )
+    with _check("campaign_runtime_differs"):
+        campaign = campaign_for_manifest(profile.manifest)
+        campaign.check_attached(
+            profile.manifest,
+            implementation=implementation,
+            images=runtime["images"],
+            julia_image=_authored_image(profile, analysis),
+            gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
+        )
     return _connection(profile, paths), image, analysis, None
 
 
@@ -176,22 +256,27 @@ def _connection(profile, paths):
 
     # The operator configuration where an operator runs one, otherwise the
     # miner's own network file (C-MLP-04).
-    config = binding(
-        operator_config=paths.get("operator_config"),
-        miner_network=paths.get("miner_network"),
-    )
-    public = json.loads(private_file(paths["miner_public"]).read_bytes())
-    if (
-        public["netuid"] != CARBON_NETUID
-        or config.netuid != CARBON_NETUID
-        or public["hotkey"] != profile.registered_hotkey
-    ):
-        raise ValueError("existing miner differs from the registered miner")
-    # The miner's own signer holds the hotkey; Carbon only reaches it.
-    key = miner_signer(public, paths.get("signer_socket"))
+    with _check("runner_profile_unusable"):
+        config = binding(
+            operator_config=paths.get("operator_config"),
+            miner_network=paths.get("miner_network"),
+        )
+        public = json.loads(private_file(paths["miner_public"]).read_bytes())
+    differs = "existing miner differs from the registered miner"
+    if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
+        raise AttachRefused("registration_wrong_network", differs)
+    if public["hotkey"] != profile.registered_hotkey:
+        raise AttachRefused("miner_differs_from_campaign", differs)
+    # The miner's own signer holds the hotkey; Carbon only reaches it. A
+    # signer failure names itself (`SignerCode`); anything else is the
+    # profile's hotkey or socket path.
+    with _check("runner_profile_unusable"):
+        key = miner_signer(public, paths.get("signer_socket"))
     session = profile.root / "research-auth"
     if not session.is_dir() or session.is_symlink():
-        raise ValueError("prepared authenticated session required")
+        raise AttachRefused(
+            "session_unavailable", "prepared authenticated session required"
+        )
     return LocalMinerConnection(
         session, paths["image_manifest"], config.context, config.publisher_hotkey, key
     )
@@ -437,13 +522,15 @@ async def attached_profile(profile: OperatorProfile):
     if type(profile) is not OperatorProfile:
         raise TypeError("a loaded operator profile is required")
     cleanup_only = profile.cleanup_only
+    # A held lock is `LockHeld`: `refusal_code` names it campaign_busy.
     with owner_lock(profile.root):
         if profile.development_grant is None and not cleanup_only:
             from scripts.dev.miner_launchpad.runner import install_research_images
 
             # The same install the Launchpad does at launch: the host's
             # current image records, available to this campaign now.
-            install_research_images(profile.document, profile.root)
+            with _check("runtime_unavailable"):
+                install_research_images(profile.document, profile.root)
         ledger = CampaignLedger(profile.root, admission=profile.development_grant)
         # A read-only refusal needs no session: unresolved consumption is
         # refused before anything reaches the runtime.
@@ -454,56 +541,79 @@ async def attached_profile(profile: OperatorProfile):
                     "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
                 ).fetchone()
             ):
-                raise ValueError("unresolved consumption requires reconciliation")
+                raise AttachRefused(
+                    "reconciliation_required",
+                    "unresolved consumption requires reconciliation",
+                )
         # Registration before any write: the campaign's frozen record, its
         # control generation and its prepared tasks are not touched until the
         # authenticated owner is known to be the registered one. The
         # connection's session files already exist from launch.
-        connection, image, analysis, _ = _runtime(profile)
+        with _check("runtime_unavailable"):
+            connection, image, analysis, _ = _runtime(profile)
         # Practice on the miner's own remote setup, from their profile: a
         # machine that does not match the frozen campaign is refused here,
         # before any request; nothing is reached until a trial runs.
-        remote = None if cleanup_only else _remote(profile)
-        owner = await _requester(connection)
+        with _check("remote_setup_unavailable"):
+            remote = None if cleanup_only else _remote(profile)
+        with _check("registration_check_failed"):
+            owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
-            raise ValueError("authenticated campaign owner changed")
+            raise AttachRefused(
+                "session_unavailable", "authenticated campaign owner changed"
+            )
         if not cleanup_only:
-            ledger.freeze(profile.manifest)  # Must match the existing immutable record.
+            # Must match the existing immutable record.
+            with _check("campaign_manifest_differs"):
+                ledger.freeze(profile.manifest)
         _prepared_tasks(profile.root, cleanup_only=cleanup_only)
         control = CampaignControl(ledger)
         status = control.status()
-        if not cleanup_only and (
-            status["desired"] != "RUN"
-            or status["state"]
-            in {
-                "RECONCILIATION_REQUIRED",
-                "STOPPED",
-                "COMPLETED",
-            }
-        ):
-            raise ValueError("campaign is not available for research")
-        ledger.generation = status["generation"] if cleanup_only else control.acquire()
-        if cleanup_only:
-            ledger.retained_owner(profile.manifest["owner"])
-        from carbon.challenge_registry.campaigns import campaign_for_manifest
-        from carbon.development_session.capability_demand import DemandStore
+        # A miner's own campaign may be attached while paused; a granted
+        # development campaign (Carbon's Workbench) keeps the historical rule.
+        product = profile.development_grant is None
+        if not cleanup_only:
+            _refuse_unavailable(status, paused_ok=product)
+        # Attaching to a paused campaign does not resume it (D12): its own
+        # tools run while attached - the Tools tab of an autonomous campaign
+        # the miner paused - and detaching leaves it paused. The pause is
+        # lifted for the attachment, whose lock keeps every other holder out,
+        # and asked again before it settles.
+        repause = not cleanup_only and product and status["desired"] == "PAUSE"
+        if repause:
+            control.request("resume")
+        try:
+            ledger.generation = (
+                status["generation"] if cleanup_only else control.acquire()
+            )
+            if cleanup_only:
+                ledger.retained_owner(profile.manifest["owner"])
+            from carbon.challenge_registry.campaigns import campaign_for_manifest
+            from carbon.development_session.capability_demand import DemandStore
 
-        # Capability demand on this host: registry ids and miner digests
-        # only. On a miner's machine it stays theirs.
-        demand = DemandStore(profile.root / "capability-demand.sqlite")
-        campaign = campaign_for_manifest(profile.manifest)
-        composition, wrapper = campaign.compose(
-            ledger=ledger,
-            owner=owner,
-            image=image,
-            analysis=analysis,
-            connection=connection,
-            demand=demand,
-            cleanup_only=cleanup_only,
-            julia_image=_authored_image(profile, analysis),
-            gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
-            remote=remote,
-        )
+            # Capability demand on this host: registry ids and miner digests
+            # only. On a miner's machine it stays theirs.
+            demand = DemandStore(profile.root / "capability-demand.sqlite")
+            with _check("runtime_unavailable"):
+                campaign = campaign_for_manifest(profile.manifest)
+                composition, wrapper = campaign.compose(
+                    ledger=ledger,
+                    owner=owner,
+                    image=image,
+                    analysis=analysis,
+                    connection=connection,
+                    demand=demand,
+                    cleanup_only=cleanup_only,
+                    julia_image=_authored_image(profile, analysis),
+                    gpu_image=campaign.gpu_image(
+                        profile.root, profile.manifest["runtime"]
+                    ),
+                    remote=remote,
+                )
+        except BaseException:
+            if repause:
+                _pause_again(control)
+            raise
         bound = None
         try:
             bound = _AdmittedConnection(connection, profile, ledger, control)
@@ -521,6 +631,8 @@ async def attached_profile(profile: OperatorProfile):
                 await adapter.shutdown_tasks()
         finally:
             try:
+                if bound is None and repause:
+                    _pause_again(control)
                 if bound is not None:
                     bound.closed = True
                     # A cancelled transport await does not cancel to_thread workers.
@@ -530,6 +642,9 @@ async def attached_profile(profile: OperatorProfile):
                         await asyncio.get_running_loop().shutdown_default_executor()
                         clean = RunnerAdapter._cleanup(ledger)
                     finally:
+                        if repause:
+                            # Asked again before settling, so it settles PAUSED.
+                            _pause_again(control)
                         if not cleanup_only or status["state"] not in {
                             "STOPPED",
                             "COMPLETED",
@@ -545,6 +660,33 @@ async def attached_profile(profile: OperatorProfile):
                             )
             finally:
                 composition.tasks.close()
+
+
+def _refuse_unavailable(status, *, paused_ok):
+    """Refuse, by name, attaching to a campaign that takes no research: one
+    awaiting reconciliation, stopped (or stopping) or complete, and - unless
+    `paused_ok` - paused. A miner's paused campaign is attachable (D12);
+    before 2026-10-03 every campaign not asked to RUN was refused, so the
+    Tools tab could not open on an autonomous campaign even after the page
+    told its miner to pause it."""
+    unavailable = "campaign is not available for research"
+    if status["state"] == "RECONCILIATION_REQUIRED":
+        raise AttachRefused("reconciliation_required", unavailable)
+    if status["state"] == "STOPPED" or status["desired"] == "STOP":
+        raise AttachRefused("campaign_stopped", unavailable)
+    if status["state"] == "COMPLETED":
+        raise AttachRefused("campaign_complete", unavailable)
+    if status["desired"] == "PAUSE" and not paused_ok:
+        raise AttachRefused("campaign_paused", unavailable)
+
+
+def _pause_again(control):
+    """Ask again for the pause an attachment lifted (D12). A stop asked
+    meanwhile stands. A resume the miner asked for meanwhile was refused
+    `campaign_busy` while the attachment held the campaign, and its next
+    action says to try again after detaching, so the pause is restored."""
+    if control.status()["desired"] == "RUN":
+        control.request("pause")
 
 
 def _waits_for_its_miner(profile, control):
@@ -640,7 +782,8 @@ async def serve_operations(configuration: Path, state_dir=None):
     from carbon.miner_mcp.open_tier import create_open_tier_server
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    host = RunnerAdapter.for_profile(configuration)
+    with _check("runner_profile_unusable"):
+        host = RunnerAdapter.for_profile(configuration)
 
     def host_facts():
         # Discovery reports what this operator's host can run: its configured
@@ -764,12 +907,12 @@ def main(argv=None):
             asyncio.run(
                 serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)
             )
-    except (Exception, KeyboardInterrupt):  # noqa: BLE001
+    except (Exception, KeyboardInterrupt) as exc:  # noqa: BLE001
         # The open tier has no profile, grant or campaign to verify, so it must
         # not be told to go and check them.
         print(
             (
-                "Carbon MCP unavailable: verify your runner profile, the campaign named, your subnet registration, the accepted runtime and reconciliation state."
+                unavailable_message(exc)
                 if args.configuration is not None
                 else "Carbon MCP unavailable."
             ),
@@ -777,6 +920,22 @@ def main(argv=None):
         )
         return 2
     return 0
+
+
+def unavailable_message(exc):
+    """What a miner's terminal is told when this door cannot serve: the
+    check that failed, by its closed code, and the next action for it
+    (`supervisor.NEXT_ACTIONS`) - a task left RUNNING, for one, says to attach
+    with --cleanup-only. Never the exception's message, a path or a secret.
+    Before 2026-10-03 every failure printed one sentence asking the miner to
+    verify six things at once (LP-PROD-C D8)."""
+    from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION, NEXT_ACTIONS
+
+    if isinstance(exc, KeyboardInterrupt):
+        code = "carbon_mcp_interrupted"
+    else:
+        code = refusal_code(exc) or "carbon_mcp_failed"
+    return f"Carbon MCP unavailable: {code}. {NEXT_ACTIONS.get(code, FALLBACK_ACTION)}"
 
 
 if __name__ == "__main__":

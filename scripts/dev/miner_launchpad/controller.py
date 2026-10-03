@@ -61,6 +61,52 @@ class Rejected(Exception):
         self.status = status
 
 
+class LockHeld(RuntimeError):
+    """`owner_lock` found its lock held by a live process. A RuntimeError with
+    the historical message, so every existing caller is unchanged; a door
+    that reaches one answers `campaign_busy` (LP-PROD-C)."""
+
+
+def failure_answer(exc, *, reading, campaign=False):
+    """The closed (status, code) a door answers for a failure that is not a
+    `Rejected` (LP-PROD-C D8).
+
+    Before 2026-10-03 every ValueError and RuntimeError was answered
+    `research_reconciliation_required`, which named a state the campaign was
+    not in and sent the miner to reconcile something that needed nothing. Now:
+    a held lock is `campaign_busy`; a typed failure answers its own closed code
+    (a signer failure, an operation's refusal); anything else is answered for
+    what was asked - a read that could not be read back (a campaign's own
+    records: `campaign_readback_unavailable`), or an operation that did not
+    complete (`operation_not_completed`). Never the exception's message. The
+    next action for every code is the refusal catalog's
+    (`GET /api/v1/refusals`), so an error body keeps its one shape on both
+    doors: `{error}`.
+    """
+    from scripts.dev.miner_launchpad.supervisor import exception_code
+
+    if isinstance(exc, LockHeld):
+        return 409, "campaign_busy"
+    code = exception_code(exc)
+    if code is not None:
+        return 409, code
+    if reading:
+        return 409, (
+            "campaign_readback_unavailable" if campaign else "readback_unavailable"
+        )
+    return 409, "operation_not_completed"
+
+
+def session_url(origin: str, token: str) -> str:
+    """The page's address with the session token in its fragment.
+
+    A fragment never leaves the browser: it is not sent to this server, not
+    logged by it, and not carried in a Referer. The page reads it once, removes
+    it from the address bar and authenticates as if it had been pasted
+    (slice F), so a restart needs only the printed link."""
+    return f"{origin}/#token={token}"
+
+
 def validate_spec(value: object) -> dict:
     fields = set(CHOICES) | {"max_steps", "max_seconds"}
     if type(value) is not dict or set(value) != fields:
@@ -641,6 +687,13 @@ class Handler(BaseHTTPRequestHandler):
                 from scripts.dev.miner_launchpad.operations import describe
 
                 self.reply(200, {"operations": describe()})
+            elif self.path == "/api/v1/refusals":
+                # The next action for every refusal code a door can answer or
+                # a campaign can record, from the one closed table (LP-PROD-C
+                # D8): the page renders any error or `last_refusal` with it.
+                from scripts.dev.miner_launchpad.supervisor import catalog
+
+                self.reply(200, catalog())
             elif self.path == "/api/v1/onboarding/requirements":
                 # Open tier. No campaign, no compute, no ledger.
                 self.reply(200, self.server.onboarding.requirements())
@@ -746,8 +799,11 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(exc.status, {"error": exc.code})
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
-        except ValueError:
-            self.reply(409, {"error": "research_reconciliation_required"})
+        except Exception as exc:  # noqa: BLE001 - a closed code, never a message
+            status, code = failure_answer(
+                exc, reading=True, campaign=self.path.startswith("/api/v1/research/")
+            )
+            self.reply(status, {"error": code})
 
     def do_POST(self):
         try:
@@ -882,8 +938,9 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(exc.status, body)
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
-        except (ValueError, RuntimeError):
-            self.reply(409, {"error": "research_reconciliation_required"})
+        except Exception as exc:  # noqa: BLE001 - a closed code, never a message
+            status, code = failure_answer(exc, reading=False)
+            self.reply(status, {"error": code})
 
 
 @contextlib.contextmanager
@@ -929,7 +986,7 @@ def owner_lock(directory: Path):
         try:
             acquire()
         except OSError as exc:
-            raise RuntimeError("Another launcher owns this state directory") from exc
+            raise LockHeld("Another launcher owns this state directory") from exc
         try:
             yield
         finally:
@@ -1035,6 +1092,11 @@ def main() -> None:
             if runner
             else f"Carbon DEVELOPMENT controller rehearsal: {server.origin}"
         )
+        # The link carries the token in its fragment, so a restart needs only
+        # a click; the server still binds loopback and checks Host, Origin and
+        # the bearer token on every request (LP-PROD-C D14).
+        link = session_url(server.origin, token)
+        print(f"Open (this link holds your session token; do not share): {link}")
         print(f"Local session token (paste into page; do not share): {token}")
         print(
             "Set up your environment, then choose a Challenge and launch."

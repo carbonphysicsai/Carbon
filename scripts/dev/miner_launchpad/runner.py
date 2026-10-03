@@ -309,6 +309,156 @@ def retired_challenge(root):
     return manifest.exists() and "challenge" not in json.loads(manifest.read_bytes())
 
 
+#: Carbon was updated after the installer wrote the runner profile (D9).
+CARBON_UPDATED = "carbon_updated_rerun_installer"
+
+
+def checkout_refusal(cfg, repository=None):
+    """`carbon_updated_rerun_installer` when this checkout, or a worker image
+    the profile names, is not what the profile accepted; otherwise None
+    (LP-PROD-C D9).
+
+    The common case it catches: Carbon was updated (a pull, a new release)
+    after the installer wrote the profile, so every launch, resume and
+    operation would fail inside the campaign on a source tree that is no
+    longer the accepted one - before 2026-10-03, as INTERRUPTED with no
+    reason. Cheap enough for every preflight: two `git` reads and two small
+    image records, never the archive digest, which execution still checks
+    (`research_campaign.accepted_implementation`). Judged only on what can be
+    read: a revision this checkout has never seen, or an image record that
+    cannot be loaded, is left to execution, which refuses it by its own
+    check.
+    """
+    import subprocess
+
+    repository = Path(repository or supervision.repository_root())
+
+    def git(*argv):
+        return subprocess.run(
+            ["git", *argv],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+
+    accepted = cfg.get("accepted_revision")
+    if type(accepted) is str and re.fullmatch(r"[0-9a-f]{40}", accepted):
+        try:
+            head = git("rev-parse", "HEAD")
+            known = git("cat-file", "-e", accepted + "^{commit}")
+        except (OSError, subprocess.SubprocessError):
+            head = known = None
+        if (
+            head is not None
+            and head.returncode == 0
+            and known.returncode == 0
+            and head.stdout.strip() != accepted
+        ):
+            return CARBON_UPDATED
+    runtime = cfg.get("runtime") if type(cfg.get("runtime")) is dict else {}
+    images = runtime.get("images") if type(runtime.get("images")) is list else []
+    paths = cfg.get("paths") if type(cfg.get("paths")) is dict else {}
+    for position, field, load in (
+        (0, "image_manifest", _worker_image),
+        (1, "analysis_image_manifest", _analysis_image),
+    ):
+        image = _readable(load, paths.get(field))
+        if image is None:
+            continue  # Unreadable here: execution judges it.
+        if images[position : position + 1] != [image.image_id]:
+            return CARBON_UPDATED
+        declared = (runtime.get("implementation") or {}).get("source_tree_digest")
+        built = getattr(image, "source_tree_digest", None)
+        if built is not None and declared is not None and declared != built:
+            return CARBON_UPDATED
+    return None
+
+
+def _readable(load, path):
+    """An image record loaded from `path`, or None when it cannot be."""
+    try:
+        return load(Path(path))
+    except Exception:  # noqa: BLE001 - a record that cannot be read is not judged
+        return None
+
+
+def _worker_image(path):
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+    return load_image_identity(path)
+
+
+def _analysis_image(path):
+    from carbon.development_session.research_image import load_analysis_image
+
+    return load_analysis_image(path)
+
+
+def binding_changes(cfg, row, manifest):
+    """What a prepared campaign was frozen with that the runner profile no
+    longer matches (LP-PROD-C D10): a list drawn from `principal`,
+    `revision`, `images`, `hotkey` and `research_guidance`; empty when the
+    profile can carry it on.
+
+    Exactly what a resume's preparation would refuse: the frozen principal,
+    implementation revision and images (`prepare` compares them with the
+    host), the registered hotkey the campaign was admitted under (`prepare`
+    compares it with the profile's public hotkey), and the research guidance
+    frozen with it (the run compares it before anything starts). The hotkey
+    is compared only when the profile's public record can be read here; one
+    that cannot is left to preparation, which refuses it by its own check.
+    Everything else in a profile may change under an existing campaign.
+    """
+    runtime = cfg.get("runtime") if type(cfg.get("runtime")) is dict else {}
+    changed = []
+    if manifest.get("principal") != cfg.get("principal"):
+        changed.append("principal")
+    if (manifest.get("implementation") or {}).get("revision") != cfg.get(
+        "accepted_revision"
+    ):
+        changed.append("revision")
+    if manifest.get("images") != runtime.get("images"):
+        changed.append("images")
+    frozen_hotkey = (manifest.get("admission") or {}).get("hotkey")
+    try:
+        public = json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())
+        hotkey = public["hotkey"]
+    except Exception:  # noqa: BLE001 - unreadable: preparation judges it
+        hotkey = None
+    if hotkey is not None and frozen_hotkey is not None and hotkey != frozen_hotkey:
+        changed.append("hotkey")
+    stored = row.get("research_guidance")
+    frozen_task = guidance.verify(json.loads(stored) if stored is not None else None)
+    if frozen_task != guidance.configured(cfg):
+        changed.append("research_guidance")
+    return changed
+
+
+def evaluation_refusal(cfg, manifest):
+    """`evaluation_unavailable` when the campaign's Challenge is evaluated by
+    a validator and the profile configures none for it - neither a deployment
+    (`validators`) nor an intake (`intakes`, and their legacy names) - else
+    None (LP-PROD-C D11).
+
+    Exactly what the Challenge's campaign reads when it submits
+    (`carbon.battery.campaign.evaluation_config` and `_intake`, through
+    `campaign_args`), asked before a submit is admitted, so the miner is told
+    at once instead of reading "Submitted" and finding the refusal later. A
+    Challenge whose campaign returns no validator feedback (`feedback_schema`
+    None) needs no deployment here. A deployment that is configured but
+    unusable is still refused by the campaign, by its own code."""
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+    challenge = (manifest.get("challenge") or {}).get("id")
+    if campaign_for_manifest(manifest).feedback_schema is None:
+        return None
+    if validators(cfg).get(challenge) or intakes(cfg).get(challenge):
+        return None
+    return "evaluation_unavailable"
+
+
 def validated_profile(cfg):
     """A runner profile v2, closed, or the reason it is not one.
 
@@ -617,15 +767,9 @@ def _operation_digest(operation, request):
     return digest(canonical([operation, fields]))
 
 
-_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}|[a-z][a-z0-9_]{0,63}")
-
-
-def exception_code(exc):
-    """A typed failure's closed code (its `code`, or that code's `value`),
-    or None. Never the message."""
-    code = getattr(exc, "code", None)
-    code = getattr(code, "value", code)
-    return code if type(code) is str and _CODE.fullmatch(code) else None
+#: A typed failure's closed code (its `code`, or that code's `value`), or
+#: None; never the message. One definition, shared with the doors' answers.
+exception_code = supervision.exception_code
 
 
 def record_interruption(root, stage, exc):
@@ -655,6 +799,13 @@ def record_interruption(root, stage, exc):
 class RunnerAdapter:
     #: How a client starts a detached supervisor; a test replaces it.
     spawn = staticmethod(supervision.spawn_detached)
+    #: Whether this checkout is still the one the profile accepted (D9); a
+    #: test replaces it.
+    checkout_refusal = staticmethod(checkout_refusal)
+    #: How long a campaign thread keeps trying for its campaign's lock before
+    #: answering `campaign_busy`: long enough to outlast a door's instant
+    #: probe (`_probe_lock`), short enough that a real holder is reported.
+    LOCK_WAIT_SECONDS = 1.0
 
     def __init__(
         self,
@@ -957,6 +1108,20 @@ class RunnerAdapter:
 
         try:
             cfg = self.configured()
+            stale = self.checkout_refusal(cfg)
+            if stale is not None:
+                # Caught here, before a launch, rather than as an interrupted
+                # campaign (D9).
+                return {
+                    "available": False,
+                    "profile": cfg["profile_id"],
+                    "status": "CARBON_UPDATED",
+                    "code": stale,
+                    "reason": supervision.NEXT_ACTIONS[stale],
+                    "research_guidance": guidance.configured(cfg),
+                    "runtime_revision": cfg["accepted_revision"],
+                    "review": review(cfg),
+                }
             value = {
                 "available": True,
                 "profile": cfg["profile_id"],
@@ -1310,6 +1475,7 @@ class RunnerAdapter:
         if not previous:
             # Refused here, before the registration read, as well as in the
             # body: a choice that cannot run never reaches the chain.
+            self._current(cfg)
             self._launch_choice(cfg, request, self._challenge(request, cfg["runtime"]))
             return None
         # A lost response replays the campaign it created. It was admitted
@@ -1356,6 +1522,13 @@ class RunnerAdapter:
         ):
             raise Rejected("operation_replay_conflict", 409)
         return row["campaign"]
+
+    def _current(self, cfg):
+        """Refuse new work, by name, on a checkout or worker image the profile
+        did not accept (D9): `carbon_updated_rerun_installer`."""
+        stale = self.checkout_refusal(cfg)
+        if stale is not None:
+            raise Rejected(stale, 409)
 
     def _launch_identity(self, cfg, request):
         # The browser's request digest is of the launch fields it historically
@@ -1594,7 +1767,9 @@ class RunnerAdapter:
         if (run_id, request_digest) != (row["id"], row["request_digest"]):
             raise Rejected("launch_record_differs", 409)
         if config_pin != row["config_digest"]:
-            raise Rejected("profile_differs_from_request", 409)
+            # Never prepared: the launch binds the whole profile its miner
+            # reviewed, so a changed one cannot carry it out (D10).
+            raise Rejected("profile_changed_since_launch", 409)
         challenge = self._challenge(request, cfg["runtime"])
         choice = self._launch_choice(cfg, request, challenge)
         miner = _registered(self, cfg)
@@ -1813,6 +1988,13 @@ class RunnerAdapter:
         agent or operation thread, or another session (RSURF-D16)."""
         thread = self.threads.get(identity)
         if thread is not None and thread.is_alive():
+            # A paused agent's run still holds the campaign while it waits at
+            # its checkpoint, so "pause it" is not the advice (D12).
+            with contextlib.suppress(Exception):
+                row, kind, root = self._bound(identity)
+                control = CampaignControl(self._ledger(row, kind, root))
+                if control.status()["desired"] == "PAUSE":
+                    return "carbon_agent_paused"
             return "carbon_agent_or_operation"
         # Or in the supervisor, when that is another process (LP-PROD-C).
         with contextlib.suppress(Exception):
@@ -1882,10 +2064,33 @@ class RunnerAdapter:
         )
 
     def submit_admitted(self, admitted, request):
-        # Checked before the thread starts, so a submit with nothing frozen is
-        # refused to the caller rather than failing where no one sees it.
+        # Checked before the thread starts, so a submit that cannot be
+        # evaluated - nothing frozen, both final exams used, Carbon's agent
+        # selects, no validator configured for the Challenge - is refused to
+        # the caller rather than answered SUBMITTING and refused where no one
+        # sees it (LP-PROD-C D11; observed live: the page said "Submitted").
+        self._admissible(admitted)
         self._require_frozen(admitted)
+        self._require_evaluation(admitted)
         return self._background(admitted, "submit", {}, "SUBMITTING", request)
+
+    @staticmethod
+    def _require_evaluation(admitted):
+        """`evaluation_unavailable` now, when the profile configures no
+        validator deployment or intake for the campaign's Challenge
+        (`evaluation_refusal`)."""
+        root = Path(admitted.campaign["root"])
+        manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+        if "challenge" not in manifest:
+            raise Rejected("challenge_retired", 409)
+        try:
+            refusal = evaluation_refusal(admitted.profile, manifest)
+        except Exception as exc:  # noqa: BLE001 - its closed code, never its text
+            raise Rejected(
+                exception_code(exc) or "evaluation_unavailable", 409
+            ) from None
+        if refusal is not None:
+            raise Rejected(refusal, 409)
 
     @staticmethod
     def _work(operation, params):
@@ -1955,6 +2160,7 @@ class RunnerAdapter:
                     if self._recorded_operation(db, key, operation, request):
                         return self.get(identity)
             self._admissible(admitted)
+            self._current(admitted.profile)
             previous = self.threads.get(identity)
             if delegating:
                 if self._busy_elsewhere(identity):
@@ -1966,6 +2172,10 @@ class RunnerAdapter:
                 previous.join(timeout=2)
                 if previous.is_alive():
                     raise Rejected("campaign_busy", 409)
+            # Held by an attached agent, the page's tools or Carbon's agent:
+            # refused now, rather than answered PRACTICING and refused on the
+            # thread (D11).
+            self._probe_lock(Path(admitted.campaign["root"]))
             if key is not None:
                 with self.db() as db:
                     try:
@@ -2015,10 +2225,44 @@ class RunnerAdapter:
         return self.get(identity)
 
     @staticmethod
+    def _probe_lock(root):
+        """`campaign_busy` now when a live process holds the campaign's
+        ownership lock: an attached agent (detach it), the Control Center's
+        tools (close them), or Carbon's agent at work. Takes the lock for an
+        instant only; a campaign thread starting in that instant waits for it
+        (`LOCK_WAIT_SECONDS`) rather than answering busy."""
+        try:
+            with owner_lock(root):
+                return
+        except RuntimeError:
+            raise Rejected("campaign_busy", 409) from None
+
+    def _hold(self, stack, root):
+        """Enter the campaign's ownership lock on `stack`, trying for
+        `LOCK_WAIT_SECONDS`. Raises `LockHeld` (a RuntimeError) while a live
+        holder keeps it."""
+        deadline = time.monotonic() + self.LOCK_WAIT_SECONDS
+        while True:
+            try:
+                stack.enter_context(owner_lock(root))
+                return
+            except RuntimeError:
+                if time.monotonic() >= deadline:
+                    raise
+                time.sleep(0.05)
+
+    @staticmethod
     def _require_frozen(admitted):
+        """The rules `research_campaign.submit_frozen` enforces, read from the
+        campaign's files: the miner selects in it, a final exam is left, and
+        a candidate is frozen for it. Until 2026-10-03 a campaign whose agent
+        selects, or whose final exams were both used, was answered SUBMITTING
+        and refused on the thread."""
         from carbon.development_session.research_campaign import FINAL_EPOCHS
 
         root = Path(admitted.campaign["root"])
+        if product_agent(root) not in (None, "none"):
+            raise Rejected("the_agent_selects_in_this_campaign", 409)
         for epoch in FINAL_EPOCHS:
             folder = root / ("epoch-" + str(epoch))
             if (folder / "permitted-final-feedback.json").exists():
@@ -2026,6 +2270,8 @@ class RunnerAdapter:
             if (folder / "selected-recipe.json").exists():
                 return
             break
+        else:
+            raise Rejected("final_exams_used", 409)
         raise Rejected("freeze_a_candidate_first", 409)
 
     def _operation_thread(self, admitted, work):
@@ -2088,7 +2334,7 @@ class RunnerAdapter:
         )
         stack = ExitStack()
         try:
-            stack.enter_context(owner_lock(root))
+            self._hold(stack, root)
         except RuntimeError:
             raise Rejected("campaign_busy", 409) from None
         with stack:
@@ -2241,10 +2487,11 @@ class RunnerAdapter:
                 else None
             )
             if task != guidance.configured(cfg):
-                raise ValueError("frozen research guidance differs")
+                # Frozen with other guidance than the profile now gives (D10).
+                raise Rejected("profile_changed_since_launch", 409)
             stack = ExitStack()
             try:
-                stack.enter_context(owner_lock(root))
+                self._hold(stack, root)
             except RuntimeError:
                 # An attached agent, the page's tools or another run holds
                 # the campaign: nothing here changed it.
@@ -2491,12 +2738,24 @@ class RunnerAdapter:
                 raise Rejected("campaign_busy", 409)
         else:
             if action == "resume":
-                cfg = self.configured()
-                if digest(canonical(cfg)) != row["config_digest"]:
-                    raise ValueError("resume binding differs")
-                # Refused by name now, rather than after the thread starts.
+                try:
+                    cfg = self.configured()
+                except Rejected:
+                    raise
+                except Exception:  # noqa: BLE001 - never the profile's content
+                    raise Rejected("research_profile_unavailable", 409) from None
+                # Each refused by name now, rather than after the thread
+                # starts: a checkout the profile did not accept (D9), a
+                # profile that no longer matches what the campaign was frozen
+                # with (D10), the frozen provider's key.
+                self._current(cfg)
+                self._resume_binding(cfg, dict(row), root)
                 self._frozen_credential(cfg, root)
-            control.request(action)
+            try:
+                control.request(action)
+            except ValueError:
+                # A stop cannot be reversed: resume and pause refused by name.
+                raise Rejected("campaign_stopped", 409) from None
             if action == "stop":
                 ledger.generation = control.status()["generation"]
                 from carbon.development_session.research_carrier import request_cancel
@@ -2523,6 +2782,30 @@ class RunnerAdapter:
                 # never prepared is carried out from its launch record.
                 self._dispatch_run(identity, cfg, root)
         return self.get(identity)
+
+    @staticmethod
+    def _resume_binding(cfg, row, root):
+        """Refuse a resume, `profile_changed_since_launch` ("launch a new
+        campaign"), when the profile no longer matches what the campaign
+        needs (LP-PROD-C D10).
+
+        A prepared campaign is bound to its frozen manifest, not to the whole
+        profile: only what it was frozen with is compared
+        (`binding_changes`), so changing an unrelated setting - a model
+        choice for new launches, a validator intake, the remote machine's
+        address, the profile's name - no longer orphans every existing
+        campaign. Until 2026-10-03 any change to the profile digest refused
+        every resume, as `research_reconciliation_required`. A launch never
+        prepared has no manifest yet: it is carried out from its record under
+        the profile its miner reviewed, so that whole profile still binds it.
+        """
+        manifest = Path(root) / "campaign-manifest.json"
+        if not manifest.exists():
+            if digest(canonical(cfg)) != row["config_digest"]:
+                raise Rejected("profile_changed_since_launch", 409)
+            return
+        if binding_changes(cfg, row, json.loads(manifest.read_bytes())):
+            raise Rejected("profile_changed_since_launch", 409)
 
     def _settle_if_idle(self, ledger, control, root):
         """Settle the campaign now, with the real cleanup check, if no live
@@ -2603,14 +2886,22 @@ class RunnerAdapter:
             ]
         result = []
         for identity in ids:
+            # One campaign whose records cannot be read back is one row that
+            # says so; the list, and the page built on it, stays up (D13).
+            # Until 2026-10-03 only a `Rejected` was caught, so one bad
+            # projection failed GET /api/v1/research and the whole page read
+            # "Connection interrupted".
             try:
                 result.append(self.get(identity))
-            except Rejected:
+            except Exception:  # noqa: BLE001 - never a trace or a path
                 result.append(
                     {
                         "id": identity,
                         "state": "READBACK_UNAVAILABLE",
                         "mode": "LIVE_PRACTICE_RESEARCH",
+                        "next_action": supervision.NEXT_ACTIONS[
+                            "campaign_readback_unavailable"
+                        ],
                     }
                 )
         return result

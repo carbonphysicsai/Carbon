@@ -42,7 +42,9 @@ construction, but never re-dispatches.
 Refusals that happen on a supervisor thread, where no caller can see them,
 are kept as the campaign's `last_refusal`: a closed code, the next action
 from `NEXT_ACTIONS`, and when (`refusal`). No exception text, provider
-response or path is ever kept.
+response or path is ever kept. A refusal returned to its caller stays the
+caller's `{error}`; the same table, served as the refusal catalog
+(`catalog`, `GET /api/v1/refusals`), says what to do next for any code.
 """
 
 from __future__ import annotations
@@ -108,6 +110,7 @@ NEXT_ACTIONS = {
         "(carbon_detach_campaign) or close the tools, then try again."
     ),
     "campaign_stopped": "This campaign is stopped. Launch a new one to continue.",
+    "campaign_paused": "This campaign is paused. Resume it, then try again.",
     "campaign_complete": "This campaign is complete. Launch a new one to continue.",
     "reconciliation_required": (
         "Work may have been dispatched and its outcome is unknown. Reconcile "
@@ -148,6 +151,31 @@ NEXT_ACTIONS = {
     "dispatch_configuration_changed": (
         "The runner profile changed after this request was admitted. Review "
         "it, then resume or send the request again."
+    ),
+    "profile_changed_since_launch": (
+        "Something this campaign was frozen with has changed in your runner "
+        "profile since launch (the accepted revision, its images, the hotkey "
+        "or the research guidance), so it cannot continue under this profile. "
+        "Launch a new campaign; this one stays readable and can be stopped."
+    ),
+    "carbon_updated_rerun_installer": (
+        "Carbon in this checkout is not the revision your runner profile "
+        "accepted: it was updated, or its worker image was rebuilt. Re-run the "
+        "installer so your profile accepts this checkout and its images, then "
+        "launch. Campaigns frozen under the earlier revision stay readable."
+    ),
+    "campaign_readback_unavailable": (
+        "This campaign's records could not be read back consistently. Nothing "
+        "was changed. Export its record if you need it, and launch a new "
+        "campaign to continue."
+    ),
+    "operation_not_completed": (
+        "The request did not complete. Observe the campaign: its state and "
+        "last refusal say what happened. Then try again."
+    ),
+    "readback_unavailable": (
+        "This could not be read back. Nothing was changed. Reload the page; if "
+        "it persists, restart the Control Center."
     ),
     "research_profile_unavailable": (
         "Your runner profile cannot be read. Check it under Set up your "
@@ -220,8 +248,9 @@ NEXT_ACTIONS = {
         "candidate is kept, and submitting again replays the same admission."
     ),
     "evaluation_unavailable": (
-        "No validator is configured for this Challenge on this host. The "
-        "frozen candidate is kept; submit again once one is."
+        "No validator deployment or intake is configured for this Challenge "
+        "in your runner profile. Add one under Set up your environment; the "
+        "frozen candidate is kept, so submit again once it is."
     ),
     "evaluation_failed_infra": (
         "The validator's infrastructure failed. That is not a scientific "
@@ -231,11 +260,95 @@ NEXT_ACTIONS = {
         "The validator intake could not be reached. The frozen candidate is "
         "kept; submit again later."
     ),
+    # Attaching to a campaign (`standard_cli.attached`): which check failed.
+    "runner_profile_unusable": (
+        "Your runner profile could not be read, or it does not validate. "
+        "Check the --configuration path, or write it again under Set up your "
+        "environment."
+    ),
+    "campaign_not_found": (
+        "No campaign of this profile has that id. List your campaigns "
+        "(carbon_observe, or the Control Center) and name one by its "
+        "32-character id."
+    ),
+    "campaign_manifest_differs": (
+        "This campaign's frozen record was not launched under this profile, "
+        "or differs from its own ledger. Nothing was changed. Attach with the "
+        "profile that launched it."
+    ),
+    "campaign_revision_differs": (
+        "This campaign was frozen under another Carbon revision than your "
+        "profile accepts. Attach from the checkout and profile it was launched "
+        "with, or launch a new campaign."
+    ),
+    "runtime_unavailable": (
+        "This host cannot run the campaign's accepted worker images right "
+        "now: Docker is not running, or an image is missing. Start Docker, or "
+        "re-run the installer, then try again."
+    ),
+    "campaign_runtime_differs": (
+        "This campaign was frozen with a runtime this host no longer "
+        "composes. Launch a new campaign; this one stays readable."
+    ),
+    "remote_setup_unavailable": (
+        "Your remote GPU setup does not match this campaign, or cannot be "
+        "used. Check it under Set up your environment, Compute, then try again."
+    ),
+    "session_unavailable": (
+        "This campaign's authenticated session is missing or its owner "
+        "changed. Resume the campaign once so it is prepared, then attach."
+    ),
+    "registration_check_failed": (
+        "Your hotkey's registration could not be confirmed on the subnet. "
+        "Check it is registered (carbon_onboarding status) and the chain is "
+        "reachable, then try again."
+    ),
+    "miner_differs_from_campaign": (
+        "The hotkey in your runner profile is not the one this campaign was "
+        "launched with. Use that hotkey's profile, or launch a new campaign."
+    ),
+    "task_left_running": (
+        "A research task was left RUNNING by an earlier session. Attach with "
+        "--cleanup-only (carbon-mcp --configuration PROFILE --campaign ID "
+        "--cleanup-only) to observe and cancel it, then reconcile the "
+        "campaign (halt with action=reconcile)."
+    ),
+    "carbon_mcp_failed": (
+        "Carbon MCP stopped unexpectedly. Start it again; if it keeps failing, "
+        "open the Control Center to check your setup."
+    ),
+    "carbon_mcp_interrupted": "Interrupted. Start Carbon MCP again when you are ready.",
 }
 FALLBACK_ACTION = (
     "Read the code: it names what was refused. Correct what it names and try "
     "again; observe shows the campaign's state."
 )
+
+
+def exception_code(exc):
+    """A typed failure's closed code (its `code`, or that code's `value`), or
+    None. Never the message: a `Rejected`, an `OperationRefused`, a
+    `SignerFailure` and the attach refusals carry one; a bare ValueError does
+    not."""
+    code = getattr(exc, "code", None)
+    code = getattr(code, "value", code)
+    return code if type(code) is str and _CODE.fullmatch(code) else None
+
+
+#: The refusal catalog's schema (`catalog`).
+CATALOG_SCHEMA = "carbon.launchpad.refusal-catalog.v1"
+
+
+def catalog():
+    """The closed table, as a door serves it (`GET /api/v1/refusals`), so a
+    page renders the next action for any code it meets - a synchronous
+    refusal's `{error}`, or a campaign's `last_refusal` - from this one
+    source. A code the table does not name takes `fallback`."""
+    return {
+        "schema": CATALOG_SCHEMA,
+        "next_actions": dict(NEXT_ACTIONS),
+        "fallback": FALLBACK_ACTION,
+    }
 
 
 def refusal(code, *, operation=None, kind="refused", at=None):

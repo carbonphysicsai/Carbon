@@ -460,21 +460,32 @@ def test_reconcile_on_a_held_campaign_is_refused_by_name(journey):
 # --- last_refusal: what no caller saw, with its next action --------------------
 
 
-def test_a_refusal_on_a_thread_is_kept_with_its_next_action(journey):
+def test_a_refusal_on_a_thread_is_kept_with_its_next_action(journey, monkeypatch):
+    """The miner's signer stopped after the practice was admitted: nothing
+    was signed, so it is a refusal, kept for the miner with its next step.
+    (Until LP-PROD-C part 2 this test held the campaign's lock; a held lock is
+    now refused before the thread starts - see the busy test below.)"""
+    from carbon.chain.external_signer import SignerCode, SignerFailure
+
     host = journey.host
     identity = launch(host)["id"]
     join(host)
-    with owner_lock(campaign_root(host, identity)):
+
+    async def signer_stopped(prepared, **kwargs):
+        raise SignerFailure(SignerCode.NOT_RUNNING)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(research_campaign, "practice_recipe", signer_stopped)
         perform(host, "practice", practice(identity, "practice-key-00001"))
         join(host)
     view = host.get(identity)
     refused = view["last_refusal"]
-    assert refused["code"] == "campaign_busy"
+    assert refused["code"] == "signer_not_running"
     assert refused["operation"] == "practice" and refused["kind"] == "refused"
-    assert refused["next_action"] == supervision.NEXT_ACTIONS["campaign_busy"]
+    assert refused["next_action"] == supervision.NEXT_ACTIONS["signer_not_running"]
     assert view["state"] == "READY"  # a refusal changes nothing
     document = perform(host, "campaign_view", {"campaign": identity})
-    assert document["last_refusal"]["code"] == "campaign_busy"
+    assert document["last_refusal"]["code"] == "signer_not_running"
     assert document["recovery"] == [] and document["in_flight"] is None
     # A new attempt is admitted: the earlier refusal is history.
     perform(host, "practice", practice(identity, "practice-key-00002"))

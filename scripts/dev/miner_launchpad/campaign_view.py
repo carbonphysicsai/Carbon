@@ -577,6 +577,11 @@ def stages(own):
         "candidate": "Candidate frozen",
         "submit": "DEVELOPMENT submit",
     }
+    # The stage whose last attempt was refused or interrupted where no caller
+    # saw it says so (LP-PROD-C D11): before 2026-10-03 a submit refused on
+    # its thread left this stage reading as if it had been submitted.
+    refused = last_refusal(own)
+    refused_stage = STAGE_OF_OPERATION.get(refused["operation"]) if refused else None
     out = []
     for key in ("research", "practice", "candidate", "submit"):
         if key == current:
@@ -585,16 +590,33 @@ def stages(own):
             status = "done"
         else:
             status = "not_reached" if terminal else "waiting"
-        out.append(
-            {
-                "id": key,
-                "label": labels[key],
-                "state": status,
-                "detail": details[key],
-                **({"count": len(experiments)} if key == "practice" else {}),
+        stage = {
+            "id": key,
+            "label": labels[key],
+            "state": status,
+            "detail": details[key],
+            **({"count": len(experiments)} if key == "practice" else {}),
+        }
+        if key == refused_stage:
+            stage["detail"] += (
+                " · last attempt " + refused["kind"] + ": " + refused["code"]
+            )
+            stage["refusal"] = {
+                "code": refused["code"],
+                "next_action": refused["next_action"],
+                "kind": refused["kind"],
             }
-        )
+        out.append(stage)
     return out
+
+
+#: The stage each operation's refusal belongs to.
+STAGE_OF_OPERATION = {
+    "run": "research",
+    "practice": "practice",
+    "freeze_candidate": "candidate",
+    "submit": "submit",
+}
 
 
 #: States Resume acts on. PAUSE_REQUESTED too: resuming cancels a pause that
