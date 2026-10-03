@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "544e46ed7bc0825c4a233a84d3f4acc6c259edaf",
+  "integration_revision_at_packaging": "c00d1da18a1b3ae03c0d6fce53e647f52e576718",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -967,8 +967,8 @@
       "sha256": "9abb6620fb0dcee7a1a6f0a85b92d01978900ce93122c4e1439e1497af8815c1"
     },
     "tests/test_challenge_proposal.cjs": {
-      "bytes": 13523,
-      "sha256": "fc351992ad5fc156acf6bf1f368762e656f6710bd41a824dee58755bbb381ca9"
+      "bytes": 13693,
+      "sha256": "f96b43807787c7cdec068441ed8fdef8de3b4a68e5639f91cb8803b30a94a8e9"
     },
     "tests/test_engine.cjs": {
       "bytes": 18446,
