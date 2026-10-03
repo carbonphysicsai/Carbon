@@ -17531,6 +17531,160 @@ as recorded under OWNER-WEBSITE-START-MINING-01. Rollback target:
 **Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
 --name carbonwebsite`.
 
+## 2026-10-02 — OWNER-TRACK-A-L0-02: battery Track A Level 0 values approved; the lock waits on a fixed scoring rule; scoring ratios are proposed and tested
+
+**Authority.** The owner, in session on 2026-10-02. On the open values: "I
+approve and sign everything". On the specific proposal: "Approve and (a) for
+6. We need to be proposing and testing new scoring ratios when we're having
+this problem."
+
+**Decision.** The values are frozen in
+`docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json`.
+
+1. **Threat model.** The attacker is any registered miner, with up to 3
+   cooperating.
+   - They have all public material: code, TRAIN, PRACTICE, the kit and the
+     research image.
+   - They see practice feedback, refusal codes and timing.
+   - They have no validator host, private root, journal or hidden-batch
+     results.
+   - Level 0 recipes are declarative.
+   - Chain attacks, operator compromise and the image supply chain are
+     reviewed separately.
+   - Hostile executables at later levels run only in the pinned C-03
+     isolated worker, on disposable hosts with canaries. No level above 0 is
+     opened.
+2. **Attack budget.**
+   - The hand-written harness is unlimited at no spend.
+   - Agent attacks (GRAPHITE-01 phase 4) are 3 sessions of up to 20
+     executed attempts.
+   - Hard cap: USD 25 for tokens, pods and the confirmation batch together.
+     Pods follow EV4's rules (A40 at no more than USD 0.49 per hour, at most
+     3, termination verified).
+   - Any escape or answer-key exposure stops all runs.
+3. **Study population.**
+   - Attack discovery uses miner-equivalent public material.
+   - Confirmation uses one fresh private batch from the committed root: 120
+     cases plus 4 hidden duplicates, uniform over the published box, with
+     the important region reported separately, sealed until retirement.
+4. **Reconstruction tolerances.**
+   - Same pinned CPU worker and seed: bit-identical parameters and
+     predictions.
+   - Fresh seeds or other permitted hardware: every gate passes, the
+     paired-repeat threshold holds, and the score lies within the recipe's
+     own seed-to-seed spread from the EV4 panel.
+   - With no measured spread, no rebuild acceptance.
+5. **Review.** The SciML/technical lead reviews findings first in #42 and may
+   block; silence does not block. The owner signs the Track A lock.
+6. **Lock precondition, route (a).** The deciding rule scores the
+   boundary-optimist control at or above every eligible real model on EV2
+   and EV4, so Track A at Level 0 is not locked while that stands. It is
+   recorded INCONCLUSIVE. The route out is fixing the scoring rule through
+   Track B, not proving the behaviour unconstructible.
+7. **Scoring ratios, standing direction.** While score-value divergence
+   findings stand, new scoring ratios are proposed and tested.
+   - The first study is SR-1 (`docs/development/BATTERY_SCORING_RATIOS_SR1.md`).
+   - It is pre-registered before any new ratio is computed.
+   - It is offline, on retained EV results, with no spend.
+   - A selected ratio is a proposal, like `dar-p0-r100-a0`. It changes no
+     testnet rule until it passes a fresh confirmation and its own approval.
+
+**Unchanged.** The deciding testnet rule, historical results (invariant 10),
+and every claim boundary: this is not a security audit, a qualification or a
+mainnet decision.
+
+## 2026-10-02 — OWNER-ADMISSION-COMBINED-01: construction, attack and value run as one admission test, with separate verdicts
+
+**Authority.** The owner, in session on 2026-10-02: "This almost makes me
+think construction + attack + value should be rolled into one test". Then:
+"I agree. Let's run it as one test where we're still working up the ladder,
+using graphite, and attacking but value/score tuning at the same time."
+
+**Amends** OWNER-CHALLENGE-ADMISSION-01 (`Design_Specs/Challenge_Admission.md`)
+prospectively.
+
+1. **One run per Challenge and ladder rung.** Each run has one frozen study
+   sheet, one panel, one fresh confirmation set and one ledger.
+   - The panel holds both the legitimate constructions (real models, and
+     GRAPHITE's Constructor) and the attackers' best constructions (the
+     registered harness, `carbon.battery.track_a`, and GRAPHITE's Attacker).
+   - Attack constructions are scored and value-tested exactly like real
+     ones, so an attack that only shows up as a value failure is caught. The
+     boundary optimist is the case that motivates this.
+2. **Score tuning runs inside the test.**
+   - Candidate scoring rules are proposed and tested on the run's own
+     development material. SR-1 is the first.
+   - The design optimizer runs inside the test:
+     - Mode X (adversarial) belongs to the attack side;
+     - Mode D (design) belongs to the value side.
+   - A rule is chosen on development conditions only and confirmed once on
+     fresh cases.
+3. **Separate verdicts, never blended.** The run reports three verdicts, and
+   any one can fail the rung:
+   - construction integrity: no breach, escape or forbidden access;
+   - adversarial score: no high-scoring unacceptable construction under the
+     candidate rule;
+   - value: the rule's ranking agrees with decision quality within the noise
+     band, and design search beats the baseline.
+
+   A gain in one never compensates for a failure in another (§1 unchanged).
+4. **Up the ladder.**
+   - Each level is a new run with its own sheet.
+   - A rung is passed only when all three verdicts pass and the owner signs
+     the lock (OWNER-TRACK-A-L0-02).
+   - Unsupported levels stay NOT_RUN and are never opened to collect data.
+5. **Budgets.** Battery Level 0 runs under OWNER-TRACK-A-L0-02's USD 25 cap.
+   The next fresh value study (EV5) is the first combined run, and its
+   confirmation batch serves the attack confirmation too. Its own reference
+   budget, beyond that cap, comes to the owner before dispatch.
+
+**Unchanged.** Internal development only: not mainnet, not a qualification
+gate. Every existing invariant, and the deciding testnet rule, until a
+candidate passes confirmation and its own approval.
+
+## 2026-10-02 — OWNER-SR3-NEAR-01: "near the decision boundary" is the published important region
+
+**Authority.** The owner, in session on 2026-10-02: "Use the important region
+band as 'near' and build SR-3".
+
+**Decision.** For score tuning (SR-3 and later), a case is near the decision
+boundary when the reference is in the published important region,
+`carbon.battery.domain.is_important`:
+- the reference plating margin is within `PLATING_BAND_V` (5 mV) of zero;
+  or
+- the reference peak temperature is at or above `T_IMPORTANT_C` (55 °C).
+
+These are the existing published DEVELOPMENT values (OD-2), reused
+unchanged. No new number is introduced. On the retained scoring set, 311 of
+1,588 cases are near: 221 by plating and 90 by temperature.
+
+**Unchanged.** The deciding testnet rule and the published important-region
+definition itself. A score built on it stays a proposal until confirmation
+and its own approval.
+
+## 2026-10-02 — TRACK-B-STUCK-01: the STUCK trigger fires for battery score tuning; full Track B review
+
+**Basis.** `Challenge_Admission.md` §4.2: a full review happens at `STUCK`,
+which is three consecutive studies with no progress. SR-1, SR-2 and SR-3
+(`docs/development/evidence/sr{1,2,3}-2026-10-02/`) each ended NO_PROMOTION
+under their pre-registered rules. The condition is emitted, not concluded
+(§6.2).
+
+**What the review examines.** The three pre-registrations, results and
+code, and the recommendation in the SR-3 evidence README:
+1. rerun the three studies on EV4's 99 members after regenerating and
+   verifying its predictions, at about USD 1-3 inside OWNER-TRACK-A-L0-02's
+   cap;
+2. then confirm the best candidate once, on fresh conditions, in EV5;
+3. meanwhile, use an SR-1 ratio that catches the boundary optimist as an
+   admissibility check, not as a ranking rule.
+
+**Reviewers.** The SciML/technical lead (#42), then the owner (#41). No
+further formula search on EV2 until the review decides.
+
+**Unchanged.** The deciding testnet rule. Track A at Level 0 stays
+INCONCLUSIVE (OWNER-TRACK-A-L0-02 item 6).
+
 ## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
 
 **Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
