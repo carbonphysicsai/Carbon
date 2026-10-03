@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-02T22:47:49Z"
+  captured_at_utc: "2026-10-02T23:44:32Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "f4f1beb6a1813e77abcbb824b50089b5ac826453"
+  authority_snapshot_commit: "55b070c824d3b1e6ea3df559d2f20b83e4a70549"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10837,6 +10837,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T22:47:38Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "EV4-REGEN-SR-RERUN"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-EV4-REGEN-01 (2026-10-02). EV4's 100 panel predictions were regenerated from EV4's own plan at its code ref on one A40 pod (about USD 0.22, termination verified, ev4-regen campaign with a USD 5 ceiling inside the USD 25 cap). They were content-verified: every member's recomputed exam components equal EV4's recorded ones exactly; byte digests differ only in wall-clock fields. SR-2 and SR-3 reran on 99 members under their frozen rules: NO_PROMOTION for both. The larger panel reverses EV2: the margin legs rank models far better than decision agreement (m 0.388, n 0.366, g 0.262), but no profile beats the deciding rule beyond noise (best 0.420 vs 0.403). The deciding rule's 7 verification divergence conditions are 2 constructed controls, 3 kNN self-orderings and 2 real near-ties, so the pre-registered count cannot show real-model gains. Recommendation to the TRACK-B-STUCK-01 review: keep the deciding rule for ranking, add a separate optimism-near-limits admissibility gate with a science-set threshold, report real-member divergence separately in future studies, and confirm once in EV5."
+    primary_detail: "docs/development/evidence/sr-ev4-2026-10-02/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T23:44:17Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

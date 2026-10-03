@@ -24,6 +24,7 @@ from . import divergence, margins, ratios
 from . import panel as pn
 from . import scoring as sc
 
+PRIMARY_NAME = "ev2-2026-10-01"
 SCHEMA = "carbon.battery.scoring-ratios.sr3.v1"
 STEPS = 10
 SEED = 20261004
@@ -125,13 +126,20 @@ def choose(rows):
     return chosen, admissible
 
 
-def run(predictions_dir, root="."):
+def run(predictions_dir, root=".", *, dataset=None, contract_path=None, verify="bytes"):
     root = Path(root)
-    evidence = root / "docs/development/evidence" / margins.PRIMARY
+    dataset = dataset or margins.PRIMARY
+    evidence = root / "docs/development/evidence" / dataset
     results_path = evidence / "results.json"
-    contract = json.loads((root / margins.PRIMARY_CONTRACT).read_text())
-    predictions = margins.verified_predictions(
-        predictions_dir, evidence / "predictions.sha256"
+    contract = json.loads(
+        (root / (contract_path or margins.PRIMARY_CONTRACT)).read_text()
+    )
+    predictions = (
+        margins.verified_predictions(predictions_dir, evidence / "predictions.sha256")
+        if verify == "bytes"
+        else margins.content_verified_predictions(
+            predictions_dir, json.loads(results_path.read_text()), contract, root
+        )
     )
     results, n_near, n_all = with_near(
         json.loads(results_path.read_text()), contract, predictions, root
@@ -150,7 +158,7 @@ def run(predictions_dir, root="."):
         "schema": SCHEMA,
         "preregistration": "docs/development/BATTERY_SCORING_RATIOS_SR3.md",
         "results_sha256": {
-            margins.PRIMARY: hashlib.sha256(results_path.read_bytes()).hexdigest()
+            dataset: hashlib.sha256(results_path.read_bytes()).hexdigest()
         },
         "near_cases": n_near,
         "scoring_cases": n_all,
@@ -171,8 +179,14 @@ def run(predictions_dir, root="."):
         "tau_noise_band_verification": band,
         "outcome": decision,
         "outcome_checks": checks,
-        "ev2": rows,
-        "ev4_replication": "NOT_RUN: predictions not retained; regenerate and verify first",
+        "dataset": dataset,
+        "prediction_verification": verify,
+        "ev2" if dataset == "ev2-2026-10-01" else "rows": rows,
+        "ev4_replication": (
+            "NOT_RUN: predictions not retained; regenerate and verify first"
+            if dataset == PRIMARY_NAME
+            else "THIS_RUN"
+        ),
         "claims": {
             "testnet_rule_changed": False,
             "confirmation": False,
@@ -185,8 +199,17 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.value.near")
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--dataset", help="evidence directory name (default EV2)")
+    parser.add_argument("--contract", help="decision contract path (default EV2's)")
+    parser.add_argument("--verify", choices=("bytes", "content"), default="bytes")
     args = parser.parse_args(argv)
-    report = run(args.predictions, ".")
+    report = run(
+        args.predictions,
+        ".",
+        dataset=args.dataset,
+        contract_path=args.contract,
+        verify=args.verify,
+    )
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(report, sort_keys=True, indent=1))
     print(

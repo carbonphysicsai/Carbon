@@ -29,6 +29,7 @@ from . import divergence, hypotheses, ratios
 from . import panel as pn
 from . import scoring as sc
 
+PRIMARY_NAME = "ev2-2026-10-01"
 SCHEMA = "carbon.battery.scoring-ratios.sr2.v1"
 STEPS = 10
 BOOTSTRAP = {"replicates": 10000, "seed": 20261003, "level": 0.95}
@@ -136,6 +137,53 @@ def verified_predictions(directory, manifest):
     return out
 
 
+class content_verified_predictions:
+    """Every member's predictions, each checked by content when it is read:
+    its recomputed exam components (E, E_important, decision score,
+    eligibility) must equal the components the result recorded, exactly.
+
+    For regenerated files whose bytes differ only in wall-clock fields, so
+    their byte digests cannot match (OWNER-EV4-REGEN-01). Files are read one
+    member at a time and not kept, so a 100-member panel fits in memory.
+    """
+
+    def __init__(self, directory, results, contract, repository="."):
+        self.directory, self.results, self.contract = Path(directory), results, contract
+        self.store, self.case_ids, _ = sc.scoring_set(repository)
+        expected = {
+            m
+            for m, row in results["summary"]["members"].items()
+            if row["kind"] != "SYNTHETIC_CONTROL"
+        }
+        present = {
+            path.name.removesuffix(".json.gz")
+            for path in self.directory.glob("*.json.gz")
+        }
+        if present != expected:
+            raise ValueError("regenerated predictions do not cover the panel")
+        self.verified = []
+
+    def __getitem__(self, member):
+        document = sc.load_predictions(self.directory / (member + ".json.gz"))
+        if document["member"] != member:
+            raise ValueError("a prediction file names another member: " + member)
+        got = sc.components(
+            document["predictions"], self.case_ids, self.store, self.contract
+        )
+        want = self.results["components"][member]
+        same = (
+            got["eligible"] == want["eligible"]
+            and got["E"] == want["E"]
+            and got["E_important"] == want["E_important"]
+            and (got.get("decision") or {}).get("score")
+            == (want.get("decision") or {}).get("score")
+        )
+        if not same:
+            raise ValueError("regenerated predictions differ in content: " + member)
+        self.verified.append(member)
+        return document["predictions"]
+
+
 def with_margins(results, contract, predictions, repository="."):
     """A copy of `results` whose components carry `m`, and every SR-2
     profile in `rule_scores`."""
@@ -236,12 +284,19 @@ def outcome(rows, chosen, h1, band):
     ), checks
 
 
-def run(predictions_dir, root="."):
+def run(predictions_dir, root=".", *, dataset=None, contract_path=None, verify="bytes"):
     root = Path(root)
-    evidence = root / "docs/development/evidence" / PRIMARY
+    dataset = dataset or PRIMARY
+    evidence = root / "docs/development/evidence" / dataset
     results_path = evidence / "results.json"
-    contract = json.loads((root / PRIMARY_CONTRACT).read_text())
-    predictions = verified_predictions(predictions_dir, evidence / "predictions.sha256")
+    contract = json.loads((root / (contract_path or PRIMARY_CONTRACT)).read_text())
+    predictions = (
+        verified_predictions(predictions_dir, evidence / "predictions.sha256")
+        if verify == "bytes"
+        else content_verified_predictions(
+            predictions_dir, json.loads(results_path.read_text()), contract, root
+        )
+    )
     results = with_margins(
         json.loads(results_path.read_text()), contract, predictions, root
     )
@@ -257,7 +312,7 @@ def run(predictions_dir, root="."):
         "schema": SCHEMA,
         "preregistration": "docs/development/BATTERY_SCORING_RATIOS_SR2.md",
         "results_sha256": {
-            PRIMARY: hashlib.sha256(results_path.read_bytes()).hexdigest()
+            dataset: hashlib.sha256(results_path.read_bytes()).hexdigest()
         },
         "profiles_tried": len(profiles()),
         "margin_component": {
@@ -271,8 +326,14 @@ def run(predictions_dir, root="."):
         "tau_noise_band_verification": band,
         "outcome": decision,
         "outcome_checks": checks,
-        "ev2": rows,
-        "ev4_replication": "NOT_RUN: predictions not retained; regenerate and verify first",
+        "dataset": dataset,
+        "prediction_verification": verify,
+        "ev2" if dataset == "ev2-2026-10-01" else "rows": rows,
+        "ev4_replication": (
+            "NOT_RUN: predictions not retained; regenerate and verify first"
+            if dataset == PRIMARY_NAME
+            else "THIS_RUN"
+        ),
         "claims": {
             "testnet_rule_changed": False,
             "confirmation": False,
@@ -285,8 +346,17 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.value.margins")
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--dataset", help="evidence directory name (default EV2)")
+    parser.add_argument("--contract", help="decision contract path (default EV2's)")
+    parser.add_argument("--verify", choices=("bytes", "content"), default="bytes")
     args = parser.parse_args(argv)
-    report = run(args.predictions, ".")
+    report = run(
+        args.predictions,
+        ".",
+        dataset=args.dataset,
+        contract_path=args.contract,
+        verify=args.verify,
+    )
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(report, sort_keys=True, indent=1))
     print(
