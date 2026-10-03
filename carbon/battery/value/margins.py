@@ -192,7 +192,7 @@ def choose(rows):
     return chosen, admissible
 
 
-def paired(results, contract, proposed, deciding=ratios.DECIDING):
+def paired(results, contract, proposed, deciding=ratios.DECIDING, *, seed=None):
     members = [
         m
         for m in hypotheses.eligible_real(results)
@@ -206,7 +206,7 @@ def paired(results, contract, proposed, deciding=ratios.DECIDING):
             results, members, hypotheses.verification_scenarios(contract)
         ),
         replicates=BOOTSTRAP["replicates"],
-        seed=BOOTSTRAP["seed"],
+        seed=BOOTSTRAP["seed"] if seed is None else seed,
         level=BOOTSTRAP["level"],
     )
 
