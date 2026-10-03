@@ -864,11 +864,18 @@ def host(monkeypatch):
         finally:
             events.append(name + "-")
 
+    marked = []
+
+    def mark(**record):
+        events.append("mark")
+        marked.append(record)
+
     monkeypatch.setattr(runtime, "miner_device_lease", lambda uuid: held("device"))
     monkeypatch.setattr(runtime, "shared_host_lease", lambda: held("slot"))
     monkeypatch.setattr(
         runtime, "reject_existing_device_containers", lambda cli: events.append("check")
     )
+    monkeypatch.setattr(runtime, "mark_device_allocation", mark)
     monkeypatch.setattr(
         research_carrier.liveness_reaper, "spawn_liveness_reaper", lambda **_: None
     )
@@ -883,7 +890,7 @@ def host(monkeypatch):
                 raise WorkerFailure(WorkerCode.UNAVAILABLE)
             return SimpleNamespace(stdout=b"")
 
-    return SimpleNamespace(events=events, cli=Cli(), runtime=runtime)
+    return SimpleNamespace(events=events, marked=marked, cli=Cli(), runtime=runtime)
 
 
 def test_the_miner_gpu_run_holds_the_shared_carbon_slot_across_check_and_create(
@@ -894,11 +901,104 @@ def test_the_miner_gpu_run_holds_the_shared_carbon_slot_across_check_and_create(
     slot from its own check until its create, so neither side can pass its
     check while the other is between check and create; once created, the
     run's device label is what the validator's check sees."""
+    from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
     with pytest.raises(WorkerFailure):
         miner_lane(tmp_path, host.cli, SimpleNamespace(device_uuid=GPU_UUID))
     events = host.events
-    assert events[:6] == ["device+", "slot+", "check", "create", "slot-", "start"]
+    assert events[:7] == [
+        "device+",
+        "slot+",
+        "check",
+        "mark",
+        "create",
+        "slot-",
+        "start",
+    ]
     assert events[-1] == "device-" and "remove" in events
+    # The allocation is recorded before create, under the miner lane's own
+    # authority, for exactly this launch.
+    assert host.marked == [
+        {
+            "container_name": "carbon-d4-" + "c" * 24,
+            "launch_digest": "sha256:" + "b" * 64,
+            "authority": MINER_HOST_AUTHORITY,
+        }
+    ]
+
+
+def test_a_miner_gpu_run_s_removal_completes_its_own_allocation(tmp_path, monkeypatch):
+    """Found on a real GPU (JULIA-GPU-01 slice 3): the lane labelled its
+    container with the device but recorded no allocation, so its removal
+    took the strict path and refused every real GPU run at cleanup. The run
+    now records its allocation before create, under the miner lane's own
+    task-owned authority, and the real removal completes that record without
+    the strict release check, which the lane never had the evidence for.
+    A synthetic host root; no device or Docker is touched."""
+    from contextlib import nullcontext
+
+    from carbon.reconstruction.worker import accelerator_runtime as runtime
+    from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
+    root = tmp_path / "host"
+    root.mkdir(mode=0o700)
+    monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    monkeypatch.setattr(runtime, "miner_device_lease", lambda uuid: nullcontext())
+    monkeypatch.setattr(runtime, "shared_host_lease", nullcontext)
+    monkeypatch.setattr(
+        runtime, "host_device", lambda: SimpleNamespace(device_uuid=GPU_UUID)
+    )
+
+    def strict_release(**_):
+        raise AssertionError("the miner lane never takes the strict release check")
+
+    monkeypatch.setattr(runtime, "verify_device_release", strict_release)
+    monkeypatch.setattr(
+        research_carrier.liveness_reaper, "spawn_liveness_reaper", lambda **_: None
+    )
+    name, launch = "carbon-d4-" + "c" * 24, "sha256:" + "b" * 64
+    at_create = []
+
+    class Docker:
+        """Create, start and exact removal; start fails, as a run can."""
+
+        present = False
+
+        def run(self, arguments, timeout=30, accepted=(0,)):
+            if arguments[0] == "create":
+                at_create.append(
+                    json.loads((root / "active-allocation.json").read_bytes())
+                )
+                self.present = True
+            elif arguments[0] == "start":
+                raise WorkerFailure(WorkerCode.UNAVAILABLE)
+            elif arguments[0] == "rm":
+                self.present = False
+            elif arguments[0] == "inspect":
+                return SimpleNamespace(returncode=0 if self.present else 1, stdout=b"")
+            return SimpleNamespace(returncode=0, stdout=b"")
+
+        def json(self, arguments):
+            if not self.present:
+                raise WorkerFailure(WorkerCode.UNAVAILABLE)
+            labels = {
+                "org.opencontainers.image.carbon.c03.launch": launch,
+                "carbon.accelerator.device": GPU_UUID,
+            }
+            return {"Config": {"Labels": labels}}
+
+    with pytest.raises(WorkerFailure) as failed:
+        miner_lane(tmp_path, Docker(), SimpleNamespace(device_uuid=GPU_UUID))
+    # The run's own failure surfaces, not a cleanup refusal.
+    assert failed.value.code == WorkerCode.UNAVAILABLE
+    assert at_create == [
+        {
+            "authority": MINER_HOST_AUTHORITY,
+            "container_name": name,
+            "launch_digest": launch,
+        }
+    ]
+    assert not (root / "active-allocation.json").exists()
 
 
 def test_a_held_carbon_slot_stops_the_miner_gpu_run_before_create(

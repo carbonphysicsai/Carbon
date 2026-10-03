@@ -773,6 +773,22 @@ def _run_miner_lane(
         _check_cancel(ledger, owner, identity)
         create_attempted = True
         try:
+            if device is not None:
+                from carbon.reconstruction.worker.accelerator_runtime import (
+                    mark_device_allocation,
+                )
+                from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
+                # Ownership is persisted before create, as GPU practice does,
+                # under the miner lane's own task-owned authority. Removal of
+                # a device-labelled container completes the allocation that
+                # created it; without this record it takes the strict path,
+                # which this run never had the evidence for, and refuses.
+                mark_device_allocation(
+                    container_name=name,
+                    launch_digest=launch,
+                    authority=MINER_HOST_AUTHORITY,
+                )
             cli.run(create_arguments(run), timeout=30)
         finally:
             slot.close()
