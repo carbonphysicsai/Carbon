@@ -348,6 +348,70 @@ def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):
     }
 
 
+def test_review_states_where_a_frozen_candidate_is_evaluated(tmp_path, monkeypatch):
+    """LP-PROD-E: before launch, not at submit. Each Challenge submitted
+    through an intake is CONFIGURED (with Carbon's published endpoint, or the
+    miner's own, whose URL stays private), on a validator on this machine,
+    published since the profile was written, or plainly NONE_PUBLISHED."""
+    from scripts.dev.miner_launchpad import environment_setup
+    from scripts.dev.miner_launchpad.prelaunch import evaluation
+
+    published = tmp_path / "published_endpoints.json"
+    monkeypatch.setattr(environment_setup, "PUBLISHED_ENDPOINTS", published)
+    challenge = environment_setup.intake_challenges()[0]
+    url = "https://intake.example.org"
+
+    def publish(*entries):
+        published.write_text(
+            json.dumps(
+                {
+                    "schema": "carbon.launchpad.published-endpoints.v1",
+                    "endpoints": list(entries),
+                }
+            )
+        )
+
+    publish()
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    review = bridge.preflight()["review"]
+    endpoints = review["evaluation_endpoints"]
+    assert endpoints["configured"] == "NOT_CONFIGURED"
+    assert endpoints["challenges"][0]["status"] == "NONE_PUBLISHED"
+    assert "cannot submit" in endpoints["challenges"][0]["next_step"]
+    readiness = review["readiness"]["independent_development_evaluation_available"]
+    assert readiness == "NOT_CONFIGURED"
+
+    publish(
+        {
+            "network": "testnet",
+            "netuid": 567,
+            "challenge": challenge["id"],
+            "intake_url": url,
+            "receiver_hotkey": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        }
+    )
+    item = evaluation(cfg)["challenges"][0]
+    assert (item["status"], item["intake"]) == ("PUBLISHED_REVIEW_AGAIN", url)
+    assert "review again in setup" in item["next_step"]
+
+    written = evaluation({**cfg, "intakes": {challenge["id"]: url}})
+    assert written["configured"] == "CONFIGURED_FOR_ALL"
+    assert written["challenges"][0] == {
+        "challenge_id": challenge["id"],
+        "title": challenge["title"],
+        "status": "INTAKE_CONFIGURED",
+        "source": "PUBLISHED",
+        "intake": url,
+    }
+    own = "https://PRIVATE-SENTINEL.example.org"
+    mine = evaluation({**cfg, "intakes": {challenge["id"]: own}})["challenges"][0]
+    assert (mine["status"], mine["source"]) == ("INTAKE_CONFIGURED", "YOURS")
+    assert "PRIVATE-SENTINEL" not in json.dumps(mine)
+    local = {**cfg, "paths": {**cfg["paths"], "battery_validator": str(tmp_path)}}
+    assert evaluation(local)["challenges"][0]["status"] == "VALIDATOR_ON_THIS_MACHINE"
+    assert str(tmp_path) not in json.dumps(evaluation(local))
+
+
 def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
     bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     enable(bridge, cfg)

@@ -1,0 +1,12 @@
+{
+  "schema": "carbon.launchpad.published-endpoints.v1",
+  "about": "The evaluation endpoints Carbon publishes (LP-PROD-E): for a network, subnet and Challenge, the validator intake a frozen candidate is submitted to and the hotkey that receives it. Setup's Review writes the entry for each Challenge into the miner's runner profile; with no entry, setup and the prelaunch review say the profile cannot submit to that Challenge yet. An operator adds the live entry by pull request (docs/development/BATTERY_VALIDATOR_SERVICE_RUNBOOK.md). Entries for another network or subnet are skipped. A list that breaks the schema publishes nothing.",
+  "entry_fields": {
+    "network": "the chain network, as carbon.chain.models.CARBON_NETWORK names it, for example testnet",
+    "netuid": "the subnet, an integer, for example 567",
+    "challenge": "the Challenge id, as the Challenge registry names it",
+    "intake_url": "the validator intake's https URL",
+    "receiver_hotkey": "the ss58 hotkey of the validator that receives the submission"
+  },
+  "endpoints": []
+}
