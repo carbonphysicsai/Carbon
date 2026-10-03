@@ -1,0 +1,555 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 0,
+ "recorded_at": "2026-10-03T02:40:56Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [
+  {
+   "adds": "Inverse-distance k-nearest-neighbour over unit-scaled inputs; V(0) from the published OCV table and T(0) = ambient",
+   "attack_surface": "Retrieval of training cases at inference; an attacker with access to the kNN index could probe the training distribution",
+   "bounds": "lab_kind battery_knn; selector knn; no architecture subset",
+   "id": "model_family.knn",
+   "rationale": "Non-parametric baseline for battery trajectory prediction; provides a simple reference model for the fast-charge ageing challenge",
+   "reconstruction": "Rebuild the kNN model with inverse-distance weighting on unit-scaled inputs, using the published OCV table for V(0) and ambient temperature for T(0)",
+   "sources": [
+    "contract:model_family.knn"
+   ]
+  },
+  {
+   "adds": "GELU MLP on normalized trajectory targets; campaign recipe at defaults (full-batch Adam(W), cosine decay); T(0) = ambient",
+   "attack_surface": "Standard neural network inference path; learned weights could be probed for training data leakage",
+   "bounds": "lab_kind battery_mlp; selector mlp",
+   "id": "model_family.mlp",
+   "rationale": "Standard feed-forward baseline for battery trajectory regression; the campaign's written-out default recipe",
+   "reconstruction": "Rebuild the MLP with GELU activations on normalized trajectory targets, using full-batch Adam(W) with cosine decay at the campaign defaults",
+   "sources": [
+    "contract:model_family.mlp"
+   ]
+  },
+  {
+   "adds": "Battery DeepONet: branch MLP over four inputs and trunk MLP over the 30 s time grid form voltage and temperature trajectories; branch also heads plating margin and capacity",
+   "attack_surface": "Branch and trunk network weights; an attacker could probe the branch for input sensitivities or the trunk for temporal interpolation artifacts",
+   "bounds": "lab_kind battery_deeponet; selector deeponet",
+   "id": "model_family.deeponet",
+   "rationale": "Operator-learning architecture mapping input conditions to full trajectory outputs, enabling efficient surrogate modeling for battery electrochemical responses",
+   "reconstruction": "Rebuild the branch MLP over the four battery inputs and the trunk MLP over the 30 s time grid, forming voltage and temperature trajectories with plating margin and capacity heads on the branch",
+   "sources": [
+    "contract:model_family.deeponet",
+    "card:arxiv-1910.03193v3"
+   ]
+  },
+  {
+   "adds": "Fourier neural operator (neuraloperator 2.0, PyTorch backend only) over the 30 s time grid; inputs broadcast over time map to voltage and temperature trajectories; dense head gives plating margin and capacity",
+   "attack_surface": "Fourier layer weights and spectral modes; an attacker could exploit frequency-domain structure or mode truncation to probe model behavior",
+   "bounds": "lab_kind battery_torch_fno; selector fno; PyTorch backend only",
+   "id": "model_family.fno",
+   "rationale": "Spectral operator-learning architecture for battery trajectories; captures frequency-domain structure in voltage and temperature evolution",
+   "reconstruction": "Rebuild the FNO with neuraloperator 2.0 on PyTorch, mapping time-broadcast inputs to voltage and temperature trajectories over the 30 s grid, with a dense head for plating margin and capacity",
+   "sources": [
+    "contract:model_family.fno",
+    "card:arxiv-2010.08895v3"
+   ]
+  },
+  {
+   "adds": "Number of neighbours averaged for the kNN model",
+   "attack_surface": "Extreme values (1 neighbour) could overfit to training cases; high values could smooth away important local structure",
+   "bounds": "uint, 1\u201364, default 5; applies to knn",
+   "id": "architecture.neighbours",
+   "rationale": "Controls the bias-variance trade-off of the kNN baseline; more neighbours smooth predictions, fewer preserve local detail",
+   "reconstruction": "Rebuild the kNN neighbour count parameter in the model construction code",
+   "sources": [
+    "contract:architecture.neighbours"
+   ]
+  },
+  {
+   "adds": "Hidden width for MLP, DeepONet and FNO models",
+   "attack_surface": "Very wide networks could overfit the small training set; very narrow networks could underfit",
+   "bounds": "uint, 8\u2013512, default 256; applies to mlp, deeponet, fno",
+   "id": "architecture.width",
+   "rationale": "Primary capacity control for the neural model families; width scales expressivity and compute cost",
+   "reconstruction": "Rebuild the hidden width parameter in the model construction code for all applicable families",
+   "sources": [
+    "contract:architecture.width"
+   ]
+  },
+  {
+   "adds": "Hidden layers (MLP) or Fourier layers (FNO)",
+   "attack_surface": "Deeper networks are harder to optimize and could exhibit training instabilities; an attacker could exploit gradient pathologies",
+   "bounds": "uint, 1\u20136, default 3; applies to mlp, fno",
+   "id": "architecture.depth",
+   "rationale": "Controls network depth and compositional expressivity for MLP and FNO families",
+   "reconstruction": "Rebuild the layer count parameter in the model construction code for MLP and FNO",
+   "sources": [
+    "contract:architecture.depth"
+   ]
+  },
+  {
+   "adds": "Fourier modes kept per layer for the FNO, of the 61 the 121-point grid has",
+   "attack_surface": "Mode truncation creates a frequency-domain blind spot; an attacker could craft inputs with energy in truncated modes",
+   "bounds": "uint, 1\u201361, default 16; applies to fno",
+   "id": "architecture.n_modes",
+   "rationale": "Controls the spectral resolution of the FNO; more modes capture higher-frequency trajectory detail at increased cost",
+   "reconstruction": "Rebuild the Fourier mode count parameter in the FNO construction code",
+   "sources": [
+    "contract:architecture.n_modes"
+   ]
+  },
+  {
+   "adds": "Branch and trunk hidden layers for the DeepONet",
+   "attack_surface": "Deeper branch/trunk networks increase the risk of overfitting on the small dataset",
+   "bounds": "uint, 1\u20136, default 2; applies to deeponet",
+   "id": "architecture.deeponet_depth",
+   "rationale": "Controls depth of both branch and trunk subnetworks in the DeepONet architecture",
+   "reconstruction": "Rebuild the branch and trunk depth parameters in the DeepONet construction code",
+   "sources": [
+    "contract:architecture.deeponet_depth"
+   ]
+  },
+  {
+   "adds": "Trunk basis functions per trajectory for the DeepONet",
+   "attack_surface": "More basis functions increase capacity and overfitting risk; fewer may miss trajectory structure",
+   "bounds": "uint, 2\u201364, default 16; applies to deeponet",
+   "id": "architecture.basis_functions",
+   "rationale": "Controls the rank of the trunk output basis, governing the expressivity of the trajectory representation",
+   "reconstruction": "Rebuild the trunk basis function count in the DeepONet construction code",
+   "sources": [
+    "contract:architecture.basis_functions"
+   ]
+  },
+  {
+   "adds": "PCA heads per trajectory for the MLP (0 = one output per sample)",
+   "attack_surface": "PCA truncation could miss high-frequency trajectory components; an attacker could exploit the retained subspace",
+   "bounds": "uint, 0\u201332, default 0; applies to mlp",
+   "id": "architecture.trajectory_components",
+   "rationale": "Allows the MLP to predict trajectories via a low-rank PCA basis instead of full per-timestep outputs",
+   "reconstruction": "Rebuild the PCA head structure in the MLP construction code, with optional dimensionality reduction on trajectory targets",
+   "sources": [
+    "contract:architecture.trajectory_components"
+   ]
+  },
+  {
+   "adds": "Arrhenius, log-rate and interaction input features for MLP, DeepONet and FNO",
+   "attack_surface": "Additional engineered features expand the input dimension; an attacker could exploit feature interactions or extrapolation in engineered space",
+   "bounds": "bool, default false; applies to mlp, deeponet, fno",
+   "id": "architecture.arrhenius_features",
+   "rationale": "Augments inputs with physically motivated features (Arrhenius terms, log-rates, interactions) to improve generalization",
+   "reconstruction": "Rebuild the input feature augmentation pipeline with Arrhenius, log-rate and interaction features",
+   "sources": [
+    "contract:architecture.arrhenius_features"
+   ]
+  },
+  {
+   "adds": "Hidden-layer activation function for MLP and DeepONet",
+   "attack_surface": "Different activations have different saturation and gradient properties; an attacker could exploit activation-specific dead zones or saturation",
+   "bounds": "choice: gelu, relu, tanh, silu, softplus; default gelu; applies to mlp, deeponet",
+   "id": "architecture.activation",
+   "rationale": "Activation choice affects optimization landscape and model expressivity; GELU is the campaign default",
+   "reconstruction": "Rebuild the activation function selection in the model construction code for MLP and DeepONet",
+   "sources": [
+    "contract:architecture.activation"
+   ]
+  },
+  {
+   "adds": "Normalization after each hidden layer for MLP and DeepONet",
+   "attack_surface": "Normalization changes the loss landscape; an attacker could exploit normalization-induced scale invariances",
+   "bounds": "choice: none, layer_norm; default none; applies to mlp, deeponet",
+   "id": "architecture.normalization",
+   "rationale": "Optional layer normalization stabilizes training of deeper networks; off by default per the campaign recipe",
+   "reconstruction": "Rebuild the optional layer normalization in the model construction code for MLP and DeepONet",
+   "sources": [
+    "contract:architecture.normalization"
+   ]
+  },
+  {
+   "adds": "Weight initialization scheme for MLP and DeepONet",
+   "attack_surface": "Different initializations reach different basins; an attacker could exploit initialization-dependent failure modes",
+   "bounds": "choice: he_normal, glorot_normal, lecun_normal; default he_normal; applies to mlp, deeponet",
+   "id": "architecture.initialization",
+   "rationale": "Initialization affects optimization trajectory and final model quality; He normal is the default for ReLU-like activations",
+   "reconstruction": "Rebuild the weight initialization scheme in the model construction code for MLP and DeepONet",
+   "sources": [
+    "contract:architecture.initialization"
+   ]
+  },
+  {
+   "adds": "Voltage head that cannot exceed the 4.2 V cycler limit (off: raw control)",
+   "attack_surface": "The bound prevents over-voltage predictions but could mask model errors near the boundary; an attacker could exploit the clipping behavior",
+   "bounds": "bool, default true; applies to mlp, deeponet, fno",
+   "id": "physical_structure.bounded_voltage_head",
+   "rationale": "Enforces the physical voltage ceiling of the battery cycler, preventing physically implausible predictions above 4.2 V",
+   "reconstruction": "Rebuild the bounded voltage head that clips or constrains predictions to the 4.2 V cycler limit",
+   "sources": [
+    "contract:physical_structure.bounded_voltage_head"
+   ]
+  },
+  {
+   "adds": "V(0) from the published OCV table (off: predicted)",
+   "attack_surface": "Hard-coding V(0) from the OCV table removes a degree of freedom; an attacker could exploit the fixed initial condition",
+   "bounds": "bool, default true; applies to mlp, deeponet, fno",
+   "id": "physical_structure.ocv_initial_voltage",
+   "rationale": "Sets the initial voltage from the known open-circuit voltage table rather than predicting it, enforcing the physical initial condition",
+   "reconstruction": "Rebuild the OCV-based initial voltage assignment from the published table, overriding the predicted V(0)",
+   "sources": [
+    "contract:physical_structure.ocv_initial_voltage"
+   ]
+  },
+  {
+   "adds": "Capacity as cycle-1 capacity plus fade (off: each checkpoint directly)",
+   "attack_surface": "The decomposition constrains capacity predictions; an attacker could exploit the fade term to probe degradation modeling",
+   "bounds": "bool, default true; applies to mlp, deeponet, fno",
+   "id": "physical_structure.capacity_fade_head",
+   "rationale": "Decomposes capacity prediction into a known cycle-1 baseline plus a learned fade term, enforcing monotonic degradation structure",
+   "reconstruction": "Rebuild the capacity fade head that predicts capacity as cycle-1 capacity plus a learned fade term",
+   "sources": [
+    "contract:physical_structure.capacity_fade_head"
+   ]
+  },
+  {
+   "adds": "Number of training updates",
+   "attack_surface": "Very high step counts could overfit; very low counts could underfit; an attacker could exploit training duration to probe convergence behavior",
+   "bounds": "uint, 16\u201320000, default 6000; applies to mlp, deeponet, fno",
+   "id": "batching.steps",
+   "rationale": "Controls training duration; more steps allow better convergence but risk overfitting the small dataset",
+   "reconstruction": "Rebuild the training step count parameter in the training loop",
+   "sources": [
+    "contract:batching.steps"
+   ]
+  },
+  {
+   "adds": "Cases per update (at or above the TRAIN cases: full batch)",
+   "attack_surface": "Small batch sizes introduce gradient noise that could be exploited; large batches reduce noise but may converge to sharp minima",
+   "bounds": "uint, 8\u2013400, default 400; applies to mlp, deeponet, fno",
+   "id": "batching.batch_size",
+   "rationale": "Controls gradient noise; full-batch (400) is the campaign default for the small dataset",
+   "reconstruction": "Rebuild the batch size parameter in the training loop",
+   "sources": [
+    "contract:batching.batch_size"
+   ]
+  },
+  {
+   "adds": "Gradient accumulation within a batch",
+   "attack_surface": "Gradient accumulation introduces numerical differences from true full-batch; an attacker could exploit accumulation artifacts",
+   "bounds": "uint, 1\u20138, default 1; applies to mlp, deeponet, fno",
+   "id": "batching.microbatches",
+   "rationale": "Allows simulating large batches on memory-constrained hardware via gradient accumulation",
+   "reconstruction": "Rebuild the microbatch gradient accumulation logic in the training loop",
+   "sources": [
+    "contract:batching.microbatches"
+   ]
+  },
+  {
+   "adds": "Optimizer family (adam: campaign's written-out Adam(W); others: optax)",
+   "attack_surface": "Different optimizers have different convergence basins; an attacker could exploit optimizer-specific failure modes or adaptive rate artifacts",
+   "bounds": "choice: adam, lion, lamb, adafactor, radam, nadamw, sgd_momentum, muon, prodigy, free_adamw, sam; default adam; applies to mlp, deeponet, fno",
+   "id": "optimizer.optimizer_family",
+   "rationale": "Allows selecting from a family of optimizers; Adam(W) is the campaign default, others are available via optax",
+   "reconstruction": "Rebuild the optimizer selection logic, with the campaign's written-out Adam(W) and optax implementations for other choices",
+   "sources": [
+    "contract:optimizer.optimizer_family"
+   ]
+  },
+  {
+   "adds": "Peak learning rate",
+   "attack_surface": "Extreme learning rates could produce unstable or degenerate models; an attacker could probe rate-dependent failure modes",
+   "bounds": "float, 1e-05\u20130.05, default 0.002; applies to mlp, deeponet, fno",
+   "id": "optimizer.learning_rate",
+   "rationale": "Primary optimization step size control; too high diverges, too low underfits within the step budget",
+   "reconstruction": "Rebuild the peak learning rate parameter in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.learning_rate"
+   ]
+  },
+  {
+   "adds": "Decoupled weight decay",
+   "attack_surface": "High decay could over-regularize and mask model capacity; an attacker could exploit regularization-induced bias",
+   "bounds": "float, 0.0\u20130.1, default 0.0; applies to mlp, deeponet, fno",
+   "id": "optimizer.weight_decay",
+   "rationale": "L2 regularization via decoupled decay; off by default per the campaign recipe",
+   "reconstruction": "Rebuild the decoupled weight decay parameter in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.weight_decay"
+   ]
+  },
+  {
+   "adds": "Decay every parameter, or weight matrices only",
+   "attack_surface": "Decay mask changes which parameters are regularized; an attacker could exploit unregularized parameters",
+   "bounds": "choice: all, matrices; default all; applies to mlp, deeponet, fno",
+   "id": "optimizer.weight_decay_mask",
+   "rationale": "Controls whether bias and normalization parameters are decayed; matrices-only is a common best practice",
+   "reconstruction": "Rebuild the weight decay mask logic in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.weight_decay_mask"
+   ]
+  },
+  {
+   "adds": "Global-norm gradient clipping (0: none)",
+   "attack_surface": "Clipping could mask gradient pathology; an attacker could exploit clipping-induced scale invariance",
+   "bounds": "float, 0.0\u2013100.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "optimizer.clip_norm",
+   "rationale": "Prevents gradient explosions; off by default per the campaign recipe",
+   "reconstruction": "Rebuild the global-norm gradient clipping in the training loop",
+   "sources": [
+    "contract:optimizer.clip_norm"
+   ]
+  },
+  {
+   "adds": "Beta1 (first moment decay) for Adam-family optimizers",
+   "attack_surface": "Extreme beta1 values change the momentum behavior; an attacker could exploit momentum-induced oscillations or lag",
+   "bounds": "float, 0.0\u20130.9999, default 0.9; applies to mlp, deeponet, fno",
+   "id": "optimizer.beta1",
+   "rationale": "Controls the exponential decay rate for the first moment estimate in Adam-family optimizers",
+   "reconstruction": "Rebuild the beta1 parameter in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.beta1"
+   ]
+  },
+  {
+   "adds": "Beta2 (second moment decay) for Adam-family optimizers",
+   "attack_surface": "Extreme beta2 values change the adaptive rate behavior; an attacker could exploit adaptive rate artifacts",
+   "bounds": "float, 0.0\u20130.99999, default 0.999; applies to mlp, deeponet, fno",
+   "id": "optimizer.beta2",
+   "rationale": "Controls the exponential decay rate for the second moment estimate in Adam-family optimizers",
+   "reconstruction": "Rebuild the beta2 parameter in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.beta2"
+   ]
+  },
+  {
+   "adds": "Adam-family epsilon for numerical stability",
+   "attack_surface": "Large epsilon could dampen adaptive rates; an attacker could exploit epsilon-induced scale changes",
+   "bounds": "float, 1e-12\u20130.01, default 1e-08; applies to mlp, deeponet, fno",
+   "id": "optimizer.adam_epsilon",
+   "rationale": "Prevents division by zero in Adam's second moment normalization",
+   "reconstruction": "Rebuild the epsilon parameter in the optimizer configuration",
+   "sources": [
+    "contract:optimizer.adam_epsilon"
+   ]
+  },
+  {
+   "adds": "Learning-rate curve over the updates",
+   "attack_surface": "Different schedules reach different minima; an attacker could exploit schedule-dependent convergence behavior",
+   "bounds": "choice: cosine, constant, piecewise, exponential, one_cycle, sgdr, polynomial, train_loss_plateau; default cosine; applies to mlp, deeponet, fno",
+   "id": "schedule.learning_rate_curve",
+   "rationale": "Controls the learning rate schedule shape; cosine decay is the campaign default",
+   "reconstruction": "Rebuild the learning rate schedule logic with all supported curve types",
+   "sources": [
+    "contract:schedule.learning_rate_curve"
+   ]
+  },
+  {
+   "adds": "Linear warmup steps before the main schedule",
+   "attack_surface": "Warmup changes early training dynamics; an attacker could exploit warmup-induced sensitivity to initialization",
+   "bounds": "uint, 0\u201320000, default 0; applies to mlp, deeponet, fno",
+   "id": "schedule.warmup_steps",
+   "rationale": "Gradually increases the learning rate at the start of training to stabilize early optimization; off by default",
+   "reconstruction": "Rebuild the linear warmup logic in the learning rate schedule",
+   "sources": [
+    "contract:schedule.warmup_steps"
+   ]
+  },
+  {
+   "adds": "Final learning rate as a fraction of the peak (cosine, exponential, polynomial)",
+   "attack_surface": "Non-zero floor keeps training active late; an attacker could exploit late-training noise",
+   "bounds": "float, 0.0\u20131.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "schedule.min_learning_rate_ratio",
+   "rationale": "Controls the floor of decay schedules; 0.0 means the rate decays to zero",
+   "reconstruction": "Rebuild the minimum learning rate ratio in the schedule logic",
+   "sources": [
+    "contract:schedule.min_learning_rate_ratio"
+   ]
+  },
+  {
+   "adds": "Divide each case's error by its target energy",
+   "attack_surface": "Relative weighting changes which cases dominate the loss; an attacker could exploit normalization-induced reweighting",
+   "bounds": "bool, default false; applies to mlp, deeponet, fno",
+   "id": "objective.relative_loss",
+   "rationale": "Normalizes the loss by target magnitude, giving equal weight to high and low energy cases; off by default",
+   "reconstruction": "Rebuild the relative loss normalization in the objective function",
+   "sources": [
+    "contract:objective.relative_loss"
+   ]
+  },
+  {
+   "adds": "Extra trajectory error weighted toward early or late times",
+   "attack_surface": "Non-uniform weighting shifts accuracy across the trajectory; an attacker could exploit underweighted regions",
+   "bounds": "choice: uniform, early, late; default uniform; applies to mlp, deeponet, fno",
+   "id": "objective.time_weighting",
+   "rationale": "Allows emphasizing errors at specific trajectory phases; uniform is the default",
+   "reconstruction": "Rebuild the time-weighting logic in the trajectory loss function",
+   "sources": [
+    "contract:objective.time_weighting"
+   ]
+  },
+  {
+   "adds": "First time-derivative error of the trajectories",
+   "attack_surface": "Derivative penalties change the smoothness bias; an attacker could exploit smoothness constraints to hide errors in the value loss",
+   "bounds": "float, 0.0\u201310.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "objective.h1_weight",
+   "rationale": "Penalizes errors in the rate of change of trajectories, encouraging smoother predictions; off by default",
+   "reconstruction": "Rebuild the first-derivative penalty term in the objective function",
+   "sources": [
+    "contract:objective.h1_weight"
+   ]
+  },
+  {
+   "adds": "Second time-derivative error of the trajectories",
+   "attack_surface": "Second-derivative penalties constrain trajectory curvature; an attacker could exploit curvature constraints",
+   "bounds": "float, 0.0\u201310.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "objective.h2_weight",
+   "rationale": "Penalizes errors in the curvature of trajectories, encouraging physically plausible dynamics; off by default",
+   "reconstruction": "Rebuild the second-derivative penalty term in the objective function",
+   "sources": [
+    "contract:objective.h2_weight"
+   ]
+  },
+  {
+   "adds": "Frequency-weighted trajectory error (higher frequencies weigh more)",
+   "attack_surface": "Spectral weighting shifts accuracy across frequencies; an attacker could exploit underweighted frequency bands",
+   "bounds": "float, 0.0\u201310.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "objective.spectral_weight",
+   "rationale": "Emphasizes high-frequency trajectory components in the loss, improving capture of fast dynamics; off by default",
+   "reconstruction": "Rebuild the spectral weighting logic in the trajectory loss function",
+   "sources": [
+    "contract:objective.spectral_weight"
+   ]
+  },
+  {
+   "adds": "Final L-BFGS steps, taken from the step budget",
+   "attack_surface": "L-BFGS could find sharp minima that generalize poorly; an attacker could exploit second-order convergence artifacts",
+   "bounds": "uint, 0\u20132000, default 0; applies to mlp, deeponet, fno",
+   "id": "stages.polish_steps",
+   "rationale": "Allows a quasi-Newton polishing phase after the main optimizer; off by default",
+   "reconstruction": "Rebuild the L-BFGS polishing stage in the training loop, drawing steps from the main budget",
+   "sources": [
+    "contract:stages.polish_steps"
+   ]
+  },
+  {
+   "adds": "Ensemble members sharing the step budget equally",
+   "attack_surface": "Ensemble averaging changes the prediction distribution; an attacker could exploit member diversity or correlation",
+   "bounds": "uint, 1\u20134, default 1; applies to mlp, deeponet, fno",
+   "id": "inference.ensemble_members",
+   "rationale": "Trains multiple models with the shared step budget and averages predictions; single member is the default",
+   "reconstruction": "Rebuild the ensemble training and averaging logic in the inference pipeline",
+   "sources": [
+    "contract:inference.ensemble_members"
+   ]
+  },
+  {
+   "adds": "Average parameters over this final fraction of the updates",
+   "attack_surface": "Weight averaging changes the final model; an attacker could exploit averaging-induced smoothing",
+   "bounds": "float, 0.0\u20130.9, default 0.0; applies to mlp, deeponet, fno",
+   "id": "inference.tail_averaging",
+   "rationale": "Weight averaging over the tail of training can improve generalization; off by default",
+   "reconstruction": "Rebuild the tail-averaging logic in the training loop, maintaining a running average of parameters",
+   "sources": [
+    "contract:inference.tail_averaging"
+   ]
+  },
+  {
+   "adds": "Predict from params or EMA",
+   "attack_surface": "EMA weights have different properties than raw params; an attacker could exploit EMA-specific artifacts",
+   "bounds": "choice: params, ema; default params; applies to mlp, deeponet, fno",
+   "id": "inference.inference_weights",
+   "rationale": "Allows using exponential moving average weights for prediction; params is the default",
+   "reconstruction": "Rebuild the inference weight selection logic, supporting both raw params and EMA weights",
+   "sources": [
+    "contract:inference.inference_weights"
+   ]
+  },
+  {
+   "adds": "EMA decay (with EMA inference)",
+   "attack_surface": "EMA decay changes the effective averaging window; an attacker could exploit decay-dependent lag",
+   "bounds": "float, 0.0\u20130.99999, default 0.99; applies to mlp, deeponet, fno",
+   "id": "inference.ema_decay",
+   "rationale": "Controls the exponential moving average decay rate for the EMA weights",
+   "reconstruction": "Rebuild the EMA computation logic in the training loop",
+   "sources": [
+    "contract:inference.ema_decay"
+   ]
+  },
+  {
+   "adds": "Training and prediction precision",
+   "attack_surface": "Precision changes numerical behavior; an attacker could exploit float32 rounding or float64 memory costs",
+   "bounds": "choice: float32, float64; default float32; applies to mlp, deeponet, fno",
+   "id": "inference.precision",
+   "rationale": "Allows double precision for numerical stability; float32 is the default",
+   "reconstruction": "Rebuild the precision configuration in the training and inference code",
+   "sources": [
+    "contract:inference.precision"
+   ]
+  },
+  {
+   "adds": "Reconstruction backend: Carbon rebuilds the recipe with its own trainer in this framework's pinned worker image (OWNER-PYTORCH-BACKEND-01)",
+   "attack_surface": "Backend differences could lead to numerical discrepancies; an attacker could exploit framework-specific behavior",
+   "bounds": "choice: jax, pytorch; default jax; applies to mlp, deeponet, fno",
+   "id": "inference.backend",
+   "rationale": "Allows PyTorch as an alternative backend for reconstruction; JAX is the default, PyTorch uses the pinned worker image",
+   "reconstruction": "Rebuild the recipe in both JAX and PyTorch, with the PyTorch backend using the OWNER-PYTORCH-BACKEND-01 pinned worker image",
+   "sources": [
+    "contract:inference.backend"
+   ]
+  },
+  {
+   "adds": "Seeded subset of TRAIN v1; resolution and new cases stay fixed",
+   "attack_surface": "Subsetting changes which cases the model sees; an attacker could exploit subset selection to probe training distribution",
+   "bounds": "float, 0.1\u20131.0, default 1.0; applies to all",
+   "id": "training_data.train_fraction",
+   "rationale": "Allows training on a subset of the training data; full set is the default",
+   "reconstruction": "Rebuild the seeded training data subset selection logic",
+   "sources": [
+    "contract:training_data.train_fraction"
+   ]
+  },
+  {
+   "adds": "Weight of TRAIN cases in the published important region",
+   "attack_surface": "Region weighting shifts the effective training distribution; an attacker could exploit underweighted regions",
+   "bounds": "float, 0.0\u201310.0, default 1.0; applies to mlp, deeponet, fno",
+   "id": "training_data.important_region_weight",
+   "rationale": "Up- or down-weights cases in the published important operating region; default 1.0 is uniform",
+   "reconstruction": "Rebuild the important-region case weighting logic in the data pipeline",
+   "sources": [
+    "contract:training_data.important_region_weight"
+   ]
+  },
+  {
+   "adds": "Admit TRAIN cases by charge rate over the first half of training",
+   "attack_surface": "Curriculum changes the order of case presentation; an attacker could exploit curriculum-induced training dynamics",
+   "bounds": "choice: none, low_rate_first, high_rate_first; default none; applies to mlp, deeponet, fno",
+   "id": "training_data.curriculum",
+   "rationale": "Curriculum learning by charge rate; none is the default",
+   "reconstruction": "Rebuild the curriculum admission logic in the data pipeline",
+   "sources": [
+    "contract:training_data.curriculum"
+   ]
+  },
+  {
+   "adds": "Up-weight cases with high current TRAIN loss (exponent)",
+   "attack_surface": "Hard example weighting focuses on difficult cases; an attacker could exploit the reweighting to probe outlier sensitivity",
+   "bounds": "float, 0.0\u20134.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "training_data.hard_example_weight",
+   "rationale": "Hard example mining via loss-based reweighting; off by default",
+   "reconstruction": "Rebuild the hard-example weighting logic in the data pipeline",
+   "sources": [
+    "contract:training_data.hard_example_weight"
+   ]
+  }
+ ],
+ "left_out": [
+  "hybrid.composition_graphs: excluded \u2014 participant-defined composition graphs (trigger: executable_submission)",
+  "hybrid.reference_solver_reuse: excluded \u2014 hybrids reusing the PyBaMM reference; validation is JAX-only (trigger: evidence_design_change)",
+  "inference.final_label_selection: excluded \u2014 checkpoint selection by final labels (trigger: evidence_design_change)",
+  "model_family.julia_backend: excluded \u2014 Julia families (NeuralOperators.jl, NeuralPDE); validator reconstruction is JAX or PyTorch (trigger: authority_boundary_widening)",
+  "model_family.pretrained_weights: excluded \u2014 pretrained weights, checkpoints or embeddings (trigger: external_data_or_learned_state)",
+  "objective.loss_expressions: excluded \u2014 losses supplied as code or expressions (trigger: executable_submission)",
+  "training_data.label_method: excluded \u2014 per-submission reference labels; the reference is PyBaMM and validation is JAX-only (trigger: evidence_design_change)",
+  "training_data.submitted_datasets: excluded \u2014 uploaded datasets or miner-chosen seeds (trigger: external_data_or_learned_state)",
+  "Level 3 has nothing in today's contract"
+ ],
+ "status": "PROPOSED"
+}

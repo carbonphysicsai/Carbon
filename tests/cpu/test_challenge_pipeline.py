@@ -607,10 +607,12 @@ def test_the_view_shows_the_ladder_and_the_lessons():
     )
     for step in ladder.CLIMB_PROCEDURE:
         assert step in text
-    # Graphite's proposals for every level: none filed for battery yet.
+    # Graphite's proposals for every level: level-plan-3 filed one per level
+    # for battery (2026-10-03), each PROPOSED until the contract owner decides.
     assert "**Graphite's level proposals.**" in text
     assert (
-        "| `battery-fastcharge-ageing-development-v1` | none | none | none | none | none | none |"
+        "| `battery-fastcharge-ageing-development-v1` |"
+        + " PROPOSED |" * len(ladder.LEVELS)
         in text
     )
     assert ladder.CLIMB_PROCEDURE[0].startswith(

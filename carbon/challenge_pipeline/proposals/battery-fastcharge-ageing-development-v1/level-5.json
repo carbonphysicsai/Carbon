@@ -1,0 +1,102 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 5,
+ "recorded_at": "2026-10-03T02:50:09Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [
+  {
+   "adds": "Multiple independently-initialized model members that share the total step budget equally, with predictions averaged at inference time",
+   "attack_surface": "Multiple members increase reconstruction wall-clock and memory; a recipe could exploit inter-member variance to produce predictions that pass per-member sanity checks but misbehave in aggregate; ensemble averaging could mask individual member pathologies that would be flagged in a single-model recipe",
+   "bounds": "1 to 4 members (uint), default 1; each member receives an equal fraction of the total step budget (floor(steps/N))",
+   "id": "inference.ensemble_members",
+   "rationale": "Randomized prior ensembles for DeepONets provide more robust predictions, reliable uncertainty estimates on scarce data, and detection of out-of-distribution and adversarial inputs; extending ensemble averaging to FNO and MLP surrogates for battery trajectories improves reliability of voltage, temperature, plating-margin and capacity predictions under distribution shift between TRAIN and validation protocols",
+   "reconstruction": "Isolation: Each member is trained sequentially in the same isolated worker as a single-model recipe; no inter-member communication occurs during training; the ensemble is assembled only at inference time from independently-reconstructed member checkpoints loaded from the worker's local store Reconstruction: Carbon's trainer trains N independently-seeded models within the same total step budget (each member receives floor(steps/N) updates with its own random initialization); all member parameter sets are serialized to the worker's local store; at inference the prediction is the unweighted average of member outputs for each trajectory point and scalar head",
+   "sources": [
+    "card:arxiv-2203.03048v1",
+    "card:arxiv-2503.03178v4",
+    "contract:inference.ensemble_members"
+   ]
+  },
+  {
+   "adds": "Parameter averaging over a final fraction of the training updates, producing a single smoothed checkpoint from the optimization trajectory tail",
+   "attack_surface": "Averaging across many checkpoints could obscure a transient adversarial perturbation injected at specific late-training steps; the averaged model may behave differently from any individual checkpoint, making per-step auditing harder; a recipe could set a large averaging fraction to dilute the effect of validation-time detection of anomalous steps",
+   "bounds": "0.0 to 0.9 (float), default 0.0 (disabled); the fraction specifies what portion of the final updates contributes to the average",
+   "id": "inference.tail_averaging",
+   "rationale": "Tail parameter averaging smooths the final checkpoint over late-training fluctuations, reducing prediction variance; the ensemble and UQ literature for operator networks demonstrates that parameter-space and prediction-space averaging yields more robust and reliable predictions than any single checkpoint, motivating this inference-time smoothing capability for battery surrogates trained on scarce data",
+   "reconstruction": "Isolation: Averaging is performed in the same isolated worker after training completes; all checkpoints used in the average are produced by that worker's own training run; no external checkpoints are imported Reconstruction: Carbon's trainer checkpoints parameters at each update within the specified final fraction and computes their unweighted average; the averaged checkpoint replaces the final checkpoint for inference; the original per-step checkpoints within the averaging window are discarded after the average is computed",
+   "sources": [
+    "card:arxiv-2203.03048v1",
+    "card:arxiv-2503.03178v4",
+    "contract:inference.tail_averaging"
+   ]
+  },
+  {
+   "adds": "Choice of predicting from raw trained parameters or from an exponential moving average (EMA) shadow copy maintained during training",
+   "attack_surface": "EMA parameters are not directly inspected during training; a recipe could set EMA decay to produce shadow parameters that diverge significantly from the trained model, potentially encoding adversarial behavior invisible to per-step gradient inspection; switching between params and EMA at inference changes the effective model without re-running validation on the selected weights",
+   "bounds": "Choice of ['params', 'ema'], default 'params'; EMA inference requires a non-zero ema_decay",
+   "id": "inference.inference_weights",
+   "rationale": "EMA parameters provide a smoothed estimate of the optimization trajectory that can be more robust than the final raw parameters, analogous to how ensemble and weight-averaging methods improve prediction stability for operator networks; the UQ literature for DeepONets demonstrates that smoothed or perturbed parameter sets yield more reliable predictions than deterministic single-checkpoint inference, particularly under data scarcity and distribution shift",
+   "reconstruction": "Isolation: The EMA shadow copy is computed in the same isolated worker during training; the shadow parameters are serialized alongside the final parameters in the worker's local store; no external parameter sets are imported Reconstruction: Carbon's trainer maintains an EMA shadow copy of all parameters updated at each step with the specified decay; at inference, either the raw or EMA parameters are loaded depending on the recipe setting; the non-selected parameter set is discarded after serialization",
+   "sources": [
+    "card:arxiv-2203.03048v1",
+    "contract:inference.inference_weights"
+   ]
+  },
+  {
+   "adds": "Decay rate for the EMA shadow parameters, controlling the effective window over which the shadow copy tracks the raw parameters",
+   "attack_surface": "Extreme decay values (near 0.0 or near 1.0) could produce degenerate EMA parameters: near 0.0 the shadow copy is nearly the final checkpoint (no smoothing benefit), while near 1.0 it retains early-training values that may not reflect the trained model; a recipe could exploit this to serve a model that differs substantially from what per-step training inspection suggests",
+   "bounds": "0.0 to 0.99999 (float), default 0.99; used only when inference_weights is 'ema'",
+   "id": "inference.ema_decay",
+   "rationale": "The decay rate controls the bias-variance tradeoff of EMA predictions: higher decay gives a longer effective window and smoother estimates; the ensemble and UQ literature supports parameter-space smoothing for improved robustness in operator networks, and the decay rate is the key knob governing that smoothing strength",
+   "reconstruction": "Isolation: EMA computation is performed in the same isolated worker during training; the decay rate is a recipe parameter validated against the contract bounds before training begins Reconstruction: Carbon's trainer applies the EMA update shadow = decay * shadow + (1 - decay) * params at each training step; the shadow parameters are checkpointed at the end of training and loaded for inference when inference_weights is 'ema'",
+   "sources": [
+    "card:arxiv-2203.03048v1",
+    "contract:inference.ema_decay"
+   ]
+  },
+  {
+   "adds": "Training and inference precision selection between float32 and float64 for all tensor operations in the recipe",
+   "attack_surface": "float64 doubles memory and compute cost, potentially stressing the worker's resource budget and causing reconstruction failures that could mask adversarial behavior; framework-specific floating-point differences between float32 and float64 could be exploited to produce predictions that pass validation in one precision but fail in another; a recipe could use float64 to slow reconstruction and exploit timeout-based failure modes",
+   "bounds": "Choice of ['float32', 'float64'], default 'float32'",
+   "id": "inference.precision",
+   "rationale": "float64 reduces numerical error in operator surrogates for sensitive battery predictions (voltage trajectories near the 4.2 V cycler limit, plating margins near zero) where small errors can compound across the 30 s time grid; the lightweight UQ and fast-inference literature motivates precision as a lever for trading compute cost against prediction fidelity at deployment, and derivative-informed FNO training demonstrates that efficient numerical schemes can improve accuracy at low training sample sizes",
+   "reconstruction": "Isolation: Precision is set within the same isolated worker; no external numerical libraries or precision conversion tools are imported; all tensors use the recipe-specified precision throughout training and inference Reconstruction: Carbon's trainer and inference pipeline configure all tensor operations to the specified precision; float64 requires framework and hardware support in the worker image; the reconstructed model must produce predictions numerically equivalent to the submitted recipe within a tight tolerance defined per backend",
+   "sources": [
+    "card:arxiv-2503.03178v4",
+    "card:arxiv-2512.14086v2",
+    "contract:inference.precision"
+   ]
+  },
+  {
+   "adds": "Choice of reconstruction backend (JAX or PyTorch), with PyTorch using a pinned worker image (OWNER-PYTORCH-BACKEND-01) that includes neuraloperator 2.0 for FNO support",
+   "attack_surface": "A second backend doubles the reconstruction surface and the trusted computing base; framework-specific numerical differences (convolution padding, FFT conventions, gradient accumulation order) could be exploited to produce predictions that pass validation in one backend but fail in another; the PyTorch worker image is an additional dependency that must be pinned and audited; a recipe could select a backend that masks numerical instabilities present in the other backend",
+   "bounds": "Choice of ['jax', 'pytorch'], default 'jax'; FNO model family requires PyTorch (neuraloperator 2.0 is PyTorch-only); MLP and DeepONet may use either backend",
+   "id": "inference.backend",
+   "rationale": "The FNO model family is specified as neuraloperator 2.0 with PyTorch backend only in the contract; battery FNO literature demonstrates FNO surrogates achieving approximately 200x speedup over SPM solvers for lithium-ion battery simulation, and hybrid physics-informed FNO architectures for EV battery power estimation, requiring PyTorch reconstruction support; the backend choice enables miners to submit recipes using either framework while Carbon reconstructs them deterministically in its own pinned images",
+   "reconstruction": "Isolation: PyTorch reconstruction runs in an independently isolated worker image (OWNER-PYTORCH-BACKEND-01) separate from the JAX worker; both backends are sandboxed with the same resource limits and network isolation; no cross-backend parameter transfer or shared state is permitted between worker images Reconstruction: Carbon rebuilds the recipe in the selected framework using its own trainer; for PyTorch, the pinned worker image OWNER-PYTORCH-BACKEND-01 with neuraloperator 2.0 is used; for FNO the backend must be PyTorch; for MLP and DeepONet either backend may be selected; the reconstructed model must produce predictions numerically equivalent to the corresponding reference implementation within a framework-specific tolerance; both backends use the same data pipeline and loss computation",
+   "sources": [
+    "card:arxiv-2508.08087v1",
+    "card:arxiv-2508.12602v2",
+    "contract:inference.backend",
+    "contract:model_family.fno"
+   ]
+  }
+ ],
+ "left_out": [
+  "inference.final_label_selection is excluded: checkpoint selection by final validation labels would allow overfitting to the validation set and is blocked by the evidence_design_change trigger",
+  "No new model families are introduced at this level; model family selection (knn, mlp, deeponet, fno) remains a level 0 capability",
+  "No new architectural capabilities are introduced; architecture knobs (width, depth, activation, normalization, initialization, basis_functions, n_modes, etc.) remain at level 0",
+  "No new loss-function capabilities are introduced; objective modifications (relative_loss, time_weighting, h1_weight, h2_weight, spectral_weight) remain at level 1",
+  "No new optimizer, schedule, batching or training-data capabilities are introduced; those remain at level 2",
+  "Hybrid model templates (hybrid.candidate_solver_template, hybrid.symbolic_template) and learned rollout (prediction.rollout) remain research_only at level 4 and are not promoted to level 5",
+  "Level 3 remains empty: no training-time numerical routines such as preconditioners are registered for this Challenge",
+  "Ensemble members are capped at 4 to keep reconstruction cost bounded; larger ensembles would require a new Challenge or owner decision",
+  "Tail averaging is capped at 0.9 of the final updates to ensure the averaged window retains a meaningful connection to the converged trajectory; averaging the entire run would conflate early and late training regimes"
+ ],
+ "status": "PROPOSED"
+}
