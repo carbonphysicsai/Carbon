@@ -62,6 +62,7 @@ def provider_plan(agent, budget, selection=None):
     plan exactly as before selection existed, any other adds its record."""
     if agent == "none":
         return {"agent": "none", "model_calls": 0}
+    from carbon.development_session import miner_guidance
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
         check_budget,
@@ -93,6 +94,10 @@ def provider_plan(agent, budget, selection=None):
         # Frozen with the plan: a provider that returns several tool calls in
         # one turn gets the first run and the rest refused, not a stopped run.
         "parallel_calls": PARALLEL_CALLS,
+        # Frozen with the plan (RSURF-D13): the agent reads the miner's
+        # Conversation messages at each step as recorded guidance. A plan
+        # frozen before the amendment has no rule and reads none.
+        "miner_guidance": miner_guidance.RULE,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()

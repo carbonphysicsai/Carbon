@@ -293,6 +293,11 @@ class PublicResearchExecutor:
         if spec.action == "notebook":
             if args["kind"] not in {"hypothesis", "decision", "notebook"}:
                 raise ValueError("miner notebook kind unavailable")
+            from .miner_guidance import is_reserved
+
+            if is_reserved(args["body"]):
+                # Only the miner's own page writes a miner message (RSURF-D13).
+                raise ValueError("miner message schema is reserved")
             self.ledger.note(owner=self.owner, kind=args["kind"], body=args["body"])
             return {"retained": True}
         if spec.action == "check_design":

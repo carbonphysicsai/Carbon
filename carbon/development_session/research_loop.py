@@ -11,6 +11,7 @@ import json
 
 from carbon.reconstruction.capability_registry import contract_digest
 
+from . import miner_guidance as guidance
 from .data import write_once
 from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
@@ -149,6 +150,7 @@ async def run_epoch(
     parallel_calls=None,
     instructions=None,
     tools=None,
+    miner_guidance=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -171,9 +173,21 @@ async def run_epoch(
     it; every other call goes to `sdk`, which owns refusing it. Both are
     recorded in the epoch plan. Omitted, the historical prompt and tools stand
     unchanged.
+
+    `miner_guidance` is the rule a campaign froze for the miner's messages
+    (`miner_guidance.RULE`, RSURF-D13): at each step boundary the agent reads
+    the messages new since its cursor as separate user-role guidance, recorded
+    with their sequences and digests and chained from this plan, and may reply
+    with the reply tool. None, a plan frozen before the amendment, reads none.
     """
     if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
         raise ValueError("unknown parallel tool call rule")
+    if miner_guidance is not None and miner_guidance != guidance.RULE:
+        raise ValueError("unknown miner guidance rule")
+    if miner_guidance is not None and (
+        agent_policy != AUTONOMOUS or instructions is not None
+    ):
+        raise ValueError("miner guidance reaches Carbon's autonomous agent only")
     if (instructions is None) != (tools is None):
         raise ValueError("a role supplies both its instructions and its tools")
     if instructions is not None and (agent_policy != LEGACY or challenge is not None):
@@ -184,7 +198,10 @@ async def run_epoch(
     if instructions is None:
         prompt = prompt_for(agent_policy, challenge)
         tools = (
-            tools_for_sdk(sdk) + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
+            tools_for_sdk(sdk)
+            + [SELECTION_TOOL]
+            + ([STOP_TOOL] if autonomous else [])
+            + ([guidance.REPLY_TOOL] if miner_guidance is not None else [])
         )
     else:
         if type(instructions) is not str or not instructions:
@@ -215,6 +232,8 @@ async def run_epoch(
         plan["model_selection"] = provider.record()
     if parallel_calls is not None:
         plan["parallel_calls"] = parallel_calls
+    if miner_guidance is not None:
+        plan["miner_guidance"] = miner_guidance
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -248,6 +267,8 @@ async def run_epoch(
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
+    # The miner's messages read so far, chained from this frozen plan.
+    guidance_chain = digest(canonical(plan)) if miner_guidance is not None else None
     for index in range(MAX_PROVIDER_CALLS):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
@@ -261,6 +282,21 @@ async def run_epoch(
             else MAX_RESEARCH_TRIALS
         )
         call_id = f"epoch-{epoch}-provider-{index:03d}"
+        if miner_guidance is not None:
+            # The step boundary: read once from the journal, recorded before
+            # the request; a replay reads the record, so the turn is the same.
+            record = guidance.step(
+                ledger,
+                owner=owner,
+                epoch_root=root,
+                turn=call_id,
+                rule=miner_guidance,
+                previous=guidance_chain,
+            )
+            guidance_chain = record["chain"]
+            message = guidance.for_model(record)
+            if message is not None:
+                history.append(message)
         effort = provider.settings.reasoning_effort
         request = {
             "model": provider.model_id,
@@ -442,6 +478,12 @@ async def run_epoch(
                     arguments["used_feedback"],
                 )
                 write_once(root / "selected-recipe.json", canonical(result))
+            elif (
+                miner_guidance is not None
+                and call["name"] == guidance.REPLY
+                and guidance.REPLY in offered
+            ):
+                result = guidance.reply(ledger, owner=owner, arguments=arguments)
             else:
                 numerical = call["name"] == PREFIX + "start_research_task" and (
                     arguments.get("kind") == "practice"
@@ -494,5 +536,16 @@ async def run_epoch(
         "accounting": ledger.status(owner=owner),
         "chain_transactions": 0,
     }
+    if miner_guidance is not None:
+        # The messages this epoch read, bound into its recorded input.
+        report["miner_guidance"] = {
+            "rule": miner_guidance,
+            "chain": guidance.verify(root, plan),
+            "read": [
+                m["sequence"]
+                for path in sorted(root.glob("*" + guidance.RECORD_SUFFIX))
+                for m in json.loads(path.read_bytes())["messages"]
+            ],
+        }
     write_once(root / "outcome.json", canonical(report))
     return report
