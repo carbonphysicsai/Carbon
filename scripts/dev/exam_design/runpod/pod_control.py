@@ -13,7 +13,8 @@
 Campaigns (``CAMPAIGNS``) each have their own ledger, local state and hard
 limits. ``exam-design`` (the default) is the 2026-09-24 campaign: one pod at a
 time. ``ev4`` is EV4 and the Problem-C optimizer (owner approval 2026-10-01):
-up to 3 pods in parallel.
+up to 3 pods in parallel. ``ev5`` is EV5 (OWNER-EV5-CAP-01, 2026-10-03): up to
+3 pods in parallel, and nothing to dispatch before EV5's freeze.
 
 The repository is public, so operator configuration and accounting stay on the
 operator's host (owner decision 2026-10-02):
@@ -89,6 +90,16 @@ CAMPAIGNS = {
         "token": None,
         "max_pods": 1,
         "name": "carbon-ev4-regen",
+    },
+    # EV5, the battery Level 0 combined admission run (OWNER-EV5-CAP-01,
+    # 2026-10-03): inside OWNER-TRACK-A-L0-02's cap; A40 pods, at most 3 in
+    # parallel. Its plans are written at EV5's freeze (carbon.battery.value.ev5).
+    "ev5": {
+        "evidence": "docs/development/evidence/ev5-2026-10-03",
+        "active": "ev5_active_pods",
+        "token": None,
+        "max_pods": 3,
+        "name": "carbon-ev5",
     },
     # The challenge pools' public TRAIN and PRACTICE cases on CPU pods
     # (owner approval 2026-10-02). Private pools never run here.

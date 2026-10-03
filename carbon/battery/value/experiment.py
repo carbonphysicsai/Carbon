@@ -363,6 +363,7 @@ class Experiment:
                 # silently reinterpreted under this contract.
                 raise ExperimentError("artifact_mismatch", member)
             bundles[member] = bundle
+        kinds = pn.kinds(self.contract().get("panel", "ev1"))
         results = evaluate(
             self.contract(),
             self.reference_map(),
@@ -371,7 +372,9 @@ class Experiment:
             families_by_member={
                 member: pn.family(strategy)
                 for member, _label, strategy, _seed in self._members()
+                if kinds[member] == "RECONSTRUCTED"
             },
+            kinds_by_member=kinds,
         )
         results["manifest_digest"] = ev.digest(self.manifest())
         out = self._dir("results")
@@ -598,15 +601,25 @@ def evaluate(
     repository,
     controls=True,
     families_by_member=None,
+    kinds_by_member=None,
 ):
-    """Every member's decisions, every rule's scores, and their comparison."""
+    """Every member's decisions, every rule's scores, and their comparison.
+
+    `kinds_by_member` names each panel member's kind; a member it does not
+    name is RECONSTRUCTED. An ATTACK_CONSTRUCTION member is decided, verified
+    and scored like any other, and kept out of the real-member pools."""
     candidates = ev.candidates(contract)
     baseline_id = ev.candidate_id(contract["baseline"]["protocol"])
     store, scoring_ids, scoring_identity = sc.scoring_set(repository)
     predictions = {
         member: bundle["predictions"] for member, bundle in member_predictions.items()
     }
-    kinds = {member: "RECONSTRUCTED" for member in predictions}
+    kinds = {
+        member: (kinds_by_member or {}).get(member, "RECONSTRUCTED")
+        for member in predictions
+    }
+    if not set(kinds.values()) <= {"RECONSTRUCTED", "ATTACK_CONSTRUCTION"}:
+        raise ExperimentError("panel_kind", "members are rebuilt from recipes")
     if controls:
         decision_refs = {
             c: r for c, r in reference_records.items() if r.get("status") == "OK"
