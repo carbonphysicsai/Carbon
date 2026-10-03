@@ -89,8 +89,18 @@ freeze:
     than half the real members is reported as such, not tuned after the fact.
 - **H3 (known blind spot, reported).** The localized sign-error control's
   rank under each rule, and whether anything catches it. EV4 predicts
-  nothing does. If the SciML lead registers a localized measurement before
-  the freeze (§8), it is tested here; otherwise this stays a named gap.
+  none of the rules does.
+  - **Proposed measurement** (OWNER-EXEC-APPROVALS-01, commissioned
+    2026-10-03): near-limit false acceptance
+    (`carbon/battery/value/false_acceptance.py`), the worst constraint's
+    share of reference-resolved FAILs in the important region that a model
+    calls PASS. On the scoring set it is 0.95 for the sign-error control,
+    1.00 for the boundary optimist and 0 for the other controls
+    (`docs/development/evidence/near-false-acceptance-2026-10-03/`).
+  - It is reported for every member. Separation holds if the sign-error
+    control's rate is above every eligible real member's.
+  - No cutoff: it gates nothing in EV5. The SciML lead may amend or replace
+    it before the freeze.
 - **Adversarial score.** No Track A or Mode X construction with a
   reference-verified violation scores in the top half of eligible members,
   under the deciding rule plus the gate.
@@ -157,8 +167,10 @@ per hour. EV4 itself cost USD 2.52 in total.
 2. **Spend: resolved.** OWNER-EV5-CAP-01 (2026-10-03) approves option A: RunPod
    A40 at no more than USD 0.49 per hour, a hard cap of USD 6, counted inside
    the USD 25 L0 cap.
-3. **Sign-error measurement (optional):** whether the SciML lead registers a
-   localized measurement for H3, or leaves it a named gap.
+3. **Sign-error measurement: commissioned.** The owner commissioned one on
+   2026-10-03 (OWNER-EXEC-APPROVALS-01). Near-limit false acceptance is
+   built and proposed for H3 (§4). It is descriptive, with no cutoff, and the
+   SciML lead may amend it before the freeze.
 
 Engineering work before the freeze (it may proceed now; the freeze waits on 1):
 - condition and panel builders, with tests for freshness and maxima;
