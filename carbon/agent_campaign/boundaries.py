@@ -80,7 +80,15 @@ DENY_PREFIXES = (
     "carbon/agent_campaign/",
     "tests/",
 )
-DENY_FRAGMENTS = ("ev4", "confirmation", "secret", "credential", ".env", "canary")
+DENY_FRAGMENTS = (
+    "ev4",
+    "ev5",
+    "confirmation",
+    "secret",
+    "credential",
+    ".env",
+    "canary",
+)
 
 
 class BoundaryError(ValueError):

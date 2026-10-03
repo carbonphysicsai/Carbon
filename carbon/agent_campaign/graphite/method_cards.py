@@ -27,8 +27,12 @@ exit evidence; no agent may produce them.
 **Snapshots.** A snapshot is a deterministic `LiteratureIndex` over the
 relevant cards that no human check has rejected. It carries its own digest,
 the query-set and prompt digests, and the cards it withheld because they
-name protected material (`tools.protected`). The phase-1 `lit_search` and
-`lit_card` tools serve it unchanged.
+name protected material (`tools.protected`), and each indexed card's check
+status at snapshot time. The phase-1 `lit_search` and `lit_card` tools serve
+it unchanged. A phase-3 session loads it with `offered_literature`, which
+offers only the cards a person checked `CORRECT` unless the owner opts in to
+unchecked ones (GRAPHITE-D28/D29). Run `snapshot` after the checks: a check
+recorded later reaches a session only through a new snapshot.
 
 Every claim on a card is the paper's own as the model extracted it. None is a
 claim Carbon makes, and an `UNCHECKED` card has not been read by a person.
@@ -52,7 +56,10 @@ from .tools import protected
 CARD_SCHEMA = "carbon.graphite.method-card.v1"
 REJECTION_SCHEMA = "carbon.graphite.extraction-rejection.v1"
 CHECK_SCHEMA = "carbon.graphite.human-check.v1"
-SNAPSHOT_SCHEMA = "carbon.graphite.literature-snapshot.v1"
+#: v2 adds `card_status`, each indexed card's check status at snapshot time
+#: (GRAPHITE-D29). A v1 snapshot still loads; its cards count as UNCHECKED.
+SNAPSHOT_SCHEMA = "carbon.graphite.literature-snapshot.v2"
+SNAPSHOT_SCHEMA_V1 = "carbon.graphite.literature-snapshot.v1"
 UNCHECKED = "UNCHECKED"
 VERDICTS = ("CORRECT", "EXTRACTION_ERROR", "NOT_RELEVANT")
 #: A card a human rejected never enters a snapshot.
@@ -420,7 +427,7 @@ def snapshot(store, raw, *, label, query_set_digest):
     Returns `(index, document)`: the `LiteratureIndex` the phase-1 tools serve
     and the snapshot document (no wall-clock time, no local path).
     """
-    included, withheld, excluded = [], [], []
+    included, withheld, excluded, statuses = [], [], [], {}
     for card in store.cards():
         status = store.status(card)
         if not card["relevant"] or status.removeprefix("HUMAN_CHECKED_") in (
@@ -436,6 +443,7 @@ def snapshot(store, raw, *, label, query_set_digest):
             withheld.append(card["card_id"])
             continue
         included.append(entry)
+        statuses[card["card_id"]] = status
     if not included:
         raise ValueError("no admissible card to index")
     index = literature.LiteratureIndex(cards=tuple(included), label=label)
@@ -449,6 +457,7 @@ def snapshot(store, raw, *, label, query_set_digest):
         "card_digests": {
             card["card_id"]: digest(canonical(card)) for card in store.cards()
         },
+        "card_status": dict(sorted(statuses.items())),
         "withheld_protected": sorted(withheld),
         "excluded": sorted(excluded),
         "authority": (
@@ -468,12 +477,19 @@ def write_snapshot(store, document):
 
 def load_snapshot(path):
     """The `LiteratureIndex` a snapshot file holds, verified against its digest."""
+    return load_snapshot_document(path)[0]
+
+
+def load_snapshot_document(path):
+    """`(index, document, file_digest)` for a snapshot file, each verified: the
+    file against its address, the index against its digest."""
     path = Path(path)
     body = path.read_bytes()
-    if path.stem != digest(body)[7:]:
+    address = digest(body)
+    if path.stem != address[7:]:
         raise ValueError("a snapshot file does not match its address")
     document = json.loads(body)
-    if document.get("schema") != SNAPSHOT_SCHEMA:
+    if document.get("schema") not in (SNAPSHOT_SCHEMA, SNAPSHOT_SCHEMA_V1):
         raise ValueError("not a Graphite literature snapshot")
     stored = document["index"]
     index = literature.LiteratureIndex(
@@ -481,4 +497,77 @@ def load_snapshot(path):
     )
     if index.snapshot_digest != document["index_snapshot_digest"]:
         raise ValueError("a snapshot's index does not match its digest")
-    return index
+    return index, document, address
+
+
+def _provenance_status(card):
+    """The status the card's provenance text names (`method card <status>;`).
+    The last match: only Carbon's own text follows it."""
+    found = re.findall(r"; method card ([A-Z_]+); extracted by ", card["provenance"])
+    return found[-1] if found else None
+
+
+def card_statuses(index, document):
+    """`{card_id: status}` at snapshot time, and whether the snapshot recorded
+    them. A v1 snapshot recorded none: every card counts as UNCHECKED. A v2
+    status must agree with the card's own provenance text."""
+    ids = [card["card_id"] for card in index.cards]
+    if document["schema"] == SNAPSHOT_SCHEMA_V1:
+        return {cid: UNCHECKED for cid in ids}, False
+    recorded = document.get("card_status")
+    if type(recorded) is not dict or sorted(recorded) != sorted(ids):
+        raise ValueError("a snapshot's card statuses do not cover its index")
+    for card in index.cards:
+        status = recorded[card["card_id"]]
+        if type(status) is not str or _provenance_status(card) != status:
+            raise ValueError("a card's status disagrees with its provenance")
+    return dict(recorded), True
+
+
+def _offered(status, allow_unchecked):
+    """A card is offered when a person checked it CORRECT, or, on the owner's
+    opt-in, when no one has checked it yet (GRAPHITE-D29)."""
+    return status == literature.CHECKED_CORRECT or (
+        allow_unchecked and status == UNCHECKED
+    )
+
+
+def offered_literature(path, *, allow_unchecked=False):
+    """The `OfferedLiterature` a session gets from a snapshot file.
+
+    By default only cards a person checked CORRECT are offered. With
+    `allow_unchecked`, UNCHECKED cards are offered too and stay marked. A
+    card a person rejected never entered the snapshot; a card naming
+    protected material was withheld from it, and the index refuses one. The
+    result may be empty; it is never another index.
+    """
+    if type(allow_unchecked) is not bool:
+        raise TypeError("allow_unchecked is a Boolean")
+    index, document, address = load_snapshot_document(path)
+    statuses, recorded = card_statuses(index, document)
+    offered = tuple(
+        card
+        for card in sorted(index.cards, key=lambda card: card["card_id"])
+        if _offered(statuses[card["card_id"]], allow_unchecked) and not protected(card)
+    )
+    return literature.OfferedLiterature(
+        cards=offered,
+        statuses=tuple(
+            (card["card_id"], statuses[card["card_id"]]) for card in offered
+        ),
+        label=index.label,
+        policy=(
+            literature.CHECKED_AND_UNCHECKED
+            if allow_unchecked
+            else literature.CHECKED_ONLY
+        ),
+        source={
+            "kind": literature.SOURCE_SNAPSHOT,
+            "snapshot_file_digest": address,
+            "snapshot_schema": document["schema"],
+            "snapshot_label": document["label"],
+            "index_snapshot_digest": document["index_snapshot_digest"],
+            "card_status_recorded": recorded,
+        },
+        withheld=len(index.cards) - len(offered),
+    )

@@ -17206,6 +17206,41 @@ Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 - Scientific, security and launch qualification stay human-reserved. A
   method card is the paper's claim as extracted, never Carbon's.
 
+**Amendment (2026-10-02): 40 runs, and resume after a lost call.**
+- **Why.** The live triage kept being cut off: the cloud container restarted
+  and killed the process mid-call. Each time one call was left with an
+  unknown outcome (ledger state `RESERVED`), and the run stopped
+  `RECONCILIATION_REQUIRED`. All three permitted runs were used:
+  - `smoke-1`: 5 calls;
+  - `full-1`: 59 calls, 1 unresolved;
+  - `full-2`: 41 calls, 1 unresolved.
+
+  Together they made 101 cards and 1 rejection. Booked spend is USD 0.086.
+  Estimated actual spend is about USD 0.007: Engy does not report
+  `x_engy.charged_micro`, so each call keeps its full reservation.
+- **Owner, verbatim, choosing among four options:** "Raise runs, add resume
+  fix (Recommended)". The option read: raise the phase-2 grant to 40 runs,
+  keeping the USD 9 ceiling; run in chunks of about 300 calls, so each
+  restart costs at most one call; and fix the code so that a crashed run
+  writes off its one unresolved call and continues instead of needing a new
+  run.
+- **Decision.**
+  - `GRAPHITE-GRANT-PHASE2.json`: `permitted_runs` is 40. Nothing else in
+    the grant changes. The ceiling stays USD 9.00 and the worst case per run
+    stays USD 2.49.
+  - The ceiling, not the run count, still bounds money: a run opens only
+    while settled and reserved spend, plus the next run's worst case, plus
+    cleanup, stays within USD 9.00. Each run's ledger is still capped at
+    USD 2.49.
+  - The resume fix is GRAPHITE-D17 in the ticket. At every start, a call
+    whose outcome is unknown is written off with a typed
+    `provider_outcome_unknown` rejection, and the run continues. The call is
+    never resent, and its full reservation stays booked and counted.
+- **Unchanged.** A call that ends with an unknown outcome still stops its
+  run `RECONCILIATION_REQUIRED`; the write-off happens only on the next
+  start, so the operator always sees the stop. No reservation is settled,
+  refunded or deleted.
+
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
 ## 2026-10-01 — OWNER-CHALLENGE-DESIGN-01: design the cold plate, motor and photonic Challenges through to ready-for-testing, under delegation
@@ -18098,6 +18133,131 @@ command) and `carbon.compute.remote_job`.
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
 retired; the remote-machine route replaces them).
 
+## 2026-10-03 — OWNER-MERGE-HYGIENE-01: standing merge-hygiene rules for every agent
+
+**Owner, verbatim, in session on 2026-10-03:** "Do you have a solution for
+problems like this. How can we make sure this never happens." Then: "Give me a
+standing message to give all agents that hard codes these new rules so we don't
+do this anymore", "make it durable", and, on labelling #504
+`merge-priority`, "and yes add it now". The owner reports that all agents have
+received the same instructions.
+
+**Context.** Graphite phase 3 (#504) was green but had to merge main seven
+times in one night. Every conflict was in generated Hub files or this
+append-only file, never in code, and each re-merge restarted about 75 minutes
+of required CI while other sessions kept merging.
+
+**Decision.** The rules in `docs/development/MERGE_HYGIENE.md` bind every
+agent and executor:
+- **Part A, in force now:** generated Hub files are never hand-edited, and
+  their conflicts are resolved by taking main's version and re-rendering;
+  conflicts here keep both sides, main's first; main is merged only just
+  before the final push; a green PR is merged at once; and every agent
+  defers to an open PR labelled `merge-priority` whose CI is running or green.
+- **Part B, after the MERGE-HYGIENE-01 ticket merges:** PRs commit no generated
+  Hub outputs, and decisions are one file each.
+
+A merge queue stays a separate owner decision, because the repository's rules
+forbid auto-merge.
+
+*Unchanged.* Every scientific, security and delivery rule. These rules change
+how PRs are assembled and merged, not what any PR may decide.
+
+## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
+
+**Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
+amount (USD 15 suggested) and whether RunPod pod time is inside it or
+separate, the owner answered: "$15 runpod included". The owner then said:
+"Start phase 3 build in parallel".
+
+**Decision.**
+1. **Phase 3 grant.** The ceiling is **USD 15.00**, and it covers both Engy
+   tokens and RunPod pod time under one grant. It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json` in the
+   existing `SpendingGrant` format: provider `graphite`, currency USD.
+   - `account` (`Carbon-Account`) and `expires_at` (`2026-12-31T23:59:59Z`)
+     are the phase-2 grant's. The owner set both for phase 2
+     (OWNER-GRAPHITE-02), and phase 3 reuses them.
+   - `permitted_runs` is 3, the plan's first block of 3 sessions (plan §7).
+   - The other limits are derived, not chosen. The arithmetic is in
+     `docs/development/graphite/grants/README.md`:
+     - the pod price is the EV4 tooling's (`pod_control.MAX_RATE` USD 0.49 an
+       hour, which the EV4 ledger records as RunPod's `costPerHr`, plus 20 GB
+       of disk);
+     - `cleanup_allowance` is pod_control's `CLEANUP_RESERVE_USD`, USD 0.25,
+       and covers pod termination;
+     - `worst_case_run_cost` is USD 4.91 a run: 2.96 for 12 thirty-minute
+       pods and 1.95 for tokens;
+     - `max_runtime_s` is 27,360, `max_concurrency` is 1 and
+       `max_submissions` is 3.
+   - One ceiling covers both kinds of spend:
+     - the controller reserves each run's worst case;
+     - inside a run, every model call is reserved before dispatch and every
+       pod before launch, against the same run cap;
+     - each settles from the provider's reported charge;
+     - an unknown outcome keeps its full reservation.
+2. **Build in parallel.** Phase 3 is built now, without spend. The live
+   sessions run later, in a session that has `ENGY_API_KEY` and
+   `RUNPOD_API_KEY`.
+
+**Unchanged.**
+- Phase 3 constructs only inside the recorded battery construction contract
+  (the reconstruction rule, OWNER-GRAPHITE-02). Level 0 widens nothing.
+- Graphite proposes; Carbon's frozen rule decides (invariants 7.9 and 7.10).
+- No official, protected or EV4 confirmation material reaches the agent or a
+  pod.
+- Reconstruction tolerances and the Level-0 study population stay
+  science-reserved (plan §9).
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.
+
+## 2026-10-03 — OWNER-GRAPHITE-04: Graphite phase 3 keeps one RunPod pod per proposal on Carbon's own account
+
+**Owner, in session on 2026-10-03.** Asked how phase 3 should get GPUs after
+#511 (OWNER-MINER-COMPUTE-LINK-ONLY-01) removed the RunPod code it creates
+pods with, the owner chose "Carbon's own RunPod" over running proposals on a
+machine the owner starts, or pausing phase 3.
+
+**Decision.** Phase 3 keeps its design: one RunPod pod per proposal, created,
+watched and terminated by Carbon on Carbon's own account, with Carbon's key,
+under the phase-3 grant (OWNER-GRAPHITE-03). This is operator compute, which
+LINKONLY-D1 leaves outside OWNER-MINER-COMPUTE-LINK-ONLY-01. No miner key is
+ever used, and the miner path is unchanged.
+
+**Engineering (GRAPHITE-D32).** The provisioning layer phase 3 relies on is
+restored, same behaviour, under `scripts/dev/exam_design/runpod/operator_compute/`
+beside `pod_control`. Nothing under `carbon/` names a provider API.
+
+*Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
+grant and limits. No live session has run, and nothing was spent.
 **Amendment, same day (owner, 2026-10-02): container-only rentals.**
 
 **Question,** as LINKONLY-D4 and the C-MLP-03 ticket's owner input recorded
@@ -18223,36 +18383,6 @@ authority).**
 
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
 
-## 2026-10-03 — OWNER-MERGE-HYGIENE-01: standing merge-hygiene rules for every agent
-
-**Owner, verbatim, in session on 2026-10-03:** "Do you have a solution for
-problems like this. How can we make sure this never happens." Then: "Give me a
-standing message to give all agents that hard codes these new rules so we don't
-do this anymore", "make it durable", and, on labelling #504
-`merge-priority`, "and yes add it now". The owner reports that all agents have
-received the same instructions.
-
-**Context.** Graphite phase 3 (#504) was green but had to merge main seven
-times in one night. Every conflict was in generated Hub files or this
-append-only file, never in code, and each re-merge restarted about 75 minutes
-of required CI while other sessions kept merging.
-
-**Decision.** The rules in `docs/development/MERGE_HYGIENE.md` bind every
-agent and executor:
-- **Part A, in force now:** generated Hub files are never hand-edited, and
-  their conflicts are resolved by taking main's version and re-rendering;
-  conflicts here keep both sides, main's first; main is merged only just
-  before the final push; a green PR is merged at once; and every agent
-  defers to an open PR labelled `merge-priority` whose CI is running or green.
-- **Part B, after the MERGE-HYGIENE-01 ticket merges:** PRs commit no generated
-  Hub outputs, and decisions are one file each.
-
-A merge queue stays a separate owner decision, because the repository's rules
-forbid auto-merge.
-
-*Unchanged.* Every scientific, security and delivery rule. These rules change
-how PRs are assembled and merged, not what any PR may decide.
-
 ## 2026-10-02 — OWNER-MINER-SETUP-AGENT-FIRST-01: miner setup, agent first
 
 **Owner, verbatim, in session on 2026-10-02:** "yes make this more agent first
@@ -18339,540 +18469,3 @@ Carbon rents, stops and bills nothing. DEVELOPMENT; testnet 567; nothing is
 qualified. Registration remains the only admission.
 
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
-
-## 2026-10-02 — OWNER-MINER-RESEARCH-SURFACE-01: a branded research surface for the miner and their agent
-
-**Authority.** The owner, in chat on 2026-10-02, after sending a mockup of a
-dark dashboard (left rail, a "Launch a New Campaign" strip, an "Active
-Campaign" panel with a stage tracker, live metrics, experiment output, events
-and agent thoughts). The owner's words, verbatim:
-
-> we were supposed to be working to a branded version of this. Whatever you as
-> an agent think is an optimal work surface for you and the miner
-
-**Resolved.**
-- The Control Center gets a research surface in Carbon's brand: the screen a
-  miner and their agent work from once setup is done.
-- Design choices are delegated to the executor, within Carbon's invariants.
-  Nothing here changes what is disclosed, what is evaluated or who grades.
-
-**Recorded engineering decisions (executor, same day, within delegated
-authority).** Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
-
-- **RSURF-D1, one projection for both.** Every panel is drawn from one
-  allow-listed document, `carbon.control-center.campaign-view.v1`
-  (`scripts/dev/miner_launchpad/campaign_view.py`). It is an operation in the
-  shared table, so the browser's route and the MCP tool `carbon_campaign_view`
-  are generated from it and return the same payload. It reads only; its gates
-  are observe's.
-- **RSURF-D2, per-case public practice curves are allowed, and are computed
-  locally.** Findings:
-  - The practice scorer has dropped the per-case rows (`_rows` in
-    `carbon/battery/research.py`) since BATTERY-TESTNET-M5A (`66ba55ff8`). No
-    commit message, decision, ticket or document records a reason. The stored
-    practice feedback is defined as the exam aggregate on public PRACTICE.
-  - The battery practice population's own disclosure contract makes
-    `public_practice_cases` and `public_practice_labels` public, with the
-    aggregation policy `detailed_own_public_practice` and the release policy
-    `public_research_only`.
-  - The practice references are public material a miner already downloads
-    (`practice_data`). The worker's predictions are the miner's own files on
-    their own machine.
-  - "Never disclosed" names per-case *evaluation* errors, private evaluation
-    cases, seeds and duplicate maps. Amendment 4's "what no rung shows" is
-    about the screening outcome on the private pool. Neither covers public
-    practice.
-  - Invariant 12 still holds: practice scores a fixed public set that shares
-    no case with the exam's private pools (amendment 4, D4: practice has no
-    channel into realized exam cases).
-
-  So the view draws predicted-vs-reference curves for public PRACTICE cases
-  only. They are computed on the miner's host from the worker's
-  `predictions.json`, after its digest matches the ledger's worker record,
-  and the pinned public references. They are never written into the practice
-  feedback record, never sent anywhere, and never include an evaluation case.
-  The Challenge-neutral rule (`carbon/challenge_registry/research_view.py`)
-  enables them only when a Challenge's practice disclosure contract says so.
-  Any other case (no adapter, a contract that does not disclose, an
-  unverified or missing file) fails closed to the aggregate view with a
-  reason.
-- **RSURF-D3, no battery learning curve yet: an owner question.** Battery
-  trains inside one `jax.lax.scan` in the staged worker modules (`recipes.py`,
-  `training.py`, `torch_training.py`). Their exact bytes are staged into the
-  practice worker and are part of the implementation identity the validator
-  rebuilds with. Recording a loss history changes that trusted program. The
-  view keeps an empty learning-curve slot that says why, and draws a curve
-  wherever one is recorded (`inline_curve`). **Owner input:** may the battery
-  worker program record a bounded TRAIN-only loss history (for example 64
-  evenly spaced steps), at the cost of a new implementation identity and
-  rebuilt worker images? *Answered 2026-10-03: yes, as a new trainer version
-  (OWNER-MINER-RESEARCH-SURFACE-02).*
-- **RSURF-D4, the frozen feedback mode applies to the view.** A validator
-  outcome is shown through the campaign's frozen feedback mode, using the
-  Challenge's own ladder. A miner's own agent reading the view therefore sees
-  what that mode allows and no more. An unknown mode shows the state only.
-- **RSURF-D5, `carbon_note` is a journal write that starts no work.** Any MCP
-  client, or the browser, can post a hypothesis, plan or observation to a
-  campaign's research journal. The rules:
-  - It takes the gates of observe and halt.
-  - Product campaigns only.
-  - 1 to 2000 characters. Control characters other than newline and tab, and
-    bidirectional overrides, are refused.
-  - It is stored through the existing journal path (`CampaignLedger.note`,
-    kind `notebook`, schema `carbon.research-surface.note.v1`).
-  - Notes are shown as untrusted text: every door renders them as text, never
-    HTML. They are never fed to Carbon's own agent.
-- **RSURF-D6, attach brings the research prompts and skill.** Attaching a
-  campaign now copies the research server's prompts as well as its tools and
-  resources, and detaching removes them. The skills extension is registered
-  when the operations server is built, because an MCP extension cannot be
-  added after a client has initialized.
-- **RSURF-D7, the demo fixture is structurally outside the research path.**
-  The fixture lives under `scripts/dev`. Its runner refuses every operation
-  that admits work, and writes no ledger and no campaign root. Every document
-  it serves is labelled `SYNTHETIC_FIXTURE`.
-- **RSURF-D8, charts by output kind, with no chart library.** A Challenge
-  declares its outputs as time series, scalar, checkpoint vector or 2D field,
-  with names, units and axes read from its own I/O description. One SVG
-  renderer draws by kind in the brand's colors. Battery is the first adapter,
-  and a synthetic second Challenge is tested through the same code.
-- **RSURF-D9, the stage tracker is the real lifecycle.** Research, then
-  practice runs (with the count done), then candidate frozen, then
-  DEVELOPMENT submit. Each stage's state is read from the campaign's records.
-  Halt and resume are the real operations.
-- **RSURF-D10, the construction level is an empty slot.** The Contract view
-  reserves `construction_level`, which is null until the construction ladder
-  is merged and supplies it as data.
-
-**Boundaries.** DEVELOPMENT and testnet 567 only. Practice evidence is not
-qualification: there is no leaderboard, rank or official score. Spend shown
-is the miner's own campaign ledger, and their provider bills them; Carbon
-caps and bills nothing.
-
-**Second request, same day (owner, 2026-10-02), relayed by the lead,
-verbatim:** "where can you see the Julia/JAX/Pytorch tooling and all of that
-in the control center? And where can you talk to your agent?" Neither had an
-answer, so both are built under the same delegation.
-
-- **RSURF-D11, the toolbox is read from data.** One document,
-  `carbon.control-center.toolbox.v1` (`scripts/dev/miner_launchpad/toolbox.py`),
-  answers the first question. It is shown as the campaign's Tools tab and as
-  a Toolbox on each Challenge card, and it is the operation `toolbox`, so
-  `carbon_toolbox` returns the same document. Its sources:
-  - the Challenge's description: its backends, workflow, limits, families and
-    backend control;
-  - the capability registry: Julia's status and blocker;
-  - the published exam environment: what the validator rebuilds with;
-  - the research protocol's workspace actions and the operations table, for
-    the exact MCP tool names;
-  - this host's research lanes, which say whether `run_julia` can run here.
-
-  The only text kept in code is one line per workspace action, and a test
-  holds that the set equals the protocol's. Each practice run also shows the
-  framework its recipe named and the image its worker record names.
-- **RSURF-D12, the miner talks to their own agent through the journal.**
-  - The page posts a `miner_message` to its own route,
-    `/api/v1/conversation/<campaign>`. That route is behind the local session
-    token, and no MCP tool can post a miner message.
-  - A message is one journal entry (`CampaignLedger.note`, kind `notebook`,
-    schema `carbon.research-surface.miner-message.v1`). It records the text,
-    the time and a digest of both, and the journal assigns its sequence.
-  - Any MCP agent reads messages after a cursor with `carbon_messages`, and
-    replies with `carbon_note`, `note_kind=reply`, naming the message's
-    sequence in `reply_to`. The page shows the thread.
-  - A message is guidance to the miner's own agent only. The route writes
-    one note and never touches the frozen manifest, so a message cannot
-    change limits, budget, research permissions, the Challenge, the feedback
-    mode, evaluation rules or the frozen research task and its digest.
-    Messages and replies are untrusted text, shown as text.
-- **RSURF-D13, Carbon's own agent does not read messages: stopped, owner
-  question.** The request was for Carbon's autonomous agent to read new
-  messages at its next step and reply. That conflicts with C-MLP-02-D6:
-  - the research task is frozen at launch, and each epoch's effective input
-    is digest-bound;
-  - the browser "cannot author prompts";
-  - "adding another prompt store/runner" was a rejected alternative.
-
-  Feeding messages into Carbon's agent would make the browser author its
-  input mid-campaign. That sub-part is stopped and fails closed: the
-  conversation says Carbon's agent does not read messages, and why.
-  **Owner input:** may Carbon's own agent read the miner's messages as
-  user-role input at step boundaries, recorded and digested in the epoch's
-  effective input? That would amend C-MLP-02-D6. *Answered 2026-10-03: yes,
-  recorded (OWNER-MINER-RESEARCH-SURFACE-02).*
-
-## 2026-10-03 — OWNER-MINER-RESEARCH-SURFACE-02: Carbon's agent reads the miner's messages; battery trainer v2 records a TRAIN-loss history
-
-**Authority.** The owner, 2026-10-03, answering the two questions
-OWNER-MINER-RESEARCH-SURFACE-01 left open. Each question as it was asked, and
-the option the owner selected, verbatim.
-
-1. **RSURF-D13.** Question:
-
-   > May Carbon's own built-in agent read your Conversation messages? It would
-   > read them between steps, and each message would be saved and
-   > fingerprinted (hashed) as part of that step's recorded input. This
-   > changes the earlier decision C-MLP-02-D6, which says the research task is
-   > fixed at launch and the browser can't write the agent's prompts. Agents
-   > you bring yourself (Claude Code, Codex, Hermes) can already read the
-   > messages.
-
-   Selected answer: "Yes, recorded (Recommended)", whose option text reads:
-
-   > Carbon's agent reads new messages at each step boundary as your guidance.
-   > Each message is saved and fingerprinted as part of that step's input, so
-   > the campaign can still be replayed exactly. Messages still can't change
-   > your limits, the Challenge, the scoring rules or the task fixed at
-   > launch.
-
-2. **RSURF-D3.** Question:
-
-   > May the battery practice trainer record a short training-loss history,
-   > from training data only, so the Learning curve chart has real data? This
-   > changes the pinned trainer program, so it would ship as a new versioned
-   > trainer image. Earlier records keep their old version.
-
-   Selected answer: "Yes, as a new trainer version (Recommended)", whose
-   option text reads:
-
-   > A capped training-loss history from training data only, shipped as a new
-   > versioned trainer image. Earlier evidence stays tied to the old version.
-   > The Learning curve chart then shows real data.
-
-**Decision 1: RSURF-D13 amends C-MLP-02-D6, prospectively.**
-- **Which campaigns.** Only a campaign whose frozen provider plan carries the
-  rule `carbon.autoresearch.miner-guidance.v1` reads messages. The battery
-  provider plan freezes it for every Carbon-agent campaign launched from now
-  on. A campaign launched before has no rule and reads none. Its plans,
-  digests, replays and evidence are unchanged, and nothing about it is
-  reinterpreted.
-- **When and how much.** At each step boundary, before each model call, the
-  agent reads the miner's messages that are new since the campaign's cursor.
-  It takes at most 4 per step, the rest at later steps. Each message keeps the
-  existing bound of 1 to 2000 characters, and is read only if its digest
-  matches its text and time.
-- **Recorded and fingerprinted.** Each step writes once
-  `<step>-miner-guidance.json`, holding the messages read and their sequences
-  and digests. Each record is chained from the epoch's frozen plan digest
-  through every step. The epoch outcome and `verify_history` carry the chain,
-  so the epoch's recorded input is its frozen effective input plus this
-  chain. A replay reads the record, never the journal, and re-sends each turn
-  exactly. A broken chain fails closed as changed input.
-- **Guidance, not authority.** The messages are a separate user-role entry,
-  JSON-encoded under one fixed key, `miner_guidance`, with an authority
-  statement beside them. Text stays a string value, so it cannot read as the
-  system prompt or the frozen research task.
-- **Unchanged.** These are never written by a message, and tests hold it:
-  - the frozen research task's text and digest;
-  - the plan, its prompt and the effective input digest;
-  - limits, budget and research permissions;
-  - the Challenge, the feedback mode and the evaluation and scoring rules.
-- **Replies.** The agent replies with `carbon_autoresearch_reply_to_miner`.
-  That tool is offered only under the rule. It writes the same reply note an
-  MCP agent's `carbon_note` writes, marked `author: carbon_agent`, and only to
-  a message the agent was given. A malformed reply is a refused result, not a
-  stopped epoch. It grants nothing.
-- **No forgery.** Only the page's own message route writes a miner message.
-  The agent's notebook tool refuses that schema.
-- **C-MLP-02-D6 now reads.** The browser still cannot author the prompt, the
-  tools or the frozen task. For a campaign under the rule, the miner's posted
-  messages reach Carbon's agent as recorded user-role guidance.
-
-**Decision 2: RSURF-D3, battery trainer v2.**
-- **What is recorded.** `carbon.battery.trainer.v2` (`TRAINER_VERSION` in
-  `carbon/battery/training.py`). Practice records at most 64 evenly spaced
-  (update, loss) points of the trainer's own loss on TRAIN data. That loss is
-  a value the loop already computes.
-  - It covers the JAX trainer, the classic MLP loop and the PyTorch trainer.
-    An ensemble records its first member.
-  - k-nearest-neighbour recipes do not train and record none. An L-BFGS
-    polish is not included.
-- **Practice only.** Recording is off by default. Only the practice worker
-  program turns it on (the GPU practice program extends it). The validator's
-  reconstruction program never does.
-- **Same computation.** With recording off, the traced program is the one
-  before trainer v2. Recording reads the loss and changes no update.
-  - Checked for JAX on CPU: identical `params_sha256` with recording on and
-    off, for the classic MLP, the general MLP and DeepONet.
-  - Checked for PyTorch in the canonical environment: identical
-    `params_sha256` with recording on and off, for the MLP, the FNO and an
-    FNO ensemble. The trainer reads the loss each update already computes.
-- **The new version.** The trainer module bytes are part of
-  `contracts.implementation_digest()`, so the battery implementation identity
-  changes prospectively.
-  - Earlier records keep the identity they were recorded under, and nothing
-    is rescored.
-  - A running battery deployment moves to the new identity by
-    OWNER-BATTERY-CARRYOVER-01's recorded in-place carry-over
-    (`operate upgrade`, `PoolStore.rebind`).
-  - The validator's computation, the exam, the scoring rule and the seeds are
-    unchanged.
-- **Images.** The trainer program is staged into the existing worker image at
-  run time, beside the recipe. So the new version ships as the staged program
-  and its implementation identity, and no container image is rebuilt. This
-  session did not touch shared Docker state.
-- **The chart.** Practice feedback carries the checked history as
-  `fit.loss_history`, and the Learning curve chart draws it.
-
-**Unchanged.** Invariants 1, 4, 5, 7.9 and 10 hold:
-- no hidden-evaluation material reaches a message, a record or the view;
-- disclosure stays allow-listed;
-- nothing flips LIVE;
-- Carbon's verifier still grades;
-- historical evidence keeps its meaning.
-
-Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
-
-## 2026-10-03 — OWNER-MINER-RESEARCH-SURFACE-03: messages carry across epochs; the toolbox works from the page
-
-**Authority.** The owner, 2026-10-03, verbatim.
-
-1. The lead asked: "When a new epoch starts, should Carbon's agent carry
-   forward the messages it already read in the previous epoch? Right now it
-   starts fresh each epoch. I'd say yes, the last few, recorded the same
-   way." The owner answered: "yes to your question".
-2. The owner said: "my other request for the research surface was access to
-   the tooling in the control center". The Tools tab only listed the tools
-   and their MCP names. A miner should use them from the page, not only read
-   about them.
-
-**Recorded engineering decisions (executor, same day, within delegated
-authority).** Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
-
-- **RSURF-D14, the last 3 messages carry forward, recorded the same way.**
-  - A new rule, `carbon.autoresearch.miner-guidance.v2`, which every new
-    battery agent plan freezes.
-  - At an epoch's first step, Carbon's agent gets the last 3 messages it
-    read in earlier epochs, each with at most 2 of its own replies.
-  - They come in the same separate user-role `miner_guidance` entry, under
-    `carried_forward`, with a note saying they were already read and change
-    nothing.
-  - They are read once, from the earlier step records and the journal. They
-    are written into the new epoch's first record with their digests (a
-    reply's digest covers its text and the message it answers) and bound
-    into that step's chain link, so a replay re-sends them exactly and a
-    changed one fails closed.
-  - A campaign frozen under v1 carries nothing, and its records and chain
-    links are unchanged.
-  - Nothing frozen at launch is written. Tests hold the prompt, tools, task
-    and effective input digest equal across epochs.
-- **RSURF-D15, the page is one more client of the agent's own research
-  tools, under the campaign's ownership lock.**
-  - Opening a tool session from the Tools tab goes through the shared
-    operation gates: an enabled profile, registration and a reachable signer,
-    and the miner's own product campaign.
-  - It then attaches through `standard_cli.attached`, the path an MCP
-    `carbon_attach_campaign` takes. That takes the campaign's ownership lock
-    and checks the authenticated owner, the campaign's run state and that no
-    consumption is unresolved.
-  - The page's tools are the Tool objects `standard_server._create_server`
-    builds for that adapter, which an MCP agent gets. Each panel is built
-    from that tool's own input schema, and each call is validated by that
-    tool's own argument model (`Tool.run`).
-  - Long tasks start, report progress and cancel through the adapter's task
-    calls, which the MCP Tasks extension uses, with the same projection.
-  - Every gate, disclosure class, limit, charge and refusal is that code's.
-    The page adds no authority and no execution path. The sandboxed carrier
-    and isolation are unchanged.
-- **RSURF-D16, one holder at a time, said plainly.**
-  - The lock decides who may run tools. Possible holders are an MCP agent
-    with the campaign attached, Carbon's own agent while it runs, an
-    operation in progress, or the page's session.
-  - When the page cannot take the lock, it says which of these it can be
-    and what to do: ask the agent to call `carbon_detach_campaign`, pause
-    Carbon's agent, or wait.
-  - While the page holds the lock, the agent's attach and the practice,
-    freeze and submit operations answer `campaign_busy`, and the page says
-    so.
-  - The page's session ends on Close, when the server stops, and after 10
-    idle minutes.
-  - The freeze and submit shortcuts close the session, then call the
-    existing operations with their own gates.
-  - Rejected alternative: a shared session that lets two clients run tools
-    at once. It would need a second ownership model, and the lock already
-    serialises dispatch, accounting and cleanup.
-- **RSURF-D17, a run's own output is read through one shared read-only
-  operation.**
-  - The research protocol returns a run's result by reference: the worker
-    record and its exported workspace file names. Its retained stdout is not
-    in that result.
-  - `run_output` (campaign, task) is a read-only operation in the shared
-    table, so the page and `carbon_run_output` return the same document. It
-    holds:
-    - the run's retained stdout, at most the last 64 KiB, as text;
-    - its exported files, with name, size and media type;
-    - each raster image (PNG, JPEG, GIF or WebP, recognised by its bytes
-      and never by its name), inline as base64. Each image is at most
-      1 MiB, at most 3 MiB in all and at most 6 images. SVG and other types
-      are listed, never inlined.
-  - This is the miner's own program's output, run on public and own files in
-    the isolated analysis image, which receives no hidden evaluation
-    material. It stays the miner's own, labelled MINER_SELF_REPORTED, and
-    every surface shows it as text or as an image, never as HTML.
-  - Recorded limits of the unchanged carrier:
-    - stderr is not retained (it is a private diagnostic);
-    - a run whose program fails keeps no stdout; its failure code is shown.
-    - The page says both. Keeping either would change the carrier, which
-      this decision does not do.
-- **RSURF-D18, the demo shows the toolbox working and runs nothing.**
-  - The fixture's tool session is the real tool set and argument validation
-    (`_create_server`) over an adapter whose SDK has no connection, no
-    composition and no ledger.
-  - Its answers are synthetic: a workspace with a few files (kept in memory),
-    one finished `run_python` with stdout and a PNG plot, and a
-    `dry_validate` result.
-  - Every start of new work is refused as `fixture_read_only`. Nothing it
-    serves can reach a campaign, a ledger or LIVE.
-
-**Unchanged.**
-- The research protocol, its tools, argument bounds and results.
-- Workspace limits: `read_file` reads 4096 bytes at a time, `write_file` is
-  guarded by its expected digest, a workspace action's arguments are at most
-  16 KiB (so the page writes about 11 KiB of file at a time), and a tool
-  call's arguments are at most 32 KiB.
-- Trial charging, registration and the carrier's isolation.
-- Hidden evaluation material never reaches any of it (invariants 1, 2, 6,
-  7.9 and 9).
-
-## 2026-10-03 — OWNER-MINER-RESEARCH-SURFACE-04: GPU in the Tools tab, a GPU code cell, and kept error output
-
-**Authority.** The owner, 2026-10-03, verbatim.
-
-1. The owner asked: "on jax and pytorch CPU? where's the GPU option?" They
-   had found that the Tools tab shows only "JAX (CPU, the default) or
-   PyTorch (CPU)". The toolbox computed the gpu and remote_gpu lanes but never
-   showed them, and the code cell always ran in the CPU analysis sandbox. No
-   decision is needed for this item: the page must not hide what the
-   campaign runs on.
-2. GPU code cell. Question: "Should the code cell (run_python and run_julia)
-   also be able to run on your GPU, your own machine's or your remote one
-   over SSH, instead of only in the CPU analysis sandbox? It would use the
-   same isolated container with the GPU attached. Practice already runs on
-   your GPU when you choose one."
-
-   Selected answer: "Yes, GPU code cell (Recommended)", whose option text
-   reads:
-
-   > Same isolation, network and file rules as today, with the GPU you set
-   > up attached. You choose CPU or GPU per run, and it runs on your machine
-   > and your bill. The validator stays on CPU.
-3. Kept error output. Question: "Keep error output in the sandbox? Today a
-   failed program keeps no output at all, and error messages are never
-   kept, so a crash shows only a failure code."
-
-   Selected answer: "Keep both, capped (Recommended)", whose option text
-   reads:
-
-   > Keep the last 64 KB of normal output and of error messages, including
-   > for failed runs. Shown as plain text with the same size limits.
-
-**Recorded engineering decisions (executor, same day, within delegated
-authority).** Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
-
-- **RSURF-D19, the page shows where a campaign runs.**
-  - The campaign record states its compute from its frozen runtime: CPU,
-    your GPU on this machine, or your remote GPU over its transport. Until
-    now the projection always said CPU.
-  - The Tools tab says where practice and the code cell run, per runtime.
-    PyTorch on a GPU campaign is shown as not served there, because the
-    pinned GPU worker carries JAX only.
-  - It names the remote route's transport and destination from the miner's
-    own runner profile. When a lane is not set up it gives the reason and
-    links to `#setup/compute`.
-  - It says plainly that the validator rebuilds on its published exam
-    environment (jax-cpu today), so a GPU speeds up the miner's own
-    research only.
-  - Each practice run's "Ran on" states CPU or GPU, and where.
-- **RSURF-D20, the GPU code cell.**
-  - `run_python` takes an optional `device`: `cpu` (the default, and the
-    only meaning a request without it has ever had) or `gpu`. The same
-    argument reaches the page and an MCP agent, through the same field
-    table.
-  - It is offered only when the campaign's frozen runtime has a GPU lane.
-    Otherwise it is refused before dispatch, with a registered correction.
-  - **Local GPU.** The miner lane's container, as before (no network,
-    read-only root, no capabilities, non-root, only the run's input and
-    scratch mounted, the same staging and the same miner limits), with one
-    addition: the host's installed GPU device, by UUID, through the NVIDIA
-    runtime. The container is inspected after create, and any other device,
-    port, mount or capability is refused.
-    - It runs the campaign's pinned GPU worker image, the one GPU practice
-      runs, because the CPU analysis image has no CUDA. Its packages
-      differ, and the page says so.
-    - It takes the same device lease as GPU practice, so the two never share
-      the device.
-  - **Remote GPU.** The miner's own remote route (ssh-docker or
-    ssh-container), the campaign's pinned GPU worker and their own SSH, as
-    remote practice uses them.
-    - Carbon starts, stops and bills nothing (OWNER-MINER-COMPUTE-LINK-ONLY-01).
-    - The remote job server is part of the pinned image and is unchanged.
-      Carbon's fixed wrapper runs the miner's program there and returns its
-      stdout as a file.
-    - The route needs a wall allowance of 40 to 3600 seconds, so a remote
-      run without one is refused before dispatch.
-  - **Files.** A program finds its outputs at `../output` in every lane (it
-    is `/scratch/output` in the sandbox).
-  - **Records.** A GPU run records the device it ran on in its result and
-    request. A CPU run's request and result are unchanged.
-  - **`run_julia` and GPU.** `run_julia` takes the same argument, but the
-    pinned Julia environments carry no CUDA packages, so `device=gpu` for
-    `run_julia` is refused with that reason. A GPU-capable Julia image is a
-    separate image change.
-  - **Security review.** This touches the sandbox. Tests show isolation
-    unchanged except the GPU device, a refusal when no lane is set up, and
-    no credential or key in the container. Tests are not a security audit
-    (AGENTS.md §13): this needs a dedicated security review before any use
-    beyond DEVELOPMENT, and it stays DEVELOPMENT.
-- **RSURF-D21, kept output.**
-  - The miner lane keeps the last 64 KiB of stdout and, separately, of
-    stderr, for successful and failed runs alike. This covers `run_python`
-    and `run_julia`, CPU and local GPU.
-  - A remote run keeps the same two tails from what the job returns.
-  - Failure classification is unchanged: a nonzero exit is still observed
-    from the exit status, and a large stderr no longer fails a run.
-  - Carbon's own practice lane is unchanged.
-  - `run_output` shows both tails as plain text, with the same bounds, and
-    the page drops its `sys.stderr = sys.stdout` workaround.
-
-**Unchanged.** The validator's environment, exam and scoring; disclosure
-(the output is the miner's own program's); registration and trial charging;
-nothing reaches LIVE (invariants 5, 6, 9 and 7.9).
-
-## 2026-10-03 — RSURF-D22: the page meets research tools only through a campaign attach
-
-**Authority.** Delegated engineering decision (executor), within
-OWNER-MINER-RESEARCH-SURFACE-03, which gave the Control Center page use of
-the research tools ("my other request for the research surface was access to
-the tooling in the control center").
-
-**Why it is needed.** `tests/cpu/test_miner_budget_surface.py` pinned that a
-person can never meet the agent-facing "no campaign" refusal (`NO_CAMPAIGN`,
-`ResearchMinerTools.call` with no ledger). It asserted that by premise: the
-browser doors never mention `research_tools` or `ResearchMinerTools`.
-OWNER-MINER-RESEARCH-SURFACE-03 changed that premise on purpose. The page now
-reaches the research tools, through the MCP adapter, and the page serves an
-asset named `research_tools.js`. The intent still holds, and is now stated
-over the path the page actually takes.
-
-**Decision.** The invariant is restated structurally, and the test keeps its
-name and intent:
-- The browser doors (`runner.py`, `controller.py`) import no research SDK
-  module and name no `ResearchMinerTools`. This is checked over their syntax
-  tree, so a page asset's file name is not mistaken for the module.
-- The page's only way to a research tool is the tool door (`tool_door.py`).
-  It reaches tools only through an adapter that an opener yields for a named,
-  owned campaign. The runner's opener is `standard_cli.attached`, the
-  campaign attach that holds the campaign's ownership lock. Every SDK that
-  attach builds carries that campaign's ledger, so the SDK's no-campaign
-  branch cannot run.
-- A tool call, task start or observation with no open session is refused
-  (`tools_session_not_open`) before any tool, adapter or SDK is reached.
-- The demo's tool session answers from its own fixture and never enters the
-  SDK's own call.
-- The MCP adapter stays the door that reaches the SDK directly. An MCP server
-  with no campaign is where `NO_CAMPAIGN` is met, and it is written for an
-  agent.
-
-Tests: `test_only_an_agent_can_reach_the_no_campaign_refusal` (restated) and
-`test_the_page_cannot_meet_the_no_campaign_refusal` (new) in
-`tests/cpu/test_miner_budget_surface.py`.

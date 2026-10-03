@@ -44,6 +44,12 @@ MUTATIONS = {
         ),
         lambda tmp: tm.test_the_spend_cap_stops_the_run_mid_backfill(tmp),
     ),
+    # An unknown-outcome call is written off at the next start, so no run
+    # resends it (GRAPHITE-D17).
+    "unknown_call_write_off": (
+        lambda m: m.setattr(tr.Backfill, "write_off_unknown", lambda self: 0),
+        lambda tmp: tm.test_a_new_run_never_resends_an_unknown_call(tmp),
+    ),
     # arXiv requests are at least 3 s apart.
     "arxiv_rate_limit": (
         lambda m: m.setattr(lf.ArxivClient, "_wait", lambda self, at_least=0.0: None),

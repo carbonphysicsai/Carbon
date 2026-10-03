@@ -25,6 +25,9 @@ with a fake `docker` on PATH. What is held:
   and network;
 - the worker image is streamed with `docker save | ssh docker load` and
   checked by image ID.
+
+The fakes log only under each test's `tmp_path` and refuse to run without
+`CARBON_FAKE_LOG`, so the module leaves nothing in the repository.
 """
 
 from __future__ import annotations
@@ -74,11 +77,20 @@ printf '%s\\n' "${{CARBON_FAKE_GPUS-{GPU} GPU-0000aaaa-bbbb-cccc-dddd-eeeeffff00
   read -r -a gpus; for gpu in "${{gpus[@]}}"; do printf ' %s\\n' "$gpu"; done
 }}
 """
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+#: The fakes' exit status when `CARBON_FAKE_LOG` is empty: without it their
+#: logs would land in the working directory (`.ssh`, `.env`, ...).
+NO_FAKE_LOG = 99
 
 #: A fake `docker`: it logs each call and answers from the environment. It
 #: uses bash builtins only, so the tests control everything on PATH.
 FAKE_DOCKER = r"""#!/bin/bash
-log="$CARBON_FAKE_LOG"
+log="${CARBON_FAKE_LOG:-}"
+if [ -z "$log" ]; then
+  printf 'fake docker: CARBON_FAKE_LOG is empty; set it under tmp_path\n' >&2
+  exit 99
+fi
 printf '%s\n' "$*" >> "$log"
 case "$1" in
   info)
@@ -131,6 +143,10 @@ exit 0
 #: A fake `ssh`: it logs its options, drops `-- DEST` and runs the remote
 #: command here. With `-N` it is a port forward and just waits.
 FAKE_SSH = r"""#!/bin/bash
+if [ -z "${CARBON_FAKE_LOG:-}" ]; then
+  printf 'fake ssh: CARBON_FAKE_LOG is empty; set it under tmp_path\n' >&2
+  exit 99
+fi
 for argument in "$@"; do printf '%s\n' "$argument" >> "$CARBON_FAKE_LOG.ssh"; done
 forward=""
 while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do
@@ -158,6 +174,45 @@ def _logged(path: Path, last: str) -> list[str]:
             return lines
         time.sleep(0.05)
     raise AssertionError("the fake ssh did not log its arguments")
+
+
+def _entries(place: Path) -> dict[str, int | None]:
+    """Each entry's name, with a regular file's modification time."""
+    return {
+        entry.name: (
+            entry.stat(follow_symlinks=False).st_mtime_ns
+            if entry.is_file(follow_symlinks=False)
+            else None
+        )
+        for entry in os.scandir(place)
+    }
+
+
+@pytest.fixture(scope="module", autouse=True)
+def nothing_left_in_the_repository():
+    """After the module, no file is new or changed in the repository root, or
+    in a working directory inside the repository: the stray `.ssh` an empty
+    `CARBON_FAKE_LOG` once left there is caught here."""
+    cwd = Path.cwd().resolve()
+    places = {REPO_ROOT}
+    if cwd == REPO_ROOT or REPO_ROOT in cwd.parents:
+        places.add(cwd)
+    before = {place: _entries(place) for place in places}
+    yield
+    for place in places:
+        stray = sorted(
+            name
+            for name, mtime in _entries(place).items()
+            if name not in before[place] or before[place][name] != mtime
+        )
+        assert not stray, f"the module left {stray} in {place}"
+
+
+@pytest.fixture(autouse=True)
+def fake_log_under_tmp_path(tmp_path, monkeypatch):
+    """Every fake started from the test's own environment logs to
+    `tmp_path/log` and its siblings (`log.ssh`, `log.loaded`, ...)."""
+    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
 
 
 @pytest.fixture
@@ -281,23 +336,18 @@ def test_an_invalid_port_is_refused(port):
         SSHClient("gpu-box", port=port)
 
 
-def test_run_returns_the_status_and_a_bounded_stdout(tmp_path, monkeypatch):
-    log = tmp_path / "ssh"
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(log))
+def test_run_returns_the_status_and_a_bounded_stdout(tmp_path):
     fake = _executable(tmp_path / "ssh-fake", FAKE_SSH)
     client = SSHClient("miner@gpu-box", binary=str(fake))
     assert client.run("printf hello; exit 3", timeout=30) == (3, b"hello")
     code, out = client.run("head -c 200000 /dev/zero", timeout=30)
     assert code == 0 and len(out) == rm.MAX_STDOUT_BYTES
     # The script travels on stdin; ssh's argv ends `-- DEST bash -s`.
-    argv = (tmp_path / "ssh.ssh").read_text().splitlines()
+    argv = (tmp_path / "log.ssh").read_text().splitlines()
     assert argv[-4:] == ["--", "miner@gpu-box", "bash", "-s"]
 
 
-def test_a_run_that_outlasts_its_time_or_has_no_client_is_a_status(
-    tmp_path, monkeypatch
-):
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
+def test_a_run_that_outlasts_its_time_or_has_no_client_is_a_status(tmp_path):
     fake = _executable(tmp_path / "ssh-fake", FAKE_SSH)
     client = SSHClient("gpu-box", binary=str(fake))
     assert client.run("sleep 20", timeout=0.5) == (rm.TIMED_OUT, b"")
@@ -315,7 +365,11 @@ FAKE_FORWARD = r"""
 import os, socket, sys, threading
 
 arguments = sys.argv[1:]
-with open(os.environ["CARBON_FAKE_LOG"] + ".ssh", "a") as log:
+log_base = os.environ.get("CARBON_FAKE_LOG", "")
+if not log_base:
+    sys.stderr.write("fake ssh: CARBON_FAKE_LOG is empty; set it under tmp_path\n")
+    sys.exit(99)
+with open(log_base + ".ssh", "a") as log:
     log.write("".join(argument + "\n" for argument in arguments))
 path, host, port = arguments[arguments.index("-L") + 1].rsplit(":", 2)
 mode = os.environ.get("CARBON_FAKE_FORWARD", "")
@@ -376,8 +430,8 @@ def short_tmp(monkeypatch):
 
 
 def forwarding(tmp_path, monkeypatch, mode=""):
-    """An SSH client whose `ssh` is FAKE_FORWARD; its forwards are recorded."""
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
+    """An SSH client whose `ssh` is FAKE_FORWARD; its forwards are recorded.
+    It logs where every fake does (`fake_log_under_tmp_path`)."""
     monkeypatch.setenv("CARBON_FAKE_FORWARD", mode)
     fake = _executable(tmp_path / "ssh-forward", f"#!{sys.executable}\n" + FAKE_FORWARD)
     client = SSHClient("gpu-box", binary=str(fake), sleep=lambda _: time.sleep(0.1))
@@ -776,7 +830,6 @@ def test_the_worker_image_is_streamed_and_checked_by_id(tmp_path, monkeypatch):
     docker = _executable(fakes / "docker", FAKE_DOCKER)
     ssh = _executable(fakes / "ssh", FAKE_SSH)
     monkeypatch.setenv("PATH", f"{fakes}:/usr/bin:/bin")
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
     client = SSHClient("miner@gpu-box", binary=str(ssh))
     assert send_image(client, IMAGE, docker=str(docker)) == "sent"
     assert (tmp_path / "log.loaded").read_text().strip() == f"IMAGE-TAR-{IMAGE}"
@@ -794,8 +847,41 @@ def test_an_image_that_does_not_arrive_as_the_pinned_id_is_refused(
     docker = _executable(fakes / "docker", FAKE_DOCKER)
     ssh = _executable(fakes / "ssh", FAKE_SSH)
     monkeypatch.setenv("PATH", f"{fakes}:/usr/bin:/bin")
-    monkeypatch.setenv("CARBON_FAKE_LOG", str(tmp_path / "log"))
     monkeypatch.setenv("CARBON_FAKE_CORRUPT", "1")
     with pytest.raises(RemoteMachineError) as refused:
         send_image(SSHClient("gpu-box", binary=str(ssh)), IMAGE, docker=str(docker))
     assert refused.value.code == "worker_image_not_loaded"
+
+
+# --- the fakes themselves ------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "body,argv",
+    [
+        (FAKE_SSH, ("--", "gpu-box", "true")),
+        (FAKE_DOCKER, ("load",)),
+        (FAKE_DOCKER, ("rm", "-f", NAME)),
+        (
+            f"#!{sys.executable}\n" + FAKE_FORWARD,
+            ("-N", "-L", "/nonexistent/job.sock:127.0.0.1:8000", "--", "gpu-box"),
+        ),
+    ],
+)
+@pytest.mark.parametrize("unset", [True, False])
+def test_a_fake_without_a_log_refuses_and_writes_nothing(tmp_path, body, argv, unset):
+    fake = _executable(tmp_path / "fake", body)
+    work = tmp_path / "work"
+    work.mkdir()
+    completed = subprocess.run(
+        [str(fake), *argv],
+        cwd=work,
+        env={"PATH": "/usr/bin:/bin", **({} if unset else {"CARBON_FAKE_LOG": ""})},
+        input=b"",
+        capture_output=True,
+        check=False,
+        timeout=30,
+    )
+    assert completed.returncode == NO_FAKE_LOG
+    assert b"CARBON_FAKE_LOG is empty" in completed.stderr
+    assert list(work.iterdir()) == []

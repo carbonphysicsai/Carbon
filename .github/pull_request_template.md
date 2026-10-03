@@ -9,9 +9,3 @@
 ## Risks and remaining work
 
 <!-- Keep scientific/security/production limitations explicit. -->
-
-## Development Hub impact
-
-<!-- Complete one line and remove the other. -->
-HUB_UPDATE_REQUIRED: <map refs and changed Hub source files>
-HUB_IMPACT_NONE: <map owner and specific reason the Hub remains accurate>
