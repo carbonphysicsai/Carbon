@@ -1,4 +1,4 @@
-# Near-limit optimism admissibility gate: built, inactive (2026-10-03)
+# Near-limit optimism admissibility gate (2026-10-03)
 
 **Authority.** TRACK-B-STUCK-01 review outcome, 2026-10-03: the owner
 reported the SciML/technical lead's approval and approved the
@@ -11,13 +11,33 @@ gate is added for models that overstate safety margins near the limits.
 - `verdict` / `gated`: INACTIVE while `THRESHOLD_BANDS is None`; once set, a
   model at or above it FAILs and scores 0 under every rule (no compensation,
   constitution §7.3). An unmeasured model fails a set gate.
-- `THRESHOLD_BANDS = None` — **HUMAN_INPUT**, owned by the SciML/technical
-  lead. No cutoff was given, so no score changes anywhere.
+- `THRESHOLD_BANDS = 2.0` (OWNER-GATE-CUTOFF-01). The SciML/technical lead
+  deferred the cutoff to the lead session, and the owner approved it. It is a
+  provisional DEVELOPMENT value, confirmed once in EV5.
 - Applies to value-study results only. Putting it into the testnet rule is
   its own approval.
 
-**Evidence for setting the cutoff** (`optimism.json`, regenerate with
-`python -m carbon.battery.value.admissibility --out <dir>`). Descriptive only.
+**At the cutoff** (`at_cutoff` in `optimism.json`):
+
+| Panel | Real members failed | Mean verification loss: failed vs passed |
+|---|---|---|
+| EV2 | 2 of 14 | 1.375 vs 0.344 |
+| EV4 | 20 of 99 | 1.684 vs 0.512 |
+
+The boundary optimist fails on both panels. Oracle, conservative and
+rank-preserving delay pass. The localized sign error also passes; this gate
+does not catch it (see below).
+
+**Why 2.0.**
+- It is a round, interpretable value: the model overstates its margins near
+  the limits by twice the contract's own uncertainty band, on average.
+- It is not fitted to the boundary optimist's 2.41, and it still fails that
+  control.
+- It fails fewer than half the real members on both panels, and the ones it
+  fails decide about 3-4x worse.
+
+**The optimism distribution** (`optimism.json`, regenerate with
+`python -m carbon.battery.value.admissibility --out <dir>`):
 
 | Panel | Real eligible members | Optimism min / median / max (bands) | At or above the boundary optimist (2.41) | Mean verification loss: at/above vs below |
 |---|---|---|---|---|

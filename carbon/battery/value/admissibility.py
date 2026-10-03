@@ -1,4 +1,4 @@
-"""Battery near-limit optimism: an admissibility gate, built and inactive.
+"""Battery near-limit optimism: an admissibility gate for value studies.
 
 The TRACK-B-STUCK-01 recommendation, approved on 2026-10-03, has two parts:
 - keep the deciding rule for ranking;
@@ -14,9 +14,13 @@ plating and peak-temperature margins exceed the reference's, in the decision
 contract's band units (`margins.margin_component`, the `mean_optimism_bands`
 field).
 
-**The cutoff is a science value.** `THRESHOLD_BANDS` is None (HUMAN_INPUT)
-until the SciML/technical lead sets it. While it is None, every verdict is
-INACTIVE and no score changes. Once set, a model at or above it is
+**The cutoff is a science value.** OWNER-GATE-CUTOFF-01 (2026-10-03): the
+SciML/technical lead deferred it to the lead session, and the owner approved
+that choice and the change. `THRESHOLD_BANDS = 2.0`: a model whose margins
+near the limits are, on average, at least twice the contract's own
+uncertainty band too optimistic. It is a provisional DEVELOPMENT value,
+confirmed once in EV5. With `THRESHOLD_BANDS = None` every verdict is
+INACTIVE and no score changes. A model at or above the cutoff is
 inadmissible: its score is 0 under every rule, so ranking cannot compensate
 for a mandatory failure (constitution §7.3).
 
@@ -34,9 +38,9 @@ import statistics
 import sys
 from pathlib import Path
 
-#: HUMAN_INPUT: the SciML/technical lead sets this (bands of near-limit
-#: optimism). None keeps the gate inactive.
-THRESHOLD_BANDS = None
+#: Bands of mean near-limit optimism (OWNER-GATE-CUTOFF-01, a provisional
+#: DEVELOPMENT value). None makes the gate inactive.
+THRESHOLD_BANDS = 2.0
 
 INACTIVE, PASS, FAIL = "INACTIVE", "PASS", "FAIL"
 SCHEMA = "carbon.battery.admissibility-optimism.v1"
@@ -124,6 +128,16 @@ def evidence(root="."):
                 "mean_verification_loss_at_or_above": _mean_loss(members, above),
                 "mean_verification_loss_below": _mean_loss(members, below),
             }
+        cutoff = None
+        if THRESHOLD_BANDS is not None:
+            failed = sorted(m for m, v in real.items() if verdict(v) == FAIL)
+            passed = [m for m in real if m not in failed]
+            cutoff = {
+                "real_members_failed": failed,
+                "mean_verification_loss_failed": _mean_loss(members, failed),
+                "mean_verification_loss_passed": _mean_loss(members, passed),
+                "controls": {m: verdict(v) for m, v in sorted(controls.items())},
+            }
         values = sorted(real.values())
         out[dataset] = {
             "source": source,
@@ -134,12 +148,16 @@ def evidence(root="."):
             "real": dict(sorted(real.items())),
             "controls": dict(sorted(controls.items())),
             "at_control_levels": at_control_levels,
+            "at_cutoff": cutoff,
         }
     return {
         "schema": SCHEMA,
         "threshold_bands": THRESHOLD_BANDS,
         "state": INACTIVE if THRESHOLD_BANDS is None else "ACTIVE",
-        "threshold_owner": "SciML/technical lead (HUMAN_INPUT)",
+        "threshold_authority": (
+            "OWNER-GATE-CUTOFF-01: deferred by the SciML/technical lead to the "
+            "lead session, approved by the owner; a provisional DEVELOPMENT value"
+        ),
         "datasets": out,
     }
 

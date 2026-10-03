@@ -33,6 +33,21 @@
      "real_members_at_or_above": 14
     }
    },
+   "at_cutoff": {
+    "controls": {
+     "control-boundary_optimist": "FAIL",
+     "control-conservative": "PASS",
+     "control-localized_sign_error": "PASS",
+     "control-oracle": "PASS",
+     "control-rank_preserving_delay": "PASS"
+    },
+    "mean_verification_loss_failed": 1.3750105371088923,
+    "mean_verification_loss_passed": 0.34390336442569713,
+    "real_members_failed": [
+     "knn-s0",
+     "knn15-s0"
+    ]
+   },
    "controls": {
     "control-boundary_optimist": 2.4110401595023374,
     "control-conservative": 0.0,
@@ -94,6 +109,39 @@
      "mean_verification_loss_below": null,
      "real_members_at_or_above": 99
     }
+   },
+   "at_cutoff": {
+    "controls": {
+     "control-boundary_optimist": "FAIL",
+     "control-conservative": "PASS",
+     "control-localized_sign_error": "PASS",
+     "control-oracle": "PASS",
+     "control-rank_preserving_delay": "PASS"
+    },
+    "mean_verification_loss_failed": 1.6835269592118691,
+    "mean_verification_loss_passed": 0.512029245791346,
+    "real_members_failed": [
+     "deeponet_t1500_w128_d2-s0",
+     "deeponet_t1500_w256_d3-s0",
+     "deeponet_t1500_w256_d3-s1",
+     "deeponet_t1500_w512_d3-s0",
+     "deeponet_t3000_w256_d2-s0",
+     "deeponet_t3000_w256_d2-s1",
+     "deeponet_t3000_w512_d3-s0",
+     "deeponet_t500_w128_d2-s0",
+     "deeponet_t6000_w512_d2-s0",
+     "knn-s0",
+     "knn1-s0",
+     "knn10-s0",
+     "knn15-s0",
+     "knn25-s0",
+     "knn3-s0",
+     "knn40-s0",
+     "mlp_t500_w128_d2-s0",
+     "mlp_t500_w64_d2-s0",
+     "mlp_t500_w64_d2-s1",
+     "mlp_t500_w64_d3-s0"
+    ]
    },
    "controls": {
     "control-boundary_optimist": 2.4110401595023374,
@@ -211,7 +259,7 @@
   }
  },
  "schema": "carbon.battery.admissibility-optimism.v1",
- "state": "INACTIVE",
- "threshold_bands": null,
- "threshold_owner": "SciML/technical lead (HUMAN_INPUT)"
+ "state": "ACTIVE",
+ "threshold_authority": "OWNER-GATE-CUTOFF-01: deferred by the SciML/technical lead to the lead session, approved by the owner; a provisional DEVELOPMENT value",
+ "threshold_bands": 2.0
 }
