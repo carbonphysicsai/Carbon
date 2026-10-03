@@ -62,6 +62,9 @@ may **declare**, and it does not touch who grades.
 3. For `generate`, follow the Burgers kit: ship the validator's own generator
    and solver bytes into the miner research image, miner seed roots and mock
    seeding only, with a test showing no official seed material is present.
+   A kit whose reference needs its own pinned runtime (battery: PyBaMM in the
+   truth image) runs as a command on the miner's own machine instead
+   (OWNER-MINER-OWN-MACHINE-01 item 4), with the same seed rules and tests.
 4. Close a gap by replacing it with `Provided(...)` in the PR that builds it.
 
 ## Retired Challenges
@@ -79,18 +82,46 @@ declared `Retired(decision, provided)` as a whole, never per provision:
 - **It matches the registry.** A Challenge is `Retired` here exactly when the
   registry marks it RETIRED; a test fails if the two disagree.
 
-## Current state (2026-09-30)
+## Current state (2026-10-02)
 
 | Challenge | research | hypothesize | train | generate | evaluate | compute | model | agent |
 |---|---|---|---|---|---|---|---|---|
 | burgers-dynamics-v1 (retired; provided the first five while offered) | retired | retired | retired | retired | retired | retired | retired | retired |
-| battery-fastcharge-ageing-development-v1 | provided | provided | provided | **gap** | provided (200 public PRACTICE cases) | **gap** | **gap** | **gap** |
+| battery-fastcharge-ageing-development-v1 | provided | provided | provided | provided (battery kit, on the miner's machine) | provided (200 public PRACTICE cases) | provided | provided | provided |
 
-**Battery `generate` gap.** Nothing miner-facing runs the pinned PyBaMM
-reference, so miners get only TRAIN v1 and the 200 PRACTICE cases. Next step:
-`carbon/challenge_kit/battery.py`, a command on the miner's own machine
-(OWNER-MINER-OWN-MACHINE-01) that labels draws from the published population
-with the pinned PyBaMM reference, following the Burgers kit's seed rules.
+No battery provision is a gap. `compute`, `model` and `agent` are closed in
+code; their live acceptance is pending (below).
+
+**Battery `generate` (closed by the battery challenge kit, 2026-10-02).**
+`carbon/challenge_kit/battery.py` is a command on the miner's own machine
+(OWNER-MINER-OWN-MACHINE-01):
+
+    python -m carbon.challenge_kit.battery generate --root-hex <64 hex> \
+        --count 100 --workdir runs/train-a --out train-a.jsonl [--workers 4]
+
+- **Draws.** Uniform over the published input box (`battery_research_practice`),
+  with the validator's own rule (`seeds.draw_inputs`). Seeding comes from the
+  miner's own 32-byte root, in mock seeding only, bound to the seed pin a
+  deployment of the same checkout commits. A test shows the kit's draws equal
+  the validator's draws for the same bytes. Roles `train`, `validation` and
+  `test` are separate streams under one root.
+- **Labels.** The pinned PyBaMM reference (DFN, OKane2022) labels each draw.
+  It runs in the pinned truth image plus its hash-locked overlay, through the
+  validator's own no-network, read-only solve run
+  (`truth_env.solve_command`).
+- **Typed statuses.** Each case ends OK, REFERENCE_SOLVER_FAILED,
+  REFERENCE_TIMEOUT or FAILED_INFRA. A rerun retries FAILED_INFRA.
+- **Output.** The OK records, in TRAIN v1's exact shape.
+- **Needs.** Docker, and network once to fetch the locked wheels. A case
+  takes about a minute of one CPU core.
+- **Accepted live (2026-10-02).** On a Linux host with Docker, `generate`
+  verified the overlay in the pinned truth image (pybamm 26.8.0.0, no network)
+  and solved 2 cases OK in about 100 s with 2 workers.
+- **Limits.** Generated data is self-reported research material. It is never
+  a grading reference, and submissions are still rebuilt on the pinned TRAIN
+  version. It does not run inside the research sandbox yet; that is a later,
+  separately reviewed step. Scoring miner-generated cases with the practice
+  gates is not yet wired.
 
 **Battery `model`, `compute` and `agent` (closed by C-MLP-03 slices 2, 3 and 5).** These are the
 OWNER-MINER-ENVIRONMENT-01 provisions. The ticket

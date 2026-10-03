@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T03:46:39Z"
+  captured_at_utc: "2026-10-03T04:00:44Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "2d175a8404a22e023ff45a048273b9bbc54315a3"
+  authority_snapshot_commit: "6e7f40b79da774552bb03ca25ad34f261c3a9fe7"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10735,6 +10735,19 @@ events:
     recorded_at: "2026-10-02T16:30:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "BATTERY-CHALLENGE-KIT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Battery challenge kit (carbon/challenge_kit/battery.py, 2026-10-02) closes the battery generate gap (OWNER-RESEARCH-ENVIRONMENT-01). It is a command on the miner's own machine (OWNER-MINER-OWN-MACHINE-01 item 4). It draws uniformly over the published input box with the validator's own rule (seeds.draw_inputs), from the miner's own 32-byte seed roots in mock seeding only; a test shows its draws equal the validator's for the same bytes. It labels them with the pinned PyBaMM reference in the pinned truth image, through the validator's own no-network, read-only solve run, keeping typed reference failures, and writes the OK records in TRAIN v1's shape. Tests show it names no official seeding, private root, batch or journal, and is not shipped into the research sandbox. Generated data is self-reported research material, never a grading reference; submissions are still rebuilt on the pinned TRAIN version. Semantic decontamination (constitution 7.2) stays open with the MQ-008 holder. Live acceptance passed: on a Linux host with Docker, generate verified the overlay in the pinned truth image (pybamm 26.8.0.0, no network) and solved 2 cases OK."
+    primary_detail: "docs/development/RESEARCH_ENVIRONMENT_STANDARD.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:06:19Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
     event_id: "CHALLENGE-COLD-PLATE-01-POOLS"
     owner_lane: "technical_lead"
@@ -10745,6 +10758,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-10-02T19:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 (2026-10-02) starts battery Track A (construction integrity, Challenge_Admission.md section 3) at Level 0. carbon/battery/track_a.py registers four families: recipe surface, recipe forgery, mandatory failure and rebuild identity. Each family has attacks against the real boundary, a vulnerable specimen showing the detector can fire, and a valid control. The first run held all 37 attacks, every specimen fired and all 4 controls passed. The existing divergence detector emitted 12 conditions on EV2 and 42 on EV4, retained and escalated, never suppressed. Worker isolation and resource accounting are reused evidence from the pinned C-03 service lane, mapped per check. Battery-specific worker attacks against the pinned image are the next slice, in CI. GRAPHITE-01 phase 4 drives agent-generated attempts through the same harness. Attack budget, study population, tolerances, threat-model approval and the lock reviewer stay HUMAN_INPUT. Not a security audit, acceptance or qualification."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T19:51:46Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "decision"
@@ -10773,6 +10799,19 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
+    event_id: "OWNER-ADMISSION-COMBINED-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-TRACK-A-L0-02 and OWNER-ADMISSION-COMBINED-01 (2026-10-02). The owner approved battery Track A's Level 0 values (threat model, USD 25 attack budget, 120+4 confirmation batch, reconstruction tolerances, review roles), frozen in a study sheet. The Level 0 lock waits on a scoring rule that stops ranking the boundary-optimist control at or above real models (route a), so the state is INCONCLUSIVE. Construction, attack and value now run as one admission test per ladder rung: one sheet, one panel (legitimate and attack constructions together), one confirmation set and one ledger. Score tuning, GRAPHITE and the design optimizer (Mode X attack, Mode D value) run inside it, with three separate verdicts that never compensate. SR-1, pre-registered before computing, tested 66 weighted-geometric ratios of accuracy, important-region robustness and decision agreement offline on EV2 and EV4. Outcome NO_PROMOTION: 27 ratios catch the optimist; the chosen sr-a0.5-r0.1-g0.4 ranks real models no worse (EV4 verification tau 0.412 vs 0.403, delta UNRESOLVED) but leaves real-model score-value divergence unchanged (7 vs 7). The next candidate needs new information. No testnet rule changed; not a qualification."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR1.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:10:05Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
     event_id: "C-MLP-03-SLICE-4-REMOTE-SETUP"
     owner_lane: "technical_lead"
     status: "implemented"
@@ -10783,6 +10822,45 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
     recorded_at: "2026-10-02T22:20:29Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "SR-2-MARGIN-COMPONENT"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "SR-2 (2026-10-02), score tuning inside the combined admission test (OWNER-ADMISSION-COMBINED-01). A margin-aware leg m is the decision contract's cost-weighted margin error in band units on plating and peak temperature: optimism at the false-acceptance cost, pessimism at the missed-opportunity cost. It was pre-registered before computing and tested in 286 weighted-geometric profiles over accuracy, important-region robustness, decision agreement and m, offline on EV2 with its 15 prediction files verified against committed digests. Outcome NO_PROMOTION. m measures what it was built for: the boundary optimist overstates margins by 1.6 bands, the real MLPs by 0.5-0.7. Averaged over all scoring cases it does not track decision quality (verification tau 0.243 against g's 0.309), and no m-weighted profile is chosen. The next candidate weights margin error toward the decision boundary, which needs a science-lead value. EV4 replication NOT_RUN (predictions not retained). STUCK count 2 of 3. No testnet rule changed."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR2.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:37:58Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "SR-3-NEAR-MARGIN"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "SR-3 (2026-10-02, OWNER-SR3-NEAR-01): SR-2's cost-weighted margin error restricted to the published important region (311 of 1,588 scoring cases), pre-registered and tested in 286 profiles offline on EV2's verified predictions. Outcome NO_PROMOTION. n sharpens the safety signal (the boundary optimist overstates near-limit margins by 2.41 bands, real MLPs 0.58-0.97) but tracks decisions worse (verification tau 0.177 against g's 0.309). Across SR-1 to SR-3, EV2's development and verification conditions disagree about which rule is best, so with 14 members selection does not transfer: the limit is the evidence, not the formula. Three consecutive non-progressing studies fire the STUCK trigger (TRACK-B-STUCK-01): full Track B review by the SciML lead and the owner. The recommendation is to rerun SR-1 to SR-3 on EV4's 99 members after regenerating and verifying their predictions (about USD 1-3), then confirm once in EV5. No testnet rule changed."
+    primary_detail: "docs/development/BATTERY_SCORING_RATIOS_SR3.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T22:47:38Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "EV4-REGEN-SR-RERUN"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-EV4-REGEN-01 (2026-10-02). EV4's 100 panel predictions were regenerated from EV4's own plan at its code ref on one A40 pod (about USD 0.22, termination verified, ev4-regen campaign with a USD 5 ceiling inside the USD 25 cap). They were content-verified: every member's recomputed exam components equal EV4's recorded ones exactly; byte digests differ only in wall-clock fields. SR-2 and SR-3 reran on 99 members under their frozen rules: NO_PROMOTION for both. The larger panel reverses EV2: the margin legs rank models far better than decision agreement (m 0.388, n 0.366, g 0.262), but no profile beats the deciding rule beyond noise (best 0.420 vs 0.403). The deciding rule's 7 verification divergence conditions are 2 constructed controls, 3 kNN self-orderings and 2 real near-ties, so the pre-registered count cannot show real-model gains. Recommendation to the TRACK-B-STUCK-01 review: keep the deciding rule for ranking, add a separate optimism-near-limits admissibility gate with a science-set threshold, report real-member divergence separately in future studies, and confirm once in EV5."
+    primary_detail: "docs/development/evidence/sr-ev4-2026-10-02/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-02T23:44:17Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "decision"
@@ -10811,56 +10889,17 @@ events:
     recorded_at: "2026-10-03T00:46:36Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "decision"
-    event_id: "OWNER-MINER-RESEARCH-SURFACE-01"
+    event_type: "adjustment"
+    event_id: "EV5-PREREG-DRAFT"
     owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "OWNER-MINER-RESEARCH-SURFACE-01 (owner, 2026-10-02: \"we were supposed to be working to a branded version of this. Whatever you as an agent think is an optimal work surface for you and the miner\"; then \"where can you see the Julia/JAX/Pytorch tooling and all of that in the control center? And where can you talk to your agent?\"): the Control Center gains a branded research surface for the miner and their agent (C-MLP-05). One allow-listed campaign view drives every panel and is the operation campaign_view, so the browser and carbon_campaign_view return the same document: the real lifecycle as four stages (research, practice runs, candidate frozen, DEVELOPMENT submit), halt and resume, tiles from existing data with spend from the miner's own ledger, practice components current against previous, trend charts, and the Challenge's contract with an empty construction-level slot. Charts are drawn by output kind (time series, scalar, checkpoint vector, 2D field) from each Challenge's declared research view, battery first and a synthetic second Challenge in tests. Per-case predicted-vs-reference curves are public PRACTICE only, allowed by battery's practice disclosure contract (detailed_own_public_practice), computed locally from digest-verified predictions, and fail closed otherwise. carbon_note posts bounded untrusted text to the journal; attach now brings the research prompts and the skill. The toolbox (carbon_toolbox, a Tools tab and each Challenge card) is read from the Challenge's records: JAX and PyTorch runtimes, Julia research-only with its blocker, workspace and workflow tools with their MCP names. The miner writes to their own agent from the page; any MCP agent reads with carbon_messages and replies with carbon_note, and a message changes nothing frozen at launch. Open owner questions: a battery learning curve needs a worker change (RSURF-D3); Carbon's own agent reading messages would amend C-MLP-02-D6 and stays off (RSURF-D13). DEVELOPMENT, testnet 567; practice evidence is not qualification; the demo fixture is synthetic and cannot reach a campaign or LIVE."
-    primary_detail: ".agent/tickets/C-MLP-05_miner_research_surface.md"
+    status: "proposed"
+    summary: "EV5 pre-registration DRAFT (not frozen; nothing dispatches): the battery Level 0 combined admission run under OWNER-ADMISSION-COMBINED-01. It confirms once, on fresh conditions, the TRACK-B-STUCK-01 outcome: the deciding rule versus the SR-2 candidate for ranking (across-family real-member divergence as the criterion), the near-limit optimism gate at the SciML lead's cutoff, Track A attack constructions scored like real ones, and a sealed 120+4-case confirmation set, with three separate verdicts. Cost estimate from EV4's measured pod times: about USD 2.8 (option A, no in-run agents; proposed cap USD 6), inside the USD 25 L0 cap. Freeze is blocked on the gate cutoff (SciML lead) and the owner's spend approval."
+    primary_detail: "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md"
     affects:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/GOVERNANCE"
     supersedes: null
-    recorded_at: "2026-10-03T00:56:56Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "decision"
-    event_id: "OWNER-MINER-RESEARCH-SURFACE-02"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "OWNER-MINER-RESEARCH-SURFACE-02 (owner, 2026-10-03) answers the two questions OWNER-MINER-RESEARCH-SURFACE-01 left open. Both answers are built in C-MLP-05. RSURF-D13, \"Yes, recorded\", amends C-MLP-02-D6 prospectively. In a campaign whose frozen provider plan carries the miner-guidance rule, Carbon's own agent reads the miner's new Conversation messages at each step boundary as user-role guidance, at most 4 a step. Each step's messages are recorded with their digests, chained from the epoch plan, and replayed exactly. The frozen task, prompt, tools, effective input digest, limits, budget, Challenge, feedback mode and evaluation rules are unchanged. The agent replies through the same reply note, and campaigns launched before read none. RSURF-D3, \"Yes, as a new trainer version\": battery trainer v2 records up to 64 points of the trainer's own TRAIN loss, in practice only, and the Learning curve chart draws it. The validator's reconstruction never records it and trains the same weights. The implementation identity changes prospectively, deployments carry over under OWNER-BATTERY-CARRYOVER-01, and no container image is rebuilt. DEVELOPMENT, testnet 567. Practice evidence is not qualification, and nothing flips LIVE."
-    primary_detail: ".agent/tickets/C-MLP-05_miner_research_surface.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: "OWNER-MINER-RESEARCH-SURFACE-01"
-    recorded_at: "2026-10-03T02:19:23Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "decision"
-    event_id: "OWNER-MINER-RESEARCH-SURFACE-03"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "OWNER-MINER-RESEARCH-SURFACE-03 (owner, 2026-10-03: \"yes to your question\" on carrying messages across epochs; \"my other request for the research surface was access to the tooling in the control center\"). Built in C-MLP-05. RSURF-D14: under a new frozen rule, miner-guidance v2, Carbon's agent starts each new epoch with the last 3 messages it read, each with up to 2 of its own replies. They are recorded with digests, chained like new messages and replayed exactly; v1 campaigns carry nothing. RSURF-D15 to D18: the Tools tab is a working toolbox. A page tool session attaches through the same path as carbon_attach_campaign, under the campaign's ownership lock and after the same profile, registration and signer gates. Its tools are the MCP server's own Tool objects and input schemas, and long tasks use the MCP Tasks projection. One holder at a time: a held campaign is refused with what to do, and a session ends on close or after 10 idle minutes. The workspace, run_python and run_julia, results, recipes, practice, notebook, design checks and capability requests all work from the page. run_output is a shared read-only operation for a run's retained stdout, files and raster images, within stated bounds; the unchanged carrier keeps no stderr and no stdout for a failed run. The demo shows the toolbox working on synthetic answers and runs nothing. No new authority; the carrier and isolation are unchanged. DEVELOPMENT, testnet 567."
-    primary_detail: ".agent/tickets/C-MLP-05_miner_research_surface.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: null
-    recorded_at: "2026-10-03T02:57:26Z"
-  -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
-    event_type: "decision"
-    event_id: "OWNER-MINER-RESEARCH-SURFACE-04"
-    owner_lane: "technical_lead"
-    status: "implemented"
-    summary: "OWNER-MINER-RESEARCH-SURFACE-04 (owner, 2026-10-03: \"on jax and pytorch CPU? where's the GPU option?\"; \"Yes, GPU code cell\"; \"Keep both, capped\"). Built in C-MLP-05. RSURF-D19: the campaign record states its compute from its frozen runtime (it had said CPU for every campaign). The Tools tab shows where practice and the code cell run (CPU, this machine's GPU, or the remote GPU with its transport and destination), each GPU lane with why it is not set up, and that the validator rebuilds on its published jax-cpu environment, so a GPU speeds up the miner's own research only. Each practice run says CPU or GPU. RSURF-D20: run_python takes device=cpu|gpu on the campaign's GPU lane, refused before dispatch when it cannot run. Local GPU uses the same isolated miner container with only the host's device attached, running the pinned GPU worker. Remote GPU uses the miner's own route and SSH, and Carbon starts, stops and bills nothing. Each run records its device, and run_julia refuses gpu because its environments have no CUDA. This needs a dedicated security review (AGENTS.md section 13). RSURF-D21: the miner lane keeps the last 64 KiB of stdout and of stderr for successful and failed runs, shown through run_output as plain text. DEVELOPMENT, testnet 567."
-    primary_detail: ".agent/tickets/C-MLP-05_miner_research_surface.md"
-    affects:
-      - "SYSTEM/AGENT-EXECUTION"
-      - "SYSTEM/GOVERNANCE"
-    supersedes: null
-    recorded_at: "2026-10-03T03:46:39Z"
+    recorded_at: "2026-10-03T02:18:43Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

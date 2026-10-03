@@ -1,0 +1,136 @@
+{
+ "attempts": {
+  "attack": 37,
+  "control": 4,
+  "specimen": 37
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "claims": {
+  "qualification": false,
+  "security_acceptance": false
+ },
+ "coverage": {
+  "adaptive_feedback_and_state_attacks": {
+   "here": [],
+   "reused": [
+    "tests/cpu/test_battery_validator_daemon.py::test_outcomes_disclose_no_private_case_label_or_seed",
+    "tests/cpu/test_battery_rule_v2.py::test_a_scored_v2_outcome_shows_a_miner_nothing_from_the_hidden_batch",
+    "tests/cpu/test_battery_feedback_modes.py::test_the_withheld_view_is_an_allow_list_so_new_fields_stay_hidden",
+    "tests/cpu/test_battery_validator_daemon.py::test_published_campaign_cases_cannot_be_hidden_cases",
+    "tests/cpu/test_battery_validator_daemon.py::test_duplicate_admission_and_replay_count_once"
+   ],
+   "untested": [
+    "repeated-query learning and colluding hotkeys over many practice rounds (an attack budget, HUMAN_INPUT; GRAPHITE phase 4)",
+    "timing side channels on refusal codes"
+   ]
+  },
+  "artifact_and_dependency_attacks": {
+   "here": [
+    "recipe_surface",
+    "recipe_forgery"
+   ],
+   "reused": [
+    "tests/cpu/test_battery_construction_contract.py (per-field refusals, cross-Challenge refusal, every surface changes the rebuild)",
+    "tests/cpu/test_battery_validator_daemon.py::test_contract_artifact_and_cross_challenge_mismatches_are_refused"
+   ],
+   "untested": [
+    "intake transport limits (body size, JSON depth) through the live intake listener"
+   ]
+  },
+  "baseline_and_permission_ablation": {
+   "here": [],
+   "reused": [],
+   "untested": [
+    "the legitimate Level 0 panel under the same attack budget: the EV4 panel is the candidate baseline; the budget is HUMAN_INPUT"
+   ]
+  },
+  "construction_evaluation_isolation": {
+   "here": [],
+   "pin": "the C-03 worker image manifest built by scripts/dev/c03_worker_image.sh in CI; reuse holds only for the same manifest",
+   "reused": [
+    "tests/service/test_c03_worker_service.py::test_network_filesystem_pid_memory_and_scratch_enforcement",
+    "tests/service/test_c03_worker_service.py::test_network_none_denies_controlled_canary_and_negative_control_detects_it",
+    "tests/service/test_c03_worker_service.py::test_descendant_cannot_survive_exact_container_termination",
+    "tests/service/test_battery_practice_carrier.py::test_battery_practice_runs_in_the_isolated_carrier"
+   ],
+   "untested": [
+    "a battery-specific canary scan of every staged and exported byte of a reconstruction, run against the pinned image"
+   ]
+  },
+  "fresh_attack_confirmation": {
+   "here": [],
+   "reused": [],
+   "untested": [
+    "NOT_RUN: needs a frozen study sheet and fresh cases"
+   ]
+  },
+  "reconstruction_and_recipient_rebuild": {
+   "here": [
+    "rebuild_identity"
+   ],
+   "reused": [
+    "tests/service/test_battery_validator_containers.py::test_isolated_programs_match_the_in_process_backend"
+   ],
+   "untested": [
+    "a second operator rebuilding from the delivery package; tolerances are HUMAN_INPUT"
+   ]
+  },
+  "resource_and_failure_accounting": {
+   "here": [],
+   "reused": [
+    "tests/cpu/test_battery_validator_daemon.py::test_infrastructure_failure_is_retried_never_scored",
+    "tests/service/test_battery_validator_containers.py::test_a_run_killed_at_its_wall_clock_bound_is_infrastructure",
+    "tests/service/test_battery_validator_containers.py::test_partial_output_is_infrastructure_never_a_candidate_failure"
+   ],
+   "untested": [
+    "surface-edge recipes (widest, longest, largest ensemble) against the pinned worker envelope (CPU 2, 4 GiB, 600 s), in the C-03 service lane"
+   ]
+  },
+  "score_exploitation_and_tail_failures": {
+   "here": [
+    "mandatory_failure",
+    "divergence on EV2 and EV4 results"
+   ],
+   "reused": [],
+   "untested": [
+    "always-abstain and subgroup sacrifice on the hidden pool (needs the frozen study population, HUMAN_INPUT)"
+   ]
+  }
+ },
+ "divergence": {
+  "ev2-2026-10-01": {
+   "by_condition": {
+    "GATE_ANOMALY": 1,
+    "SCORE_VALUE_DIVERGENCE": 11
+   },
+   "conditions": 12,
+   "results_sha256": "62e6c8bb271f3525af3f30446991c658891a0ab44a039bfdc853fbf6b24994d0"
+  },
+  "ev4-2026-10-01": {
+   "by_condition": {
+    "GATE_ANOMALY": 1,
+    "SCORE_VALUE_DIVERGENCE": 41
+   },
+   "conditions": 42,
+   "results_sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371"
+  }
+ },
+ "evidence": "DEVELOPMENT",
+ "families": {
+  "mandatory_failure": "IN_PROGRESS",
+  "rebuild_identity": "IN_PROGRESS",
+  "recipe_forgery": "IN_PROGRESS",
+  "recipe_surface": "IN_PROGRESS"
+ },
+ "findings": [],
+ "not_run_at_level_0": "hidden preprocessing/compilation, child processes, device/host memory, inference/solver hybrids and custom inference need participant code, which Level 0 does not permit: NOT_RUN for this profile, never a pass",
+ "profile": "level-0",
+ "reserved": {
+  "attack_budget": "HUMAN_INPUT",
+  "reconstruction_tolerances": "HUMAN_INPUT",
+  "study_population": "HUMAN_INPUT",
+  "threat_model_approval": "HUMAN_INPUT",
+  "track_a_lock_reviewer": "HUMAN_INPUT"
+ },
+ "schema": "carbon.battery.track-a.coverage.v1"
+}
