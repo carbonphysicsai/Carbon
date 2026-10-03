@@ -108,7 +108,8 @@ def test_the_motor_pod_installs_exactly_what_the_motor_image_pins():
 
     assert cold["image"].split("@")[1] == openfoam.IMAGE.split("@")[1]
     assert "challenge-pools" in pod_control.CAMPAIGNS
-    assert pod_control.CAMPAIGNS["challenge-pools"]["ceiling_usd"] == 25.0
+    # Its ceiling is operator configuration, never in the repository.
+    assert "ceiling_usd" not in pod_control.CAMPAIGNS["challenge-pools"]
 
 
 def _write(path, records):

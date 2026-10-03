@@ -17980,6 +17980,51 @@ recommendation.
    pre-registrations' selection and outcome rules, with no new formula. EV4
    was SR-1's primary data and is the replication data for SR-2 and SR-3.
 
+## 2026-10-03 — OWNER-EV5-CAP-01: EV5 spend cap approved (option A, USD 6)
+
+**Authority.** The owner, 2026-10-03: "Approve the cap".
+
+1. **What is approved.** EV5's option A
+   (`docs/development/BATTERY_ENGINEERING_VALUE_EV5.md` §7): about USD 2.8
+   expected, with no in-run agents.
+   - Hard cap: USD 6, counted inside OWNER-TRACK-A-L0-02's USD 25 L0 cap.
+   - Pods: RunPod A40 at no more than USD 0.49 per hour, at most 3 in
+     parallel, termination verified.
+2. **What it does not do.** It does not freeze EV5 and dispatches nothing.
+   The freeze still waits on the near-limit optimism gate's cutoff.
+3. **The gate cutoff.** The owner reports that the SciML/technical lead
+   deferred the cutoff to the lead session, and the owner approved that.
+   - The lead session's recommended value is 2.0 bands. It is a round value,
+     not fitted to the boundary optimist's 2.41, and still fails that
+     optimist. It fails 20 of 99 real EV4 members, whose mean verification
+     loss is 1.68 against 0.51 for the rest; on EV2 it fails 2 of 14.
+   - Setting it in code (`admissibility.THRESHOLD_BANDS`) was refused by
+     this session's automated permission check. The value stays None and
+     the gate stays INACTIVE until the owner applies it, or allows the
+     change.
+
+## 2026-10-03 — TRACK-B-STUCK-01 outcome: keep the deciding rule; build the near-limit optimism gate inactive
+
+**Authority.** The owner, 2026-10-03: "Harsh approved, I approve all."
+The SciML/technical lead's approval is reported by the owner; it is not
+recorded on GitHub.
+
+1. **Ranking.** The deciding rule stays. No SR profile beat it beyond noise
+   on EV4's 99 members.
+2. **Admissibility gate.** `carbon/battery/value/admissibility.py` measures
+   mean near-limit optimism (SR-3's quantity, band units over the important
+   region). A model at or above the cutoff is inadmissible and scores 0.
+3. **Cutoff.** `THRESHOLD_BANDS = None` (HUMAN_INPUT, SciML/technical lead).
+   No value was given, so the gate is INACTIVE and changes no score. Its
+   evidence is in
+   `docs/development/evidence/admissibility-optimism-2026-10-03/`.
+4. **Scope.** Value-study results only; adding the gate to the testnet rule
+   is a separate approval. The gate does not catch a localized sign error
+   (that control's mean optimism is below every real member); this is
+   recorded, not suppressed (OWNER-CHALLENGE-ADMISSION-01 §6.2).
+5. **Next.** Report real-member divergence separately; confirm once in EV5,
+   whose cost the owner sees before any spend.
+
 ## 2026-10-02 — OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon connects to the miner's own machine and rents no compute
 
 **Owner, verbatim, in session on 2026-10-02:** "Why do we care about rented

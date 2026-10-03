@@ -440,7 +440,7 @@ jobs:
           # the CANDIDATE classifier. A change to the classifier therefore has to
           # avoid touching any path the two versions would score differently.
           if [[ "${BASE_SHA}" == "d1d07bb408a2b68efed70baf7e11ec22bb180c9d" ]]; then
-            printf '%s\n' "7718c70b39bfc269bafe7e308243a866a9184095a36d8dfa551ab5161a187c0e  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
+            printf '%s\n' "ddfd11795b6da89339160e9f78fbf7b8978fa81420fbcbcd6d4f7ac5defce06e  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
             printf '%s\n' "8f061b9f5f7ce705d8824358ef34d38e1578b17c5965b088fa81e945ce2b987a  .carbon-gate-candidate/scripts/dev/development_scope.py" | sha256sum --check --strict
             classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
             echo "Using owner-authorized exact DEVELOPMENT classifier migration; protected-base Merge gate retained."

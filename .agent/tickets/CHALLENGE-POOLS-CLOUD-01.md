@@ -4,8 +4,8 @@
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`, `HUB_UPDATE_REQUIRED`.
 **Authority:**
 - OWNER-CHALLENGE-DESIGN-01;
-- the owner's grant of 2026-10-02 ("Go": RunPod, public pools only, USD 25
-  cap);
+- the owner's grant of 2026-10-02 ("Go": RunPod, public pools only, a
+  fixed cap);
 - OWNER-CHALLENGE-ROADMAP-01 ROADMAP-D1 (in-flight slices finish and are
   recorded);
 - OWNER-DX-03.

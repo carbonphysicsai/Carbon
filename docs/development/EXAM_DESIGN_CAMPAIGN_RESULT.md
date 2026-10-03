@@ -42,7 +42,7 @@
   A40 pod's **CPU backend**: the image selects CPU unless `JAX_PLATFORMS` is set,
   and that was found late. Their results, the freeze and the verification are
   internally consistent. A GPU re-reconstruction is reported separately in §5.
-- **Spend:** USD 4.80 billed (balance 22.24 → 17.44) against the USD 20 ceiling,
+- **Spend:** USD 4.80 billed against the USD 20 ceiling,
   well inside the USD 4 pilot allocation plus the costed matrix. USD 0.23 went
   to three wholly discarded pods; the others yielded retained evidence,
   including diagnosed failures.
