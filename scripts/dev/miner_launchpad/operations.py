@@ -125,6 +125,10 @@ FIELDS = {
         "Return only messages after this sequence: the last next_cursor. 0 or omitted: from the start.",
     ),
     "limit": ("integer", "At most this many messages, 1 to 100. Omitted: 50."),
+    "task": (
+        "string",
+        "A research task id: rtsk_ and 64 hex digits, from start_research_task.",
+    ),
     "note": (
         "string",
         (
@@ -269,6 +273,20 @@ OPERATIONS = {
             frozenset({"challenge"}),
             frozenset({"challenge_version"}),
             ("request", "profile"),
+            admits_work=False,
+        ),
+        Operation(
+            "run_output",
+            "A finished workspace run's own output (run_python or run_julia): "
+            "its retained stdout, the last 64 KiB as text; the files it "
+            "exported to your workspace; and any raster image among them "
+            "inline as base64 (PNG, JPEG, GIF or WebP; at most 1 MiB each, "
+            "3 MiB and 6 images in all). Self-reported, untrusted text. The "
+            "sandbox keeps no stderr, and no stdout when the program fails. "
+            "Reads only.",
+            frozenset({"campaign", "task"}),
+            frozenset(),
+            ("request", "profile", "campaign"),
             admits_work=False,
         ),
         Operation(

@@ -9,8 +9,10 @@ from the same table.
 Two tools are not operations. `carbon_attach_campaign` binds this session to one
 campaign for deeper research - the workspace, run_python, Julia - and
 `carbon_detach_campaign` releases it. They are how an MCP session reaches the
-research tools, which the browser does not host; the journey itself - launch,
-practice, observe, freeze, submit, halt, resume - needs neither.
+research tools; the Control Center's Tools tab reaches the same tools through
+the same attachment and the same ownership lock (RSURF-D15), so one holder at a
+time uses them. The journey itself - launch, practice, observe, freeze,
+submit, halt, resume - needs neither.
 
 Nothing here is Carbon-issued. A miner's own client, their own runner profile
 and their own registered hotkey are the whole of it.

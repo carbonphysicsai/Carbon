@@ -18072,7 +18072,9 @@ authority).** Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
 **Unchanged.**
 - The research protocol, its tools, argument bounds and results.
 - Workspace limits: `read_file` reads 4096 bytes at a time, `write_file` is
-  guarded by its expected digest, and arguments are at most 32768 bytes.
+  guarded by its expected digest, a workspace action's arguments are at most
+  16 KiB (so the page writes about 11 KiB of file at a time), and a tool
+  call's arguments are at most 32 KiB.
 - Trial charging, registration and the carrier's isolation.
 - Hidden evaluation material never reaches any of it (invariants 1, 2, 6,
   7.9 and 9).

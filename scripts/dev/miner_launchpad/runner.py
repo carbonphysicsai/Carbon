@@ -662,6 +662,13 @@ class RunnerAdapter:
         self.signer = signer or (signer_ready if registration is None else None)
         self.threads = {}
         self.lock = threading.RLock()
+        # The page's research tool sessions, each holding its campaign's
+        # ownership lock while open (RSURF-D15, D16).
+        from scripts.dev.miner_launchpad.tool_door import ToolSessions, runner_opener
+
+        self.tool_sessions = ToolSessions(
+            runner_opener(self), busy_hint=self.tools_busy_hint
+        )
         with self.db() as db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS launchpad_campaigns (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, request_digest TEXT NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, admission BLOB NOT NULL, budget BLOB NOT NULL, research_guidance BLOB)"
@@ -1356,6 +1363,23 @@ class RunnerAdapter:
 
         return for_request(self, request)
 
+    def run_output_admitted(self, admitted, request):
+        # A finished workspace run's own output (RSURF-D17).
+        from scripts.dev.miner_launchpad.campaign_view import _journal
+        from scripts.dev.miner_launchpad.run_output import check_task, for_campaign
+
+        task = check_task(request["task"])
+        ledger, owner, _ = _journal(admitted)
+        return for_campaign(ledger.root, owner, task)
+
+    def tools_busy_hint(self, identity):
+        """Who can hold a campaign's lock, as far as this host knows: its own
+        agent or operation thread, or another session (RSURF-D16)."""
+        thread = self.threads.get(identity)
+        if thread is not None and thread.is_alive():
+            return "carbon_agent_or_operation"
+        return "another_session"
+
     def miner_message(self, identity, value):
         """The page's own route for the miner's message (RSURF-D12)."""
         from scripts.dev.miner_launchpad.campaign_view import miner_message
@@ -1896,6 +1920,8 @@ class RunnerAdapter:
         return result
 
     def close(self):
+        # The page's tool sessions release their campaigns first (RSURF-D16).
+        self.tool_sessions.close_all()
         for identity, thread in tuple(self.threads.items()):
             if thread.is_alive():
                 try:

@@ -30,6 +30,8 @@ CHOICES = {
     "reasoning": "none",
     "compute": "local",
 }
+#: The largest tool-call body the page sends (RSURF-D15).
+TOOL_BODY_MAX = 40960
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -38,6 +40,8 @@ STATIC = {
     "/research.css": ("research.css", "text/css; charset=utf-8"),
     "/research_charts.js": ("research_charts.js", "text/javascript; charset=utf-8"),
     "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
+    # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).
+    "/research_tools.js": ("research_tools.js", "text/javascript; charset=utf-8"),
     # Carbon's wordmark and the website's Montreal font, served from this
     # controller so the page loads nothing from the internet. The font files
     # are the website's own (their digests are the website baseline
@@ -590,7 +594,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Frame-Options", "DENY")
         self.send_header(
             "Content-Security-Policy",
-            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            # blob: images only: a run's raster images, which the page makes
+            # from checked bytes it read itself (RSURF-D17). No data: URL, no
+            # other origin.
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; font-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         )
         self.end_headers()
         self.wfile.write(body)
@@ -709,6 +716,17 @@ class Handler(BaseHTTPRequestHandler):
                 if runner is None:
                     raise Rejected("research_admission_unavailable", 409)
                 self.reply(200, runner.get(self.path.removeprefix("/api/v1/research/")))
+            elif self.path.startswith("/api/v1/tools/"):
+                # The page's tool session for one campaign (RSURF-D15).
+                from scripts.dev.miner_launchpad.tool_door import route
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                parts = self.path.split("/")
+                if len(parts) != 5:
+                    raise Rejected("not_found", 404)
+                self.reply(200, route(runner, parts[4], "state", None))
             elif self.path.startswith("/api/v1/development/"):
                 sources = self.server.development_sources
                 if sources is None:
@@ -742,10 +760,14 @@ class Handler(BaseHTTPRequestHandler):
                 or not lengths[0].isdigit()
             ):
                 raise Rejected("invalid_content_length")
-            if len(lengths[0]) > 4:
+            # A tool call carries the research tools' own arguments, up to
+            # their 32 KiB bound plus its envelope (RSURF-D15); every other
+            # request stays at 4 KiB.
+            limit = TOOL_BODY_MAX if self.path.startswith("/api/v1/tools/") else 4096
+            if len(lengths[0]) > len(str(limit)):
                 raise Rejected("body_size_limit", 413)
             length = int(lengths[0])
-            if length < 2 or length > 4096:
+            if length < 2 or length > limit:
                 raise Rejected("body_size_limit", 413)
             if self.headers.get_content_type() != "application/json":
                 raise Rejected("json_required", 415)
@@ -794,6 +816,18 @@ class Handler(BaseHTTPRequestHandler):
                 result = perform(
                     runner, self.path.removeprefix("/api/v1/operations/"), value
                 )
+            elif self.path.startswith("/api/v1/tools/"):
+                # The page's tool session: open, close, call, start, observe,
+                # cancel. The tools are the agent's own (RSURF-D15).
+                from scripts.dev.miner_launchpad.tool_door import route
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                parts = self.path.split("/")
+                if len(parts) != 6 or parts[5] == "state":
+                    raise Rejected("not_found", 404)
+                result = route(runner, parts[4], parts[5], value)
             elif self.path.startswith("/api/v1/conversation/"):
                 # The miner's message to their own agent, from this page
                 # only: the local session is the miner (RSURF-D12).

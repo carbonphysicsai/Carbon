@@ -469,7 +469,7 @@ def test_the_page_loads_nothing_from_the_internet(server):
     status, headers, page = get(server, "/")
     assert status == 200
     policy = headers["Content-Security-Policy"]
-    for directive in ("font-src 'self'", "img-src 'self'", "default-src 'none'"):
+    for directive in ("font-src 'self'", "img-src 'self' blob:", "default-src 'none'"):
         assert directive in policy
     assert "http" not in policy
     for path, kind in (

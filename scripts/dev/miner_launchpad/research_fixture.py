@@ -168,6 +168,19 @@ class FixtureRunner:
                 }
             self.notes.append({"sequence": sequence, "body": body})
         self.notes.sort(key=lambda n: n["sequence"])
+        # The toolbox, working, on synthetic answers (RSURF-D18): the real
+        # tools and validation over an SDK that can dispatch nothing.
+        from scripts.dev.miner_launchpad.tool_door import ToolSessions
+        from scripts.dev.miner_launchpad.tool_fixture import TASK as FIXTURE_TASK
+        from scripts.dev.miner_launchpad.tool_fixture import (
+            FixtureTools,
+            fixture_opener,
+        )
+
+        self.tools = FixtureTools(self)
+        self.tool_sessions = ToolSessions(
+            fixture_opener(self, self.tools), seed_tasks=(FIXTURE_TASK,)
+        )
 
     # ---- What the controller and the operations table ask of a host.
 
@@ -262,6 +275,9 @@ class FixtureRunner:
         sequence = self._append(message_body(text, self.clock()))
         return {"posted": True, "sequence": sequence, "evidence": EVIDENCE}
 
+    def run_output_admitted(self, admitted, request):
+        return self.tools.run_output(request["task"])
+
     def halt_admitted(self, admitted, request):
         raise Rejected("fixture_read_only", 409)
 
@@ -269,7 +285,7 @@ class FixtureRunner:
         raise Rejected("fixture_read_only", 409)
 
     def close(self):
-        return None
+        self.tool_sessions.close_all()
 
     # ---- The synthetic campaign.
 

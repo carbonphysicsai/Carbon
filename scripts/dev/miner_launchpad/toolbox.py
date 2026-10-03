@@ -354,6 +354,13 @@ def build(challenge, *, lanes=None):
                     },
                 },
                 "limits": limits,
+                # The Challenge's registered example recipes, for the page's
+                # recipe editor (RSURF-D15).
+                "examples": [
+                    e["strategy"]
+                    for e in described.get("examples") or []
+                    if type(e) is dict and type(e.get("strategy")) is dict
+                ][:4],
                 "lanes": {
                     name: _availability(lanes.get(name))
                     for name in ("julia", "gpu", "remote_gpu")
