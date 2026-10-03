@@ -947,7 +947,12 @@ async def run_agent(prepared, *, transport=None):
 
     `transport` replaces the model provider for deterministic acceptance
     only; every campaign door passes none, so a real campaign calls the
-    pinned provider with the recorded credential."""
+    pinned provider with the recorded credential.
+
+    Returns None, or - when the validator did not evaluate a selected
+    candidate and the Challenge keeps it - that refusal's closed code, so the
+    campaign's supervisor can tell its miner why it stopped (LP-PROD-C). The
+    decision note it writes is unchanged."""
     ledger, owner, manifest = prepared.ledger, prepared.owner, prepared.manifest
     grant, task = prepared.grant, prepared.task
     feedback = None
@@ -1019,10 +1024,11 @@ async def run_agent(prepared, *, transport=None):
                 },
             )
             report(ledger, owner=owner)
-            return
+            return refused.code
         if feedback is None:
             break
     _complete(prepared)
+    return None
 
 
 def _open_epoch(prepared):
@@ -1158,13 +1164,17 @@ async def execute(args, *, ledger=None):
     With the autonomous agent, Carbon's agent runs the epochs. With no agent,
     the campaign is left prepared: the miner practices through the research
     tools and freezes and submits through the same operations.
+
+    Returns what `run_agent` returns (a retained candidate's refusal code),
+    otherwise None.
     """
     prepared = await prepare(args, ledger=ledger)
     if prepared is None:
-        return
+        return None
     try:
         if prepared.agent != "none":
-            await run_agent(prepared)
+            return await run_agent(prepared)
+        return None
     finally:
         prepared.close()
 

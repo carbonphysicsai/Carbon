@@ -5,7 +5,9 @@
 SYNTHETIC FIXTURE. The page is the real Control Center, served by the real
 controller, but its runner is `research_fixture.FixtureRunner`: it launches
 nothing, controls nothing, opens no ledger and reads no chain. Setup is off.
-Open the printed address, paste the printed token, then open My Campaigns.
+Paste the printed token (or open the printed link, which carries it, once
+the page reads it - `controller.session_link_supported`), then open My
+Campaigns.
 """
 
 from __future__ import annotations
@@ -74,7 +76,10 @@ def main(argv=None):
             onboarding=_onboarding(),
         )
         print("Carbon research surface - SYNTHETIC FIXTURE, nothing runs")
-        print(f"Open: {server.origin}")
+        if controller.session_link_supported():
+            print(f"Open: {controller.session_url(server.origin, server.token)}")
+        else:
+            print(f"Open: {server.origin}")
         print(f"Local session token (paste into the page): {server.token}")
         print("Then: My Campaigns, the fixture campaign; Launchpad shows it too.")
         thread = threading.Thread(target=server.serve_forever, daemon=True)

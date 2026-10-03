@@ -314,8 +314,12 @@ def test_stop_and_retained_readback_need_no_chain_read(tmp_path, monkeypatch):
     bridge, _value, control = adapter(tmp_path, monkeypatch, chain=chain)
     identity = bridge.launch({"profile": "opaque-profile"}, KEY)["id"]
     chain.failure = "CHAIN_UNAVAILABLE"
-    assert bridge.control(identity, "stop")["state"] == "STOPPING"
+    # Nothing runs this campaign (dispatch is stubbed), so the stop settles at
+    # once under its ownership lock (LP-PROD-C). It said STOPPING before
+    # 2026-10-03, and stayed so: no live holder ever acted on the request.
+    assert bridge.control(identity, "stop")["state"] == "STOPPED"
     assert control.status()["desired"] == "STOP"
+    assert chain.reads == 1  # the launch's read; the stop read nothing
     assert bridge.get(identity)["id"] == identity
 
 
@@ -548,7 +552,9 @@ def test_a_retired_grant_campaign_stays_readable_and_stoppable(tmp_path, monkeyp
         "RETIRED_DEVELOPMENT_GRANT"
     )
     assert "retired-grant-campaign" in {run["id"] for run in bridge.recent()}
-    assert bridge.control("retired-grant-campaign", "stop")["state"] == "STOPPING"
+    # Idle, so the stop settles at once (LP-PROD-C; STOPPING before
+    # 2026-10-03, with nothing left to act on it).
+    assert bridge.control("retired-grant-campaign", "stop")["state"] == "STOPPED"
     assert control.status()["desired"] == "STOP"
 
 

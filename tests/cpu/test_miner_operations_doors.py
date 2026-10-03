@@ -25,6 +25,7 @@ from scripts.dev.miner_launchpad.operations import (
     Operation,
     describe,
 )
+from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
 SAMPLE = {"string": "value-0123456789abcdef", "boolean": False, "object": {"k": 1}}
 
@@ -131,7 +132,15 @@ def test_an_unregistered_miner_is_refused_new_work_on_both_doors(browser, name):
     if op.admits_work:
         from mcp.server.mcpserver.exceptions import ToolError
 
-        assert (code, body) == (403, {"error": "registration_required"})
+        # The browser's refusal carries the catalog's next step (LP-PROD-C
+        # D8, review repair); the MCP door's refusal names the same code.
+        assert (code, body) == (
+            403,
+            {
+                "error": "registration_required",
+                "next_step": NEXT_ACTIONS["registration_required"],
+            },
+        )
         with pytest.raises(ToolError, match="registration_required"):
             through_mcp(via_mcp, name, sample(op))
         for calls in (via_browser.calls, via_mcp.calls):

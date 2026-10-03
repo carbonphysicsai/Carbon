@@ -46,6 +46,13 @@ BUSY = {
         "from Controls, or wait for the operation to finish, then open the "
         "tools again."
     ),
+    "carbon_agent_paused": (
+        "Carbon's agent is paused, but its run still holds this campaign "
+        "while it waits to be resumed. A background supervisor lets it go "
+        "within seconds of the Control Center starting: try again shortly. "
+        "If it still holds it, restart the Control Center: the campaign "
+        "stays paused, and the tools open on it then."
+    ),
     "another_session": (
         "Another session holds this campaign: most likely your own agent "
         "attached it with carbon_attach_campaign. Ask it to call "
@@ -318,8 +325,16 @@ class ToolSessions:
                 raise Rejected("campaign_busy_" + hint, 409) from None
             except Rejected:
                 raise
-            except Exception:  # noqa: BLE001 - closed refusal, never a trace or path
-                raise Rejected("tools_unavailable_for_campaign", 409) from None
+            except Exception as exc:  # noqa: BLE001 - a closed code, never a trace
+                # Which check refused the attachment, when it names one
+                # (`standard_cli.refusal_code`: task_left_running, a stale
+                # checkout, a signer code ...), so the page can say what to
+                # do; otherwise the historical generic code (LP-PROD-C).
+                from carbon.miner_mcp.standard_cli import refusal_code
+
+                raise Rejected(
+                    refusal_code(exc) or "tools_unavailable_for_campaign", 409
+                ) from None
             session.used = self.clock()
             session.tasks = list(self.seed_tasks)
             self.sessions[campaign] = session
@@ -446,14 +461,14 @@ def runner_opener(host):
         row = host.owned_campaign(campaign)
         if host.configuration is None:
             raise RuntimeError("no runner profile")
+        from scripts.dev.miner_launchpad.controller import LockHeld
+
         try:
             manager = attached(Path(host.configuration), Path(row["root"]).name)
             async with manager as (adapter, _profile):
                 yield adapter
-        except RuntimeError as exc:
-            # `owner_lock` refuses a held lock with exactly this RuntimeError.
-            if "owns this state directory" in str(exc):
-                raise Busy() from None
-            raise
+        except LockHeld:
+            # `owner_lock` refuses a held lock with this RuntimeError.
+            raise Busy() from None
 
     return opener
