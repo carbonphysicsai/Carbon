@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-research-toolbox-working",
+  "recorded_at": "2026-10-03T02:58:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Canonical (groups chain archive science-jax science-torch mcp): 719 passed, 4 skipped across tests/cpu/test_research_tools_page.py, test_miner_guidance.py, the research-surface, Control Center, Launchpad, MCP door, adapter, serving, setup, research loop and battery suites and the standard MCP and miner service suites; ruff format and check clean. In the browser, the demo's Tools tab opened a session, listed, viewed and edited files, dry-validated the example recipe, refused a run as fixture_read_only and showed the finished run's stdout and PNG, at the pane's width and at 375 px.",
+    "description": "The owner's two answers of 2026-10-03, built. Carbon's agent carries the last 3 messages it read into a new epoch (RSURF-D14). The Tools tab became a working toolbox over the agent's own research tools (RSURF-D15 to D18)."
+  },
+  "expected": "A miner can use every research tool from the page with exactly the gates, limits and refusals an MCP agent gets, without a second ownership model, and a new epoch keeps the miner's guidance.",
+  "observed": "The cleanest way to keep the two doors from drifting was to make the page call the same objects. The page's tools are the Tool instances standard_server._create_server builds, called through Tool.run, so schemas, validation and refusal text are equal by construction, and a test compares them tool by tool with the MCP server's. The ownership lock already serialised attach, practice, freeze and submit, so the page takes it the way carbon_attach_campaign does and says who can hold it when it cannot. Three limits surfaced only by trying. A workspace action's arguments are bounded at 16 KiB, below the tool's 32 KiB, so write_file takes about 11 KiB of file at a time. The page's CSP blocked data: images; blob: images made from checked raster bytes fit it with the smallest change. And the unchanged carrier keeps stdout only for a successful run and never keeps stderr, so the page says so and suggests sys.stderr = sys.stdout. Carrying messages forward needed only a v2 rule, an optional carried list in the epoch's first record, and the chain link binding it, so v1 records and links are untouched.",
+  "keep": [
+    "Give a second door the first door's own objects (the Tool instances), not a reimplementation, and test the two against each other per tool.",
+    "Reuse the existing ownership lock as the session model, and say plainly who can hold it and what to do.",
+    "Version a frozen rule (v1 to v2) instead of reinterpreting it, and bind new record fields into the chain only when they are present.",
+    "Build the demo's session from the real tools over an SDK that has nothing to dispatch with."
+  ],
+  "change": [
+    "Check a tool's nested argument bounds, not only its outer bound, before sizing an editor.",
+    "Check the page's CSP before rendering a new kind of content; prefer blob: over data:.",
+    "Ask the owner whether the carrier should keep stderr and a failed run's stdout: today a failing program shows only its failure code."
+  ],
+  "protocol_elements": [
+    "the Control Center is one more client of the research tools, under the campaign's ownership lock",
+    "a run's own output is one shared read-only operation, bounded, text and raster images only",
+    "miner guidance carries across epochs under a frozen, versioned rule"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
