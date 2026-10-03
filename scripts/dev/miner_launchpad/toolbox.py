@@ -205,18 +205,22 @@ def where(compute, lanes, exam_backend):
         "code_cell": {
             "cpu": "CPU (the isolated analysis sandbox), always available",
             "gpu": compute["label"] if gpu else None,
-            "gpu_reason": None
-            if gpu
-            else (
-                "This campaign was launched without a GPU: its compute is frozen at launch."
-                if compute is not None
-                else "Launch a campaign with a GPU to run code cells on it."
+            "gpu_reason": (
+                None
+                if gpu
+                else (
+                    "This campaign was launched without a GPU: its compute is frozen at launch."
+                    if compute is not None
+                    else "Launch a campaign with a GPU to run code cells on it."
+                )
             ),
         },
         "lanes": lane_states,
-        "set_up_gpu": None
-        if any(state["available"] for state in lane_states.values())
-        else SET_UP_GPU,
+        "set_up_gpu": (
+            None
+            if any(state["available"] for state in lane_states.values())
+            else SET_UP_GPU
+        ),
         "validator": VALIDATOR_STAYS.format(backend=exam_backend),
     }
 
@@ -292,18 +296,20 @@ def build(challenge, *, lanes=None, compute=None):
                 "runs_on": runs_on,
                 "families": families,
                 "default": backend_control.get("default") == name,
-                "validator_environment": None
-                if profile is None
-                else {
-                    k: profile[k]
-                    for k in (
-                        "backend",
-                        "environment_id",
-                        "environment_version",
-                        "environment_digest",
-                        "worker_image",
-                    )
-                },
+                "validator_environment": (
+                    None
+                    if profile is None
+                    else {
+                        k: profile[k]
+                        for k in (
+                            "backend",
+                            "environment_id",
+                            "environment_version",
+                            "environment_digest",
+                            "worker_image",
+                        )
+                    }
+                ),
                 "pinned": [
                     {"name": d.get("name"), "version": d.get("version")}
                     for d in (profile or {}).get("pinned", [])
@@ -328,9 +334,11 @@ def build(challenge, *, lanes=None, compute=None):
                 "optional": sorted(optional),
                 "available": available["available"],
                 "reason": available["reason"],
-                "limits": limits.get(action + "_seconds")
-                if action in ("run_python", "run_julia")
-                else (limits.get("workspace") if action == "write_file" else None),
+                "limits": (
+                    limits.get(action + "_seconds")
+                    if action in ("run_python", "run_julia")
+                    else (limits.get("workspace") if action == "write_file" else None)
+                ),
                 "research_only": action in ("run_python", "run_julia"),
                 "mcp": {
                     "tool": research_prefix + "start_research_task",
@@ -403,12 +411,14 @@ def build(challenge, *, lanes=None, compute=None):
                 "julia": {
                     "role": "Research only: never in a submission",
                     "authority": "OWNER-PYTORCH-BACKEND-01",
-                    "capability": None
-                    if julia is None
-                    else {
-                        k: julia.get(k)
-                        for k in ("id", "status", "blocker", "summary", "trigger")
-                    },
+                    "capability": (
+                        None
+                        if julia is None
+                        else {
+                            k: julia.get(k)
+                            for k in ("id", "status", "blocker", "summary", "trigger")
+                        }
+                    ),
                     "run_julia": julia_lane,
                     "exclusion": (described.get("exclusion_scope") or {}).get(
                         "submission"

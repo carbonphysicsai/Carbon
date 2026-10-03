@@ -411,9 +411,11 @@ class ResearchMinerTools:
                 if code is not None:
                     raise TaskContractMismatch(
                         code,
-                        "arguments_json.seconds"
-                        if code == "remote_gpu_seconds_required"
-                        else "arguments_json.device",
+                        (
+                            "arguments_json.seconds"
+                            if code == "remote_gpu_seconds_required"
+                            else "arguments_json.device"
+                        ),
                     )
             spec = constructor(version, args["action"], canonical(arguments).decode())
         else:

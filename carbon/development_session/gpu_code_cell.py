@@ -214,9 +214,9 @@ def run(executor, *, identity, args, files):
             "worker": {
                 **result,
                 "failure_code": "DEADLINE" if job.get("timed_out") else "RUNTIME",
-                "observation": "OWN_ALLOWANCE_ELAPSED"
-                if job.get("timed_out")
-                else "NONZERO_EXIT",
+                "observation": (
+                    "OWN_ALLOWANCE_ELAPSED" if job.get("timed_out") else "NONZERO_EXIT"
+                ),
             },
             "workspace_exports": [],
             "device": ran,

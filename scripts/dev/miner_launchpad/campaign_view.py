@@ -280,9 +280,11 @@ def experiment_rows(own, view):
                 or _str((recipe or {}).get("backbone")),
                 "recipe_digest": _str(experiment.get("recipe_digest")),
                 "recipe": recipe,
-                "eligible": summary.get("eligible")
-                if type(summary.get("eligible")) is bool
-                else None,
+                "eligible": (
+                    summary.get("eligible")
+                    if type(summary.get("eligible")) is bool
+                    else None
+                ),
                 "score": finite(score),
                 "important_score": finite(summary.get("important_score")),
                 "components": {
@@ -305,9 +307,11 @@ def experiment_rows(own, view):
                 },
                 "fit": {
                     "final_loss": finite(fit.get("final_loss")),
-                    "n_params": fit.get("n_params")
-                    if type(fit.get("n_params")) is int
-                    else None,
+                    "n_params": (
+                        fit.get("n_params")
+                        if type(fit.get("n_params")) is int
+                        else None
+                    ),
                     "train_s": finite(fit.get("train_s")),
                 },
                 "backend": _str(backend.get("kind"), 64),
@@ -616,16 +620,20 @@ def tiles(own, rows, now):
     active = str(own.get("state")) not in TERMINAL
     value = {
         "started_unix": started,
-        "deadline_unix": own.get("deadline_unix")
-        if isinstance(own.get("deadline_unix"), (int, float))
-        else None,
+        "deadline_unix": (
+            own.get("deadline_unix")
+            if isinstance(own.get("deadline_unix"), (int, float))
+            else None
+        ),
         "now_unix": int(now),
         "elapsed_seconds": int(now - started) if started and active else None,
         "practice_runs": {
             "completed": len(own.get("experiments") or []),
-            "attempted": own.get("attempted_experiments")
-            if type(own.get("attempted_experiments")) is int
-            else None,
+            "attempted": (
+                own.get("attempted_experiments")
+                if type(own.get("attempted_experiments")) is int
+                else None
+            ),
         },
         "spend": None,
         "trials": None,
@@ -814,11 +822,11 @@ def outcomes(own, view, mode):
         elif status == "VERIFIED_SOURCE" and result is not None:
             entry["result"] = {
                 "disposition": _str(result.get("disposition"), 64),
-                "accepted_development_improvement": result.get(
-                    "accepted_development_improvement"
-                )
-                if type(result.get("accepted_development_improvement")) is bool
-                else None,
+                "accepted_development_improvement": (
+                    result.get("accepted_development_improvement")
+                    if type(result.get("accepted_development_improvement")) is bool
+                    else None
+                ),
                 "qualification": False,
                 "reward": False,
             }
@@ -830,14 +838,16 @@ def candidates(own):
     return [
         {
             "epoch": item.get("epoch"),
-            "strategy": item.get("strategy")
-            if type(item.get("strategy")) is dict
-            else None,
+            "strategy": (
+                item.get("strategy") if type(item.get("strategy")) is dict else None
+            ),
             "strategy_hash": _str(item.get("strategy_hash")),
             "reason": clean_text(item.get("reason"), 1024),
-            "used_feedback": item.get("used_feedback")
-            if type(item.get("used_feedback")) is bool
-            else None,
+            "used_feedback": (
+                item.get("used_feedback")
+                if type(item.get("used_feedback")) is bool
+                else None
+            ),
             "final_evidence": False,
         }
         for item in own.get("candidate_freezes") or []
@@ -912,9 +922,9 @@ def per_case_section(view, rows, predictions, practice_case=None, experiment=Non
         "population": "public PRACTICE",
         "experiment": current["id"],
         "experiment_index": current["index"],
-        "previous_experiment": previous["id"]
-        if previous and earlier is not None
-        else None,
+        "previous_experiment": (
+            previous["id"] if previous and earlier is not None else None
+        ),
         "case_ids": case_ids,
         "selected": {
             "case_id": case,
@@ -967,9 +977,9 @@ def _message(note, replies, read_by=None):
     entry = {
         "sequence": note["sequence"],
         "text": clean_text(body.get("text")),
-        "posted_unix": body.get("posted_unix")
-        if type(body.get("posted_unix")) is int
-        else None,
+        "posted_unix": (
+            body.get("posted_unix") if type(body.get("posted_unix")) is int else None
+        ),
         "digest": _str(body.get("digest"), 80),
         "replies": [
             {
@@ -977,9 +987,11 @@ def _message(note, replies, read_by=None):
                 "text": clean_text(r["body"].get("text")),
                 # Carbon's own agent marks its replies; any other is the
                 # miner's own agent's, through carbon_note.
-                "by": "carbon_agent"
-                if r["body"].get("author") == "carbon_agent"
-                else "your_agent",
+                "by": (
+                    "carbon_agent"
+                    if r["body"].get("author") == "carbon_agent"
+                    else "your_agent"
+                ),
             }
             for r in replies.get(note["sequence"], [])
         ],
@@ -1136,18 +1148,20 @@ def build(
         "campaign": {
             "id": _str(own.get("id")),
             "state": _str(own.get("state"), 64),
-            "selects": own.get("selects")
-            if own.get("selects") in ("miner", "agent")
-            else None,
+            "selects": (
+                own.get("selects") if own.get("selects") in ("miner", "agent") else None
+            ),
             "agent": _str(own.get("agent"), 64),
             "model": _str(own.get("reasoning"), 128),
-            "challenge": {
-                "id": _str(challenge.get("id")),
-                "version": _str(challenge.get("version"), 32),
-                "title": (contract or {}).get("challenge", {}).get("title"),
-            }
-            if challenge
-            else None,
+            "challenge": (
+                {
+                    "id": _str(challenge.get("id")),
+                    "version": _str(challenge.get("version"), 32),
+                    "title": (contract or {}).get("challenge", {}).get("title"),
+                }
+                if challenge
+                else None
+            ),
             "admission": _str(own.get("admission"), 64),
             "runtime_revision": _str(own.get("runtime_revision")),
             "execution_label": _str(own.get("execution_label"), 128),
@@ -1155,9 +1169,9 @@ def build(
         "labels": {
             **LABELS,
             "netuid": CARBON_NETUID,
-            "evidence": "SYNTHETIC_FIXTURE"
-            if fixture
-            else "PRACTICE_NOT_QUALIFICATION",
+            "evidence": (
+                "SYNTHETIC_FIXTURE" if fixture else "PRACTICE_NOT_QUALIFICATION"
+            ),
         },
         "fixture": bool(fixture),
         "stages": stages(own),
@@ -1185,16 +1199,18 @@ def build(
         "conversation": conversation(notes, carbon_agent),
         "toolbox": toolbox,
         "candidates": candidates(own),
-        "journey": {
-            key: (own.get("journey") or {}).get(key)
-            for key in (
-                "submitted_epochs",
-                "final_exams_remaining",
-                "frozen_awaiting_submission",
-            )
-        }
-        if type(own.get("journey")) is dict
-        else None,
+        "journey": (
+            {
+                key: (own.get("journey") or {}).get(key)
+                for key in (
+                    "submitted_epochs",
+                    "final_exams_remaining",
+                    "frozen_awaiting_submission",
+                )
+            }
+            if type(own.get("journey")) is dict
+            else None
+        ),
         "outcomes": outcomes(own, view, feedback_mode),
         "events": events(own),
         "declaration": view.document() if view is not None else None,

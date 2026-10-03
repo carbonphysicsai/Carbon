@@ -76,18 +76,21 @@ def synthetic_view(*, allowed=True, modes=None):
     fields = modes or {
         "FULL": (("state", "screening", "nominated"), ("eligible", "score"))
     }
-    return ResearchView(
-        challenge_id="synthetic-heat-plate-v1",
-        outputs=outputs,
-        components=(("thermal", "Thermal"), ("flux", "Flux")),
-        direction="lower_is_better",
-        per_case=PerCasePolicy(allowed, "synthetic disclosure"),
-        learning_curve={"recorded": False, "basis": "synthetic"},
-        case_ids=lambda: list(cases),
-        reference=lambda case: cases.get(case),
-        feedback_fields=lambda mode: fields.get(mode),
-        inputs=("load",),
-    ), cases
+    return (
+        ResearchView(
+            challenge_id="synthetic-heat-plate-v1",
+            outputs=outputs,
+            components=(("thermal", "Thermal"), ("flux", "Flux")),
+            direction="lower_is_better",
+            per_case=PerCasePolicy(allowed, "synthetic disclosure"),
+            learning_curve={"recorded": False, "basis": "synthetic"},
+            case_ids=lambda: list(cases),
+            reference=lambda case: cases.get(case),
+            feedback_fields=lambda mode: fields.get(mode),
+            inputs=("load",),
+        ),
+        cases,
+    )
 
 
 def own_projection(n=2, **extra):
