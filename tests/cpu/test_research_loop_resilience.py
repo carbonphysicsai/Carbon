@@ -43,7 +43,11 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS,
     PARALLEL_CALLS_V2,
 )
-from carbon.development_session.research_loop import CALL_TRUNCATED
+from carbon.development_session.research_loop import (
+    CALL_TRUNCATED,
+    MAX_TRUNCATED_TURNS,
+    REPLIES_TRUNCATED,
+)
 
 RULES = [None, PARALLEL_CALLS, PARALLEL_CALLS_V2]
 
@@ -188,6 +192,63 @@ def test_another_early_end_is_named_without_asking_for_brevity(tmp_path):
     (note,) = notes(requests[1])
     assert "ended before it finished (provider reason: content_filter)" in note
     assert "concisely" not in note
+
+
+@pytest.mark.parametrize("rule", RULES)
+@pytest.mark.parametrize(
+    "cut",
+    [
+        ended([text("Thinking at length")]),
+        ended([call("a", START, {"kind": "practice"})]),
+        ended([text("x")], reason="nonstandard_stop"),
+    ],
+)
+def test_replies_cut_off_in_a_row_stop_the_epoch(tmp_path, rule, cut):
+    """A model or provider that is always cut off - at the output cap, its
+    only call cut, or a stop reason that is never `completed` - used to spend
+    every model call of the epoch for nothing. The first such reply gets a
+    note that says what happens next; the second stops the epoch, typed, and
+    nothing of it runs."""
+    meter = ledger(tmp_path)
+    sdk = SDK(meter)
+    transport, requests = replies(*[cut] * 5)
+    result = epoch(meter, sdk, transport, rule=rule)
+    assert result["status"] == "STOPPED" and result["code"] == REPLIES_TRUNCATED
+    assert len(requests) == MAX_TRUNCATED_TURNS == 2
+    assert result["truncated_turns"] == ["epoch-1-provider-000", "epoch-1-provider-001"]
+    assert result["incomplete"]["max_output_tokens"] == 2048
+    (note,) = notes(requests[1])
+    assert "If your next reply also ends before any tool call in it is" in note
+    assert sdk.dispatched == []
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 2
+    # The stopping turn's cut call was not answered: nothing of it ran.
+    assert not (folder(meter) / "epoch-1-provider-001-truncated.json").exists()
+    # A resume replays the same outcome and sends nothing.
+    assert epoch(meter, sdk, never, rule=rule) == result
+
+
+def test_a_cut_reply_whose_call_ran_resets_the_count(tmp_path):
+    """Progress between two cut replies: neither run of early ends reaches
+    the limit, and the epoch goes on."""
+    meter = ledger(tmp_path)
+    sdk = SDK(meter)
+    transport, requests = replies(
+        ended([text()]),
+        ended([call("a"), call("b")]),
+        ended([text()]),
+        [text()],
+    )
+    result = epoch(meter, sdk, transport)
+    assert result["reason"] == "agent elected to stop"
+    assert len(requests) == 4
+    assert sdk.dispatched == [(LIST, "epoch-1-tool-001")]
+    # Only the replies that ran nothing carry the warning.
+    warned = [
+        "If your next reply also ends" in note
+        for request in requests[1:]
+        for note in notes(request)[-1:]
+    ]
+    assert warned == [True, False, True]
 
 
 def test_a_cut_reply_spends_no_free_text_reminder(tmp_path):

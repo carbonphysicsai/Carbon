@@ -17,9 +17,11 @@ refused - is a turn like any other (LP-PROD-A): it spent one model call and is
 metered exactly. The tool calls it finished run; one it did not finish is
 answered `call_truncated` without running; and a journalled note tells the
 model how its reply ended and to continue, more concisely when it hit the
-limit. A provider failure is the provider layer's (`research_agent`): it
-propagates, the epoch keeps no outcome, and a resume carries on from the same
-turn.
+limit. A second such reply in a row in which no tool call was complete stops
+the epoch typed (`replies_truncated`), so a model that is always cut off does
+not spend the epoch's model calls for nothing. A provider failure is the
+provider layer's (`research_agent`): it propagates, the epoch keeps no
+outcome, and a resume carries on from the same turn.
 """
 
 from __future__ import annotations
@@ -183,6 +185,13 @@ REFUSAL_CODES = (
 #: The typed outcome of a turn whose tool call has no call_id or name: it
 #: cannot be answered, so the epoch stops, retained.
 TOOL_CALL_MALFORMED = "tool_call_malformed"
+#: The typed outcome of replies the provider ended early, in a row, in which
+#: no tool call was complete (LP-PROD-A): the first is answered with a note
+#: (`truncation_note`); at `MAX_TRUNCATED_TURNS` the epoch stops, retained,
+#: so a model or provider that is always cut off cannot spend every model
+#: call of the epoch for nothing.
+REPLIES_TRUNCATED = "replies_truncated"
+MAX_TRUNCATED_TURNS = 2
 #: At most this many practiced recipes are listed in a
 #: `selection_not_practiced` reply, newest last; the reply also gives the
 #: count.
@@ -563,6 +572,12 @@ def truncation_note(root, turn, response, incomplete, *, cut, ran):
         )
     else:
         text += " Continue from where you stopped."
+    if not ran:
+        # The next such reply ends the run (`REPLIES_TRUNCATED`).
+        text += (
+            " If your next reply also ends before any tool call in it is "
+            "complete, Carbon stops this run."
+        )
     message = {"role": "user", "content": text}
     write_once(
         path,
@@ -763,6 +778,8 @@ async def run_epoch(
     # Consecutive turns with several tool calls; recomputed identically on a
     # replay, because the retained responses replay in order.
     parallel_run = 0
+    # Consecutive replies ended early with no tool call complete, likewise.
+    truncated = []
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
@@ -1024,6 +1041,27 @@ async def run_epoch(
                     "output": canonical(PARALLEL_REFUSAL).decode(),
                 }
             )
+        # A reply ended early in which no call that runs was complete - it had
+        # none, or every one was cut - did nothing. The first gets a note; the
+        # next in a row ends the epoch typed, before anything of it runs (a
+        # cut call would only be answered `call_truncated`).
+        if incomplete is not None and all(p in cut for p in range(len(running))):
+            truncated.append(call_id)
+            if len(truncated) >= MAX_TRUNCATED_TURNS:
+                outcome = {
+                    "status": "STOPPED",
+                    "code": REPLIES_TRUNCATED,
+                    "reason": (
+                        f"the provider ended {len(truncated)} replies in a row "
+                        "before any tool call in them was complete; retained "
+                        "and stopped"
+                    ),
+                    "truncated_turns": truncated,
+                    "incomplete": incomplete,
+                }
+                break
+        else:
+            truncated = []
         if not calls and incomplete is not None:
             # Ended early before any call: not a choice to stop, and no
             # reminder is spent. The note asks the model to continue.
