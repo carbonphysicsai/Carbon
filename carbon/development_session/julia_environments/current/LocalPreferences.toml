@@ -1,0 +1,21 @@
+# Compile-time preferences of the `current` environment (JULIA-GPU-01).
+#
+# The depot is built on a host with no GPU and runs with no network, so the
+# CUDA toolkit cannot be chosen by inspecting a driver: it is fixed here, and
+# Pkg installs exactly that toolkit's artifacts when the image is built. CUDA
+# 13.0 is the toolkit the pinned Python GPU worker carries
+# (.devcontainer/accelerators/cuda13-py311.txt), so one host driver serves
+# both languages. Both JLLs are listed under [extras] in Project.toml: Julia
+# reads preferences only for packages a project names.
+#
+# This file is a depot input (julia_depot.environment_preferences).
+
+[CUDA_Runtime_jll]
+version = "13.0"
+local = false
+
+# Never load the forward-compatible driver bundled in the CUDA_Driver_jll
+# artifact: a run uses the host's own driver, which the NVIDIA container
+# toolkit mounts, or none.
+[CUDA_Driver_jll]
+compat = false

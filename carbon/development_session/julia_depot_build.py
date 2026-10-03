@@ -29,6 +29,7 @@ from .julia_depot import (
     base_recipe,
     depot_digest,
     environment_files,
+    environment_preferences,
     fetch_recipe,
     precompile_recipe,
 )
@@ -200,6 +201,9 @@ def build_depot(root, cli):
         (fetch_context / name).mkdir(mode=0o700, exist_ok=True)
         write_once(fetch_context / name / "Project.toml", project)
         write_once(fetch_context / name / "Manifest.toml", pinned)
+        preferences = environment_preferences(name)
+        if preferences is not None:
+            write_once(fetch_context / name / "LocalPreferences.toml", preferences)
     write_once(fetch_context / "artifacts.jl", LAZY_ARTIFACTS.encode())
     packages = _local_tag(
         cli,

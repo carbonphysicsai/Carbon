@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 import sys
+import tomllib
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
@@ -32,8 +33,14 @@ JULIA_INPUTS = {
         for name in depot.ENVIRONMENTS
         for file in ("Project.toml", "Manifest.toml")
     ),
+    *(
+        (depot.ENVIRONMENT_ROOT / name / "LocalPreferences.toml").resolve()
+        for name in depot.CUDA_ENVIRONMENTS
+    ),
     Path(depot.__file__).resolve(),
 }
+CUDA_RUNTIME_JLL = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
+CUDA_DRIVER_JLL = "4ee394cb-3365-5eb0-8335-949819d2adfc"
 
 _opened = None
 
@@ -89,6 +96,75 @@ def test_a_julia_input_changes_the_depot_and_an_identical_copy_does_not(
     manifest = copy / "current" / "Manifest.toml"
     manifest.write_bytes(manifest.read_bytes() + b"\n")
     assert depot.depot_digest() != before
+
+
+def test_preferences_are_a_depot_input(tmp_path, monkeypatch):
+    """LocalPreferences.toml decides which CUDA toolkit is installed and how
+    packages compile, so changing, removing or adding one names another depot."""
+    before = depot.depot_digest()
+    copy = tmp_path / "environments"
+    shutil.copytree(depot.ENVIRONMENT_ROOT, copy)
+    monkeypatch.setattr(depot, "ENVIRONMENT_ROOT", copy)
+    preferences = copy / "current" / "LocalPreferences.toml"
+    preferences.write_bytes(preferences.read_bytes().replace(b'"13.0"', b'"12.9"'))
+    changed = depot.depot_digest()
+    assert changed != before
+    preferences.unlink()
+    assert depot.depot_digest() not in (before, changed)
+    (copy / "pde" / "LocalPreferences.toml").write_bytes(b"")
+    assert depot.environment_preferences("pde") == b""
+    assert depot.depot_document()["environments"]["pde"]["preferences"] is not None
+
+
+def test_the_cuda_environment_fixes_its_toolkit_and_names_its_jlls():
+    """The build host has no GPU and a run has no network, so the toolkit is a
+    committed preference. Julia reads a package's preferences only when the
+    project names it, so both CUDA JLLs are extras of the project: without
+    that the preferences are silently ignored and no toolkit is installed (the
+    first rehearsal, 2026-10-03, came out `cuda+none`)."""
+    assert depot.CUDA_ENVIRONMENTS == ("current",)
+    for name in depot.ENVIRONMENTS:
+        project = tomllib.loads(depot.environment_files(name)[0].decode())
+        preferences = depot.environment_preferences(name)
+        if name not in depot.CUDA_ENVIRONMENTS:
+            assert "CUDA" not in project["deps"] and preferences is None
+            continue
+        assert project["deps"]["CUDA"] == "052768ef-5323-5732-b1bb-66c8b64840ba"
+        assert project["extras"] == {
+            "CUDA_Driver_jll": CUDA_DRIVER_JLL,
+            "CUDA_Runtime_jll": CUDA_RUNTIME_JLL,
+        }
+        fixed = tomllib.loads(preferences.decode())
+        assert fixed == {
+            "CUDA_Runtime_jll": {"version": "13.0", "local": False},
+            "CUDA_Driver_jll": {"compat": False},
+        }
+        # The manifest pins the JLLs those preferences address.
+        manifest = tomllib.loads(depot.environment_files(name)[1].decode())
+        assert manifest["deps"]["CUDA_Runtime_jll"][0]["uuid"] == CUDA_RUNTIME_JLL
+        assert manifest["deps"]["CUDA_Driver_jll"][0]["uuid"] == CUDA_DRIVER_JLL
+
+
+def test_the_recipes_install_one_toolkit_and_keep_the_device_runtime():
+    fetch = depot.fetch_recipe("b")
+    # The preferences are in place before anything is installed.
+    assert fetch.index("current/LocalPreferences.toml") < fetch.index("Pkg.instantiate")
+    assert "pde/LocalPreferences.toml" not in fetch
+    # The lazy sweep leaves CUDA-tagged JLLs to their own selection hook.
+    assert "select_artifacts.jl" in depot.LAZY_ARTIFACTS
+    assert 'haskey(entry, "cuda")' in depot.LAZY_ARTIFACTS
+    compile_recipe = depot.precompile_recipe("b", "p", "f")
+    runtime = f"scratchspaces/{depot.GPUCOMPILER_UUID}"
+    assert compile_recipe.index("Pkg.precompile") < compile_recipe.index(
+        "CUDA.precompile_runtime()"
+    )
+    # Only GPUCompiler's compiled runtime survives, and an empty one fails the
+    # build rather than shipping a depot that recompiles on every GPU run.
+    assert f"! -name {depot.GPUCOMPILER_UUID}" in compile_recipe
+    assert f"ls /opt/carbon-julia-analysis/depot/{runtime}/compiled/*/*/runtime_*.bc" in (
+        compile_recipe
+    )
+    assert "rm -rf /opt/carbon-julia-analysis/depot/logs" in compile_recipe
 
 
 def test_the_parent_names_the_composed_runtime_but_never_the_depot():
@@ -187,6 +263,12 @@ def test_a_verified_depot_is_reused_and_nothing_is_compiled(tmp_path, docker):
     assert how == "built"
     assert len(docker.builds) == 3
     assert "Pkg.precompile" in docker.builds[-1]
+    # The fetch context carries each environment's preferences, byte for byte.
+    fetch_context = build.depot_manifest(root).parent / "fetch-context"
+    for name in depot.ENVIRONMENTS:
+        path = fetch_context / name / "LocalPreferences.toml"
+        expected = depot.environment_preferences(name)
+        assert (path.read_bytes() if path.exists() else None) == expected
     again, how = build.build_depot(root, docker)
     assert how == "reused" and again == first
     assert len(docker.builds) == 3
