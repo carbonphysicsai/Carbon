@@ -368,6 +368,20 @@ RAN_ON = {
 }
 
 
+def research_task(value):
+    """The frozen research task: its exact text and digest, as the
+    campaign's own record holds them (bounded at launch to 4096 bytes of
+    plain text). Anything else is no task."""
+    if (
+        type(value) is not dict
+        or type(value.get("text")) is not str
+        or type(value.get("digest")) is not str
+        or len(value["text"].encode("utf-8")) > 4096
+    ):
+        return None
+    return {"text": value["text"], "digest": value["digest"][:80]}
+
+
 def ran_on(backend):
     """CPU or GPU, and where, from a practice run's backend record."""
     label = RAN_ON.get(backend.get("kind"))
@@ -1188,6 +1202,9 @@ def build(
         "hypothesis": clean_text(
             (own.get("current_hypothesis") or {}).get("hypothesis")
         ),
+        # The research task frozen at launch, exactly as the campaign's own
+        # record holds it (C-MLP-02-D6), with its digest; None without one.
+        "research_task": research_task(own.get("research_guidance")),
         "experiments": {"rows": shown, "total": len(rows)},
         "comparison": comparison(rows, view),
         "charts": charts(rows, own, view),

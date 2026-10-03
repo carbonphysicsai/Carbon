@@ -114,11 +114,17 @@
     applyTheme(storedTheme());
     const nav = $("tool-nav");
     if (nav && !$("rail-help")) {
+      // The help card sits beside the navigation, never in it: the
+      // navigation lists the views and nothing else.
+      const rail = el("div", undefined, "rail"); rail.id = "rail";
+      nav.parentNode.insertBefore(rail, nav);
+      rail.append(nav);
       const help = el("aside", undefined, "rail-help"); help.id = "rail-help";
+      help.setAttribute("aria-label", "Help");
       help.append(el("p", "Help", "eyebrow"), el("p", "Stuck? Each step says what it needs, and Details names the code."));
       help.append(anchor("Wiring guide", "#guide", "link"), anchor("Bring your agent", "#connections", "link"));
       help.append(el("p", "DEVELOPMENT · testnet. Practice evidence ≠ qualification.", "rail-help-note"));
-      nav.append(help);
+      rail.append(help);
     }
     window.addEventListener("hashchange", () => {
       document.documentElement.classList.remove("rail-open");
@@ -240,6 +246,11 @@
     const now = section(grid, "Now", "Current work");
     if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
     else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
+    // The research task frozen at launch, exactly, as text (C-MLP-02-D6).
+    if (doc.research_task) {
+      now.append(el("p", "Frozen research task: " + doc.research_task.text, "frozen-guidance"));
+      para(now, "Task identity: " + doc.research_task.digest, "hint");
+    }
     if (doc.hypothesis) {
       const quote = el("blockquote", undefined, "rs-quote");
       quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
@@ -430,7 +441,10 @@
           body.replaceChildren(); renderToolbox(body, tb, true);
         } catch (error) { body.replaceChildren(el("p", "Not available: " + words(error.message) + ". It needs a runner profile on this controller.", "hint")); body.dataset.loaded = ""; }
       });
-      card.append(box);
+      // Before the card's own Details, which stays its last disclosure (the
+      // machine code a status sentence stands for).
+      const own = [...card.querySelectorAll(":scope > details")].pop();
+      if (own) card.insertBefore(box, own); else card.append(box);
     }
   }
   function metricsTable(parent, doc) {
@@ -625,12 +639,13 @@
     for (const o of doc.outcomes) {
       const r = o.result || {};
       const s = r.screening || {};
-      const line = ["Epoch " + o.epoch, words(o.status).toLowerCase()];
+      const line = [typeof o.epoch === "number" ? "Epoch " + o.epoch : "Outcome", words(o.status).toLowerCase()];
       if (r.state) line.push(words(r.state).toLowerCase());
       if (typeof s.eligible === "boolean") line.push(s.eligible ? "eligible" : "not eligible");
       if (Array.isArray(s.gates_failed)) line.push("gates failed: " + (s.gates_failed.join(", ") || "none"));
       if (typeof s.score === "number") line.push("score " + fmt(s.score));
       if (r.disposition) line.push(words(r.disposition).toLowerCase());
+      if (typeof r.accepted_development_improvement === "boolean") line.push("accepted DEVELOPMENT improvement: " + r.accepted_development_improvement);
       para(box, line.join(" · "), "status-line");
       if (r.withheld) para(box, "Withheld: " + r.withheld, "hint");
       if (r.feedback_mode && r.feedback_mode !== "FULL") para(box, "Shown through the frozen feedback mode " + r.feedback_mode + ".", "hint");
