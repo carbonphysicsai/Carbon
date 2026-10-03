@@ -1,0 +1,11 @@
+{
+ "schema": "carbon.challenge-pipeline.rubric.v1",
+ "version": null,
+ "minRho": null,
+ "maxFF": null,
+ "minN": null,
+ "maxReg": null,
+ "maxC": 0,
+ "maxH": 0,
+ "approved": null
+}
