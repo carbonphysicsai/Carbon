@@ -75,7 +75,7 @@ with an accepted proposal.
 
 | Contract | L0 | L1 | L2 | L3 | L4 | L5 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `battery-fastcharge-ageing-development-v1` | none | none | none | none | none | none |
+| `battery-fastcharge-ageing-development-v1` | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED | ACCEPTED |
 
 ## Priority queue
 
@@ -146,6 +146,8 @@ No family has frozen Track A or B results yet.
 
 One entry after every execution (`carbon/challenge_pipeline/lessons/`). A lesson
 that should change the protocol is a proposed revision until a named owner
-adopts or declines it; nothing is applied silently.
+adopts or declines it; nothing is applied silently. This view lists only the
+revisions awaiting a decision; `python -m carbon.challenge_pipeline lessons`
+lists every entry.
 
-34 entries: 32 recorded, 0 proposed, 2 adopted, 0 declined.
+Nothing awaits a decision.

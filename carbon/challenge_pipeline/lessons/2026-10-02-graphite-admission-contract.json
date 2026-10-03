@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-graphite-admission-contract",
+ "recorded_at": "2026-10-02T21:09:00Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "GRAPHITE-ADMISSION-01 working contract; docs/development/carbon_hub/tools/validate_hub.py",
+  "description": "Wrote the working contract (ticket, OWNER-GRAPHITE-06, the handoff copy, Mira superseded in place, a Hub rule and event), re-rendered the Hub and validated it, and probed a merge with PR 504."
+ },
+ "expected": "The contract validates and renders current, and merges cleanly with the in-flight Graphite branches apart from generated files.",
+ "observed": "Render wrote 5 generated files; the check found 95 current; validation passed with 0 errors and 1 warning (no PR event in a local run). A merge-tree probe against PR 504 auto-merges .agent/DECISIONS.md but conflicts in the 4 generated Hub files that PR 498 and PR 504 both re-render.",
+ "keep": [
+  "Mark superseded work in place with a dated note, keep its records as history and reuse what it built.",
+  "Add one exact Hub impact rule per new ticket file."
+ ],
+ "change": [
+  "Resolve generated Hub file conflicts between parallel branches by re-rendering after the merge, never by editing the generated files."
+ ],
+ "protocol_elements": [
+  "graphite.permissions",
+  "lessons"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

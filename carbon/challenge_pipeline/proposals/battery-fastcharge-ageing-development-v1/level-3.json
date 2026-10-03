@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 3,
+ "recorded_at": "2026-10-03T02:46:49Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [],
+ "left_out": [
+  "Level 3 admits training-time numerical routines such as preconditioners, but the battery-fastcharge-ageing-development-v1 contract registers no capabilities at this level; difference_from_ladder lists it among empty_levels.",
+  "Battery surrogate networks (kNN, MLP, DeepONet, FNO) are small \u2014 widths up to 512, depths up to 6, at most 61 Fourier modes \u2014 and fit in memory, so standard first-order optimisation (Adam family at level 2 via optimizer.optimizer_family) and optional L-BFGS polish (level 2 via stages.polish_steps) already cover the numerical routines the training needs; no separate preconditioner or second-order solver capability is justified.",
+  "No candidate-side governing PDE equation is registered for the DFN battery model \u2014 objective.pde_weight is research_only with the note 'no candidate-side governing equation is registered for the DFN model' \u2014 so physics-informed preconditioning, residual-based adaptive sampling, or PDE-residual numerical routines have no residual to operate on at this level.",
+  "stages.physics_warmup_steps, the only training-stage numerical ramp considered for the Challenge, is research_only at level 2 because 'it ramps a PDE residual battery does not have'; this removes the main candidate for a level-3 numerical routine.",
+  "The optimiser-adjacent literature cards (arxiv-2501.16371v6 for SSBFGS/SSBroyden, arxiv-2602.16167v1 for SpecMuon) concern optimiser-family extensions that would belong to level 2's optimizer.optimizer_family, not to level-3 training-time numerical routines such as preconditioners, and the contract owner has not registered them as capabilities."
+ ],
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
+}

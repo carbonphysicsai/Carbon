@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-optimizer-researcher-pilot",
+ "recorded_at": "2026-10-02T21:50:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "optimizer_pilot",
+  "ref": "tests/cpu/test_design_search_pilot.py; tests/cpu/test_design_search_commitment.py; tests/cpu/test_graphite_admission_mutations.py",
+  "description": "Built the Challenge-neutral design search (registered methods, neutral request, freeze manifest, equal-query pilot), battery's adapter over search_commitment and priced choices, and Graphite's method-proposal task; ran a fake pilot on a synthetic analytic cell over EV2 development conditions, and on a synthetic second Challenge."
+ },
+ "expected": "A proposed method runs at equal budgets against the fixed grid, commits before any reference access, refuses EV4 conditions and drifted code, and selects by the baseline's rule.",
+ "observed": "73 passed. Screen-then-confirm returned the fixed grid's design on the synthetic cell with fewer model queries from every screening condition, and coarse-to-fine never beat the grid's optimum. The first pricing draft imported EV4's protected conditions into the shared package, which would have made it battery-only; it moved to battery's side. EV4's 8 x 4 model grid is entirely protected, so no development Mode X grid can reuse it.",
+ "keep": [
+  "A proposal names a registered method and bounded parameters; Carbon runs only its own code.",
+  "Freeze code, dependencies and every configuration before the pilot, and refuse to run on drift."
+ ],
+ "change": [
+  "Measure reference solve time on the reference hardware before pricing any paid optimizer run.",
+  "Run a check on each new shared module for Challenge-specific imports before it is committed."
+ ],
+ "protocol_elements": [
+  "optimizer.freeze",
+  "optimizer.equal_queries",
+  "protocol.generalizable"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

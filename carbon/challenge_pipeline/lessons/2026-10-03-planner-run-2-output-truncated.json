@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "protocol_elements": [
+  "climb_procedure.graphite_proposal",
+  "grants"
+ ],
+ "status": "RECORDED",
+ "proposed_revision": null,
+ "lesson_id": "2026-10-03-planner-run-2-output-truncated",
+ "recorded_at": "2026-10-03T02:41:00Z",
+ "execution": {
+  "kind": "campaign_session",
+  "ref": "level-plan-2 under GRAPHITE-GRANT-PLANNER-01",
+  "description": "Second battery level-planner session, with the 6 cards that fit the 61,440-byte bound, one per level group."
+ },
+ "expected": "A Level 0 proposal within 8,192 output tokens.",
+ "observed": "The reply ran past 8,192 output tokens and came back incomplete: one call, booked at the full reservation ($0.0569) because the provider reported no charge. The 55.7 KB request was 13,171 tokens, about 4.2 bytes per token, so the byte bound is about four times the token count.",
+ "keep": [
+  "Booking the full reservation when the provider reports no charge."
+ ],
+ "change": [
+  "Size the output limit for a medium-effort reply (32,768 tokens) and the input limit for as many relevant cards as the ceiling allows (GRAPHITE-GRANT-PLANNER-02)."
+ ]
+}

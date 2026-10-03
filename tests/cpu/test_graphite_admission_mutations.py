@@ -1,0 +1,156 @@
+"""Mutation checks for GRAPHITE-ADMISSION-01: disabling each new protection
+makes the test that guards it fail.
+
+Each case switches one protection off with monkeypatch and runs its guarding
+test. The guarding test must fail; if it passes, it does not exercise the
+protection.
+"""
+
+from __future__ import annotations
+
+import pytest
+import test_agent_campaign_climb as tclimb
+import test_agent_campaign_study as tstudy
+import test_design_search_pilot as tpilot
+import test_graphite_level_planner as tlp
+import test_loss_expressions as tle
+
+from carbon.agent_campaign import climb, study
+from carbon.agent_campaign.graphite import closed_task
+from carbon.agent_campaign.graphite import level_planner as lp
+from carbon.agent_campaign.graphite import optimizer_research as orr
+from carbon.design_search import experiment as ex
+from carbon.design_search import methods
+from carbon.reconstruction import loss_expressions as le
+
+
+def _rejection(name):
+    return lambda tmp: tlp.test_a_reply_outside_the_rules_is_rejected_and_recorded(
+        tmp, name
+    )
+
+
+MUTATIONS = {
+    "design_search_freeze_is_checked": (
+        lambda m: m.setattr(ex, "check_frozen", lambda manifest, adapter, repo: None),
+        lambda tmp: (
+            tmp.mkdir(parents=True),
+            tpilot.test_the_pilot_refuses_drifted_code_an_altered_freeze_or_another_panel(
+                tmp
+            ),
+        ),
+    ),
+    "method_parameters_are_bounded": (
+        lambda m: m.setattr(
+            methods,
+            "check",
+            lambda method, parameters, *, mode, conditions: methods.METHODS[method],
+        ),
+        lambda tmp: tpilot.test_an_unregistered_method_or_parameter_is_refused(
+            "screen_then_confirm",
+            {"screen_condition": 4},
+            "PB-INV",
+            "parameter_outside_bounds",
+        ),
+    ),
+    "method_proposal_is_closed": (
+        lambda m: m.setattr(orr, "_closed", lambda value: True),
+        lambda tmp: tpilot.test_a_proposal_outside_the_rules_is_rejected(
+            tmp,
+            tpilot.reply(query_budget=10**6),
+            "reply_fields_not_exactly_the_proposal",
+        ),
+    ),
+    "loss_expression_constants_are_bounded": (
+        lambda m: m.setattr(le, "_number", lambda value: True),
+        lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
+            {"op": "scale", "by": True, "arg": {"term": "sq_error"}},
+            "by_outside_bounds",
+        ),
+    ),
+    "loss_expression_terms_are_registered": (
+        lambda m: m.setattr(
+            le.OperationSet,
+            "terms",
+            property(lambda self: ("score", "sq_error")),
+            raising=False,
+        ),
+        lambda tmp: tle.test_an_expression_outside_the_set_is_refused_by_code(
+            {"term": "score"}, "term_not_registered"
+        ),
+    ),
+    "climb_budgets_are_matched": (
+        lambda m: m.setattr(climb.ClimbPlan, "__post_init__", lambda self: None),
+        lambda tmp: tclimb.test_a_malformed_plan_is_refused(
+            {"budget": 2}, "attack_budget_must_match_the_attack_set"
+        ),
+    ),
+    "climb_stops_on_a_finding": (
+        lambda m: m.setattr(climb._Record, "stopped", lambda self: False),
+        lambda tmp: tclimb.test_a_reproduced_violation_stops_the_climb(),
+    ),
+    "planner_sources_resolve_to_the_brief": (
+        lambda m: m.setattr(lp, "_resolves", lambda source, document: "card"),
+        _rejection("unresolved_source"),
+    ),
+    "planner_reply_is_closed": (
+        lambda m: m.setattr(lp, "_closed_reply", lambda value, level: True),
+        _rejection("status_in_reply"),
+    ),
+    "planner_level0_records_the_difference": (
+        lambda m: m.setattr(lp, "_level0_gaps", lambda c, left, document: []),
+        _rejection("level0_missing_citation"),
+    ),
+    "planner_refuses_an_unplaced_dimension": (
+        lambda m: m.setattr(
+            lp,
+            "planning_level",
+            lambda s, capability_id: s.ladder.get(capability_id.partition(".")[0], 0),
+        ),
+        lambda tmp: tlp.test_an_unplaced_dimension_refuses_the_session_before_any_call(
+            tmp
+        ),
+    ),
+    "planner_refuses_protected_results": (
+        lambda m: m.setattr(lp, "protected", lambda value: False),
+        lambda tmp: tlp.test_protected_or_malformed_results_are_refused(
+            (
+                {
+                    "result_id": "dev-1",
+                    "summary": "EV4 confirmation margins",
+                    "ref": "x",
+                },
+            ),
+            "result_names_protected_material",
+        ),
+    ),
+    "closed_task_needs_a_grant": (
+        lambda m: m.setattr(closed_task, "check_grant", lambda g, model, now: None),
+        lambda tmp: tlp.test_a_session_needs_an_exact_unexpired_graphite_grant(
+            tmp, None, "spending_grant_required"
+        ),
+    ),
+    "unmapped_capability_is_refused": (
+        lambda m: m.setattr(
+            study,
+            "planning_level",
+            lambda s, capability_id: s.ladder.get(capability_id.partition(".")[0], 0),
+        ),
+        lambda tmp: tstudy.test_an_unmapped_capability_is_refused_not_defaulted(),
+    ),
+    "adapter_is_checked": (
+        lambda m: m.setattr(study, "_checked", lambda s: (s, s.contract())),
+        lambda tmp: tstudy.test_a_malformed_adapter_is_refused(
+            {"ladder": {"model_family": 6}}, "ladder_map_malformed"
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize("name", sorted(MUTATIONS))
+def test_disabling_the_protection_fails_its_test(name, tmp_path, monkeypatch):
+    disable, guard = MUTATIONS[name]
+    guard(tmp_path / "intact")  # passes with the protection in place
+    disable(monkeypatch)
+    with pytest.raises((AssertionError, pytest.fail.Exception)):
+        guard(tmp_path / "mutated")

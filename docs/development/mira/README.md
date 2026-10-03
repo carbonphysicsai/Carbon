@@ -1,5 +1,12 @@
 # Mira in internal admission testing: stages 1 and 2
 
+> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-06).** The owner:
+> "The plan is to use GRAPHITE not Mira for this testing." Graphite, Carbon's
+> own agent, does the admission-testing work under GRAPHITE-ADMISSION-01, with
+> the handoff re-issued as `docs/development/graphite/ADMISSION_TESTING_HANDOFF.md`.
+> This page stays as history. The controller, boundaries, study sheet and
+> design-search commitment layer described below are reused there.
+
 **Ticket:** `.agent/tickets/MIRA-ADMISSION-01_mira_admission_integration.md`.
 **Authority:** the owner's handoff "integrate Autoscience Mira into Carbon's
 internal admission testing" (2026-10-01), under OWNER-CHALLENGE-ADMISSION-01 as
