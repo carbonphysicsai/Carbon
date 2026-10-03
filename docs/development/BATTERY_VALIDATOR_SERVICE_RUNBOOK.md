@@ -23,24 +23,32 @@ One deployment, two processes, one writer lock (`deployment.writer`):
 
 | Process | Command | Does |
 |---|---|---|
-| intake | `python -m carbon.battery.intake serve --config <intake.json>` | The submission endpoint (OD-7(b)). Authenticates each signed `battery_submit` (`btauth/1`, NET-2), records it in its inbox, answers `202` with the submission id, and its worker admits and advances it through the daemon. Answers `battery_status` to the submitting hotkey only. |
-| validator daemon | `python -m carbon.battery.operate run --config <deployment.json> --every 60` | One `run` per minute: advances whatever is queued, including submissions that reached the deployment another way, and opens finalist comparisons. |
+| intake | `python -m carbon.battery.intake serve --config <intake.json>` | The submission endpoint (OD-7(b)). Authenticates each signed `battery_submit` (`btauth/1`, NET-2), records it in its inbox, answers `202` with the submission id, and its worker admits and advances it through the daemon. Answers `battery_status` to the submitting hotkey only. Holds `<inbox>.serve.lock` while it runs. |
+| validator daemon | `python -m carbon.battery.operate run --config <deployment.json> --every 60 --heartbeat <service dir>/daemon-heartbeat.json` | One `run` per minute: advances whatever is queued, including submissions that reached the deployment another way, and opens finalist comparisons. Keeps an owner-only heartbeat (pid, passes, how the last pass ended) and holds its `.lock` while it runs. |
 
 Both log one JSON line per event (to stderr and stdout respectively): times,
 counts and exception types only, never a peer address, hotkey, path,
 request, case or seed. A configuration refusal exits `2`, which is never
-restarted; any other exit is restarted with backoff.
+restarted; any other exit is restarted with backoff. A deployment the host
+cannot serve yet (`evaluation_host_unavailable`: Docker down, or still
+starting after a reboot) is not a refusal: the intake waits for it before it
+listens (`waiting_for_host`), and the daemon retries it each period
+(`pass_unavailable`). Neither exits for it.
+
+`status` and `restore` see each process by its lock, however it was started
+(systemd units or `supervise`): the supervisor's `supervisor.lock`, the
+intake's serving lock and the daemon's heartbeat lock.
 
 The service tooling is `python -m scripts.dev.battery_validator_service`,
 run from the repository root:
 
 | Command | What it does |
 |---|---|
-| `preflight --config S` | Every check a start needs, all at once (§3). Exit 0 ready, 2 not. |
+| `preflight --config S [--wait-for-host SECONDS]` | Every check a start needs, all at once (§3). With `--wait-for-host`, re-checks every 5 s for up to SECONDS while the only refusal is a Docker that is not answering yet. Exit 0 ready, 2 not. |
 | `parity --config S` | The image and contract parity check alone (§3, `parity`). |
-| `status --config S` | The supervisor's children, the intake's own public answer read over its bound address, inbox and pool counts, the latest backup. Exit 0 healthy, 3 not. |
+| `status --config S` | The intake (its serving lock and its own public answer read over its bound address), the daemon (its lock and heartbeat), the supervisor's children if it runs, inbox and pool counts, the latest backup. Healthy only when every part is seen running. Exit 0 healthy, 3 not. |
 | `backup --config S` | Root, journal and state together, under the writer lock, with the intake's inbox and transport journal (§6). |
-| `restore --config S --from DIR` | Restore one backup into absent paths only (§6). |
+| `restore --config S --from DIR` | Restore one backup into absent paths only, all or nothing (§6). |
 | `supervise --config S` | Run both processes with restart-on-failure (§4.2). |
 | `units --config S --out DIR` | Write `systemd --user` units for both processes (§4.1). Writes files only. |
 
@@ -106,8 +114,8 @@ directory, outside every checkout.
    | `service` | `service_config_missing`, `_not_regular`, `_not_owner_only`, `_schema`, `_fields`, `service_directory_not_owner_only` | Fix the file or directory named. |
    | `intake` | `intake_config_*`, `intake_exposure_unrecorded`, `intake_exposure_needs_tls` | Fix the intake configuration (§5 for a public bind). |
    | `deployment_config`, `deployment` | `evaluation_*` (the deployment's own codes), `deployment_backend_direct` | The service serves through the isolated carrier only. |
-   | `exposure` | `intake_tls_cert_missing`, `intake_tls_key_missing`, `intake_tls_key_not_owner_only`, `intake_tls_unreadable`, `intake_exposure_needs_carrier` | Only for a non-loopback bind (§5). |
-   | `images` | `image_manifest_unreadable`, `image_not_eligible` (with the doctor's code), `torch_image_not_built_on_worker` | Load or rebuild the pinned image the manifest names; rerun the doctor. |
+   | `exposure` | `intake_tls_cert_missing`, `intake_tls_key_missing`, `intake_tls_key_not_regular`, `intake_tls_key_not_owner_only`, `intake_tls_unreadable`, `intake_exposure_needs_carrier` | Only for a non-loopback bind (§5). The key must be a regular owner-only file, not a symlink (§5, TLS). |
+   | `images` | `image_manifest_unreadable`, `image_not_eligible` (with the doctor's code), `torch_image_not_built_on_worker` | Load or rebuild the pinned image the manifest names; rerun the doctor. `worker.doctor.docker_unavailable` is Docker not answering: start it, or rerun with `--wait-for-host`. |
    | `upgraded` | `deployment_not_upgraded` (with the fields), `deployment_identities_not_carryable` | Run `python -m carbon.battery.operate upgrade --config $C` (OWNER-BATTERY-CARRYOVER-01), then preflight again. A changed rule, material or seed pin needs a new deployment. |
    | `parity` | `parity_reference_unnamed`, `parity_manifest_unreadable`, `parity_image_differs` (with the fields), `parity_contract_differs` | Stop. The validator must score with the images and contract miners practise against (§3.5). |
 
@@ -124,8 +132,9 @@ directory, outside every checkout.
    here: either the validator scores with the published practice image, or
    the validator's image is published for practice. Then rerun.
 6. **Start** (§4), then **verify**:
-   - `status --config S` shows `healthy: true` and
-     `intake.answer: ok` with a fresh `snapshot_age_s` (under 60 s);
+   - `status --config S` shows `healthy: true`, `intake.serving: true` and
+     `intake.answer: ok` with a fresh `snapshot_age_s` (under 60 s), and
+     `daemon.state: running` with `daemon.last_pass: ok`;
    - `curl -s http://127.0.0.1:8467/carbon/v1/battery/intake` returns the
      public facts: network, genesis, netuid 567, the battery Challenge,
      `receiver`, the snapshot, `qualification: false`, `reward: false`;
@@ -143,9 +152,15 @@ systemctl --user enable --now carbon-battery-intake.service carbon-battery-valid
 loginctl enable-linger "$USER"   # the owner runs this with sudo if required
 ```
 
-Each unit runs `preflight` before it starts, restarts on failure after 5 s,
-never restarts an exit 2 (a refused configuration), and gives up after 5
-restarts in 10 minutes. Logs: `journalctl --user -u carbon-battery-intake`.
+`units` also makes `<service dir>` owner-only, where the daemon keeps its
+heartbeat. Each unit runs `preflight --wait-for-host 300` before it starts
+(`TimeoutStartSec=360`), so a Docker still starting after a reboot is waited
+out; restarts on failure after 5 s; never restarts the main process's exit 2
+(a refused configuration); and gives up after 5 starts in 10 minutes.
+`RestartPreventExitStatus` applies to the main process only: a preflight that
+refuses its configuration is retried, read-only, until that start limit
+stops the unit (`systemctl --user status` shows it failed). Logs:
+`journalctl --user -u carbon-battery-intake`.
 
 ### 4.2 Without systemd (`supervise`)
 
@@ -159,12 +174,23 @@ python -m scripts.dev.battery_validator_service supervise --config S
 
 It holds the service's lock (a second one is refused,
 `supervisor_already_running`), refuses to start unless the preflight is
-ready (`preflight_not_ready`), and restarts a failed child after a backoff
-doubling from 1 s to 60 s. A child exiting 2 stops both (exit 2); more than
-5 restarts of one child in 10 minutes stops both (exit 1). SIGTERM or Ctrl-C
-stops both cleanly. Logs and state are under `<service dir>`:
+ready (`preflight_not_ready`; it waits up to 5 minutes while Docker is not
+answering yet), and restarts a failed child after a backoff doubling from
+1 s to 60 s. A child exiting 2 stops both (exit 2); more than 5 restarts of
+one child in 10 minutes stops both (exit 1). SIGTERM or Ctrl-C stops both,
+SIGKILL after 45 s. Logs and state are under `<service dir>`:
 `logs/supervisor.jsonl`, `logs/intake.log`, `logs/daemon.log`,
-`supervisor-state.json`.
+`supervisor-state.json`, `daemon-heartbeat.json`. The logs are not rotated:
+rotate them with `logrotate` (`copytruncate`) or restart the supervisor
+after moving them.
+
+**Stopping during a pass.** Both the supervisor and the units give a
+stopping process 45 s (`STOP_GRACE_S`, `TimeoutStopSec`). A pass still
+running then - a carrier rebuild may take up to the deployment's `seconds`,
+600 by default - is killed. Nothing is lost or judged: the run is recovered
+as infrastructure at the next start and retried, never scored against the
+miner. Stop between passes (the daemon logs one `pass` line each) when you
+can.
 
 ### 4.3 After a code or image update
 
@@ -192,12 +218,19 @@ by this runbook.
      state and service key (an item on file in OWNER-INTAKE-EXPOSURE-01).
    - *A dedicated always-on server*: restore the deployment there from a
      backup (§6), load the pinned images by digest, and run the same
-     service. It separates the listener from the workstation, and it is a
-     host Carbon does not yet operate.
+     service. A backup holds the deployment's state only: the deployment,
+     intake and service configurations and the deployment's `service_key`
+     (when it has one; signed outcomes need the same key) are carried
+     separately, owner-only, and placed before the restore. It separates
+     the listener from the workstation, and it is a host Carbon does not yet
+     operate.
 2. **DNS name** for the endpoint, pointing at that host's public address.
-3. **TLS certificate** for that name (for example ACME). The key is
-   `0600`, outside every checkout. The intake loads the certificate at start:
-   restart it after each renewal.
+3. **TLS certificate** for that name (for example ACME). The key the intake
+   reads must be a regular `0600` file outside every checkout: the preflight
+   refuses a symlink (`intake_tls_key_not_regular`), and ACME clients such as
+   certbot keep symlinks under `live/`. Copy the key and the full chain to
+   the configured paths (owner-only) after each renewal - a deploy hook can
+   do it - and restart the intake, which loads them at start.
 4. **Firewall**: inbound TCP to the intake's port only, from anywhere (or
    the ranges the owner chooses); nothing else on the host reachable.
 
@@ -211,8 +244,11 @@ by this runbook.
 2. `preflight --config S` until ready, then restart the intake.
 3. From another machine:
    `curl -s https://<dns name>:<port>/carbon/v1/battery/intake`.
-4. `status --config S`: the probe reads the listener over TLS and checks it
-   presents exactly the configured certificate.
+4. `status --config S`: the probe reads the listener over TLS, verifies it
+   against the configured certificate file, and checks the leaf it presents
+   is that file's first certificate, byte for byte
+   (`intake_certificate_differs` otherwise, for example a certificate the
+   intake has not reloaded since a renewal).
 5. **Publish** through a pull request that adds the endpoint to
    `scripts/dev/miner_launchpad/published_endpoints.json` (the Launchpad's
    published-endpoints file), in that file's own schema: the battery
@@ -238,20 +274,28 @@ The commitment reader (OD-7(a)) is still missing; keep
 
 The first three are copied under the deployment's writer lock, so no
 admission, run, batch commitment or upgrade lands half inside the backup. It
-is written under a hidden name and renamed when complete. The work
-directory is not copied: a run whose staged output is missing after a
-restore is retried as infrastructure, never held against a miner. Keep
-backups owner-only and off the repository; a lost root cannot be replaced
-without a new journal.
+is written under a hidden name and renamed when complete; a backup that
+fails removes its hidden copy. The work directory is not copied: a run whose
+staged output is missing after a restore is retried as infrastructure, never
+held against a miner. Configurations, TLS material and the `service_key` are
+not in a backup (§5). Keep backups owner-only and off the repository; a lost
+root cannot be replaced without a new journal.
 
-**Restore** (`restore --config S --from <backup dir>`):
+**Restore** (`restore --config S --from <backup dir>`) is all or nothing:
 
-- refuses while the service runs (`restore_service_running`);
+- refuses while any part of the service runs, however it was started
+  (`restore_service_running`, naming `supervisor`, `intake` or `daemon`):
+  stop the units or the supervisor first;
 - verifies every file against the manifest first (`backup_corrupt`);
-- refuses if any destination exists (`restore_target_exists`). It never
-  overwrites a root, journal or state, live or not;
-- writes each file owner-only, then checks the deployment loads with the
-  backup's root commitment (`restore_root_differs`).
+- refuses if any destination, or a SQLite side file (`-wal`, `-shm`,
+  `-journal`) beside one, exists (`restore_target_exists`). It never
+  overwrites a root, journal or state, live or not. A `.restoring` file an
+  interrupted restore left is named too (`restore_leftover_exists`);
+- makes every destination directory owner-only before it writes a byte
+  (`service_directory_not_owner_only`), writes each file under a temporary
+  name and links it into place, then checks the deployment loads with the
+  backup's root commitment (`restore_root_differs`). If any step fails it
+  removes every file it wrote, so a rerun starts from the same state.
 
 Then `preflight`, then start. A submission a miner sent after the backup is
 unknown to the restored intake; the Launchpad resends the same frozen
@@ -269,12 +313,18 @@ submit, which is always the same submission:
 |---|---|
 | `QUEUED` | `evaluation_queued` |
 | `UNAVAILABLE` (the validator's side) | `intake_unreachable`, `snapshot_unavailable`, `rate`, `capacity`, `inbox_full`, `backend_not_served`, `commitment_reader_unavailable`, `evaluation_failed_infra`, `intake_answer_unrecognised` |
-| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission` |
+| `REFUSED` (the miner acts) | `hotkey_window_used`, `commitment_required`, `TRANSPORT_IDENTITY`, `AUTH_*`, `snapshot_unknown`, `intake_changed_since_submission`, `intake_signer_changed`, `intake_mismatch`, `signer_unavailable` |
 
 `intake_client.explain(code)` gives each code's plain explanation. A
 refusal at admission that is not a verdict (`intake.RECEIVED_AGAIN`) is
 received again when the same candidate is resent; a window refusal is resent
-only once the window has opened.
+only once the window has opened. A resend is sent only when the connected
+signer's hotkey names the epoch's own submission: after a signer change the
+campaign sends nothing (`intake_signer_changed`), never the candidate a
+second time under another hotkey. Every way the trip itself can fail - a
+signer that does not sign, a proxy's error page, a connection that breaks,
+an intake for another chain - is one of these codes, so the campaign keeps
+its frozen candidate instead of ending on an exception.
 
 ## 8. Not done here
 
