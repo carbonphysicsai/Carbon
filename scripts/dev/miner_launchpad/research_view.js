@@ -72,6 +72,94 @@
     if (["PAUSED", "PAUSE_REQUESTED", "INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(state)) return "pill-need";
     return "pill-done";
   }
+  // ---- Parts (LP-PROD-F). A campaign's page is a fixed set of parts, each
+  // redrawn only when what it shows changed and nothing holds it (app.js's
+  // live-region rules): a refresh never replaces the control under a
+  // person's hand, nor a part whose data did not move.
+  function part(parent, name, key, build, className = "rs-panel", tag = "section") {
+    let node = null;
+    for (const child of parent.children) if (child.dataset.part === name) { node = child; break; }
+    if (!node) { node = el(tag, undefined, className); node.dataset.part = name; parent.append(node); }
+    CC.rebuild(node, key, build);
+    return node;
+  }
+  function head(parent, title, eyebrow) {
+    const box = el("div", undefined, "rs-panel-head");
+    if (eyebrow) box.append(el("p", eyebrow, "eyebrow"));
+    box.append(el("h3", title));
+    parent.append(box);
+  }
+  // ---- Recovery (LP-PROD-F). A campaign in one of these states needs
+  // something done before it moves again; each says why, in a line, and its
+  // controls stay in reach wherever the campaign is shown. When the record
+  // carries the controller's own `recovery` (slice C's [{action,
+  // operation}], empty when nothing is needed), its actions are the ones
+  // offered; otherwise this page reads the state, and offers Reconcile.
+  const RECOVERY = {
+    PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Wait for the step to end; if it stays here, Reconcile settles what it holds.",
+    RECONCILIATION_REQUIRED: "Work may still be held after an interruption. Reconcile checks what is held and cleans it up; then Resume or Stop.",
+    INTERRUPTED: "The controller stopped mid-step. Reconcile settles what was held, then Resume continues the campaign.",
+  };
+  // The same states, said as the controller's own recovery actions say them.
+  const RECOVERY_OFFERED = {
+    QUEUED: "Admitted, and nothing is carrying it out. Resume dispatches it again from its record; Stop ends it.",
+    PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Resume cancels the pause; Stop ends the campaign.",
+    INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Stop ends it.",
+    RECONCILIATION_REQUIRED: RECOVERY.RECONCILIATION_REQUIRED,
+  };
+  const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile"};
+  // A fresh launch is QUEUED, with no frozen record, until its run thread
+  // creates its ledger: "never started" is said only once it has stayed so
+  // this long, as this page has seen it.
+  const UNSTARTED_GRACE_MS = 30000;
+  const unstartedSince = new Map();
+  function offeredRecovery(run, doc) {
+    const list = Array.isArray(doc?.recovery) ? doc.recovery : Array.isArray(run?.recovery) ? run.recovery : null;
+    if (!list) return null;
+    return [...new Set(list.filter(item => item && Object.hasOwn(RECOVERY_ACTIONS, item.action)).map(item => item.action))];
+  }
+  // {text, actions} for a campaign that needs recovering, or null.
+  function recovery(state, run, doc) {
+    const actions = offeredRecovery(run, doc);
+    if (actions) {
+      // PAUSED is the miner's own choice: its Resume is the header's.
+      if (!actions.length || state === "PAUSED") return null;
+      return {text: RECOVERY_OFFERED[state] || "To move again it needs: " + actions.map(a => RECOVERY_ACTIONS[a]).join(" or ") + ".", actions};
+    }
+    // Recorded, but its campaign was never created here: no frozen manifest,
+    // so nothing ran (the controller stopped before it started).
+    const id = run?.id || doc?.campaign?.id;
+    if (state === "QUEUED" && run && !run.runtime_revision && !(doc && doc.campaign.runtime_revision)) {
+      if (!unstartedSince.has(id)) unstartedSince.set(id, Date.now());
+      if (Date.now() - unstartedSince.get(id) < UNSTARTED_GRACE_MS) return null;
+      return {text: "Recorded, but never started here: the campaign has no frozen record yet. Reconcile settles it; if it stays queued, Stop it and launch again.", actions: ["reconcile"]};
+    }
+    unstartedSince.delete(id);
+    return RECOVERY[state] ? {text: RECOVERY[state], actions: ["reconcile"]} : null;
+  }
+  // The recovery line; nothing for a healthy state. With the campaign view,
+  // its controls are the header's (and the Live tab's); without it, the line
+  // carries its own, so recovery never needs the view.
+  function recoveryNote(parent, state, run, doc) {
+    const needs = recovery(state, run, doc);
+    if (!needs) return null;
+    const box = el("div", undefined, "rs-recovery");
+    box.setAttribute("role", "status");
+    box.append(el("p", "Needs attention · " + words(state).toLowerCase(), "eyebrow"), el("p", needs.text, "status-line"));
+    if (!doc) {
+      needs.actions.forEach((action, index) => {
+        const b = button(RECOVERY_ACTIONS[action], action === "stop" ? "rs-stop" : index === 0 ? "primary" : "", () => CC.researchAction(run.id, action));
+        b.dataset.action = action;
+        b.disabled = !CC.state().connected || CC.state().busy || TERMINAL.includes(state);
+        box.append(b);
+      });
+    }
+    parent.append(box);
+    return box;
+  }
+  // The campaign's last refusal (slice C's `last_refusal`), from the view
+  // or the campaign record: what was refused, when, and what to do.
+  function refusalOf(doc, run) { return CC.lastRefusal(doc, run); }
 
   // ---- Theme: light by default, the system's dark when it asks, a toggle. ----
   const themeKey = "carbon.control-center.theme.v1";
@@ -150,7 +238,8 @@
       // A choice the view no longer knows is dropped, then read again.
       if (/unknown_practice_case|unknown_experiment/.test(error.message)) { entry.practiceCase = null; entry.experiment = null; entry.at = 0; }
     } finally { entry.loading = false; entry.at = Date.now(); }
-    render();
+    // A read the page did not ask for: drawn under the live-region rules.
+    if (force) render(); else CC.quietly(render);
   }
   // What a view shows, without the clock: a panel rebuilds only on change.
   function docKey(doc) {
@@ -159,10 +248,21 @@
     return JSON.stringify(rest) + JSON.stringify({...tiles, now_unix: 0, elapsed_seconds: 0});
   }
 
+  // Tab names this page wrote before the research surface (and a few
+  // natural ones) still open the tab they meant (LP-PROD-F).
+  const ALIASES = {overview: "live", metrics: "experiments", journal: "reasoning", notes: "reasoning", messages: "conversation", outcomes: "submission"};
   function route() {
-    const parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
-    const tab = TABS.some(([name]) => name === parts[2]) ? parts[2] : "live";
-    return {view: parts[0] || "overview", id: parts[1] || "", tab};
+    const parts = location.hash.replace(/^#\/?/, "").split("/").map(part => { try { return decodeURIComponent(part); } catch (_) { return part; } });
+    const named = ALIASES[parts[2]] || parts[2];
+    const tab = TABS.some(([name]) => name === named) ? named : "live";
+    return {view: parts[0] || "overview", id: parts[1] || "", tab, written: parts[2] || ""};
+  }
+  // A campaign link names its tab as the research surface does: an alias or
+  // a missing tab is rewritten in place, so the address is the one shown.
+  function canonical(r) {
+    if (r.view !== "campaigns" || !r.id || r.written === r.tab) return;
+    const hash = "#campaigns/" + encodeURIComponent(r.id) + "/" + r.tab;
+    try { history.replaceState(null, "", hash); } catch (_) { /* the tab still opens */ }
   }
 
   // ---- Shared pieces of the active campaign. ----
@@ -181,19 +281,42 @@
     title.append(meta);
     head.append(title);
     const actions = el("div", undefined, "rs-actions");
+    // Compact (the Overview's card): Pause and Stop, and what recovery the
+    // state needs, so recovery is never only behind another page.
+    const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
     for (const control of doc.controls) {
-      if (compact && control.action !== "stop" && control.action !== "pause") continue;
-      const b = button(control.label, control.action === "stop" ? "rs-stop" : "", () => CC.researchAction(doc.campaign.id, control.action));
-      b.disabled = !control.available || !CC.state().connected;
+      if (compact && control.action !== "stop" && control.action !== "pause" && !needs.includes(control.action)) continue;
+      const b = button(control.label, control.action === "stop" ? "rs-stop" : needs.includes(control.action) ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
+      b.disabled = !control.available || !CC.state().connected || CC.state().busy;
       if (control.reason) b.title = control.reason;
       b.dataset.action = control.action;
       actions.append(b);
     }
-    if (compact) actions.append(anchor("Open campaign", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/live", "button primary"));
+    if (compact) actions.append(anchor("Open campaign", CC.campaignHref(doc.campaign.id), "button primary"));
     else actions.append(button("Export", "", () => CC.researchAction(doc.campaign.id, "export")));
     head.append(actions);
     parent.append(head);
     if (doc.fixture) para(parent, "Synthetic fixture data, for seeing the surface. Not a campaign, not evidence, never LIVE.", "rs-fixture");
+  }
+  // What the header shows, as one key (no clock).
+  function headerKey(doc, run, compact) {
+    const s = CC.state();
+    return JSON.stringify([compact, doc.campaign, doc.labels, doc.fixture, doc.controls, doc.tiles.started_unix, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]);
+  }
+  function tilesKey(doc) { return JSON.stringify({...doc.tiles, now_unix: 0, elapsed_seconds: doc.tiles.elapsed_seconds === null ? null : 0}); }
+  // A refusal and a recovery line, above the campaign's own parts.
+  function attention(parent, doc, run, compact) {
+    const refusal = refusalOf(doc, run);
+    if (refusal) {
+      const box = CC.refusalNote(parent, refusal, compact);
+      if (box) box.classList.add("rs-refusal");
+    }
+    recoveryNote(parent, doc ? doc.campaign.state : run.state, run, doc);
+  }
+  function attentionKey(doc, run) {
+    const s = CC.state();
+    const state = doc ? doc.campaign.state : run.state;
+    return JSON.stringify([refusalOf(doc, run), state, recovery(state, run, doc), Boolean(doc), s.connected, s.busy]);
   }
   function tiles(parent, doc) {
     const t = doc.tiles;
@@ -242,57 +365,83 @@
 
   // ---- Tabs. ----
   function tabLive(panel, doc, run) {
-    const grid = el("div", undefined, "rs-live");
-    const now = section(grid, "Now", "Current work");
-    if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
-    else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
-    // The research task frozen at launch, exactly, as text (C-MLP-02-D6).
-    if (doc.research_task) {
-      now.append(el("p", "Frozen research task: " + doc.research_task.text, "frozen-guidance"));
-      para(now, "Task identity: " + doc.research_task.digest, "hint");
-    }
-    if (doc.hypothesis) {
-      const quote = el("blockquote", undefined, "rs-quote");
-      quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
-      now.append(quote);
-    }
-    const quick = el("div", undefined, "rs-quick");
-    for (const control of doc.controls.filter(c => c.action !== "reconcile")) {
-      const b = button(control.label, "", () => CC.researchAction(doc.campaign.id, control.action));
-      b.disabled = !control.available || !CC.state().connected; if (control.reason) b.title = control.reason;
-      quick.append(b);
-    }
-    quick.append(button("Export", "", () => CC.researchAction(doc.campaign.id, "export")));
-    quick.append(anchor("Contract", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/contract", "button"));
-    now.append(quick);
-    const trend = section(grid, "Practice runs", "Live metrics");
+    // The grid's parts are redrawn one by one: a new event redraws Recent
+    // events, not the message being written to the agent below it.
+    const grid = part(panel, "live", "grid", () => {}, "rs-live", "div");
+    const s = CC.state();
+    const tab = name => CC.campaignHref(doc.campaign.id, name);
+    part(grid, "now", JSON.stringify([doc.current_operation, doc.campaign.state, doc.research_task, doc.hypothesis, doc.controls, s.connected, s.busy, recovery(doc.campaign.state, run, doc)]), now => {
+      head(now, "Now", "Current work");
+      if (doc.current_operation) para(now, "Running: " + words(doc.current_operation.phase) + " · " + doc.current_operation.id, "status-line");
+      else para(now, "Nothing is running. State: " + words(doc.campaign.state).toLowerCase() + ".", "status-line");
+      // The research task frozen at launch, exactly, as text (C-MLP-02-D6).
+      if (doc.research_task) {
+        now.append(el("p", "Frozen research task: " + doc.research_task.text, "frozen-guidance"));
+        para(now, "Task identity: " + doc.research_task.digest, "hint");
+      }
+      if (doc.hypothesis) {
+        const quote = el("blockquote", undefined, "rs-quote");
+        quote.append(el("p", doc.hypothesis), el("cite", "Latest hypothesis · recorded text, shown as text"));
+        now.append(quote);
+      }
+      // What recovery the state needs is here, first among the controls
+      // (LP-PROD-F); why is said once, above the campaign's header.
+      // Reconcile is offered here only then.
+      const needs = recovery(doc.campaign.state, run, doc)?.actions || [];
+      const quick = el("div", undefined, "rs-quick");
+      for (const control of doc.controls.filter(c => c.action !== "reconcile" || needs.includes("reconcile"))) {
+        const b = button(control.label, needs.includes(control.action) && control.action !== "stop" ? "primary" : "", () => CC.researchAction(doc.campaign.id, control.action));
+        b.dataset.action = control.action;
+        b.disabled = !control.available || !s.connected || s.busy; if (control.reason) b.title = control.reason;
+        quick.append(b);
+      }
+      quick.append(button("Export", "", () => CC.researchAction(doc.campaign.id, "export")));
+      quick.append(anchor("Contract", tab("contract"), "button"));
+      now.append(quick);
+    });
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
-    if (byId.trend_score) chart(trend, byId.trend_score); else para(trend, "No practice run yet. Each completed run adds a point.", "empty-state");
-    if (byId.trend_components) chart(trend, byId.trend_components);
-    const compare = section(grid, "This run against the previous", "Experiment output");
-    if (byId.components) chart(compare, byId.components);
-    metricsTable(compare, doc);
-    const curve = section(grid, "Learning curve", "Training");
-    if (byId.learning_curve) chart(curve, byId.learning_curve);
-    else para(curve, "Not recorded. " + (doc.learning_curve.basis || ""), "empty-state");
-    const cases = section(grid, "A public practice case", "Predicted against reference");
-    cases.classList.add("rs-wide");
-    perCase(cases, doc);
-    const recent = section(grid, "Recent events", "Logs");
+    part(grid, "trend", JSON.stringify([byId.trend_score || null, byId.trend_components || null]), trend => {
+      head(trend, "Practice runs", "Live metrics");
+      if (byId.trend_score) chart(trend, byId.trend_score); else para(trend, "No practice run yet. Each completed run adds a point.", "empty-state");
+      if (byId.trend_components) chart(trend, byId.trend_components);
+    });
+    part(grid, "compare", JSON.stringify([byId.components || null, doc.comparison]), compare => {
+      head(compare, "This run against the previous", "Experiment output");
+      if (byId.components) chart(compare, byId.components);
+      metricsTable(compare, doc);
+    });
+    part(grid, "curve", JSON.stringify([byId.learning_curve || null, doc.learning_curve]), curve => {
+      head(curve, "Learning curve", "Training");
+      if (byId.learning_curve) chart(curve, byId.learning_curve);
+      else para(curve, "Not recorded. " + (doc.learning_curve.basis || ""), "empty-state");
+    });
+    part(grid, "cases", JSON.stringify(doc.per_case), cases => {
+      head(cases, "A public practice case", "Predicted against reference");
+      perCase(cases, doc);
+    }, "rs-panel rs-wide");
     const ops = doc.events.operations.slice(-8).reverse();
-    if (!ops.length) para(recent, "No operation recorded yet.", "hint");
-    const list = el("ol", undefined, "events");
-    for (const op of ops) { const li = el("li"); li.append(el("span", words(op.phase)), el("span", words(op.state).toLowerCase(), "hint")); list.append(li); }
-    recent.append(list);
-    const thoughts = section(grid, "Agent reasoning", "Journal");
-    feed(thoughts, doc, 5);
-    thoughts.append(anchor("All reasoning and notes", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/reasoning"));
-    const talk = section(grid, "Talk to your agent", "Conversation");
-    talk.classList.add("rs-wide");
-    thread(talk, doc, 2);
-    composer(talk, doc, true);
-    talk.append(anchor("The whole conversation", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/conversation"));
-    panel.append(grid);
+    part(grid, "recent", JSON.stringify(ops), recent => {
+      head(recent, "Recent events", "Logs");
+      if (!ops.length) para(recent, "No operation recorded yet.", "hint");
+      const list = el("ol", undefined, "events");
+      for (const op of ops) { const li = el("li"); li.append(el("span", words(op.phase)), el("span", words(op.state).toLowerCase(), "hint")); list.append(li); }
+      recent.append(list);
+    });
+    part(grid, "thoughts", JSON.stringify(doc.journal.entries.slice(0, 5)), thoughts => {
+      head(thoughts, "Agent reasoning", "Journal");
+      feed(thoughts, doc, 5);
+      thoughts.append(anchor("All reasoning and notes", tab("reasoning")));
+    });
+    // The thread and the composer are separate parts: a reply arriving
+    // never replaces the message being written.
+    part(grid, "talk", JSON.stringify((doc.conversation?.thread || []).slice(-2)), talk => {
+      head(talk, "Talk to your agent", "Conversation");
+      thread(talk, doc, 2);
+    }, "rs-panel rs-wide");
+    part(grid, "compose", JSON.stringify([doc.campaign.id, s.connected]), box => {
+      composer(box, doc, true);
+      box.append(anchor("The whole conversation", tab("conversation")));
+    }, "rs-panel rs-wide rs-compose-part");
   }
 
   // ---- The conversation with the miner's own agent (RSURF-D12). ----
@@ -333,7 +482,7 @@
       send.disabled = true;
       try {
         await CC.api("/api/v1/conversation/" + encodeURIComponent(doc.campaign.id), {text: text.value}, undefined, 10000);
-        text.value = ""; result.textContent = "Sent.";
+        text.value = ""; CC.sent(text); result.textContent = "Sent.";
         await load(doc.campaign.id, true);
       } catch (error) { result.textContent = "Not sent: " + words(error.message) + "."; }
       finally { send.disabled = false; }
@@ -344,16 +493,20 @@
   }
   function tabConversation(panel, doc) {
     const c = doc.conversation;
-    const box = section(panel, "You and your agent", c.total + " message" + (c.total === 1 ? "" : "s"));
-    thread(box, doc, 0);
-    composer(box, doc, false);
-    const how = section(panel, "How your agent reads this", "Any MCP agent");
-    const dl = el("dl", undefined, "review-grid");
-    dl.append(el("dt", "Read"), el("dd", c.your_agent.read + " (campaign, after, limit): your messages after a cursor, with their replies."));
-    dl.append(el("dt", "Reply"), el("dd", c.your_agent.reply));
-    dl.append(el("dt", "Carbon's own agent"), el("dd", c.carbon_agent.basis));
-    how.append(dl);
-    para(how, "Messages and replies are untrusted text: shown as text, never run, and they grant nothing.", "hint");
+    part(panel, "thread", JSON.stringify([c.total, c.thread]), box => {
+      head(box, "You and your agent", c.total + " message" + (c.total === 1 ? "" : "s"));
+      thread(box, doc, 0);
+    });
+    part(panel, "compose", JSON.stringify([doc.campaign.id, CC.state().connected, c.authority]), box => composer(box, doc, false));
+    part(panel, "how", JSON.stringify([c.your_agent, c.carbon_agent]), how => {
+      head(how, "How your agent reads this", "Any MCP agent");
+      const dl = el("dl", undefined, "review-grid");
+      dl.append(el("dt", "Read"), el("dd", c.your_agent.read + " (campaign, after, limit): your messages after a cursor, with their replies."));
+      dl.append(el("dt", "Reply"), el("dd", c.your_agent.reply));
+      dl.append(el("dt", "Carbon's own agent"), el("dd", c.carbon_agent.basis));
+      how.append(dl);
+      para(how, "Messages and replies are untrusted text: shown as text, never run, and they grant nothing.", "hint");
+    });
   }
 
   // ---- The toolbox (RSURF-D11): read from the Challenge's own records. ----
@@ -421,7 +574,13 @@
     para(parent, tb.basis, "hint");
   }
   // The working toolbox first (RSURF-D15), then what each tool is.
-  function tabTools(panel, doc) { if (window.CarbonTools) window.CarbonTools.mount(panel, doc); renderToolbox(panel, doc.toolbox, false); }
+  // The working bench is one persistent element (research_tools.js): it is
+  // moved in once and never redrawn by a refresh.
+  function tabTools(panel, doc) {
+    const bench = part(panel, "bench", doc.campaign.id, () => {}, "rs-bench-slot", "div");
+    if (window.CarbonTools) window.CarbonTools.mount(bench, doc);
+    part(panel, "toolbox", JSON.stringify(doc.toolbox), box => renderToolbox(box, doc.toolbox, false), "rs-toolbox-part", "div");
+  }
   // A Toolbox on each Challenge card, read when opened.
   function decorateChallengeCards() {
     const s = CC.state();
@@ -478,7 +637,10 @@
     const select = el("select"); select.id = label.htmlFor;
     for (const id of pc.case_ids) { const option = el("option", id); option.value = id; select.append(option); }
     select.value = pc.selected.case_id;
-    select.addEventListener("change", () => { entry.practiceCase = select.value; load(doc.campaign.id, true); });
+    // A chosen case redraws its part: the choice is made, so the select lets
+    // go of it, and the new select takes focus back once drawn.
+    select.addEventListener("change", () => { entry.practiceCase = select.value; entry.refocus = true; CC.sent(select); select.blur(); load(doc.campaign.id, true); });
+    if (entry.refocus) { entry.refocus = false; setTimeout(() => select.focus(), 0); }
     pick.append(label, select);
     parent.append(pick);
     const inputs = Object.entries(pc.selected.inputs).map(([k, v]) => k + " " + fmt(v)).join(" · ");
@@ -503,18 +665,31 @@
     }
     parent.append(list);
   }
+  // What a journey form (practice, or freeze and submit) is drawn from: it is
+  // redrawn when one of these moves, never on a clock. Typed fields are
+  // drafts, restored when it is.
+  function journeyKey(run, which) {
+    const s = CC.state();
+    const status = CC.watchStatus(run);
+    // A request held under its key (its answer lost) shows with Discard.
+    const held = CC.heldOperation(run.id, which === "practice" ? ["practice"] : ["freeze_candidate", "submit"]);
+    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held]);
+  }
   function tabExperiments(panel, doc, run) {
-    if (run && run.selects === "miner" && CC.renderJourneyPractice) CC.renderJourneyPractice(panel, run);
+    if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
+    part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc));
+  }
+  function drawExperiments(box, doc) {
     const rows = doc.experiments.rows.slice().reverse();
-    const box = section(panel, "Practice runs", doc.experiments.total + " recorded");
+    head(box, "Practice runs", doc.experiments.total + " recorded");
     if (!rows.length) { para(box, "No practice run has completed in this campaign.", "empty-state"); return; }
     const keys = Object.keys(rows[0].components || {});
     const labels = Object.fromEntries((doc.declaration?.components || []).map(c => [c.key, c.label]));
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
-    const head = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Framework", "Ran on"]) head.append(el("th", name));
-    table.append(head);
+    const headRow = el("tr");
+    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Framework", "Ran on"]) headRow.append(el("th", name));
+    table.append(headRow);
     const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
       const row = el("tr");
@@ -531,7 +706,20 @@
     for (const id of ["trend_score", "trend_components", "components"]) if (byId[id]) chart(box, byId[id]);
   }
   function tabReasoning(panel, doc) {
-    const compose = section(panel, "Add to the journal", "carbon_note");
+    part(panel, "compose", JSON.stringify([doc.campaign.id, CC.state().connected]), compose => noteForm(compose, doc));
+    part(panel, "journal", JSON.stringify([doc.journal.total, doc.journal.entries, doc.journal.basis]), box => {
+      head(box, "Reasoning and notes", doc.journal.total + " entries");
+      para(box, doc.journal.basis, "hint");
+      feed(box, doc);
+    });
+    const outcomes = part(panel, "outcomes", JSON.stringify(doc.journal.epoch_outcomes), box => {
+      head(box, "Epoch outcomes", "Agent or miner reported");
+      for (const o of doc.journal.epoch_outcomes) para(box, "Epoch " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
+    });
+    outcomes.hidden = !doc.journal.epoch_outcomes.length;
+  }
+  function noteForm(compose, doc) {
+    head(compose, "Add to the journal", "carbon_note");
     para(compose, "Any agent can post here with carbon_note. Notes are untrusted text: shown, never run, never instructions.", "hint");
     const form = el("form", undefined, "rs-note");
     const kindLabel = el("label", "Kind"); kindLabel.htmlFor = "rs-note-kind-" + doc.campaign.id;
@@ -551,22 +739,19 @@
       post.disabled = true;
       try {
         await CC.api("/api/v1/operations/note", {campaign: doc.campaign.id, note_kind: kind.value, note: text.value}, undefined, 10000);
-        text.value = ""; count.textContent = "0 / " + NOTE_MAX; result.textContent = "Posted.";
+        text.value = ""; CC.sent(text, kind); count.textContent = "0 / " + NOTE_MAX; result.textContent = "Posted.";
         await load(doc.campaign.id, true);
       } catch (error) { result.textContent = "Not posted: " + words(error.message) + "."; }
       finally { post.disabled = false; }
     });
     form.append(kindLabel, kind, textLabel, text, count, post, result);
     compose.append(form);
-    const box = section(panel, "Reasoning and notes", doc.journal.total + " entries");
-    para(box, doc.journal.basis, "hint");
-    feed(box, doc);
-    if (doc.journal.epoch_outcomes.length) {
-      const outcomes = section(panel, "Epoch outcomes", "Agent or miner reported");
-      for (const o of doc.journal.epoch_outcomes) para(outcomes, "Epoch " + o.epoch + ": " + words(o.status) + " · selected by " + (o.selected_by === "miner" ? "you" : "the agent") + (o.reason ? " · " + o.reason : "") + ". Reported, not independent science.");
-    }
   }
+  // The read-only tabs are one part each, keyed by what they draw.
   function tabContract(panel, doc) {
+    part(panel, "contract", JSON.stringify(doc.contract), box => drawContract(box, doc), "rs-contract-part", "div");
+  }
+  function drawContract(panel, doc) {
     const c = doc.contract;
     if (!c || c.status === "UNAVAILABLE") { para(panel, "This Challenge's contract could not be read.", "empty-state"); return; }
     const top = section(panel, "What you may change", "Contract");
@@ -615,6 +800,9 @@
     limits.append(ld);
   }
   function tabArtifacts(panel, doc) {
+    part(panel, "artifacts", JSON.stringify([doc.candidates, doc.experiments.rows.map(r => [r.index, r.backbone, r.recipe || null])]), box => drawArtifacts(box, doc), "rs-artifacts-part", "div");
+  }
+  function drawArtifacts(panel, doc) {
     const box = section(panel, "Frozen candidates", "Artifacts");
     if (!doc.candidates.length) para(box, "No candidate frozen yet. Freeze a practiced recipe under Submission.", "empty-state");
     for (const c of doc.candidates) {
@@ -632,8 +820,16 @@
     para(panel, "Trained weights stay on your machine. Export gives the campaign's full public record as JSON.", "hint");
   }
   function tabSubmission(panel, doc, run) {
-    if (run && run.selects === "miner" && CC.renderJourneySubmission) CC.renderJourneySubmission(panel, run);
-    else if (doc.campaign.selects === "agent") para(panel, "Carbon's agent freezes and submits in this campaign.", "hint");
+    // The journey's freeze and submit form, then the outcomes: two parts, so
+    // an outcome arriving never redraws the form (or a reason being typed).
+    const journey = part(panel, "journey", run && run.selects === "miner" ? journeyKey(run, "submission") : JSON.stringify(doc.campaign.selects), box => {
+      if (run && run.selects === "miner" && CC.renderJourneySubmission) CC.renderJourneySubmission(box, run);
+      else if (doc.campaign.selects === "agent") para(box, "Carbon's agent freezes and submits in this campaign.", "hint");
+    }, "rs-journey-part", "div");
+    journey.hidden = !journey.children.length;
+    part(panel, "outcomes", JSON.stringify(doc.outcomes), box => drawOutcomes(box, doc), "rs-outcomes-part", "div");
+  }
+  function drawOutcomes(panel, doc) {
     const box = section(panel, "DEVELOPMENT outcomes", "Validator");
     if (!doc.outcomes.length) para(box, "No DEVELOPMENT outcome yet.", "empty-state");
     for (const o of doc.outcomes) {
@@ -653,6 +849,9 @@
     para(box, "DEVELOPMENT only: no qualification, reward, rank or chain write.", "hint");
   }
   function tabLogs(panel, doc, run) {
+    part(panel, "logs", JSON.stringify([doc.events, run?.usage || null]), box => drawLogs(box, doc, run), "rs-logs-part", "div");
+  }
+  function drawLogs(panel, doc, run) {
     const box = section(panel, "Operations", doc.events.total + " recorded");
     const list = el("ol", undefined, "events");
     for (const op of doc.events.operations.slice().reverse()) { const li = el("li"); li.append(el("span", words(op.phase)), el("span", words(op.state).toLowerCase(), "hint"), el("code", op.id)); list.append(li); }
@@ -662,19 +861,14 @@
     const usage = run && run.usage;
     const res = section(panel, "Resources", "Your ledger");
     if (!usage) { para(res, "Appears once the campaign ledger exists.", "hint"); return; }
-    const wrap = el("div", undefined, "table-wrap"); const table = el("table", undefined, "metrics-table");
-    const head = el("tr"); for (const n of ["Resource", "Your limit", "Reported", "Reserved", "Uncertain"]) head.append(el("th", n)); table.append(head);
-    const budget = usage.budget || {};
-    for (const name of Object.keys(usage.reported || {})) {
-      const cap = budget.ceilings ? budget.ceilings[name] : budget[name];
-      const row = el("tr");
-      row.append(el("td", words(name)), el("td", cap === undefined || cap === null ? "No limit" : String(cap)), el("td", String(usage.reported[name])), el("td", String(usage.reserved?.[name] ?? "")), el("td", String(usage.uncertain?.[name] ?? "")));
-      table.append(row);
-    }
-    wrap.append(table); res.append(wrap);
+    // Every column in the unit your limit is set in (LP-PROD-F).
+    CC.usageTable(res, usage);
     para(res, usage.cost_basis || "", "hint");
   }
   function tabSettings(panel, doc) {
+    part(panel, "settings", docKey(doc), box => drawSettings(box, doc), "rs-settings-part", "div");
+  }
+  function drawSettings(panel, doc) {
     const grid = el("dl", undefined, "review-grid");
     const row = (k, v) => grid.append(el("dt", k), el("dd", v === null || v === undefined ? "unavailable" : String(v)));
     row("Campaign", doc.campaign.id);
@@ -694,42 +888,79 @@
   }
 
   // ---- The campaign detail, drawn into app.js's container. ----
+  const TAB_DRAW = {live: tabLive, conversation: tabConversation, experiments: tabExperiments, reasoning: tabReasoning, tools: tabTools, contract: tabContract, artifacts: tabArtifacts, submission: tabSubmission, logs: tabLogs, settings: tabSettings};
+  // The campaign page is a fixed frame of parts, made once per campaign:
+  // back, notice, attention (a refusal and the recovery its state needs),
+  // header, tiles, stages, tabs and the tab's own parts (LP-PROD-F). Each is
+  // redrawn alone when what it shows changed and nothing holds it.
   function detail(container, run) {
     const r = route();
+    canonical(r);
     const entry = viewState(run.id);
     load(run.id);
-    const active = document.activeElement;
-    if (active && container.contains(active) && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) && container.dataset.run === run.id) { updateClock(container, entry.doc); return; }
-    const key = run.id + "|" + r.tab + "|" + docKey(entry.doc) + "|" + (entry.error || "") + "|" + CC.state().connected + "|" + JSON.stringify(run.journey || {}) + "|" + run.state;
-    if (container.dataset.key === key) { updateClock(container, entry.doc); return; }
-    const open = new Set([...container.querySelectorAll("details[open]")].map(node => node.dataset.key));
-    container.dataset.key = key; container.dataset.run = run.id;
-    container.replaceChildren(anchor("← All campaigns", "#campaigns", "rs-back"));
-    if (!entry.doc) {
-      para(container, entry.error ? "The campaign view could not be read: " + words(entry.error) + ". " + (CC.state().connected ? "It is read again shortly." : "Reconnect this browser.") : "Reading the campaign view…", entry.error ? "reason" : "hint");
-      return;
+    const s = CC.state();
+    if (container.dataset.frame !== run.id) {
+      container.replaceChildren();
+      container.dataset.frame = run.id; container.dataset.run = run.id; container.dataset.key = "";
+      container.append(anchor("← All campaigns", "#campaigns", "rs-back"));
     }
     const doc = entry.doc;
-    if (entry.error) para(container, "Showing the last view read; the newest read failed: " + words(entry.error) + ".", "reason");
-    header(container, doc, run, false);
-    tiles(container, doc);
-    stages(container, doc);
-    const nav = el("nav", undefined, "tabs"); nav.setAttribute("aria-label", "Campaign sections");
-    for (const [name, label] of TABS) {
-      const link = anchor(label, "#campaigns/" + encodeURIComponent(run.id) + "/" + name, "");
-      if (name === r.tab) link.setAttribute("aria-current", "page");
-      nav.append(link);
+    part(container, "notice", JSON.stringify([Boolean(doc), entry.error || null, s.connected]), box => {
+      if (!doc) para(box, entry.error ? "The campaign view could not be read: " + words(entry.error) + ". " + (s.connected ? "It is read again shortly." : "Reconnect this browser.") : "Reading the campaign view…", entry.error ? "reason" : "hint");
+      else if (entry.error) para(box, "Showing the last view read; the newest read failed: " + words(entry.error) + ".", "reason");
+    }, "rs-notice", "div");
+    // A refusal and a recovery line come first, and stay in reach even when
+    // the campaign view cannot be read: Reconcile is drawn from the campaign's
+    // own state then.
+    part(container, "attention", attentionKey(doc, run), box => attention(box, doc, run, false), "rs-attention", "div");
+    if (!doc) {
+      part(container, "fallback", JSON.stringify([run.id, run.state, s.connected, s.busy, recovery(run.state, run, null)]), box => fallbackControls(box, run), "rs-fallback", "div");
+      return;
     }
-    container.append(nav);
-    const panel = el("section", undefined, "tab-panel rs-tab"); panel.dataset.tab = r.tab;
-    ({live: tabLive, conversation: tabConversation, experiments: tabExperiments, reasoning: tabReasoning, tools: tabTools, contract: tabContract, artifacts: tabArtifacts, submission: tabSubmission, logs: tabLogs, settings: tabSettings})[r.tab](panel, doc, run);
-    container.append(panel);
-    [...container.querySelectorAll("details")].forEach((node, index) => { node.dataset.key = String(index); if (open.has(String(index))) node.open = true; });
+    part(container, "fallback", "", () => {}, "rs-fallback", "div");
+    part(container, "head", headerKey(doc, run, false), box => header(box, doc, run, false), "rs-head-part", "div");
+    part(container, "tiles", tilesKey(doc), box => tiles(box, doc), "rs-tiles-part", "div");
+    updateClock(container, doc);
+    part(container, "stages", JSON.stringify(doc.stages), box => stages(box, doc), "rs-stages-part", "div");
+    part(container, "nav", JSON.stringify([run.id, r.tab]), box => {
+      for (const [name, label] of TABS) {
+        const link = anchor(label, CC.campaignHref(run.id, name), "");
+        if (name === r.tab) link.setAttribute("aria-current", "page");
+        box.append(link);
+      }
+    }, "tabs", "nav").setAttribute("aria-label", "Campaign sections");
+    // A new tab is a new panel; within one tab, its parts redraw alone.
+    let panel = null;
+    for (const child of container.children) if (child.dataset.part === "panel") panel = child;
+    if (!panel || panel.dataset.tab !== r.tab) {
+      const fresh = el("section", undefined, "tab-panel rs-tab"); fresh.dataset.part = "panel"; fresh.dataset.tab = r.tab;
+      if (panel) panel.replaceWith(fresh); else container.append(fresh);
+      panel = fresh;
+    }
+    TAB_DRAW[r.tab](panel, doc, run);
+  }
+  // When the campaign view cannot be read, its controls still can be: the
+  // campaign's own state decides which are offered.
+  function fallbackControls(box, run) {
+    const s = CC.state();
+    const done = TERMINAL.includes(run.state);
+    const row = el("div", undefined, "rs-quick");
+    // What recovery the state needs is the recovery line's own.
+    const needs = recovery(run.state, run, null)?.actions || [];
+    for (const [action, label, offered] of [["pause", "Pause", !done && !["PAUSED", "PAUSE_REQUESTED"].includes(run.state)], ["resume", "Resume", ["PAUSED", "INTERRUPTED"].includes(run.state)], ["stop", "Stop", !done], ["reconcile", "Reconcile", !done], ["export", "Export", true]]) {
+      if (!offered || needs.includes(action)) continue;
+      const b = button(label, "", () => CC.researchAction(run.id, action));
+      b.dataset.action = action;
+      b.disabled = !s.connected || s.busy;
+      row.append(b);
+    }
+    para(box, "Campaign " + run.id + " · " + words(run.state).toLowerCase() + ". Its controls work without the view.", "hint");
+    box.append(row);
   }
   function updateClock(container, doc) {
     if (!doc) return;
     const node = container.querySelector('[data-tile="elapsed"]');
-    if (node && typeof doc.tiles.elapsed_seconds === "number") node.textContent = duration(doc.tiles.elapsed_seconds + Math.max(0, Math.round((Date.now() - viewState(doc.campaign.id).at) / 1000)));
+    if (node && typeof doc.tiles.elapsed_seconds === "number") CC.setText(node, duration(doc.tiles.elapsed_seconds + Math.max(0, Math.round((Date.now() - viewState(doc.campaign.id).at) / 1000))));
   }
 
   // ---- Launchpad: the configured setup, then launch. ----
@@ -737,16 +968,14 @@
     const target = $("launchpad-strip");
     if (!target) return;
     const s = CC.state();
-    if (!s.connected || !s.caps) { target.replaceChildren(el("p", "Connect this browser to see your setup.", "hint")); target.dataset.key = ""; return; }
+    if (!s.connected || !s.caps) { CC.rebuild(target, "disconnected", node => node.append(el("p", "Connect this browser to see your setup.", "hint"))); return; }
     const setup = s.setupState || {};
     const steps = setup.steps || {};
     const entry = CC.challengeEntry(s.wizard.challenge);
     const agent = CC.agentEntry(s.wizard.agentChoice);
     const choiceName = (step, id) => (setup.choices?.[step] || []).find(c => c.id === id)?.display_name || words(id);
-    const budget = s.composition.budget || {};
-    const parts = [];
-    if ("elapsed_seconds" in budget) parts.push(budget.elapsed_seconds + " s elapsed");
-    for (const [name, cap] of Object.entries(budget.ceilings || {})) parts.push(words(name) + " ≤ " + cap);
+    // The budget in the units it was set in: dollars, minutes, megabytes.
+    const parts = CC.budgetParts(s.composition.budget || {});
     const problem = CC.launchProblem();
     // Agent first, as setup is: who researches decides whether Inference
     // applies. Your own agent (own-agent) uses its own model and skips it,
@@ -764,9 +993,9 @@
       {id: "review", title: "Review", value: problem ? "Not ready" : "Ready", note: problem || "Every step can pass.", href: "#setup/review"},
     );
     const key = JSON.stringify([cards.map(c => [c.value, c.note]), problem, s.busy, s.pendingResearch ? 1 : 0]);
-    if (target.dataset.key === key) return;
-    target.dataset.key = key;
-    target.replaceChildren();
+    CC.rebuild(target, key, node => drawStrip(node, cards, problem, s));
+  }
+  function drawStrip(target, cards, problem, s) {
     const head = el("div", undefined, "panel-heading");
     head.append(el("h2", "Launch a new campaign"), el("span", "Agent first · your accounts", "eyebrow"));
     target.append(head);
@@ -785,34 +1014,46 @@
     });
     target.append(list);
     const actions = el("div", undefined, "rs-launch");
-    const launch = button(s.pendingResearch ? "Retry the same launch" : "Launch campaign", "primary go", () => CC.launch());
+    const launch = button(s.pendingResearch ? "Retry the launch with these choices" : "Launch campaign", "primary go", () => CC.launch());
     launch.id = "rs-launch";
     launch.disabled = Boolean(problem) || s.busy;
-    actions.append(launch, button("Save as template", "", () => CC.goWizard("limits")));
+    actions.append(launch);
+    // An unconfirmed launch can be let go of here too (LP-PROD-F).
+    if (s.pendingResearch) {
+      const discard = button("Discard the unconfirmed launch", "", () => CC.discardLaunch());
+      discard.id = "rs-launch-discard"; discard.disabled = s.busy;
+      actions.append(discard);
+    }
+    actions.append(button("Save as template", "", () => CC.goWizard("limits")));
     target.append(actions);
+    if (s.pendingResearch) target.append(el("p", "Your last launch was not confirmed. Retrying sends these choices under the same request key, so a launch already recorded is never started twice. If it was recorded, it is under My Campaigns.", "reason"));
     if (problem) target.append(el("p", problem, "reason"));
     target.append(el("p", "Launch is the same launch operation, with the same checks: your registration is read first, and a lost response is retried, never duplicated.", "hint"));
   }
+  // The Overview's active campaign: a heading and the same parts as its page
+  // (attention, header, tiles, stages), each redrawn alone.
   function activePanel() {
     const target = $("active-campaign");
     if (!target) return;
     const s = CC.state();
     const live = s.connected ? s.research.runs.filter(run => !TERMINAL.includes(run.state)) : [];
-    if (!live.length) { target.hidden = true; target.dataset.key = ""; return; }
+    if (!live.length) { target.hidden = true; target.dataset.frame = ""; return; }
     const run = live[0];
     load(run.id);
     const doc = viewState(run.id).doc;
     target.hidden = false;
-    const key = run.id + docKey(doc);
-    if (target.dataset.key === key) { updateClock(target, doc); return; }
-    target.dataset.key = key;
-    target.replaceChildren(el("h2", "Active campaign", "section-title"));
-    if (!doc) { target.append(el("p", "Reading the campaign view…", "hint")); return; }
-    const box = el("div", undefined, "panel rs-active");
-    header(box, doc, run, true);
-    tiles(box, doc);
-    stages(box, doc);
-    target.append(box);
+    if (target.dataset.frame !== run.id) {
+      target.replaceChildren(el("h2", "Active campaign", "section-title"));
+      target.dataset.frame = run.id;
+    }
+    const box = part(target, "active", run.id, () => {}, "panel rs-active", "div");
+    part(box, "reading", String(Boolean(doc)), node => { if (!doc) para(node, "Reading the campaign view…", "hint"); }, "rs-reading", "div");
+    part(box, "attention", attentionKey(doc, run), node => attention(node, doc, run, true), "rs-attention", "div");
+    if (!doc) return;
+    part(box, "head", headerKey(doc, run, true), node => header(node, doc, run, true), "rs-head-part", "div");
+    part(box, "tiles", tilesKey(doc), node => tiles(node, doc), "rs-tiles-part", "div");
+    updateClock(box, doc);
+    part(box, "stages", JSON.stringify(doc.stages), node => stages(node, doc), "rs-stages-part", "div");
   }
 
   function render() {
