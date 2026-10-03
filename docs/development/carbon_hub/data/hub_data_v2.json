@@ -2444,6 +2444,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "graphite-admission-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "battery-track-a-level0",
         "match_type": "exact",
         "path": ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md",
