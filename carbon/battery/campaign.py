@@ -740,16 +740,154 @@ async def evaluate_candidate(prepared, epoch, record):
     }
 
 
+#: How a frozen candidate's trip through a validator intake ends when it is
+#: not a verdict, by closed code (LP-PROD-G). None of these consumes the
+#: epoch: the candidate stays frozen, and submitting it again is the same
+#: submission (`daemon.submission_identity`: same hotkey, recipe and
+#: contract), never a second admission.
+#: - QUEUED: the validator holds the submission and has not finished.
+#: - UNAVAILABLE: the validator, or the way to it, could not serve. Not a
+#:   verdict and nothing for the miner to change; submit again later.
+#: - REFUSED: no evaluation happened, for a named reason the miner acts on
+#:   (wait for the next window, commit on chain, register, re-sign).
+#: Every other code the intake or its transport can answer is REFUSED; an
+#: answer outside them all is `intake_answer_unrecognised` (UNAVAILABLE).
+#: `intake_client.explain(code)` gives each one's plain explanation.
+INTAKE_QUEUED = frozenset({"evaluation_queued"})
+INTAKE_UNAVAILABLE = frozenset(
+    {
+        "intake_unreachable",
+        "intake_answer_unrecognised",
+        "evaluation_failed_infra",
+        "rate",
+        "capacity",
+        "inbox_full",
+        "snapshot_unavailable",
+        "receipt_block_missing",
+        "commitment_reader_unavailable",
+        "backend_not_served",
+        "TRANSPORT_CAPACITY",
+        "TRANSPORT_STORE",
+        "AUTH_UNAVAILABLE",
+    }
+)
+
+
+def intake_code(code):
+    """The closed code an intake refusal is reported under."""
+    from .intake_client import REFUSALS
+
+    return code if code in REFUSALS else "intake_answer_unrecognised"
+
+
+def intake_outcome(code):
+    """`QUEUED`, `UNAVAILABLE` or `REFUSED` for a closed intake code, so a
+    door can show a refused submit as waiting, the validator's state, or
+    the miner's to act on."""
+    code = intake_code(code)
+    if code in INTAKE_QUEUED:
+        return "QUEUED"
+    return "UNAVAILABLE" if code in INTAKE_UNAVAILABLE else "REFUSED"
+
+
+def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
+    """Send the epoch's frozen candidate again, so the intake receives it
+    again under the same submission id. A refusal for the hotkey's window is
+    answered here, sending nothing, until the intake's chain has reached the
+    window's first block."""
+    from . import intake_client
+    from . import remote_submission as rs
+
+    facts = io["read"](url)
+    next_block = (failure or {}).get("next_block")
+    block = (facts.get("snapshot") or {}).get("finalized_block")
+    if next_block is not None and type(block) is int and block < next_block:
+        raise rs.IntakeRefusal(
+            "hotkey_window_used",
+            intake_client.describe(200, {"state": "REFUSED", "failure": failure}),
+        )
+    body = intake_client.submission_message(facts, strategy, contract_digest)
+    status, answer = io["post"](url, body, rs._signed(signer, facts, body))
+    if status != 202 or "submission_id" not in answer:
+        raise rs.IntakeRefusal(
+            answer.get("refused", f"http_{status}"),
+            intake_client.describe(status, answer),
+        )
+    if answer["submission_id"] != submission_id:
+        # The same candidate always names the same submission; anything else
+        # is not this intake's protocol, and nothing more is sent.
+        raise rs.IntakeRefusal("intake_answer_unrecognised")
+
+
+def submit_through_intake(
+    url, signer, *, root, epoch, strategy, contract_digest, read=None, post=None
+):
+    """The epoch's frozen candidate through a validator intake, to a verdict.
+
+    `remote_submission.submit_and_wait` submits once per epoch (it records
+    the submission id) and polls. Two of its answers are not verdicts and are
+    settled here, at most once per call, by resending the same candidate:
+    - REFUSED at admission for a reason that is never a judgement of the
+      recipe (`intake.RECEIVED_AGAIN`), which the intake receives again;
+    - `not_found` for the epoch's recorded submission: the validator no longer
+      holds it (an inbox restored from an earlier backup).
+    A candidate recorded against another intake is refused
+    (`intake_changed_since_submission`): an epoch's submission belongs to the
+    validator that received it. Returns `(status, answer, submission_id)`;
+    raises `IntakeRefusal` with the intake's or the transport's code.
+    """
+    from . import intake_client
+    from . import remote_submission as rs
+    from .intake import RECEIVED_AGAIN
+
+    passed = {} if read is None else {"read": read, "post": post}
+    io = {
+        "read": read or intake_client.read_intake,
+        "post": post or intake_client.post,
+    }
+    record = rs._record_path(root, epoch)
+    recorded = json.loads(record.read_bytes()) if record.exists() else None
+    if recorded is not None and recorded.get("url") != url:
+        raise rs.IntakeRefusal("intake_changed_since_submission")
+
+    def wait():
+        return rs.submit_and_wait(
+            url,
+            signer,
+            root=root,
+            epoch=epoch,
+            strategy=strategy,
+            contract_digest=contract_digest,
+            **passed,
+        )
+
+    try:
+        status, answer, submission_id = wait()
+    except rs.IntakeRefusal as refused:
+        if refused.code != "not_found" or recorded is None:
+            raise
+        sid = recorded["submission_id"]
+        _resend(url, signer, sid, None, strategy, contract_digest, io)
+        return wait()
+    failure = answer.get("failure") or {}
+    if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
+        return status, answer, submission_id
+    _resend(url, signer, submission_id, failure, strategy, contract_digest, io)
+    return wait()
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
-    `remote_submission`. The epoch is consumed only by a verdict."""
+    `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
+    or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
+    else raises `OperationRefused` with a closed code (`intake_outcome`)."""
     from carbon.development_session.research_campaign import OperationRefused
 
-    from .remote_submission import IntakeRefusal, submit_and_wait
+    from .remote_submission import IntakeRefusal
 
     try:
         status, answer, submission_id = await asyncio.to_thread(
-            submit_and_wait,
+            submit_through_intake,
             url,
             prepared.sdk.connection.miner_key,
             root=prepared.ledger.root,
@@ -759,11 +897,18 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
             or prepared.manifest["contract_digest"],
         )
     except IntakeRefusal as refused:
-        raise OperationRefused(refused.code) from None
+        raise OperationRefused(intake_code(refused.code)) from None
     except OSError:
         raise OperationRefused("intake_unreachable") from None
-    if answer.get("state") == "FAILED_INFRA_EXHAUSTED":
+    state = answer.get("state")
+    if state == "REFUSED":
+        # Refused at admission and not received again: never a verdict.
+        failure = answer.get("failure") or {}
+        raise OperationRefused(intake_code(failure.get("code")))
+    if state == "FAILED_INFRA_EXHAUSTED":
         raise OperationRefused("evaluation_failed_infra")
+    if state not in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):
+        raise OperationRefused("intake_answer_unrecognised")
     from .intake_client import describe
 
     return {

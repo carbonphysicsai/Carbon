@@ -191,6 +191,161 @@ def test_no_verdict_consumes_no_epoch(tmp_path, monkeypatch, code):
         )
 
 
+# --- LP-PROD-G: queued, scored or refused, by closed code ---------------------------
+
+
+class Admission:
+    """An intake fixture whose admission refuses first, as the worker does."""
+
+    def __init__(self, refusals, *, block=100, then="SCORED"):
+        self.refusals = list(refusals)  # failure dicts, one per admission pass
+        self.block, self.then = block, then
+        self.sent, self.state = [], "RECEIVED"
+
+    def read(self, url):
+        return {**FACTS, "snapshot": {"id": "snap-1", "finalized_block": self.block}}
+
+    def post(self, url, body, headers):
+        tool = json.loads(body)["call"]["tool"]
+        self.sent.append(tool)
+        if tool == "battery_submit":
+            self.state = "RECEIVED"
+            return 202, {"submission_id": "sub-1", "state": "RECEIVED"}
+        if self.state == "RECEIVED":
+            if self.refusals:
+                self.state, self.failure = "REFUSED", self.refusals.pop(0)
+            else:
+                self.state = self.then
+        answer = {"submission_id": "sub-1", "state": self.state}
+        if self.state == "REFUSED":
+            answer["failure"] = self.failure
+        return 200, answer
+
+
+def through(intake, monkeypatch):
+    real = rs.submit_and_wait
+
+    def fixture(url, signer, **kwargs):
+        return real(
+            url,
+            signer,
+            **kwargs,
+            read=intake.read,
+            post=intake.post,
+            sleep=lambda _: None,
+        )
+
+    monkeypatch.setattr(rs, "submit_and_wait", fixture)
+    monkeypatch.setattr(
+        rs.intake_client, "read_intake", lambda url, **_: intake.read(url)
+    )
+    monkeypatch.setattr(rs.intake_client, "post", intake.post)
+
+
+def evaluate(tmp_path, record=None):
+    from carbon.battery import campaign
+
+    return asyncio.run(
+        campaign.evaluate_candidate(
+            prepared(tmp_path), 1, record or {"strategy": {"backbone": "knn"}}
+        )
+    )
+
+
+def test_a_refusal_at_admission_is_never_a_verdict(tmp_path, signed, monkeypatch):
+    """Before LP-PROD-G a submission the worker refused at admission came back
+    as the epoch's feedback, with state REFUSED: it consumed the epoch with no
+    evaluation. It is now an `OperationRefused` by its closed code, after one
+    resend of the same candidate (the same submission id)."""
+    from carbon.battery import campaign
+    from carbon.development_session.research_campaign import OperationRefused
+
+    intake = Admission(
+        [{"code": "commitment_required"}, {"code": "commitment_required"}]
+    )
+    through(intake, monkeypatch)
+    with pytest.raises(OperationRefused) as refused:
+        evaluate(tmp_path)
+    assert refused.value.code == "commitment_required"
+    assert campaign.intake_outcome(refused.value.code) == "REFUSED"
+    assert intake.sent.count("battery_submit") == 2  # the first send, one resend
+    # Once the miner has committed, asking again resends and gets the verdict.
+    intake.refusals = []
+    feedback = evaluate(tmp_path)
+    assert feedback["outcome"]["state"] == "SCORED"
+    assert feedback["via"]["submission_id"] == "sub-1"
+
+
+def test_a_window_refusal_waits_for_the_window_and_sends_nothing(
+    tmp_path, signed, monkeypatch
+):
+    from carbon.battery import campaign
+    from carbon.development_session.research_campaign import OperationRefused
+
+    window = {"code": "hotkey_window_used", "next_block": 360}
+    intake = Admission([window], block=100)
+    through(intake, monkeypatch)
+    with pytest.raises(OperationRefused) as refused:
+        evaluate(tmp_path)
+    assert refused.value.code == "hotkey_window_used"
+    assert intake.sent.count("battery_submit") == 1  # no resend before block 360
+    # The window opens: the same candidate is sent again and scored.
+    intake.block = 360
+    assert evaluate(tmp_path)["outcome"]["state"] == "SCORED"
+    assert intake.sent.count("battery_submit") == 2
+    assert campaign.intake_outcome("hotkey_window_used") == "REFUSED"
+
+
+def test_a_submission_the_intake_lost_is_sent_again(tmp_path, signed, monkeypatch):
+    """`not_found` for the epoch's own recorded submission: the validator no
+    longer holds it (an inbox restored from an earlier backup)."""
+    intake = Admission([])
+    through(intake, monkeypatch)
+    evaluate(tmp_path)
+    lost = {"n": 0}
+    real_post = intake.post
+
+    def forgetful(url, body, headers):
+        if json.loads(body)["call"]["tool"] == "battery_status" and lost["n"] == 0:
+            lost["n"] += 1
+            return 404, {"refused": "not_found"}
+        return real_post(url, body, headers)
+
+    intake.post = forgetful  # the fixture reads `intake.post` at each call
+    assert evaluate(tmp_path)["via"]["submission_id"] == "sub-1"
+    assert intake.sent.count("battery_submit") == 2
+
+
+@pytest.mark.parametrize(
+    ("code", "status"),
+    [
+        ("evaluation_queued", "QUEUED"),
+        ("backend_not_served", "UNAVAILABLE"),
+        ("intake_unreachable", "UNAVAILABLE"),
+        ("snapshot_unavailable", "UNAVAILABLE"),
+        ("TRANSPORT_IDENTITY", "REFUSED"),
+        ("AUTH_STALE", "REFUSED"),
+        ("http_500", "UNAVAILABLE"),
+    ],
+)
+def test_every_code_has_a_closed_status_and_an_explanation(code, status):
+    from carbon.battery import campaign, intake_client
+
+    assert campaign.intake_outcome(code) == status
+    closed = campaign.intake_code(code)
+    assert intake_client.explain(closed)
+    assert closed == (code if code != "http_500" else "intake_answer_unrecognised")
+
+
+def test_every_closed_code_is_explained_and_classified():
+    from carbon.battery import campaign, intake_client
+
+    for code in campaign.INTAKE_QUEUED | campaign.INTAKE_UNAVAILABLE:
+        assert intake_client.explain(code), code
+    statuses = {campaign.intake_outcome(code) for code in intake_client.REFUSALS}
+    assert statuses == {"QUEUED", "UNAVAILABLE", "REFUSED"}
+
+
 @pytest.mark.parametrize(
     "url,ok",
     [
