@@ -40,9 +40,9 @@ Local development implementation only; no scientific, security, network or produ
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/125eafa03e749809f3be9d48957dc4f852535e67/.agent/tickets/NET-2_authenticated_transport.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/125eafa03e749809f3be9d48957dc4f852535e67/.agent/evidence/wave_c/net-2.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/842429f4fe980b93c769f284f752a0b626185512/.agent/tickets/NET-2_authenticated_transport.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/842429f4fe980b93c769f284f752a0b626185512/.agent/evidence/wave_c/net-2.md)
 - [Transport contract](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/AUTHENTICATED_TRANSPORT.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/125eafa03e749809f3be9d48957dc4f852535e67/.agent/WAVE_C.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/842429f4fe980b93c769f284f752a0b626185512/.agent/WAVE_C.md)
 
 > Transport authenticates who supplied bytes; existing owners still decide admission, scoring and disclosure.
