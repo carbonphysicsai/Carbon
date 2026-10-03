@@ -307,9 +307,13 @@ def test_the_ladder_is_challenge_admission_section_3():
     section = text.split("## 3. Track A", 1)[1].split("### 3.1", 1)[0]
     rows = dict(re.findall(r"^\| (\d) \| (.+?) \|$", section, flags=re.MULTILINE))
     assert {int(k): v for k, v in rows.items()} == ladder.LEVELS
-    roadmap = (REPOSITORY / "Design_Specs/Challenge_Roadmap.md").read_text()
+    roadmap = " ".join(
+        (REPOSITORY / "Design_Specs/Challenge_Roadmap.md").read_text().split()
+    )
     for step in ladder.CLIMB_PROCEDURE:
-        assert step.split(",")[0].split(" (")[0] in roadmap.replace("\n", " ")
+        assert step.split(",")[0].split(" (")[0] in roadmap
+    for step in ladder.LAUNCH:
+        assert step.split(":")[0].split(",")[0].lower() in roadmap.lower()
 
 
 def test_battery_is_on_the_ladder_at_level_0_and_no_other_family_is_yet():
@@ -400,6 +404,7 @@ def test_any_challenge_climbs_one_level_at_a_time(tmp_path):
     climbed = {
         "challenge": token,
         "level": 1,
+        "chosen": None,
         "levels": [
             _level(token, 0, "TESTED", 0, "evidence.md"),
             _level(token, 1, "OPEN", 1),
@@ -421,7 +426,12 @@ def test_any_challenge_climbs_one_level_at_a_time(tmp_path):
 
 def test_a_level_is_reached_only_with_its_expansion_record_and_reconstruction(tmp_path):
     token = _challenge(tmp_path, records=1)
-    base = {"challenge": token, "level": 0, "levels": [_level(token, 0)]}
+    base = {
+        "challenge": token,
+        "level": 0,
+        "chosen": None,
+        "levels": [_level(token, 0)],
+    }
     ladder.validate(base, "synthetic", tmp_path)
     no_rebuild = dict(_level(token, 0), reconstruction="tests/missing.py")
     elsewhere = dict(_level(token, 0), expansion_record="docs/0000.json")
@@ -445,6 +455,7 @@ def test_a_level_above_0_starts_from_graphites_accepted_proposal(tmp_path, proto
     climbed = {
         "challenge": token,
         "level": 1,
+        "chosen": None,
         "levels": [
             _level(token, 0, "TESTED", 0, "evidence.md"),
             _level(token, 1, "OPEN", 1),
@@ -506,15 +517,58 @@ def test_test_iterate_needs_a_ladder_and_frozen_results_a_frozen_level(
         battery["evidence"], frozen="carbon/challenge_pipeline/protocol.json"
     )
     frozen_run = dict(flow, evidence=evidence, suite="suite-v1", rho=0.5)
-    with pytest.raises(PipelineError, match="FROZEN construction level"):
+    with pytest.raises(PipelineError, match="chosen construction level, FROZEN"):
         validate_record(frozen_run, locked, ids)
     level = dict(
         battery["construction"]["levels"][0],
         state="FROZEN",
         evidence="carbon/challenge_pipeline/protocol.json",
     )
-    construction = dict(battery["construction"], levels=[level])
+    construction = dict(battery["construction"], levels=[level], chosen=0)
     validate_record(dict(frozen_run, construction=construction), locked, ids)
+    # Ready for deployment needs the chosen level miners will get.
+    ready = dict(
+        flow,
+        stage="ready",
+        gates=dict(gated, track_a=dict(SIGNED, by="Ryan"), track_b=SIGNED),
+    )
+    with pytest.raises(PipelineError, match="chosen construction level miners get"):
+        validate_record(ready, locked, ids)
+
+
+def test_the_climb_is_internal_and_miners_get_the_chosen_level(tmp_path):
+    token = _challenge(tmp_path)
+    _file_proposal(tmp_path, _proposal(token))
+    tested = {
+        "challenge": token,
+        "level": 1,
+        "chosen": 0,
+        "levels": [
+            _level(token, 0, "FROZEN", 0, "evidence.md"),
+            _level(token, 1, "TESTED", 1, "evidence.md"),
+        ],
+    }
+    # The best level need not be the highest tested.
+    ladder.validate(tested, "synthetic", tmp_path)
+    for broken, message in (
+        (dict(tested, chosen=None), "only the chosen level is FROZEN"),
+        (dict(tested, chosen=1), "only the chosen level is FROZEN"),
+        (dict(tested, chosen=3), "TESTED or FROZEN level the climb reached"),
+        (
+            dict(
+                tested,
+                chosen=1,
+                levels=[
+                    _level(token, 0, "TESTED", 0, "evidence.md"),
+                    _level(token, 1, "OPEN", 1),
+                ],
+            ),
+            "TESTED or FROZEN level the climb reached",
+        ),
+    ):
+        with pytest.raises(ladder.LadderError, match=message):
+            ladder.validate(broken, "synthetic", tmp_path)
+    assert ladder.LAUNCH[0].startswith("Choose the Challenge's construction level")
 
 
 # --- lessons after every execution --------------------------------------------
@@ -602,7 +656,7 @@ def test_the_view_shows_the_ladder_and_the_lessons():
         "## Construction ladder" in text and "## Lessons and proposed revisions" in text
     )
     assert (
-        "| f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | OPEN | NOT_RUN"
+        "| f05 Battery electrothermal response | `battery-fastcharge-ageing-development-v1` | 0 | – | OPEN | NOT_RUN"
         in text
     )
     for step in ladder.CLIMB_PROCEDURE:

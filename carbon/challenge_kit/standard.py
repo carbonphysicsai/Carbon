@@ -59,7 +59,7 @@ PROVISIONS = {
     # after registration. Carbon facilitates; the miner's own accounts, keys
     # and machines provide these, and nothing is hosted by Carbon.
     "compute": (
-        "A GPU research path on the miner's own or rented hardware, set up "
+        "A GPU research path on hardware the miner runs themselves, set up "
         "from the Control Center after registration."
     ),
     "model": (
@@ -160,31 +160,30 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "(scripts/dev/torch_worker_image.sh) as the miner's worker image "
             "(OWNER-PYTORCH-BACKEND-01).",
         ),
-        "generate": Gap(
-            reason=(
-                "No battery challenge kit. The sandbox offers only the fixed "
-                "TRAIN v1 and 200 PRACTICE cases; nothing miner-facing runs the "
-                "pinned PyBaMM reference, so a miner cannot generate new "
-                "training or test data inside Carbon."
+        "generate": Provided(
+            (
+                "carbon.challenge_kit.battery:draw",
+                "carbon.challenge_kit.battery:label",
             ),
-            next_step=(
-                "Build carbon/challenge_kit/battery.py as a command on the "
-                "miner's own machine (OWNER-MINER-OWN-MACHINE-01): uniform "
-                "draws over the published input box from the miner's own seed "
-                "roots, labelled by the pinned PyBaMM reference in the pinned "
-                "truth image, with the Burgers kit's no-official-seed tests."
-            ),
+            "carbon/challenge_kit/battery.py, a command on the miner's own "
+            "machine (OWNER-MINER-OWN-MACHINE-01): uniform draws over the "
+            "published input box with the validator's own rule "
+            "(seeds.draw_inputs), from the miner's own seed roots and mock "
+            "seeding only, labelled by the pinned PyBaMM reference in the "
+            "pinned truth image through the validator's own no-network solve "
+            "run, with typed reference failures. Output has TRAIN v1's shape. "
+            "Not in the research sandbox yet; that is a later, separately "
+            "reviewed step.",
         ),
         "evaluate": Provided(
             ("carbon.battery.practice:score_practice",),
             "Exam gates on the 200 public PRACTICE cases. Scoring "
-            "miner-generated cases follows once `generate` is closed.",
+            "miner-generated cases (from the battery kit) is not yet wired.",
         ),
         "compute": Provided(
             (
                 "carbon.development_session.battery_gpu:gpu_scope",
                 "carbon.battery.research:BatteryPractice",
-                "carbon.compute.rented_runner:RentedRunner",
             ),
             "Setup (Set up your environment, Compute) offers this machine's "
             "CPU, every miner's default, or its own GPU: setup detects the GPU, "
@@ -194,11 +193,10 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "records the backend observed. GPU practice is for speed only; the "
             "validator rebuilds on its own pinned backend (C-MLP-03 slice 3). "
             "A real practice on a local GPU is the slice's acceptance and needs "
-            "a GPU host. A GPU rented on the miner's own RunPod or Lium "
-            "account runs the same practice (carbon.compute.rented_runner, "
-            "C-MLP-03 slice 4), and so does a Targon VM, reached over SSH with "
-            "the pinned worker run there by Docker (slice 4b); one real "
-            "practice on each is its acceptance and needs the miner's account.",
+            "a GPU host. Carbon rents no compute "
+            "(OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU route of slices "
+            "4 and 4b is retired, and a GPU machine the miner runs elsewhere "
+            "is connected over SSH once setup offers it.",
         ),
         "model": Provided(
             (

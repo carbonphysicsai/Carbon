@@ -16,7 +16,7 @@
   "on": "2026-10-02",
   "ref": "OWNER-CHALLENGE-ROADMAP-02"
  },
- "construction_ladder": "Design_Specs/Challenge_Admission.md §3 levels 0-5; every Challenge starts at Level 0 and climbs one level at a time by the climb procedure in carbon/challenge_pipeline/ladder.py (OWNER-CHALLENGE-ROADMAP-03)",
+ "construction_ladder": "Design_Specs/Challenge_Admission.md §3 levels 0-5; every Challenge starts at Level 0 and climbs one level at a time by the climb procedure in carbon/challenge_pipeline/ladder.py (OWNER-CHALLENGE-ROADMAP-03); the climb is internal testing on development-only contracts, the owners choose the best level, and the Challenge is frozen, locked and opened to miners at that level only",
  "lessons": "carbon/challenge_pipeline/lessons/: one entry after every execution; a proposed revision is adopted or declined by a named owner, never applied silently (OWNER-CHALLENGE-ROADMAP-03)",
  "lock": null,
  "phase_1": [
@@ -58,7 +58,7 @@
   },
   {
    "step": 5,
-   "work": "Freeze and run the final evidence: pinned suite, battery's sealed pool, no changes during the run.",
+   "work": "Choose battery's construction level, freeze and run the final evidence: the owners choose the best level step 4's internal testing supports; pinned suite, battery's sealed pool at that level, no changes during the run.",
    "output": "Frozen evidence record and the first leaderboard entry.",
    "reserved": null,
    "ticket": null,

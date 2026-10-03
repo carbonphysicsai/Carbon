@@ -3,11 +3,18 @@
   "note": "Reviewed repository files that replace one verified baseline path each in the published carbonwebsite bundle. production-baseline.manifest.json still describes live; integrate-static.mjs --site-replacements applies these and verifies them after staging.",
   "replacements": [
     {
-      "path": "workbench/index.html",
-      "source": "site/workbench/index.html",
-      "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
-      "decision": "OWNER-PILOT-DESIGNER-ROUTE-01 (2026-09-30); candidate ask-carbon-public-release-2026-09-30.1",
-      "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+      "path": "miners/index.html",
+      "source": "site/miners/index.html",
+      "sha256": "044edfef68bd7378b6036bcb6b5dda648123e389de997190457b0e2498481525",
+      "decision": "OWNER-WEBSITE-START-MINING-01 (2026-10-02); candidate ask-carbon-public-release-2026-10-02.1",
+      "reason": "The miner page hero button reads Start mining and goes to /start-mining/ (it was Start a development run, to #start). Every other byte is the v4 baseline page 88517c7c."
+    },
+    {
+      "path": "sitemap.xml",
+      "source": "site/sitemap.xml",
+      "sha256": "51fb9148a1e5df39742f6dc1fa114bb5452c5ee39c67b2b874d03f23bab7ecc2",
+      "decision": "OWNER-WEBSITE-START-MINING-01 (2026-10-02); candidate ask-carbon-public-release-2026-10-02.1",
+      "reason": "Lists https://carbonphysics.ai/start-mining/ after /miners/. Every other byte is the v4 baseline sitemap 18a8b163."
     }
   ]
 }

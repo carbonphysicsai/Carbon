@@ -56,6 +56,7 @@
  "construction": {
   "challenge": "battery-fastcharge-ageing-development-v1",
   "level": 0,
+  "chosen": null,
   "levels": [
    {
     "level": 0,

@@ -17500,6 +17500,27 @@ session builds it, and the phase 2 grant's account and expiry are reused.
    - Battery's Level 0 predates proposals and names none.
    - This adopts the lessons log's first proposed revision
      (`2026-10-02-level-proposal-step`), broadened by the owner to every level.
+8. **The climb is internal; miners get the chosen level** (owner, same day:
+   "This is all internal testing. We choose a best construction level. Then
+   lock and open challenge to miners!").
+   - Graphite climbs the ladder in internal testing.
+   - The owners choose each challenge's best construction level, which need
+     not be the highest tested.
+   - The challenge is frozen, locked and opened to miners at that level only.
+     Miners never see the internal levels.
+   - Each record's `construction.chosen` holds the choice. Only the chosen level
+     may be FROZEN, a frozen run is taken at it, and `ready`/`deployed` need it.
+   - The roadmap's climb procedure ends at clean rebuilds, followed by two
+     launch steps: choose, then freeze, lock and open.
+9. **Internal levels run on a development-only contract variant** (owner, same
+   day, choosing between that and "open to everyone first").
+   - The variant is held outside the miner-facing registry
+     (`capability_registry.CONTRACTS`) and is served only to Carbon's own
+     registered Graphite campaigns.
+   - The miner path never reads it.
+   - The chosen level's contract becomes the miner-facing contract only at
+     launch.
+   - The variant is built with battery's Level 1 work (GRAPHITE-ADMISSION-01).
 
 **Unchanged.**
 - Scientific, security and launch qualification stay human-reserved.
@@ -17650,3 +17671,384 @@ refuses with `intake_exposure_needs_tls`. Two reasons:
 - Engineering evidence is not a security audit. The record is the owner's
   acceptance; tests only hold the gate.
 - Scientific, reward, LIVE and chain authority are unchanged.
+
+## 2026-10-02 — CI-BATTERY-L0-01: battery Track A starts at Level 0 with a registered harness; GRAPHITE phase 4 drives it
+
+**Authority.** The owner, in session on 2026-10-02: "Start the
+construction-integrity attack tests for battery as long as no one else has.
+Communicate with all lanes". Working decision under delegated engineering
+authority. The lanes were notified in #41 (owner), #42 (SciML/technical lead)
+and #504 (GRAPHITE-01).
+
+1. **Claim.** No PR, issue or branch had started battery Track A. All eight
+   Level 0 checks were `NOT_RUN`.
+2. **Split.**
+   - This ticket builds the instrument (`carbon/battery/track_a.py`). Each
+     family has registered attacks, a vulnerable specimen showing the
+     detector can fire, and a valid control measuring wrongful rejection.
+   - GRAPHITE-01 phase 4 drives agent-generated attempts through the same
+     detectors and ledger, rather than building its own.
+3. **Level 0 only.** Recipes are declarative. Executable-code families are
+   `NOT_RUN` for this profile, never passed. No level is opened to collect
+   data.
+4. **Nothing reserved is chosen.** These stay HUMAN_INPUT:
+   - the attack budget;
+   - the study population;
+   - reconstruction tolerances;
+   - threat-model approval;
+   - the Track A lock reviewer.
+
+   No family state is ever an acceptance. Track A stays `IN_PROGRESS` at
+   most, and #477 is untouched.
+5. **Findings are emitted, never suppressed.**
+   - The divergence detector's conditions on the retained EV2 results (12)
+     and EV4 results (42) are retained with the run.
+   - They escalate under §3.3, and should be entered in the readiness record
+     when the v3 wiring (#477) lands.
+
+## 2026-10-02 — OWNER-WEBSITE-START-MINING-01: "Get started" becomes "Start mining", linked from the homepage and the miner page (candidate 2026-10-02.1; the exact bundle awaits the owner)
+
+**Owner, verbatim, in session on 2026-10-02:** ""get started" should be
+"start mining" and it should be linked on home page and on the miner pager."
+This is an instruction about content, given before the bundle existed. **It
+does not authorize deployment.** As with every Ask Carbon publication, that
+needs the owner's approval of the exact bundle, to be recorded as WEB-QA-12-D1.
+
+**Exact artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46` (106 files) |
+| `/start-mining/` (added) | `4adbf65e…`, from `website/ask-carbon/site/start-mining/index.html`, declared in `site-additions.json` |
+| `/miners/` | `044edfef…`, from `site/miners/index.html`: the hero button reads "Start mining" and goes to `/start-mining/` |
+| `/sitemap.xml` | `51fb9148…`, from `site/sitemap.xml`: lists `/start-mining/` |
+| Homepage | `5b842bf6…`: the reviewed source `99be1318…` plus `--homepage-edit start-mining-link-v1`, a "Start mining" link on the Miners card |
+| Unchanged | the other 102 paths, the Worker, the knowledge and the Pilot Designer `be64f8b9…` |
+| Rollback target | `carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4` (WEB-QA-11-D2) |
+
+**Measured.**
+- Manifest v4 was fetched from both hostnames at 2026-10-02T19:40Z and matched
+  100/100 on each.
+- Built against that baseline with no declaration, the integrator reproduces
+  the live bundle `86f51385…` exactly.
+- The candidate was certified with `--require-complete-bundle`.
+- Run against live before deployment, `tools/verify-publication.mjs` fails
+  exactly `/`, `/miners/`, `/start-mining/` (HTTP 404) and `/sitemap.xml` on
+  each hostname. Every other check, health included, is ok.
+
+**Engineering choices (delegated).**
+- **Manifest v4.** It folds the live `/workbench/` replacement into the
+  inventory, so `site-replacements.json` no longer lists it.
+  - The per-entry field `change_since_2026_09_22_baseline` becomes
+    `change_since_previous_manifest`.
+  - The `upload_archive` block now describes the deployed staged bundle,
+    which had no archive file.
+- **`--site-additions`.** It publishes a reviewed repository file at a path
+  live does not serve. It refuses:
+  - any path the manifest lists;
+  - the homepage and the Ask Carbon assets;
+  - a file already present in the supplied site.
+- **`--homepage-edit NAME`.** It applies a named, reviewed edit to the pinned
+  homepage source after its digest check, so the pin is unchanged and the
+  output stays deterministic. The marker must occur exactly once.
+- **The page uses the site's own header, footer and stylesheet.** It replaces
+  the unpublished standalone draft `website/get-started/index.html`
+  (C-MLP-04), which is removed.
+- **Compute, on the page: this machine's CPU or GPU only.**
+  - The owner decided the same day that Carbon does not create rented
+    machines. Miners rent and stop their own, and Carbon only connects to
+    them. That decision is recorded as OWNER-MINER-COMPUTE-LINK-ONLY-01 with
+    its change.
+  - Connecting a machine the miner runs is not built yet, so the page offers
+    only local compute.
+
+**Deployment, once the exact bundle is approved.** Static only, from
+`website/ask-carbon/DEPLOY_PACKAGE_2026_10_02.md`:
+1. capture the rollback id;
+2. re-derive the baseline;
+3. rebuild, and the identity must be `b22f6d1c…`;
+4. `wrangler deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12`;
+5. verify with `tools/verify-publication.mjs`.
+
+This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
+
+## 2026-10-02 — WEB-QA-12-D1: publish Ask Carbon bundle b22f6d1c (Start mining)
+
+**Owner, in session on 2026-10-02.** The question was "Start mining site:
+approve bundle `b22f6d1c…` for deployment". The answer: "1 start".
+
+**Exact artifact.** Bundle identity
+`b22f6d1cdaf5b3d9952ee3b802a2c09b8de8320fe566a238636bd53aac770f46`, 106 files,
+as recorded under OWNER-WEBSITE-START-MINING-01. Rollback target:
+`carbonwebsite` `c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4`.
+
+**Re-verified at approval (2026-10-02T21:16Z).**
+- Manifest v4 matched 100/100 on both hostnames, and the hostnames agree.
+- The rebuild with Node 24.19.0 (Linux) reproduced `b22f6d1c…`, certified
+  deployable.
+- `tools/verify-publication.mjs` showed exactly the eight expected
+  differences before deployment.
+- A second run moments later got HTTP 429 on one hostname's health endpoint,
+  which is its per-client rate limit. The deploy package now says to wait and
+  re-run once.
+
+**Deployment** is the operator's act from `DEPLOY_PACKAGE_2026_10_02.md`.
+- Re-confirm the live version is `c12d547a` immediately before deploying.
+- Static only: the Worker is not redeployed.
+- This host holds no Cloudflare credential and ran no wrangler command.
+
+**Reversible.** `wrangler rollback c12d547a-1cd3-4dbd-a91a-8106ad3aa2b4
+--name carbonwebsite`.
+
+## 2026-10-02 — OWNER-TRACK-A-L0-02: battery Track A Level 0 values approved; the lock waits on a fixed scoring rule; scoring ratios are proposed and tested
+
+**Authority.** The owner, in session on 2026-10-02. On the open values: "I
+approve and sign everything". On the specific proposal: "Approve and (a) for
+6. We need to be proposing and testing new scoring ratios when we're having
+this problem."
+
+**Decision.** The values are frozen in
+`docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json`.
+
+1. **Threat model.** The attacker is any registered miner, with up to 3
+   cooperating.
+   - They have all public material: code, TRAIN, PRACTICE, the kit and the
+     research image.
+   - They see practice feedback, refusal codes and timing.
+   - They have no validator host, private root, journal or hidden-batch
+     results.
+   - Level 0 recipes are declarative.
+   - Chain attacks, operator compromise and the image supply chain are
+     reviewed separately.
+   - Hostile executables at later levels run only in the pinned C-03
+     isolated worker, on disposable hosts with canaries. No level above 0 is
+     opened.
+2. **Attack budget.**
+   - The hand-written harness is unlimited at no spend.
+   - Agent attacks (GRAPHITE-01 phase 4) are 3 sessions of up to 20
+     executed attempts.
+   - Hard cap: USD 25 for tokens, pods and the confirmation batch together.
+     Pods follow EV4's rules (A40 at no more than USD 0.49 per hour, at most
+     3, termination verified).
+   - Any escape or answer-key exposure stops all runs.
+3. **Study population.**
+   - Attack discovery uses miner-equivalent public material.
+   - Confirmation uses one fresh private batch from the committed root: 120
+     cases plus 4 hidden duplicates, uniform over the published box, with
+     the important region reported separately, sealed until retirement.
+4. **Reconstruction tolerances.**
+   - Same pinned CPU worker and seed: bit-identical parameters and
+     predictions.
+   - Fresh seeds or other permitted hardware: every gate passes, the
+     paired-repeat threshold holds, and the score lies within the recipe's
+     own seed-to-seed spread from the EV4 panel.
+   - With no measured spread, no rebuild acceptance.
+5. **Review.** The SciML/technical lead reviews findings first in #42 and may
+   block; silence does not block. The owner signs the Track A lock.
+6. **Lock precondition, route (a).** The deciding rule scores the
+   boundary-optimist control at or above every eligible real model on EV2
+   and EV4, so Track A at Level 0 is not locked while that stands. It is
+   recorded INCONCLUSIVE. The route out is fixing the scoring rule through
+   Track B, not proving the behaviour unconstructible.
+7. **Scoring ratios, standing direction.** While score-value divergence
+   findings stand, new scoring ratios are proposed and tested.
+   - The first study is SR-1 (`docs/development/BATTERY_SCORING_RATIOS_SR1.md`).
+   - It is pre-registered before any new ratio is computed.
+   - It is offline, on retained EV results, with no spend.
+   - A selected ratio is a proposal, like `dar-p0-r100-a0`. It changes no
+     testnet rule until it passes a fresh confirmation and its own approval.
+
+**Unchanged.** The deciding testnet rule, historical results (invariant 10),
+and every claim boundary: this is not a security audit, a qualification or a
+mainnet decision.
+
+## 2026-10-02 — OWNER-ADMISSION-COMBINED-01: construction, attack and value run as one admission test, with separate verdicts
+
+**Authority.** The owner, in session on 2026-10-02: "This almost makes me
+think construction + attack + value should be rolled into one test". Then:
+"I agree. Let's run it as one test where we're still working up the ladder,
+using graphite, and attacking but value/score tuning at the same time."
+
+**Amends** OWNER-CHALLENGE-ADMISSION-01 (`Design_Specs/Challenge_Admission.md`)
+prospectively.
+
+1. **One run per Challenge and ladder rung.** Each run has one frozen study
+   sheet, one panel, one fresh confirmation set and one ledger.
+   - The panel holds both the legitimate constructions (real models, and
+     GRAPHITE's Constructor) and the attackers' best constructions (the
+     registered harness, `carbon.battery.track_a`, and GRAPHITE's Attacker).
+   - Attack constructions are scored and value-tested exactly like real
+     ones, so an attack that only shows up as a value failure is caught. The
+     boundary optimist is the case that motivates this.
+2. **Score tuning runs inside the test.**
+   - Candidate scoring rules are proposed and tested on the run's own
+     development material. SR-1 is the first.
+   - The design optimizer runs inside the test:
+     - Mode X (adversarial) belongs to the attack side;
+     - Mode D (design) belongs to the value side.
+   - A rule is chosen on development conditions only and confirmed once on
+     fresh cases.
+3. **Separate verdicts, never blended.** The run reports three verdicts, and
+   any one can fail the rung:
+   - construction integrity: no breach, escape or forbidden access;
+   - adversarial score: no high-scoring unacceptable construction under the
+     candidate rule;
+   - value: the rule's ranking agrees with decision quality within the noise
+     band, and design search beats the baseline.
+
+   A gain in one never compensates for a failure in another (§1 unchanged).
+4. **Up the ladder.**
+   - Each level is a new run with its own sheet.
+   - A rung is passed only when all three verdicts pass and the owner signs
+     the lock (OWNER-TRACK-A-L0-02).
+   - Unsupported levels stay NOT_RUN and are never opened to collect data.
+5. **Budgets.** Battery Level 0 runs under OWNER-TRACK-A-L0-02's USD 25 cap.
+   The next fresh value study (EV5) is the first combined run, and its
+   confirmation batch serves the attack confirmation too. Its own reference
+   budget, beyond that cap, comes to the owner before dispatch.
+
+**Unchanged.** Internal development only: not mainnet, not a qualification
+gate. Every existing invariant, and the deciding testnet rule, until a
+candidate passes confirmation and its own approval.
+
+## 2026-10-02 — OWNER-SR3-NEAR-01: "near the decision boundary" is the published important region
+
+**Authority.** The owner, in session on 2026-10-02: "Use the important region
+band as 'near' and build SR-3".
+
+**Decision.** For score tuning (SR-3 and later), a case is near the decision
+boundary when the reference is in the published important region,
+`carbon.battery.domain.is_important`:
+- the reference plating margin is within `PLATING_BAND_V` (5 mV) of zero;
+  or
+- the reference peak temperature is at or above `T_IMPORTANT_C` (55 °C).
+
+These are the existing published DEVELOPMENT values (OD-2), reused
+unchanged. No new number is introduced. On the retained scoring set, 311 of
+1,588 cases are near: 221 by plating and 90 by temperature.
+
+**Unchanged.** The deciding testnet rule and the published important-region
+definition itself. A score built on it stays a proposal until confirmation
+and its own approval.
+
+## 2026-10-02 — TRACK-B-STUCK-01: the STUCK trigger fires for battery score tuning; full Track B review
+
+**Basis.** `Challenge_Admission.md` §4.2: a full review happens at `STUCK`,
+which is three consecutive studies with no progress. SR-1, SR-2 and SR-3
+(`docs/development/evidence/sr{1,2,3}-2026-10-02/`) each ended NO_PROMOTION
+under their pre-registered rules. The condition is emitted, not concluded
+(§6.2).
+
+**What the review examines.** The three pre-registrations, results and
+code, and the recommendation in the SR-3 evidence README:
+1. rerun the three studies on EV4's 99 members after regenerating and
+   verifying its predictions, at about USD 1-3 inside OWNER-TRACK-A-L0-02's
+   cap;
+2. then confirm the best candidate once, on fresh conditions, in EV5;
+3. meanwhile, use an SR-1 ratio that catches the boundary optimist as an
+   admissibility check, not as a ranking rule.
+
+**Reviewers.** The SciML/technical lead (#42), then the owner (#41). No
+further formula search on EV2 until the review decides.
+
+**Unchanged.** The deciding testnet rule. Track A at Level 0 stays
+INCONCLUSIVE (OWNER-TRACK-A-L0-02 item 6).
+
+## 2026-10-02 — OWNER-EV4-REGEN-01: regenerate EV4's panel predictions and rerun SR-1, SR-2 and SR-3 on EV4
+
+**Authority.** The owner, 2026-10-02: "Approve step 1, regenerate EV4
+predictions and rerun". This is step 1 of the TRACK-B-STUCK-01
+recommendation.
+
+1. **Regeneration.**
+   - EV4's own panel plan
+     (`docs/development/evidence/ev4-2026-10-01/plans/ev4-panel-shard0-of1.json`)
+     runs at EV4's own code ref (`b92e90ef`), on one A40 pod with EV4's
+     settings (`--jax-platform cuda,cpu --pinned-xla`).
+   - It uses its own pod campaign, `ev4-regen`, with a USD 5 ceiling inside
+     OWNER-TRACK-A-L0-02's USD 25 cap, and termination verified.
+2. **Verification.**
+   - Each regenerated file is checked against EV4's committed
+     `predictions.sha256`.
+   - A file that matches is EV4's own predictions.
+   - A file that differs is reported as a regeneration difference. It is
+     used only as a labelled new panel, never as EV4's.
+3. **Rerun.** SR-1, SR-2 and SR-3 run on EV4 under their frozen
+   pre-registrations' selection and outcome rules, with no new formula. EV4
+   was SR-1's primary data and is the replication data for SR-2 and SR-3.
+
+## 2026-10-02 — OWNER-MINER-COMPUTE-LINK-ONLY-01: Carbon connects to the miner's own machine and rents no compute
+
+**Owner, verbatim, in session on 2026-10-02:** "Why do we care about rented
+resources for submissions? ... Don't we just wire them to pods to create
+themselves? Should we be creating them?? I think we just linked them to it."
+Then, on the proposal to retire the rented route: "Yes and you take it on."
+
+**Decision.** Carbon never creates, stops, terminates, bills or reads the
+balance of rented compute with the miner's provider key. A miner rents and
+stops their own machines; Carbon only connects to a machine the miner already
+runs.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **LINKONLY-D1, scope.** The miner-facing path only: the Launchpad, the
+  Control Center, battery practice, the miner MCP door and the research
+  environment standard. Operator scripts on the operator's own RunPod account
+  (`scripts/dev/challenge_pools/pod_phase.py`,
+  `scripts/dev/exam_design/runpod/`) are outside this decision and unchanged.
+- **LINKONLY-D2, old inputs fail closed** with
+  `rented_gpu_retired_connect_your_machine`, following
+  `miner_password_file_retired_start_signer`:
+  - a runner profile naming `compute_credential`, or whose runtime declares
+    `rented_gpu`, is refused (409) before its closed-set checks;
+  - a setup request choosing `rented-gpu` is refused on the field `choice`,
+    and a compute step an earlier page checked for one is refused at review;
+  - a frozen campaign declaring `rented_gpu` raises `RentedComputeRetired` at
+    both campaign doors, before any network or SSH call.
+
+  The next step says: start and stop your machine yourself; check your
+  provider console for leftover `carbon-…` pods, VMs or SSH keys; revoke the
+  key you gave Carbon. A rented scope is never translated into anything else.
+- **LINKONLY-D3, Carbon's copy of the key is deleted.** The next time the
+  miner runs compute setup, Carbon deletes its stored copy of a rented-GPU
+  provider key (`keys/*.compute-key`), as setup already deletes a stored
+  hotkey password, and tells the miner to revoke the key at the provider.
+- **LINKONLY-D4, the remote route.** The miner's own GPU machine, reached
+  over SSH, with Docker and the NVIDIA Container Toolkit. The worker image is
+  streamed (`docker save <image id> | ssh <machine> docker load`) and checked
+  by image ID. Carbon runs one job container per trial and removes it; it
+  never starts or stops the machine. The miner's own SSH agent, configuration
+  and known hosts decide how the machine is reached, and their key never
+  leaves their machine. Container-only rentals (for example RunPod pods, which
+  have no Docker daemon) are not supported; whether to support them is an
+  owner question.
+
+**Removed.** The provider-API layer under `carbon/compute/`: the RunPod, Lium
+and Targon adapters, the provisioning service and its store, accounting,
+admission, the reconciler and its CLI, and `rented_runner.py`. Also setup's
+rented-GPU choice and its live balance and price check, the battery
+`rented_gpu` scope, and the rented hooks in the Challenge campaign and both
+campaign doors. Kept: `carbon.compute.job_server` (the worker's start
+command) and `carbon.compute.remote_job`.
+
+**Supersedes.**
+- OWNER-MINER-ENVIRONMENT-01 §2 ("The named integrations"), its compute item:
+  "Lium and Targon, with RunPod under the miner's own key". The miner's own
+  GPU stays.
+- OWNER-C-MLP-03-ANSWERS-01 §2 ("Targon"): the Targon VM rented on the
+  miner's own account, with its ceilings, verified teardown and charge
+  reconciliation.
+
+**Unchanged.**
+- Practice on any GPU is speed only and never evidence; the exam is
+  unchanged.
+- No key reaches Carbon.
+- OWNER-MINER-OWN-MACHINE-01: the miner's own machine is the default and its
+  sandbox is kept. Remote compute stays opt-in and the miner's own.
+- Testnet 567; DEVELOPMENT; nothing is qualified.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
+retired; the remote-machine route replaces them).

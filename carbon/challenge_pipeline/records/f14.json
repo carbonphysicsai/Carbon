@@ -44,6 +44,7 @@
  "construction": {
   "challenge": null,
   "level": null,
+  "chosen": null,
   "levels": []
  }
 }
