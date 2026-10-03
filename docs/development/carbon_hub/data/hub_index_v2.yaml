@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T07:53:09Z"
+  captured_at_utc: "2026-10-03T09:18:34Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "983d62e7da23f3dd6fdc97de6569cd28dec2e92e"
+  authority_snapshot_commit: "e2c5beefc91440ea0e71a4c72e379c79e8fa2c29"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10938,6 +10938,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-03T02:18:43Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "STALE-DOCS-OPTIMIZER-PROGRAMME"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Documentation lag repaired. DESIGN_OPTIMIZER_SCOPE.md said 'scoped, not built', but the design optimizer was built (carbon/battery/value/optimizer.py) and run once as EV4's Problem C under its frozen pre-registration; the status now says so, and records which section 4 gaps EV4 fixed (K = 50, the Mode X condition grid) and which remain unset (PB-INV and PB-ADV policy values). BATTERY_TESTNET_PROGRAMME_STATE.md: EV4, SR-1..3, the battery kit and the Track A harness move to Done; new open rows for the inactive optimism gate (cutoff from the SciML lead), the EV5 draft (owner spend), Track A Level 0 (INCONCLUSIVE until the value precondition) and the localized sign-error measurement gap."
+    primary_detail: "docs/development/BATTERY_TESTNET_PROGRAMME_STATE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:20:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
