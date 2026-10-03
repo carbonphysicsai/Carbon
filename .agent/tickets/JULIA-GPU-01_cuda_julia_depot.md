@@ -16,9 +16,12 @@ item 4).
   lane, in its CUDA environment. Remote Julia GPU stays refused by name. See
   JULIA-GPU-01-D2, which also records two departures from the plan below: no
   device-runtime seeding, and no `_worker_profile` change.
-- **Slice 3: open.** A real kernel through the lane on a GPU host. A
-  preliminary run of the depot image alone on an RTX 3060 Laptop GPU
-  (functional, first kernel 3.7 s) is in D1. It is not the lane.
+- **Slice 3: built.** A real CUDA kernel ran through the miner lane on an
+  RTX 3060 Laptop GPU (driver 581.95): first kernel 3.9 s, second 0.20 s,
+  whole operation 12.1 s. The run found that the miner lane never recorded
+  its GPU allocation, so cleanup refused every real GPU run, `run_python`
+  included. The lane now records it under its own authority, with the
+  owner's approval. See JULIA-GPU-01-D3.
 
 Originally scoped, not built: a Docker host and GHCR write access were the
 missing preconditions in a cloud session.
