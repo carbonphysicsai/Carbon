@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-climb-internal-chosen-level",
+ "recorded_at": "2026-10-02T22:13:58Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_challenge_pipeline.py",
+  "description": "Made the climb internal and added the chosen construction level, then ran the pipeline tests."
+ },
+ "expected": "The ladder says miners only ever get the level the owners choose after internal testing.",
+ "observed": "Rev 2.2 had a ninth climb step that opened each level to miners in turn. The owner corrected it: the climb is internal testing, the owners choose the best level, and the challenge opens at that level only. Records now carry construction.chosen; only it may be FROZEN; 28 passed.",
+ "keep": [
+  "The best level need not be the highest tested; the record keeps both."
+ ],
+ "change": [
+  "Write how a construction reaches miners as a launch step, separate from internal testing."
+ ],
+ "protocol_elements": [
+  "construction_ladder",
+  "construction_ladder.launch"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

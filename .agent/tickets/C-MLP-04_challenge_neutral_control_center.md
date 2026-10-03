@@ -43,7 +43,8 @@ The survey of 2026-10-02 found:
      (`carbon/challenge_registry/campaigns.py`):
      - feedback modes and their schema;
      - the validator intake check;
-     - GPU and rented-GPU scopes and their shape checks.
+     - the GPU scope and its shape check (the rented-GPU scope was retired by
+       OWNER-MINER-COMPUTE-LINK-ONLY-01).
    - The Launchpad and MCP doors import no Challenge module
      (`tests/cpu/test_control_center_challenge_neutral.py`).
    - Profiles carry per-Challenge `intakes` and `validators` maps.

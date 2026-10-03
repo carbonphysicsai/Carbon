@@ -15,9 +15,11 @@ rule 3), the way EV4 did (`scripts/dev/exam_design/runpod/pod_control.py`):
 - the pod is terminated and its absence verified, whether the job succeeded
   or not, as EV4 did.
 
-The lifecycle runs on the compute layer the miner path already uses for rented
-GPUs (`carbon.compute`): `ComputeService` with the `RunPodAdapter` (whose
-request shapes come from `pod_control`). That gives each pod a durable intent
+The lifecycle runs on Carbon's operator RunPod layer
+(`scripts/dev/exam_design/runpod/operator_compute`, GRAPHITE-D32): `ComputeService`
+with the `RunPodAdapter` (whose request shapes come from `pod_control`), on
+Carbon's own account only, never a miner's key (OWNER-MINER-COMPUTE-LINK-ONLY-01,
+LINKONLY-D1). That gives each pod a durable intent
 before the create call, an ownership tag that resolves a lost create response
 without resending it, a balance observation before any create, a rate ceiling
 and deadline bound, verified termination, and the provider's own charge when it
@@ -253,7 +255,7 @@ def manifest_digest(manifest):
 
 # -- the live backend ----------------------------------------------------------------------
 class RunPodPods:
-    """RunPod pods on Carbon's account through `carbon.compute`.
+    """RunPod pods on Carbon's account through the operator layer (`operator_compute`).
 
     `key_file` is an owner-only file holding the RunPod key; the adapter reads
     it per request, into its own request header only. Nothing here prints,
@@ -275,7 +277,7 @@ class RunPodPods:
         http=None,
         transport=None,
     ):
-        from carbon.compute import (
+        from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
             ComputeStore,
             FileCredentialProvider,
@@ -370,8 +372,12 @@ class RunPodPods:
         return record
 
     def launch(self, job, private):
-        from carbon.compute import ComputeError, Execution, PodSpec
-        from carbon.compute.model import ProvisionRequest
+        from scripts.dev.exam_design.runpod.operator_compute import (
+            ComputeError,
+            Execution,
+            PodSpec,
+            ProvisionRequest,
+        )
 
         economics = self.economics
         record = self._record(job, private)
@@ -449,7 +455,10 @@ class RunPodPods:
         None means no pod exists for the intent, definitively: it was never
         dispatched, or the compute layer settled it `NOT_FOUND` after its
         grace period. `PodFailure` means it cannot yet say."""
-        from carbon.compute import ComputeError, IntentState
+        from scripts.dev.exam_design.runpod.operator_compute import (
+            ComputeError,
+            IntentState,
+        )
 
         intent = self.store.intent(self.CAMPAIGN, intent_id)
         if intent is None or intent.state in (
@@ -512,7 +521,7 @@ class RunPodPods:
         return files
 
     def terminate(self, handle):
-        from carbon.compute import ComputeError
+        from scripts.dev.exam_design.runpod.operator_compute import ComputeError
 
         try:
             self.service.terminate(self.CAMPAIGN, handle.intent_id, handle.pod_id)
@@ -521,7 +530,7 @@ class RunPodPods:
         return True
 
     def charge(self, handle):
-        from carbon.compute import ComputeError
+        from scripts.dev.exam_design.runpod.operator_compute import ComputeError
 
         try:
             charge = self.adapter.provider_charge(self._owned(handle))

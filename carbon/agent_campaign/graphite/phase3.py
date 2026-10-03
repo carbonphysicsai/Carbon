@@ -718,7 +718,10 @@ def secret_file(*, path=None, env=None, environ=os.environ, names=()):
 
 def runpod_key_status(path):
     """The RunPod key file must be owner-only (the compute layer's rule)."""
-    from carbon.compute import CredentialStatus, FileCredentialProvider
+    from scripts.dev.exam_design.runpod.operator_compute import (
+        CredentialStatus,
+        FileCredentialProvider,
+    )
 
     return FileCredentialProvider(Path(path)).status() is CredentialStatus.CONFIGURED
 

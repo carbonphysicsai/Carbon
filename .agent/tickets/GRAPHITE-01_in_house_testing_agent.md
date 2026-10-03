@@ -532,7 +532,8 @@ Other changes:
     disk price, the 0.25 cleanup reserve and the 2.00 balance floor, all
     read from `pod_control`.
   - Lifecycle, ownership tags, lost-create recovery and verified termination
-    come from `carbon.compute`.
+    come from the operator RunPod layer (GRAPHITE-D32; it was `carbon.compute`
+    until OWNER-MINER-COMPUTE-LINK-ONLY-01 removed that).
   - Only JAX recipes are served, as in the GPU practice lane. A PyTorch recipe
     is refused, typed, and is not a finding.
   - Files: `graphite/pods.py`, `graphite/experiment.py`.
@@ -606,6 +607,27 @@ Other changes:
     the fourth rung).
   - Files: `graphite/roles.py`, `graphite/phase3.py`,
     `development_session/research_loop.py`, the phase-3 grant and its README.
+- **GRAPHITE-D32, phase 3's pods after the link-only decision**
+  (OWNER-GRAPHITE-04, 2026-10-03).
+  - OWNER-MINER-COMPUTE-LINK-ONLY-01 (#511) removed the RunPod provisioning
+    layer from `carbon.compute`, which phase 3's `RunPodPods` was built on.
+    Its LINKONLY-D1 keeps operator scripts on Carbon's own RunPod account.
+    Asked how phase 3 should get GPUs, the owner chose "Carbon's own RunPod".
+  - The layer phase 3 uses (adapter, provisioning service, store, accounting
+    bound, reconciler and its CLI) is restored unchanged in behaviour under
+    `scripts/dev/exam_design/runpod/operator_compute/`, beside `pod_control`.
+    It is operator-side only: nothing under `carbon/` names a provider API
+    (the #511 scan test still passes), and only phase 3's runner imports it,
+    as it already imports `pod_control`.
+  - Pods run on Carbon's account with Carbon's key under the phase-3 grant,
+    never a miner's key. Nothing on the miner path changes.
+  - The independent reconciler is now
+    `python -m scripts.dev.exam_design.runpod.operator_compute reconcile
+    --root "$ROOT/pods/compute" --runpod-key-file FILE`.
+  - Tests: the retired layer's tests, restored against the new path
+    (`test_graphite_operator_runpod.py`), and phase 3's live-backend test.
+  - Files: `scripts/dev/exam_design/runpod/operator_compute/`,
+    `graphite/pods.py`, `graphite/phase3.py`.
 
 **Running phase 3 live** (the later session; the grant expires 2026-12-31):
 

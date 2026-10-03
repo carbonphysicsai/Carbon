@@ -151,7 +151,7 @@ def _setup_offers(entry):
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.challenge_registry.registry import GPU_RESEARCH, IMPLEMENTED
 
-    none = {"gpu": False, "rented_gpu": False, "intake": False, "feedback_modes": []}
+    none = {"gpu": False, "intake": False, "feedback_modes": []}
     if entry["status"] != IMPLEMENTED:
         return none
     try:
@@ -165,7 +165,6 @@ def _setup_offers(entry):
     )
     return {
         "gpu": gpu,
-        "rented_gpu": gpu and campaign.rented_scope is not None,
         "intake": campaign.intake_check is not None,
         "feedback_modes": list(campaign.feedback_modes),
     }

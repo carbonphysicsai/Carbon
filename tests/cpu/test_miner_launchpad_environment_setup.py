@@ -213,20 +213,10 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
         assert inference[generic]["pricing"] == "yours to declare (optional)"
     assert inference["engy-chat"]["needs_endpoint"] is False
     # Slice 3: this machine's CPU is the default; its own GPU is offered
-    # beside it, for practice speed only.
-    # Slice 4: a GPU rented on the miner's own provider account.
-    assert [c["id"] for c in offered["compute"]] == [
-        LOCAL_CPU,
-        "this-machine-gpu",
-        "rented-gpu",
-    ]
-    rented = offered["compute"][2]
-    # Slice 4b: Targon, a VM reached over SSH, names a VM image.
-    assert {p["id"]: p["vm"] for p in rented["providers"]} == {
-        "runpod": False,
-        "lium": False,
-        "targon": True,
-    }
+    # beside it, for practice speed only. Carbon rents no compute
+    # (OWNER-MINER-COMPUTE-LINK-ONLY-01), so no rented GPU is offered.
+    assert [c["id"] for c in offered["compute"]] == [LOCAL_CPU, "this-machine-gpu"]
+    assert not any("providers" in c for c in offered["compute"])
     assert [c["id"] for c in offered["compute"] if c["default"]] == [LOCAL_CPU]
     assert "speed only" in offered["compute"][1]["note"]
     # Slice 5: Hermes beside Carbon's own agent.

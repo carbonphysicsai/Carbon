@@ -2,8 +2,8 @@
 
 The owner's direction: miners reach the Control Center and then decide what
 Challenge to mine; nothing there is battery-only. So everything that differs
-by Challenge (feedback modes and their schema, the validator intake, GPU and
-rented-GPU practice scopes) is read from that Challenge's campaign in
+by Challenge (feedback modes and their schema, the validator intake, the GPU
+practice scope) is read from that Challenge's campaign in
 `carbon.challenge_registry.campaigns`. These tests hold that:
 
 - no Launchpad or MCP module imports a Challenge's own modules; the one
@@ -74,7 +74,6 @@ def test_every_challenge_reports_its_provisions_and_offers_alike():
         if not entry["implemented"]:
             assert offers == {
                 "gpu": False,
-                "rented_gpu": False,
                 "intake": False,
                 "feedback_modes": [],
             }

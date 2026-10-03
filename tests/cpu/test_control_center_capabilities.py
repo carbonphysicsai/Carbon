@@ -221,8 +221,9 @@ def test_launch_contract_is_the_operation_and_names_the_challenge():
 def test_unoffered_providers_are_unavailable_with_a_reason():
     document = capabilities.control_center(None)
     compute = {item["id"]: item for item in document["compute"]["unavailable"]}
-    # RunPod and Lium launch from setup (C-MLP-03 slice 4), and Targon as a
-    # VM over SSH (slice 4b); none is an unavailable integration.
+    # Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): a miner
+    # runs their own machine on any provider, so no provider is listed as a
+    # missing integration either.
     assert not {"runpod", "lium", "targon"} & set(compute)
     models = {item["id"] for item in document["model"]["unavailable"]}
     # Engy's and Chutes' adapters are registered providers now, not

@@ -1,0 +1,81 @@
+{
+  "schema": "carbon.challenge-admission.study-sheet.v1",
+  "protocol": "carbon.challenge-admission.v1",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "profile": "level-0",
+  "track": "construction_integrity",
+  "authority": "OWNER-TRACK-A-L0-02 (.agent/DECISIONS.md, 2026-10-02)",
+  "frozen_at": "2026-10-02",
+  "pins": {
+    "construction": "sha256:eb0241b5ab35d522b48ed0c9c13564ae826fe32616f3b620528e5e22eaef238e",
+    "generator": "sha256:50287c7a4f47dde9fdb7f9525f11a9abc7670820128eb2537e0c853fbc8cbd7f",
+    "score": {
+      "v1": "sha256:e108df6891aecd7c2111442267b182680cdb5516185bcaf188afead1c9c110c5",
+      "v2": "sha256:7c9153b2af7170687aec1056bb3a1d19247109f22192f161ae158d5a3c6f6526"
+    },
+    "implementation": "sha256:8912e009635ab3efd6d5ed4b53e6e5640bee1234030567a143d2374bdb937a14",
+    "permissions": "docs/development/mira/level0/permission-inventory.json",
+    "environment": "the C-03 worker image manifest built in CI by scripts/dev/c03_worker_image.sh"
+  },
+  "threat_model": {
+    "attacker": "any registered miner hotkey",
+    "cooperating_identities": 3,
+    "access": [
+      "all public code and the miner research image",
+      "TRAIN v1, the 200 public PRACTICE cases and the battery challenge kit",
+      "practice feedback, typed refusal codes and wall-clock timing"
+    ],
+    "no_access": [
+      "the validator host and its state",
+      "the private seed root and the seed journal",
+      "hidden-batch results (sealed under rule v2)"
+    ],
+    "level_0_surface": "declarative recipes only; no participant code",
+    "out_of_scope_reviewed_separately": [
+      "chain-level attacks",
+      "compromise of the validator operator",
+      "supply chain of the pinned images"
+    ],
+    "hostile_executables_later_levels": "only in the pinned C-03 isolated worker (no network, read-only root, all capabilities dropped, pid/memory/CPU/time limits) on disposable hosts with canaries; this sheet opens no level above 0"
+  },
+  "attack_budget": {
+    "hand_written_harness": "unlimited; local and CI only; no spend",
+    "agent_attacks": "GRAPHITE-01 phase 4: 3 sessions x up to 20 executed attempts",
+    "monetary_cap_usd": 25,
+    "cap_covers": "agent tokens, pod time and the confirmation batch together",
+    "pods": "A40 at no more than USD 0.49 per hour, at most 3 in parallel, termination verified",
+    "stop_rule": "any escape or answer-key exposure stops all runs; repair, rerun affected attacks, confirm on fresh cases"
+  },
+  "population": {
+    "attack_discovery": "miner-equivalent public material only: TRAIN v1, PRACTICE and battery-kit draws",
+    "confirmation": {
+      "source": "one fresh private batch from the validator's committed private root (carbon.battery.seeds.make_batch)",
+      "cases": 120,
+      "hidden_duplicates": 4,
+      "law": "uniform over the published input box (the exam's existing population)",
+      "subgroups": "the published important region reported separately",
+      "custody": "sealed until retirement; revealed only by SeedJournal.reveal"
+    }
+  },
+  "reconstruction_tolerances": {
+    "same_pinned_cpu_worker_same_seed": "bit-identical trained parameters (params_sha256) and predictions",
+    "fresh_seed_or_other_permitted_hardware": [
+      "every gate passes on every case",
+      "the paired-repeat gate's existing threshold holds",
+      "the exam score lies within that recipe's own seed-to-seed spread measured in the EV4 panel"
+    ],
+    "no_measured_spread": "the recipe cannot be rebuild-accepted until its spread is measured"
+  },
+  "review": {
+    "findings_first_reviewed_by": "the SciML/technical lead in #42 (KEEP/CHANGE/BLOCKED); may block, silence does not",
+    "lock_signed_by": "the owner"
+  },
+  "attacker_wins": [
+    "any high-scoring unacceptable model",
+    "any accepted mandatory failure",
+    "any forbidden authority or resource access"
+  ],
+  "lock_precondition": "Track A at Level 0 is not locked while the deciding rule scores a known-unacceptable predictor (the boundary-optimist control) at or above eligible real models; route (a): fix the scoring rule through Track B (OWNER-TRACK-A-L0-02 item 6)",
+  "state": "INCONCLUSIVE",
+  "claims": {"security_acceptance": false, "qualification": false, "mainnet": false}
+}

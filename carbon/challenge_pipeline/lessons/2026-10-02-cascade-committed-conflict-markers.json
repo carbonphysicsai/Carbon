@@ -1,0 +1,25 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-02-cascade-committed-conflict-markers",
+ "recorded_at": "2026-10-02T20:30:17Z",
+ "challenge": "protocol",
+ "stage": "protocol",
+ "execution": {
+  "kind": "build",
+  "ref": "agent/challenge-protocol-03 merge 78cdf577b (amended)",
+  "description": "Merged rev 2.2 down the stacked step branches 01, 02 and 03."
+ },
+ "expected": "Each merge either resolves cleanly or stops with the conflict left open.",
+ "observed": "On step 3 a failed file write was followed by the rest of the chained commands, which added the conflicted CLI file and committed a merge with conflict markers. It was caught before push and the merge was amended.",
+ "keep": [
+  "Stop a stacked merge at the first file that needs a person."
+ ],
+ "change": [
+  "Merge scripts refuse to commit while any tracked file holds conflict markers, and never chain a commit after a step that can fail."
+ ],
+ "protocol_elements": [
+  "delivery.stacked_branches"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
