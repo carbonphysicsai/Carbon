@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T02:18:56Z"
+  captured_at_utc: "2026-10-03T02:23:59Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "9c0225117468d5584384fb67ae080d494ee76a9f"
+  authority_snapshot_commit: "125eafa03e749809f3be9d48957dc4f852535e67"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10783,6 +10783,31 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-02T19:51:46Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-MINER-COMPUTE-LINK-ONLY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "OWNER-MINER-COMPUTE-LINK-ONLY-01 (2026-10-02): Carbon never creates, stops, terminates, bills or reads the balance of rented compute with a miner's provider key; a miner rents and stops their own machines, and Carbon only connects to one the miner already runs. C-MLP-03 slices 4 and 4b (RunPod, Lium and a Targon VM rented per practice trial) are retired: the provider-API layer under carbon/compute (adapters, provisioning service and store, accounting, admission, reconciler and its CLI, rented_runner), setup's rented-GPU choice and its live balance and price check, the battery rented_gpu scope and the rented campaign hooks were removed; job_server and remote_job stay. An old profile, setup request or frozen campaign is refused by name (rented_gpu_retired_connect_your_machine), never translated into another runtime, and a frozen one is refused before any network or SSH call; setup deletes Carbon's stored copy of the provider key and tells the miner to revoke it. The replacement is the miner's own GPU machine over SSH with Docker and the NVIDIA Container Toolkit; container-only rentals are an open owner question. Supersedes OWNER-MINER-ENVIRONMENT-01 section 2's rented compute and OWNER-C-MLP-03-ANSWERS-01 section 2. Operator scripts on the operator's own RunPod account are unchanged. Engineering evidence only; nothing is qualified and no chain write is made."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: "C-MLP-03-SLICE-4-RENTED-GPU"
+    recorded_at: "2026-10-02T20:01:19Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-03-SLICE-4-REMOTE-MACHINE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "C-MLP-03 slice 4, rebuilt under OWNER-MINER-COMPUTE-LINK-ONLY-01 (LINKONLY-D4): battery practice can run on a GPU machine the miner runs, reached over SSH with Docker and the NVIDIA Container Toolkit; the library is built and setup does not offer it yet. carbon.compute.remote_machine drives the system ssh with the miner's own agent, config and known hosts (no -i, no IdentitiesOnly, no Carbon known_hosts, no accept-new, BatchMode) to a [user@]host or alias destination that can never be an option. A fixed script refuses by code when Docker (90), the NVIDIA Container Toolkit (91), Docker without sudo (92) or the pinned worker by image ID (93) is missing, installs nothing, and starts one carbon-job-<24 hex> container with --rm, the GPUs and the job port on the machine's loopback, its environment through a deleted temporary file; only such containers are ever removed, and the worker image is streamed with docker save | ssh docker load and checked by ID. carbon.compute.remote_runner reserves the trial, writes the owner-only job record, starts the container, reaches the job server through an SSH port forward and always closes the tunnel and removes the container, recording whether the machine confirmed it; BatteryPractice records the REMOTE_GPU backend. Carbon never starts, stops or bills the machine. Engineering evidence only; a real practice on a miner's machine is the acceptance, and nothing is qualified."
+    primary_detail: ".agent/tickets/C-MLP-03_miner_environment.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: "C-MLP-03-SLICE-4B-TARGON-VM"
+    recorded_at: "2026-10-02T20:22:17Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"

@@ -67,6 +67,7 @@ class OperatorProfile:
 
 def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorProfile:
     """Read the miner's profile and one of their campaigns; create nothing."""
+    from carbon.compute.retired import refuse_rented
     from scripts.dev.miner_launchpad.runner import validated_profile
 
     cfg = validated_profile(private_json(path))
@@ -87,6 +88,9 @@ def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorPr
     ):
         raise ValueError("existing unfinished campaign required")
     manifest = private_json(root / "campaign-manifest.json")
+    # A campaign frozen for the retired rented GPU is refused by name before
+    # anything is opened or reached (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+    refuse_rented(manifest.get("runtime"))
     if (
         manifest.get("schema") != PRODUCT
         or manifest.get("principal") != cfg["principal"]
@@ -475,11 +479,6 @@ async def attached_profile(profile: OperatorProfile):
             cleanup_only=cleanup_only,
             julia_image=_authored_image(profile, analysis),
             gpu_image=campaign.gpu_image(profile.root, profile.manifest["runtime"]),
-            rented=campaign.rented(
-                profile.root,
-                profile.manifest,
-                (profile.document.get("paths") or {}).get("compute_credential"),
-            ),
         )
         bound = None
         try:
