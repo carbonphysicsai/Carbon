@@ -194,7 +194,7 @@ stops research. It is not a measured effect size.
 1. **Amendment 4 for 3B.** The leak ladder: the rung order, the epochs and
    submissions per rung, what counts as a found channel, and the two
    feedback modes, which are built and tested before any 3B call. It is
-   pre-registered before any 3B spend, within the remaining USD 2.50.
+   pre-registered before any 3B spend, within the remaining budget.
 2. **N1 and N2** go to Launchpad.
 3. **The control door** goes to the owner. Launchpad is raising it.
 

@@ -18098,6 +18098,36 @@ command) and `carbon.compute.remote_job`.
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md` (slices 4 and 4b
 retired; the remote-machine route replaces them).
 
+## 2026-10-03 — OWNER-MERGE-HYGIENE-01: standing merge-hygiene rules for every agent
+
+**Owner, verbatim, in session on 2026-10-03:** "Do you have a solution for
+problems like this. How can we make sure this never happens." Then: "Give me a
+standing message to give all agents that hard codes these new rules so we don't
+do this anymore", "make it durable", and, on labelling #504
+`merge-priority`, "and yes add it now". The owner reports that all agents have
+received the same instructions.
+
+**Context.** Graphite phase 3 (#504) was green but had to merge main seven
+times in one night. Every conflict was in generated Hub files or this
+append-only file, never in code, and each re-merge restarted about 75 minutes
+of required CI while other sessions kept merging.
+
+**Decision.** The rules in `docs/development/MERGE_HYGIENE.md` bind every
+agent and executor:
+- **Part A, in force now:** generated Hub files are never hand-edited, and
+  their conflicts are resolved by taking main's version and re-rendering;
+  conflicts here keep both sides, main's first; main is merged only just
+  before the final push; a green PR is merged at once; and every agent
+  defers to an open PR labelled `merge-priority` whose CI is running or green.
+- **Part B, after the MERGE-HYGIENE-01 ticket merges:** PRs commit no generated
+  Hub outputs, and decisions are one file each.
+
+A merge queue stays a separate owner decision, because the repository's rules
+forbid auto-merge.
+
+*Unchanged.* Every scientific, security and delivery rule. These rules change
+how PRs are assembled and merged, not what any PR may decide.
+
 ## 2026-10-03 — OWNER-EXEC-APPROVALS-01: the four open decisions from the executive update
 
 **Authority.** The owner, in chat on 2026-10-03, answering the four decisions
