@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "OWNER-EXEC-APPROVALS-01",
+  "owner_lane": "technical_lead",
+  "status": "active",
+  "summary": "OWNER-EXEC-APPROVALS-01 (2026-10-03): the owner approved the four open decisions from the executive update. (1) The near-limit optimism gate's cutoff: approved, but this session's automated permission check refused the code change again, so THRESHOLD_BANDS stays None and the gate INACTIVE; EV5's freeze still waits on it. (2) A measurement for the localized sign-error failure, commissioned and built: near-limit false acceptance (carbon/battery/value/false_acceptance.py). It is the worst constraint's share of reference-resolved FAILs in the important region that a model calls PASS: sign-error control 0.95, boundary optimist 1.00, other controls 0. It is descriptive with no cutoff, real members are unmeasured, and it is proposed as EV5's H3 measurement. (3) Security review of the C-MLP-05 GPU code cell: approved and run as an agent review; findings went to the owner; it is not a security qualification. (4) CUDA in the pinned Julia depot for run_julia on the GPU: approved and scoped as JULIA-GPU-01; the depot build needs a Docker host and GHCR write access, and the validator stays on jax-cpu. DEVELOPMENT only; nothing is qualified.",
+  "primary_detail": ".agent/DECISIONS.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-03T11:40:15Z"
+}

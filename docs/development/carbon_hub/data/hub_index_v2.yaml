@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T09:21:01Z"
+  captured_at_utc: "2026-10-03T11:41:58Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "e12607b2d7d0645858ff3dd1ff4c37488ba95fec"
+  authority_snapshot_commit: "dff43b292c1164065424df020779358f2f9e426e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10952,6 +10952,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-03T02:20:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "OWNER-EXEC-APPROVALS-01"
+    owner_lane: "technical_lead"
+    status: "active"
+    summary: "OWNER-EXEC-APPROVALS-01 (2026-10-03): the owner approved the four open decisions from the executive update. (1) The near-limit optimism gate's cutoff: approved, but this session's automated permission check refused the code change again, so THRESHOLD_BANDS stays None and the gate INACTIVE; EV5's freeze still waits on it. (2) A measurement for the localized sign-error failure, commissioned and built: near-limit false acceptance (carbon/battery/value/false_acceptance.py). It is the worst constraint's share of reference-resolved FAILs in the important region that a model calls PASS: sign-error control 0.95, boundary optimist 1.00, other controls 0. It is descriptive with no cutoff, real members are unmeasured, and it is proposed as EV5's H3 measurement. (3) Security review of the C-MLP-05 GPU code cell: approved and run as an agent review; findings went to the owner; it is not a security qualification. (4) CUDA in the pinned Julia depot for run_julia on the GPU: approved and scoped as JULIA-GPU-01; the depot build needs a Docker host and GHCR write access, and the validator stays on jax-cpu. DEVELOPMENT only; nothing is qualified."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T11:40:15Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
