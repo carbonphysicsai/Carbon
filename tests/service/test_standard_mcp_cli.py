@@ -298,7 +298,10 @@ def test_actual_gateway_public_workflow_and_restart_over_stdio(tmp_path, monkeyp
     assert status["used"]["research_trials"] == 0
     from carbon.development_session.research_control import CampaignControl
 
-    assert CampaignControl(ledger).status()["state"] == "INTERRUPTED"
+    # An agent-less campaign (the miner selects) is waiting for its miner once
+    # the attached client detaches: READY. Before 2026-10-03 (LP-PROD-C) every
+    # detach settled INTERRUPTED, so it looked broken after each attach.
+    assert CampaignControl(ledger).status()["state"] == "READY"
 
 
 @pytest.mark.parametrize(

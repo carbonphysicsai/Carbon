@@ -547,12 +547,14 @@ class Server(ThreadingHTTPServer):
         the runner re-reads its profile on every operation.
         """
         from scripts.dev.miner_launchpad.runner import RunnerAdapter
+        from scripts.dev.miner_launchpad.supervisor import SUPERVISOR
 
         with self.attach_lock:
             if self.research_runner is not None:
                 return self.research_profile == Path(profile)
+            # The Control Center supervises its campaigns (LP-PROD-C).
             self.research_runner = RunnerAdapter.for_profile(
-                profile, legacy_database=self.legacy_database
+                profile, legacy_database=self.legacy_database, role=SUPERVISOR
             )
             self.research_profile = Path(profile)
             return True
@@ -993,11 +995,15 @@ def main() -> None:
                 args.research_profile = written
         if args.research_profile is not None:
             from scripts.dev.miner_launchpad.runner import RunnerAdapter
+            from scripts.dev.miner_launchpad.supervisor import SUPERVISOR
 
             # The same host an MCP client with this profile constructs, over
             # the same records; earlier browser-only records are adopted once.
+            # While it runs, the Control Center is the campaigns' supervisor
+            # (LP-PROD-C): it runs its own and its clients' campaign work, and
+            # closing it pauses that work rather than stopping it.
             runner = RunnerAdapter.for_profile(
-                args.research_profile, legacy_database=database
+                args.research_profile, legacy_database=database, role=SUPERVISOR
             )
         server = Server(
             controller,

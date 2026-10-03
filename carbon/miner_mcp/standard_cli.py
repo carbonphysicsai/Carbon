@@ -534,13 +534,30 @@ async def attached_profile(profile: OperatorProfile):
                             "STOPPED",
                             "COMPLETED",
                         }:
-                            control.settled(ledger.generation, cleanup_verified=clean)
+                            control.settled(
+                                ledger.generation,
+                                cleanup_verified=clean,
+                                ready=_waits_for_its_miner(profile, control),
+                            )
                         elif not clean:
                             raise ValueError(
                                 "terminal campaign cleanup requires reconciliation"
                             )
             finally:
                 composition.tasks.close()
+
+
+def _waits_for_its_miner(profile, control):
+    """Whether detaching leaves the campaign READY: one with no agent (the
+    miner selects), not complete, and not asked to pause or stop meanwhile.
+    Until 2026-10-03 detaching settled every campaign INTERRUPTED, so an
+    agent-less campaign looked broken after its miner's agent detached."""
+    return (
+        not profile.cleanup_only
+        and profile.manifest.get("agent") == "none"
+        and not (profile.root / "campaign-complete.json").exists()
+        and control.status()["desired"] == "RUN"
+    )
 
 
 async def serve(configuration: Path, campaign: str, *, cleanup_only=False):
@@ -607,6 +624,13 @@ async def serve_operations(configuration: Path, state_dir=None):
     operation tools are generated from the same table as the browser's routes,
     through the same campaign host over the same records. Nothing on this path
     is issued by Carbon.
+
+    This process is a client of the campaigns' supervisor (LP-PROD-C): it
+    admits and queues launch, resume, practice, freeze and submit, and the
+    Control Center - or, when none is running, a detached supervisor it
+    starts - carries them out. So the client exiting, as stdio clients do,
+    leaves every campaign running or settled where it was; it never owns a
+    campaign thread. An attached campaign is detached on exit.
     """
     from carbon.miner_mcp.mcp_operations import (
         Attachment,

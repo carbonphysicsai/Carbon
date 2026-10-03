@@ -14,14 +14,23 @@ up, and structurally admits no new work.
 
 A budget is the miner's to set, at launch, or not at all. Its absence blocks
 nothing.
+
+**One supervisor owns campaign threads (LP-PROD-C).** Which process runs a
+campaign's work is this host's `role` (`supervisor.ROLES`): the Control
+Center supervises while it runs; an MCP client only admits, queues and
+observes, and a detached supervisor process carries its work out when no
+Control Center is running. Closing any of them pauses or detaches, never
+stops, a campaign.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
 import re
+import secrets
 import sqlite3
 import threading
 import time
@@ -36,6 +45,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
 PROFILE_SCHEMA = "carbon.launchpad.runner-profile.v2"
@@ -610,6 +620,14 @@ def _operation_digest(operation, request):
 _CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}|[a-z][a-z0-9_]{0,63}")
 
 
+def exception_code(exc):
+    """A typed failure's closed code (its `code`, or that code's `value`),
+    or None. Never the message."""
+    code = getattr(exc, "code", None)
+    code = getattr(code, "value", code)
+    return code if type(code) is str and _CODE.fullmatch(code) else None
+
+
 def record_interruption(root, stage, exc):
     """Keep why a campaign was interrupted, privately, for its owner.
 
@@ -619,13 +637,11 @@ def record_interruption(root, stage, exc):
     carry a provider response or a path. Recording never masks the
     interruption itself.
     """
-    code = getattr(exc, "code", None)
-    code = getattr(code, "value", code)
     entry = {
         "at_unix": round(time.time(), 3),
         "stage": stage,
         "error_type": type(exc).__module__ + "." + type(exc).__qualname__,
-        "code": code if type(code) is str and _CODE.fullmatch(code) else None,
+        "code": exception_code(exc),
     }
     try:
         path = Path(root) / "interruptions.jsonl"
@@ -637,6 +653,9 @@ def record_interruption(root, stage, exc):
 
 
 class RunnerAdapter:
+    #: How a client starts a detached supervisor; a test replaces it.
+    spawn = staticmethod(supervision.spawn_detached)
+
     def __init__(
         self,
         database,
@@ -645,7 +664,13 @@ class RunnerAdapter:
         principal=None,
         registration=None,
         signer=None,
+        role=supervision.INLINE,
     ):
+        if role not in supervision.ROLES:
+            raise ValueError("unknown runner role")
+        if role != supervision.INLINE and configuration is None and not principal:
+            # The supervisor lock and the queue are per principal.
+            raise ValueError("a supervised runner needs its principal")
         self.database = database
         self.configuration = configuration
         self.principal = (
@@ -662,6 +687,20 @@ class RunnerAdapter:
         self.signer = signer or (signer_ready if registration is None else None)
         self.threads = {}
         self.lock = threading.RLock()
+        #: Who runs this host's campaign threads (LP-PROD-C). INLINE: this
+        #: process, as before supervision existed (fixtures and tests).
+        #: SUPERVISOR/DETACHED: this process, while it holds the supervisor
+        #: lock. CLIENT: never this process.
+        self.role = role
+        #: Names this process's claims in the dispatch queue.
+        self.token = "sup-" + secrets.token_hex(8)
+        #: When this client last started a detached supervisor.
+        self._spawned_at = float("-inf")
+        self.supervisor = (
+            supervision.Supervisor(self)
+            if role in (supervision.SUPERVISOR, supervision.DETACHED)
+            else None
+        )
         # The page's research tool sessions, each holding its campaign's
         # ownership lock while open (RSURF-D15, D16).
         from scripts.dev.miner_launchpad.tool_door import ToolSessions, runner_opener
@@ -693,27 +732,171 @@ class RunnerAdapter:
                 db.execute(
                     "ALTER TABLE research_runs ADD COLUMN research_guidance BLOB"
                 )
-            roots = [
-                Path(r[0])
+            # The dispatch queue, what a launch chose, and the last refusal
+            # (LP-PROD-C); added in place to an older database.
+            supervision.ensure_schema(db)
+        if role == supervision.INLINE:
+            # A supervised host recovers when it takes the supervisor lock,
+            # the only moment every earlier holder is known to be gone; a
+            # client never recovers. INLINE keeps recovering at construction.
+            self.recover()
+
+    def recover(self, *, redispatch=False):
+        """Settle what a process that died left behind, truthfully.
+
+        For each of this principal's campaigns whose ownership lock is free:
+        a settled campaign (READY, PAUSED, INTERRUPTED, COMPLETED, STOPPED or
+        RECONCILIATION_REQUIRED) is left exactly as it is. One whose ledger
+        still says some process was working (`supervisor.IN_FLIGHT`) is
+        settled with the real cleanup check: reconciliation only when work
+        may be outstanding or cleanup is not verified, otherwise what was
+        asked of it (READY or INTERRUPTED; PAUSED or STOPPED when that was
+        requested). Before 2026-10-03 every start settled every campaign not
+        COMPLETED, STOPPED or PAUSED with cleanup assumed failed, which
+        flagged idle READY campaigns RECONCILIATION_REQUIRED.
+
+        With `redispatch` (a supervisor that has just taken the lock): queue
+        items a dead supervisor had claimed are marked interrupted - never
+        replayed - and a launch that was admitted but never prepared (QUEUED,
+        no frozen manifest, nothing refused) is queued again, to be carried
+        out with its own recorded choices.
+        """
+        orphans, waiting = {}, set()
+        with self.db() as db:
+            if redispatch:
+                for item in supervision.orphaned(
+                    db, principal=self.principal, supervisor=self.token
+                ):
+                    orphans.setdefault(item["campaign"], item["operation"])
+                waiting = {
+                    r[0]
+                    for r in db.execute(
+                        "SELECT campaign FROM launchpad_dispatch WHERE principal=? AND state=?",
+                        (self.principal, supervision.QUEUED),
+                    )
+                }
+            rows = [
+                (dict(r), table)
                 for table in ("launchpad_campaigns", "research_runs")
                 for r in db.execute(
-                    f"SELECT root FROM {table} WHERE principal=?",
-                    (self.principal,),
+                    f"SELECT * FROM {table} WHERE principal=?", (self.principal,)
                 )
             ]
-        for root in roots:
-            if (root / "campaign.sqlite3").exists():
+        for row, table in rows:
+            kind = "product" if table == "launchpad_campaigns" else "retired_grant"
+            # One campaign that cannot be recovered never blocks the rest; it
+            # stays as it is for its miner or the next supervisor.
+            with contextlib.suppress(Exception):
+                settled = self._recover_one(
+                    row, kind, orphans.get(row["id"]), row["id"] in waiting
+                )
+                if redispatch and kind == "product" and settled:
+                    self._redispatch_stranded(row)
+
+    def _recover_one(self, row, kind, orphan, waiting=False):
+        """Settle one campaign if a dead process left it in flight. True when
+        no live process holds it (so it may be redispatched).
+
+        `waiting`: work is queued for it. With nothing outstanding that work
+        settles it when it runs, so it is not settled (and told it was
+        interrupted) first."""
+        root = Path(row["root"])
+        if not (root / "campaign.sqlite3").exists():
+            return True
+        try:
+            with owner_lock(root):
+                ledger = self._ledger(row, kind, root)
+                control = CampaignControl(ledger)
+                status = control.status()
+                if status["state"] not in supervision.IN_FLIGHT:
+                    return True
+                if waiting and orphan is None and not self._outstanding(ledger):
+                    return True
                 try:
-                    with owner_lock(root):
-                        control = CampaignControl(CampaignLedger(root))
-                        if control.status()["state"] not in {
-                            "COMPLETED",
-                            "STOPPED",
-                            "PAUSED",
-                        }:
-                            control.settled(control.acquire(), cleanup_verified=False)
-                except RuntimeError:
-                    pass  # Another live owner still holds the exact campaign lock.
+                    generation = control.acquire()
+                except DispatchStopped:
+                    return True
+                ledger.generation = generation
+                completed = (root / "campaign-complete.json").exists()
+                state = control.settled(
+                    generation,
+                    completed=completed,
+                    ready=not completed
+                    and status["desired"] == "RUN"
+                    and product_agent(root) == "none",
+                    cleanup_verified=self._cleanup(ledger),
+                )
+        except RuntimeError:
+            return False  # Another live owner still holds the exact campaign lock.
+        if orphan is not None:
+            self._refused(
+                row["id"],
+                "campaign_interrupted" if orphan == "run" else "operation_interrupted",
+                orphan,
+                kind="interrupted",
+            )
+        elif state == "RECONCILIATION_REQUIRED":
+            self._refused(
+                row["id"], "reconciliation_required", None, kind="interrupted"
+            )
+        elif state == "INTERRUPTED":
+            self._refused(row["id"], "campaign_interrupted", None, kind="interrupted")
+        return True
+
+    @staticmethod
+    def _outstanding(ledger):
+        """Whether any operation may still be out: RESERVED or HELD."""
+        with ledger.db() as db:
+            return (
+                db.execute(
+                    "SELECT 1 FROM operations WHERE state IN ('RESERVED','HELD') LIMIT 1"
+                ).fetchone()
+                is not None
+            )
+
+    def _settle_stale(self, identity):
+        """After queued work was refused: a campaign its dead holder left in
+        flight, and nobody holds now, is settled truthfully rather than left
+        reading as busy."""
+        with contextlib.suppress(Exception):
+            row, kind, root = self._bound(identity)
+            if not (root / "campaign.sqlite3").exists():
+                return
+            ledger = self._ledger(row, kind, root)
+            control = CampaignControl(ledger)
+            if control.status()["state"] in supervision.IN_FLIGHT:
+                self._settle_if_idle(ledger, control, root)
+
+    def _redispatch_stranded(self, row):
+        """Queue again a launch admitted and never prepared: QUEUED, no frozen
+        manifest, nothing refused, not paused or stopped, nothing queued."""
+        root = Path(row["root"])
+        if (
+            row["state"] != "QUEUED"
+            or row.get("last_refusal") is not None
+            or row.get("launch_request") is None
+            or (root / "campaign-manifest.json").exists()
+        ):
+            return
+        if (root / "campaign.sqlite3").exists():
+            status = CampaignControl(CampaignLedger(root)).status()
+            if status["desired"] != "RUN" or status["state"] in {
+                "RECONCILIATION_REQUIRED",
+                *supervision.TERMINAL,
+            }:
+                return
+        with self.db() as db:
+            if supervision.active(db, principal=self.principal, campaign=row["id"]):
+                return
+            supervision.enqueue(
+                db,
+                principal=self.principal,
+                campaign=row["id"],
+                operation="run",
+                params={},
+                config_digest=row["config_digest"],
+                state=supervision.QUEUED,
+            )
 
     @contextmanager
     def db(self):
@@ -877,21 +1060,201 @@ class RunnerAdapter:
     # -- whichever door is calling. Both doors construct this same class.
 
     @classmethod
-    def for_profile(cls, configuration, *, legacy_database=None, registration=None):
+    def for_profile(
+        cls,
+        configuration,
+        *,
+        legacy_database=None,
+        registration=None,
+        role=supervision.CLIENT,
+    ):
         """The campaign host both doors construct for one runner profile.
 
         Its records live beside the profile's campaigns. `legacy_database` is a
         browser database from before the doors shared one: its campaign rows
         are copied across once, so nothing launched earlier is lost.
+
+        `role` is who runs its campaign threads (LP-PROD-C). A door is a
+        CLIENT unless it says otherwise: it admits and queues, and wakes a
+        supervisor when work is waiting. The Control Center passes SUPERVISOR
+        and supervises from a daemon thread until closed; the detached
+        supervisor process passes DETACHED and runs its own loop.
         """
         cfg = validated_profile(private_json(Path(configuration)))
         database = runner_database(cfg)
         database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        host = cls(database, configuration=configuration, registration=registration)
+        host = cls(
+            database, configuration=configuration, registration=registration, role=role
+        )
         if legacy_database is not None and Path(legacy_database).exists():
             host._adopt(Path(legacy_database))
         database.chmod(0o600)
+        if role == supervision.SUPERVISOR:
+            host.supervisor.start()
+        elif role == supervision.CLIENT:
+            with contextlib.suppress(Exception):
+                host.wake_if_stranded()
         return host
+
+    # -- Supervision (LP-PROD-C): who runs a campaign's threads, and how a
+    # -- door that does not run them hands work over.
+
+    def _delegating(self):
+        """Whether work admitted here is queued for another process: always
+        for a client; for a supervisor, until it holds the lock."""
+        if self.role == supervision.CLIENT:
+            return True
+        return self.supervisor is not None and not self.supervisor.held
+
+    def _lock_directory(self):
+        return supervision.lock_directory(self.database, self.principal)
+
+    def _supervisor_running(self):
+        if self.supervisor is not None and self.supervisor.held:
+            return True
+        return supervision.supervisor_alive(self._lock_directory())
+
+    def _wake(self):
+        """Make sure someone carries out queued work: this process's own
+        loop, or else a detached supervisor started for this profile. A
+        client starts at most one per `supervisor.ACQUIRE_SECONDS`, however
+        often it is asked, so polling never fans out processes (one that
+        loses the lock race exits by itself)."""
+        if self.supervisor is not None:
+            self.supervisor.wake()
+            return
+        if self.role != supervision.CLIENT or self._supervisor_running():
+            return
+        now = time.monotonic()
+        if now - self._spawned_at < supervision.ACQUIRE_SECONDS:
+            return
+        self._spawned_at = now
+        self.spawn(self.configuration)
+
+    def wake_if_stranded(self):
+        """At a client's start: wake a supervisor when work is waiting or a
+        campaign was left mid-flight by a process that died, so recovery
+        does not wait for the next request."""
+        with self.db() as db:
+            waiting = supervision.queued(db, principal=self.principal)
+            rows = [
+                dict(r)
+                for r in db.execute(
+                    "SELECT * FROM launchpad_campaigns WHERE principal=? AND state NOT IN ('COMPLETED','STOPPED')",
+                    (self.principal,),
+                )
+            ]
+        if waiting or any(self._stranded(row) for row in rows):
+            self._wake()
+
+    @staticmethod
+    def _stranded(row):
+        root = Path(row["root"])
+        if (root / "campaign.sqlite3").exists() and CampaignControl(
+            CampaignLedger(root)
+        ).status()["state"] in supervision.IN_FLIGHT:
+            return True
+        return (
+            row["state"] == "QUEUED"
+            and row.get("last_refusal") is None
+            and row.get("launch_request") is not None
+            and not (root / "campaign-manifest.json").exists()
+        )
+
+    def live_threads(self):
+        return [i for i, t in tuple(self.threads.items()) if t.is_alive()]
+
+    def _record(self, identity, operation, params, cfg, state):
+        with self.db() as db:
+            return {
+                "seq": supervision.enqueue(
+                    db,
+                    principal=self.principal,
+                    campaign=identity,
+                    operation=operation,
+                    params=params,
+                    config_digest=digest(canonical(cfg)),
+                    state=state,
+                    supervisor=self.token if state == supervision.RUNNING else None,
+                ),
+                "campaign": identity,
+                "operation": operation,
+            }
+
+    def _finish(self, item, outcome):
+        with contextlib.suppress(Exception), self.db() as db:
+            supervision.finish(db, item["seq"], outcome)
+
+    def _tracked(self, item, function, *args):
+        """Run one dispatch's thread, then mark its queue item done."""
+        try:
+            function(*args)
+        finally:
+            self._finish(item, "finished")
+
+    def _refused(self, identity, code, operation, kind="refused"):
+        """Keep `code` as the campaign's last refusal (`supervisor.refusal`)."""
+        entry = supervision.refusal(code, operation=operation, kind=kind)
+        with contextlib.suppress(Exception), self.db() as db:
+            db.execute(
+                "UPDATE launchpad_campaigns SET last_refusal=? WHERE id=?",
+                (canonical(entry), identity),
+            )
+
+    def _accepted(self, identity):
+        """A new attempt was admitted: the earlier refusal is history."""
+        with self.db() as db:
+            db.execute(
+                "UPDATE launchpad_campaigns SET last_refusal=NULL WHERE id=?",
+                (identity,),
+            )
+
+    def start_item(self, item):
+        """Start one queued item a client admitted, in this supervisor.
+
+        The profile is read again here, and an item admitted under another
+        one is refused, not run under this one. A refusal is kept as the
+        campaign's `last_refusal`; nothing is retried.
+        """
+        identity, operation = item["campaign"], item["operation"]
+        try:
+            row, kind, root = self._bound(identity)
+            if kind != "product":
+                raise Rejected("retired_grant_campaign", 409)
+            try:
+                cfg = self.configured()
+            except Rejected:
+                raise
+            except Exception:  # noqa: BLE001 - an unreadable profile, never its content
+                raise Rejected("research_profile_unavailable", 409) from None
+            if digest(canonical(cfg)) != item["config_digest"]:
+                raise Rejected("profile_differs_from_request", 409)
+            if operation == "run":
+                self._start(identity, cfg, root, None, None, item)
+                return
+            work = self._work(operation, json.loads(item["params"]))
+            admitted = SimpleNamespace(
+                campaign={**dict(row), "kind": kind}, profile=cfg
+            )
+            with self.lock:
+                previous = self.threads.get(identity)
+                if previous is not None and previous.is_alive():
+                    raise Rejected("campaign_busy", 409)
+                thread = threading.Thread(
+                    target=self._tracked,
+                    args=(item, self._operation_thread, admitted, work),
+                    daemon=True,
+                )
+                self.threads[identity] = thread
+                thread.start()
+        except Rejected as refused:
+            self._refused(identity, refused.code, operation)
+            self._finish(item, "refused")
+            self._settle_stale(identity)
+        except Exception:  # noqa: BLE001 - never a trace or a path
+            self._refused(identity, "operation_refused", operation)
+            self._finish(item, "refused")
+            self._settle_stale(identity)
 
     def _adopt(self, legacy):
         with self.db() as db:
@@ -1152,7 +1515,7 @@ class RunnerAdapter:
             db.execute("BEGIN IMMEDIATE")
             try:
                 db.execute(
-                    "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance,launch_request) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
                         request["idempotency_key"],
@@ -1167,12 +1530,85 @@ class RunnerAdapter:
                         canonical(miner.record()),
                         canonical(budget),
                         canonical(task) if task is not None else None,
+                        # What this launch chose, exactly as admitted, so a
+                        # supervisor elsewhere or after a restart carries it
+                        # out with these choices and no others (LP-PROD-C).
+                        canonical(
+                            {k: v for k, v in request.items() if k != "idempotency_key"}
+                        ),
                     ),
                 )
             except sqlite3.IntegrityError:
                 raise Rejected("research_launch_replay_conflict", 409) from None
-        self._start(run_id, cfg, root, product, choice)
+        self._dispatch_run(run_id, cfg, root, product, choice)
         return self.get(run_id)
+
+    def _dispatch_run(self, run_id, cfg, root, product=None, choice=None):
+        """Carry out a launch or resume: on a thread here when this process
+        supervises, otherwise queued for the supervisor, which rebuilds the
+        launch from its record (`_recorded_launch`)."""
+        self._accepted(run_id)
+        if not self._delegating():
+            self._start(run_id, cfg, root, product, choice)
+            return
+        with self.db() as db:
+            supervision.enqueue(
+                db,
+                principal=self.principal,
+                campaign=run_id,
+                operation="run",
+                params={},
+                config_digest=digest(canonical(cfg)),
+                state=supervision.QUEUED,
+            )
+        self._wake()
+
+    def _recorded_launch(self, row, cfg):
+        """A launch's admission and choices, rebuilt from its record for a run
+        that starts where the launch was not received: a supervisor in another
+        process, or a restart before the campaign was prepared.
+
+        The recorded request must still produce the recorded identity under
+        today's profile; its choices are validated again exactly as at launch;
+        and registration is read again, because the `RegisteredMiner` that
+        admitted the launch lived in the process that received it and can only
+        be built by a read. Raises `Rejected` with the reason otherwise.
+        """
+        from carbon.development_session.product_campaign import (
+            ProductLaunch,
+            miner_budget,
+        )
+        from scripts.dev.miner_launchpad.operations import (
+            _registered,
+            _signer_reachable,
+        )
+
+        stored = row.get("launch_request")
+        if stored is None:
+            raise Rejected("launch_choices_unrecorded", 409)
+        try:
+            request = {**json.loads(stored), "idempotency_key": row["request_key"]}
+            run_id, request_digest, config_pin = self._launch_identity(cfg, request)
+        except (ValueError, TypeError, KeyError):
+            raise Rejected("launch_record_differs", 409) from None
+        if (run_id, request_digest) != (row["id"], row["request_digest"]):
+            raise Rejected("launch_record_differs", 409)
+        if config_pin != row["config_digest"]:
+            raise Rejected("profile_differs_from_request", 409)
+        challenge = self._challenge(request, cfg["runtime"])
+        choice = self._launch_choice(cfg, request, challenge)
+        miner = _registered(self, cfg)
+        _signer_reachable(self, cfg)
+        product = ProductLaunch(
+            campaign_id=row["campaign"],
+            principal=cfg["principal"],
+            miner=miner,
+            runtime=cfg["runtime"],
+            budget=miner_budget(request.get("budget")),
+            agent=request["agent"],
+            challenge=challenge,
+        )
+        return product, choice
 
     def owner(self):
         """Whose campaigns this host serves, for operations that read or
@@ -1378,6 +1814,10 @@ class RunnerAdapter:
         thread = self.threads.get(identity)
         if thread is not None and thread.is_alive():
             return "carbon_agent_or_operation"
+        # Or in the supervisor, when that is another process (LP-PROD-C).
+        with contextlib.suppress(Exception):
+            if self._in_flight(identity) is not None:
+                return "carbon_agent_or_operation"
         return "another_session"
 
     def miner_message(self, identity, value):
@@ -1399,7 +1839,6 @@ class RunnerAdapter:
         real training takes minutes, and observe shows the result."""
         import uuid
 
-        from carbon.development_session.research_campaign import practice_recipe
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
@@ -1409,18 +1848,13 @@ class RunnerAdapter:
         for text in (hypothesis, expected):
             if type(text) is not str or not 1 <= len(text) <= 2048:
                 raise Rejected("bounded_hypothesis_required")
-        identity = "miner-practice-" + uuid.uuid4().hex[:16]
-
-        async def practice(prepared):
-            return await practice_recipe(
-                prepared,
-                strategy=strategy,
-                hypothesis=hypothesis,
-                expected_effect=expected,
-                identity=identity,
-            )
-
-        return self._background(admitted, practice, "PRACTICING", "practice", request)
+        params = {
+            "strategy": strategy,
+            "hypothesis": hypothesis,
+            "expected_effect": expected,
+            "identity": "miner-practice-" + uuid.uuid4().hex[:16],
+        }
+        return self._background(admitted, "practice", params, "PRACTICING", request)
 
     def freeze_candidate_admitted(self, admitted, request):
         """Freeze a practiced recipe. Its refusals - agent-selected campaign,
@@ -1428,10 +1862,7 @@ class RunnerAdapter:
         are read from the campaign's own records before anything starts, so a
         person gets the named reason at once; the freeze itself then runs in
         the background, because preparing the campaign can take a while."""
-        from carbon.development_session.research_campaign import (
-            freeze_candidate,
-            freeze_refusal,
-        )
+        from carbon.development_session.research_campaign import freeze_refusal
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
@@ -1445,42 +1876,90 @@ class RunnerAdapter:
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
-
-        async def freeze(prepared):
-            return await freeze_candidate(
-                prepared, strategy=strategy, reason=reason, used_feedback=used
-            )
-
+        params = {"strategy": strategy, "reason": reason, "used_feedback": used}
         return self._background(
-            admitted, freeze, "FREEZING", "freeze_candidate", request
+            admitted, "freeze_candidate", params, "FREEZING", request
         )
 
     def submit_admitted(self, admitted, request):
-        from carbon.development_session.research_campaign import submit_frozen
-
         # Checked before the thread starts, so a submit with nothing frozen is
         # refused to the caller rather than failing where no one sees it.
         self._require_frozen(admitted)
-        return self._background(
-            admitted, submit_frozen, "SUBMITTING", "submit", request
-        )
+        return self._background(admitted, "submit", {}, "SUBMITTING", request)
 
-    def _background(self, admitted, work, state, operation, request):
+    @staticmethod
+    def _work(operation, params):
+        """The body of one miner operation, from what was admitted. The same
+        `research_campaign` functions whether it runs here or in a supervisor
+        that read it from the queue."""
+        from carbon.development_session import research_campaign
+
+        if operation not in ("practice", "freeze_candidate", "submit"):
+            raise ValueError("unknown miner operation")
+
+        async def work(prepared):
+            if operation == "practice":
+                return await research_campaign.practice_recipe(prepared, **params)
+            if operation == "freeze_candidate":
+                return await research_campaign.freeze_candidate(prepared, **params)
+            return await research_campaign.submit_frozen(prepared)
+
+        work.operation = operation
+        return work
+
+    @staticmethod
+    def _admissible(admitted):
+        """Refuse at once an operation the campaign's own state cannot take:
+        not yet prepared, finished, stopped, paused (resume first), or waiting
+        for reconciliation. Without this a paused campaign's operation would
+        wait on the pause, and a stopped one's would fail where no one sees."""
+        root = Path(admitted.campaign["root"])
+        if not (root / "campaign-manifest.json").exists():
+            raise Rejected("campaign_not_prepared", 409)
+        if not (root / "campaign.sqlite3").exists():
+            return
+        status = CampaignControl(CampaignLedger(root)).status()
+        if status["state"] == "COMPLETED":
+            raise Rejected("campaign_complete", 409)
+        if status["state"] == "STOPPED" or status["desired"] == "STOP":
+            raise Rejected("campaign_stopped", 409)
+        if status["desired"] == "PAUSE":
+            raise Rejected("campaign_paused", 409)
+        if status["state"] == "RECONCILIATION_REQUIRED":
+            raise Rejected("reconciliation_required", 409)
+
+    def _busy_elsewhere(self, identity):
+        """Whether a supervisor already holds work for this campaign: queued,
+        or running under a supervisor that is still alive."""
+        with self.db() as db:
+            item = supervision.active(db, principal=self.principal, campaign=identity)
+        if item is None:
+            return False
+        return item["state"] == supervision.QUEUED or self._supervisor_running()
+
+    def _background(self, admitted, operation, params, state, request):
         """Run a long miner operation on its own thread; observe reports it.
 
         A keyed request is claimed in the same critical section that starts
         the thread: a concurrent or later retry under the key finds the claim
-        and replays, and a refused request (busy) records nothing.
+        and replays, and a refused request (busy) records nothing. A host
+        that does not supervise queues the operation instead, for the
+        supervisor to start (LP-PROD-C).
         """
         identity = admitted.campaign["id"]
         key = request.get("idempotency_key")
+        delegating = self._delegating()
         with self.lock:
             if key is not None:
                 with self.db() as db:
                     if self._recorded_operation(db, key, operation, request):
                         return self.get(identity)
+            self._admissible(admitted)
             previous = self.threads.get(identity)
-            if previous is not None and previous.is_alive():
+            if delegating:
+                if self._busy_elsewhere(identity):
+                    raise Rejected("campaign_busy", 409)
+            elif previous is not None and previous.is_alive():
                 # A finished operation settles the campaign READY and then its
                 # thread exits: give it a moment to, so a client that saw
                 # READY is not told busy. A running one still answers busy.
@@ -1506,12 +1985,33 @@ class RunnerAdapter:
                         if self._recorded_operation(db, key, operation, request):
                             return self.get(identity)
                         raise
-            thread = threading.Thread(
-                target=self._operation_thread, args=(admitted, work), daemon=True
-            )
-            self.threads[identity] = thread
-            self._state(identity, state)
-            thread.start()
+            self._accepted(identity)
+            if delegating:
+                # Queued for the supervisor, under the profile this request
+                # was admitted with; it starts nothing admitted under another.
+                self._record(
+                    identity, operation, params, admitted.profile, supervision.QUEUED
+                )
+                self._state(identity, state)
+            else:
+                item = self._record(
+                    identity, operation, params, admitted.profile, supervision.RUNNING
+                )
+                thread = threading.Thread(
+                    target=self._tracked,
+                    args=(
+                        item,
+                        self._operation_thread,
+                        admitted,
+                        self._work(operation, params),
+                    ),
+                    daemon=True,
+                )
+                self.threads[identity] = thread
+                self._state(identity, state)
+                thread.start()
+        if delegating:
+            self._wake()
         return self.get(identity)
 
     @staticmethod
@@ -1529,18 +2029,48 @@ class RunnerAdapter:
         raise Rejected("freeze_a_candidate_first", 409)
 
     def _operation_thread(self, admitted, work):
+        """One miner operation's thread. Where no caller is waiting, its
+        outcome is kept: a named refusal as the campaign's `last_refusal`
+        (nothing was dispatched, and the campaign is settled as it stood), an
+        interruption as INTERRUPTED, privately recorded, with its typed code.
+        Until 2026-10-03 a refusal here was recorded as an interruption."""
+        identity = admitted.campaign["id"]
+        operation = getattr(work, "operation", None)
         try:
             self._operate(admitted, work)
+        except Rejected as refused:
+            self._refused(identity, refused.code, operation)
         except Exception as exc:  # noqa: BLE001 - never publish provider/key errors.
             record_interruption(Path(admitted.campaign["root"]), "operation", exc)
-            self._state(admitted.campaign["id"], "INTERRUPTED")
+            self._state(identity, "INTERRUPTED")
+            self._refused(
+                identity,
+                exception_code(exc) or "operation_interrupted",
+                operation,
+                kind="interrupted",
+            )
+
+    @staticmethod
+    def _settle_ready(control, generation, ledger, cleanup, *, completed=False):
+        """Settle a dispatch that leaves its campaign waiting for its miner:
+        READY, unless a pause or stop was asked for meanwhile, which is then
+        what it settles to (PAUSED, STOPPED). `settled` ranks READY above a
+        pending pause, so the ask is checked here."""
+        desired = control.status()["desired"]
+        return control.settled(
+            generation,
+            completed=completed,
+            ready=not completed and desired == "RUN",
+            cleanup_verified=cleanup(ledger),
+        )
 
     def _operate(self, admitted, work):
         """Run one miner operation on a prepared campaign, under its owner lock
         and a fresh control generation, and settle it afterwards.
 
-        A refusal changes nothing, so the campaign settles READY again; only
-        an unexpected failure leaves it for reconciliation.
+        A refusal changes nothing, so the campaign settles READY again (or
+        PAUSED or STOPPED, if that was asked meanwhile); only an unexpected
+        failure leaves it for reconciliation.
         """
         from carbon.chain.external_signer import SignerFailure, signatures_obtained
         from carbon.development_session.research_agent_policy import AUTONOMOUS
@@ -1564,7 +2094,13 @@ class RunnerAdapter:
         with stack:
             ledger = CampaignLedger(root)
             control = CampaignControl(ledger)
-            generation = control.acquire()
+            try:
+                generation = control.acquire()
+            except DispatchStopped:
+                stopped = control.status()["state"] == "STOPPED"
+                raise Rejected(
+                    "campaign_stopped" if stopped else "campaign_complete", 409
+                ) from None
             ledger.generation = generation
             args = campaign_args(
                 cfg,
@@ -1576,7 +2112,23 @@ class RunnerAdapter:
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
             )
-            credential = self._frozen_credential(cfg, root)
+            try:
+                desired = control.status()["desired"]
+                if desired != "RUN":
+                    # Paused or stopped after admission: nothing starts.
+                    raise Rejected(
+                        "campaign_paused" if desired == "PAUSE" else "campaign_stopped",
+                        409,
+                    )
+                if self._outstanding(ledger):
+                    # As a run does: ambiguous work never resumes on its own.
+                    raise Rejected("unresolved_operation", 409)
+                credential = self._frozen_credential(cfg, root)
+            except Rejected:
+                # Nothing was dispatched; settle as it stood rather than leave
+                # this generation in flight.
+                self._settle_ready(control, generation, ledger, self._cleanup)
+                raise
             if credential is not None:
                 args.api_key_file = credential
 
@@ -1608,13 +2160,10 @@ class RunnerAdapter:
                 control.settled(generation, cleanup_verified=self._cleanup(ledger))
                 raise
             complete = (root / "campaign-complete.json").exists()
-            control.settled(
-                generation,
-                completed=complete,
-                ready=not complete,
-                cleanup_verified=self._cleanup(ledger),
+            state = self._settle_ready(
+                control, generation, ledger, self._cleanup, completed=complete
             )
-            self._state(row["id"], "COMPLETED" if complete else "READY")
+            self._state(row["id"], state)
         if refused is not None:
             raise Rejected(refused, 409)
         return result
@@ -1638,19 +2187,41 @@ class RunnerAdapter:
             raise Rejected(refusal, 409)
         return Path(path)
 
-    def _start(self, run_id, cfg, root, product=None, choice=None):
+    def _start(self, run_id, cfg, root, product=None, choice=None, item=None):
+        """Start the campaign's run (a launch or resume) on a thread here.
+
+        `item` is the queue item a supervisor claimed for it; without one the
+        run is recorded as started here, so every door can see it in flight.
+        A run already alive here is the one a resume continues: nothing new
+        starts.
+        """
         with self.lock:
             if run_id in self.threads and self.threads[run_id].is_alive():
+                if item is not None:
+                    self._finish(item, "superseded")
                 return
+            if item is None:
+                item = self._record(run_id, "run", {}, cfg, supervision.RUNNING)
             thread = threading.Thread(
-                target=self._run,
-                args=(run_id, cfg, root, product, choice),
+                target=self._tracked,
+                args=(item, self._run, run_id, cfg, root, product, choice),
                 daemon=True,
             )
             self.threads[run_id] = thread
             thread.start()
 
     def _run(self, run_id, cfg, root, product, choice=None):
+        """A campaign's run: prepare it (freezing the launch's choices the
+        first time) and let whoever selects in it work, under its ownership
+        lock and a fresh control generation.
+
+        Its outcome is kept where no caller waits for it (LP-PROD-C): a named
+        refusal before anything was dispatched settles the campaign as it
+        stood and is kept as `last_refusal`; another holder of the campaign's
+        lock is `campaign_busy` and changes nothing; a campaign stopped or
+        complete before the run began is left so; a pause asked before the
+        run began settles PAUSED rather than starting work.
+        """
         from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import execute
 
@@ -1661,6 +2232,7 @@ class RunnerAdapter:
             if self.configuration is not None and self.configured() != cfg:
                 raise ValueError("dispatch configuration changed")
             row, kind, _ = self._bound(run_id)
+            row = dict(row)
             if kind != "product":
                 raise ValueError("a retired grant campaign is never dispatched")
             task = guidance.verify(
@@ -1670,10 +2242,23 @@ class RunnerAdapter:
             )
             if task != guidance.configured(cfg):
                 raise ValueError("frozen research guidance differs")
-            with owner_lock(root):
+            stack = ExitStack()
+            try:
+                stack.enter_context(owner_lock(root))
+            except RuntimeError:
+                # An attached agent, the page's tools or another run holds
+                # the campaign: nothing here changed it.
+                self._refused(run_id, "campaign_busy", "run")
+                return
+            with stack:
                 ledger = CampaignLedger(root)
                 control = CampaignControl(ledger)
-                generation = control.acquire()
+                try:
+                    generation = control.acquire()
+                except DispatchStopped:
+                    # Stopped or complete before this run began.
+                    self._state(run_id, control.status()["state"])
+                    return
                 ledger.generation = generation
                 # Ambiguous work never resumes automatically, even under a new
                 # generation. Completed observations remain replayable by runner.
@@ -1682,9 +2267,31 @@ class RunnerAdapter:
                         "SELECT 1 FROM operations WHERE state IN ('RESERVED','HELD') LIMIT 1"
                     ).fetchone()
                 if pending:
+                    self._refused(run_id, "unresolved_operation", "run")
                     raise DispatchStopped("unresolved operation")
-                install_research_images(cfg, root)
                 creating = not (root / "campaign-manifest.json").exists()
+                try:
+                    if control.status()["desired"] != "RUN":
+                        # Paused or stopped before it began: settle to that.
+                        control.settled(
+                            generation, cleanup_verified=self._cleanup(ledger)
+                        )
+                        return
+                    install_research_images(cfg, root)
+                    if creating and product is None:
+                        # Started where the launch was not received: rebuilt
+                        # from its record, never from defaults (whose absence
+                        # sent a resume of an unprepared launch down the
+                        # retired grant path before 2026-10-03).
+                        product, choice = self._recorded_launch(row, cfg)
+                    credential = (
+                        None if creating else self._frozen_credential(cfg, root)
+                    )
+                except Rejected as refused:
+                    # Refused before anything was dispatched.
+                    control.settled(generation, cleanup_verified=self._cleanup(ledger))
+                    self._refused(run_id, refused.code, "run")
+                    return
                 args = campaign_args(
                     cfg,
                     root=root,
@@ -1699,24 +2306,34 @@ class RunnerAdapter:
                     # The launch's choice freezes into the manifest now.
                     if choice is not None:
                         choice.apply(args)
-                else:
+                elif credential is not None:
                     # A resume keeps the frozen choice; only its key file is
                     # read again, from the profile, for the frozen provider.
-                    credential = self._frozen_credential(cfg, root)
-                    if credential is not None:
-                        args.api_key_file = credential
+                    args.api_key_file = credential
+                outcome = None
                 try:
-                    asyncio.run(execute(args, ledger=ledger))
+                    outcome = asyncio.run(execute(args, ledger=ledger))
                 except Exception as exc:  # noqa: BLE001 - kept private
                     # Never published; record_interruption keeps only its type.
                     record_interruption(root, "run" if creating else "resume", exc)
                     self._state(run_id, "INTERRUPTED")
+                    self._refused(
+                        run_id,
+                        exception_code(exc) or "campaign_interrupted",
+                        "run",
+                        kind="interrupted",
+                    )
                 finally:
                     clean = self._cleanup(ledger)
                     completed = (root / "campaign-complete.json").exists()
                     # An agent-less campaign is prepared and waiting for its
-                    # miner: ready, not interrupted.
-                    ready = not completed and product_agent(root) == "none"
+                    # miner: ready, not interrupted - unless a pause or stop
+                    # was asked meanwhile, which it then settles to.
+                    ready = (
+                        not completed
+                        and product_agent(root) == "none"
+                        and control.status()["desired"] == "RUN"
+                    )
                     state = control.settled(
                         generation,
                         completed=completed,
@@ -1725,10 +2342,23 @@ class RunnerAdapter:
                     )
                     if state == "READY":
                         self._state(run_id, "READY")
-        except Exception:  # noqa: BLE001
+                if type(outcome) is str:
+                    # Carbon's agent selected a candidate the validator did
+                    # not evaluate (`run_agent`): the code says why.
+                    self._refused(run_id, outcome, "submit")
+        except Exception as exc:  # noqa: BLE001
             self._state(run_id, "RECONCILIATION_REQUIRED")
             if generation is not None:
                 control.settled(generation, cleanup_verified=False)
+            if isinstance(exc, Rejected):
+                self._refused(run_id, exc.code, "run")
+            elif not isinstance(exc, DispatchStopped):
+                code = (
+                    "dispatch_configuration_changed"
+                    if str(exc) == "dispatch configuration changed"
+                    else exception_code(exc) or "reconciliation_required"
+                )
+                self._refused(run_id, code, "run", kind="interrupted")
 
     def _state(self, run_id, state):
         with self.db() as db:
@@ -1857,10 +2487,8 @@ class RunnerAdapter:
         ledger = self._ledger(row, kind, root)
         control = CampaignControl(ledger)
         if action == "reconcile":
-            with owner_lock(root):
-                generation = control.acquire()
-                ledger.generation = generation
-                control.settled(generation, cleanup_verified=self._cleanup(ledger))
+            if not self._settle_if_idle(ledger, control, root):
+                raise Rejected("campaign_busy", 409)
         else:
             if action == "resume":
                 cfg = self.configured()
@@ -1884,17 +2512,85 @@ class RunnerAdapter:
                     ledger.cancel_sequence_held(parent, owner=owner)
                 for operation, owner in operations:
                     request_cancel(ledger, owner=owner, identity=operation)
+            if action in ("pause", "stop"):
+                # Nothing running holds an idle campaign, so nothing would
+                # ever act on the request: settle it now (LP-PROD-C). A live
+                # holder settles it at its next checkpoint instead.
+                self._settle_if_idle(ledger, control, root)
             if action == "resume":
                 # Resumes the frozen campaign; its manifest carries everything
-                # the launch admitted, so no new admission is constructed.
-                self._start(identity, cfg, root)
+                # the launch admitted, so no new admission is constructed. One
+                # never prepared is carried out from its launch record.
+                self._dispatch_run(identity, cfg, root)
         return self.get(identity)
 
+    def _settle_if_idle(self, ledger, control, root):
+        """Settle the campaign now, with the real cleanup check, if no live
+        process holds its ownership lock: PAUSED or STOPPED as asked, or
+        RECONCILIATION_REQUIRED while work may be outstanding; reconciled with
+        nothing outstanding, a campaign whose miner selects is READY again.
+        False when a live holder (a run, an operation, an attached agent or
+        the page's tools) has it; that holder settles it. A finished campaign
+        is left as it is."""
+        stack = ExitStack()
+        try:
+            stack.enter_context(owner_lock(root))
+        except RuntimeError:
+            return False
+        with stack:
+            try:
+                generation = control.acquire()
+            except DispatchStopped:
+                return True
+            ledger.generation = generation
+            completed = (root / "campaign-complete.json").exists()
+            control.settled(
+                generation,
+                completed=completed,
+                ready=not completed
+                and control.status()["desired"] == "RUN"
+                and product_agent(root) == "none",
+                cleanup_verified=self._cleanup(ledger),
+            )
+        return True
+
     def get(self, identity):
+        """The campaign as its owner observes it: the projection, the last
+        refusal no caller saw (`last_refusal`), the work admitted for it and
+        not yet done (`in_flight`), and what gets it moving again
+        (`recovery`), all null or empty when there is none."""
         from scripts.dev.miner_launchpad.projection import project
 
         row, _, root = self._bound(identity)
-        return project(dict(row), root)
+        row = dict(row)
+        value = project(row, root)
+        # A retired-grant row has no such column: never refused here.
+        value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
+        value["in_flight"] = self._in_flight(identity)
+        value["recovery"] = supervision.recovery_actions(
+            value["state"], value["in_flight"]
+        )
+        return value
+
+    def _in_flight(self, identity):
+        """The newest dispatch admitted for the campaign and not yet done:
+        {operation, state (QUEUED or RUNNING), since, supervisor_running}."""
+        with self.db() as db:
+            item = supervision.active(db, principal=self.principal, campaign=identity)
+        if item is None:
+            return None
+        running = item["supervisor"] == self.token or self._supervisor_running()
+        if item["state"] == supervision.QUEUED and not running:
+            # Observed waiting with nobody to carry it out (the Control
+            # Center closed, say): a client starts a supervisor for it.
+            with contextlib.suppress(Exception):
+                self._wake()
+        return {
+            "operation": item["operation"],
+            "state": item["state"],
+            "since": round(item["claimed"] or item["created"], 3),
+            "supervisor_running": running,
+        }
 
     def recent(self):
         with self.db() as db:
@@ -1920,13 +2616,45 @@ class RunnerAdapter:
         return result
 
     def close(self):
+        """Close this door. Never stops a campaign (LP-PROD-C).
+
+        A client owns no campaign thread, so closing it leaves every campaign
+        to its supervisor: it detaches. A process that runs campaign threads
+        (the Control Center, a detached supervisor) asks each live campaign to
+        pause - reversible, resumed with one call - waits briefly for them to
+        settle, then releases the supervisor lock for the next supervisor.
+        One that does not settle in time is settled by that supervisor's
+        recovery from its ledger. Before 2026-10-03 closing sent every live
+        campaign an irreversible stop, so closing an agent mid-practice
+        stopped its campaign for good.
+        """
         # The page's tool sessions release their campaigns first (RSURF-D16).
         self.tool_sessions.close_all()
-        for identity, thread in tuple(self.threads.items()):
-            if thread.is_alive():
-                try:
-                    self.control(identity, "stop")
-                except Exception:  # noqa: BLE001
-                    self._state(identity, "RECONCILIATION_REQUIRED")
-        for thread in tuple(self.threads.values()):
-            thread.join(timeout=1)
+        if self.supervisor is not None:
+            self.supervisor.stop()
+        live = [
+            (identity, thread)
+            for identity, thread in tuple(self.threads.items())
+            if thread.is_alive()
+        ]
+        for identity, _thread in live:
+            with contextlib.suppress(Exception):
+                self._pause_for_close(identity)
+        deadline = time.monotonic() + supervision.CLOSE_JOIN_SECONDS
+        for _identity, thread in live:
+            join = getattr(thread, "join", None)
+            if join is not None:
+                join(timeout=max(0.0, deadline - time.monotonic()))
+        if self.supervisor is not None:
+            self.supervisor.release()
+
+    def _pause_for_close(self, identity):
+        """Ask a live campaign to pause because its supervisor is closing,
+        and say so in its `last_refusal`. A stop already asked for stands."""
+        row, kind, root = self._bound(identity)
+        control = CampaignControl(self._ledger(row, kind, root))
+        status = control.status()
+        if status["desired"] != "RUN" or status["state"] in supervision.TERMINAL:
+            return
+        control.request("pause")
+        self._refused(identity, "paused_when_supervisor_closed", None, kind="paused")
