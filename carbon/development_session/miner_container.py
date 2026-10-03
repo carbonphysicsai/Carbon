@@ -33,8 +33,10 @@ from carbon.reconstruction.worker.model import (
 )
 
 LANE = "carbon.miner-research.unlimited.v1"
-#: An NVIDIA device UUID: the only device a miner-lane container may hold.
-_GPU_UUID = re.compile(r"GPU-[0-9a-fA-F-]{8,64}")
+#: An NVIDIA device UUID, a whole GPU or a MIG instance (`MIG-<uuid>`, as
+#: `nvidia-smi -L` lists it today): the only device a miner-lane container may
+#: hold.
+_GPU_UUID = re.compile(r"(?:GPU|MIG)-[0-9a-fA-F-]{8,64}")
 #: What attaching it adds, and nothing else (RSURF-D20).
 GPU_CAPABILITIES = "compute,utility"
 

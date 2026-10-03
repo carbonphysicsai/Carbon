@@ -328,8 +328,24 @@ def test_a_device_choice_that_cannot_run_is_refused_before_dispatch():
         TaskContractMismatch,
     )
 
-    remote = lane(SimpleNamespace(transport=SimpleNamespace(name="ssh-docker")))
+    remote = lane(
+        SimpleNamespace(transport=SimpleNamespace(name="ssh-docker", sandboxed=True))
+    )
+
+    def container(opted_in):
+        transport = SimpleNamespace(
+            name="ssh-container", sandboxed=False, unsandboxed_code_cell=opted_in
+        )
+        return lane(SimpleNamespace(transport=transport))
+
+    # A remote route with no sandbox runs agent-written code only on the
+    # miner's own opt-in; a route that does not say it is sandboxed is not.
+    unstated = lane(SimpleNamespace(transport=SimpleNamespace(name="ssh-docker")))
+    opt_in = "remote_gpu_unsandboxed_opt_in_required"
     cases = [
+        ("run_python", {"device": "gpu", "seconds": 600}, container(False), opt_in),
+        ("run_python", {"device": "gpu", "seconds": 600}, container(True), None),
+        ("run_python", {"device": "gpu", "seconds": 600}, unstated, opt_in),
         ("run_python", {"device": "tpu"}, lane(), "device_choice_invalid"),
         ("run_python", {"device": "gpu"}, None, "gpu_lane_not_configured"),
         ("run_julia", {"device": "gpu"}, lane(), "julia_gpu_unavailable"),
@@ -470,9 +486,13 @@ def test_a_local_gpu_run_records_its_device(tmp_path, monkeypatch):
 
 class FakeRemote:
     """The miner's remote route, as RemoteRunner is called: it records what
-    it was given and returns the job's files."""
+    it was given and returns what RemoteRunner returns. The job server's own
+    result is not among the output files: RemoteJob takes it out and the
+    runner records it under remote.job (the 2026-10-03 review found an
+    earlier double that kept it in the files, which hid every remote run
+    reading as failed)."""
 
-    transport = SimpleNamespace(name="ssh-docker")
+    transport = SimpleNamespace(name="ssh-docker", sandboxed=True)
 
     def __init__(self, returncode=0):
         self.returncode, self.calls = returncode, []
@@ -488,16 +508,20 @@ class FakeRemote:
             "plot.png": b"\x89PNG\r\n\x1a\nfake",
             "carbon-stdout.txt": b"printed on the GPU\n",
             "carbon-job-stderr.txt": b"a warning\n",
-            "carbon-job-result.json": json.dumps(
-                {"returncode": self.returncode, "timed_out": False}
-            ).encode(),
         }
         for name, body in output.items():
             (snapshot / name).write_bytes(body)
+        job = {
+            "schema": "carbon.compute.rented-job.v1",
+            "state": "DONE" if self.returncode == 0 else "FAILED",
+            "returncode": self.returncode,
+            "elapsed_s": 0.1,
+            "timed_out": False,
+        }
         return {
             "operation": "operation-remote",
             "files": {n: digest(b) for n, b in output.items()},
-            "remote": {"transport": "ssh-docker", "cleanup": "confirmed"},
+            "remote": {"transport": "ssh-docker", "cleanup": "confirmed", "job": job},
         }
 
 
@@ -531,6 +555,132 @@ def test_a_remote_gpu_run_uses_the_route_and_keeps_its_output(tmp_path):
     )
     assert failed["outcome"] == "MINER_PROGRAM_FAILED"
     assert failed["worker"]["failure_code"] == "RUNTIME"
+
+
+def real_remote_lane(tmp_path):
+    """The real RemoteRunner, RemoteJob and job server: only SSH is faked.
+    test_remote_runner's machine runs the job server in a thread and answers
+    the start script as a real ssh-docker machine does."""
+    from test_remote_runner import FakeRemote as Machine
+    from test_remote_runner import fast_job, gpu_worker, worker
+
+    from carbon.compute.remote_runner import RemoteRunner
+    from carbon.compute.remote_transport import SSHDocker
+
+    (tmp_path / "machine").mkdir(mode=0o700, parents=True)
+    machine = Machine(tmp_path / "machine")
+    image = gpu_worker()
+    runner = RemoteRunner(
+        transport=SSHDocker(machine), worker=worker(image), job=fast_job
+    )
+    return GpuLane(image=image, remote=runner), machine
+
+
+def test_a_real_remote_run_reads_the_job_result_where_the_runner_records_it(
+    tmp_path, monkeypatch
+):
+    """Every remote GPU run used to read as MINER_PROGRAM_FAILED: RemoteJob
+    takes the job server's result out of the output, and the code cell
+    looked for it among the output files. Through the real runner, a program
+    that succeeds is a success, and one that exits nonzero is the miner's."""
+    from test_remote_runner import campaign_ledger
+
+    monkeypatch.setenv("no_proxy", "127.0.0.1")
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+    gpu, machine = real_remote_lane(tmp_path)
+    executor = executor_with(tmp_path / "campaign", gpu)
+    # A frozen product campaign and its owner, as a real remote run reserves.
+    executor.ledger, executor.owner = campaign_ledger(tmp_path / "frozen"), "miner"
+    source = (
+        "from pathlib import Path\n"
+        "print('ran on the remote GPU')\n"
+        "(Path('..').resolve() / 'output' / 'speed.json').write_text('{}')\n"
+    )
+    result = gpu_code_cell.run(
+        executor,
+        identity="rtsk_" + "5" * 64,
+        args={"source": source, "files": [], "device": "gpu", "seconds": 60},
+        files={},
+    )
+    assert "outcome" not in result, result
+    assert result["worker"]["remote"]["job"]["returncode"] == 0
+    assert result["workspace_exports"] == ["5" * 20 + "-speed.json"]
+    operation = executor.ledger.root / result["worker"]["operation"]
+    assert (operation / "stdout.txt").read_bytes() == b"ran on the remote GPU\n"
+    assert result["device"]["isolation"] == gpu_code_cell.REMOTE_SANDBOX
+    failed = gpu_code_cell.run(
+        executor,
+        identity="rtsk_" + "6" * 64,
+        args={
+            "source": "raise SystemExit(3)\n",
+            "files": [],
+            "device": "gpu",
+            "seconds": 60,
+        },
+        files={},
+    )
+    assert failed["outcome"] == "MINER_PROGRAM_FAILED"
+    assert failed["worker"]["failure_code"] == "RUNTIME"
+    # Each run's container was removed.
+    assert len(machine.started) == 2 and machine.removed == machine.started
+
+
+def test_an_unsandboxed_remote_code_cell_needs_the_miners_own_opt_in():
+    """ssh-container runs a code cell inside the miner's own container with
+    no sandbox and its network: only when the miner says so in their runner
+    profile, never from an argument an agent could set."""
+    from carbon.compute.remote_transport import (
+        RemoteMachine,
+        SSHContainer,
+        SSHDocker,
+        transport_for,
+    )
+
+    plain = {"transport": "ssh-container", "destination": "me@pod"}
+    opted = {**plain, "unsandboxed_code_cell": True}
+    assert RemoteMachine.from_document(plain).unsandboxed_code_cell is False
+    assert RemoteMachine.from_document(opted).document() == opted
+    for refused in (
+        {**plain, "unsandboxed_code_cell": False},
+        {**plain, "unsandboxed_code_cell": "true"},
+        {
+            "transport": "ssh-docker",
+            "destination": "me@pod",
+            "unsandboxed_code_cell": True,
+        },
+    ):
+        with pytest.raises(ValueError, match="unsandboxed_code_cell"):
+            RemoteMachine.from_document(refused)
+
+    def fake_ssh(destination, port=None):
+        return SimpleNamespace(destination=destination)
+
+    container = transport_for(RemoteMachine.from_document(opted), ssh=fake_ssh)
+    assert type(container) is SSHContainer and container.unsandboxed_code_cell
+    assert not container.sandboxed
+    docker = transport_for(
+        RemoteMachine.from_document(
+            {"transport": "ssh-docker", "destination": "me@pod"}
+        ),
+        ssh=fake_ssh,
+    )
+    assert type(docker) is SSHDocker and docker.sandboxed
+    assert not docker.unsandboxed_code_cell
+
+    # What the miner and their agent are told, per lane.
+    def remote(transport):
+        return lane(SimpleNamespace(transport=transport))
+
+    assert remote(docker).describe()["isolation"] == gpu_code_cell.REMOTE_SANDBOX
+    assert remote(container).describe()["isolation"] == gpu_code_cell.REMOTE_NO_SANDBOX
+    assert lane().describe()["isolation"] == gpu_code_cell.LOCAL_ISOLATION
+    args = {"device": "gpu", "seconds": 600}
+    assert refusal("run_python", args, remote(container)) is None
+    refused_container = SSHContainer(fake_ssh("me@pod"))
+    assert (
+        refusal("run_python", args, remote(refused_container))
+        == "remote_gpu_unsandboxed_opt_in_required"
+    )
 
 
 def test_the_remote_wrapper_runs_the_program_and_keeps_its_stdout(tmp_path):
@@ -640,3 +790,135 @@ def test_only_the_miners_own_code_cell_may_ask_for_a_gpu_in_the_miner_lane():
             miner_authored=False,
             accelerator=research_carrier.MINER_GPU,
         )
+
+
+# ---- The local lane's device, locks and settlement (2026-10-03 review).
+
+GPU_UUID = "GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81"
+MIG_UUID = "MIG-1b2c3d4e-5f60-7182-93a4-b5c6d7e8f901"
+
+
+def miner_lane(tmp_path, cli, device, *, ledger=None):
+    """One miner-lane run up to its container, with doubles for the host."""
+    operation = tmp_path / "operation-x"
+    operation.mkdir()
+    (operation / "input").mkdir()
+    return research_carrier._run_miner_lane(
+        ledger or SimpleNamespace(root=tmp_path),
+        guard=None,
+        owner="alice",
+        identity="rtsk_" + "7" * 64,
+        operation=operation,
+        stage=operation / "input",
+        name="carbon-d4-" + "c" * 24,
+        cli=cli,
+        image=SimpleNamespace(image_id=DIGEST),
+        launch="sha256:" + "b" * 64,
+        request={},
+        seconds=None,
+        started=0.0,
+        started_unix=0.0,
+        bootstrap="pass",
+        output_validator=None,
+        provenance="MINER_SELF_REPORTED",
+        resources={},
+        miner_authored=True,
+        before_finish=lambda: None,
+        device=device,
+    )
+
+
+@pytest.fixture
+def host(monkeypatch):
+    """The device lease, the shared Carbon slot and the retained-container
+    check as recorded events; nothing touches a real device or Docker."""
+    from contextlib import contextmanager
+
+    from carbon.reconstruction.worker import accelerator_runtime as runtime
+
+    events = []
+
+    @contextmanager
+    def held(name):
+        events.append(name + "+")
+        try:
+            yield
+        finally:
+            events.append(name + "-")
+
+    monkeypatch.setattr(runtime, "miner_device_lease", lambda uuid: held("device"))
+    monkeypatch.setattr(runtime, "shared_host_lease", lambda: held("slot"))
+    monkeypatch.setattr(
+        runtime, "reject_existing_device_containers", lambda cli: events.append("check")
+    )
+    monkeypatch.setattr(
+        research_carrier.liveness_reaper, "spawn_liveness_reaper", lambda **_: None
+    )
+    monkeypatch.setattr(
+        research_carrier, "remove_exact_container", lambda **_: events.append("remove")
+    )
+
+    class Cli:
+        def run(self, arguments, timeout=30):
+            events.append(arguments[0])
+            if arguments[0] == "start":
+                raise WorkerFailure(WorkerCode.UNAVAILABLE)
+            return SimpleNamespace(stdout=b"")
+
+    return SimpleNamespace(events=events, cli=Cli(), runtime=runtime)
+
+
+def test_the_miner_gpu_run_holds_the_shared_carbon_slot_across_check_and_create(
+    tmp_path, host
+):
+    """Validator GPU work holds the shared slot for its whole run and checks
+    for labelled device containers under it. The miner's run holds the same
+    slot from its own check until its create, so neither side can pass its
+    check while the other is between check and create; once created, the
+    run's device label is what the validator's check sees."""
+    with pytest.raises(WorkerFailure):
+        miner_lane(tmp_path, host.cli, SimpleNamespace(device_uuid=GPU_UUID))
+    events = host.events
+    assert events[:6] == ["device+", "slot+", "check", "create", "slot-", "start"]
+    assert events[-1] == "device-" and "remove" in events
+
+
+def test_a_held_carbon_slot_stops_the_miner_gpu_run_before_create(
+    tmp_path, host, monkeypatch
+):
+    def contended():
+        host.events.append("slot busy")
+        raise WorkerFailure(WorkerCode.CONFLICT)
+
+    monkeypatch.setattr(host.runtime, "shared_host_lease", contended)
+    with pytest.raises(WorkerFailure) as refused:
+        miner_lane(tmp_path, host.cli, SimpleNamespace(device_uuid=GPU_UUID))
+    assert refused.value.code == WorkerCode.CONFLICT
+    assert host.events == ["device+", "slot busy", "device-"]
+
+
+def test_a_mig_instance_is_a_device_and_a_refused_launch_is_settled_at_once(tmp_path):
+    """MIG instances are listed as MIG-<uuid>; the lane accepts them. A
+    launch refused before any container command is settled there and then,
+    as the prechecks settle, rather than left RESERVED."""
+    stage = tmp_path / "stage"
+    stage.mkdir()
+    MinerResearchLaunch(
+        "carbon-d4-" + "c" * 24,
+        DIGEST,
+        "sha256:" + "b" * 64,
+        stage,
+        stage,
+        gpu_device=MIG_UUID,
+    )
+    finished = []
+    ledger = SimpleNamespace(
+        root=tmp_path, finish=lambda identity, **fields: finished.append(fields)
+    )
+    with pytest.raises(WorkerFailure):
+        miner_lane(
+            tmp_path, None, SimpleNamespace(device_uuid="GPU-$(id)"), ledger=ledger
+        )
+    (settled,) = finished
+    assert settled["state"] == "FAILED_INFRA"
+    assert settled["result"]["worker_created"] is False

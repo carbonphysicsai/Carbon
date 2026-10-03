@@ -37,6 +37,7 @@ from carbon.compute import job_server
 from carbon.compute.remote_job import RemoteJob, RemoteJobFailure
 from carbon.compute.remote_machine import (
     CONTAINER_NAME,
+    JOB_PORT,
     NO_WORKER_IMAGE,
     RemoteMachineError,
     Tunnel,
@@ -76,6 +77,11 @@ class Process:
         self.closed = True
 
 
+#: Where the real start script says the job container listens: its address on
+#: the job's private network, and the job port.
+CONTAINER_ADDRESS = "172.30.0.2"
+
+
 class FakeRemote:
     """The miner's machine behind `SSHClient`'s `run` and `tunnel`."""
 
@@ -84,6 +90,8 @@ class FakeRemote:
         self.start_code, self.remove_code = start_code, remove_code
         self.started, self.removed, self.tunnels = [], [], []
         self.scripts = []
+        #: The job server's real local port, behind the container's address.
+        self.served = None
 
     def run(self, script, *, timeout):
         self.scripts.append(script)
@@ -93,7 +101,8 @@ class FakeRemote:
             if self.start_code:
                 return self.start_code, b""
             env = dict(re.findall(r"printf '%s\\n' ([A-Z_]+)=(\S+)", script))
-            return 0, f"127.0.0.1:{self._serve(env)}\n".encode()
+            self.served = self._serve(env)
+            return 0, f"{CONTAINER_ADDRESS}:{env['CARBON_JOB_PORT']}\n".encode()
         if "docker rm -f" in script:
             self.removed.append(re.search(r"docker rm -f (\S+)", script).group(1))
             return self.remove_code, b""
@@ -122,10 +131,11 @@ class FakeRemote:
         assert ready.wait(10)
         return port[0]
 
-    def tunnel(self, remote):
-        # The forward is the identity here: the server already listens on
-        # this machine's loopback.
-        tunnel = Tunnel(Process(), remote)
+    def tunnel(self, remote, *, host="127.0.0.1"):
+        # The forward targets the container's private address and job port;
+        # here that is the job server's thread on this machine's loopback.
+        assert (host, remote) == (CONTAINER_ADDRESS, JOB_PORT)
+        tunnel = Tunnel(Process(), self.served)
         self.tunnels.append(tunnel)
         return tunnel
 
@@ -235,11 +245,15 @@ def test_a_trial_starts_one_container_runs_the_job_and_removes_it(tmp_path):
     assert result["remote"]["job"]["state"] == "DONE"
     assert result["official_eligible"] is False
     assert state(ledger) == ["SUCCEEDED"]
-    # The container runs the pinned worker by ID, on the machine's loopback,
-    # with the job server as its start command and the GPUs.
+    # The container runs the pinned worker by ID, hardened, on its own
+    # private network with nothing published, with the job server as its
+    # start command and one GPU by UUID.
     start = machine.scripts[0]
     assert f" {gpu_worker().image_id} " in start
-    assert "-p 127.0.0.1::8000" in start and "--gpus all" in start
+    assert "--network carbon-job-" in start and "network create --internal" in start
+    assert "--read-only" in start and "--cap-drop ALL" in start
+    assert "no-new-privileges" in start and '--gpus "device=$carbon_gpu"' in start
+    assert "-p 127.0.0.1::" not in start and "--gpus all" not in start
     assert f"--entrypoint {START_COMMAND[0]}" in start
     # The Challenge's worker environment travels with the job's own.
     assert "JAX_PLATFORMS=cuda" in start and "CARBON_JOB_PORT=8000" in start
@@ -265,6 +279,48 @@ def test_a_failed_job_is_infrastructure_and_its_container_is_still_removed(
     assert machine.removed == machine.started and len(machine.removed) == 1
     assert machine.tunnels[0].process.closed
     assert state(ledger) == ["FAILED_INFRA"]
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        b"\x1f\x8bnot a gzip stream",
+        job_server.pack({"predictions.json": b"{}"}),
+        job_server.pack({"carbon-job-result.json": b"[]"}),
+    ],
+)
+def test_a_malformed_output_settles_the_trial_and_never_leaves_it_reserved(
+    tmp_path, output
+):
+    """The 2026-10-03 review: a malformed archive (a tarfile or zlib error, a
+    missing result) escaped the runner's handler and left the operation
+    RESERVED. RemoteJob types it now, so the trial settles as infrastructure
+    failure and its container is still removed."""
+    seen = []
+
+    def hostile(method, url, *, body, headers, timeout):
+        path = url.rsplit("/", 1)[1]
+        seen.append(path)
+        if path == "status":
+            state_now = "DONE" if "run" in seen else "WAITING"
+            return 200, json.dumps({"state": state_now}).encode()
+        return {"stage": (200, b""), "run": (202, b""), "output": (200, output)}[path]
+
+    def job(url, token, **kwargs):
+        return RemoteJob(
+            "https://pod.example.org",
+            token,
+            transport=hostile,
+            sleep=lambda _: None,
+            **{k: v for k, v in kwargs.items() if k == "cancelled"},
+        )
+
+    runner, ledger, machine = setup(tmp_path, job=job)
+    with pytest.raises(RemoteJobFailure) as failed:
+        call(runner, ledger)
+    assert failed.value.stage == "output"
+    assert state(ledger) == ["FAILED_INFRA"]
+    assert machine.removed == machine.started
 
 
 def test_a_machine_that_refuses_the_start_is_named_and_still_cleaned(tmp_path):

@@ -169,7 +169,7 @@
     const limit = (w.doc.toolbox?.workspace || []).find(a => a.id === action)?.limits;
     const lane = w.state?.gpu_lane;
     const wall = device === "gpu" && lane?.kind === "remote_gpu" ? "required, " + lane.seconds[0] + " to " + lane.seconds[1] + " s on your remote GPU" : typeof limit === "number" ? "up to " + limit + " s" : limit ? String(limit) : "your allowance, or none";
-    const where = device === "gpu" && lane ? " Runs on " + lane.label + ", in the campaign's pinned GPU worker image (its packages differ from the CPU sandbox), with the same isolation, on your machine and your bill. The validator stays on CPU." : " Runs on CPU, in the isolated analysis sandbox.";
+    const where = device === "gpu" && lane ? " Runs on " + lane.label + ", in the campaign's pinned GPU worker image (its packages differ from the CPU sandbox), on your machine and your bill. Isolation: " + (lane.isolation || "not stated, so assume none") + ". The validator stays on CPU." : " Runs on CPU, in the isolated analysis sandbox.";
     return "Costs 1 research trial of your own budget: used " + used + ". Wall time: " + wall + "." + where + " Research only, never part of a submission.";
   }
 

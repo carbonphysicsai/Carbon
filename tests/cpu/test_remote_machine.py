@@ -8,12 +8,17 @@ with a fake `docker` on PATH. What is held:
   no `accept-new`; the destination can never be read as an option;
 - `run` returns the exit status and a bounded standard output, and a timeout
   or a missing client is a status, not an exception;
-- the start script starts one container by image ID with a per-job name,
-  `--rm`, the GPUs and the job port on the machine's loopback only; the job's
-  environment goes through a temporary file that is deleted; nothing uses
-  sudo; and Docker, the toolkit, Docker access and the image are each
-  refused by their own code (90 to 93);
-- the remove script touches only Carbon's `carbon-job-<24 hex>` containers;
+- the start script starts one hardened container by image ID with a
+  per-job name and `--rm`: on its own `--internal` network, with no port
+  published on the machine, a read-only root and one tmpfs scratch, every
+  capability dropped, `no-new-privileges` and exactly one GPU by UUID (the
+  2026-10-03 security review of the GPU code cell). It prints the
+  container's private address for the SSH forward. The job's environment
+  goes through a temporary file that is deleted; nothing uses sudo; and
+  Docker, the toolkit, Docker access, the image, the GPU, the network and
+  the container are each refused by their own code (90 to 93, 97 to 99);
+- the remove script touches only Carbon's `carbon-job-<24 hex>` container
+  and network;
 - the worker image is streamed with `docker save | ssh docker load` and
   checked by image ID.
 """
@@ -29,8 +34,10 @@ import pytest
 
 from carbon.compute import remote_machine as rm
 from carbon.compute.remote_machine import (
+    JobEndpoint,
     RemoteMachineError,
     SSHClient,
+    job_endpoint,
     published_port,
     remove_script,
     send_image,
@@ -46,6 +53,13 @@ ENV = (
     ("JAX_PLATFORMS", "cuda"),
 )
 COMMAND = ("/opt/carbon-worker/bin/python", "-I", "-m", "carbon.compute.job_server")
+GPU = "GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81"
+#: What the fake `nvidia-smi` lists: two GPUs; the job gets the first only.
+FAKE_NVIDIA_SMI = f"""#!/bin/bash
+printf '%s\\n' "${{CARBON_FAKE_GPUS-{GPU} GPU-0000aaaa-bbbb-cccc-dddd-eeeeffff0000}}" | {{
+  read -r -a gpus; for gpu in "${{gpus[@]}}"; do printf ' %s\\n' "$gpu"; done
+}}
+"""
 
 #: A fake `docker`: it logs each call and answers from the environment. It
 #: uses bash builtins only, so the tests control everything on PATH.
@@ -72,7 +86,16 @@ case "$1" in
       fi
       previous="$argument"
     done
+    [ -z "${CARBON_FAKE_RUN_FAILS:-}" ] || exit 125
     printf '%s\n' 4f3c2b1a; exit 0 ;;
+  network)
+    case "$2" in
+      create) [ -z "${CARBON_FAKE_NO_NETWORK:-}" ] || exit 1; exit 0 ;;
+      inspect) [ -n "${CARBON_FAKE_NETWORK_STILL_THERE:-}" ] && exit 0; exit 1 ;;
+    esac
+    exit 0 ;;
+  inspect)
+    printf '172.30.0.2\n'; exit 0 ;;
   port)
     printf '127.0.0.1:49153\n'; exit 0 ;;
   rm)
@@ -136,11 +159,13 @@ def machine(tmp_path):
     return {"tools": tools, "tmp": temporary, "log": log}
 
 
-def bash(script, machine, *, docker=True, toolkit=True, **env):
+def bash(script, machine, *, docker=True, toolkit=True, gpu=True, **env):
     if docker:
         _executable(machine["tools"] / "docker", FAKE_DOCKER)
     if toolkit:
         _executable(machine["tools"] / "nvidia-ctk", "#!/bin/bash\nexit 0\n")
+    if gpu:
+        _executable(machine["tools"] / "nvidia-smi", FAKE_NVIDIA_SMI)
     return subprocess.run(
         ["/bin/bash", "-s"],
         input=script.encode(),
@@ -298,26 +323,39 @@ def test_a_forward_that_never_opens_is_refused_and_closed(tmp_path):
 # --- the start script ----------------------------------------------------------------
 
 
-def test_the_start_script_starts_one_named_container_on_loopback_by_image_id(machine):
+def test_the_start_script_starts_one_hardened_container_on_its_own_network(machine):
     text = script()
     assert "sudo" not in text
     for forbidden in ("apt", "curl", "wget", "install", "pull"):
         assert forbidden not in text
     completed = bash(text, machine, CARBON_FAKE_IMAGE=IMAGE)
     assert completed.returncode == 0, completed.stderr
-    assert published_port(completed.stdout) == 49153
-    (run,) = [line for line in calls(machine) if line.startswith("run ")]
-    assert run.startswith(f"run -d --rm --name {NAME} --gpus all -p 127.0.0.1::8000 ")
+    # The SSH forward targets the container's private address and job port.
+    assert job_endpoint(completed.stdout) == JobEndpoint("172.30.0.2", 8000)
+    made = calls(machine)
+    assert f"network create --internal {NAME}" in made
+    (run,) = [line for line in made if line.startswith("run ")]
+    assert made.index(f"network create --internal {NAME}") < made.index(run)
+    assert run.startswith(
+        f"run -d --rm --name {NAME} --network {NAME} --read-only "
+        "--tmpfs /scratch:rw,nosuid,nodev,exec,uid=65532,gid=65532,mode=0700 "
+        "--cap-drop ALL --security-opt no-new-privileges "
+        f"--gpus device={GPU} "
+    )
+    # Exactly one GPU, the first the driver lists; nothing published on the
+    # machine, so no port, and never all GPUs.
+    assert "--gpus all" not in run and " -p " not in run and "--publish" not in run
+    assert "--privileged" not in run and "--cap-add" not in run
     assert f"--entrypoint {COMMAND[0]} {IMAGE} -I -m carbon.compute.job_server" in run
     # The token travels in the env file only, never on a command line.
     assert TOKEN not in run
     log = machine["log"]
     env_lines = Path(str(log) + ".env").read_text().splitlines()
-    assert env_lines == [f"{k}={v}" for k, v in ENV]
+    assert env_lines == [f"{k}={v}" for k, v in (*rm.JOB_SCRATCH_ENV, *ENV)]
     # The env file is gone, and nothing else was left behind.
     assert not Path(Path(str(log) + ".envpath").read_text().strip()).exists()
     assert list(machine["tmp"].iterdir()) == []
-    assert calls(machine)[-1] == f"port {NAME} 8000/tcp"
+    assert made[-1].startswith("inspect --format") and made[-1].endswith(NAME)
 
 
 @pytest.mark.parametrize(
@@ -343,6 +381,62 @@ def test_each_missing_prerequisite_is_refused_by_its_own_code(machine, setup, co
     }
     assert rm.failure_for(code).code == expected[code]
     assert "sudo password" in rm.failure_for(rm.NO_DOCKER_ACCESS).next_step
+
+
+@pytest.mark.parametrize(
+    "setup",
+    [
+        {"gpu": False},
+        {"CARBON_FAKE_GPUS": ""},
+        {"CARBON_FAKE_GPUS": "GPU-$(id)"},
+        {"CARBON_FAKE_GPUS": "all"},
+        {"CARBON_FAKE_GPUS": "GPU-short"},
+    ],
+)
+def test_no_gpu_listed_by_uuid_is_refused_before_anything_starts(machine, setup):
+    completed = bash(script(), machine, CARBON_FAKE_IMAGE=IMAGE, **setup)
+    assert completed.returncode == rm.NO_GPU_DEVICE
+    made = calls(machine)
+    assert not [c for c in made if c.startswith(("run ", "network "))]
+    assert list(machine["tmp"].iterdir()) == []
+    assert rm.failure_for(rm.NO_GPU_DEVICE).code == "no_gpu_device"
+
+
+def test_a_network_or_container_that_cannot_start_is_refused_and_left_clean(machine):
+    no_network = bash(
+        script(), machine, CARBON_FAKE_IMAGE=IMAGE, CARBON_FAKE_NO_NETWORK="1"
+    )
+    assert no_network.returncode == rm.JOB_NETWORK_UNAVAILABLE
+    assert not [c for c in calls(machine) if c.startswith("run ")]
+    assert rm.failure_for(rm.JOB_NETWORK_UNAVAILABLE).code == "job_network_unavailable"
+    machine["log"].unlink()
+    no_run = bash(script(), machine, CARBON_FAKE_IMAGE=IMAGE, CARBON_FAKE_RUN_FAILS="1")
+    assert no_run.returncode == rm.JOB_CONTAINER_NOT_STARTED
+    # The job's network is removed with the container that never started.
+    assert calls(machine)[-1] == f"network rm {NAME}"
+    assert list(machine["tmp"].iterdir()) == []
+    assert (
+        rm.failure_for(rm.JOB_CONTAINER_NOT_STARTED).code == "job_container_not_started"
+    )
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        b"",
+        b"8.8.8.8:8000\n",
+        b"0.0.0.0:8000\n",
+        b"169.254.169.254:8000\n",
+        b"172.30.0.2:8000\n172.30.0.3:8000\n",
+        b"999.1.1.1:8000\n",
+        b"172.30.0.2:0\n",
+        b"gpu-box:8000\n",
+    ],
+)
+def test_a_job_endpoint_is_one_private_or_loopback_address(stdout):
+    with pytest.raises(RemoteMachineError, match="job_port_unreadable"):
+        job_endpoint(stdout)
+    assert job_endpoint(b"127.0.0.1:41234\n") == JobEndpoint("127.0.0.1", 41234)
 
 
 def test_the_start_script_takes_only_plain_values():
@@ -386,12 +480,15 @@ def test_the_remove_script_refuses_any_container_carbon_did_not_name(name):
         remove_script(name)
 
 
-def test_the_remove_script_removes_the_job_container_and_confirms(machine):
+def test_the_remove_script_removes_the_job_container_and_network_and_confirms(machine):
     completed = bash(remove_script(NAME), machine)
     assert completed.returncode == 0
     assert f"rm -f {NAME}" in calls(machine)
+    assert f"network rm {NAME}" in calls(machine)
     still = bash(remove_script(NAME), machine, CARBON_FAKE_STILL_THERE="1")
     assert still.returncode == 1
+    network = bash(remove_script(NAME), machine, CARBON_FAKE_NETWORK_STILL_THERE="1")
+    assert network.returncode == 1
 
 
 # --- streaming the worker image ------------------------------------------------------------

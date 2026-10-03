@@ -109,6 +109,14 @@ TASK_CORRECTIONS = {
         "A run on your remote GPU needs seconds between 40 and 3600 in its "
         "arguments: the remote route's job has a lifetime."
     ),
+    "remote_gpu_unsandboxed_opt_in_required": (
+        "Your remote GPU is an ssh-container setup: a code cell there runs "
+        "inside your own container with no sandbox and with that container's "
+        "network. It runs only if you opt in yourself: add "
+        '"unsandboxed_code_cell": true to remote_machine in your runner '
+        "profile. Or run on cpu, or use an ssh-docker setup, which runs each "
+        "job in a hardened container."
+    ),
     "workspace_recipe_forbidden": (
         "kind=workspace requires strategy_json=null, an allowed action and its "
         "arguments_json object. To practice a registered recipe, use kind=practice "

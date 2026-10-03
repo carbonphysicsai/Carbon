@@ -15,6 +15,7 @@ import tarfile
 import threading
 import urllib.error
 import urllib.request
+import zlib
 
 import pytest
 
@@ -143,6 +144,124 @@ def test_archives_carry_flat_regular_files_only(members):
 def test_archives_are_bounded():
     with pytest.raises(ValueError, match="bound"):
         job_server.unpack(job_server.pack({"a": b"x" * 2048}), 64)
+
+
+def zeros(size):
+    """A gzip stream of `size` zero bytes, built without ever holding them."""
+    deflate = zlib.compressobj(9, zlib.DEFLATED, 31)
+    chunk = bytes(1 << 20)
+    parts = [deflate.compress(chunk) for _ in range(size >> 20)]
+    parts.append(deflate.flush())
+    return b"".join(parts)
+
+
+def test_a_small_archive_of_zeros_is_refused_without_inflating_in_memory():
+    """The 2026-10-03 review: a 1 MB response took about 2 GiB, because the
+    whole archive was inflated before its size was checked. Now it is
+    abandoned as soon as it passes twice its bound."""
+    import tracemalloc
+
+    maximum = 1 << 20
+    bomb = zeros(256 << 20)
+    assert len(bomb) < maximum
+    tracemalloc.start()
+    try:
+        with pytest.raises(ValueError, match="bound"):
+            job_server.unpack(bomb, maximum)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < 8 * maximum, peak
+    # Specimen: the same stream within a generous bound inflates to its size,
+    # so the refusal above is the bound, not a broken stream.
+    inflater = zlib.decompressobj(wbits=31)
+    assert len(inflater.decompress(zeros(2 << 20))) == 2 << 20
+
+
+def tar_of(files):
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w") as tar:
+        for name, body in files.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(body)
+            tar.addfile(info, io.BytesIO(body))
+    return buffer.getvalue()
+
+
+MALFORMED_OUTPUTS = {
+    "not gzip": b"not a gzip stream at all",
+    "truncated gzip": job_server.pack({"a": b"x" * 4096})[:40],
+    "gzip of no tar": gzip.compress(b"not a tar archive" * 64),
+    "no job result": job_server.pack({"a": b"1"}),
+    "result not a record": job_server.pack({"carbon-job-result.json": b"[1]"}),
+    "result not json": job_server.pack({"carbon-job-result.json": b"{"}),
+    "trailing bytes": job_server.pack({"carbon-job-result.json": b"{}"}) + b"tail",
+    "two gzip members": job_server.pack({"carbon-job-result.json": b"{}"}) * 2,
+    "a link": archive([("link", "link")]),
+    "a nested name": gzip.compress(tar_of({"dir/carbon-job-result.json": b"{}"})),
+}
+
+
+@pytest.mark.parametrize("shape", sorted(MALFORMED_OUTPUTS))
+def test_malformed_output_is_the_jobs_typed_failure(shape):
+    """Whatever the response holds, RemoteJob.output raises RemoteJobFailure,
+    which the runner's handler settles, so no operation is left RESERVED."""
+    body = MALFORMED_OUTPUTS[shape]
+    job = RemoteJob(
+        "https://pod.example.org", new_token(), transport=lambda *a, **k: (200, body)
+    )
+    with pytest.raises(RemoteJobFailure) as failed:
+        job.output()
+    assert failed.value.stage == "output"
+    # Specimen: a well-formed output reads.
+    good = job_server.pack({"carbon-job-result.json": b'{"returncode": 0}', "a": b"1"})
+    result, files = RemoteJob(
+        "https://pod.example.org", new_token(), transport=lambda *a, **k: (200, good)
+    ).output()
+    assert result == {"returncode": 0} and files == {"a": b"1"}
+
+
+def test_an_oversized_output_is_refused_by_the_controller(monkeypatch):
+    from carbon.compute import remote_job
+
+    monkeypatch.setattr(remote_job, "MAX_OUTPUT_BYTES", 1 << 20)
+    bomb = zeros(64 << 20)
+    job = RemoteJob(
+        "https://pod.example.org", new_token(), transport=lambda *a, **k: (200, bomb)
+    )
+    with pytest.raises(RemoteJobFailure, match="output"):
+        job.output()
+
+
+ZEROS_PROGRAM = (
+    b"from pathlib import Path\n"
+    b"(Path.cwd().parent / 'output' / 'z.bin').write_bytes(bytes(3 << 20))\n"
+)
+
+
+def test_the_server_never_reads_output_past_its_bound(tmp_path, monkeypatch):
+    """Agent code can write as much as it likes to ../output; the server reads
+    at most twice the wire bound of it, so a compressible file can no longer
+    pass on its compressed size alone."""
+    monkeypatch.setattr(job_server, "MAX_OUTPUT_BYTES", 1 << 20)
+    job = job_server.Job(tmp_path, 30)
+    job.stage({"program.py": ZEROS_PROGRAM})
+    job.run()
+    assert job.finished.wait(30) and job.state == "DONE"
+    with pytest.raises(job_server.OutputRefused):
+        job.output()
+
+
+def test_an_oversized_output_is_answered_413_never_not_finished(pod, monkeypatch):
+    monkeypatch.setattr(job_server, "MAX_OUTPUT_BYTES", 1 << 20)
+    base, token, _ = pod
+    job = RemoteJob(base, token, sleep=lambda _: None)
+    with pytest.raises(RemoteJobFailure, match="output: http 413"):
+        job.run(
+            {"program.py": ZEROS_PROGRAM},
+            ready_deadline=job.clock() + 10,
+            run_deadline=job.clock() + 30,
+        )
 
 
 def test_a_remote_job_is_reached_over_https_or_a_local_tunnel():

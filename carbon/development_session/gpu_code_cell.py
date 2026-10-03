@@ -10,12 +10,24 @@ campaign's frozen runtime has a GPU lane:
 - **This machine's GPU.** The miner lane's own isolated container
   (`miner_container`), with the host's installed device attached and nothing
   else added, running the campaign's pinned GPU worker image (the CPU
-  analysis image has no CUDA). The same device lease as GPU practice.
-- **The miner's remote GPU.** Their own route (ssh-docker or ssh-container),
-  the same pinned GPU worker and their own SSH, as remote practice uses them.
-  Carbon starts, stops and bills nothing (OWNER-MINER-COMPUTE-LINK-ONLY-01).
-  The job server in the pinned image is unchanged; Carbon's fixed wrapper
-  runs the miner's program and returns its stdout as a file.
+  analysis image has no CUDA). The same device lease as GPU practice. This is
+  the lane the owner's "same isolation" describes.
+- **The miner's remote GPU.** Their own route and their own SSH, with the
+  same pinned GPU worker remote practice uses. Carbon starts, stops and bills
+  nothing (OWNER-MINER-COMPUTE-LINK-ONLY-01). The job server in the pinned
+  image is unchanged; Carbon's fixed wrapper runs the miner's program and
+  returns its stdout as a file. Isolation differs by route, and each lane
+  states its own (`describe`), never "the same":
+  - `ssh-docker` runs in a hardened job container. It has no route to the
+    internet or a metadata address, a read-only root, no capabilities and
+    one GPU. It can still reach services the machine itself exposes.
+  - `ssh-container` has no sandbox: the program runs in the miner's own
+    container with its network. It runs only when the miner opted in, in
+    their runner profile (`unsandboxed_code_cell`).
+
+An agent review of this module (2026-10-03) is not a security
+qualification; the lanes stay unqualified until a human review and real
+GPU-host checks (AGENTS.md §13).
 
 A program finds its outputs at `../output` in every lane. Each run records
 the device it ran on. `run_julia` takes the same argument, but the pinned
@@ -24,7 +36,6 @@ Julia environments carry no CUDA packages, so `gpu` is refused for it.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 
 DEVICES = ("cpu", "gpu")
@@ -32,7 +43,9 @@ DEVICES = ("cpu", "gpu")
 #: returns its stdout in.
 WRAPPED = "carbon-miner-program.py"
 STDOUT_EXPORT = "carbon-stdout.txt"
-#: What the remote job server returns beside the program's own outputs.
+#: What the remote job server returns beside the program's own outputs. (Its
+#: result record is taken out by RemoteJob; the name stays here so a program
+#: file of that name is never exported as the miner's.)
 JOB_FILES = frozenset(
     {"carbon-job-result.json", "carbon-job-stderr.txt", STDOUT_EXPORT}
 )
@@ -89,14 +102,46 @@ class GpuLane:
                 "kind": "local_gpu",
                 "label": "your GPU (this machine)",
                 "image": self.image.image_id,
+                "isolation": LOCAL_ISOLATION,
             }
+        transport = getattr(self.remote, "transport", None)
         return {
             "kind": "remote_gpu",
             "label": "your remote GPU",
-            "transport": getattr(getattr(self.remote, "transport", None), "name", None),
+            "transport": getattr(transport, "name", None),
             "image": self.image.image_id,
             "seconds": list(REMOTE_SECONDS),
+            "isolation": (
+                REMOTE_SANDBOX
+                if getattr(transport, "sandboxed", False)
+                else REMOTE_NO_SANDBOX
+            ),
         }
+
+
+#: Each lane's isolation, stated plainly to the miner and their agent.
+LOCAL_ISOLATION = (
+    "the miner lane's isolated container on this machine: no network, "
+    "the same file rules as cpu, one GPU attached"
+)
+REMOTE_SANDBOX = (
+    "a hardened job container on your machine: no route to the internet or a "
+    "cloud metadata address, a read-only root, no capabilities, one GPU; it "
+    "can still reach services your machine itself exposes"
+)
+REMOTE_NO_SANDBOX = (
+    "no sandbox: the program runs inside your own container, with its "
+    "network and its files (you opted in)"
+)
+
+
+def _remote_unsandboxed_refused(lane):
+    """A remote route with no sandbox runs agent-written code only when the
+    miner opted in, in their own runner profile."""
+    transport = getattr(lane.remote, "transport", None)
+    return not getattr(transport, "sandboxed", False) and not getattr(
+        transport, "unsandboxed_code_cell", False
+    )
 
 
 def refusal(action, arguments, lane):
@@ -111,6 +156,8 @@ def refusal(action, arguments, lane):
         return "julia_gpu_unavailable"
     if lane is None:
         return "gpu_lane_not_configured"
+    if lane.remote is not None and _remote_unsandboxed_refused(lane):
+        return "remote_gpu_unsandboxed_opt_in_required"
     seconds = arguments.get("seconds")
     if lane.remote is not None and (
         type(seconds) is not int
@@ -202,9 +249,10 @@ def run(executor, *, identity, args, files):
         path = operation / name
         if not path.exists():
             path.write_bytes(body[-KEPT_BYTES:])
-    try:
-        job = json.loads(returned("carbon-job-result.json") or b"{}")
-    except ValueError:
+    # The job server's own result: RemoteJob takes it out of the output and
+    # the runner records it under remote.job, never among the output files.
+    job = (result.get("remote") or {}).get("job")
+    if type(job) is not dict:
         job = {}
     ran = {**lane.describe(), "remote": result.get("remote")}
     if job.get("returncode") != 0:

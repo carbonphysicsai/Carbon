@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import secrets
+import tarfile
 import time
 import urllib.error
 import urllib.request
@@ -126,11 +127,19 @@ class RemoteJob:
             raise RemoteJobFailure("run", f"http {status}")
 
     def output(self):
+        """(the job server's result, the output files). Whatever the response
+        holds, a malformed archive or result is this job's typed failure, so
+        the caller's ledger always finishes the operation."""
         status, body = self._call("GET", "/output", timeout=300)
         if status != 200:
             raise RemoteJobFailure("output", f"http {status}")
-        files = unpack(body, MAX_OUTPUT_BYTES)
-        result = json.loads(files.pop("carbon-job-result.json"))
+        try:
+            files = unpack(body, MAX_OUTPUT_BYTES)
+            result = json.loads(files.pop("carbon-job-result.json"))
+        except (ValueError, KeyError, EOFError, OSError, tarfile.TarError) as bad:
+            raise RemoteJobFailure("output", type(bad).__name__) from None
+        if type(result) is not dict:
+            raise RemoteJobFailure("output", "result is not a record")
         return result, files
 
     def run(self, files, *, ready_deadline, run_deadline):

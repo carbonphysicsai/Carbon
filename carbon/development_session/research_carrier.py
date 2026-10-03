@@ -393,25 +393,13 @@ def _run_locked(
             # visible.
             raise ValueError("research host ineligible")
     except Exception:
-        # Nothing was created: no container command has been issued. That is
-        # a fact of this process, not an inference from absence, so settle now
-        # as infrastructure failure keeping the full reservation - no refund.
-        before_finish()
-        ledger.finish(
-            identity,
+        _settle_nothing_created(
+            ledger,
             owner=owner,
-            state="FAILED_INFRA",
-            actual=resources,
-            result={
-                "schema": "carbon.autoresearch.worker-reconciliation.v1",
-                "operation": operation.name,
-                "state": "FAILED_INFRA",
-                "worker_created": False,
-                "cleanup_observed": True,
-                "accounting": "full original reservation retained as conservative consumption",
-                "scientific_outcome": "UNRESOLVED",
-                "retry_dispatched": False,
-            },
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            before_finish=before_finish,
         )
         raise
     if miner_lane:
@@ -641,6 +629,34 @@ def _miner_guard(seconds):
     return liveness_reaper.controller_guard()
 
 
+def _settle_nothing_created(
+    ledger, *, owner, identity, operation, resources, before_finish
+):
+    """Settle an operation refused before any container command.
+
+    Nothing was created: no container command has been issued. That is a
+    fact of this process, not an inference from absence, so settle now as
+    infrastructure failure keeping the full reservation - no refund.
+    """
+    before_finish()
+    ledger.finish(
+        identity,
+        owner=owner,
+        state="FAILED_INFRA",
+        actual=resources,
+        result={
+            "schema": "carbon.autoresearch.worker-reconciliation.v1",
+            "operation": operation.name,
+            "state": "FAILED_INFRA",
+            "worker_created": False,
+            "cleanup_observed": True,
+            "accounting": "full original reservation retained as conservative consumption",
+            "scientific_outcome": "UNRESOLVED",
+            "retry_dispatched": False,
+        },
+    )
+
+
 def _run_miner_lane(
     ledger,
     *,
@@ -689,35 +705,59 @@ def _run_miner_lane(
         prepare_scratch,
     )
 
-    scratch = prepare_scratch(operation / "scratch")
-    run = MinerResearchLaunch(
-        name,
-        image.image_id,
-        launch,
-        stage,
-        scratch,
-        **({} if device is None else {"gpu_device": device.device_uuid}),
-    )
+    try:
+        scratch = prepare_scratch(operation / "scratch")
+        run = MinerResearchLaunch(
+            name,
+            image.image_id,
+            launch,
+            stage,
+            scratch,
+            **({} if device is None else {"gpu_device": device.device_uuid}),
+        )
+    except Exception:
+        # Refused before any container command: settle now, as the prechecks
+        # do, rather than leave the reservation for reconciliation.
+        _settle_nothing_created(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            before_finish=before_finish,
+        )
+        raise
     # No deadline unless the miner asked for one; a very long transport bound
     # stands in for "none" where the CLI needs a number.
     unbounded = 10 * 365 * 24 * 3600
     create_attempted = False
     failure = None
     lease = ExitStack()
+    slot = ExitStack()
     try:
         if device is not None:
             from carbon.reconstruction.worker.accelerator_runtime import (
                 miner_device_lease,
                 reject_existing_device_containers,
+                shared_host_lease,
             )
 
             # The same lease GPU practice takes: one run on the device at a
             # time, on this host.
             lease.enter_context(miner_device_lease(device.device_uuid))
+            # And the shared Carbon slot across check-then-create. Validator
+            # GPU work holds that slot for its whole run and checks for
+            # labelled device containers under it, so neither side can pass
+            # its check while the other is between check and create. Once
+            # created, this run's device label is what the other side sees.
+            slot.enter_context(shared_host_lease())
             reject_existing_device_containers(cli=cli)
         _check_cancel(ledger, owner, identity)
         create_attempted = True
-        cli.run(create_arguments(run), timeout=30)
+        try:
+            cli.run(create_arguments(run), timeout=30)
+        finally:
+            slot.close()
         _check_cancel(ledger, owner, identity)
         if seconds is not None:
             spawn_watchdog(
@@ -772,6 +812,7 @@ def _run_miner_lane(
                         "research cleanup uncertain; capacity stays reserved"
                     )
         finally:
+            slot.close()
             lease.close()
     if failure is not None:
         _settle_miner_failure(

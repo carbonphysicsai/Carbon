@@ -371,7 +371,8 @@ def _create_server(
                 "\nThis campaign has a GPU lane (RSURF-D20): run_python arguments "
                 "accept device=gpu (default cpu) to run on "
                 + adapter.gpu_lane["label"]
-                + ", in the pinned GPU worker with the same isolation"
+                + ", in the pinned GPU worker. Isolation there: "
+                + adapter.gpu_lane["isolation"]
                 + (
                     "; a remote run needs seconds between 40 and 3600"
                     if adapter.gpu_lane["kind"] == "remote_gpu"

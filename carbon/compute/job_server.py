@@ -49,6 +49,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import zlib
 from pathlib import Path
 
 SCHEMA = "carbon.compute.rented-job.v1"
@@ -79,12 +80,25 @@ def pack(files):
 
 
 def unpack(blob, maximum):
-    """Flat regular files from a gzip tar, bounded; anything else is refused."""
+    """Flat regular files from a gzip tar, bounded; anything else is refused.
+
+    The archive is inflated as a stream and abandoned the moment it passes
+    twice its bound, so a small archive of zeros never expands in memory
+    first. One gzip member only, whole: a truncated, corrupt or trailing
+    stream is refused like any other malformed archive.
+    """
     if len(blob) > maximum:
         raise ValueError("archive exceeds its bound")
-    raw = gzip.decompress(blob)
-    if len(raw) > 2 * maximum:
+    limit = 2 * maximum
+    inflater = zlib.decompressobj(wbits=31)  # gzip framing, CRC checked
+    try:
+        raw = inflater.decompress(blob, limit + 1)
+    except zlib.error:
+        raise ValueError("archive is not a gzip stream") from None
+    if len(raw) > limit:
         raise ValueError("archive exceeds its bound")
+    if not inflater.eof or inflater.unused_data:
+        raise ValueError("archive is not one whole gzip stream")
     files = {}
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
         for member in archive.getmembers():
@@ -97,6 +111,10 @@ def unpack(blob, maximum):
             handle = archive.extractfile(member)
             files[member.name] = handle.read() if handle is not None else b""
     return files
+
+
+class OutputRefused(ValueError):
+    """The job finished, but its output exceeds the bound: it is never sent."""
 
 
 class Job:
@@ -166,10 +184,18 @@ class Job:
         with self.lock:
             if self.state not in ("DONE", "FAILED"):
                 raise ValueError("no output yet")
+        # Read against one raw budget, twice the wire bound, so output the
+        # program wrote (or a child still writes) is never read whole first.
+        budget = 2 * MAX_OUTPUT_BYTES
         files = {}
         for path in sorted((self.root / "output").iterdir()):
             if path.is_file() and not path.is_symlink() and _NAME.fullmatch(path.name):
-                files[path.name] = path.read_bytes()
+                with path.open("rb") as handle:
+                    body = handle.read(budget + 1)
+                budget -= len(body)
+                if budget < 0:
+                    raise OutputRefused("output exceeds its bound")
+                files[path.name] = body
         stderr = (self.root / "stderr.txt").read_bytes()[-MAX_LOG_BYTES:]
         files["carbon-job-result.json"] = json.dumps(
             {
@@ -184,7 +210,7 @@ class Job:
         files["carbon-job-stderr.txt"] = stderr
         body = pack(files)
         if len(body) > MAX_OUTPUT_BYTES:
-            raise ValueError("output exceeds its bound")
+            raise OutputRefused("output exceeds its bound")
         return body
 
 
@@ -227,6 +253,8 @@ def handler_for(job, token, served):
             if self.path == "/output" and self._authorized():
                 try:
                     body = job.output()
+                except OutputRefused:
+                    return self._send(413, b'{"error":"output_exceeds_bound"}')
                 except ValueError:
                     return self._send(409, b'{"error":"not_finished"}')
                 self._send(200, body, "application/gzip")

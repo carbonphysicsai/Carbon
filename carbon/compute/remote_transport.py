@@ -21,7 +21,17 @@ Every transport has the same interface, and every trial records the same
 fields (`describe` and `outcome`): the transport, the pinned worker's image
 identity, how that identity was verified, the job transport, and whether the
 cleanup was confirmed. The job always travels inside the miner's SSH, through
-a local port forward to the machine's loopback.
+a forward to where the job listens: the container's loopback (`ssh-container`)
+or the job container's address on its private network (`ssh-docker`).
+
+Isolation differs, and is stated, never implied (RSURF-D20 review,
+2026-10-03): an `ssh-docker` job runs in a hardened container
+(`remote_machine.start_script`). An `ssh-container` job runs inside the
+miner's own container with no sandbox and whatever network that container
+has, so the GPU code cell, which runs agent-written code, runs there only
+when the miner opted in, in their own runner profile
+(`unsandboxed_code_cell: true`). Carbon's fixed practice program needs no
+opt-in.
 
 `RemoteMachine` is where the setup is: the miner's choice, kept in their own
 runner profile and never in a campaign record (LINKONLY-D9).
@@ -35,12 +45,13 @@ from . import remote_container
 from .remote_machine import (
     JOB_PORT,
     NO_WORKER_IMAGE,
+    JobEndpoint,
     RemoteMachineError,
     SSHClient,
     check_script,
     checked_destination,
     failure_for,
-    published_port,
+    job_endpoint,
     remove_script,
     send_image,
     start_script,
@@ -90,6 +101,10 @@ class RemoteMachine:
     transport: str
     destination: str
     port: int | None = None
+    #: The miner's own opt-in to running the GPU code cell (agent-written
+    #: code) inside their container with no sandbox and its network
+    #: (`ssh-container` only). Absent means no.
+    unsandboxed_code_cell: bool = False
 
     def __post_init__(self):
         if self.transport == ENDPOINT:
@@ -101,6 +116,12 @@ class RemoteMachine:
             type(self.port) is not int or not 1 <= self.port <= 65535
         ):
             raise ValueError("invalid SSH port")
+        if type(self.unsandboxed_code_cell) is not bool or (
+            self.unsandboxed_code_cell and self.transport != SSH_CONTAINER
+        ):
+            raise ValueError(
+                "unsandboxed_code_cell is an ssh-container opt-in: true or absent"
+            )
 
     @classmethod
     def from_document(cls, value) -> RemoteMachine:
@@ -113,14 +134,26 @@ class RemoteMachine:
             "transport",
             "destination",
             "port",
+            "unsandboxed_code_cell",
         }:
             raise ValueError("remote_machine is a transport and a destination")
-        return cls(value["transport"], value["destination"], value.get("port"))
+        if value.get("unsandboxed_code_cell", True) is not True:
+            raise ValueError(
+                "unsandboxed_code_cell is an ssh-container opt-in: true or absent"
+            )
+        return cls(
+            value["transport"],
+            value["destination"],
+            value.get("port"),
+            "unsandboxed_code_cell" in value,
+        )
 
     def document(self) -> dict:
         found = {"transport": self.transport, "destination": self.destination}
         if self.port is not None:
             found["port"] = self.port
+        if self.unsandboxed_code_cell:
+            found["unsandboxed_code_cell"] = True
         return found
 
 
@@ -143,6 +176,12 @@ class RemoteTransport:
     job_transport: str = JOB_TRANSPORT
     #: What a trial leaves on the machine and cleanup removes.
     cleans: str = ""
+    #: Whether the job runs in a hardened container Carbon starts. Not unless
+    #: a transport says so.
+    sandboxed: bool = False
+    #: The miner's opt-in to agent-written code with no sandbox; only a
+    #: transport with no sandbox can carry it.
+    unsandboxed_code_cell: bool = False
 
     def __init__(self, ssh):
         self.ssh = ssh
@@ -165,22 +204,25 @@ class RemoteTransport:
         """Before each trial: the setup holds the pinned worker."""
         raise NotImplementedError
 
-    def start(self, name, image, env, command, *, timeout) -> int:
-        """Start one job; its port on the machine's loopback."""
+    def start(self, name, image, env, command, *, timeout) -> JobEndpoint:
+        """Start one job; where it listens, as the machine sees it."""
         raise NotImplementedError
 
-    def tunnel(self, port):
-        return self.ssh.tunnel(port)
+    def tunnel(self, endpoint: JobEndpoint):
+        """The SSH forward to a started job's endpoint."""
+        if type(endpoint) is not JobEndpoint:
+            raise ValueError("a tunnel targets a started job's endpoint")
+        return self.ssh.tunnel(endpoint.port, host=endpoint.host)
 
     def cleanup(self, name) -> bool:
         """Remove what the trial left; True only once the machine confirms."""
         raise NotImplementedError
 
-    def _started(self, script, timeout) -> int:
+    def _started(self, script, timeout) -> JobEndpoint:
         code, stdout = self.ssh.run(script, timeout=timeout)
         if code != 0:
             raise failure_for(code)
-        return published_port(stdout)
+        return job_endpoint(stdout)
 
     def _cleaned(self, script) -> bool:
         try:
@@ -196,6 +238,7 @@ class SSHDocker(RemoteTransport):
     name = SSH_DOCKER
     image_verified_by = IMAGE_ID
     cleans = "job-container"
+    sandboxed = True
 
     def check(self, image) -> dict:
         code, _ = self.ssh.run(check_script(image.image_id), timeout=CHECK_SECONDS)
@@ -218,14 +261,21 @@ class SSHDocker(RemoteTransport):
         """Stream the pinned worker to the machine: "present" or "sent"."""
         return send_image(self.ssh, image.image_id)
 
-    def start(self, name, image, env, command, *, timeout) -> int:
+    def start(self, name, image, env, command, *, timeout) -> JobEndpoint:
         script = start_script(
             image_id=image.image_id,
             name=name,
             env=(*env, ("CARBON_JOB_PORT", str(JOB_PORT))),
             command=command,
         )
-        return self._started(script, timeout)
+        endpoint = self._started(script, timeout)
+        # The job container's address on its own private network, never the
+        # machine's loopback: no port is published on the machine.
+        if endpoint.port != JOB_PORT or endpoint.host.startswith("127."):
+            raise RemoteMachineError(
+                "job_port_unreadable", "check `docker inspect` works on your machine"
+            )
+        return endpoint
 
     def cleanup(self, name) -> bool:
         return self._cleaned(remove_script(name))
@@ -238,6 +288,9 @@ class SSHContainer(RemoteTransport):
     name = SSH_CONTAINER
     image_verified_by = BUILD_IDENTITY
     cleans = "job-process"
+    #: No sandbox: the job is a process in the miner's container, with that
+    #: container's network.
+    sandboxed = False
 
     def __init__(
         self,
@@ -246,9 +299,13 @@ class SSHContainer(RemoteTransport):
         python: str = remote_container.WORKER_PYTHON,
         build_file: str = remote_container.BUILD_FILE,
         root: str = remote_container.JOB_ROOT,
+        unsandboxed_code_cell: bool = False,
     ):
         super().__init__(ssh)
         self.python, self.build_file, self.root = python, build_file, root
+        if type(unsandboxed_code_cell) is not bool:
+            raise ValueError("unsandboxed_code_cell is the miner's true or false")
+        self.unsandboxed_code_cell = unsandboxed_code_cell
 
     def _identity(self, image) -> None:
         script = remote_container.identity_script(
@@ -272,11 +329,17 @@ class SSHContainer(RemoteTransport):
     def verify(self, image) -> None:
         self._identity(image)
 
-    def start(self, name, image, env, command, *, timeout) -> int:
+    def start(self, name, image, env, command, *, timeout) -> JobEndpoint:
         script = remote_container.start_script(
             name=name, env=env, command=command, root=self.root
         )
-        return self._started(script, timeout)
+        endpoint = self._started(script, timeout)
+        # A process in the miner's container listens on its loopback only.
+        if endpoint.host != "127.0.0.1":
+            raise RemoteMachineError(
+                "job_port_unreadable", "check your container can run the worker"
+            )
+        return endpoint
 
     def cleanup(self, name) -> bool:
         return self._cleaned(remote_container.stop_script(name, root=self.root))
@@ -288,5 +351,5 @@ def transport_for(machine: RemoteMachine, *, ssh=SSHClient) -> RemoteTransport:
     if machine.transport == SSH_DOCKER:
         return SSHDocker(client)
     if machine.transport == SSH_CONTAINER:
-        return SSHContainer(client)
+        return SSHContainer(client, unsandboxed_code_cell=machine.unsandboxed_code_cell)
     raise endpoint_refused()
