@@ -500,14 +500,14 @@ def test_a_malformed_published_list_is_a_review_warning(
 
 def test_the_service_unit_runs_this_checkout_on_loopback_with_private_output():
     text = service_unit(
-        Path("/home/miner/.carbon/state"), 8788, Path("/home/miner/carbon")
+        Path("/srv/miner/.carbon/state"), 8788, Path("/srv/miner/carbon")
     )
     assert (
-        "ExecStart=/home/miner/carbon/.venv/bin/carbon-control-center "
-        "--state-dir /home/miner/.carbon/state --port 8788"
+        "ExecStart=/srv/miner/carbon/.venv/bin/carbon-control-center "
+        "--state-dir /srv/miner/.carbon/state --port 8788"
     ) in text
     assert "UMask=0077" in text
-    assert "StandardOutput=append:/home/miner/.carbon/state/control-center.log" in text
+    assert "StandardOutput=append:/srv/miner/.carbon/state/control-center.log" in text
     assert "WantedBy=default.target" in text
 
 
@@ -515,17 +515,17 @@ def test_the_service_unit_runs_this_checkout_on_loopback_with_private_output():
     ("state_dir", "port"),
     [
         ("relative/state", 8788),
-        ("/home/my state", 8788),
-        ("/home/%h/state", 8788),
-        ("/home/$USER/state", 8788),
-        ("/home/miner/state\nExecStartPre=/bin/false", 8788),
-        ("/home/miner/state", 80),
-        ("/home/miner/state", "8788"),
+        ("/srv/my state", 8788),
+        ("/srv/%h/state", 8788),
+        ("/srv/$USER/state", 8788),
+        ("/srv/miner/state\nExecStartPre=/bin/false", 8788),
+        ("/srv/miner/state", 80),
+        ("/srv/miner/state", "8788"),
     ],
 )
 def test_the_service_unit_refuses_what_systemd_would_expand(state_dir, port, capsys):
     with pytest.raises(ValueError):
-        service_unit(Path(state_dir), port, Path("/home/miner/carbon"))
+        service_unit(Path(state_dir), port, Path("/srv/miner/carbon"))
     if type(port) is int and port == 8788 and "\n" not in state_dir:
         assert main(["service-unit", "--state-dir", state_dir, "--port", "8788"]) == 2
         assert "service unit refused" in capsys.readouterr().err
