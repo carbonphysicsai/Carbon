@@ -393,7 +393,8 @@
     }
     para(parent, tb.basis, "hint");
   }
-  function tabTools(panel, doc) { renderToolbox(panel, doc.toolbox, false); }
+  // The working toolbox first (RSURF-D15), then what each tool is.
+  function tabTools(panel, doc) { if (window.CarbonTools) window.CarbonTools.mount(panel, doc); renderToolbox(panel, doc.toolbox, false); }
   // A Toolbox on each Challenge card, read when opened.
   function decorateChallengeCards() {
     const s = CC.state();

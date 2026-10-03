@@ -27,7 +27,7 @@ LAUNCHPAD = ROOT / "scripts/dev/miner_launchpad"
 
 
 def test_the_page_sets_text_and_never_parses_html():
-    for name in ("research_view.js", "research_charts.js"):
+    for name in ("research_view.js", "research_charts.js", "research_tools.js"):
         source = (LAUNCHPAD / name).read_text()
         for pattern in (
             "innerHTML",
@@ -54,12 +54,18 @@ def test_the_research_assets_are_served_locally_and_name_no_challenge():
         ("/research.css", "text/css"),
         ("/research_charts.js", "text/javascript"),
         ("/research_view.js", "text/javascript"),
+        ("/research_tools.js", "text/javascript"),
     ):
         assert controller.STATIC[path][1].startswith(kind)
         assert path in page
     ids = [c["challenge_id"] for c in catalog()["challenges"]]
     pattern = re.compile("|".join(re.escape(i) for i in ids))
-    for name in ("research.css", "research_charts.js", "research_view.js"):
+    for name in (
+        "research.css",
+        "research_charts.js",
+        "research_view.js",
+        "research_tools.js",
+    ):
         text = (LAUNCHPAD / name).read_text()
         assert not pattern.search(text), name
         assert "burgers" not in text.lower() and "battery" not in text.lower(), name
