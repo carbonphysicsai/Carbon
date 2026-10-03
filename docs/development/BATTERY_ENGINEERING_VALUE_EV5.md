@@ -1,8 +1,8 @@
 # EV5: the battery Level 0 combined admission run — pre-registration DRAFT
 
-**Status. DRAFT, not frozen. Nothing dispatches.** The owner sees the cost
-estimate (§7) and approves a spend cap before any solve, reconstruction or
-pod. Three inputs block the freeze (§8).
+**Status. DRAFT, not frozen. Nothing dispatches.** The owner approved option
+A's USD 6 cap on 2026-10-03 (OWNER-EV5-CAP-01). The gate cutoff still blocks
+the freeze (§8).
 
 **Authority.**
 - OWNER-ADMISSION-COMBINED-01 (2026-10-02): construction, attack and value
@@ -154,12 +154,13 @@ per hour. EV4 itself cost USD 2.52 in total.
    The evidence is in
    `docs/development/evidence/admissibility-optimism-2026-10-03/`. Without
    it, H2 cannot be registered.
-2. **Spend:** the owner approves option A's cap (or another), and the RunPod
-   use for EV5.
+2. **Spend: resolved.** OWNER-EV5-CAP-01 (2026-10-03) approves option A: RunPod
+   A40 at no more than USD 0.49 per hour, a hard cap of USD 6, counted inside
+   the USD 25 L0 cap.
 3. **Sign-error measurement (optional):** whether the SciML lead registers a
    localized measurement for H3, or leaves it a named gap.
 
-Engineering work before the freeze, once 1 and 2 are answered:
+Engineering work before the freeze (it may proceed now; the freeze waits on 1):
 - condition and panel builders, with tests for freshness and maxima;
 - the `ATTACK_CONSTRUCTION` panel kind;
 - plans and the campaign;
