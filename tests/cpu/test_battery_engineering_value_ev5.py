@@ -18,7 +18,10 @@
   root, 120 + 4, committed to its journal and never recorded in its pool, and
   only its public commitment is printed;
 - the freeze manifest refuses while the gate cutoff is unset, and builds once
-  it is set (here monkeypatched; this file never sets it).
+  it is set (here monkeypatched; this file never sets it);
+- EV5 is frozen (OWNER-EV5-FREEZE-01): the committed contract, plans and
+  manifest bind the sealed batch, the code still builds what was frozen, and a
+  second freeze is refused.
 """
 
 from __future__ import annotations
@@ -60,6 +63,14 @@ from scripts.dev.exam_design.runpod import pod_control as pc
 DOC = (REPOSITORY / ev5.SOURCE).read_text()
 EV4, _ = ev.load(ev5.EV4_CONTRACT)
 SEALED = {"fingerprint": "sha256:" + "0" * 64, "journal_sequence": 0}  # synthetic
+#: The batch sealed on the operator host and frozen (OWNER-EV5-FREEZE-01).
+FROZEN_SEAL = {
+    "fingerprint": (
+        "sha256:0add08ed7a3c6568a0779b0becb123578eedee6ca8e4f9f014588ed4ba934f3e"
+    ),
+    "journal_sequence": 14,
+}
+EV5_DIGEST = "sha256:bb08f9794fcd24afc70764fd953c8828e31dad49445ddbbeedc548cc5640fc31"
 
 
 def _doc_conditions():
@@ -510,8 +521,11 @@ def test_the_ev5_contract_is_ev4s_with_ev5s_conditions_and_panel():
     ids = [s["id"] for s in ev.scenarios(contract)]
     assert ids[0] == "D-T6-S0.10" and ids[-1] == "V-T39-S0.38"
     assert ev.validate(contract) is contract
-    # Written only at the freeze; then this becomes a digest pin, as EV4's is.
-    assert not (REPOSITORY / ev5.CONTRACT).exists()
+    # Written at the freeze (OWNER-EV5-FREEZE-01); its digest is pinned here
+    # and in the pre-registration, as EV4's is.
+    _, digest = ev.load(REPOSITORY / ev5.CONTRACT)
+    assert digest == ev.digest(contract) == EV5_DIGEST
+    assert EV5_DIGEST in DOC
 
 
 def test_the_plans_are_built_as_ev4s_and_name_ev5s_contract(tmp_path):
@@ -876,7 +890,108 @@ def test_the_freeze_manifest_builds_once_the_cutoff_is_set(monkeypatch):
     assert len(manifest["optimizer"]["verification_conditions"]) == 90
     assert hypotheses["H2"]["bootstrap"] == ev5.H2_BOOTSTRAP
     assert not any(manifest["claims"].values())
-    assert not (REPOSITORY / ev5.EVIDENCE).exists()  # nothing written
+    # A synthetic build writes nothing: the frozen manifest is EV5's own.
+    frozen = json.loads((REPOSITORY / ev5.FREEZE_MANIFEST).read_text())
+    assert frozen["confirmation"]["commitment"] == FROZEN_SEAL
+
+
+# --- the freeze (OWNER-EV5-FREEZE-01) ----------------------------------------------------
+
+
+def _frozen_manifest():
+    return json.loads((REPOSITORY / ev5.FREEZE_MANIFEST).read_text())
+
+
+def test_the_frozen_manifest_binds_the_sealed_batch_and_the_frozen_files():
+    manifest = _frozen_manifest()
+    assert (manifest["schema"], manifest["study"]) == (ev5.SCHEMA, "EV5")
+    assert manifest["confirmation"]["commitment"] == FROZEN_SEAL
+    assert FROZEN_SEAL["fingerprint"] in DOC
+    assert "OWNER-EV5-FREEZE-01" in manifest["authority"]
+    # The contract and plans on disk are the manifest's.
+    _, digest = ev.load(REPOSITORY / ev5.CONTRACT)
+    assert digest == manifest["contract"]["digest"] == EV5_DIGEST
+    files = manifest["plans"]["files"]
+    assert sorted(p.name for p in (REPOSITORY / ev5.PLANS).iterdir()) == sorted(files)
+    for name, entry in files.items():
+        plan = json.loads((REPOSITORY / ev5.PLANS / name).read_text())
+        assert plan == entry["plan"] and cr.digest(plan) == entry["digest"], name
+    # The study sheet it pins is unchanged.
+    assert manifest["study_sheet"]["sha256"] == ev5._file_digest(
+        REPOSITORY, ev5.STUDY_SHEET
+    )
+    assert manifest["gate_cutoff"]["THRESHOLD_BANDS"] == 2.0
+    assert manifest["hypotheses"]["H3"]["localized_measurement"]["cutoff"] is None
+    assert not any(manifest["claims"].values())
+
+
+def test_the_code_still_builds_what_was_frozen():
+    # A change to any of these after the freeze is a new, reported version.
+    manifest = _frozen_manifest()
+    assert ev.digest(ev5.contract()) == manifest["contract"]["digest"]
+    assert {name: cr.digest(plan) for name, plan in ev5.plans().items()} == {
+        name: entry["digest"] for name, entry in manifest["plans"]["files"].items()
+    }
+    assert cr.digest(ev5.panel_record()) == cr.digest(manifest["panel"])
+    assert cr.digest(ev5.optimizer_record()) == cr.digest(manifest["optimizer"])
+    assert manifest["hypotheses"]["H3"]["localized_measurement"]["module_digest"] == (
+        ev5._file_digest(REPOSITORY, ev5.H3_MEASUREMENT["module"])
+    )
+
+
+def test_a_second_freeze_is_refused_and_writes_nothing(capsys):
+    evidence = REPOSITORY / ev5.EVIDENCE
+    before = {p: p.read_bytes() for p in evidence.rglob("*") if p.is_file()}
+    contract = (REPOSITORY / ev5.CONTRACT).read_bytes()
+    argv = [
+        "freeze",
+        "--confirmation-fingerprint",
+        FROZEN_SEAL["fingerprint"],
+        "--confirmation-sequence",
+        str(FROZEN_SEAL["journal_sequence"]),
+    ]
+    assert ev5.main(argv) == 2
+    refused = json.loads(capsys.readouterr().out)
+    assert refused["refused"] == "already_frozen"
+    assert set(refused["blockers"]) == {ev5.CONTRACT, ev5.PLANS, ev5.FREEZE_MANIFEST}
+    assert {p: p.read_bytes() for p in evidence.rglob("*") if p.is_file()} == before
+    assert (REPOSITORY / ev5.CONTRACT).read_bytes() == contract
+
+
+def test_the_freeze_writes_the_contract_plans_and_manifest_once(tmp_path):
+    # A repository holding only what the manifest reads by path.
+    for path in (
+        ev5.SOURCE,
+        ev5.STUDY_SHEET,
+        ev5.EV4_FREEZE_MANIFEST,
+        ev5.CANDIDATE_RECORD,
+        ev5.H3_MEASUREMENT["module"],
+    ):
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPOSITORY / path).read_bytes())
+    with pytest.raises(cr.CombinedRunError) as refused:
+        ev5.freeze(SEALED | {"journal_sequence": -1}, repository=tmp_path)
+    assert "confirmation_not_sealed" in refused.value.blockers
+    assert not (tmp_path / ev5.CONTRACT).exists()  # a refusal writes nothing
+    result = ev5.freeze(SEALED, repository=tmp_path)
+    assert result["written"] == sorted(
+        [ev5.CONTRACT, ev5.FREEZE_MANIFEST]
+        + [f"{ev5.PLANS}/{name}" for name in ev5.plans()]
+    )
+    manifest_bytes = (tmp_path / ev5.FREEZE_MANIFEST).read_bytes()
+    assert b"\r" not in manifest_bytes
+    assert result["manifest_sha256"] == hashlib.sha256(manifest_bytes).hexdigest()
+    manifest = json.loads(manifest_bytes)
+    assert manifest == json.loads(json.dumps(ev5.freeze_manifest(SEALED, tmp_path)))
+    _, digest = ev.load(tmp_path / ev5.CONTRACT)
+    assert digest == result["contract_digest"] == manifest["contract"]["digest"]
+    # The contract is laid out as EV4's is.
+    text = (tmp_path / ev5.CONTRACT).read_text()
+    assert text == json.dumps(ev5.contract(), indent=2) + "\n"
+    with pytest.raises(cr.CombinedRunError) as again:
+        ev5.freeze(SEALED, repository=tmp_path)
+    assert again.value.code == "already_frozen"
 
 
 def test_this_branch_never_sets_the_cutoff():

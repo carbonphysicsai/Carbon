@@ -1,0 +1,1606 @@
+{
+ "authority": [
+  "OWNER-ADMISSION-COMBINED-01",
+  "TRACK-B-STUCK-01 outcome",
+  "OWNER-TRACK-A-L0-02",
+  "OWNER-EV5-CAP-01",
+  "OWNER-GATE-CUTOFF-01",
+  "OWNER-EXEC-APPROVALS-01",
+  "OWNER-EV5-Q1-01",
+  "OWNER-EV5-Q2-01",
+  "OWNER-EV5-Q3-01",
+  "OWNER-EV5-Q4-01",
+  "OWNER-EV5-FREEZE-01"
+ ],
+ "campaign": {
+  "evidence": "docs/development/evidence/ev5-2026-10-03",
+  "name": "ev5"
+ },
+ "cap": {
+  "campaign": "ev5",
+  "ceiling_and_balance_floor": "operator configuration (~/.runpod/campaigns.json), never committed (POD-LEDGER-PRIVATE-01)",
+  "decision": "OWNER-EV5-CAP-01",
+  "hard_cap_usd": 6,
+  "inside": "OWNER-TRACK-A-L0-02's USD 25 Level 0 cap",
+  "option": "A: no in-run agents",
+  "pods": "RunPod A40 at no more than USD 0.49 per hour, at most 3 in parallel, termination verified",
+  "record": ".agent/DECISIONS.md"
+ },
+ "claims": {
+  "chain": false,
+  "changes_testnet_rule": false,
+  "level_above_0_opened": false,
+  "qualification": false,
+  "reward": false
+ },
+ "conditions": {
+  "box": {
+   "soc0": [
+    0.05,
+    0.5
+   ],
+   "t_amb_c": [
+    5.0,
+    40.0
+   ]
+  },
+  "development": [
+   [
+    6.0,
+    0.1
+   ],
+   [
+    6.0,
+    0.3
+   ],
+   [
+    6.0,
+    0.46
+   ],
+   [
+    16.0,
+    0.1
+   ],
+   [
+    16.0,
+    0.3
+   ],
+   [
+    16.0,
+    0.46
+   ],
+   [
+    26.0,
+    0.1
+   ],
+   [
+    26.0,
+    0.3
+   ],
+   [
+    26.0,
+    0.46
+   ],
+   [
+    35.0,
+    0.1
+   ],
+   [
+    35.0,
+    0.3
+   ],
+   [
+    35.0,
+    0.46
+   ]
+  ],
+  "fresh_against": [
+   "ev1",
+   "ev2",
+   "ev4",
+   "ev4_protected"
+  ],
+  "verification": [
+   [
+    10.0,
+    0.07
+   ],
+   [
+    10.0,
+    0.24
+   ],
+   [
+    10.0,
+    0.38
+   ],
+   [
+    20.0,
+    0.07
+   ],
+   [
+    20.0,
+    0.24
+   ],
+   [
+    20.0,
+    0.38
+   ],
+   [
+    30.0,
+    0.07
+   ],
+   [
+    30.0,
+    0.24
+   ],
+   [
+    30.0,
+    0.38
+   ],
+   [
+    39.0,
+    0.07
+   ],
+   [
+    39.0,
+    0.24
+   ],
+   [
+    39.0,
+    0.38
+   ]
+  ]
+ },
+ "confirmation": {
+  "batch_size": 124,
+  "cases": 120,
+  "commitment": {
+   "fingerprint": "sha256:0add08ed7a3c6568a0779b0becb123578eedee6ca8e4f9f014588ed4ba934f3e",
+   "journal_sequence": 14
+  },
+  "custody": "sealed until retirement; revealed only by SeedJournal.reveal",
+  "hidden_duplicates": 4,
+  "law": "uniform over the published input box (the exam's existing population)",
+  "made_on": "the validator host only (seal_confirmation: seeds.make_batch from the deployment's committed root, then SeedJournal.commit before any use); never in the repository, never in the testnet pool",
+  "role": "ev5-confirmation",
+  "solved_on": "the operator host only (OWNER-EV5-Q3-01): the private cases are solved and the panel's predictions on them made there; never in a committed pod plan, never on rented compute",
+  "source": "one fresh private batch from the validator's committed private root (carbon.battery.seeds.make_batch)",
+  "study_sheet": "docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json",
+  "subgroups": "the published important region reported separately"
+ },
+ "contract": {
+  "digest": "sha256:bb08f9794fcd24afc70764fd953c8828e31dad49445ddbbeedc548cc5640fc31",
+  "document": {
+   "acceptance": {
+    "hypotheses": {
+     "registered_in": "the EV5 freeze manifest (carbon.battery.value.ev5.freeze_manifest), from docs/development/BATTERY_ENGINEERING_VALUE_EV5.md \u00a74"
+    },
+    "rule_selection": "on development scenarios, choose the profile whose model ranking has the highest Kendall tau with the decision-loss ranking; ties go to the control",
+    "success_condition": "Carbon can compare several models on the same engineering decision and show whether its scoring prefers models that select better reference-verified designs",
+    "verification": "freeze the chosen profile, then report its agreement on the verification scenarios; revising after inspecting them makes them development evidence"
+   },
+   "authority": {
+    "chain": false,
+    "changes_testnet_rule": false,
+    "qualification": false,
+    "record": "OWNER-EV5-CAP-01, the owner on 2026-10-03: \"Approve the cap\". Option A of BATTERY_ENGINEERING_VALUE_EV5.md \u00a77, with no in-run agents. The approval freezes nothing and dispatches nothing.",
+    "reward": false
+   },
+   "baseline": {
+    "method": "fixed conservative default declared before any evaluation",
+    "protocol": {
+     "c1": 0.75,
+     "c2": 0.6
+    }
+   },
+   "budgets": {
+    "compute": "RunPod A40 (<= USD 0.49/h), at most 3 in parallel; hard cap USD 6 (OWNER-EV5-CAP-01), counted inside OWNER-TRACK-A-L0-02's USD 25 Level 0 cap",
+    "reconstructions_max": 110,
+    "reference_solves_max": 840
+   },
+   "case_prefix": "ev5",
+   "challenge": {
+    "id": "battery-fastcharge-ageing-development-v1",
+    "version": "1.0"
+   },
+   "constraints": [
+    {
+     "id": "reach_cv_in_window",
+     "quantity": "time_to_cv_onset_s",
+     "rule": "reached within the window",
+     "unit": "s"
+    },
+    {
+     "id": "no_plating_onset",
+     "meaning": "cycle-1 minimum plating overpotential stays non-negative",
+     "quantity": "plating_margin_v",
+     "rule": ">=",
+     "threshold": 0.0,
+     "unit": "V"
+    },
+    {
+     "id": "peak_temperature",
+     "meaning": "maximum volume-averaged temperature over the first hour",
+     "quantity": "peak_temperature_c",
+     "rule": "<=",
+     "threshold": 45.0,
+     "unit": "degC"
+    }
+   ],
+   "contract_id": "ev5-battery-charge-protocol-selection",
+   "data_scope": {
+    "classification": "PUBLIC_SYNTHETIC",
+    "permitted_use": "public DEVELOPMENT evidence; no client material; client studies require the private execution route"
+   },
+   "decision": {
+    "adaptation": "one protocol per operating condition (each scenario holds exactly one condition)",
+    "changes_from_ev2": [
+     "fresh development and verification conditions, 12 each, none an EV1 or EV2 condition",
+     "a 100-member panel: EV2's 15 members plus 85 added (70 distinct recipes over MLP, DeepONet and kNN settings, and 15 second seeds)",
+     "pre-registered paired comparison H1: the bootstrap interval of the difference in Kendall tau-b between the proposed rule dar-p0-r100-a0 and the deciding rule control-exam-v1",
+     "pre-registered H3: the real-model blind spot (reference-verified false acceptances by eligible real members, and their rank under both rules)",
+     "reference solves and reconstructions on RunPod A40 pods under the owner's 2026-10-01 approval"
+    ],
+    "claim_scope": "Charging speed is measured as time to constant-voltage onset (the voltage proxy below), not time to a target state of charge. The 30-cycle reference is not extrapolated to real-cell lifetime or safety.",
+    "intended_use": "Public synthetic DEVELOPMENT study (EV4): on a 100-member panel built to separate decision quality, does the proposed decision-aware rule rank real models by reference-verified decision quality better or worse than the deciding exam rule? Not a cell qualification, lifetime, warranty or safety claim.",
+    "statement": "For each declared operating condition, select from a fixed grid of two-stage fast-charge protocols the one that reaches the constant-voltage phase soonest while meeting every constraint in that condition, or abstain if none qualifies.",
+    "unchanged_from_ev2": "objective, constraints and thresholds, uncertainty bands, mistake costs, minimum useful improvement, baseline, tie rule, candidate grid, reference, models section, scoring candidates (every weight profile, decision-aware profile, component and aggregation), data scope, and the rule-selection rule"
+   },
+   "design_variables": {
+    "c1": {
+     "allowed": [
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0
+     ],
+     "meaning": "first-stage constant-current rate, until 4.0 V",
+     "unit": "C"
+    },
+    "c2": {
+     "allowed": [
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1.0
+     ],
+     "meaning": "second-stage constant-current rate, until 4.2 V",
+     "unit": "C"
+    }
+   },
+   "minimum_useful_improvement_s": 120.0,
+   "mistake_costs": {
+    "false_acceptance": 10.0,
+    "missed_opportunity": 1.0,
+    "regret_per_minimum_useful_improvement": 1.0,
+    "status": "PROVISIONAL_DEVELOPMENT",
+    "unit": "multiples of the minimum useful improvement"
+   },
+   "models": {
+    "prediction_access": "models receive only design variables and operating conditions; reference answers are never visible to training or selection",
+    "reconstruction": "Carbon rebuilds each declared recipe with its declared seed through the battery construction contract",
+    "repetition": "reconstruction seeds are repetitions of one recipe, never separate model families",
+    "training_data": "public TRAIN v1 only"
+   },
+   "objective": {
+    "charge_start_s": 120.0,
+    "definition": "For the scenario's one condition, the time from charge start (the end of the reference's 120 s initial rest) to the first crossing of the terminal voltage above 4.19 V on the 30 s grid, by linear interpolation.",
+    "name": "time_to_cv_onset",
+    "sense": "minimize",
+    "threshold_v": 4.19,
+    "unit": "s",
+    "unreached": "NOT_REACHED_IN_WINDOW: the protocol fails the reach constraint in that condition; its objective is undefined, never the window length.",
+    "window_s": 3600.0
+   },
+   "operating_conditions": {
+    "envelope": {
+     "soc0": [
+      0.05,
+      0.5
+     ],
+     "t_amb_c": [
+      5.0,
+      40.0
+     ]
+    },
+    "rule": "Conditions are fixed by the scenario; a selector cannot choose them.",
+    "variables": {
+     "soc0": {
+      "meaning": "initial state of charge",
+      "unit": "fraction"
+     },
+     "t_amb_c": {
+      "meaning": "ambient and initial temperature",
+      "unit": "degC"
+     }
+    }
+   },
+   "panel": "ev5",
+   "preferences_status": "The thresholds, candidate grid, baseline, minimum useful improvement and mistake costs are provisional DEVELOPMENT engineering preferences. No customer declared them and none is commercially qualified.",
+   "reference": {
+    "generator": "carbon.battery.reference (PyBaMM 26.8.0.0, DFN, OKane2022, 30 cycles), pinned truth image and overlay lock",
+    "measurement_limitations": [
+     "voltage and temperature are kept only over the first 3600 s on a 30 s grid",
+     "no state-of-charge or current trajectory is recorded, so time to a target state of charge is not measurable",
+     "the plating margin is a cycle-1 minimum, not a lifetime plating measure"
+    ],
+    "uncertainty": {
+     "bands": {
+      "peak_temperature_c": 0.157,
+      "plating_margin_v": 0.00197,
+      "time_to_cv_onset_s": 3.15
+     },
+     "basis": "maximum observed shift between standard and refined solves of the refined TRAIN cases (docs/development/evidence/exam-design-2026-09-24/refs-a-part*)",
+     "treatment": "a reference value within the band of a threshold is UNRESOLVED, never forced to pass or fail; a missing or failed reference is REFERENCE_UNAVAILABLE, never a candidate failure"
+    }
+   },
+   "scenarios": {
+    "development": [
+     {
+      "conditions": [
+       [
+        6.0,
+        0.1
+       ]
+      ],
+      "id": "D-T6-S0.10"
+     },
+     {
+      "conditions": [
+       [
+        6.0,
+        0.3
+       ]
+      ],
+      "id": "D-T6-S0.30"
+     },
+     {
+      "conditions": [
+       [
+        6.0,
+        0.46
+       ]
+      ],
+      "id": "D-T6-S0.46"
+     },
+     {
+      "conditions": [
+       [
+        16.0,
+        0.1
+       ]
+      ],
+      "id": "D-T16-S0.10"
+     },
+     {
+      "conditions": [
+       [
+        16.0,
+        0.3
+       ]
+      ],
+      "id": "D-T16-S0.30"
+     },
+     {
+      "conditions": [
+       [
+        16.0,
+        0.46
+       ]
+      ],
+      "id": "D-T16-S0.46"
+     },
+     {
+      "conditions": [
+       [
+        26.0,
+        0.1
+       ]
+      ],
+      "id": "D-T26-S0.10"
+     },
+     {
+      "conditions": [
+       [
+        26.0,
+        0.3
+       ]
+      ],
+      "id": "D-T26-S0.30"
+     },
+     {
+      "conditions": [
+       [
+        26.0,
+        0.46
+       ]
+      ],
+      "id": "D-T26-S0.46"
+     },
+     {
+      "conditions": [
+       [
+        35.0,
+        0.1
+       ]
+      ],
+      "id": "D-T35-S0.10"
+     },
+     {
+      "conditions": [
+       [
+        35.0,
+        0.3
+       ]
+      ],
+      "id": "D-T35-S0.30"
+     },
+     {
+      "conditions": [
+       [
+        35.0,
+        0.46
+       ]
+      ],
+      "id": "D-T35-S0.46"
+     }
+    ],
+    "verification": [
+     {
+      "conditions": [
+       [
+        10.0,
+        0.07
+       ]
+      ],
+      "id": "V-T10-S0.07"
+     },
+     {
+      "conditions": [
+       [
+        10.0,
+        0.24
+       ]
+      ],
+      "id": "V-T10-S0.24"
+     },
+     {
+      "conditions": [
+       [
+        10.0,
+        0.38
+       ]
+      ],
+      "id": "V-T10-S0.38"
+     },
+     {
+      "conditions": [
+       [
+        20.0,
+        0.07
+       ]
+      ],
+      "id": "V-T20-S0.07"
+     },
+     {
+      "conditions": [
+       [
+        20.0,
+        0.24
+       ]
+      ],
+      "id": "V-T20-S0.24"
+     },
+     {
+      "conditions": [
+       [
+        20.0,
+        0.38
+       ]
+      ],
+      "id": "V-T20-S0.38"
+     },
+     {
+      "conditions": [
+       [
+        30.0,
+        0.07
+       ]
+      ],
+      "id": "V-T30-S0.07"
+     },
+     {
+      "conditions": [
+       [
+        30.0,
+        0.24
+       ]
+      ],
+      "id": "V-T30-S0.24"
+     },
+     {
+      "conditions": [
+       [
+        30.0,
+        0.38
+       ]
+      ],
+      "id": "V-T30-S0.38"
+     },
+     {
+      "conditions": [
+       [
+        39.0,
+        0.07
+       ]
+      ],
+      "id": "V-T39-S0.07"
+     },
+     {
+      "conditions": [
+       [
+        39.0,
+        0.24
+       ]
+      ],
+      "id": "V-T39-S0.24"
+     },
+     {
+      "conditions": [
+       [
+        39.0,
+        0.38
+       ]
+      ],
+      "id": "V-T39-S0.38"
+     }
+    ]
+   },
+   "schema": "carbon.engineering-value-contract.v1",
+   "scoring_candidates": {
+    "aggregation": "carbon.development-weight-profile.v1 weighted geometric mean; zero weights removed from ranking, gates kept",
+    "components": {
+     "accuracy": "1/(1+E): mean normalized case error over all scorable cases",
+     "decision_agreement": "1/(1 + mean cost per resolved constraint call) on the scoring set: for every case and every contract constraint, the model's PASS/FAIL call from its own predictions against the reference call with the contract's bands (UNRESOLVED references excluded); a false acceptance costs mistake_costs.false_acceptance, a false rejection mistake_costs.missed_opportunity",
+     "physics": "NOT_MEASURABLE for battery: no defensible physics measurement exists; the gates are mandatory checks, not a score",
+     "robustness": "1/(1+E_important): mean normalized case error over the published important region"
+    },
+    "control": "carbon.battery.exam.v1 approved DEVELOPMENT rule: gates, then mean normalized case error",
+    "decision_aware_profiles": [
+     {
+      "id": "dar-p0-r100-a0",
+      "rationale": "decision agreement alone",
+      "weights": {
+       "accuracy": 0.0,
+       "physics": 0.0,
+       "robustness": 1.0
+      }
+     },
+     {
+      "id": "dar-p0-r30-a70",
+      "rationale": "EV1's p0-r30-a70 with the decision-aware robustness leg",
+      "weights": {
+       "accuracy": 0.7,
+       "physics": 0.0,
+       "robustness": 0.3
+      }
+     },
+     {
+      "id": "dar-p0-r50-a50",
+      "rationale": "sensitivity",
+      "weights": {
+       "accuracy": 0.5,
+       "physics": 0.0,
+       "robustness": 0.5
+      }
+     }
+    ],
+    "scoring_data": "retained exam-design private-role references (pscreen, pfinal, pverify), public since the campaign reveal",
+    "weight_profiles": [
+     {
+      "id": "p45-r30-a25",
+      "weights": {
+       "accuracy": 0.25,
+       "physics": 0.45,
+       "robustness": 0.3
+      }
+     },
+     {
+      "id": "p0-r30-a70",
+      "weights": {
+       "accuracy": 0.7,
+       "physics": 0.0,
+       "robustness": 0.3
+      }
+     },
+     {
+      "id": "p0-r20-a80",
+      "rationale": "sensitivity of p0-r30-a70",
+      "weights": {
+       "accuracy": 0.8,
+       "physics": 0.0,
+       "robustness": 0.2
+      }
+     },
+     {
+      "id": "p0-r40-a60",
+      "rationale": "sensitivity of p0-r30-a70",
+      "weights": {
+       "accuracy": 0.6,
+       "physics": 0.0,
+       "robustness": 0.4
+      }
+     }
+    ]
+   },
+   "status": "PROVISIONAL_DEVELOPMENT",
+   "tie_rule": "lowest predicted objective; exact ties broken by lower c1, then lower c2",
+   "version": "1.0"
+  },
+  "path": "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json"
+ },
+ "gate_cutoff": {
+  "THRESHOLD_BANDS": 2.0,
+  "source": "carbon/battery/value/admissibility.py"
+ },
+ "hypotheses": {
+  "H1": {
+   "bootstrap": {
+    "interval": "percentile",
+    "level": 0.95,
+    "replicates": 10000,
+    "resample": "members and conditions jointly, with replacement",
+    "rng": "numpy.random.default_rng (PCG64)",
+    "rng_seed": 20261001
+   },
+   "kind": "ranking, paired",
+   "otherwise": "the deciding rule is confirmed for ranking",
+   "pool": "eligible reconstructed members (attack constructions and controls excluded)",
+   "promote_only_if_all": [
+    "the interval's lower bound is above 0",
+    "delta_tau exceeds the tau noise band (divergence.tau_noise_band)",
+    "the candidate's across-family real-member divergence count (real_divergence) is not higher than the deciding rule's"
+   ],
+   "split": "verification",
+   "statistic": "delta_tau = tau(sr2-a0-r0.3-g0.6-m0.1) - tau(control-exam-v1)"
+  },
+  "H2": {
+   "bootstrap": {
+    "function": "carbon.battery.value.hypotheses.group_difference_bootstrap",
+    "interval": "percentile",
+    "level": 0.95,
+    "replicates": 10000,
+    "resample": "FAIL and PASS members separately, each to its own size, with replacement; conditions jointly for all members",
+    "rng": "numpy.random.default_rng (PCG64)",
+    "rng_seed": 20261001,
+    "statistic": "mean verification decision loss of the real members the gate FAILs minus that of those it PASSes",
+    "undefined": "either group empty: no difference and no interval, reported"
+   },
+   "cutoff_bands": 2.0,
+   "kind": "admissibility gate",
+   "must_fail": [
+    "control-boundary_optimist"
+   ],
+   "must_pass": [
+    "control-oracle",
+    "control-conservative",
+    "control-rank_preserving_delay"
+   ],
+   "real_members": "the real members that FAIL have a higher mean verification decision loss than those that PASS, and the 95 % bootstrap interval of the difference excludes 0",
+   "reported": "the number of real members failed; a cutoff that fails more than half of them is reported as such, never tuned after the fact"
+  },
+  "H3": {
+   "control": "control-localized_sign_error",
+   "kind": "known blind spot, reported",
+   "localized_measurement": {
+    "amendable_before_freeze_by": "the SciML/technical lead (\u00a78 item 3)",
+    "cutoff": null,
+    "module": "carbon/battery/value/false_acceptance.py",
+    "module_digest": "sha256:ef950b6d0871dd9b21a51a2a08ba2c7a17391c0ea19a6925627ea1580b375a22",
+    "quantity": "the worst constraint's near-limit false-acceptance rate: of the cases the reference resolves as FAIL (with the contract's bands), the share the model calls PASS (without bands)",
+    "region": "the scoring set's published important region (near.near_cases)",
+    "schema": "carbon.battery.near-false-acceptance.v1",
+    "state": "DESCRIPTIVE",
+    "unmeasured": "a member missing any important case is None, never clean"
+   },
+   "reported": "its rank under each rule, whether anything catches it, and the localized measurement for every member and control (h3_report), with no cutoff"
+  },
+  "adversarial_score": "no Track A or Mode X construction with a reference-verified violation scores in the top half of eligible members, under the deciding rule plus the gate",
+  "blended": false,
+  "construction_integrity": "no breach, escape, canary read or forbidden access in any family or in the worker-boundary scan; every rebuild matches, or is refused typed",
+  "source": "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md \u00a74",
+  "verdicts": [
+   "construction_integrity",
+   "adversarial_score",
+   "value"
+  ]
+ },
+ "optimizer": {
+  "case_prefix": "ev5opt",
+  "decision": "OWNER-EV5-Q2-01",
+  "gate": "a gated role draws only from members admissibility.verdict passes at the cutoff; best_deciding, median_deciding, best_knn and lowest_verification_loss are ungated, as in EV4",
+  "gated_roles": [
+   "best_proposed"
+  ],
+  "maxima": {
+   "designs": 6,
+   "k": 50,
+   "mode_d_solves": 540,
+   "mode_x_solves": 250,
+   "total_solves": 1630
+  },
+  "member_roles": [
+   "best_deciding",
+   "best_proposed",
+   "median_deciding",
+   "best_knn",
+   "lowest_verification_loss"
+  ],
+  "model_conditions": [
+   [
+    5.0,
+    0.055
+   ],
+   [
+    5.0,
+    0.21
+   ],
+   [
+    5.0,
+    0.36
+   ],
+   [
+    5.0,
+    0.495
+   ],
+   [
+    10.0,
+    0.055
+   ],
+   [
+    10.0,
+    0.21
+   ],
+   [
+    10.0,
+    0.36
+   ],
+   [
+    10.0,
+    0.495
+   ],
+   [
+    15.0,
+    0.055
+   ],
+   [
+    15.0,
+    0.21
+   ],
+   [
+    15.0,
+    0.36
+   ],
+   [
+    15.0,
+    0.495
+   ],
+   [
+    20.0,
+    0.055
+   ],
+   [
+    20.0,
+    0.21
+   ],
+   [
+    20.0,
+    0.36
+   ],
+   [
+    20.0,
+    0.495
+   ],
+   [
+    25.0,
+    0.055
+   ],
+   [
+    25.0,
+    0.21
+   ],
+   [
+    25.0,
+    0.36
+   ],
+   [
+    25.0,
+    0.495
+   ],
+   [
+    30.0,
+    0.055
+   ],
+   [
+    30.0,
+    0.21
+   ],
+   [
+    30.0,
+    0.36
+   ],
+   [
+    30.0,
+    0.495
+   ],
+   [
+    35.0,
+    0.055
+   ],
+   [
+    35.0,
+    0.21
+   ],
+   [
+    35.0,
+    0.36
+   ],
+   [
+    35.0,
+    0.495
+   ],
+   [
+    40.0,
+    0.055
+   ],
+   [
+    40.0,
+    0.21
+   ],
+   [
+    40.0,
+    0.36
+   ],
+   [
+    40.0,
+    0.495
+   ]
+  ],
+  "proposed_rule": "sr2-a0-r0.3-g0.6-m0.1",
+  "verification_conditions": [
+   [
+    5.0,
+    0.052
+   ],
+   [
+    5.0,
+    0.165
+   ],
+   [
+    5.0,
+    0.27
+   ],
+   [
+    5.0,
+    0.385
+   ],
+   [
+    5.0,
+    0.498
+   ],
+   [
+    7.058823529,
+    0.052
+   ],
+   [
+    7.058823529,
+    0.165
+   ],
+   [
+    7.058823529,
+    0.27
+   ],
+   [
+    7.058823529,
+    0.385
+   ],
+   [
+    7.058823529,
+    0.498
+   ],
+   [
+    9.117647059,
+    0.052
+   ],
+   [
+    9.117647059,
+    0.165
+   ],
+   [
+    9.117647059,
+    0.27
+   ],
+   [
+    9.117647059,
+    0.385
+   ],
+   [
+    9.117647059,
+    0.498
+   ],
+   [
+    11.176470588,
+    0.052
+   ],
+   [
+    11.176470588,
+    0.165
+   ],
+   [
+    11.176470588,
+    0.27
+   ],
+   [
+    11.176470588,
+    0.385
+   ],
+   [
+    11.176470588,
+    0.498
+   ],
+   [
+    13.235294118,
+    0.052
+   ],
+   [
+    13.235294118,
+    0.165
+   ],
+   [
+    13.235294118,
+    0.27
+   ],
+   [
+    13.235294118,
+    0.385
+   ],
+   [
+    13.235294118,
+    0.498
+   ],
+   [
+    15.294117647,
+    0.052
+   ],
+   [
+    15.294117647,
+    0.165
+   ],
+   [
+    15.294117647,
+    0.27
+   ],
+   [
+    15.294117647,
+    0.385
+   ],
+   [
+    15.294117647,
+    0.498
+   ],
+   [
+    17.352941176,
+    0.052
+   ],
+   [
+    17.352941176,
+    0.165
+   ],
+   [
+    17.352941176,
+    0.27
+   ],
+   [
+    17.352941176,
+    0.385
+   ],
+   [
+    17.352941176,
+    0.498
+   ],
+   [
+    19.411764706,
+    0.052
+   ],
+   [
+    19.411764706,
+    0.165
+   ],
+   [
+    19.411764706,
+    0.27
+   ],
+   [
+    19.411764706,
+    0.385
+   ],
+   [
+    19.411764706,
+    0.498
+   ],
+   [
+    21.470588235,
+    0.052
+   ],
+   [
+    21.470588235,
+    0.165
+   ],
+   [
+    21.470588235,
+    0.27
+   ],
+   [
+    21.470588235,
+    0.385
+   ],
+   [
+    21.470588235,
+    0.498
+   ],
+   [
+    23.529411765,
+    0.052
+   ],
+   [
+    23.529411765,
+    0.165
+   ],
+   [
+    23.529411765,
+    0.27
+   ],
+   [
+    23.529411765,
+    0.385
+   ],
+   [
+    23.529411765,
+    0.498
+   ],
+   [
+    25.588235294,
+    0.052
+   ],
+   [
+    25.588235294,
+    0.165
+   ],
+   [
+    25.588235294,
+    0.27
+   ],
+   [
+    25.588235294,
+    0.385
+   ],
+   [
+    25.588235294,
+    0.498
+   ],
+   [
+    27.647058824,
+    0.052
+   ],
+   [
+    27.647058824,
+    0.165
+   ],
+   [
+    27.647058824,
+    0.27
+   ],
+   [
+    27.647058824,
+    0.385
+   ],
+   [
+    27.647058824,
+    0.498
+   ],
+   [
+    29.705882353,
+    0.052
+   ],
+   [
+    29.705882353,
+    0.165
+   ],
+   [
+    29.705882353,
+    0.27
+   ],
+   [
+    29.705882353,
+    0.385
+   ],
+   [
+    29.705882353,
+    0.498
+   ],
+   [
+    31.764705882,
+    0.052
+   ],
+   [
+    31.764705882,
+    0.165
+   ],
+   [
+    31.764705882,
+    0.27
+   ],
+   [
+    31.764705882,
+    0.385
+   ],
+   [
+    31.764705882,
+    0.498
+   ],
+   [
+    33.823529412,
+    0.052
+   ],
+   [
+    33.823529412,
+    0.165
+   ],
+   [
+    33.823529412,
+    0.27
+   ],
+   [
+    33.823529412,
+    0.385
+   ],
+   [
+    33.823529412,
+    0.498
+   ],
+   [
+    35.882352941,
+    0.052
+   ],
+   [
+    35.882352941,
+    0.165
+   ],
+   [
+    35.882352941,
+    0.27
+   ],
+   [
+    35.882352941,
+    0.385
+   ],
+   [
+    35.882352941,
+    0.498
+   ],
+   [
+    37.941176471,
+    0.052
+   ],
+   [
+    37.941176471,
+    0.165
+   ],
+   [
+    37.941176471,
+    0.27
+   ],
+   [
+    37.941176471,
+    0.385
+   ],
+   [
+    37.941176471,
+    0.498
+   ],
+   [
+    40.0,
+    0.052
+   ],
+   [
+    40.0,
+    0.165
+   ],
+   [
+    40.0,
+    0.27
+   ],
+   [
+    40.0,
+    0.385
+   ],
+   [
+    40.0,
+    0.498
+   ]
+  ]
+ },
+ "panel": {
+  "attack_constructions": {
+   "digest": "sha256:cdc13259861676f079b608e3d58a65259e266453fc918c8d5397cec6d50b42c9",
+   "families": [
+    "recipe_surface",
+    "rebuild_identity"
+   ],
+   "graphite": "not added: option A has no in-run agents (OWNER-EV5-CAP-01)",
+   "kind": "ATTACK_CONSTRUCTION",
+   "members": [
+    "attack_rebuild_identity_width_a-s0",
+    "attack_rebuild_identity_width_b-s0",
+    "attack_rebuild_identity_steps_a-s0",
+    "attack_rebuild_identity_steps_b-s0",
+    "attack_rebuild_identity_train_fraction_a-s0",
+    "attack_rebuild_identity_train_fraction_b-s0",
+    "attack_rebuild_identity_optimizer_a-s0",
+    "attack_rebuild_identity_optimizer_b-s0",
+    "attack_rebuild_identity_backbone_a-s0",
+    "attack_rebuild_identity_backbone_b-s0"
+   ],
+   "origin": "track_a_harness",
+   "participant_code": "out of scope at Level 0, refused by name",
+   "refused": [
+    {
+     "attempt": "nonfinite_learning_rate",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_nonfinite_learning_rate"
+    },
+    {
+     "attempt": "infinite_learning_rate",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_infinite_learning_rate"
+    },
+    {
+     "attempt": "width_out_of_surface",
+     "codes": [
+      [
+       "parameter.domain_mismatch",
+       "/parameters/width"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_width_out_of_surface"
+    },
+    {
+     "attempt": "negative_steps",
+     "codes": [
+      [
+       "parameter.domain_mismatch",
+       "/parameters/steps"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_negative_steps"
+    },
+    {
+     "attempt": "string_for_integer",
+     "codes": [
+      [
+       "parameter.type_mismatch",
+       "/parameters/width"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_string_for_integer"
+    },
+    {
+     "attempt": "boolean_for_integer",
+     "codes": [
+      [
+       "parameter.bool_int_confusion",
+       "/parameters/width"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_boolean_for_integer"
+    },
+    {
+     "attempt": "float_for_integer",
+     "codes": [
+      [
+       "parameter.coercion_forbidden",
+       "/parameters/width"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_float_for_integer"
+    },
+    {
+     "attempt": "nested_object_value",
+     "codes": [
+      [
+       "strategy.parameter_shape_invalid",
+       "/parameters"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_nested_object_value"
+    },
+    {
+     "attempt": "embedded_weight_table",
+     "codes": [
+      [
+       "strategy.identity_invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_embedded_weight_table"
+    },
+    {
+     "attempt": "pretrained_weights_field",
+     "codes": [
+      [
+       "parameter.unknown",
+       "/parameters"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_pretrained_weights_field"
+    },
+    {
+     "attempt": "submitted_dataset_field",
+     "codes": [
+      [
+       "strategy.parameter_shape_invalid",
+       "/parameters"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_submitted_dataset_field"
+    },
+    {
+     "attempt": "loss_expression_field",
+     "codes": [
+      [
+       "parameter.unknown",
+       "/parameters"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_loss_expression_field"
+    },
+    {
+     "attempt": "label_method_field",
+     "codes": [
+      [
+       "parameter.unknown",
+       "/parameters"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_label_method_field"
+    },
+    {
+     "attempt": "not_permitted_family",
+     "codes": [
+      [
+       "strategy.backbone_mismatch",
+       "/backbone"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_not_permitted_family"
+    },
+    {
+     "attempt": "pretrained_family",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_pretrained_family"
+    },
+    {
+     "attempt": "unknown_backbone",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_unknown_backbone"
+    },
+    {
+     "attempt": "code_at_top_level",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_code_at_top_level"
+    },
+    {
+     "attempt": "other_challenge",
+     "codes": [
+      [
+       "strategy.challenge_mismatch",
+       "/challenge_id"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_other_challenge"
+    },
+    {
+     "attempt": "unknown_schema_version",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_unknown_schema_version"
+    },
+    {
+     "attempt": "parameters_not_an_object",
+     "codes": [
+      [
+       "strategy.invalid",
+       "/strategy"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_parameters_not_an_object"
+    },
+    {
+     "attempt": "ignored_field_smuggled",
+     "codes": [
+      [
+       "parameter.dependency_unsatisfied",
+       "/parameters/warmup_steps"
+      ]
+     ],
+     "family": "recipe_surface",
+     "label": "attack_recipe_surface_ignored_field_smuggled"
+    }
+   ]
+  },
+  "controls": [
+   "oracle",
+   "conservative",
+   "boundary_optimist",
+   "rank_preserving_delay",
+   "localized_sign_error"
+  ],
+  "digest": "sha256:ea33e9ca9d5e09b7a2b65d103f900b72e274110ef94761408fde1871960ac849",
+  "members": 110,
+  "panel": "ev5",
+  "reconstructed": {
+   "digest": "sha256:96baaaa9f26c840e9ec934efb748efd0d0e6e88140924207c598afbe344243ca",
+   "members": 100,
+   "same_as": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json"
+  }
+ },
+ "plans": {
+  "directory": "docs/development/evidence/ev5-2026-10-03/plans",
+  "files": {
+   "ev5-panel-shard0-of1.json": {
+    "digest": "sha256:84724d6fb7c36ce6d1debd1f67c89bb5680fede1f411cc761044b0428b50fd80",
+    "plan": {
+     "contract": "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json",
+     "phase": "value_panel",
+     "shard": 0,
+     "shards": 1,
+     "ship": [
+      "carbon",
+      "docs/development/evidence/exam-design-2026-09-24/datasets/train-v1.jsonl.gz",
+      "docs/development/evidence/exam-design-2026-09-24/ocv_table.json",
+      "docs/development/evidence/exam-design-2026-09-24/prepare.json",
+      "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
+     ]
+    }
+   },
+   "ev5-refs-shard0-of2.json": {
+    "digest": "sha256:8de6212bf03fd8788e0f1e9400d9e79987477fad4614b62a367629ee6c1270df",
+    "plan": {
+     "contract": "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json",
+     "phase": "value_refs",
+     "shard": 0,
+     "shards": 2,
+     "ship": [
+      "carbon"
+     ],
+     "timeout_s": 1200
+    }
+   },
+   "ev5-refs-shard1-of2.json": {
+    "digest": "sha256:79832780b2c85710e843ab6a2b4fe268d04892069b96587b4e29d4a3d93c8d0b",
+    "plan": {
+     "contract": "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json",
+     "phase": "value_refs",
+     "shard": 1,
+     "shards": 2,
+     "ship": [
+      "carbon"
+     ],
+     "timeout_s": 1200
+    }
+   }
+  },
+  "optimizer_verification": "built after selection by ev5.optimizer_plans, refused above the maxima"
+ },
+ "preregistration": {
+  "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV5.md",
+  "sha256": "sha256:0b8942e584ee12751a05a9983b0b1d131766a6607c009951d4302dcdb6811951"
+ },
+ "profile": "level-0",
+ "rules_compared": {
+  "candidate": {
+   "record": "docs/development/evidence/sr-ev4-2026-10-02/sr2/results.json",
+   "rule": "sr2-a0-r0.3-g0.6-m0.1",
+   "weights": [
+    0.0,
+    0.3,
+    0.6,
+    0.1
+   ]
+  },
+  "deciding": "control-exam-v1",
+  "gate": {
+   "cutoff_bands": 2.0,
+   "measure": "mean near-limit optimism in bands (admissibility.near_optimism)",
+   "module": "carbon/battery/value/admissibility.py",
+   "rule": "a member at or above the cutoff, or unmeasured, is inadmissible and scores 0 under the rule (admissibility.gated)"
+  },
+  "rules": [
+   {
+    "gate": false,
+    "rule": "control-exam-v1"
+   },
+   {
+    "gate": true,
+    "rule": "control-exam-v1"
+   },
+   {
+    "gate": false,
+    "rule": "sr2-a0-r0.3-g0.6-m0.1"
+   },
+   {
+    "gate": true,
+    "rule": "sr2-a0-r0.3-g0.6-m0.1"
+   }
+  ]
+ },
+ "schema": "carbon.battery.ev5.freeze-manifest.v1",
+ "study": "EV5",
+ "study_sheet": {
+  "path": "docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json",
+  "sha256": "sha256:ee8ea04fc6f0a9ce084916b98bd8d6251a738c9f1526e5ab843ec23358e7bf51"
+ }
+}

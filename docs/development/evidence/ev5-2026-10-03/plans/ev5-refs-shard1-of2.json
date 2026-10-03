@@ -1,0 +1,10 @@
+{
+ "contract": "carbon/battery/value/contracts/ev5-charge-protocol-selection.v1.json",
+ "phase": "value_refs",
+ "shard": 1,
+ "shards": 2,
+ "ship": [
+  "carbon"
+ ],
+ "timeout_s": 1200
+}
