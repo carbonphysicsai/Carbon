@@ -7,11 +7,22 @@ socket relayed to the job server's port on this machine's loopback, as ssh's
 forward relays it to the machine. The worker's Python is a wrapper that runs
 this interpreter, so the script starts the real `carbon.compute.job_server`
 as a real process. No SSH connection is made.
+
+Unlike a container, the scripts see this machine's whole process table. The
+stop script never confirms a cleanup while another process of this user that
+started after the job still runs, because it cannot tell that process from
+one the job left (`remote_container.stop_script`). A test expecting a
+confirmed cleanup therefore needs no other process of this user to start
+during it. CI and `scripts/dev/canonical.sh` are isolated. On a host where
+other sessions run as the same user, run natively in a private PID namespace:
+`unshare --user --map-current-user --pid --fork --mount-proc -- <pytest>`.
+`unconfirmed_because` names what kept a cleanup unconfirmed.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -132,6 +143,54 @@ class LocalContainer:
         tunnel = local_tunnel(remote)
         self.tunnels.append(tunnel)
         return tunnel
+
+
+def _stat(pid: int) -> list[str] | None:
+    """The fields of /proc/<pid>/stat after the command name, or None."""
+    try:
+        return Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+    except (OSError, IndexError):
+        return None
+
+
+def unconfirmed_because(record) -> str:
+    """Why a cleanup went unconfirmed, as far as this machine can tell.
+
+    It names this user's other processes that started at or after the job's
+    `record` and still run: the stop script refuses to confirm while any
+    remains, whoever started it. This test process and its ancestors aside,
+    as the stop script spares its own. An empty list points at the job
+    itself, or at a process that has since ended.
+    """
+    if record is None:
+        return "cleanup unconfirmed: no job record"
+    spared, pid = set(), os.getpid()
+    while pid > 0 and pid not in spared and (fields := _stat(pid)):
+        spared.add(pid)
+        pid = int(fields[1])
+    found = []
+    for entry in Path("/proc").iterdir():
+        if not entry.name.isdigit() or int(entry.name) in spared:
+            continue
+        fields = _stat(int(entry.name))
+        try:
+            mine = entry.stat().st_uid == os.getuid()
+            command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").strip()
+        except OSError:
+            continue
+        if (
+            mine
+            and fields
+            and fields[0] not in ("Z", "X")
+            and int(fields[19]) >= record.start
+        ):
+            found.append(f"{entry.name} {command.decode(errors='replace')[:80]}")
+    return (
+        "cleanup unconfirmed. Processes of this user started since the job and "
+        f"still running: {found or 'none now'}. If they are not the job's, "
+        "this host shares its process table with other sessions: see "
+        "remote_container_fixture's docstring."
+    )
 
 
 def worker_python(root: Path) -> Path:
