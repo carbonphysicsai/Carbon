@@ -7,8 +7,8 @@
 - **Regeneration.** EV4's panel predictions were not retained, so they were
   regenerated.
   - Run: EV4's own plan at EV4's code ref `b92e90ef`, on one A40 pod
-    (`ev4-regen` campaign, USD 5 ceiling).
-  - 100 of 100 members written, in 24 minutes, at about USD 0.22.
+    (`ev4-regen` campaign, with its own ceiling).
+  - 100 of 100 members written, in 24 minutes; spend is in the operator's private ledger.
   - Pod termination verified (`docs/development/evidence/ev4-regen-2026-10-02/accounting/ledger.jsonl`).
 - **Verification by content.**
   - Byte digests cannot match, because each file carries wall-clock fields.

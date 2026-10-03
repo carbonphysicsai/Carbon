@@ -2423,6 +2423,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "pod-ledger-tickets",
+        "match_type": "prefix",
+        "path": ".agent/tickets/POD-LEDGER",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "challenge-readiness-tickets",
         "match_type": "prefix",
         "path": ".agent/tickets/CHALLENGE-READINESS",

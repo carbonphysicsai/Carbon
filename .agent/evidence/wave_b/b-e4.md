@@ -730,8 +730,8 @@ The proposal recommends a common `gpt-5.6-terra` population, five policies,
 four attempts against eight candidates, 12 task cells, 280 primary plus 20
 reserve runs, 2,400 request attempts, 19,660,800 input and 4,915,200 output
 billable tokens, 19,200 service calls, 35,700 fixture units, 270,000 aggregate
-run-wall seconds, 432,000 campaign-wall seconds, expected spend `$27.52512`,
-and a retry-inclusive `$98.304` ceiling at prices verified 2026-09-08.
+run-wall seconds, 432,000 campaign-wall seconds, an expected spend,
+and a retry-inclusive spend ceiling at prices verified 2026-09-08.
 
 No inference or campaign was performed. Evidence is limited to source
 inspection, derived arithmetic, the immutable proposal, and adversarial
