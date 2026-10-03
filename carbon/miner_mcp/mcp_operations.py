@@ -40,6 +40,18 @@ DETACH = PREFIX + "detach_campaign"
 GENERATES_KEY = frozenset({"launch"})
 #: Raster images `run_output` inlines, as MCP image content.
 _IMAGE_TYPES = frozenset({"image/png", "image/jpeg", "image/gif", "image/webp"})
+#: How this door's errors read, as every tool description states it. Two
+#: layers: the MCP SDK validates arguments against the schema first and
+#: reports a violation in its own words, so a missing required field (launch's
+#: challenge or challenge_version) or a value outside an enum never reaches
+#: the body; a refusal after that is this door's closed JSON. The SDK puts its
+#: "Error executing tool <name>: " prefix before either.
+REFUSAL_NOTE = (
+    "Arguments that do not match the schema are refused by the MCP SDK's "
+    "validation message. A refusal after validation is JSON - error (a "
+    "closed code), field when one is to blame, and next_step - following the "
+    "SDK's 'Error executing tool <name>: ' prefix."
+)
 
 
 def operation_tool_names():
@@ -170,10 +182,7 @@ def _door_notes(op):
             "action=reconcile answers campaign_busy while this session is "
             "attached to the campaign: call carbon_detach_campaign first."
         )
-    notes.append(
-        "A refusal is JSON: error (a closed code), field when one is to "
-        "blame, and next_step."
-    )
+    notes.append(REFUSAL_NOTE)
     return " ".join(notes)
 
 
@@ -509,7 +518,7 @@ def make_attachment_tools(attachment, *, guard=None):
                 "that campaign answer campaign_busy until you call "
                 + DETACH
                 + "; observe, campaign_view, messages, note and run_output "
-                "keep working. A refusal is JSON: error, field, next_step."
+                "keep working. " + REFUSAL_NOTE
             ),
             parameters=attach_model.model_json_schema(),
             fn_metadata=ExactMetadata(

@@ -57,8 +57,9 @@ Loop until launch:
    adds tools names them in `tools_added`: list the tools again (the server
    also announces the change).
 5. When `next.step` is "launch", setup is done. `next.call.in_this_session`
-   says whether carbon_launch is in this session; if it is not, reconnect
-   with `next.call.reconnect`.
+   says whether carbon_launch is in this session. If it is not, follow
+   `next.call.note`: call `next.call.fix` (review again) when the written
+   profile did not load, otherwise reconnect with `next.call.reconnect`.
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and
@@ -168,11 +169,15 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
     return [tool_for(op) for op in SETUP_OPERATIONS.values() if op.tier == tier]
 
 
-def make_status_tool(setup, *, guard=None, campaigns=None, launch_available=None):
+def make_status_tool(
+    setup, *, guard=None, campaigns=None, launch_available=None, profile_unusable=None
+):
     """`carbon_setup_status`: where setup stands and the exact next call.
 
     `launch_available`, a callable, says whether this session has
-    `carbon_launch` now, so the launch step never names a tool it lacks."""
+    `carbon_launch` now, so the launch step never names a tool it lacks;
+    `profile_unusable`, a callable, whether the profile review wrote failed
+    to load here, so the step is review again rather than a reconnect."""
     from mcp.server.mcpserver.tools import Tool
     from pydantic import BaseModel, ConfigDict, JsonValue, create_model
 
@@ -191,9 +196,15 @@ def make_status_tool(setup, *, guard=None, campaigns=None, launch_available=None
             guard()
         count = campaigns() if campaigns is not None else None
         launch = launch_available() if launch_available is not None else None
+        unusable = bool(profile_unusable()) if profile_unusable is not None else False
         return StatusResult(
             payload=await asyncio.to_thread(
-                status, setup, door=MCP, campaigns=count, launch_available=launch
+                status,
+                setup,
+                door=MCP,
+                campaigns=count,
+                launch_available=launch,
+                profile_unusable=unusable,
             )
         )
 
@@ -226,6 +237,9 @@ class SetupDoor:
         self.attach_operations = attach_operations
         self.registered = False
         self.operations = False
+        #: The profile review wrote failed to load on this server: status
+        #: then sends the miner back to review, not to a reconnect with it.
+        self.profile_unusable = False
         #: How many campaigns the attached profile has, once one is attached.
         self.count = None
 
@@ -257,6 +271,7 @@ class SetupDoor:
                     guard=self.guard,
                     campaigns=lambda: self.count() if self.count else None,
                     launch_available=lambda: "carbon_launch" in registry,
+                    profile_unusable=lambda: self.profile_unusable,
                 ),
                 *make_setup_tools(
                     self.setup, tier=OPEN, guard=self.guard, after=self.after
@@ -281,9 +296,10 @@ class SetupDoor:
             try:
                 names = self.attach_operations(self.setup.profile_path)
             except Exception:  # noqa: BLE001 - an unusable profile adds nothing
-                # Status then says launch is not in this session and how to
-                # reconnect, rather than the server failing to start.
+                # Status then says the profile did not load and to review
+                # again, rather than the server failing to start.
                 names = None
+                self.profile_unusable = True
             if names is not None:
                 added += list(names)
                 self.operations = True
@@ -319,8 +335,16 @@ class SetupDoor:
                 names = await asyncio.to_thread(
                     self.attach_operations, self.setup.profile_path
                 )
+            except Exception:  # noqa: BLE001 - the review itself succeeded
+                # The profile is written; it does not load here. The review
+                # result stands with nothing added, and status says to review
+                # again - never a bare error for a step that did its work.
+                self.operations = False
+                self.profile_unusable = True
+                return []
             except BaseException:
                 self.operations = False
                 raise
+            self.profile_unusable = False
             return list(names)
         return []

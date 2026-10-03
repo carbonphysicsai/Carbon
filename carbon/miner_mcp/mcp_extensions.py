@@ -8,7 +8,8 @@ Refusals read exactly as the plain tools' do (`serving.refusal`): the adapter's
 own closed code, whether anything may have started, the field to blame for an
 invalid argument, and the fixed next action (LP-PROD-B). A task observation
 tells "this task is unavailable" (unknown, or not yours: one answer for both)
-apart from "this observation failed, retry it" by JSON-RPC error code.
+apart from "this observation failed" by JSON-RPC error code, and says whether
+the same observation is worth retrying (`observation_error`).
 """
 
 from __future__ import annotations
@@ -101,22 +102,27 @@ OBSERVATION_FAILED_ERROR = -32603
 def observation_error(code):
     """(JSON-RPC code, message) for a failed tasks/get or tasks/cancel.
 
-    One answer for every way the task can be unavailable, so a foreign task
-    and an unknown one cannot be told apart. Every other failure - a stopped
-    signer, a campaign not admitting, a dropped registration read - happened
-    before or beside the lookup, says nothing about the task, and is safe to
-    retry: an observation changes nothing, and a cancellation reuses one
-    cancellation identity.
+    One answer for every way the task can be unavailable - unknown, or
+    another miner's - so the two cannot be told apart (`-32602
+    TASK_NOT_FOUND`). Every other failure keeps its own code (`-32603`): it
+    says nothing about whether the task exists, so it is never reported as a
+    missing task, which could send an agent to start its running work again.
+    `retry=true` only for the codes after which the same observation may
+    succeed (`serving.OBSERVATION_RETRYABLE`: a stopped signer, a campaign not
+    admitting, a dropped registration read); an observation changes nothing,
+    and a cancellation reuses one cancellation identity. Everything else -
+    a result this server will not forward, the server's binding, a spent
+    limit - is `retry=false`.
     """
     if code in serving.TASK_UNAVAILABLE:
         return TASK_UNAVAILABLE_ERROR, (
             "TASK_NOT_FOUND; retry=false; next_action="
             + serving.NEXT_ACTION[AdapterCode.TASK_NOT_FOUND.value]
         )
-    action = serving.NEXT_ACTION.get(code)
-    if code == AdapterCode.OPERATIONAL_STOP.value or action is None:
-        action = serving.OBSERVATION_RETRY
-    return OBSERVATION_FAILED_ERROR, code + "; retry=true; next_action=" + action
+    retry = "true" if code in serving.OBSERVATION_RETRYABLE else "false"
+    return OBSERVATION_FAILED_ERROR, (
+        code + "; retry=" + retry + "; next_action=" + serving.observation_action(code)
+    )
 
 
 def invalid_field(error, fields):
@@ -170,9 +176,12 @@ def make_tasks_extension(adapter, *, guard, validate_start, fields=frozenset()):
         try:
             projected = task_projection(result, detailed=True)
             if projected is None or projected["taskId"] != params.task_id:
-                raise ValueError("unavailable task")
+                raise ValueError("unprojectable task")
             return projected
         except (ValueError, KeyError, TypeError, OverflowError):
+            # The adapter answered for this campaign's own task, so it is not
+            # a missing task; on a cancel the cancellation has already run.
+            # INVALID_RESULT, retry=false, and never "nothing changed".
             raise MCPError(
                 *observation_error(AdapterCode.INVALID_RESULT.value)
             ) from None

@@ -26,6 +26,7 @@ The doors differ in one declared way: the browser may paste a model key once
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 SCHEMA = "carbon.miner-setup.status.v1"
 #: The setup steps, in the order a miner takes them.
@@ -324,13 +325,37 @@ def perform(setup, name: str, request, *, door: str):
         raise
 
 
-def _launch_call(setup, door, launch_available):
+def _reconnect_command(setup):
+    """`carbon-mcp` with this setup's runner profile, and its state directory
+    when that is not the Control Center's default, so the new session reads
+    the same setup records as this one."""
+    import shlex
+
+    from scripts.dev.miner_launchpad.environment_setup import DEFAULT_STATE_DIR
+
+    profile = getattr(setup, "profile_path", None)
+    parts = [
+        "carbon-mcp",
+        "--configuration",
+        str(profile) if profile is not None else "<your runner profile>",
+    ]
+    root = getattr(setup, "root", None)
+    if root is not None and Path(root).parent != DEFAULT_STATE_DIR:
+        parts += ["--state-dir", str(Path(root).parent)]
+    return " ".join(
+        part if part.startswith("<") else shlex.quote(part) for part in parts
+    )
+
+
+def _launch_call(setup, door, launch_available, *, profile_unusable=False):
     """The launch entry: where launch is, said only of tools that exist.
 
     `launch_available` is the MCP door's own answer - whether `carbon_launch`
     is in this session - or None where the door does not say. A session
     without it is told how to get it (LP-PROD-B), never sent to a tool it
-    does not have.
+    does not have. `profile_unusable` is the door's report that the runner
+    profile review wrote failed to load here: a reconnect with that profile
+    would fail the same way, so the step is review again, not a reconnect.
     """
     call = {"tool": "carbon_launch", "http": "POST /api/v1/research"}
     if door != MCP or launch_available is None:
@@ -344,12 +369,20 @@ def _launch_call(setup, door, launch_available):
             "carbon_launch is in this session; its arguments schema lists every "
             "field (challenge and challenge_version are required)"
         )
+    elif profile_unusable:
+        call["in_this_session"] = False
+        call["missing"] = ["runner_profile_unusable"]
+        call["fix"] = {"tool": "carbon_setup_review"}
+        call["note"] = (
+            "carbon_launch is not in this session: the runner profile review "
+            "wrote could not be loaded here, so the launch operation was not "
+            "added, and a reconnect with it would fail the same way. Call "
+            "carbon_setup_review again; once the profile it writes loads, "
+            "carbon_launch is added to this session"
+        )
     else:
         call["in_this_session"] = False
-        profile = getattr(setup, "profile_path", None)
-        call["reconnect"] = "carbon-mcp --configuration " + (
-            str(profile) if profile is not None else "<your runner profile>"
-        )
+        call["reconnect"] = _reconnect_command(setup)
         call["note"] = (
             "carbon_launch is not in this session: reconnect your MCP client "
             "with the reconnect command (your runner profile, which review "
@@ -358,12 +391,15 @@ def _launch_call(setup, door, launch_available):
     return call
 
 
-def status(setup, *, door: str, campaigns=None, launch_available=None) -> dict:
+def status(
+    setup, *, door: str, campaigns=None, launch_available=None, profile_unusable=False
+) -> dict:
     """Where setup stands and the exact next call (OWNER-MINER-SETUP-AGENT-
     FIRST-01). `campaigns`, when the door knows it, is how many campaigns
     this miner's profile has; one or more means launch is done.
     `launch_available`, when the door knows it, is whether this session
-    already has `carbon_launch` (`_launch_call`)."""
+    already has `carbon_launch`, and `profile_unusable` whether the written
+    profile failed to load here (`_launch_call`)."""
     from scripts.dev.miner_launchpad.environment_setup import (
         OWN_AGENT,
         USES_SETUP_MODEL,
@@ -431,7 +467,9 @@ def status(setup, *, door: str, campaigns=None, launch_available=None) -> dict:
         result["next"] = {
             "step": "launch",
             "done": launched,
-            "call": _launch_call(setup, door, launch_available),
+            "call": _launch_call(
+                setup, door, launch_available, profile_unusable=profile_unusable
+            ),
         }
         return result
     step = nxt["id"]

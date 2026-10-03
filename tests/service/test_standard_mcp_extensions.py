@@ -181,7 +181,11 @@ def test_negotiated_tasks_reconnect_results_cancel_and_skills(
 
     async def observe(self, identity):
         if identity != TASK_ID:
-            raise AdapterFailure(AdapterCode.OWNER_BINDING)
+            # What the adapter raises for a task this campaign does not hold
+            # (LP-PROD-B): the provider's typed TASK_NOT_FOUND. OWNER_BINDING
+            # is the server's own binding, never a foreign task, and now keeps
+            # its own -32603 code instead of reading as a missing task.
+            raise AdapterFailure(AdapterCode.TASK_NOT_FOUND)
         operations.append(("observe", identity))
         return _result(state["value"])
 
@@ -280,6 +284,7 @@ def test_negotiated_tasks_reconnect_results_cancel_and_skills(
                         GetTask(params=TaskParams(taskId=FOREIGN_ID)), Result
                     )
                 assert denied.value.code == -32602
+                assert "TASK_NOT_FOUND; retry=false" in str(denied.value)
                 ack = await second.session.send_request(
                     CancelTask(params=TaskParams(taskId=TASK_ID)), Result
                 )

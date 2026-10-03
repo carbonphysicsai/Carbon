@@ -169,9 +169,11 @@ CHOICES = {
 
 #: Fields an operation's body refuses to run without, by its own specific
 #: code (`challenge_required`, `challenge_version_unsupported`), which the
-#: closed-request gate therefore leaves optional. Schemas mark them required
-#: so a client learns it before calling; a door that omits one still gets the
-#: body's specific refusal rather than a generic one.
+#: closed-request gate therefore leaves optional. The MCP schemas mark them
+#: required so a client learns it before calling; an MCP call that omits one
+#: is then refused by the SDK's schema validation and never reaches the body.
+#: The browser door's closed-request gate is unchanged, so a browser request
+#: that omits one still gets the body's specific refusal.
 BODY_REQUIRED = {"launch": frozenset({"challenge", "challenge_version"})}
 
 

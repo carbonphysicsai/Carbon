@@ -40,6 +40,7 @@ from carbon.miner_mcp.standard import (
     AdapterFailure,
     ResearchToolAdapter,
     ResearchToolRequest,
+    ResearchToolResult,
 )
 
 OPERATION_ID = "lp-prod-b-operation-0001"
@@ -267,6 +268,94 @@ def test_a_fenced_dispatch_at_the_binding_is_admission_stopped(tmp_path, monkeyp
     assert raised.value.dispatch_may_have_occurred is False
 
 
+def test_a_control_deadline_at_the_binding_is_the_elapsed_code(tmp_path, monkeypatch):
+    """Review fix: campaign control's deadline fence reached the client as
+    CAMPAIGN_ADMISSION_STOPPED ('resume or reconcile'), which cannot help."""
+    _, adapter, meter = real_sdk(tmp_path)
+
+    def reserve(*args, **kwargs):
+        raise DispatchStopped("original campaign deadline reached")
+
+    monkeypatch.setattr(meter, "reserve", reserve)
+    with pytest.raises(AdapterFailure) as raised:
+        run(adapter, "start_research_task", practice())
+    assert raised.value.code is AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED
+    assert raised.value.dispatch_may_have_occurred is False
+
+
+def product_campaign(tmp_path):
+    """A real controlled product campaign behind the real admitted connection
+    the attach path builds (`standard_cli._AdmittedConnection`): its frozen
+    manifest with a 60-second elapsed budget, its campaign control, and the
+    private profile it re-reads on every call. Nothing here signs: the inner
+    connection is the fixture that stops before a signature."""
+    from test_product_campaign_ledger import OWNER, manifest
+
+    from carbon.development_session.research_control import CampaignControl
+    from carbon.development_session.research_ledger import CampaignLedger
+    from carbon.miner_mcp.standard_cli import _AdmittedConnection
+
+    tmp_path.chmod(0o700)
+    ledger = CampaignLedger(tmp_path / "campaign", clock=lambda: 1000)
+    control = CampaignControl(ledger)
+    ledger.generation = control.acquire()
+    frozen = manifest(elapsed_seconds=60)
+    ledger.freeze(frozen)
+    path = tmp_path / "runner-profile.json"
+    document = {"profile_id": "lp-prod-b-fixture"}
+    path.write_bytes(canonical(document))
+    path.chmod(0o600)
+    inner = SimpleNamespace(
+        chain_context=None,
+        publisher=None,
+        miner_key=None,
+        check_registration=Connection().check_registration,
+    )
+    profile = SimpleNamespace(
+        cleanup_only=False, path=path, document=document, manifest=frozen
+    )
+    composition = SimpleNamespace(
+        challenge=CHALLENGE,
+        executor=SimpleNamespace(owner=OWNER),
+        discovery=SimpleNamespace(info=SimpleNamespace(training_support_ref=None)),
+    )
+    sdk = ResearchMinerTools(
+        connection=_AdmittedConnection(inner, profile, ledger, control),
+        wrapper=object(),
+        composition=composition,
+        ledger=ledger,
+        owner=OWNER,
+    )
+    return ResearchToolAdapter(sdk, principal=OWNER), ledger, control
+
+
+def refusal_of(adapter, operation, arguments):
+    with pytest.raises(AdapterFailure) as raised:
+        run(adapter, operation, arguments)
+    return raised.value.code, raised.value.dispatch_may_have_occurred
+
+
+def test_a_spent_product_campaign_reads_the_same_on_every_call(tmp_path):
+    """The real admission check and the real controlled binding: a read
+    refused by `_AdmittedConnection` and a numerical start refused by
+    `CampaignControl.checkpoint` inside `ledger.reserve` give one code. Also
+    pins the admission check's wording, which `_ADMISSION_STOPS` matches."""
+    adapter, ledger, _ = product_campaign(tmp_path)
+    with ledger.db() as db:
+        db.execute("UPDATE campaign SET started=? WHERE id=1", (900,))
+    spent = (AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED, False)
+    assert refusal_of(adapter, "get_challenge_info", {}) == spent
+    assert refusal_of(adapter, "start_research_task", practice()) == spent
+
+
+def test_a_stopped_product_campaign_reads_the_same_on_every_call(tmp_path):
+    adapter, _, control = product_campaign(tmp_path)
+    control.request("stop")
+    stopped = (AdapterCode.CAMPAIGN_ADMISSION_STOPPED, False)
+    assert refusal_of(adapter, "get_challenge_info", {}) == stopped
+    assert refusal_of(adapter, "start_research_task", practice()) == stopped
+
+
 def test_a_reused_operation_id_reads_as_retryable_on_the_wire(tmp_path, monkeypatch):
     from mcp.server.mcpserver.exceptions import ToolError
 
@@ -295,11 +384,21 @@ def test_every_new_code_has_a_next_action_that_does_not_forbid_retrying():
         AdapterCode.CAMPAIGN_ADMISSION_STOPPED,
         AdapterCode.OPERATION_ID_REUSED,
         AdapterCode.TASK_NOT_FOUND,
+        AdapterCode.OBSERVATION_LIMIT_REACHED,
     ):
         action = serving.NEXT_ACTION[code.value]
         assert "Nothing" in action
         assert "do not retry" not in action.lower()
         assert "never retry" not in action.lower()
+
+
+def test_the_stop_texts_name_the_attached_case_and_every_time_limit():
+    """Review nits: an attached session that follows 'resume or reconcile'
+    gets campaign_busy; the time limit may be a grant's or a clock's."""
+    stopped = serving.NEXT_ACTION[AdapterCode.CAMPAIGN_ADMISSION_STOPPED.value]
+    assert "carbon_detach_campaign" in stopped and "attach again" in stopped
+    elapsed = serving.NEXT_ACTION[AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED.value]
+    assert "grant's expiry" in elapsed and "clock moved backwards" in elapsed
 
 
 # -- 3. Tasks refusals read like the plain tools' ----------------------------
@@ -322,21 +421,70 @@ def test_an_unknown_task_is_its_own_code_and_started_nothing(monkeypatch):
 
 
 def test_a_task_observation_tells_unavailable_from_retry():
+    """Review fix: OWNER_BINDING and INVALID_RESULT were folded into
+    TASK_NOT_FOUND, telling an agent its own running task did not exist."""
     from carbon.miner_mcp.mcp_extensions import observation_error
 
-    for code in ("TASK_NOT_FOUND", "OWNER_BINDING", "INVALID_RESULT"):
+    for code in ("TASK_NOT_FOUND", "INVALID_ARGUMENT"):
         number, message = observation_error(code)
-        # One answer for every unavailable task: no oracle on foreign tasks.
+        # One answer for an unknown task and a foreign one: no oracle.
         assert (number, message.split(";")[0]) == (-32602, "TASK_NOT_FOUND")
         assert "retry=false" in message
     for code in (
         "SIGNER_NOT_RUNNING",
+        "SIGNER_TIMEOUT",
         "CAMPAIGN_ADMISSION_STOPPED",
         "OPERATIONAL_STOP",
     ):
         number, message = observation_error(code)
         assert number == -32603
         assert message.startswith(code + "; retry=true; next_action=")
+    # Its own code, never a missing task, and never an invitation to loop.
+    for code in (
+        "INVALID_RESULT",
+        "OWNER_BINDING",
+        "NO_CAMPAIGN",
+        "SIGNER_WRONG_HOTKEY",
+        "SIGNER_PROTOCOL",
+        "SIGNER_INVALID_SIGNATURE",
+        "CAMPAIGN_ELAPSED_BUDGET_REACHED",
+        "OBSERVATION_LIMIT_REACHED",
+        "A_CODE_ADDED_LATER",
+    ):
+        number, message = observation_error(code)
+        assert number == -32603
+        assert message.startswith(code + "; retry=false; next_action=")
+        assert "TASK_NOT_FOUND" not in message
+
+
+def test_an_observation_never_asks_for_an_operation_id_it_does_not_have():
+    from carbon.miner_mcp.mcp_extensions import observation_error
+
+    for code in AdapterCode:
+        # A start's own code: an observation binds no operation id.
+        if (
+            code.value in serving.TASK_UNAVAILABLE
+            or code.value == "OPERATION_ID_REUSED"
+        ):
+            continue
+        message = observation_error(code.value)[1]
+        assert "operation_id" not in message, code
+    assert "Nothing changed" not in observation_error("INVALID_RESULT")[1]
+
+
+def test_the_observation_bound_is_its_own_permanent_code(monkeypatch):
+    _, adapter = make_adapter(ledger=object())
+
+    async def exhausted(self, mode, args, identity):
+        raise research.ResearchTaskProviderError(
+            research.ResearchServiceErrorCode.BOUND_EXCEEDED
+        )
+
+    monkeypatch.setattr(ResearchMinerTools, "task_call", exhausted)
+    with pytest.raises(AdapterFailure) as raised:
+        asyncio.run(adapter.observe_task(TASK_ID))
+    assert raised.value.code is AdapterCode.OBSERVATION_LIMIT_REACHED
+    assert raised.value.dispatch_may_have_occurred is False
 
 
 def tasks_extension(adapter, monkeypatch):
@@ -414,6 +562,36 @@ def test_a_tasks_get_failure_is_retryable_unless_the_task_is_unknown(monkeypatch
         asyncio.run(extension.get(ctx, params))
     assert unknown.value.code == -32602
     assert "TASK_NOT_FOUND; retry=false" in str(unknown.value)
+
+
+def test_a_cancel_whose_result_cannot_be_projected_is_not_a_missing_task(
+    monkeypatch,
+):
+    """Review fix: the cancellation has already run when the projection
+    fails, so the answer is INVALID_RESULT, never 'no task ... Nothing
+    changed' - which could send an agent to start its work again."""
+    from mcp.shared.exceptions import MCPError
+
+    _, adapter = make_adapter()
+    extension, ctx = tasks_extension(adapter, monkeypatch)
+    cancelled = []
+
+    async def cancel(self, task_id):
+        cancelled.append(task_id)
+        # A result naming no task: nothing the Tasks wire can project.
+        return ResearchToolResult(
+            "start_research_task", OPERATION_ID, reply("start_research_task"), False
+        )
+
+    monkeypatch.setattr(ResearchToolAdapter, "cancel_task", cancel)
+    with pytest.raises(MCPError) as raised:
+        asyncio.run(extension.cancel(ctx, SimpleNamespace(task_id=TASK_ID)))
+    assert cancelled == [TASK_ID]
+    assert raised.value.code == -32603
+    message = str(raised.value)
+    assert message.startswith("INVALID_RESULT; retry=false; next_action=")
+    assert "TASK_NOT_FOUND" not in message and "Nothing changed" not in message
+    assert "do not start it again" in message
 
 
 def test_a_tasks_start_without_an_operation_id_gets_one(monkeypatch):
@@ -585,6 +763,46 @@ def test_a_call_without_an_operation_id_returns_the_generated_one(monkeypatch):
     assert started.structured_content["operation_id"] == "my-own-retry-key-01"
 
 
+def test_a_cancel_without_an_operation_id_repeats_the_tasks_own_identity(
+    monkeypatch,
+):
+    """Review fix: a fresh random id per retried cancel is a second
+    cancellation, which the provider refuses while the first is pending."""
+    from carbon.miner_mcp.standard_server import cancellation_id
+
+    tools, server = research_tools()
+    seen = []
+
+    async def answered(self, name, args, identity, *, transport_request_id=None):
+        seen.append(identity)
+        return reply("cancel_research_task")
+
+    monkeypatch.setattr(ResearchMinerTools, "call", answered)
+    for _ in range(2):
+        result = asyncio.run(
+            server.call_tool(PREFIX + "cancel_research_task", {"task_id": TASK_ID})
+        )
+        assert result.structured_content["operation_id"] == "mcp-cancel-" + TASK_ID
+    # The identity the adapter's tasks/cancel uses too.
+    assert seen == [cancellation_id(TASK_ID)] * 2 == ["mcp-cancel-" + TASK_ID] * 2
+    schema = tools[PREFIX + "cancel_research_task"].input_schema
+    assert "operation_id" not in schema.get("required", [])
+    assert "mcp-cancel-<task_id>" in json.dumps(schema["properties"]["operation_id"])
+
+
+def test_operation_id_is_described_only_where_it_does_something():
+    tools, _ = research_tools()
+
+    def described(name):
+        return json.dumps(tools[PREFIX + name].input_schema["properties"])
+
+    assert "OPERATION_ID_REUSED" in described("start_research_task")
+    for name in ("get_challenge_info", "get_research_result", "forecast_resources"):
+        assert "OPERATION_ID_REUSED" not in described(name), name
+        assert "only records it" in described(name), name
+    assert "replays" not in tools[PREFIX + "get_challenge_info"].description
+
+
 # -- 8. Results ---------------------------------------------------------------
 
 
@@ -619,6 +837,29 @@ def test_a_result_beyond_the_hard_limit_is_still_refused(monkeypatch):
     monkeypatch.setattr(ResearchMinerTools, "call", answered)
     with pytest.raises(AdapterFailure, match="INVALID_RESULT"):
         run(adapter, "get_challenge_info", {})
+
+
+def test_a_heavily_cut_result_with_its_record_stays_within_the_limit(monkeypatch):
+    """Review fix: 4096 bytes of room could not hold a record of 16 long
+    paths, so a cut payload could leave over 1 MiB. Paths here are long and
+    non-ASCII, which the record replaces, and nested lists need a second pass."""
+    _, adapter = make_adapter()
+    key = "é" * 300
+    big = {
+        **{f"{key}{index:02d}": "y" * 60_000 for index in range(40)},
+        "nested": [["z" * 4000 for _ in range(40)] for _ in range(20)],
+    }
+
+    async def answered(*args, **kwargs):
+        return {**reply("get_challenge_info"), "public_result": big}
+
+    monkeypatch.setattr(ResearchMinerTools, "call", answered)
+    payload = run(adapter, "get_challenge_info", {}).payload
+    assert len(canonical(payload)) <= 1024 * 1024
+    record = payload["truncation"]
+    assert record["cut_total"] >= len(record["cut"]) == 16
+    for cut in record["cut"]:
+        assert len(cut["path"]) <= 160 and cut["path"].isascii()
 
 
 # -- 7./8./9. The operations door ----------------------------------------------
@@ -682,6 +923,40 @@ def test_launch_states_its_requirements_and_closed_values():
     assert all('"' + a + '"' in halt for a in ("stop", "pause", "reconcile"))
     kinds = json.dumps(tools["carbon_note"].parameters["properties"]["note_kind"])
     assert '"reply"' in kinds
+
+
+def test_the_published_closed_values_are_the_ones_the_bodies_check():
+    """CHOICES states values other modules own; pinned so they cannot drift."""
+    from scripts.dev.miner_launchpad.campaign_view import NOTE_KINDS
+    from scripts.dev.miner_launchpad.controller import Rejected
+    from scripts.dev.miner_launchpad.operations import CHOICES
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    assert tuple(CHOICES["note_kind"]) == tuple(NOTE_KINDS)
+    host = SimpleNamespace(_control=lambda campaign, action: action)
+    admitted = SimpleNamespace(campaign={"id": CAMPAIGN})
+    for action in CHOICES["action"]:
+        assert RunnerAdapter.halt_admitted(host, admitted, {"action": action}) == action
+    with pytest.raises(Rejected) as refused:
+        RunnerAdapter.halt_admitted(host, admitted, {"action": "resume"})
+    assert refused.value.code == "invalid_research_control"
+
+
+def test_every_operation_says_how_its_errors_read():
+    """Review fix: descriptions said every refusal is JSON, but a schema
+    violation is the SDK's own validation text, and both carry its prefix."""
+    from mcp.server import MCPServer
+
+    tools = operation_tools(Host())
+    for tool in tools.values():
+        assert "MCP SDK's validation message" in tool.description, tool.name
+        assert "Error executing tool <name>: " in tool.description, tool.name
+    server = MCPServer("t", tools=[tools["carbon_launch"]])
+    with pytest.raises(Exception) as raised:
+        asyncio.run(server.call_tool("carbon_launch", {"agent": "none"}))
+    # Launch without challenge never reaches the body's challenge_required.
+    assert "challenge_required" not in str(raised.value)
+    assert str(raised.value).startswith("Error executing tool carbon_launch: ")
 
 
 def launch_request(**extra):
@@ -960,6 +1235,54 @@ def test_an_unusable_profile_at_reconnect_does_not_stop_the_server():
     door = SetupDoor(create_open_tier_server(), Setup(), attach_operations=broken)
     door.install()
     assert not door.operations
+    assert door.profile_unusable
+
+
+def test_status_sends_an_unusable_profile_back_to_review_not_to_a_reconnect():
+    """Review fix: the reconnect command was offered exactly when the profile
+    could not load - and a reconnect with that profile fails the same way."""
+    from scripts.dev.miner_launchpad.setup_operations import MCP, _launch_call
+
+    call = _launch_call(Setup(), MCP, False, profile_unusable=True)
+    assert call["in_this_session"] is False
+    assert call["missing"] == ["runner_profile_unusable"]
+    assert call["fix"] == {"tool": "carbon_setup_review"}
+    assert "reconnect" not in call
+
+
+def test_a_review_whose_profile_does_not_load_still_succeeds():
+    from carbon.miner_mcp.mcp_setup import SetupDoor
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+
+    calls = []
+
+    def broken(path):
+        calls.append(path)
+        raise ValueError("profile unreadable")
+
+    door = SetupDoor(create_open_tier_server(), Setup(), attach_operations=broken)
+    reviewed = {"steps": {"review": {"profile_written": True}}}
+    assert asyncio.run(door.after("review", reviewed)) == []
+    assert door.profile_unusable and not door.operations
+    # Reviewing again tries again.
+    asyncio.run(door.after("review", reviewed))
+    assert len(calls) == 2
+
+
+def test_the_reconnect_command_keeps_a_non_default_state_directory(tmp_path):
+    from scripts.dev.miner_launchpad.environment_setup import DEFAULT_STATE_DIR
+    from scripts.dev.miner_launchpad.setup_operations import MCP, _launch_call
+
+    elsewhere = Setup()
+    elsewhere.root = tmp_path / "state dir" / "environment"
+    call = _launch_call(elsewhere, MCP, False)
+    assert call["reconnect"] == (
+        "carbon-mcp --configuration /nowhere/runner-profile.json "
+        "--state-dir '" + str(tmp_path / "state dir") + "'"
+    )
+    default = Setup()
+    default.root = DEFAULT_STATE_DIR / "environment"
+    assert "--state-dir" not in _launch_call(default, MCP, False)["reconnect"]
 
 
 def test_parallel_reviews_attach_the_operations_once():

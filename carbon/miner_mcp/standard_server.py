@@ -25,20 +25,48 @@ from carbon.miner_mcp.standard import (
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
-#: How a client names one business operation, stated once for every schema.
+#: The bounds every operation_id meets, stated in each schema's description.
+_OPERATION_ID_BOUNDS = " 16 to 114 characters: letters, digits, '.', '_', ':' or '-'."
+
+#: How a client names one business operation: what operation_id does on each
+#: tool, said only where it does it. Replay is the task provider's (a start's
+#: idempotency key) and the refusal the ledger binding's, which only the
+#: numerical starts make; a cancel's id is its cancellation identity.
 OPERATION_ID_DESCRIPTION = (
     "Optional. Omitted, the server generates one and returns it as "
-    "operation_id. Pass your own to make a retry idempotent: the same "
-    "operation_id with the same arguments replays the original instead of "
-    "starting again, including after a reconnect; a different request under a "
-    "used one is refused (OPERATION_ID_REUSED). 16 to 114 characters: letters, "
-    "digits, '.', '_', ':' or '-'. Read-only tools never need one."
+    "operation_id. On start_research_task it is the task's idempotency key: "
+    "the same operation_id with the same arguments returns the original task "
+    "instead of starting another, including after a reconnect, and a "
+    "different request under a used one is refused (for practice, run_python "
+    "and run_julia with OPERATION_ID_REUSED, before anything starts). Pass "
+    "your own to make a retry idempotent." + _OPERATION_ID_BOUNDS
+)
+CANCEL_OPERATION_ID_DESCRIPTION = (
+    "Optional: the cancellation's identity. Omitted, the server uses "
+    "mcp-cancel-<task_id> - the identity tasks/cancel uses too - so a retried "
+    "cancel of the same task is accepted again (ALREADY_ACCEPTED) on either "
+    "surface. A task holds one cancellation identity: while its first "
+    "cancellation is pending, a cancel under a different operation_id is "
+    "refused, so pass your own only if you reuse it on every retry."
+    + _OPERATION_ID_BOUNDS
+)
+READ_OPERATION_ID_DESCRIPTION = (
+    "Optional. Omitted, the server generates one and returns it as "
+    "operation_id. This tool only records it: nothing is replayed or refused "
+    "by it." + _OPERATION_ID_BOUNDS
 )
 
 
 def generated_operation_id():
     """A fresh server-side operation id: `mcp-auto-` and 32 hex digits."""
     return "mcp-auto-" + uuid.uuid4().hex
+
+
+def cancellation_id(task_id):
+    """The default cancellation identity for a task: the one the adapter's
+    tasks/cancel uses (`ResearchToolAdapter.cancel_task`), and the one the
+    task provider falls back to, so every surface's retry repeats it."""
+    return "mcp-cancel-" + task_id
 
 
 #: Per-operation notes added to the SDK's descriptions on this wire.
@@ -56,6 +84,20 @@ _NOTES = {
         "sequence. With the MCP Tasks extension, tasks/get needs no sequence."
     ),
 }
+
+#: What operation_id does on each tool, in its description; said only where
+#: it does it (the schema's field description gives the detail).
+_OPERATION_ID_NOTES = {
+    "start_research_task": (
+        "operation_id is optional; pass your own to make a retry idempotent "
+        "(the same id and arguments return the original task)."
+    ),
+    "cancel_research_task": (
+        "operation_id is optional; omitted, a retried cancel repeats the "
+        "task's own cancellation identity."
+    ),
+}
+_READ_OPERATION_ID_NOTE = "operation_id is optional and only recorded here."
 
 SDK_VERSION = "2.2.0"
 CAPABILITIES_URI = "carbon://research/v1/capabilities"
@@ -184,17 +226,21 @@ def _create_server(
         tool["name"].removeprefix(PREFIX): object_wording(tool["description"])
         for tool in adapter.sdk_tools
     }
+
+    def operation_id_field(description):
+        return Annotated[
+            str,
+            Field(
+                pattern="^" + OPERATION_ID_PATTERN + "$",
+                min_length=16,
+                max_length=114,
+                description=description,
+            ),
+        ]
+
     fields = {
         "operation_id": (
-            Annotated[
-                str,
-                Field(
-                    pattern="^" + OPERATION_ID_PATTERN + "$",
-                    min_length=16,
-                    max_length=114,
-                    description=OPERATION_ID_DESCRIPTION,
-                ),
-            ],
+            operation_id_field(OPERATION_ID_DESCRIPTION),
             Field(default_factory=generated_operation_id),
         ),
         "strategy": (
@@ -279,7 +325,25 @@ def _create_server(
             record_sink(record)
 
     def tool_for(operation):
-        parameters = {"operation_id": fields["operation_id"]}
+        if operation == "start_research_task":
+            parameters = {"operation_id": fields["operation_id"]}
+        elif operation == "cancel_research_task":
+            # No generated default: a fresh random id on each retry would be
+            # a different cancellation, which a pending one refuses. Omitted,
+            # `invoke` uses the task's own cancellation identity.
+            parameters = {
+                "operation_id": (
+                    operation_id_field(CANCEL_OPERATION_ID_DESCRIPTION) | None,
+                    Field(None),
+                )
+            }
+        else:
+            parameters = {
+                "operation_id": (
+                    operation_id_field(READ_OPERATION_ID_DESCRIPTION),
+                    Field(default_factory=generated_operation_id),
+                )
+            }
         for name in FIELDS[operation]:
             name = {"strategy_json": "strategy", "arguments_json": "arguments"}.get(
                 name, name
@@ -305,11 +369,18 @@ def _create_server(
         async def invoke(**arguments):
             if guard is not None:
                 guard()
-            # Present whenever the SDK validated the call; a direct caller
-            # that skips validation still gets a generated one.
+            # Present whenever the SDK validated the call, except on a cancel
+            # that omitted it; a direct caller that skips validation still
+            # gets one. A cancel's is the task's own cancellation identity,
+            # so a retried cancel repeats it instead of conflicting with it.
             operation_id = arguments.pop("operation_id", None)
             if operation_id is None:
-                operation_id = generated_operation_id()
+                task_id = arguments.get("task_id")
+                operation_id = (
+                    cancellation_id(task_id)
+                    if operation == "cancel_research_task" and type(task_id) is str
+                    else generated_operation_id()
+                )
 
             # Derived from the adapter, never from the call. The adapter
             # re-verifies its owner binding on the way, so a record can only
@@ -389,8 +460,7 @@ def _create_server(
                 described.get(operation, f"Call Carbon {operation}.")
                 + _NOTES.get(operation, "")
                 + " Runs through this campaign's bound research controller. "
-                "operation_id is optional; pass your own to make a retry "
-                "idempotent."
+                + _OPERATION_ID_NOTES.get(operation, _READ_OPERATION_ID_NOTE)
             ),
             parameters=model.model_json_schema(),
             fn_metadata=ExactMetadata(arg_model=model, output_model=Result),

@@ -59,6 +59,13 @@ _RESULT_HARD_BYTES = 16 * 1024 * 1024
 #: and codes are short, so only bulk content is ever shortened.
 _KEEP_STRING = 1024
 _KEEP_LIST = 16
+#: Room kept for the truncation record itself (`_truncation`): at most 16
+#: notes, each a printable-ASCII path of at most 160 characters and three
+#: integers, plus fixed text - about 4.5 KiB at most.
+_RECORD_BYTES = 8192
+#: Passes `_fit` makes. Each cuts every node it needs that is not inside one
+#: it already cut, so a further pass is only for content nested in a cut.
+_FIT_PASSES = 8
 _STRATEGY_OPERATIONS = frozenset(
     {
         "dry_validate",
@@ -91,7 +98,8 @@ class AdapterCode(str, Enum):
     # Refused before anything was signed (LP-PROD-B), each its own code so a
     # client is told which limit stopped it and that nothing started - never
     # folded into OPERATIONAL_STOP, whose guidance is "do not retry".
-    #: The miner's own elapsed budget for the campaign is spent.
+    #: The campaign's time limit is reached: the elapsed budget its miner set,
+    #: or a development grant's expiry (or the host clock moved backwards).
     CAMPAIGN_ELAPSED_BUDGET_REACHED = "CAMPAIGN_ELAPSED_BUDGET_REACHED"
     #: The campaign is paused, stopping, stopped, completed or awaiting
     #: reconciliation, or another holder took its control generation.
@@ -101,6 +109,10 @@ class AdapterCode(str, Enum):
     #: tasks/get or tasks/cancel named a task this campaign does not hold:
     #: unknown, or another miner's - the two are indistinguishable by design.
     TASK_NOT_FOUND = "TASK_NOT_FOUND"
+    #: tasks/get on a task already observed the most times the task provider
+    #: allows (its typed BOUND_EXCEEDED): a permanent answer for that task,
+    #: never a transient one a client should retry.
+    OBSERVATION_LIMIT_REACHED = "OBSERVATION_LIMIT_REACHED"
 
 
 class AdapterFailure(ValueError):
@@ -156,6 +168,15 @@ _BINDING_STOPS = {
         AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED
     ),
 }
+#: Campaign control's own refusals at the binding. On a controlled campaign -
+#: every product and development grant campaign - `ledger.reserve` runs
+#: `CampaignControl.checkpoint` before `_reserve`, so a spent time limit is
+#: refused there first, as this deadline; any other fence (stop, a lost
+#: generation, reconciliation) is admission stopped. Without this a numerical
+#: start and a read on the same expired campaign reported two different codes.
+_CONTROL_STOPS = {
+    "original campaign deadline reached": AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED,
+}
 
 
 def _pre_dispatch_stop(exc):
@@ -182,7 +203,9 @@ def _pre_dispatch_stop(exc):
             return _ADMISSION_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
         if outer is _SDK_ENTRY and inner.co_name == "reserve":
             if isinstance(exc, DispatchStopped):
-                return AdapterCode.CAMPAIGN_ADMISSION_STOPPED
+                return _CONTROL_STOPS.get(
+                    str(exc), AdapterCode.CAMPAIGN_ADMISSION_STOPPED
+                )
             return _BINDING_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
     return None
 
@@ -433,31 +456,69 @@ def _long(value):
     return found
 
 
+def _path_text(path):
+    """A cut's path for the record: printable ASCII only, at most 160
+    characters, so each note's encoded size is bounded by its length."""
+    text = ".".join(str(key) for _, key in path)
+    return "".join(c if " " <= c <= "~" and c not in '"\\' else "?" for c in text[:160])
+
+
 def _fit(value, limit):
     """Cut bulk content until the canonical encoding fits; what was cut.
 
-    The largest string or list is shortened first, again until the result
-    fits or nothing long enough remains. Protocol fields - identities, states,
-    statuses, flags - are short and so are never touched. Returns the notes
-    (`path`, `kind`, `kept`, `original`), or None when nothing was cut; raises
-    INVALID_RESULT only when cutting cannot make the value fit.
+    Each pass shortens the largest strings and lists, largest first, until the
+    bytes it has saved cover the excess; content nested inside something cut
+    in this pass waits for the next pass, which measures again. Protocol fields
+    - identities, states, statuses, flags - are short and so are never
+    touched. A few passes at most, and a pass that cuts nothing ends the
+    attempt, so a value that cannot fit is refused without re-encoding it over
+    and over. Returns the notes (`path`, `kind`, `kept`, `original`), or None
+    when nothing was cut; raises INVALID_RESULT only when cutting cannot make
+    the value fit.
     """
     notes = []
-    for _ in range(64):
+    for _ in range(_FIT_PASSES):
         size = len(canonical(value))
         if size <= limit:
             return notes or None
-        found = _long(value)
-        found.sort(key=lambda item: item[0], reverse=True)
-        for node_size, path, node in found:
-            note = _cut(path, node, node_size, size - limit)
-            if note is not None:
-                note["path"] = ".".join(str(key) for _, key in path)[:160]
-                notes.append(note)
+        excess = size - limit
+        cut = []
+        for node_size, path, node in sorted(
+            _long(value), key=lambda item: item[0], reverse=True
+        ):
+            if excess <= 0:
                 break
-        else:
+            if any(container is done for container, _ in path for done in cut):
+                continue
+            note = _cut(path, node, node_size, excess)
+            if note is None:
+                continue
+            cut.append(node)
+            container, key = path[-1]
+            excess -= node_size - len(canonical(container[key]))
+            note["path"] = _path_text(path)
+            notes.append(note)
+        if not cut:
             break
     _invalid()
+
+
+def _truncation(notes):
+    """The record a cut result carries: what was cut, bounded in size
+    (`_RECORD_BYTES` holds it), so a client can tell partial content."""
+    return {
+        "marker": "truncated by Carbon MCP",
+        "limit_bytes": _RESULT_BYTES,
+        "cut": notes[:16],
+        "cut_total": len(notes),
+        "note": (
+            "This result exceeded the wire limit, so its largest strings and "
+            "lists were shortened: each path names one, with how much was "
+            "kept (the first 16 cuts are listed; cut_total counts them all). "
+            "Read the full content in smaller pieces (read_file takes offset "
+            "and count)."
+        ),
+    }
 
 
 def _result(operation, value):
@@ -519,19 +580,13 @@ def _result(operation, value):
         # A large result is cut to fit and says so, rather than refused: the
         # work it reports has happened, and refusing it would leave the miner
         # with an INVALID_RESULT and nothing to retry.
-        notes = _fit(value, _RESULT_BYTES - 4096)
+        notes = _fit(value, _RESULT_BYTES - _RECORD_BYTES)
         if notes is not None:
-            value["truncation"] = {
-                "marker": "truncated by Carbon MCP",
-                "limit_bytes": _RESULT_BYTES,
-                "cut": notes[:16],
-                "note": (
-                    "This result exceeded the wire limit, so its largest "
-                    "strings and lists were shortened: each path names one, "
-                    "with how much was kept. Read the full content in smaller "
-                    "pieces (read_file takes offset and count)."
-                ),
-            }
+            value["truncation"] = _truncation(notes)
+            # The record's room is sized from its bounds; checked anyway, so a
+            # cut result can never leave this server over the wire limit.
+            if len(canonical(value)) > _RESULT_BYTES:
+                _invalid()
         return value, value["requires_reconciliation"]
     except AdapterFailure:
         raise AdapterFailure(
@@ -707,6 +762,16 @@ class ResearchToolAdapter:
                 # An observation or cancellation of nothing dispatched nothing.
                 raise AdapterFailure(
                     AdapterCode.TASK_NOT_FOUND, dispatch_may_have_occurred=False
+                ) from None
+            if (
+                mode == "observe"
+                and failure.code is research.ResearchServiceErrorCode.BOUND_EXCEEDED
+            ):
+                # The provider's bound on observing one task: permanent for
+                # that task, so it is never reported as a retryable stop.
+                raise AdapterFailure(
+                    AdapterCode.OBSERVATION_LIMIT_REACHED,
+                    dispatch_may_have_occurred=False,
                 ) from None
             raise _operational(failure) from None
         except Exception as exc:  # noqa: BLE001
