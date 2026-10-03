@@ -3277,6 +3277,13 @@
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
+        "id": "merge-hygiene-rules",
+        "match_type": "exact",
+        "path": "docs/development/MERGE_HYGIENE.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "training-budget-study-spec-doc",
         "match_type": "exact",
         "path": "docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md",
