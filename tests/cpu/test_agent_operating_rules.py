@@ -8,21 +8,128 @@ rules. Operating rules only: nothing here is exam material.
 import re
 
 import numpy as np
+import pytest
 
 from carbon.development_session.contracts import strategy_limits
 from carbon.development_session.model_provider import DEFAULT_SELECTION
+from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import (
+    AUTONOMOUS,
+    AUTONOMOUS_PROMPT,
     CHALLENGE_PROMPT,
+    CHALLENGE_PROMPT_V2,
     CONTEXT_RESERVE_TOKENS,
+    FINISH_NOTICE_CALLS,
+    FREE_TEXT_RULE,
+    LEGACY,
     MAX_PROVIDER_CALLS,
     MAX_RESEARCH_TRIALS,
+    MAX_TOOL_ARGUMENT_BYTES,
+    MAX_WORKSPACE_ARGUMENT_BYTES,
     PARALLEL_CALLS,
+    PARALLEL_CALLS_V2,
+    PROMPT,
+    SELECTION_RULE,
+    binding,
+    burgers_v2_rules,
+    every_call_per_turn,
+    one_call_per_turn,
     operating_rules,
+    prompt_for,
 )
 
 
 def test_the_challenge_prompt_carries_the_operating_rules():
     assert operating_rules() in CHALLENGE_PROMPT
+    assert operating_rules(PARALLEL_CALLS_V2) in CHALLENGE_PROMPT_V2
+
+
+#: The prompts and policy bindings frozen campaigns recorded before LP-PROD-A,
+#: computed on main at 4be2642c. A campaign frozen under `PARALLEL_CALLS` or no
+#: rule must replay byte-identically, so these never change.
+FROZEN = {
+    "challenge_prompt": "sha256:21669f272a8d715e1d5a361684969d3a9f8a25e012fca2a92c00c4b3b285a477",
+    "autonomous_prompt": "sha256:6f40ebae4ffeffd3bafc4851fd97cf69ac875a7bb143ec5eabe6b77bf2f5789d",
+    "legacy_prompt": "sha256:c5fa96176cc176a1d3966c9808961de94f2909e3542feb4ceef7799658b4fadc",
+    "operating_rules": "sha256:5c875c88f9bc8093b4fc5d2bfed1bc3f2ae20e5ab35ea77a57d89240e0ebcf44",
+    "battery_binding": "sha256:334ccb7818c0c3f7c1caa7b904e893c9dfef98e07038681d90dda5eec78c9b14",
+    "legacy_binding": "sha256:b34c71ba6e66ae306f86ecbc42a8e056371b9e52f4ac4ff2d96f0f70c287827b",
+    "autonomous_binding": "sha256:9515b9ed8dab4580c473383f886ad2ce3751230dcdcb7dc5530db8fe6268bdaf",
+}
+
+
+def test_v1_and_historical_prompts_replay_byte_identically():
+    from carbon.battery.challenge import CHALLENGE
+
+    def text(value):
+        return digest(value.encode())
+
+    assert text(CHALLENGE_PROMPT) == FROZEN["challenge_prompt"]
+    assert text(AUTONOMOUS_PROMPT) == FROZEN["autonomous_prompt"]
+    assert text(PROMPT) == FROZEN["legacy_prompt"]
+    assert text(operating_rules()) == FROZEN["operating_rules"]
+    assert text(operating_rules(PARALLEL_CALLS)) == FROZEN["operating_rules"]
+    for rule in (None, PARALLEL_CALLS):
+        assert prompt_for(AUTONOMOUS, CHALLENGE, rule) == CHALLENGE_PROMPT
+        assert prompt_for(AUTONOMOUS, None, rule) == AUTONOMOUS_PROMPT
+        assert prompt_for(LEGACY, None, rule) == PROMPT
+        for (policy, challenge), name in (
+            ((AUTONOMOUS, CHALLENGE), "battery_binding"),
+            ((LEGACY, None), "legacy_binding"),
+            ((AUTONOMOUS, None), "autonomous_binding"),
+        ):
+            assert digest(canonical(binding(policy, challenge, rule))) == FROZEN[name]
+
+
+def test_a_v2_plan_states_the_v2_rules():
+    from carbon.battery.challenge import CHALLENGE
+
+    assert prompt_for(AUTONOMOUS, CHALLENGE, PARALLEL_CALLS_V2) == CHALLENGE_PROMPT_V2
+    v2 = operating_rules(PARALLEL_CALLS_V2)
+    assert every_call_per_turn() in v2 and one_call_per_turn() not in v2
+    assert one_call_per_turn() in operating_rules()
+    # Burgers prompts gain only what v2 changes, after their own text.
+    for policy, prompt in ((LEGACY, PROMPT), (AUTONOMOUS, AUTONOMOUS_PROMPT)):
+        stated = prompt_for(policy, None, PARALLEL_CALLS_V2)
+        assert stated == prompt + burgers_v2_rules(policy)
+        assert every_call_per_turn() in stated and SELECTION_RULE in stated
+        assert (FREE_TEXT_RULE in stated) == (policy == AUTONOMOUS)
+    binding_v2 = binding(AUTONOMOUS, CHALLENGE, PARALLEL_CALLS_V2)
+    assert binding_v2["prompt_digest"] == digest(CHALLENGE_PROMPT_V2.encode())
+
+
+def test_every_v2_stated_number_is_the_enforced_one():
+    """Each value the v2 rules state is checked against the code that
+    enforces it: the argument bound against `research_tools._json` (in
+    `test_research_loop_recoverable`) and the workspace bound here, against
+    the record that refuses it."""
+    from carbon.research.model import DevelopmentWorkspaceTaskSpecV1
+
+    rules = operating_rules(PARALLEL_CALLS_V2)
+    for phrase in (
+        f"allows {MAX_PROVIDER_CALLS} model calls",
+        (
+            "Starting a practice, run_python or run_julia task spends one of "
+            f"{MAX_RESEARCH_TRIALS} research-trial slots"
+        ),
+        f"at most {MAX_TOOL_ARGUMENT_BYTES} bytes of JSON",
+        f"arguments_json at most {MAX_WORKSPACE_ARGUMENT_BYTES} bytes",
+        f"with {FINISH_NOTICE_CALLS} model calls left it says so",
+        SELECTION_RULE,
+        FREE_TEXT_RULE,
+    ):
+        assert phrase in rules, phrase
+
+    def spec(size):
+        body = '{"name":"' + "x" * (size - len('{"name":""}')) + '"}'
+        return DevelopmentWorkspaceTaskSpecV1(
+            "carbon.autoresearch.workspace.v1", "public_material", body
+        )
+
+    assert spec(MAX_WORKSPACE_ARGUMENT_BYTES).arguments_json
+    with pytest.raises(ValueError):
+        spec(MAX_WORKSPACE_ARGUMENT_BYTES + 1)
+    assert FINISH_NOTICE_CALLS == 2  # OWNER-LAUNCHPAD-PROD-01: "2 calls left"
 
 
 def test_every_stated_number_is_the_enforced_one():
@@ -89,6 +196,8 @@ def test_no_exam_material_is_named_in_the_rules():
     from carbon.battery import seeds
 
     assert _exam_markers(operating_rules()) == set()
+    assert _exam_markers(operating_rules(PARALLEL_CALLS_V2)) == set()
+    assert _exam_markers(burgers_v2_rules(AUTONOMOUS)) == set()
     # Specimen: the same check finds markers in text that is about exam
     # material, the private seed service's own description.
     assert {"seed", "private"} <= _exam_markers(seeds.__doc__)

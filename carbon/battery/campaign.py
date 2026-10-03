@@ -69,7 +69,7 @@ def provider_plan(agent, budget, selection=None):
     )
     from carbon.development_session.research_agent_policy import (
         AUTONOMOUS,
-        PARALLEL_CALLS,
+        PARALLEL_CALLS_V2,
     )
     from carbon.development_session.research_campaign import FINAL_EPOCHS
 
@@ -91,9 +91,11 @@ def provider_plan(agent, budget, selection=None):
         "max_research_trials_per_epoch": 8,
         "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
         "evaluator_access": False,
-        # Frozen with the plan: a provider that returns several tool calls in
-        # one turn gets the first run and the rest refused, not a stopped run.
-        "parallel_calls": PARALLEL_CALLS,
+        # Frozen with the plan: every tool call of a turn runs, in the model's
+        # order (`PARALLEL_CALLS_V2`, OWNER-LAUNCHPAD-PROD-01, LP-PROD-A). A
+        # plan frozen earlier keeps its own rule (`PARALLEL_CALLS`: the first
+        # call runs and the rest are refused) and replays unchanged.
+        "parallel_calls": PARALLEL_CALLS_V2,
         # Frozen with the plan (RSURF-D13): the agent reads the miner's
         # Conversation messages at each step as recorded guidance. A plan
         # frozen before the amendment has no rule and reads none.

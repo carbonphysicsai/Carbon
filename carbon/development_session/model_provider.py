@@ -1226,6 +1226,12 @@ def chat_request(request):
     The loop keeps one history format; this adapter maps it onto chat
     messages. Reasoning items and the reasoning setting have no portable chat
     equivalent and are not sent; `store` is a Responses-only field.
+
+    A turn's function calls, and any text the model wrote before them, become
+    one assistant message carrying all of them, as the model returned it and
+    as Chat Completions requires before their tool replies (a turn with
+    several calls, LP-PROD-A). The loop journals the Responses-shaped request,
+    never this translation, so a replay is unaffected.
     """
     messages = [{"role": "system", "content": request["instructions"]}]
     for item in request["input"]:
@@ -1237,22 +1243,21 @@ def chat_request(request):
                 {"role": item.get("role", "assistant"), "content": _text(item)}
             )
         elif kind == "function_call":
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [
-                        {
-                            "id": item["call_id"],
-                            "type": "function",
-                            "function": {
-                                "name": item["name"],
-                                "arguments": item["arguments"],
-                            },
-                        }
-                    ],
-                }
-            )
+            call = {
+                "id": item["call_id"],
+                "type": "function",
+                "function": {
+                    "name": item["name"],
+                    "arguments": item["arguments"],
+                },
+            }
+            previous = messages[-1]
+            if previous["role"] == "assistant":
+                previous.setdefault("tool_calls", []).append(call)
+            else:
+                messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [call]}
+                )
         elif kind == "function_call_output":
             messages.append(
                 {

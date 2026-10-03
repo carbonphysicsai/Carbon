@@ -525,7 +525,7 @@ def test_carbons_agent_researches_battery_through_the_same_path(
     from carbon.development_session.agent import MODEL
     from carbon.development_session.research_agent_policy import (
         AUTONOMOUS,
-        CHALLENGE_PROMPT,
+        CHALLENGE_PROMPT_V2,
         STOP,
     )
     from carbon.development_session.research_campaign import run_agent
@@ -649,8 +649,10 @@ def test_carbons_agent_researches_battery_through_the_same_path(
     asyncio.run(scenario())
     root = ledger.root
     assert len(requests) == len(script)
-    # Challenge-aware: the battery prompt and battery's own discovery.
-    assert requests[0]["instructions"] == CHALLENGE_PROMPT
+    # Challenge-aware: the battery prompt and battery's own discovery. A new
+    # battery plan freezes the v2 parallel-call rule, whose prompt states it
+    # (LP-PROD-A).
+    assert requests[0]["instructions"] == CHALLENGE_PROMPT_V2
     first = json.loads(requests[0]["input"][0]["content"])
     assert first["challenge"]["challenge_id"] == BATTERY
     plan = json.loads((root / "epoch-1" / "plan.json").read_bytes())

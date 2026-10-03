@@ -548,6 +548,72 @@ def test_chat_adapter_translates_history_and_reply():
     }
 
 
+def test_a_request_states_its_parallel_rule_as_a_boolean(tmp_path):
+    """False under the historical and v1 rules, True under v2 (LP-PROD-A);
+    anything else is refused before a reservation."""
+    meter = ledger(tmp_path)
+    sent = []
+
+    def fixture(value):
+        sent.append(value)
+        return completed()
+
+    allowed = {**request(), "parallel_tool_calls": True}
+    request_model(meter, **{**_args(fixture), "request": allowed})
+    assert sent[0]["parallel_tool_calls"] is True
+    for value in ("true", 1, None):
+        with pytest.raises(ValueError, match="bounded request required"):
+            request_model(
+                meter,
+                **{
+                    **_args(fixture),
+                    "identity": "model-2",
+                    "request": {**request(), "parallel_tool_calls": value},
+                },
+            )
+    assert len(sent) == 1
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 1
+
+
+def test_chat_adapter_sends_one_turns_calls_as_one_assistant_message():
+    """A v2 turn (LP-PROD-A) carries several calls, and any text before them;
+    Chat Completions needs them on one assistant message ahead of the tool
+    replies. The request allows parallel calls, as the rule froze it."""
+    value = {
+        **request(),
+        "parallel_tool_calls": True,
+        "input": [
+            {"role": "user", "content": "observe"},
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": "Two reads."}],
+            },
+            {"type": "function_call", "call_id": "c1", "name": "t", "arguments": "{}"},
+            {"type": "function_call", "call_id": "c2", "name": "t", "arguments": "{}"},
+            {"type": "function_call_output", "call_id": "c1", "output": "{}"},
+            {"type": "function_call_output", "call_id": "c2", "output": "{}"},
+            {"role": "user", "content": "status"},
+            {"type": "function_call", "call_id": "c3", "name": "t", "arguments": "{}"},
+        ],
+    }
+    body = mp.chat_request(value)
+    assert [m["role"] for m in body["messages"]] == [
+        "system",
+        "user",
+        "assistant",
+        "tool",
+        "tool",
+        "user",
+        "assistant",
+    ]
+    turn = body["messages"][2]
+    assert turn["content"] == "Two reads."
+    assert [c["id"] for c in turn["tool_calls"]] == ["c1", "c2"]
+    assert [c["id"] for c in body["messages"][6]["tool_calls"]] == ["c3"]
+    assert body["parallel_tool_calls"] is True
+
+
 def test_responses_adapter_omits_a_null_reasoning_setting():
     selection = mp.select(
         provider_id="openai-responses",

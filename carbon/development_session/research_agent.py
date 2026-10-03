@@ -231,10 +231,13 @@ def _request_once(
         "reasoning",
     }:
         raise ValueError("closed stateless request required")
+    # `parallel_tool_calls` is the campaign's frozen rule's: False under the
+    # historical and v1 rules, True under `PARALLEL_CALLS_V2`, which runs every
+    # call of a turn (LP-PROD-A). Either way it is a Boolean.
     if (
         request["model"] != provider.model_id
         or request["store"] is not False
-        or request["parallel_tool_calls"] is not False
+        or type(request["parallel_tool_calls"]) is not bool
         or request["max_output_tokens"] != settings.max_output_tokens
     ):
         raise ValueError("pinned model and bounded request required")

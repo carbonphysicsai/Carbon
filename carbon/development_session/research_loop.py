@@ -2,6 +2,15 @@
 
 The selected recipe is frozen here. A separate trusted controller performs the
 registered authenticated final submission. Selection is not final evidence.
+
+A model's own mistakes - arguments that are not a JSON object, a malformed
+selection, a recipe Carbon cannot rebuild, a tool call with no identity - are
+answered, never raised. A provider reply is journalled under a fixed identity
+and replayed on every resume, so an exception raised on it would stop the
+epoch again on every resume. A malformed call gets a typed
+REJECTED_BEFORE_DISPATCH result naming the field and the fix, and the epoch
+goes on; a call with no identity cannot be answered, so the epoch stops with a
+typed STOPPED outcome.
 """
 
 from __future__ import annotations
@@ -24,15 +33,18 @@ from .research_agent import (
 )
 from .research_agent_policy import (
     AUTONOMOUS,
+    FINISH_NOTICE_CALLS,
     LEGACY,
     MAX_PROVIDER_CALLS,
     MAX_RESEARCH_TRIALS,
-    PARALLEL_CALLS,
+    MAX_TOOL_ARGUMENT_BYTES,
+    PARALLEL_CALLS_V2,
     PARALLEL_REFUSAL,
     REMINDER,
     STOP,
     STOP_TOOL,
     binding,
+    check_parallel_rule,
     prompt_for,
     stop_result,
 )
@@ -127,6 +139,373 @@ def model_view(result):
     return result
 
 
+#: Workspace actions that start a numerical task and spend a research-trial
+#: slot, as practice does. `research_tools.ResearchMinerTools.call` charges
+#: both; the loop's per-epoch ceiling counts both (LP-PROD-A).
+NUMERICAL_ACTIONS = ("run_python", "run_julia")
+
+#: The loop's own refusal codes for a model's malformed call. Each comes back
+#: as a REJECTED_BEFORE_DISPATCH tool result naming the field and the fix:
+#: - `arguments_invalid`: the call's arguments are not one bounded JSON
+#:   object (not JSON, a duplicate key, NaN or Infinity, over
+#:   `MAX_TOOL_ARGUMENT_BYTES`, or not an object);
+#: - `selection_invalid`: the selection's own fields are missing, extra or of
+#:   the wrong type;
+#: - `candidate_invalid`: the selected recipe does not parse, names no
+#:   Challenge, or does not compile;
+#: - `selection_not_practiced`: under `PARALLEL_CALLS_V2`, Carbon's own agent
+#:   selected a recipe with no completed practice; the reply lists the
+#:   recipes that have one.
+ARGUMENTS_INVALID = "arguments_invalid"
+SELECTION_INVALID = "selection_invalid"
+CANDIDATE_INVALID = "candidate_invalid"
+SELECTION_NOT_PRACTICED = "selection_not_practiced"
+REFUSAL_CODES = (
+    ARGUMENTS_INVALID,
+    SELECTION_INVALID,
+    CANDIDATE_INVALID,
+    SELECTION_NOT_PRACTICED,
+)
+#: The typed outcome of a turn whose tool call has no call_id or name: it
+#: cannot be answered, so the epoch stops, retained.
+TOOL_CALL_MALFORMED = "tool_call_malformed"
+#: At most this many practiced recipes are listed in a
+#: `selection_not_practiced` reply, newest last; the reply also gives the
+#: count.
+LISTED_PRACTICED_RECIPES = 8
+_SELECTION_FIELDS = ("strategy_json", "reason", "used_feedback")
+
+
+def rejected_call(code, field, reason, fix, **extra):
+    """A model's malformed call, answered: nothing ran and nothing was spent."""
+    if code not in REFUSAL_CODES:
+        raise ValueError("unknown loop refusal code")
+    return {
+        "status": "REJECTED_BEFORE_DISPATCH",
+        "code": code,
+        "field": field,
+        "reason": reason,
+        "fix": fix,
+        "detail": (
+            "Nothing ran and no research-trial slot was spent. Correct the call "
+            "and send it again."
+        ),
+        "authority_granted": False,
+        **extra,
+    }
+
+
+def _kind(value):
+    return {
+        list: "array",
+        str: "string",
+        int: "number",
+        float: "number",
+        bool: "Boolean",
+    }.get(type(value), "null")
+
+
+def argument_problem(raw, field="arguments"):
+    """What is wrong with `raw`, JSON text `research_tools._json` refused, as
+    (reason, fix). It only diagnoses: a value the loop accepts is always
+    `_json`'s own, so an intent journalled before this existed replays
+    unchanged. Model text is never echoed back beyond one key name."""
+    if type(raw) is not str:
+        return (
+            f"{field} must be one JSON object encoded as a string",
+            f'send {field} as a string holding a JSON object, for example "{{}}"',
+        )
+    try:
+        size = len(raw.encode())
+    except UnicodeError:
+        return (f"{field} is not valid UTF-8 text", "send plain UTF-8 JSON text")
+    if size > MAX_TOOL_ARGUMENT_BYTES:
+        return (
+            (
+                f"{field} is {size} bytes; the limit is {MAX_TOOL_ARGUMENT_BYTES} "
+                "bytes of JSON"
+            ),
+            f"shorten {field} to at most {MAX_TOOL_ARGUMENT_BYTES} bytes",
+        )
+    duplicates, constants = [], []
+
+    def pairs(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                duplicates.append(key)
+            value[key] = item
+        return value
+
+    try:
+        value = json.loads(
+            raw, object_pairs_hook=pairs, parse_constant=constants.append
+        )
+    except RecursionError:
+        return (f"{field} is nested too deeply to read", "send a flatter JSON object")
+    except json.JSONDecodeError as error:
+        return (
+            (
+                f"{field} is not valid JSON ({error.msg} at line {error.lineno} "
+                f"column {error.colno})"
+            ),
+            "send one JSON object, every string quoted, with nothing after it",
+        )
+    if duplicates:
+        return (
+            (
+                f"{field} names the key {json.dumps(duplicates[0][:64])} more "
+                "than once in one object"
+            ),
+            "send each key once",
+        )
+    if constants:
+        return (
+            f"{field} holds {constants[0]}, which is not a JSON number",
+            "send a finite number, or null",
+        )
+    if type(value) is not dict:
+        return (
+            f"{field} is a JSON {_kind(value)}, not an object",
+            "send one JSON object, for example {}",
+        )
+    return (f"{field} was refused", "send one JSON object")
+
+
+def _takes_no_arguments(schema):
+    parameters = schema.get("parameters")
+    return type(parameters) is dict and not parameters.get("properties")
+
+
+def tool_arguments(call, schemas):
+    """A call's arguments as (value, None), or (None, rejection).
+
+    The value is `research_tools._json`'s own, unchanged. A tool whose schema
+    takes no arguments also takes no arguments at all, "" or JSON null as {}:
+    models send all three for an empty call."""
+    raw = call.get("arguments")
+    schema = schemas.get(call["name"])
+    empty = raw is None or (type(raw) is str and raw.strip() in ("", "null"))
+    if empty and schema is not None and _takes_no_arguments(schema):
+        return {}, None
+    try:
+        return _json(raw), None
+    except (ValueError, RecursionError):
+        reason, fix = argument_problem(raw)
+        return None, rejected_call(ARGUMENTS_INVALID, "arguments", reason, fix)
+
+
+def selection_result(arguments, *, check=None):
+    """The selection tool's result, computed before anything is journalled:
+    the frozen-candidate record, or a typed rejection naming the field.
+
+    `check`, when given, is a last refusal over the parsed recipe (the v2
+    practice requirement, `practice_check`); it returns None to accept."""
+    missing = [name for name in _SELECTION_FIELDS if name not in arguments]
+    if missing:
+        return rejected_call(
+            SELECTION_INVALID,
+            missing[0],
+            f"{missing[0]} is required",
+            "send strategy_json, reason and used_feedback",
+        )
+    extra = sorted(name for name in arguments if name not in _SELECTION_FIELDS)
+    if extra:
+        return rejected_call(
+            SELECTION_INVALID,
+            extra[0][:64],
+            "a selection takes strategy_json, reason and used_feedback only",
+            "send only those three fields",
+        )
+    if type(arguments["used_feedback"]) is not bool:
+        return rejected_call(
+            SELECTION_INVALID,
+            "used_feedback",
+            "used_feedback must be true or false",
+            "send a JSON Boolean, unquoted",
+        )
+    reason = arguments["reason"]
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        return rejected_call(
+            SELECTION_INVALID,
+            "reason",
+            "reason must be text of 1 to 4096 characters",
+            "explain the evidence in at most 4096 characters",
+        )
+    try:
+        strategy = _json(arguments["strategy_json"])
+    except (ValueError, RecursionError):
+        problem, fix = argument_problem(arguments["strategy_json"], "strategy_json")
+        return rejected_call(CANDIDATE_INVALID, "strategy_json", problem, fix)
+    try:
+        record = candidate_record(strategy, reason, arguments["used_feedback"])
+    except CandidateChallengeRequired:
+        return rejected_call(
+            CANDIDATE_INVALID,
+            "strategy_json",
+            "the recipe names no challenge_id",
+            "name the Challenge's challenge_id in the recipe",
+        )
+    except (ValueError, TypeError, KeyError) as error:
+        rejected = getattr(error, "rejected", None)
+        issues = getattr(rejected, "issues", None) or getattr(error, "issues", ())
+        return rejected_call(
+            CANDIDATE_INVALID,
+            "strategy_json",
+            "Carbon cannot rebuild this recipe: "
+            + (
+                str(error)[:300]
+                if isinstance(error, ValueError)
+                else "it does not have a recipe's structure"
+            ),
+            "check it with check_design or dry_validate, which name every issue, "
+            "then select a recipe Carbon can rebuild",
+            issues=[{"code": i.code, "path": i.path} for i in issues],
+        )
+    refusal = None if check is None else check(strategy)
+    return record if refusal is None else refusal
+
+
+def _has_practice_results(ledger):
+    with ledger.db() as db:
+        return (
+            db.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' "
+                "AND name='research_results'"
+            ).fetchone()
+            is not None
+        )
+
+
+def practiced_recipes(ledger, owner):
+    """The distinct recipes with a completed practice in this campaign,
+    oldest first, by the provenances the trusted controller accepts
+    (`research_campaign.PRACTICE_PROVENANCES`)."""
+    from .research_campaign import PRACTICE_PROVENANCES
+
+    if not _has_practice_results(ledger):
+        return []
+    with ledger.db() as db:
+        rows = db.execute(
+            "SELECT body,digest FROM research_results WHERE owner=? ORDER BY rowid",
+            (owner,),
+        ).fetchall()
+    recipes = []
+    for body, fingerprint in rows:
+        if digest(body) != fingerprint:
+            raise ValueError("retained practice result changed")
+        result = json.loads(body)
+        recipe = result.get("recipe")
+        if (
+            result.get("provenance") in PRACTICE_PROVENANCES
+            and type(recipe) is dict
+            and recipe not in recipes
+        ):
+            recipes.append(recipe)
+    return recipes
+
+
+def practice_check(ledger, owner):
+    """The v2 selection rule for Carbon's own agent (LP-PROD-A): a recipe with
+    no completed practice is refused here, by the same predicate the trusted
+    controller applies before it submits one
+    (`research_campaign.trial_supports_selection`), so the agent learns it
+    while it can still practise or choose another, instead of after the epoch
+    is spent."""
+
+    def check(strategy):
+        from .research_campaign import trial_supports_selection
+
+        if _has_practice_results(ledger) and trial_supports_selection(
+            ledger, owner, strategy
+        ):
+            return None
+        recipes = practiced_recipes(ledger, owner)
+        return rejected_call(
+            SELECTION_NOT_PRACTICED,
+            "strategy_json",
+            "this recipe has no completed practice in this campaign; only a "
+            "practiced recipe, exactly as practiced, can be selected",
+            "select one of practiced_recipes as it is listed, practise this "
+            "recipe first, or stop",
+            practiced_recipes=recipes[-LISTED_PRACTICED_RECIPES:],
+            practiced_recipe_count=len(recipes),
+        )
+
+    return check
+
+
+def tool_identity(epoch, turn, position=0):
+    """A tool call's journal identity: the turn's first call keeps the
+    historical `epoch-N-tool-NNN`; a later call in the same turn, under
+    `PARALLEL_CALLS_V2`, adds its position (`-KK`)."""
+    base = f"epoch-{epoch}-tool-{turn:03d}"
+    return base if position == 0 else f"{base}-{position:02d}"
+
+
+def turn_status(
+    root, turn, *, calls_left, call_limit, slots_left, trial_limit, unit, offered
+):
+    """The budget a v2 agent sees before each turn (LP-PROD-A): model calls
+    left, counting this turn, and research-trial slots left, with a notice to
+    finish at `FINISH_NOTICE_CALLS`. Journalled once, before the request, so
+    a replay sends the same request; a later count never rewrites it."""
+    path = root / (turn + "-status.json")
+    if path.exists():
+        return json.loads(path.read_bytes())["message"]
+    parts = [
+        f"{calls_left} of {call_limit} model calls left in this {unit}, "
+        + "counting this turn"
+    ]
+    if PREFIX + "start_research_task" in offered:
+        parts.append(f"{slots_left} of {trial_limit} research-trial slots left")
+    text = "Carbon status before this turn: " + "; ".join(parts) + "."
+    if calls_left <= FINISH_NOTICE_CALLS:
+        ways = [
+            "select a practiced recipe" if SELECT in offered else None,
+            "stop with " + STOP if STOP in offered else None,
+        ]
+        how = " or ".join(w for w in ways if w) or "finish your work"
+        text += (
+            f" Notice: only {calls_left} model "
+            f"{'call' if calls_left == 1 else 'calls'} left, counting this turn. "
+            f"{how[0].upper() + how[1:]} now; when they run out the {unit} stops"
+            + (" without a candidate." if SELECT in offered else ".")
+        )
+    message = {"role": "user", "content": text}
+    write_once(
+        path,
+        canonical(
+            {
+                "schema": "carbon.autoresearch.turn-status.v1",
+                "turn": turn,
+                "model_calls_left": calls_left,
+                "model_calls": call_limit,
+                "trial_slots_left": slots_left,
+                "trial_slots": trial_limit,
+                "message": message,
+            }
+        ),
+    )
+    return message
+
+
+def parallel_call_counts(root):
+    """How the calls of several-call turns went in one epoch folder, read from
+    the v2 journals: how many ran (their result is journalled) and how many a
+    selection, a stop or an unresolved dispatch left not run."""
+    ran = sum(
+        (root / (item["tool"] + "-result.json")).exists()
+        for path in sorted(root.glob("*-calls.json"))
+        for item in json.loads(path.read_bytes())["calls"]
+    )
+    not_run = sum(
+        len(json.loads(path.read_bytes())["not_run"])
+        for path in sorted(root.glob("*-not-run.json"))
+    )
+    return {"parallel_calls_run": ran, "parallel_calls_not_run": not_run}
+
+
 def _epoch_paths(ledger, epoch):
     if type(epoch) is not int or epoch not in (1, 2):
         raise ValueError("two finite epochs only")
@@ -166,7 +545,16 @@ async def run_epoch(
     tool calls: None is the historical rule (the epoch stops, retained);
     `PARALLEL_CALLS` runs the first call, answers each other with a journalled
     refusal that consumes no trial slot, and stops only on its consecutive
-    limit.
+    limit. `PARALLEL_CALLS_V2` (LP-PROD-A) runs every call of a turn in the
+    model's order, each with its own intent and result journal
+    (`tool_identity`), re-reading the trial count before each numerical call;
+    a selection, a stop or an unresolved dispatch ends the epoch and the
+    turn's later calls are journalled as not run. Under v2 the request allows
+    parallel tool calls, the agent sees its remaining budget before each turn
+    (`turn_status`), any tool call renews the one free-text reminder, and
+    Carbon's own agent can select only a practiced recipe (`practice_check`).
+    The rule also chooses the prompt (`prompt_for`), so v1 and None plans
+    replay byte-identically.
 
     `instructions` and `tools` are a caller's own closed role (GRAPHITE-01):
     given together, they replace the policy prompt and the offered tool list,
@@ -186,8 +574,8 @@ async def run_epoch(
     in the epoch plan. Omitted, the shared `MAX_PROVIDER_CALLS` stands and the
     plan is unchanged.
     """
-    if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
-        raise ValueError("unknown parallel tool call rule")
+    check_parallel_rule(parallel_calls)
+    every_call = parallel_calls == PARALLEL_CALLS_V2
     if miner_guidance is not None and miner_guidance not in guidance.RULES:
         raise ValueError("unknown miner guidance rule")
     if miner_guidance is not None and (
@@ -207,10 +595,10 @@ async def run_epoch(
         MAX_PROVIDER_CALLS if max_provider_calls is None else max_provider_calls
     )
     root = _epoch_paths(ledger, epoch)
-    policy = binding(agent_policy, challenge)
+    policy = binding(agent_policy, challenge, parallel_calls)
     autonomous = agent_policy == AUTONOMOUS
     if instructions is None:
-        prompt = prompt_for(agent_policy, challenge)
+        prompt = prompt_for(agent_policy, challenge, parallel_calls)
         tools = (
             tools_for_sdk(sdk)
             + [SELECTION_TOOL]
@@ -227,6 +615,13 @@ async def run_epoch(
         prompt = instructions
         tools = json.loads(canonical(tools))
     offered = {tool["name"] for tool in tools}
+    schemas = {tool["name"]: tool for tool in tools}
+    unit = "epoch" if instructions is None else "session"
+    # A v2 selection by Carbon's own agent needs a completed practice; a
+    # role's caller owns what its selection means.
+    select_check = (
+        practice_check(ledger, owner) if every_call and instructions is None else None
+    )
     plan = {
         "schema": "carbon.autoresearch.epoch-plan.v1",
         "epoch": epoch,
@@ -283,6 +678,78 @@ async def run_epoch(
     anchor = None
     # The miner's messages read so far, chained from this frozen plan.
     guidance_chain = digest(canonical(plan)) if miner_guidance is not None else None
+    terminal = {"SELECTED", "STOPPED"} if autonomous else {"SELECTED"}
+    # The current turn's trial ceiling; `dispatch` reads it when it runs.
+    trial_limit = MAX_RESEARCH_TRIALS
+
+    async def dispatch(name, arguments, identity):
+        """One call that leaves this epoch's folder, after its intent."""
+        if (
+            miner_guidance is not None
+            and name == guidance.REPLY
+            and guidance.REPLY in offered
+        ):
+            return guidance.reply(ledger, owner=owner, arguments=arguments)
+        numerical = name == PREFIX + "start_research_task" and (
+            arguments.get("kind") == "practice"
+            or arguments.get("action") in NUMERICAL_ACTIONS
+        )
+        # Re-read before every numerical call, so a later call in a turn sees
+        # the slots the earlier ones spent and a turn cannot overspend.
+        if numerical and (
+            ledger.status(owner=owner)["used"]["research_trials"] - trial_start
+            >= trial_limit
+        ):
+            result = {
+                "status": "UNAVAILABLE",
+                "reason": "epoch research trial ceiling; select retained recipe or stop",
+                "authority_granted": False,
+            }
+            ledger.note(owner=owner, kind="refusal", body=result)
+            return result
+        return await sdk.call(name, arguments, identity)
+
+    async def run_call(call, identity):
+        """One tool call, exactly once: its intent journalled before dispatch
+        and its result after; a replay reads the result."""
+        arguments, rejection = tool_arguments(call, schemas)
+        intent = {
+            "name": call["name"],
+            "arguments": arguments,
+            "call_id": call["call_id"],
+        }
+        intent_file = root / (identity + "-intent.json")
+        result_file = root / (identity + "-result.json")
+        if result_file.exists():
+            if not intent_file.exists() or intent_file.read_bytes() != canonical(
+                intent
+            ):
+                raise ValueError("tool replay conflict")
+            return json.loads(result_file.read_bytes())
+        stop = autonomous and call["name"] == STOP and STOP in offered
+        select = call["name"] == SELECT and SELECT in offered
+        # A rejection, a stop and a selection dispatch nothing outside this
+        # folder; each result is a function of the call and the ledger alone.
+        # It is computed before the intent is written, and recomputed when an
+        # interruption left an intent without a result.
+        local = rejection is not None or stop or select
+        if intent_file.exists() and not local:
+            raise ValueError("tool dispatch incomplete; reconcile without duplication")
+        if rejection is not None:
+            result = rejection
+        elif stop:
+            result = stop_result(arguments)
+        elif select:
+            result = selection_result(arguments, check=select_check)
+        ledger.checkpoint()
+        write_once(intent_file, canonical(intent))
+        if not local:
+            result = await dispatch(call["name"], arguments, identity)
+        elif result.get("status") == "SELECTED":
+            write_once(root / "selected-recipe.json", canonical(result))
+        write_once(result_file, canonical(result))
+        return result
+
     for index in range(call_limit):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
@@ -311,13 +778,26 @@ async def run_epoch(
             message = guidance.for_model(record)
             if message is not None:
                 history.append(message)
+        if every_call:
+            history.append(
+                turn_status(
+                    root,
+                    call_id,
+                    calls_left=call_limit - index,
+                    call_limit=call_limit,
+                    slots_left=max(0, trial_limit - trials),
+                    trial_limit=trial_limit,
+                    unit=unit,
+                    offered=offered,
+                )
+            )
         effort = provider.settings.reasoning_effort
         request = {
             "model": provider.model_id,
             "instructions": prompt,
             "input": history,
             "tools": tools,
-            "parallel_tool_calls": False,
+            "parallel_tool_calls": every_call,
             "store": False,
             "max_output_tokens": provider.settings.max_output_tokens,
             "reasoning": None if effort is None else {"effort": effort},
@@ -384,23 +864,26 @@ async def run_epoch(
         ]
         if len(calls) > 1 and parallel_calls is None:
             raise ValueError("parallel tool output prohibited; retained and stopped")
-        parallel_run = parallel_run + 1 if len(calls) > 1 else 0
-        if parallel_run >= (parallel_calls or {}).get("consecutive_limit", 1):
-            outcome = {
-                "status": "STOPPED",
-                "reason": (
-                    "provider returned several tool calls on "
-                    f"{parallel_run} consecutive turns; retained and stopped"
-                ),
-                "parallel_calls": parallel_calls,
-            }
-            break
+        if not every_call:
+            parallel_run = parallel_run + 1 if len(calls) > 1 else 0
+            if parallel_run >= (parallel_calls or {}).get("consecutive_limit", 1):
+                outcome = {
+                    "status": "STOPPED",
+                    "reason": (
+                        "provider returned several tool calls on "
+                        f"{parallel_run} consecutive turns; retained and stopped"
+                    ),
+                    "parallel_calls": parallel_calls,
+                }
+                break
         history.extend(output)
-        if len(calls) > 1:
+        # The calls this turn runs: all of them under v2, the first otherwise.
+        running = calls if every_call else calls[:1]
+        refused = [] if every_call else calls[1:]
+        if refused:
             # Only the first call runs. Every other one is answered, so the
             # conversation stays well formed, with a refusal that dispatched
             # nothing and consumed no trial slot - and is journalled.
-            refused = calls[1:]
             write_once(
                 root / (call_id + "-parallel-refusal.json"),
                 canonical(
@@ -415,16 +898,34 @@ async def run_epoch(
                     }
                 ),
             )
-            for item in refused:
-                if type(item.get("call_id")) is not str:
-                    raise ValueError("provider tool identity malformed")
-                history.append(
-                    {
-                        "type": "function_call_output",
-                        "call_id": item["call_id"],
-                        "output": canonical(PARALLEL_REFUSAL).decode(),
-                    }
-                )
+        # A call with no call_id cannot be answered, and one that runs needs
+        # its name: the turn is unrepresentable, so the epoch stops typed,
+        # before any call of the turn runs. Retained, never raised.
+        malformed = [
+            position
+            for position, item in enumerate(calls)
+            if type(item.get("call_id")) is not str
+            or (position < len(running) and type(item.get("name")) is not str)
+        ]
+        if malformed:
+            outcome = {
+                "status": "STOPPED",
+                "code": TOOL_CALL_MALFORMED,
+                "reason": (
+                    "provider returned a tool call without a call_id or name; "
+                    "retained and stopped"
+                ),
+                "malformed_calls": malformed,
+            }
+            break
+        for item in refused:
+            history.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": item["call_id"],
+                    "output": canonical(PARALLEL_REFUSAL).decode(),
+                }
+            )
         if not calls:
             if autonomous and reminders < policy["free_text_reminders"]:
                 reminders += 1
@@ -451,89 +952,77 @@ async def run_epoch(
                 "agent_output": output,
             }
             break
-        call = calls[0]
-        if type(call.get("call_id")) is not str or type(call.get("name")) is not str:
-            raise ValueError("provider tool identity malformed")
-        arguments = _json(call.get("arguments"))
-        tool_identity = f"epoch-{epoch}-tool-{index:03d}"
-        intent = {
-            "name": call["name"],
-            "arguments": arguments,
-            "call_id": call["call_id"],
-        }
-        intent_file = root / (tool_identity + "-intent.json")
-        result_file = root / (tool_identity + "-result.json")
-        if result_file.exists():
-            if not intent_file.exists() or intent_file.read_bytes() != canonical(
-                intent
-            ):
-                raise ValueError("tool replay conflict")
-            result = json.loads(result_file.read_bytes())
-        else:
-            if intent_file.exists():
-                raise ValueError(
-                    "tool dispatch incomplete; reconcile without duplication"
-                )
-            ledger.checkpoint()
-            write_once(intent_file, canonical(intent))
-            if autonomous and call["name"] == STOP and STOP in offered:
-                result = stop_result(arguments)
-            elif call["name"] == SELECT and SELECT in offered:
-                if (
-                    set(arguments) != {"strategy_json", "reason", "used_feedback"}
-                    or type(arguments["used_feedback"]) is not bool
-                    or type(arguments["reason"]) is not str
-                    or not 1 <= len(arguments["reason"]) <= 4096
-                ):
-                    raise ValueError("closed selection required")
-                result = candidate_record(
-                    _json(arguments["strategy_json"]),
-                    arguments["reason"],
-                    arguments["used_feedback"],
-                )
-                write_once(root / "selected-recipe.json", canonical(result))
-            elif (
-                miner_guidance is not None
-                and call["name"] == guidance.REPLY
-                and guidance.REPLY in offered
-            ):
-                result = guidance.reply(ledger, owner=owner, arguments=arguments)
-            else:
-                numerical = call["name"] == PREFIX + "start_research_task" and (
-                    arguments.get("kind") == "practice"
-                    or arguments.get("action") == "run_python"
-                )
-                if numerical and trials >= trial_limit:
-                    result = {
-                        "status": "UNAVAILABLE",
-                        "reason": "epoch research trial ceiling; select retained recipe or stop",
-                        "authority_granted": False,
+        if len(running) > 1:
+            # The turn's calls and their journal identities, before any runs.
+            write_once(
+                root / (call_id + "-calls.json"),
+                canonical(
+                    {
+                        "schema": "carbon.autoresearch.turn-calls.v1",
+                        "turn": call_id,
+                        "response_digest": digest(canonical(response)),
+                        "rule": parallel_calls,
+                        "calls": [
+                            {
+                                "call_id": item["call_id"],
+                                "name": item["name"],
+                                "tool": tool_identity(epoch, index, position),
+                            }
+                            for position, item in enumerate(running)
+                        ],
                     }
-                    ledger.note(owner=owner, kind="refusal", body=result)
-                else:
-                    result = await sdk.call(call["name"], arguments, tool_identity)
-            write_once(result_file, canonical(result))
-        if result.get("requires_reconciliation"):
-            outcome = {
-                "status": "RECONCILIATION_REQUIRED",
-                "reason": "tool dispatch unresolved",
-                "tool": tool_identity,
-            }
+                ),
+            )
+        for position, call in enumerate(running):
+            identity = tool_identity(epoch, index, position)
+            result = await run_call(call, identity)
+            if result.get("requires_reconciliation"):
+                outcome = {
+                    "status": "RECONCILIATION_REQUIRED",
+                    "reason": "tool dispatch unresolved",
+                    "tool": identity,
+                }
+            elif result.get("status") in terminal:
+                outcome = result
+            if outcome is not None:
+                rest = running[position + 1 :]
+                if rest:
+                    write_once(
+                        root / (call_id + "-not-run.json"),
+                        canonical(
+                            {
+                                "schema": "carbon.autoresearch.calls-not-run.v1",
+                                "turn": call_id,
+                                "ended_by": identity,
+                                "ended_with": outcome["status"],
+                                "not_run": [
+                                    {
+                                        "call_id": item["call_id"],
+                                        "name": item["name"],
+                                        "tool": tool_identity(
+                                            epoch, index, position + 1 + offset
+                                        ),
+                                    }
+                                    for offset, item in enumerate(rest)
+                                ],
+                            }
+                        ),
+                    )
+                break
+            history.append(
+                {
+                    "type": "function_call_output",
+                    "call_id": call["call_id"],
+                    "output": canonical(
+                        result if challenge is None else model_view(result)
+                    ).decode(),
+                }
+            )
+        if outcome is not None:
             break
-        if result.get("status") in (
-            {"SELECTED", "STOPPED"} if autonomous else {"SELECTED"}
-        ):
-            outcome = result
-            break
-        history.append(
-            {
-                "type": "function_call_output",
-                "call_id": call["call_id"],
-                "output": canonical(
-                    result if challenge is None else model_view(result)
-                ).decode(),
-            }
-        )
+        if every_call:
+            # Any tool call renews the one free-text reminder (LP-PROD-A).
+            reminders = 0
     if outcome is None:
         outcome = {"status": "STOPPED", "reason": "epoch provider-call ceiling"}
     turns = [
