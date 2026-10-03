@@ -1,11 +1,11 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
-  "lesson_id": "2026-10-02-research-surface-smoke",
+  "lesson_id": "2026-10-03-research-surface-smoke",
   "recorded_at": "2026-10-03T00:45:00Z",
   "challenge": "protocol",
   "stage": "test_iterate",
   "execution": {
-    "kind": "browser_smoke",
+    "kind": "test_run",
     "ref": "scripts/dev/miner_launchpad/research_demo.py on 127.0.0.1:8794, walked in a Chromium browser pane at 1280x800 and 390x844, light and dark",
     "description": "The research surface over the synthetic demo campaign: Launchpad, the active campaign and every tab, a note posted through the page, and the rail at phone width."
   },
