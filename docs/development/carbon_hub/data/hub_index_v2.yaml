@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T06:22:52Z"
+  captured_at_utc: "2026-10-03T09:21:01Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "0981a00c8132fc11aab8f168366100a36365951a"
+  authority_snapshot_commit: "e12607b2d7d0645858ff3dd1ff4c37488ba95fec"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10798,6 +10798,18 @@ events:
     recorded_at: "2026-10-02T19:51:46Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "POD-LEDGER-PRIVATE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The repository is public, so RunPod pod accounting and limits leave it (owner decisions of 2026-10-02). pod_control.py had committed each campaign's full ledger (the account balance on every dispatch, committed spend, the cap and each pod's rate) and carried each campaign's ceiling and the balance floor in source. Every ledger event now goes to a private ledger under ~/.runpod/accounting/ and, as an allow-listed projection (pod ids, code refs, image, plans, times, export digests), to the repository; rates and host machine ids stay private. The budget reads the private ledger and refuses when the repository holds a row it lacks, and recording a termination is never refused. Ceilings and the floor come from the operator's ~/.runpod/campaigns.json, without which nothing that spends runs. Figures print only with --show-accounting. The exam-design, EV4 and ev4-regen ledgers are migrated row for row, and a test refuses any committed ledger field outside the allow-list. Balance lines and spend totals in narrative documents are redacted; frozen pre-registration sections, pinned records and historical Hub events are unchanged. History is not rewritten (owner decision): a rewrite would re-identify every later commit that evidence cites, so figures already committed are treated as disclosed. No scientific, qualification, reward or LIVE authority changes."
+    primary_detail: ".agent/tickets/POD-LEDGER-PRIVATE-01.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-10-02T20:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "decision"
     event_id: "OWNER-MINER-COMPUTE-LINK-ONLY-01"
     owner_lane: "technical_lead"
@@ -10903,6 +10915,45 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
+    event_id: "CI-BATTERY-L0-01-S3"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "CI-BATTERY-L0-01 slice 3 (2026-10-03): battery Track A at the worker boundary. A new registered family, staged_bytes, stages reconstruction, inference and practice files while validator-private canaries (a private root, a hidden batch's references and labels) sit beside them, then scans every staged byte; a leaky-stager specimen shows the detector fires, and the control holds the staged names to the published allow-list. A new service test runs a real battery practice through the isolated carrier in the pinned C-03 worker image with the same canaries planted on the host, then scans every byte the run left behind; it runs in CI's C-03 service lane. That lane now also triggers on the battery worker boundary (battery worker.py, practice.py, the research carrier and the battery service tests), which battery changes previously skipped. The classifier digest pin is updated as hygiene. Surface-edge resource recipes remain open. Not a security audit."
+    primary_detail: ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:10:45Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "ADMISSIBILITY-OPTIMISM-GATE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "TRACK-B-STUCK-01 outcome (2026-10-03; owner approval, SciML lead approval reported by the owner). The deciding rule stays for ranking. A near-limit optimism admissibility gate is built in carbon/battery/value/admissibility.py and is INACTIVE: its cutoff THRESHOLD_BANDS is None (HUMAN_INPUT, SciML/technical lead), so no score changes. Evidence for the cutoff: at the boundary optimist's 2.41 bands, 13/99 EV4 real members (verification loss 2.05 vs 0.55) and 2/14 EV2 members (1.38 vs 0.34) sit at or above it. Mean optimism cannot catch the localized sign-error control (0.46, below every real member). Value-study scope only; the testnet rule is unchanged."
+    primary_detail: "docs/development/evidence/admissibility-optimism-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:13:53Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "REAL-DIVERGENCE-REPORT"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "TRACK-B-STUCK-01 follow-up, prospective only. carbon/battery/value/real_divergence.py splits each score-value divergence condition into constructed-control, within-family and across-family real-model pairs. Classed totals equal every frozen study's committed counts; nothing is rescored. EV4 verification: the deciding rule has 1 across-family real divergence (plus 4 within-family, 2 control). The SR-2 and SR-3 margin-aware candidates have 5 and 6, so they make real-model divergence worse, which supports keeping the deciding rule. The localized sign-error control outranks 95-98 of 99 real members under every rule; no rule or mean-optimism gate catches it, so it needs its own measurement (a science decision). Recommendation: EV5 pre-registers across-family real-member divergence as its criterion."
+    primary_detail: "docs/development/evidence/real-divergence-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:16:26Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
     event_id: "EV5-PREREG-DRAFT"
     owner_lane: "technical_lead"
     status: "proposed"
@@ -10913,6 +10964,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-03T02:18:43Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "STALE-DOCS-OPTIMIZER-PROGRAMME"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Documentation lag repaired. DESIGN_OPTIMIZER_SCOPE.md said 'scoped, not built', but the design optimizer was built (carbon/battery/value/optimizer.py) and run once as EV4's Problem C under its frozen pre-registration; the status now says so, and records which section 4 gaps EV4 fixed (K = 50, the Mode X condition grid) and which remain unset (PB-INV and PB-ADV policy values). BATTERY_TESTNET_PROGRAMME_STATE.md: EV4, SR-1..3, the battery kit and the Track A harness move to Done; new open rows for the inactive optimism gate (cutoff from the SciML lead), the EV5 draft (owner spend), Track A Level 0 (INCONCLUSIVE until the value precondition) and the localized sign-error measurement gap."
+    primary_detail: "docs/development/BATTERY_TESTNET_PROGRAMME_STATE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:20:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

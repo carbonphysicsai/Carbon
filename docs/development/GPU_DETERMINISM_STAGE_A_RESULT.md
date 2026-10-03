@@ -153,4 +153,5 @@ Not `SCIENTIFICALLY_QUALIFIED`, not `SECURITY_QUALIFIED`, not
 Evidence toward MQ-008 and nothing more, and it says nothing about the miner GPU
 consumer path, which is a separate claim with a separate owner.
 
-Total spend: **USD 4.76** against a USD 30 ceiling.
+Total spend stayed within the study's ceiling; the figures are kept in
+private operator records.

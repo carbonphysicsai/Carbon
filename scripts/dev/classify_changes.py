@@ -78,6 +78,12 @@ class Classification:
             "tests/service/test_c05_measurement_service.py",
             "tests/service/test_c08_miner_mcp_service.py",
             "tests/service/test_c10_reexecution_service.py",
+            # The battery worker boundary: what is staged into the isolated
+            # worker and the programs it runs there (CI-BATTERY-L0-01).
+            "carbon/battery/worker.py",
+            "carbon/battery/practice.py",
+            "carbon/development_session/research_carrier.py",
+            "tests/service/battery_container_runner.py",
         }
         return any(
             item.path in exact
@@ -94,6 +100,7 @@ class Classification:
             or item.path.startswith("carbon/miner_mcp/")
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")
+            or item.path.startswith("tests/service/test_battery_")
             for item in self.paths
             if item.path
             not in {
