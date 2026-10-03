@@ -69,6 +69,17 @@ CAMPAIGNS = {
     },
     # The challenge pools' public TRAIN and PRACTICE cases on CPU pods
     # (owner approval 2026-10-02, USD 25 cap). Private pools never run here.
+    # EV4's panel predictions regenerated for the SR-1..3 rerun on EV4
+    # (OWNER-EV4-REGEN-01, 2026-10-02): inside OWNER-TRACK-A-L0-02's USD 25
+    # cap; one GPU pod, EV4's own plan and code ref.
+    "ev4-regen": {
+        "evidence": "docs/development/evidence/ev4-regen-2026-10-02",
+        "active": "ev4_regen_active_pods",
+        "token": None,
+        "max_pods": 1,
+        "ceiling_usd": 5.0,
+        "name": "carbon-ev4-regen",
+    },
     "challenge-pools": {
         "evidence": "docs/development/evidence/challenge-pools-2026-10-02",
         "active": "challenge_pools_active_pods",
@@ -202,6 +213,11 @@ CA_ROOTS = [
 
 
 def _key() -> str:
+    """The RunPod key: the environment's, else the owner-only state file. It
+    is never written anywhere by this module."""
+    key = os.environ.get("RUNPOD_API_KEY", "").strip()
+    if key:
+        return key
     return Path(os.path.join(STATE_DIR, "api_key")).read_text().strip()
 
 
@@ -572,7 +588,7 @@ def cmd_dispatch(a) -> None:
             for line in open(path):  # noqa: SIM115 -- long-lived handle
                 r = json.loads(line)
                 if r.get("status") == "OK":
-                    keys.add(f'{r["case_id"]}{"/R" if r.get("refined") else ""}')
+                    keys.add(f"{r['case_id']}{'/R' if r.get('refined') else ''}")
         phase_cfg["skip_case_keys"] = sorted(keys)
     env = {
         "PROBE_TOKEN": token,
