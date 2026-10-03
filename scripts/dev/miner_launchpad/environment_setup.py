@@ -30,9 +30,11 @@ Only launchable choices are offered.
   Completions route first, Chutes with the prices it publishes, the fixed
   OpenAI and Anthropic APIs, and the generic OpenAI-shaped adapters with the
   miner's own endpoint and, optionally, their declared price.
-- Compute (slices 3, 4 and 4b) offers this machine's CPU, every miner's
-  default, this machine's own GPU for practice speed, and a GPU rented on the
-  miner's own RunPod, Lium or Targon account.
+- Compute (slice 3) offers this machine's CPU, every miner's default, and
+  this machine's own GPU for practice speed. Carbon rents no compute
+  (OWNER-MINER-COMPUTE-LINK-ONLY-01): the rented-GPU choice of slices 4 and
+  4b is refused by name, and Carbon's stored copy of its provider key is
+  deleted the next time compute is set up.
 - Agent (slice 5) offers Carbon's autonomous agent or Hermes.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
@@ -49,7 +51,7 @@ import threading
 import time
 from pathlib import Path
 
-from carbon.compute.providers import PROVIDERS, VM_PROVIDERS
+from carbon.compute import retired
 from carbon.development_session.gpu_practice import SPEED_ONLY as SPEED_ONLY_NOTE
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
@@ -66,22 +68,15 @@ LOCAL_CPU = "this-machine-cpu"
 #: slice 3). Research and practice run there; the validator rebuilds on its
 #: own pinned backend and resources.
 LOCAL_GPU = "this-machine-gpu"
-#: A GPU rented on the miner's own provider account (C-MLP-03 slice 4).
-RENTED_GPU = "rented-gpu"
-RENTED_FIELDS = {
-    "provider",
-    "image_ref",
-    "gpu_type_id",
-    "max_rate_usd_per_hr",
-    "storage_usd_per_gb_month",
-    "cloud_type",
-}
-#: How the pinned GPU worker reaches a rented pod: the miner pushes it to a
-#: registry of their own and names the pushed digest.
-PUSH_STEP = (
-    "push your GPU worker to a registry you control (docker tag <image id> "
-    "<repository>; docker push <repository>) and name it by the pushed "
-    "repository@sha256 digest"
+#: The retired choice of a GPU rented with the miner's provider key (C-MLP-03
+#: slices 4 and 4b), refused by name (OWNER-MINER-COMPUTE-LINK-ONLY-01).
+RETIRED_RENTED_GPU = retired.RENTED_CHOICE
+#: Carbon's stored copies of the provider keys that choice took.
+RETIRED_COMPUTE_KEYS = "*.compute-key"
+#: What the compute check says once it has deleted one.
+COMPUTE_KEY_REMOVED = (
+    "Carbon deleted its stored copy of your rented-GPU provider key. Revoke "
+    "that key at your provider."
 )
 #: The host device record setup installs names this machine and provider.
 GPU_RECORD_ID = "this-machine"
@@ -375,36 +370,6 @@ def choices() -> dict:
                     "nvidia-smi, installs this host's device record, and "
                     "verifies your GPU worker image and the NVIDIA container "
                     "runtime. No network, no cost."
-                ),
-                "note": SPEED_ONLY_NOTE,
-            },
-            {
-                "id": RENTED_GPU,
-                "display_name": "A GPU rented on your own provider account",
-                "default": False,
-                "needs_gpu_image": True,
-                "for_challenges": gpu_challenges(rented=True),
-                "providers": [
-                    {
-                        "id": name,
-                        "display_name": display,
-                        # A VM provider (Targon) boots a VM image the miner
-                        # names, and runs the pinned worker in it over SSH.
-                        "vm": name in VM_PROVIDERS,
-                    }
-                    for name, (display, _factory) in sorted(PROVIDERS.items())
-                ],
-                "cost_basis": (
-                    "Per hour at your provider's price, billed by it to your "
-                    "account, within the hourly ceiling you set and the "
-                    "balance it reports. Each practice trial rents one pod and "
-                    "terminates it. Carbon bills nothing."
-                ),
-                "live_check": (
-                    "Reads your account balance and the GPU's current price "
-                    "with your key, and checks the image you pushed is your "
-                    "pinned GPU worker. Nothing is rented and nothing is "
-                    "billed by the check."
                 ),
                 "note": SPEED_ONLY_NOTE,
             },
@@ -743,83 +708,6 @@ class LiveChecks:
             "record_digest": record.digest,
         }
 
-    def rented(
-        self, rented: dict, credential_file: Path, gpu_manifest: Path, campaign=None
-    ) -> dict:
-        """Read the miner's balance and the GPU's price with their key, and
-        check the pushed image is their pinned GPU worker. Rents nothing."""
-        from carbon.compute.errors import ComputeError
-        from carbon.compute.providers import provider_adapter
-        from carbon.compute.rented_runner import RentedCompute
-        from carbon.development_session.gpu_practice import is_gpu_image
-        from carbon.reconstruction.worker.docker_runtime import (
-            DockerCLI,
-            load_image_identity,
-        )
-        from carbon.reconstruction.worker.model import WorkerFailure
-
-        try:
-            image = load_image_identity(gpu_manifest)
-        except Exception:  # noqa: BLE001 - never echo a local path or error.
-            image = None
-        if not is_gpu_image(image):
-            raise SetupRefused(
-                "gpu_image_manifest",
-                "gpu_image_unverified",
-                next_step=BUILD_STEPS["gpu_image_manifest"],
-            )
-        try:
-            compute = RentedCompute(**rented)
-        except (TypeError, ValueError):
-            raise SetupRefused("rented", "rented_choice_invalid") from None
-        try:
-            inspected = DockerCLI().json(
-                ["image", "inspect", image.image_id, "--format", "{{json .}}"]
-            )
-        except WorkerFailure:
-            inspected = None
-        repo_digests = (inspected or {}).get("RepoDigests") or []
-        if compute.image_ref not in repo_digests:
-            # The pod pulls this digest; it must be the pinned worker's own.
-            raise SetupRefused(
-                "image_ref", "image_ref_is_not_your_gpu_worker", next_step=PUSH_STEP
-            )
-        adapter = provider_adapter(
-            compute.provider,
-            credential_file,
-            # The check rents nothing, so no VM key is ever written here.
-            state_dir=credential_file.parent / "vm-keys",
-            vm_image=compute.vm_image,
-        )
-        try:
-            if compute.vm_image is not None and compute.vm_image not in (
-                adapter.vm_images()
-            ):
-                raise SetupRefused("vm_image", "vm_image_not_offered")
-            balance = adapter.read_balance()
-            offers = adapter.offers(
-                [compute.gpu_type_id], gpu_count=1, cloud_type=compute.cloud_type
-            )
-        except ComputeError as failure:
-            raise SetupRefused(
-                "key", "provider_check_failed", next_step=failure.next_action
-            ) from None
-        offer = offers[0] if offers else None
-        if offer is None or offer.usd_per_hr is None:
-            raise SetupRefused("gpu_type_id", "gpu_type_not_offered_now")
-        if offer.usd_per_hr > compute.max_rate_usd_per_hr:
-            raise SetupRefused("max_rate_usd_per_hr", "price_above_your_ceiling")
-        return {
-            # The chosen Challenge's own scopes (C-MLP-04).
-            "scope": campaign.rented_scope(compute, image),
-            "gpu_scope": campaign.gpu_scope(image),
-            "balance_usd": balance.balance_usd,
-            "balance_source": balance.source,
-            "offer_usd_per_hr": offer.usd_per_hr,
-            "offer_source": offer.source,
-            "stock": offer.stock_status,
-        }
-
     def hermes_files(self) -> list[str]:
         """The exact files a Hermes choice writes, for the miner's consent."""
         from scripts.dev.miner_launchpad.hermes_setup import (
@@ -899,10 +787,10 @@ class LiveChecks:
             raise SetupRefused("operator_config", "operator_config_not_subnet_567")
 
 
-def _gpu_campaign(challenge, rented):
+def _gpu_campaign(challenge):
     """The campaign of the Challenge GPU practice is set up for, or a refusal
     naming the field. Only an IMPLEMENTED Challenge whose campaign offers GPU
-    (and, for a rented GPU, rented) practice qualifies (C-MLP-04)."""
+    practice qualifies (C-MLP-04)."""
     from carbon.challenge_registry import ResolutionError, resolve
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.challenge_registry.registry import GPU_RESEARCH
@@ -918,12 +806,12 @@ def _gpu_campaign(challenge, rented):
         campaign = campaign_for(challenge)
     except ResolutionError as refused:
         raise SetupRefused("challenge", refused.code) from None
-    if campaign.gpu_scope is None or (rented and campaign.rented_scope is None):
+    if campaign.gpu_scope is None:
         raise SetupRefused("challenge", "challenge_offers_no_gpu_practice")
     return campaign
 
 
-def gpu_challenges(*, rented=False) -> list[dict]:
+def gpu_challenges() -> list[dict]:
     """The implemented Challenges whose campaigns offer GPU practice."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
     from carbon.challenge_registry.registry import GPU_RESEARCH
@@ -933,7 +821,6 @@ def gpu_challenges(*, rented=False) -> list[dict]:
         for entry, campaign in implemented_campaigns()
         if GPU_RESEARCH in {p.name for p in entry.profiles}
         and campaign.gpu_scope is not None
-        and (not rented or campaign.rented_scope is not None)
     ]
 
 
@@ -1122,35 +1009,39 @@ class EnvironmentSetup:
                 },
             )
 
+    def _forget_compute_keys(self) -> bool:
+        """Delete Carbon's stored copies of rented-GPU provider keys.
+
+        The retired route (OWNER-MINER-COMPUTE-LINK-ONLY-01) kept the miner's
+        provider key here. Nothing reads it any more, so it is removed rather
+        than kept, as the Agent step removes a stored hotkey password. Only
+        Carbon's copy goes: the key itself is the miner's to revoke.
+        """
+        removed = False
+        keys = self.root / "keys"
+        if keys.is_dir() and not keys.is_symlink():
+            for path in keys.glob(RETIRED_COMPUTE_KEYS):
+                path.unlink(missing_ok=True)
+                removed = True
+        return removed
+
     def compute(self, value) -> dict:
+        if type(value) is dict and value.get("choice") == RETIRED_RENTED_GPU:
+            # Refused by name before the closed check, so a request from an
+            # earlier page is told what changed, not that a field is unknown.
+            with self.lock:
+                self._forget_compute_keys()
+            raise SetupRefused(
+                "choice", retired.RENTED_GPU_RETIRED, next_step=retired.NEXT_STEP
+            )
         _closed(
             value,
             {"choice", "image_manifest", "analysis_image_manifest"},
-            {"gpu_image_manifest", "rented", "key", "challenge"},
+            {"gpu_image_manifest", "challenge"},
         )
-        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU, RENTED_GPU):
+        if value["choice"] not in (LOCAL_CPU, LOCAL_GPU):
             raise SetupRefused("choice", "compute_not_offered")
-        rented = value["choice"] == RENTED_GPU
-        if rented != ("rented" in value) or ("key" in value and not rented):
-            raise SetupRefused(
-                "rented", "field_required" if rented else "rented_is_for_a_rented_gpu"
-            )
-        if rented:
-            choice = value["rented"]
-            if type(choice) is not dict or set(choice) - {"vm_image"} != RENTED_FIELDS:
-                raise SetupRefused("rented", "rented_choice_invalid")
-            if choice["provider"] not in PROVIDERS:
-                raise SetupRefused("provider", "compute_provider_not_offered")
-            if (choice["provider"] in VM_PROVIDERS) != ("vm_image" in choice):
-                raise SetupRefused(
-                    "vm_image",
-                    (
-                        "field_required"
-                        if choice["provider"] in VM_PROVIDERS
-                        else "vm_image_is_for_a_vm_provider"
-                    ),
-                )
-        gpu = value["choice"] in (LOCAL_GPU, RENTED_GPU)
+        gpu = value["choice"] == LOCAL_GPU
         if gpu != ("gpu_image_manifest" in value):
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -1161,7 +1052,7 @@ class EnvironmentSetup:
                 "challenge",
                 "field_required" if gpu else "challenge_is_for_the_gpu_choice",
             )
-        campaign = _gpu_campaign(value["challenge"], rented) if gpu else None
+        campaign = _gpu_campaign(value["challenge"]) if gpu else None
         paths = {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
@@ -1188,40 +1079,6 @@ class EnvironmentSetup:
                 # GPU practice is set up for one Challenge, the miner's choice.
                 step["challenge"] = dict(value["challenge"])
                 check["challenge"] = value["challenge"]["id"]
-            if rented:
-                provider = value["rented"]["provider"]
-                credential = self.root / "keys" / (provider + ".compute-key")
-                if "key" in value:
-                    write_private(credential, _secret(value["key"], "key"))
-                elif not credential.exists():
-                    raise SetupRefused("key", "field_required")
-                found = self.checks.rented(
-                    value["rented"], credential, Path(gpu_image), campaign=campaign
-                )
-                runtime = {
-                    **runtime,
-                    "gpu_research": [found["gpu_scope"]],
-                    "rented_gpu": [found["scope"]],
-                }
-                step["gpu_image"] = gpu_image
-                step["paths"] = {**paths, "compute_credential": str(credential)}
-                check.update(
-                    provider=provider,
-                    balance_usd=found["balance_usd"],
-                    offer_usd_per_hr=found["offer_usd_per_hr"],
-                    stock=found["stock"],
-                    ceiling_usd_per_hr=value["rented"]["max_rate_usd_per_hr"],
-                    note=SPEED_ONLY_NOTE,
-                    **(
-                        {"vm_image": value["rented"]["vm_image"]}
-                        if "vm_image" in value["rented"]
-                        else {}
-                    ),
-                )
-                return self._step(
-                    "compute", {**step, "runtime": runtime, "check": check}
-                )
-            if gpu:
                 detected = self.checks.gpu(Path(gpu_image), campaign=campaign)
                 runtime = {**runtime, "gpu_research": [detected["scope"]]}
                 step["gpu_image"] = gpu_image
@@ -1231,6 +1088,8 @@ class EnvironmentSetup:
                     gpu_image=detected["scope"]["image"],
                     note=SPEED_ONLY_NOTE,
                 )
+            if self._forget_compute_keys():
+                check["retired_compute_key"] = COMPUTE_KEY_REMOVED
             return self._step("compute", {**step, "runtime": runtime, "check": check})
 
     def offered(self) -> dict:
@@ -1350,6 +1209,14 @@ class EnvironmentSetup:
         inference, compute, agent = (
             record[s] for s in ("inference", "compute", "agent")
         )
+        if compute.get("choice") == RETIRED_RENTED_GPU or retired.declares_rented(
+            compute.get("runtime")
+        ):
+            # A compute step checked by an earlier page for a rented GPU: it
+            # is set up again, never written into a profile.
+            raise SetupRefused(
+                "compute", retired.RENTED_GPU_RETIRED, next_step=retired.NEXT_STEP
+            )
         key = str(self.root / "keys" / (inference["provider_id"] + ".key"))
         campaigns = _private_dir(self.root / "campaigns")
         cfg = {

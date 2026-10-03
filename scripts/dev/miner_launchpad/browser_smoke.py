@@ -1287,9 +1287,6 @@ class SetupChecks:
     def gpu(self, manifest, campaign=None):
         raise AssertionError("the smoke's miner checks the CPU, not a GPU")
 
-    def rented(self, rented, credential, manifest, campaign=None):
-        raise AssertionError("the smoke's miner rents no GPU")
-
     @staticmethod
     def hermes_files():
         return [
@@ -1467,28 +1464,18 @@ def setup_journey():
                     " && [...document.getElementById('setup-compute-challenge').options]"
                     ".some(o => JSON.parse(o.value).id === 'battery-fastcharge-ageing-development-v1')",
                 )
-                # A GPU rented on the miner's own account asks for the
-                # provider, its key, the pushed image and the ceilings.
-                session.evaluate(
-                    "document.getElementById('setup-compute-choice').value = 'rented-gpu';"
-                    "document.getElementById('setup-compute-choice').dispatchEvent(new Event('change'));"
+                # Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01):
+                # only this machine's CPU and GPU are offered, and nothing
+                # asks for a provider key.
+                assert (
+                    session.evaluate(
+                        "[...document.getElementById('setup-compute-choice').options]"
+                        ".map(o => o.value).join()"
+                    )
+                    == "this-machine-cpu,this-machine-gpu"
                 )
-                wait(
-                    session,
-                    "!document.getElementById('setup-compute-image_ref').parentElement.hidden"
-                    " && [...document.getElementById('setup-compute-provider').options]"
-                    ".map(o => o.value).join() === 'lium,runpod,targon'"
-                    " && document.getElementById('setup-compute-vm_image').parentElement.hidden",
-                )
-                # Targon is a VM over SSH (slice 4b): it asks for a VM image.
-                session.evaluate(
-                    "document.getElementById('setup-compute-provider').value = 'targon';"
-                    "document.getElementById('setup-compute-provider').dispatchEvent(new Event('change'));"
-                )
-                wait(
-                    session,
-                    "!document.getElementById('setup-compute-vm_image').parentElement.hidden"
-                    " && document.querySelector('form[data-step=compute]').textContent.includes('over SSH')",
+                assert session.evaluate(
+                    "!document.querySelector('form[data-step=compute] input[type=password]')"
                 )
                 session.evaluate(
                     "document.getElementById('setup-compute-choice').value = 'this-machine-cpu';"
@@ -1496,7 +1483,6 @@ def setup_journey():
                 )
                 assert session.evaluate(
                     "document.getElementById('setup-compute-gpu_image_manifest').parentElement.hidden"
-                    " && document.getElementById('setup-compute-image_ref').parentElement.hidden"
                 )
                 # A missing image is refused by name, with its build step.
                 session.evaluate(
