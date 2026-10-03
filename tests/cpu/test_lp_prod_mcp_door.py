@@ -924,7 +924,7 @@ def test_a_detach_under_research_calls_in_flight_is_refused_until_they_return(
 
 class Setup:
     def __init__(self, written=True):
-        self.profile_path = Path("/home/miner/.carbon/profile.json")
+        self.profile_path = Path("/nowhere/runner-profile.json")
         self.written = written
 
     def state(self):
@@ -995,7 +995,7 @@ def test_setup_status_says_where_launch_is(available):
     assert "carbon_operations" not in json.dumps(call)
     if not available:
         assert call["reconnect"] == (
-            "carbon-mcp --configuration /home/miner/.carbon/profile.json"
+            "carbon-mcp --configuration /nowhere/runner-profile.json"
         )
 
 
