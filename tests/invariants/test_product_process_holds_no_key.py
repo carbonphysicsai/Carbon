@@ -26,8 +26,6 @@ product module calls it.
 """
 
 import ast
-import importlib.util
-import os
 from pathlib import Path
 
 import pytest
@@ -334,15 +332,7 @@ def test_no_function_claims_externality_it_lacks():
 
 def test_a_raw_keypair_is_refused_even_when_valid():
     """By construction, not by check: a perfectly valid keypair cannot sign
-    through Carbon, because it did not come from the miner's signer.
-
-    The valid keypair comes from the optional chain group. Main smoke installs
-    only the dev group, so the test skips there; canonical CI installs the
-    chain group and sets CARBON_REQUIRE_CHAIN_SDK, where its absence fails."""
-    if importlib.util.find_spec("bittensor") is None:
-        if os.environ.get("CARBON_REQUIRE_CHAIN_SDK") == "1":
-            pytest.fail("The chain SDK is required in this acceptance lane")
-        pytest.skip("Optional chain group absent; this runs in canonical CI")
+    through Carbon, because it did not come from the miner's signer."""
     from bittensor.keyfiles import Keypair
 
     from carbon.chain.auth import BittensorMessageSigner
