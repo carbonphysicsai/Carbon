@@ -17704,3 +17704,54 @@ authority).** Ticket: `.agent/tickets/C-MLP-05_miner_research_surface.md`.
 qualification: there is no leaderboard, rank or official score. Spend shown
 is the miner's own campaign ledger, and their provider bills them; Carbon
 caps and bills nothing.
+
+**Second request, same day (owner, 2026-10-02), relayed by the lead,
+verbatim:** "where can you see the Julia/JAX/Pytorch tooling and all of that
+in the control center? And where can you talk to your agent?" Neither had an
+answer, so both are built under the same delegation.
+
+- **RSURF-D11, the toolbox is read from data.** One document,
+  `carbon.control-center.toolbox.v1` (`scripts/dev/miner_launchpad/toolbox.py`),
+  answers the first question. It is shown as the campaign's Tools tab and as
+  a Toolbox on each Challenge card, and it is the operation `toolbox`, so
+  `carbon_toolbox` returns the same document. Its sources:
+  - the Challenge's description: its backends, workflow, limits, families and
+    backend control;
+  - the capability registry: Julia's status and blocker;
+  - the published exam environment: what the validator rebuilds with;
+  - the research protocol's workspace actions and the operations table, for
+    the exact MCP tool names;
+  - this host's research lanes, which say whether `run_julia` can run here.
+
+  The only text kept in code is one line per workspace action, and a test
+  holds that the set equals the protocol's. Each practice run also shows the
+  framework its recipe named and the image its worker record names.
+- **RSURF-D12, the miner talks to their own agent through the journal.**
+  - The page posts a `miner_message` to its own route,
+    `/api/v1/conversation/<campaign>`. That route is behind the local session
+    token, and no MCP tool can post a miner message.
+  - A message is one journal entry (`CampaignLedger.note`, kind `notebook`,
+    schema `carbon.research-surface.miner-message.v1`). It records the text,
+    the time and a digest of both, and the journal assigns its sequence.
+  - Any MCP agent reads messages after a cursor with `carbon_messages`, and
+    replies with `carbon_note`, `note_kind=reply`, naming the message's
+    sequence in `reply_to`. The page shows the thread.
+  - A message is guidance to the miner's own agent only. The route writes
+    one note and never touches the frozen manifest, so a message cannot
+    change limits, budget, research permissions, the Challenge, the feedback
+    mode, evaluation rules or the frozen research task and its digest.
+    Messages and replies are untrusted text, shown as text.
+- **RSURF-D13, Carbon's own agent does not read messages: stopped, owner
+  question.** The request was for Carbon's autonomous agent to read new
+  messages at its next step and reply. That conflicts with C-MLP-02-D6:
+  - the research task is frozen at launch, and each epoch's effective input
+    is digest-bound;
+  - the browser "cannot author prompts";
+  - "adding another prompt store/runner" was a rejected alternative.
+
+  Feeding messages into Carbon's agent would make the browser author its
+  input mid-campaign. That sub-part is stopped and fails closed: the
+  conversation says Carbon's agent does not read messages, and why.
+  **Owner input:** may Carbon's own agent read the miner's messages as
+  user-role input at step boundaries, recorded and digested in the epoch's
+  effective input? That would amend C-MLP-02-D6.

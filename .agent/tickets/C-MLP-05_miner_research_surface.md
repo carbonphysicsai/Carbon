@@ -50,6 +50,22 @@ The screen a miner and their agent work from once setup is done:
   - Attach now brings the research prompts and skill (RSURF-D6).
 - **Demo fixture.** `scripts/dev/miner_launchpad/research_demo.py` serves one
   synthetic battery campaign, labelled as a fixture (RSURF-D7).
+- **Toolbox (owner's second request, RSURF-D11).** The Tools tab and a
+  Toolbox on each Challenge card, from one document read from the
+  Challenge's records. It covers:
+  - the JAX and PyTorch runtimes, with their pinned versions;
+  - Julia (research only), with its blocker and whether `run_julia` runs
+    here;
+  - the workspace and workflow tools, with their exact MCP names;
+  - rebuildable families and their backends;
+  - what the validator rebuilds with.
+
+  It is also `carbon_toolbox`, and each practice run shows its framework and
+  image.
+- **Conversation (RSURF-D12).** The miner writes to their own agent from the
+  page. Any MCP agent reads with `carbon_messages` and replies with
+  `carbon_note` (`note_kind=reply`). A message cannot change anything frozen
+  at launch.
 
 ## Owner input
 
@@ -57,6 +73,11 @@ The screen a miner and their agent work from once setup is done:
   history? It would change the trusted worker program and its implementation
   identity. Until the owner decides, the learning-curve slot says why it is
   empty.
+- **RSURF-D13.** May Carbon's own autonomous agent read the miner's messages
+  as user-role input at step boundaries? That would amend C-MLP-02-D6, which
+  freezes its task at launch and keeps the browser from authoring its
+  prompts. Until the owner decides, it does not read them, and the page says
+  so.
 
 ## Boundaries
 
