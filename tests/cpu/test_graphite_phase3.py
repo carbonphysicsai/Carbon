@@ -984,6 +984,7 @@ def test_the_live_runpod_backend_drives_the_compute_layer(tmp_path):
         transport=fake.transport,
         http=fake.http,
         sleep=lambda seconds: None,
+        balance_floor=lambda: Decimal("2.00"),  # synthetic; the operator's is private
     )
     described = backend.describe()
     assert described["image"] == pods.prices()["image"]
@@ -1054,6 +1055,7 @@ def test_the_live_backend_refuses_a_rate_above_the_ceiling(tmp_path):
         code_ref=_head(),
         transport=dear,
         http=fake.http,
+        balance_floor=lambda: Decimal("2.00"),  # synthetic; the operator's is private
     )
     job = pods.PodJob(
         "graphite-test-p2",
@@ -1345,3 +1347,24 @@ def test_the_constructor_holds_the_proposal_tool_and_no_other_role_does():
     assert "graphite_run_proposal" in ROLES[RoleName.CONSTRUCTOR].prompt
     assert boundaries.Role.CONSTRUCTION is ROLES[RoleName.CONSTRUCTOR].boundary
     assert ScriptedModel([]).live is False
+
+
+def test_a_launch_without_the_operator_balance_floor_creates_nothing(
+    tmp_path, monkeypatch
+):
+    # POD-LEDGER-PRIVATE-01: the floor is operator configuration, never
+    # committed. Without it the launch refuses before any provider call.
+    from scripts.dev.exam_design.runpod import pod_control
+
+    monkeypatch.setattr(pod_control, "STATE_DIR", str(tmp_path / "no-operator"))
+    with pytest.raises(pods.PodFailure) as refused:
+        pods.operator_balance_floor()
+    assert refused.value.executed is False
+    assert "balance_floor_usd" in str(refused.value)
+    (tmp_path / "op").mkdir()
+    (tmp_path / "op" / pod_control.OPERATOR_CONFIG).write_text(
+        '{"balance_floor_usd": 2.5}'
+    )
+    monkeypatch.setattr(pod_control, "STATE_DIR", str(tmp_path / "op"))
+    assert pods.operator_balance_floor() == Decimal("2.5")
+    assert "balance_floor_usd" not in pods.prices()
