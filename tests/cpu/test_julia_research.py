@@ -321,10 +321,15 @@ def test_actual_durable_task_seam_and_legacy_catalogue_preserved(tmp_path, monke
         e.public_material = primary
         legacy = replace(req, idempotency_key="legacy-julia-must-fail")
         old_task = provider.start_research_task(legacy).task
-        assert (
-            provider.run_queued_task(old_task.task_id).state
-            is research.ResearchTaskState.FAILED_INFRA
-        )
+        # The legacy material still cannot reach the study. Since LP-PROD-D
+        # the refusal is a typed outcome naming the field, not an
+        # infrastructure failure.
+        finished = provider.run_queued_task(old_task.task_id)
+        assert finished.state is research.ResearchTaskState.SUCCEEDED
+        refused = e.public_result(finished)["result"]
+        assert refused["outcome"] == "REQUEST_REFUSED"
+        assert refused["correction_code"] == "public_material_unknown"
+        assert julia.MATERIAL not in refused["correction"]
         assert len(calls) == 1
         capability = material("capabilities", e.workspace)
         assert capability["document"]["scientific_task_usage"]["arguments"] == {

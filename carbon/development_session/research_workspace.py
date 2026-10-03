@@ -22,6 +22,33 @@ _NAME = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,95}\Z")
 _EMPTY = b""
 
 
+class WorkspaceConflict(ValueError):
+    """A write whose `expected_digest` is not the file's current digest.
+
+    Typed so the executor can report it as the requester's to fix, never as
+    an infrastructure failure. The message is the historical one.
+    """
+
+
+class WorkspaceFileMissing(ValueError):
+    """A read of a name the workspace does not hold. A held file whose stored
+    bytes no longer match their digest stays a plain ValueError: that is not
+    the requester's to fix."""
+
+
+def is_workspace_name(name):
+    """Whether `name` is a flat workspace identifier (never a path)."""
+    return (
+        type(name) is str
+        and _NAME.fullmatch(name) is not None
+        and name
+        not in {
+            ".",
+            "..",
+        }
+    )
+
+
 class ResearchWorkspace:
     def __init__(self, ledger, owner):
         if type(owner) is not str or not owner or len(owner) > 128:
@@ -36,15 +63,23 @@ class ResearchWorkspace:
 
     @staticmethod
     def name(name):
-        if (
-            type(name) is not str
-            or _NAME.fullmatch(name) is None
-            or name in {".", ".."}
-        ):
+        if not is_workspace_name(name):
             raise ValueError(
                 "workspace names are bounded flat identifiers, never paths"
             )
         return name
+
+    def current_digest(self, name):
+        """The digest this workspace records for `name`, or None when it holds
+        no such file. Reads no file bytes: what a write's `expected_digest` is
+        compared with, and what tells a missing file from a held one."""
+        self.name(name)
+        with self.ledger.db() as db:
+            row = db.execute(
+                "SELECT digest FROM workspace WHERE owner=? AND name=?",
+                (self.owner, name),
+            ).fetchone()
+        return None if row is None else row[0]
 
     def _object(self, fingerprint):
         return self.objects / fingerprint.removeprefix("sha256:")
@@ -75,7 +110,7 @@ class ResearchWorkspace:
             if old and old[0] == fingerprint:
                 return fingerprint
             if (old[0] if old else None) != expected_digest:
-                raise ValueError("workspace compare-and-swap conflict")
+                raise WorkspaceConflict("workspace compare-and-swap conflict")
             self._store(body, fingerprint)
             db.execute(
                 "INSERT OR REPLACE INTO workspace VALUES(?,?,?,?)",
@@ -91,7 +126,7 @@ class ResearchWorkspace:
                 (self.owner, name),
             ).fetchone()
         if not row:
-            raise ValueError("workspace artifact unavailable")
+            raise WorkspaceFileMissing("workspace artifact unavailable")
         body = row[0]
         if body == _EMPTY and row[1] != digest(_EMPTY):
             path = self._object(row[1])
@@ -141,25 +176,80 @@ CAPABILITY_FIELDS = {
 }
 
 
-def request_capability(ledger, *, owner, request):
+#: The text bound on every capability request field, in characters.
+CAPABILITY_TEXT = 4096
+
+
+def capability_request_refusal(request, challenge=None):
+    """What is wrong with one capability request, before anything records it.
+
+    Returns None, or `(code, field, message)`: a closed correction code, the
+    one sub-field it is about (a name Carbon registered, never one the
+    requester sent) and the historical message. The first problem found is
+    the one named. `challenge` is the campaign's Challenge token; its own
+    registry decides whether an optional `capability` is a registry id
+    (Burgers' when None, as before Challenges were threaded through).
+    """
+    from carbon.reconstruction.capability_registry import (
+        BURGERS_CHALLENGE,
+        UnknownChallenge,
+        capability,
+    )
+
+    closed = "closed capability request required"
+    if type(request) is not dict:
+        return "capability_request_object_required", "arguments_json.request", closed
+    missing = sorted(CAPABILITY_FIELDS - set(request))
+    if missing:
+        return (
+            "capability_request_field_missing",
+            "arguments_json.request." + missing[0],
+            closed,
+        )
+    if set(request) - CAPABILITY_FIELDS - {"capability"}:
+        return "capability_request_field_unexpected", "arguments_json.request", closed
+    # A reason sent as a list or object is named as a reason too: checked
+    # by type first, since such a value cannot even be looked up.
     if (
-        type(request) is not dict
-        or set(request) - {"capability"} != CAPABILITY_FIELDS
+        type(request["reason"]) is not str
         or request["reason"] not in CAPABILITY_REASONS
     ):
-        raise ValueError("closed capability request required")
-    # Optionally, the registry capability this asks for, so it counts as demand.
+        return (
+            "capability_request_reason_unknown",
+            "arguments_json.request.reason",
+            closed,
+        )
+    for name in sorted(request):
+        value = request[name]
+        if type(value) is not str or not 1 <= len(value) <= CAPABILITY_TEXT:
+            return (
+                "capability_request_text_bounded",
+                "arguments_json.request." + name,
+                "bounded capability fields required",
+            )
     if "capability" in request:
-        from carbon.reconstruction.capability_registry import capability
-
+        # Optionally, the registry capability this asks for, so it counts as
+        # demand: an id of this campaign's own Challenge.
         try:
-            capability(request["capability"])
-        except (KeyError, TypeError):
-            raise ValueError(
-                "capability names a registry id (see the roadmap), or is omitted"
-            ) from None
-    if any(type(v) is not str or not 1 <= len(v) <= 4096 for v in request.values()):
-        raise ValueError("bounded capability fields required")
+            capability(
+                request["capability"],
+                BURGERS_CHALLENGE if challenge is None else challenge,
+            )
+        except (KeyError, TypeError, UnknownChallenge):
+            return (
+                "capability_id_unknown",
+                "arguments_json.request.capability",
+                "capability names a registry id (see the roadmap), or is omitted",
+            )
+    return None
+
+
+def request_capability(ledger, *, owner, request, challenge=None):
+    """Record one closed capability request; `challenge` as in
+    `capability_request_refusal`."""
+    refused = capability_request_refusal(request, challenge)
+    if refused is not None:
+        raise ValueError(refused[2])
     record = {**request, "disposition": "investigate", "authority_granted": False}
     ledger.note(owner=owner, kind="capability_request", body=record)
     return record

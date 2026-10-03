@@ -252,12 +252,14 @@ def run(executor, *, identity, args, files, action="run_python"):
                 "worker": failure.result,
                 "workspace_exports": [],
                 "device": ran,
+                "program_output": _output(executor, failure.result),
             }
         return {
             "provenance": "MINER_SELF_REPORTED",
             "worker": result,
             "workspace_exports": executor.export(identity, result),
             "device": ran,
+            "program_output": _output(executor, result),
         }
     if WRAPPED in files:
         raise ValueError(WRAPPED + " is the wrapper's own name")
@@ -298,22 +300,37 @@ def run(executor, *, identity, args, files, action="run_python"):
         job = {}
     ran = {**lane.describe(), "remote": result.get("remote")}
     if job.get("returncode") != 0:
+        worker = {
+            **result,
+            "failure_code": "DEADLINE" if job.get("timed_out") else "RUNTIME",
+            "observation": (
+                "OWN_ALLOWANCE_ELAPSED" if job.get("timed_out") else "NONZERO_EXIT"
+            ),
+        }
         return {
             "provenance": "MINER_SELF_REPORTED",
             "outcome": "MINER_PROGRAM_FAILED",
-            "worker": {
-                **result,
-                "failure_code": "DEADLINE" if job.get("timed_out") else "RUNTIME",
-                "observation": (
-                    "OWN_ALLOWANCE_ELAPSED" if job.get("timed_out") else "NONZERO_EXIT"
-                ),
-            },
+            "worker": worker,
             "workspace_exports": [],
             "device": ran,
+            "program_output": _output(executor, worker),
         }
     return {
         "provenance": "MINER_SELF_REPORTED",
         "worker": result,
         "workspace_exports": executor.export(identity, result, skip=JOB_FILES),
         "device": ran,
+        "program_output": _output(executor, result),
     }
+
+
+def _output(executor, worker):
+    """The bounded tails of what the program printed (`research_carrier.
+    program_output`), from the stdout and stderr this run kept."""
+    from .research_carrier import program_output
+
+    return program_output(
+        executor.ledger,
+        worker.get("operation") if type(worker) is dict else None,
+        observation=worker.get("observation") if type(worker) is dict else None,
+    )

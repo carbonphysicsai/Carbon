@@ -99,9 +99,12 @@ def describe():
         },
         "public_material": {
             "names": list(BatteryPublicMaterial.NAMES),
+            # arguments_json is a JSON object encoded as a string, never a
+            # bare object (LP-PROD-D).
             "access": (
                 "start_research_task kind=workspace action=public_material "
-                'arguments={"name": ...}'
+                'arguments_json="{\\"name\\":\\"objective\\"}" (the arguments '
+                "object encoded as a JSON string; any name above)"
             ),
             "train": {
                 "version": "v1",
@@ -155,6 +158,14 @@ def describe():
                 "jax": "every family except fno",
                 "pytorch": "every family; fno (neuraloperator) only here",
             },
+            "practice_backends": (
+                "practice runs only the backends this host's worker image "
+                "serves (JAX everywhere; PyTorch only with the PyTorch worker "
+                "image; GPU practice JAX only). A campaign's agent observation "
+                "lists them as practice_backends, and a practice naming another "
+                "is refused before it starts (backend_not_served), charging "
+                "nothing"
+            ),
             "environment_pin": battery_contracts()
             .assembly.environment_pins[0]
             .content_digest,
@@ -176,17 +187,38 @@ def describe():
             ),
             "budget": "the campaign's own ledger; discovery charges nothing",
         },
+        # The research tools a miner or their agent calls, and the campaign's
+        # own steps, each named as what it is (LP-PROD-D): freezing and
+        # submitting are the campaign's, not research tools.
         "workflow": {
-            "validate": "dry_validate / compile_strategy (charges nothing)",
+            "validate": (
+                "check_design (start_research_task kind=workspace "
+                "action=check_design): a verdict per choice and, when every "
+                "choice is rebuildable, the canonical design Carbon would "
+                "rebuild or each rebuild issue; each example below is a design "
+                "as is. dry_validate and compile_strategy check a recipe too. "
+                "None of them charges anything"
+            ),
             "estimate": "inspect_resources / forecast_resources (static, uncalibrated)",
             "practice": (
-                "start_research_task kind=practice; feedback " + FEEDBACK_SCHEMA
+                "start_research_task kind=practice; feedback "
+                + FEEDBACK_SCHEMA
+                + "; one research-trial slot each"
             ),
-            "progress": "get_research_result; cancel_research_task",
-            "freeze": "freeze_candidate needs a completed practice of the same recipe",
+            "progress": (
+                "start_research_task returns once its task has finished, with "
+                "the result; get_research_result reads a task again by its "
+                "task_id, and cancel_research_task stops one still running"
+            ),
+            "freeze": (
+                "the campaign's own step, not a research tool: it freezes one "
+                "practiced recipe per submission epoch and needs a completed "
+                "practice of the same recipe"
+            ),
             "submit": (
-                "submit: a signed battery_submit reaches the validator daemon, "
-                "which rebuilds the frozen recipe with Carbon's seed in its "
+                "the campaign's own step, not a research tool: the frozen "
+                "recipe goes, signed by the miner's own signer, to the "
+                "validator daemon, which rebuilds it with Carbon's seed in its "
                 "reconstruction worker and screens it on the whole active "
                 "private pool; a nominee faces a fresh finalist comparison"
             ),
@@ -201,10 +233,11 @@ def describe():
             "evaluation_fields": list(EVALUATION_FEEDBACK_FIELDS),
             "screening_fields": list(SCREENING_FEEDBACK_FIELDS),
         },
-        "examples": [
-            {"strategy": SCAFFOLD, "admission": _verdict(SCAFFOLD)},
-            {"strategy": knn, "admission": _verdict(knn)},
-        ],
+        # Each example is a check_design design as is ({strategy}); what the
+        # admission check says of it is beside the examples, never inside
+        # one, because a design refuses any other key (LP-PROD-D).
+        "examples": [{"strategy": SCAFFOLD}, {"strategy": knn}],
+        "examples_admission": [_verdict(SCAFFOLD), _verdict(knn)],
         "unsupported": unsupported,
         "exclusion_scope": {
             "submission": (

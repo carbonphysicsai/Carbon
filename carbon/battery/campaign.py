@@ -804,8 +804,15 @@ def agent_observation(prepared, epoch, feedback):
     less its long list of unsupported capabilities, which the agent can read
     through `public_material capabilities` or `roadmap`. Nothing private: the
     prior feedback is the daemon's allow-listed outcome.
+
+    A campaign whose run plan froze the research tools rule
+    (`research_tools.TOOLS_RULE`, LP-PROD-D) also sees this host's research
+    environment, `research_environment`: whether the campaign has a GPU lane
+    for its code cells, and which backends its practice serves. A plan frozen
+    without the rule sees exactly what it always saw.
     """
     from carbon.challenge_registry import describe
+    from carbon.development_session.research_tools import frozen_tools_rule
 
     from .research import SCAFFOLD
 
@@ -813,12 +820,23 @@ def agent_observation(prepared, epoch, feedback):
     unsupported = document.pop("unsupported")
     manifest = prepared.manifest
     mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
+    rule = frozen_tools_rule(manifest)
+    extra = {}
+    if rule is not None:
+        extra["research_environment"] = research_environment(prepared, rule)
     return {
         "challenge": document,
         "unsupported_capabilities": {
             "count": len(unsupported),
-            "read_with": "workspace public_material {name: capabilities} or roadmap {}",
+            "read_with": (
+                "workspace public_material {name: capabilities} or roadmap {}"
+                if rule is None
+                else "start_research_task kind=workspace action=public_material "
+                'arguments_json="{\\"name\\":\\"capabilities\\"}", or '
+                'action=roadmap arguments_json="{}"'
+            ),
         },
+        **extra,
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
@@ -836,3 +854,61 @@ def agent_observation(prepared, epoch, feedback):
             "practiced, or stop for a supported reason."
         ),
     }
+
+
+def research_environment(prepared, rule):
+    """What this host gives a campaign's research, as its agent should know it.
+
+    Facts about the miner's own composition only: whether the campaign's
+    frozen runtime has a GPU lane for code cells (and which), which backends
+    its practice serves on this host, and whether authored Julia is offered.
+    Nothing here is evaluation material, and nothing grants anything.
+    """
+    # The composition's own executor and practice, never a default: a
+    # campaign is composed before its agent observes anything, so a missing
+    # one is an error here, not a quiet "cpu only".
+    executor = prepared.composition.executor
+    lane = executor.gpu
+    practice = executor.practice
+    julia = executor.julia_image is not None
+    described = None if lane is None else lane.describe()
+    return {
+        "rule": rule,
+        "gpu_lane": described,
+        "code_cell_devices": _code_cell_devices(described, julia),
+        "practice_backends": list(practice.backends),
+        "practice_device": "gpu" if practice.gpu_image is not None else "cpu",
+        "practice_note": (
+            "a practice whose recipe names a backend outside practice_backends "
+            "is refused before it starts (backend_not_served) and charges "
+            "nothing"
+        ),
+        "authored_julia": julia,
+    }
+
+
+def _code_cell_devices(described, julia):
+    """Which code-cell actions take device=gpu here: those the lane's own
+    description lists (`GpuLane.describe`) among those this campaign offers
+    (run_julia only with authored Julia). Never more than the lane runs: a
+    remote lane runs run_python only."""
+    offered = ["run_python", "run_julia"] if julia else ["run_python"]
+
+    def said(names, verb):
+        return " and ".join(names) + " " + (verb if len(names) > 1 else verb + "s")
+
+    if described is None:
+        return (
+            "cpu only: this campaign was launched without a GPU lane, so "
+            + said(offered, "take")
+            + " device=cpu (the default)"
+        )
+    on_gpu = [name for name in offered if name in described["actions"]]
+    text = "cpu (the default) or gpu: " + said(on_gpu, "take") + " device=gpu"
+    text += " on the lane above"
+    if "run_julia" in on_gpu:
+        text += ", run_julia in the lane's julia_environments only"
+    cpu_only = [name for name in offered if name not in on_gpu]
+    if cpu_only:
+        text += "; " + said(cpu_only, "run") + " on cpu only"
+    return text
