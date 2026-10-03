@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "OWNER-MINER-RESEARCH-SURFACE-02",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "OWNER-MINER-RESEARCH-SURFACE-02 (owner, 2026-10-03) answers the two questions OWNER-MINER-RESEARCH-SURFACE-01 left open. Both answers are built in C-MLP-05. RSURF-D13, \"Yes, recorded\", amends C-MLP-02-D6 prospectively. In a campaign whose frozen provider plan carries the miner-guidance rule, Carbon's own agent reads the miner's new Conversation messages at each step boundary as user-role guidance, at most 4 a step. Each step's messages are recorded with their digests, chained from the epoch plan, and replayed exactly. The frozen task, prompt, tools, effective input digest, limits, budget, Challenge, feedback mode and evaluation rules are unchanged. The agent replies through the same reply note, and campaigns launched before read none. RSURF-D3, \"Yes, as a new trainer version\": battery trainer v2 records up to 64 points of the trainer's own TRAIN loss, in practice only, and the Learning curve chart draws it. The validator's reconstruction never records it and trains the same weights. The implementation identity changes prospectively, deployments carry over under OWNER-BATTERY-CARRYOVER-01, and no container image is rebuilt. DEVELOPMENT, testnet 567. Practice evidence is not qualification, and nothing flips LIVE.",
+  "primary_detail": ".agent/tickets/C-MLP-05_miner_research_surface.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": "OWNER-MINER-RESEARCH-SURFACE-01",
+  "recorded_at": "2026-10-03T02:19:23Z"
+}
