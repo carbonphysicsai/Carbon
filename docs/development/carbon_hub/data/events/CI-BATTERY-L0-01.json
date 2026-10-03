@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "CI-BATTERY-L0-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "CI-BATTERY-L0-01 (2026-10-02) starts battery Track A (construction integrity, Challenge_Admission.md section 3) at Level 0. carbon/battery/track_a.py registers four families: recipe surface, recipe forgery, mandatory failure and rebuild identity. Each family has attacks against the real boundary, a vulnerable specimen showing the detector can fire, and a valid control. The first run held all 37 attacks, every specimen fired and all 4 controls passed. The existing divergence detector emitted 12 conditions on EV2 and 42 on EV4, retained and escalated, never suppressed. Worker isolation and resource accounting are reused evidence from the pinned C-03 service lane, mapped per check. Battery-specific worker attacks against the pinned image are the next slice, in CI. GRAPHITE-01 phase 4 drives agent-generated attempts through the same harness. Attack budget, study population, tolerances, threat-model approval and the lock reviewer stay HUMAN_INPUT. Not a security audit, acceptance or qualification.",
+  "primary_detail": ".agent/tickets/CI-BATTERY-L0-01_construction_integrity_level0.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-02T19:51:46Z"
+}
