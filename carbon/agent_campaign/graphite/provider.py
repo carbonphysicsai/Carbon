@@ -723,8 +723,9 @@ class GraphiteProvider:
     async def _epoch(self, run_id, ledger, role, brief, selection):
         """One research epoch of the session: the role's toolbox as the loop's
         `sdk`, the role's prompt and closed tools, and the role's rule for a
-        turn with several tool calls (GRAPHITE-D33). A later phase overrides
-        this to attach what its role acts through (GRAPHITE-D18)."""
+        turn with several tool calls (`roles.PARALLEL_RULES`: every call runs
+        in order, LP-PROD-A). A later phase overrides this to attach what its
+        role acts through (GRAPHITE-D18)."""
         sdk = toolbox.GraphiteToolbox(
             role=role,
             literature_index=self.literature,

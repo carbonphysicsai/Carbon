@@ -88,12 +88,17 @@ MUTATIONS = {
         ),
         lambda tmp: th.test_the_per_run_money_cap_is_the_controllers_reservation(tmp),
     ),
-    # A Constructor turn with several tool calls runs the first (GRAPHITE-D33).
+    # A Constructor turn with several tool calls runs every call (LP-PROD-A).
     "constructor_parallel_rule": (
         lambda m: m.setattr(gp, "PARALLEL_RULES", {}),
-        lambda tmp: tb.test_a_constructor_turn_with_several_tool_calls_runs_only_the_first(
+        lambda tmp: tb.test_a_constructor_turn_with_several_tool_calls_runs_every_call(
             tmp
         ),
+    ),
+    # Every other role runs them too: the Reader, which held no rule before.
+    "every_role_parallel_rule": (
+        lambda m: m.setattr(gp, "PARALLEL_RULES", {}),
+        lambda tmp: tb.test_several_tool_calls_in_one_turn_all_run_for_every_role(tmp),
     ),
 }
 

@@ -7,6 +7,7 @@ No provider is contacted, no key is real, no model is inferred.
 import asyncio
 import io
 import json
+import socket
 import tempfile
 import urllib.error
 from email.message import Message
@@ -60,8 +61,10 @@ def completed(model=mp.MODEL, usage=None):
     }
 
 
-def rejected(status, code=None, retry_after=None):
-    return mp.ProviderHTTPError(status, code=code, retry_after=retry_after)
+def rejected(status, code=None, retry_after=None, usage_reported=False):
+    return mp.ProviderHTTPError(
+        status, code=code, retry_after=retry_after, usage_reported=usage_reported
+    )
 
 
 # -- classification --------------------------------------------------------
@@ -79,10 +82,19 @@ def rejected(status, code=None, retry_after=None):
         (rejected(400, "invalid_value"), "invalid_request", True, False),
         (rejected(422), "invalid_request", True, False),
         (rejected(500), "transient_server", False, False),
-        (rejected(503), "transient_server", False, False),
+        (rejected(504), "transient_server", False, False),
+        # A server that answered it could not take the request, with no usage
+        # object: rejected before generation and retried (LP-PROD-A).
+        (rejected(502), "server_unavailable", True, True),
+        (rejected(503), "server_unavailable", True, True),
+        (rejected(529), "server_unavailable", True, True),
+        # One that reports usage may have generated: the reservation stays.
+        (rejected(503, usage_reported=True), "transient_server", False, False),
+        (mp.ProviderUnreachable("nothing sent"), "unreachable", True, True),
         (rejected(418), "unknown", False, False),
         (TimeoutError("read timed out"), "unknown", False, False),
         (ConnectionResetError(), "unknown", False, False),
+        (ConnectionRefusedError(), "unknown", False, False),
         (ValueError("bad json"), "unknown", False, False),
     ],
 )
@@ -134,10 +146,13 @@ def test_rate_limit_retries_under_new_reservations_and_replays_without_resend(
             raise reply
         return reply
 
-    first = request_model(meter, **_args(fixture, sleep=waits.append))
+    first = request_model(
+        meter, **_args(fixture, sleep=waits.append, jitter=lambda: 1.0)
+    )
     assert first["status"] == "completed"
     assert len(calls) == 3
-    # Retry-After is honoured; without one, bounded exponential backoff.
+    # Retry-After is honoured; without one, exponential backoff (here at the
+    # top of its jitter).
     assert waits == [3, 4]
     used = meter.status(owner="alice")["used"]
     assert used["provider_attempts"] == 3
@@ -158,6 +173,47 @@ def test_rate_limit_retries_under_new_reservations_and_replays_without_resend(
 
 
 def test_persistent_rate_limit_stops_after_bounded_retries(tmp_path):
+    """LP-PROD-A changed this test: retries are now bounded by
+    `MAX_AUTOMATIC_RETRIES` and a total wait, with doubling backoff up to 60 s
+    (was two retries, each wait capped at 30 s), and a later call sends the
+    request again instead of replaying the exhausted retries forever."""
+    meter = ledger(tmp_path)
+    calls = []
+
+    def fixture(value):
+        calls.append(value)
+        raise rejected(429)
+
+    waits = []
+    with pytest.raises(ProviderCallFailed, match="bounded retries") as failed:
+        request_model(meter, **_args(fixture, sleep=waits.append, jitter=lambda: 1.0))
+    assert failed.value.outcome is mp.ProviderOutcome.RATE_LIMITED
+    assert failed.value.resumable and not failed.value.requires_settlement
+    assert len(calls) == 7
+    assert waits == [2, 4, 8, 16, 32, 60]  # doubling, capped at 60
+    used = meter.status(owner="alice")["used"]
+    assert used["provider_attempts"] == 7 and used["provider_nanodollars"] == 0
+    # A later call - a resume - passes the seven recorded refusals without
+    # waiting and sends the request again under the next identity.
+    replies = [completed()]
+    waits.clear()
+
+    def recovered(value):
+        calls.append(value)
+        return replies.pop(0)
+
+    assert request_model(meter, **_args(recovered, sleep=waits.append))["status"] == (
+        "completed"
+    )
+    assert len(calls) == 8 and waits == []
+    with meter.db() as db:
+        (state,) = db.execute(
+            "SELECT state FROM operations WHERE id='model-1-rl7'"
+        ).fetchone()
+    assert state == "SUCCEEDED"
+
+
+def test_a_retry_after_longer_than_the_wait_left_is_honoured_not_cut(tmp_path):
     meter = ledger(tmp_path)
     calls = []
 
@@ -165,28 +221,39 @@ def test_persistent_rate_limit_stops_after_bounded_retries(tmp_path):
         calls.append(value)
         raise rejected(429, retry_after="1000")
 
-    waits = []
-    with pytest.raises(ProviderCallFailed, match="bounded retries") as failed:
-        request_model(meter, **_args(fixture, sleep=waits.append))
-    assert failed.value.outcome is mp.ProviderOutcome.RATE_LIMITED
-    assert len(calls) == 3
-    assert waits == [30, 30]  # capped
-    assert meter.status(owner="alice")["used"]["provider_attempts"] == 3
     with pytest.raises(ProviderCallFailed, match="bounded retries"):
-        request_model(meter, **_args(fixture, sleep=waits.append))
-    assert len(calls) == 3
+        request_model(meter, **_args(fixture, sleep=pytest.fail))
+    # Resending before the provider's 1000 s would ignore it: one attempt.
+    assert len(calls) == 1
+
+
+def test_retries_stop_at_the_total_wait(tmp_path):
+    meter = ledger(tmp_path)
+    calls, waits = [], []
+
+    def fixture(value):
+        calls.append(value)
+        raise rejected(503, retry_after="100")
+
+    with pytest.raises(ProviderCallFailed, match="bounded retries") as failed:
+        request_model(meter, **_args(fixture, sleep=waits.append, jitter=lambda: 0))
+    assert failed.value.outcome is mp.ProviderOutcome.SERVER_UNAVAILABLE
+    assert waits == [100, 100, 100]  # a fourth wait would pass 300 s in all
+    assert len(calls) == 4
+    assert meter.status(owner="alice")["used"]["provider_nanodollars"] == 0
 
 
 @pytest.mark.parametrize(
     "error, outcome",
     [
-        (rejected(401, "invalid_api_key"), mp.ProviderOutcome.AUTH_CREDENTIAL),
-        (rejected(429, "insufficient_quota"), mp.ProviderOutcome.QUOTA_EXHAUSTED),
         (rejected(400, "context_length_exceeded"), mp.ProviderOutcome.CONTEXT_LIMIT),
         (rejected(400), mp.ProviderOutcome.INVALID_REQUEST),
     ],
 )
 def test_rejections_are_counted_uncharged_and_never_retried(tmp_path, error, outcome):
+    """The same request would get the same answer, so a later call replays the
+    recorded rejection. LP-PROD-A moved the key and quota rejections, which
+    the miner can fix, to the test below."""
     meter = ledger(tmp_path)
     calls = []
 
@@ -198,13 +265,66 @@ def test_rejections_are_counted_uncharged_and_never_retried(tmp_path, error, out
         with pytest.raises(ProviderCallFailed, match="no retry") as failed:
             request_model(meter, **_args(fixture, sleep=pytest.fail))
         assert failed.value.outcome is outcome
+        assert not failed.value.resumable
     assert len(calls) == 1
     used = meter.status(owner="alice")["used"]
     assert used["provider_attempts"] == 1
     assert used["provider_nanodollars"] == 0
 
 
-@pytest.mark.parametrize("error", [rejected(503), TimeoutError("timed out")])
+@pytest.mark.parametrize(
+    "error, outcome",
+    [
+        (rejected(401, "invalid_api_key"), mp.ProviderOutcome.AUTH_CREDENTIAL),
+        (rejected(402), mp.ProviderOutcome.QUOTA_EXHAUSTED),
+        (rejected(429, "insufficient_quota"), mp.ProviderOutcome.QUOTA_EXHAUSTED),
+    ],
+)
+def test_a_key_or_balance_rejection_is_sent_again_once_the_miner_fixes_it(
+    tmp_path, error, outcome
+):
+    """Not retried at once - the miner has to act - and not replayed forever:
+    a later call (a resume) sends the request again under the next identity."""
+    meter = ledger(tmp_path)
+    replies = [error, error, completed()]
+    calls = []
+
+    def fixture(value):
+        calls.append(value)
+        reply = replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+    for attempt in range(2):  # still refused on the first resume
+        with pytest.raises(ProviderCallFailed, match="no retry") as failed:
+            request_model(meter, **_args(fixture, sleep=pytest.fail))
+        assert failed.value.outcome is outcome and failed.value.resumable
+        assert len(calls) == attempt + 1
+    report = failed.value.report()
+    assert report["code"] == "provider_" + outcome.value
+    assert report["resumable"] and not report["requires_settlement"]
+    assert "resume" in report["next_step"]
+    # The miner fixed it: the next resume goes through, under model-1-rl2.
+    assert request_model(meter, **_args(fixture, sleep=pytest.fail)) == completed()
+    assert len(calls) == 3
+    used = meter.status(owner="alice")["used"]
+    assert used["provider_attempts"] == 3
+    assert used["provider_nanodollars"] == 100 * 250 + 10 * 2000
+    # Replayed again, nothing is sent.
+    assert request_model(meter, **_args(fixture, sleep=pytest.fail)) == completed()
+    assert len(calls) == 3
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        rejected(500),
+        rejected(504),
+        rejected(503, usage_reported=True),
+        TimeoutError("timed out"),
+    ],
+)
 def test_possibly_processed_failures_keep_the_reservation_and_never_resend(
     tmp_path, error
 ):
@@ -221,6 +341,8 @@ def test_possibly_processed_failures_keep_the_reservation_and_never_resend(
         mp.ProviderOutcome.TRANSIENT_SERVER,
         mp.ProviderOutcome.UNKNOWN,
     )
+    assert failed.value.requires_settlement and not failed.value.resumable
+    assert "Reconcile" in failed.value.report()["next_step"]
     with pytest.raises(ValueError, match="no resend"):
         request_model(meter, **_args(fixture, sleep=pytest.fail))
     assert len(calls) == 1
@@ -548,6 +670,115 @@ def test_chat_adapter_translates_history_and_reply():
     }
 
 
+def test_a_request_states_its_parallel_rule_as_a_boolean(tmp_path):
+    """False under the historical and v1 rules, True under v2 (LP-PROD-A);
+    anything else is refused before a reservation."""
+    meter = ledger(tmp_path)
+    sent = []
+
+    def fixture(value):
+        sent.append(value)
+        return completed()
+
+    allowed = {**request(), "parallel_tool_calls": True}
+    request_model(meter, **{**_args(fixture), "request": allowed})
+    assert sent[0]["parallel_tool_calls"] is True
+    for value in ("true", 1, None):
+        with pytest.raises(ValueError, match="bounded request required"):
+            request_model(
+                meter,
+                **{
+                    **_args(fixture),
+                    "identity": "model-2",
+                    "request": {**request(), "parallel_tool_calls": value},
+                },
+            )
+    assert len(sent) == 1
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 1
+
+
+def test_chat_adapter_sends_one_turns_calls_as_one_assistant_message():
+    """A v2 turn (LP-PROD-A) carries several calls, and any text before them;
+    Chat Completions needs them on one assistant message ahead of the tool
+    replies. The request allows parallel calls, as the rule froze it."""
+    value = {
+        **request(),
+        "parallel_tool_calls": True,
+        "input": [
+            {"role": "user", "content": "observe"},
+            {
+                "type": "message",
+                "role": "assistant",
+                "content": [{"type": "output_text", "text": "Two reads."}],
+            },
+            {"type": "function_call", "call_id": "c1", "name": "t", "arguments": "{}"},
+            {"type": "function_call", "call_id": "c2", "name": "t", "arguments": "{}"},
+            {"type": "function_call_output", "call_id": "c1", "output": "{}"},
+            {"type": "function_call_output", "call_id": "c2", "output": "{}"},
+            {"role": "user", "content": "status"},
+            {"type": "function_call", "call_id": "c3", "name": "t", "arguments": "{}"},
+        ],
+    }
+    body = mp.chat_request(value)
+    assert [m["role"] for m in body["messages"]] == [
+        "system",
+        "user",
+        "assistant",
+        "tool",
+        "tool",
+        "user",
+        "assistant",
+    ]
+    turn = body["messages"][2]
+    assert turn["content"] == "Two reads."
+    assert [c["id"] for c in turn["tool_calls"]] == ["c1", "c2"]
+    assert [c["id"] for c in body["messages"][6]["tool_calls"]] == ["c3"]
+    assert body["parallel_tool_calls"] is True
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        None,
+        "",
+        "  ",
+        # LP-PROD-A, part 2: arguments that are not one JSON object - cut off
+        # by the output limit, malformed, another JSON value, NaN - are sent
+        # as {} too, so a chat endpoint that parses its history cannot refuse
+        # the request on the model's own mistake.
+        '{"code": "print(1)\\nfor i in',
+        "{not json",
+        "[1, 2]",
+        '{"a": NaN}',
+        12,
+    ],
+)
+def test_chat_adapter_sends_an_empty_call_as_an_empty_object(arguments):
+    """The loop reads an empty call as {} (`research_loop.tool_arguments`)
+    and answers a malformed one with a typed result; the chat history sends
+    each as {}, so an endpoint never sees a tool call whose arguments are not
+    one JSON object."""
+    value = {
+        **request(),
+        "input": [
+            {"role": "user", "content": "observe"},
+            {
+                "type": "function_call",
+                "call_id": "c1",
+                "name": "t",
+                "arguments": arguments,
+            },
+            {"type": "function_call_output", "call_id": "c1", "output": "{}"},
+        ],
+    }
+    (call,) = mp.chat_request(value)["messages"][2]["tool_calls"]
+    assert call["function"]["arguments"] == "{}"
+    # One JSON object is carried back exactly as the model sent it.
+    value["input"][1]["arguments"] = '{"a":1,  "b": [2]}'
+    (call,) = mp.chat_request(value)["messages"][2]["tool_calls"]
+    assert call["function"]["arguments"] == '{"a":1,  "b": [2]}'
+
+
 def test_responses_adapter_omits_a_null_reasoning_setting():
     selection = mp.select(
         provider_id="openai-responses",
@@ -588,6 +819,106 @@ def test_an_http_rejection_keeps_status_code_and_retry_after_only():
     )
     assert "sk-FIXTURE" not in str(error) and error.__cause__ is None
     assert mp.classify(error).outcome is mp.ProviderOutcome.RATE_LIMITED
+
+
+def _transport(opener):
+    return mp.SelectionTransport(
+        mp.select(
+            provider_id="openai-responses",
+            model_id=mp.MODEL,
+            credential=FIXTURE_CREDENTIAL,
+        ),
+        opener=opener,
+    )
+
+
+@pytest.mark.parametrize(
+    "body, reported, outcome",
+    [
+        (b'{"error": {"code": "server_error"}}', False, "server_unavailable"),
+        (b"<html>Bad gateway</html>", False, "server_unavailable"),
+        (
+            b'{"error": {"code": "server_error"}, "usage": {"output_tokens": 9}}',
+            True,
+            "transient_server",
+        ),
+        # A provider's own charge report (Engy) with no usage: may have been
+        # billed, so it is not booked at zero (LP-PROD-A review).
+        (
+            b'{"error": {"code": "server_error"}, "x_engy": {"charged_micro": 5}}',
+            True,
+            "transient_server",
+        ),
+    ],
+)
+def test_an_unavailable_server_is_read_from_its_status_and_body(
+    body, reported, outcome
+):
+    opener = Opener(
+        urllib.error.HTTPError("https://x.invalid", 503, "Busy", None, io.BytesIO(body))
+    )
+    with pytest.raises(mp.ProviderHTTPError) as raised:
+        _transport(opener)(request())
+    assert raised.value.usage_reported is reported
+    assert mp.classify(raised.value).outcome.value == outcome
+
+
+@pytest.mark.parametrize(
+    "reason", [ConnectionRefusedError(111, "refused"), socket.gaierror(-2, "unknown")]
+)
+def test_a_connection_refused_before_sending_is_typed_unreachable(reason):
+    """Raised from the connect, before any request byte: nothing was sent.
+    No network or provider text survives."""
+    opener = Opener(urllib.error.URLError(reason))
+    with pytest.raises(mp.ProviderUnreachable) as raised:
+        _transport(opener)(request())
+    assert isinstance(raised.value, OSError) and raised.value.__cause__ is None
+    failure = mp.classify(raised.value)
+    assert failure.outcome is mp.ProviderOutcome.UNREACHABLE
+    assert failure.unbilled and failure.retry_safe
+    assert "refused" not in str(raised.value) and "unknown" not in str(raised.value)
+
+
+def test_any_other_connection_failure_stays_unknown():
+    """A reset or a timeout can come after the request was sent."""
+    opener = Opener(urllib.error.URLError(ConnectionResetError()))
+    with pytest.raises(urllib.error.URLError) as raised:
+        _transport(opener)(request())
+    assert mp.classify(raised.value).outcome is mp.ProviderOutcome.UNKNOWN
+
+
+def _chat(finish_reason):
+    return {
+        "model": "m",
+        "choices": [
+            {
+                "finish_reason": finish_reason,
+                "message": {"role": "assistant", "content": "partial"},
+            }
+        ],
+        "usage": {"prompt_tokens": 5, "completion_tokens": 7},
+    }
+
+
+@pytest.mark.parametrize(
+    "finish_reason, reason",
+    [
+        ("length", "max_output_tokens"),
+        ("content_filter", "content_filter"),
+        (None, "unknown"),
+        ("Odd Reason!", "unknown"),
+    ],
+)
+def test_an_unfinished_chat_reply_says_how_it_ended(finish_reason, reason):
+    reply = mp.chat_response(_chat(finish_reason))
+    assert reply["status"] == "incomplete"
+    assert reply["incomplete_details"] == {"reason": reason}
+
+
+def test_a_finished_chat_reply_carries_no_incomplete_details():
+    for finish_reason in ("stop", "tool_calls"):
+        reply = mp.chat_response(_chat(finish_reason))
+        assert reply["status"] == "completed" and "incomplete_details" not in reply
 
 
 def test_run_epoch_uses_the_campaign_selection(tmp_path):

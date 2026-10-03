@@ -15,8 +15,8 @@ Claims tested, all with a scripted model, a scripted pod account and no spend:
 - injected text is data; confirmation and official material are refused;
 - five non-improving attempts record the stall observation and move the
   Constructor up exactly one rung;
-- a turn with several tool calls runs the first and refuses the rest, and the
-  rule's consecutive limit stops the session typed (GRAPHITE-D33);
+- a turn with several tool calls runs every call in order, each journalled,
+  with no consecutive-turn stop (LP-PROD-A, superseding GRAPHITE-D33);
 - the pod phase reproduces Carbon's pinned build or refuses to run; the code
   ship matches pod_control's manifest; the live RunPod backend drives the
   compute layer; the miner path speaks the standard adapter; the runner
@@ -73,9 +73,8 @@ from carbon.agent_campaign.graphite.roles import (
 from carbon.agent_campaign.provider import ProviderUnavailable
 from carbon.development_session.model_provider import ENGY_LADDER
 from carbon.development_session.research_agent_policy import (
-    PARALLEL_CALLS,
-    PARALLEL_REFUSAL,
-    one_call_per_turn,
+    PARALLEL_CALLS_V2,
+    every_call_per_turn,
 )
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -430,7 +429,7 @@ def test_a_constructor_session_below_the_cap_ends_when_the_agent_stops(tmp_path)
     assert graphite.model.remaining == 0
 
 
-# -- several tool calls in one turn (GRAPHITE-D33) ------------------------------------------
+# -- several tool calls in one turn (LP-PROD-A, superseding GRAPHITE-D33) -----------------
 #: Live session 1's first turn (2026-10-03): three calls at once, although the
 #: request sent `parallel_tool_calls: false`.
 SEVERAL = tools(
@@ -445,67 +444,67 @@ def _outcome(graphite):
     return json.loads(path.read_bytes())
 
 
-def test_a_turn_with_several_tool_calls_runs_the_first_and_refuses_the_rest(tmp_path):
-    """GRAPHITE-D33 (owner, 2026-10-03): the Constructor runs under the loop's
-    existing `PARALLEL_CALLS` rule. Live session 1 ended `harness_error` on
-    this turn; now the first call runs and the session goes on."""
+def test_a_turn_with_several_tool_calls_runs_every_call_in_order(tmp_path):
+    """LP-PROD-A (OWNER-LAUNCHPAD-PROD-01, 2026-10-03): the Constructor runs
+    under `PARALLEL_CALLS_V2`. Live session 1 ended `harness_error` on this
+    turn, and GRAPHITE-D33 then ran its first call only; now all three run, in
+    the model's order, and the session goes on."""
     miner = RecordingMinerTools()
     script = [SEVERAL, text("done")]
     result, graphite, _ = session(tmp_path, script, ScriptedPods(), miner=miner)
     assert result["provider_state"] == "succeeded"
-    # Only the first call ran, with the arguments the model sent; the miner
-    # path supplies the operation id from the tool identity.
-    assert miner.calls == [(PREFIX + "get_challenge_info", {}, "epoch-1-tool-000")]
-    # Every call was answered, so the conversation stays well formed.
-    answered = {
-        item["call_id"]: json.loads(item["output"])
-        for item in graphite.model.requests[1]["input"]
+    # Every call ran, in order, with the arguments the model sent; the miner
+    # path supplies the operation id from each call's own tool identity.
+    assert miner.calls == [
+        (PREFIX + "get_challenge_info", {}, "epoch-1-tool-000"),
+        (PREFIX + "get_interaction_manifest", {}, "epoch-1-tool-000-01"),
+        (PREFIX + "get_mock_scaffold", {}, "epoch-1-tool-000-02"),
+    ]
+    # Every call was answered with its own result, in order.
+    second = graphite.model.requests[1]
+    assert [
+        (item["call_id"], json.loads(item["output"]))
+        for item in second["input"]
         if item.get("type") == "function_call_output"
-    }
-    assert answered["script-001-0"] == {"status": "OK", "fixture": True}
-    assert answered["script-001-1"] == PARALLEL_REFUSAL == answered["script-001-2"]
-    # The refusal is journalled, and the plan freezes the rule.
+    ] == [(f"script-001-{n}", {"status": "OK", "fixture": True}) for n in range(3)]
+    assert second["parallel_tool_calls"] is True
+    # Each call is journalled before and after it ran; the turn's calls are
+    # journalled before any ran; the plan freezes the rule; nothing is refused.
     epoch = graphite._dir(run_id()) / "ledger" / "epoch-1"
-    journal = json.loads(
-        (epoch / "epoch-1-provider-000-parallel-refusal.json").read_bytes()
-    )
-    assert (journal["ran"], journal["refused"]) == (
-        "script-001-0",
-        ["script-001-1", "script-001-2"],
-    )
-    assert journal["rule"] == PARALLEL_CALLS == _plan(graphite)["parallel_calls"]
+    for identity in ("epoch-1-tool-000", "epoch-1-tool-000-01", "epoch-1-tool-000-02"):
+        assert (epoch / (identity + "-intent.json")).exists()
+        assert (epoch / (identity + "-result.json")).exists()
+    journal = json.loads((epoch / "epoch-1-provider-000-calls.json").read_bytes())
+    assert [c["call_id"] for c in journal["calls"]] == [
+        f"script-001-{n}" for n in range(3)
+    ]
+    assert journal["rule"] == PARALLEL_CALLS_V2 == _plan(graphite)["parallel_calls"]
+    assert not list(epoch.glob("*-parallel-refusal.json"))
     assert _outcome(graphite)["reason"] == "agent elected to stop"
 
 
-def test_consecutive_turns_with_several_calls_stop_the_session_typed(tmp_path):
-    """At the rule's consecutive limit the session stops with a typed outcome,
-    retained; it is not a harness error."""
-    limit = PARALLEL_CALLS["consecutive_limit"]
+def test_consecutive_turns_with_several_calls_no_longer_stop_the_session(tmp_path):
+    """v2 has no consecutive-turn stop: three several-call turns in a row,
+    the old limit, run all nine calls and the session ends when the agent
+    stops."""
     miner = RecordingMinerTools()
-    script = [SEVERAL] * limit + [text("never sent: the session stopped")]
+    script = [SEVERAL] * 3 + [text("done")]
     result, graphite, _ = session(tmp_path, script, ScriptedPods(), miner=miner)
     assert result["provider_state"] == "succeeded"
-    assert graphite.model.remaining == 1
-    # The turn that reaches the limit runs nothing.
-    assert len(miner.calls) == limit - 1
+    assert graphite.model.remaining == 0
+    assert len(miner.calls) == 9
     outcome = _outcome(graphite)
     assert outcome["status"] == "STOPPED"
-    assert outcome["reason"] == (
-        f"provider returned several tool calls on {limit} consecutive turns; "
-        "retained and stopped"
-    )
-    assert outcome["parallel_calls"] == PARALLEL_CALLS
+    assert outcome["reason"] == "agent elected to stop"
+    assert "parallel_calls" not in outcome
 
 
-def test_only_the_constructor_runs_under_the_rule_and_its_prompt_states_it():
-    assert PARALLEL_RULES == {RoleName.CONSTRUCTOR: PARALLEL_CALLS}
-    prompt = ROLES[RoleName.CONSTRUCTOR].prompt
-    assert one_call_per_turn("session") in prompt
-    # The stated number is the enforced one.
-    assert f"After {PARALLEL_CALLS['consecutive_limit']} consecutive turns" in prompt
-    for name, role in ROLES.items():
-        if name is not RoleName.CONSTRUCTOR:
-            assert "One tool call per turn" not in role.prompt
+def test_every_role_runs_under_the_v2_rule_and_its_prompt_states_it():
+    assert PARALLEL_RULES == dict.fromkeys(RoleName, PARALLEL_CALLS_V2)
+    for role in ROLES.values():
+        # The stated rule is the enforced one, built from the same policy.
+        assert every_call_per_turn("session") in role.prompt
+        assert "One tool call per turn" not in role.prompt
 
 
 def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
@@ -1390,8 +1389,10 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert result["provider_state"] == "succeeded"
     assert result["delivery"]["clean_rebuild"]["status"] == "REBUILT"
     assert result["dry_run"]["pods_alive"] == []
-    # Its first turn returns three calls (GRAPHITE-D33): two are refused.
-    assert result["dry_run"]["refused_parallel_calls"] == 2
+    # Its first turn returns three calls: under v2 all three run (LP-PROD-A).
+    assert result["dry_run"]["parallel_calls_run"] == 3
+    assert result["dry_run"]["parallel_calls_not_run"] == 0
+    assert "refused_parallel_calls" not in result["dry_run"]
     assert len(result["findings"]) == 1  # the scripted unrebuildable proposal
     assert phase3.main(["status", "--root", str(tmp_path / "dry-run")]) == 0
 
