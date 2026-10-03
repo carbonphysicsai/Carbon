@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-10-03T06:31:21Z"
+  captured_at_utc: "2026-10-03T07:53:09Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a72c305ce0a1d21b360ca4c9d124c858251ceb17"
+  authority_snapshot_commit: "983d62e7da23f3dd6fdc97de6569cd28dec2e92e"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10900,6 +10900,19 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-10-03T02:13:53Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "REAL-DIVERGENCE-REPORT"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "TRACK-B-STUCK-01 follow-up, prospective only. carbon/battery/value/real_divergence.py splits each score-value divergence condition into constructed-control, within-family and across-family real-model pairs. Classed totals equal every frozen study's committed counts; nothing is rescored. EV4 verification: the deciding rule has 1 across-family real divergence (plus 4 within-family, 2 control). The SR-2 and SR-3 margin-aware candidates have 5 and 6, so they make real-model divergence worse, which supports keeping the deciding rule. The localized sign-error control outranks 95-98 of 99 real members under every rule; no rule or mean-optimism gate catches it, so it needs its own measurement (a science decision). Recommendation: EV5 pre-registers across-family real-member divergence as its criterion."
+    primary_detail: "docs/development/evidence/real-divergence-2026-10-03/README.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-10-03T02:16:26Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
