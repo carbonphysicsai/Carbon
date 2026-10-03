@@ -35,9 +35,14 @@ coordinating session:
    - GRAPHITE-D33's scope, under which only the Graphite Constructor ran
      under that rule. Every Graphite role now runs under v2.
 
-   A campaign frozen earlier keeps the rule it froze (v1, or none) and replays
-   byte-identically: its rule, prompt, prompt digest and tool list never
-   change. Neither earlier record is rewritten.
+   A campaign that freezes its rule in its plan (a battery campaign, and any
+   other `run_epoch` plan) and was frozen earlier keeps that rule (v1, or
+   none) and replays byte-identically: its rule, prompt, prompt digest and
+   tool list never change. Graphite does not freeze its rule or prompts; it
+   takes them from code. So a Graphite session opened under the old prompts
+   fails closed before any model call (`role_changed`), as does a registered
+   brief that has not started (`brief_role_changed`). Each has to be opened
+   or registered again. Neither earlier record is rewritten.
 
 **What this authorizes, and what it does not.** It authorizes the engineering
 changes in the work list. It does not authorize changing any scientific value,
