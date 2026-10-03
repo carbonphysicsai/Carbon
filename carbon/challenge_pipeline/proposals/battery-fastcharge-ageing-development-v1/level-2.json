@@ -1,0 +1,267 @@
+{
+ "schema": "carbon.challenge-pipeline.level-proposal.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 2,
+ "recorded_at": "2026-10-03T02:46:15Z",
+ "proposed_by": {
+  "agent": "graphite",
+  "role": "planner",
+  "session": "level-plan-3"
+ },
+ "capabilities": [
+  {
+   "adds": "Configurable number of training updates for mlp, deeponet, and fno models, replacing the fixed campaign default of 6000",
+   "attack_surface": "Excessively large step counts could allow overfitting to spurious patterns in the training set; combined with data weighting or curriculum, an attacker could steer the model toward specific operating regimes at the expense of generalization, while a low step count could produce an undertrained model that passes superficial checks.",
+   "bounds": "uint 16\u201320000, default 6000; applies to mlp, deeponet, fno; interacts with schedule and polish_steps (polish consumes from this budget)",
+   "id": "batching.steps",
+   "rationale": "The update count controls the training budget and convergence depth. F-FNO (arxiv-2111.13802v4) shows that training duration interacts with architecture and other hyperparameters to bridge the gap between ML and numerical solvers. Self-training schedules for FNO (arxiv-2311.13885v1) demonstrate that training length affects accuracy and that pseudo-label schedules can improve performance over baseline PINO.",
+   "reconstruction": "Carbon ships a configurable training loop that runs for the specified number of first-order updates, with deterministic seeding, reproducible step counting across JAX and PyTorch backends, and a test that the step budget is respected including any polish_steps subtracted from it.",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "card:arxiv-2311.13885v1",
+    "contract:batching.steps"
+   ]
+  },
+  {
+   "adds": "Configurable batch size for gradient computation, from sub-batch to full-batch training",
+   "attack_surface": "Small batch sizes introduce gradient noise that could be exploited to find degenerate minima fitting specific cases; combined with hard_example_weight, an attacker could bias which cases dominate each update step.",
+   "bounds": "uint 8\u2013400, default 400 (full batch at or above the TRAIN case count); applies to mlp, deeponet, fno",
+   "id": "batching.batch_size",
+   "rationale": "Batch size affects gradient noise and generalization. DeepONet (arxiv-1910.03193v3) demonstrates learning efficiently from relatively small datasets where batch size influences the gradient noise-to-signal ratio. F-FNO (arxiv-2111.13802v4) uses specific training strategies including batch composition that contribute to its performance gains.",
+   "reconstruction": "Carbon ships a data loader that partitions the seeded TRAIN subset into batches of the specified size with deterministic ordering, supporting full-batch when batch_size meets or exceeds the case count, with a test that batch boundaries are reproducible from the seed.",
+   "sources": [
+    "card:arxiv-1910.03193v3",
+    "card:arxiv-2111.13802v4",
+    "contract:batching.batch_size"
+   ]
+  },
+  {
+   "adds": "Gradient accumulation within a batch to support memory-constrained full-batch training",
+   "attack_surface": "Microbatching introduces intermediate gradient states that could differ from full-batch due to floating-point non-associativity; while bounded by the accumulation count, this could produce subtly different models from the same recipe.",
+   "bounds": "uint 1\u20138, default 1; applies to mlp, deeponet, fno; microbatches=1 is numerically identical to standard batch processing",
+   "id": "batching.microbatches",
+   "rationale": "Gradient accumulation allows full-batch gradient computation when memory limits prevent processing all cases at once, preserving the campaign's full-batch Adam(W) recipe on larger models. F-FNO (arxiv-2111.13802v4) scales to deeper networks where memory management becomes relevant.",
+   "reconstruction": "Carbon ships gradient accumulation logic that splits each batch into the specified number of microbatches, accumulating and averaging gradients before the optimizer step, with a test that results are numerically close to full-batch (within floating-point tolerance) for microbatches=1 and bounded divergence for larger values.",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "contract:batching.microbatches"
+   ]
+  },
+  {
+   "adds": "Choice among 11 optimizer families (adam, lion, lamb, adafactor, radam, nadamw, sgd_momentum, muon, prodigy, free_adamw, sam), replacing the campaign's fixed written-out Adam(W)",
+   "attack_surface": "Different optimizers explore different regions of the loss landscape; SAM (sharpness-aware minimization) finds flat minima that may generalize differently, and Muon's spectral-aware updates could amplify or suppress specific frequency components, potentially masking or amplifying biases in particular operating regimes.",
+   "bounds": "choice among 11 options, default adam; adam is the campaign's written-out Adam(W), others via optax; applies to mlp, deeponet, fno; realizes optimizer.lion, optimizer.lamb, optimizer.adafactor, optimizer.radam, optimizer.nadamw, optimizer.sgd_momentum, optimizer.muon, optimizer.prodigy, optimizer.schedule_free, optimizer.sam",
+   "id": "optimizer.optimizer_family",
+   "rationale": "Different optimizers have distinct convergence and generalization properties for operator-learning surrogates. SpecMuon (arxiv-2602.16167v1) shows Muon's orthogonalized updates improve geometric conditioning for DeepONets and PINNs versus Adam and AdamW. SSBFGS/SSBroyden (arxiv-2501.16371v6) demonstrates that quasi-Newton methods achieve orders-of-magnitude accuracy improvements over first-order methods for DeepONet training, motivating the inclusion of diverse first-order families as a baseline exploration.",
+   "reconstruction": "Carbon ships implementations of each optimizer family in JAX (via optax or custom code) and PyTorch, with the campaign's Adam(W) as a written-out reference implementation, and tests that each optimizer produces reproducible parameter trajectories from a fixed seed and that the optimizer-specific hyperparameters (beta1, beta2, adam_epsilon) are correctly wired.",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "card:arxiv-2501.16371v6",
+    "contract:optimizer.optimizer_family"
+   ]
+  },
+  {
+   "adds": "Configurable peak learning rate for the chosen optimizer",
+   "attack_surface": "Extreme learning rates could destabilize training (too high, producing NaN or divergent weights) or stall convergence (too low, producing an undertrained model); both could cause the model to fail silently on certain operating conditions while appearing functional on average.",
+   "bounds": "float 1e-05\u20130.05, default 0.002; applies to mlp, deeponet, fno; serves as the peak for the chosen schedule",
+   "id": "optimizer.learning_rate",
+   "rationale": "Learning rate is the most sensitive optimizer hyperparameter. F-FNO (arxiv-2111.13802v4) explicitly uses cosine learning rate decay with a specific peak rate, demonstrating that the rate interacts with architecture and training schedule. SSBFGS comparisons (arxiv-2501.16371v6) show that learning rate choice affects final accuracy by orders of magnitude when combined with quasi-Newton finishing.",
+   "reconstruction": "Carbon ships the learning rate as a configurable parameter passed to each optimizer, validated against the schedule's peak, with bounds checking and a test that the effective rate at each step matches the schedule's output.",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "card:arxiv-2501.16371v6",
+    "contract:optimizer.learning_rate"
+   ]
+  },
+  {
+   "adds": "Decoupled weight decay (L2 regularization) strength applied after the optimizer step",
+   "attack_surface": "High weight decay could suppress learned features in specific operating regimes, biasing the model toward simpler patterns that underperform on edge cases; combined with selective masking, an attacker could protect certain parameters from regularization while penalizing others.",
+   "bounds": "float 0.0\u20130.1, default 0.0; applies to mlp, deeponet, fno; interacts with weight_decay_mask",
+   "id": "optimizer.weight_decay",
+   "rationale": "Weight decay controls model complexity and generalization. The campaign recipe uses no decay by default; opening this lets miners explore regularization. F-FNO (arxiv-2111.13802v4) combines training strategies where regularization interacts with other hyperparameters to bridge the performance gap to numerical solvers.",
+   "reconstruction": "Carbon ships decoupled weight decay applied after the optimizer step, with support for both 'all parameters' and 'matrices only' masking, and a test that the decay is correctly decoupled (not added to the gradient).",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "contract:optimizer.weight_decay"
+   ]
+  },
+  {
+   "adds": "Choice of applying weight decay to all parameters or weight matrices only",
+   "attack_surface": "Selective decay masking could be combined with specific architectures to preserve certain parameters from regularization, potentially encoding memorized patterns in unregularized parameters.",
+   "bounds": "choice ['all','matrices'], default 'all'; applies to mlp, deeponet, fno",
+   "id": "optimizer.weight_decay_mask",
+   "rationale": "Decay masking lets biases and normalization parameters escape regularization, which matters for DeepONet's branch/trunk separation and FNO's spectral layers. DeepONet (arxiv-1910.03193v3) uses distinct branch and trunk sub-networks where parameter roles differ, making selective decay relevant.",
+   "reconstruction": "Carbon ships a parameter mask that selects which parameters receive decay based on the choice, applied identically across JAX and PyTorch, with a test that biases and non-matrix parameters are correctly excluded when 'matrices' is selected.",
+   "sources": [
+    "card:arxiv-1910.03193v3",
+    "contract:optimizer.weight_decay_mask"
+   ]
+  },
+  {
+   "adds": "Global gradient-norm clipping threshold (0 disables clipping)",
+   "attack_surface": "Aggressive clipping (low threshold) could mask gradient signals from rare operating conditions, causing the model to underperform on edge cases while appearing stable on average; an attacker could set a threshold that suppresses corrections for specific regimes.",
+   "bounds": "float 0.0\u2013100.0, default 0.0; applies to mlp, deeponet, fno",
+   "id": "optimizer.clip_norm",
+   "rationale": "Gradient clipping prevents training instability from large gradients, particularly important for physics-informed losses with stiff dynamics. SpecMuon (arxiv-2602.16167v1) analyzes stability guarantees in the context of spectral-aware optimization and discusses how controlling update magnitude prevents overly aggressive steps in stiff problems.",
+   "reconstruction": "Carbon ships global-norm clipping that rescales the gradient when its L2 norm exceeds the threshold, applied before the optimizer step, with a test that clipping is triggered correctly and that the gradient direction is preserved.",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "card:arxiv-2111.13802v4",
+    "contract:optimizer.clip_norm"
+   ]
+  },
+  {
+   "adds": "First moment decay rate for Adam-family optimizers",
+   "attack_surface": "Unusual beta1 values (near 0, effectively no momentum, or near 1, very long memory) could cause training to converge to qualitatively different solutions, potentially overfitting to early patterns (high beta1) or failing to accumulate useful momentum (low beta1).",
+   "bounds": "float 0.0\u20130.9999, default 0.9; applies to mlp, deeponet, fno; only affects Adam-family optimizers",
+   "id": "optimizer.beta1",
+   "rationale": "Beta1 controls the momentum term's memory, affecting convergence speed and oscillation. SpecMuon (arxiv-2602.16167v1) discusses how momentum-like mechanisms interact with spectral properties of gradients in physics-informed learning, showing that update geometry matters for DeepONet and PINN training.",
+   "reconstruction": "Carbon ships beta1 as a configurable parameter for Adam-family optimizers (adam, nadamw, radam, sam, prodigy), ignored by non-momentum optimizers, with a test confirming the parameter is correctly passed and that out-of-family optimizers are unaffected.",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "contract:optimizer.beta1"
+   ]
+  },
+  {
+   "adds": "Second moment decay rate for Adam-family optimizers",
+   "attack_surface": "Low beta2 values make the adaptive learning rate volatile, potentially causing the model to forget patterns learned in early training; high values could cause stale second-moment estimates to bias updates toward or away from specific gradient directions.",
+   "bounds": "float 0.0\u20130.99999, default 0.999; applies to mlp, deeponet, fno; only affects Adam-family optimizers",
+   "id": "optimizer.beta2",
+   "rationale": "Beta2 controls the adaptive learning rate's memory of past squared gradients. SpecMuon (arxiv-2602.16167v1) analyzes how spectral components interact with Adam's second-moment estimate, showing that scale-balancing properties of the optimizer matter for stiff, multi-scale physics problems.",
+   "reconstruction": "Carbon ships beta2 as a configurable parameter for Adam-family optimizers, with validation that it is compatible with the chosen optimizer and a test confirming the second-moment estimate is correctly updated.",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "contract:optimizer.beta2"
+   ]
+  },
+  {
+   "adds": "Numerical stability constant for the Adam-family denominator",
+   "attack_surface": "Large epsilon values could effectively reduce the learning rate for parameters with small gradients, selectively suppressing certain features\u2014particularly those related to infrequent operating conditions.",
+   "bounds": "float 1e-12\u20130.01, default 1e-08; applies to mlp, deeponet, fno; only affects Adam-family optimizers",
+   "id": "optimizer.adam_epsilon",
+   "rationale": "Epsilon prevents division by near-zero second moments. Large epsilon values effectively regularize the learning rate for parameters with small gradients, which can interact with physics-informed losses where gradient magnitudes vary across output variables. SpecMuon (arxiv-2602.16167v1) discusses how update scaling affects stability in spectral-aware optimization.",
+   "reconstruction": "Carbon ships epsilon as a configurable parameter for Adam-family optimizers, with a numerical stability test confirming no NaN/Inf at the bounds and that the epsilon is correctly placed in the denominator.",
+   "sources": [
+    "card:arxiv-2602.16167v1",
+    "contract:optimizer.adam_epsilon"
+   ]
+  },
+  {
+   "adds": "Choice of learning-rate decay schedule over training updates (cosine, constant, piecewise, exponential, one_cycle, sgdr, polynomial, train_loss_plateau)",
+   "attack_surface": "Adversarial schedules (e.g., aggressive one_cycle with very high peak or train_loss_plateau with early termination) could cause training to converge to qualitatively different solutions than the campaign default, potentially exploiting evaluation timing or hiding weaknesses in specific regimes.",
+   "bounds": "choice among 8 options, default cosine; applies to mlp, deeponet, fno; realizes schedule.constant, schedule.piecewise, schedule.exponential, schedule.one_cycle, schedule.sgdr, schedule.polynomial, schedule.train_loss_plateau; interacts with warmup_steps and min_learning_rate_ratio",
+   "id": "schedule.learning_rate_curve",
+   "rationale": "The learning-rate schedule strongly affects final model quality. F-FNO (arxiv-2111.13802v4) explicitly cites cosine learning rate decay as part of its training strategy for bridging the performance gap to numerical solvers. SSBFGS/SSBroyden (arxiv-2501.16371v6) demonstrates that first-order schedules can be complemented by quasi-Newton finishing, motivating diverse first-order schedule options.",
+   "reconstruction": "Carbon ships each schedule type as a step-dependent learning-rate function, with the peak rate from optimizer.learning_rate, warmup from schedule.warmup_steps, and minimum from schedule.min_learning_rate_ratio, with a test that each schedule produces the expected rate at key steps (start, warmup end, midpoint, end).",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "card:arxiv-2501.16371v6",
+    "contract:schedule.learning_rate_curve"
+   ]
+  },
+  {
+   "adds": "Linear learning-rate warmup at the start of training, ramping from zero to the peak rate",
+   "attack_surface": "Very long warmup could waste training budget on near-zero learning rates, effectively reducing the number of productive updates and producing an undertrained model that passes superficial checks; very short warmup with a high peak rate could cause early divergence.",
+   "bounds": "uint 0\u201320000, default 0; applies to mlp, deeponet, fno; consumed from the total step budget",
+   "id": "schedule.warmup_steps",
+   "rationale": "Warmup stabilizes early training by gradually increasing the learning rate, preventing initial divergence\u2014important for physics-informed losses where early gradients can be large. F-FNO (arxiv-2111.13802v4) combines cosine decay with training strategies where the initial phase matters. SSBFGS/SSBroyden (arxiv-2501.16371v6) shows that optimizer initialization and early dynamics affect final accuracy.",
+   "reconstruction": "Carbon ships linear warmup that scales the learning rate from 0 to the peak over the specified number of steps, then transitions to the chosen schedule, with a test that the rate at step 0 is zero (when warmup > 0) and reaches the peak at the warmup boundary.",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "card:arxiv-2501.16371v6",
+    "contract:schedule.warmup_steps"
+   ]
+  },
+  {
+   "adds": "Final learning rate as a fraction of the peak for cosine, exponential, and polynomial schedules",
+   "attack_surface": "A high minimum ratio (near 1.0) effectively makes the schedule constant, removing the benefit of annealing and keeping the model in a high-variance regime that could overfit; a ratio of 0.0 with cosine is the campaign default and well-understood.",
+   "bounds": "float 0.0\u20131.0, default 0.0; applies to mlp, deeponet, fno; only affects cosine, exponential, and polynomial schedules",
+   "id": "schedule.min_learning_rate_ratio",
+   "rationale": "The minimum rate controls how much learning continues at the end of training. A non-zero floor can help the model continue refining in the final steps. F-FNO (arxiv-2111.13802v4) uses cosine decay to a minimum, and the interaction between the floor and final accuracy is documented.",
+   "reconstruction": "Carbon ships the minimum rate as a configurable fraction of the peak, applied to cosine, exponential, and polynomial schedules, with a test that the final-step rate equals peak * min_learning_rate_ratio for these schedules.",
+   "sources": [
+    "card:arxiv-2111.13802v4",
+    "contract:schedule.min_learning_rate_ratio"
+   ]
+  },
+  {
+   "adds": "Final L-BFGS optimization steps taken from the step budget after the first-order schedule completes",
+   "attack_surface": "L-BFGS can overfit to the training set by finding sharp minima that fit training data precisely but generalize poorly; combined with data weighting, this could selectively improve performance on chosen regimes while degrading others, and the second-order curvature estimate could amplify biases in the training data.",
+   "bounds": "uint 0\u20132000, default 0; applies to mlp, deeponet, fno; realizes stages.explicit_stages; consumed from the total step budget (batching.steps)",
+   "id": "stages.polish_steps",
+   "rationale": "L-BFGS as a finishing optimizer can refine solutions beyond what first-order methods achieve. SSBFGS/SSBroyden (arxiv-2501.16371v6) demonstrates orders-of-magnitude accuracy improvements with quasi-Newton methods for DeepONet training and evaluates L-BFGS with different line search strategies. LC-PINN (arxiv-2606.04420v1) uses a fixed-quadrature L-BFGS finishing protocol that makes parametric-coefficient regimes trainable.",
+   "reconstruction": "Carbon ships an L-BFGS stage that runs for the specified number of steps after the main first-order schedule, consuming from the total step budget, with gradient computation identical to the first-order stage, and a test that the total step count (first-order + polish) does not exceed batching.steps.",
+   "sources": [
+    "card:arxiv-2501.16371v6",
+    "card:arxiv-2606.04420v1",
+    "contract:stages.polish_steps"
+   ]
+  },
+  {
+   "adds": "Seeded subsampling of the TRAIN v1 dataset to a configurable fraction, keeping resolution and new cases fixed",
+   "attack_surface": "Subsampling to a small fraction could hide the model's weakness on underrepresented operating conditions; combined with important_region_weight or curriculum, an attacker could select a subset that favors specific regimes while appearing to use a representative sample.",
+   "bounds": "float 0.1\u20131.0, default 1.0; applies to all model families; realizes training_data.case_count_and_resolution; the seed is fixed per submission for reproducibility",
+   "id": "training_data.train_fraction",
+   "rationale": "DeepONet (arxiv-1910.03193v3) demonstrates high-order error convergence with respect to training dataset size, showing polynomial and even exponential convergence rates, meaning even relatively small fractions can yield accurate operators. DeltaPhi (arxiv-2406.09795v2) improves neural operator performance under limited training data by learning residuals between similar states. PGDA (arxiv-2212.04100v1) improves sample complexity for neural operators through physics-guided augmentation.",
+   "reconstruction": "Carbon ships a seeded data partition that deterministically selects the specified fraction of TRAIN v1 cases, with the seed fixed per submission for reproducibility, and a test that the same fraction and seed always produce the same case subset.",
+   "sources": [
+    "card:arxiv-1910.03193v3",
+    "card:arxiv-2406.09795v2",
+    "card:arxiv-2212.04100v1",
+    "contract:training_data.train_fraction"
+   ]
+  },
+  {
+   "adds": "Up-weighting of TRAIN cases in the published important operating region by a multiplicative factor on the per-case loss",
+   "attack_surface": "High weights on the important region could cause the model to neglect other regions, creating a model that performs well on the evaluation's primary metric but fails on safety-critical edge cases outside the important region; conversely, a weight of 0 would entirely ignore the important region.",
+   "bounds": "float 0.0\u201310.0, default 1.0; applies to mlp, deeponet, fno; the important region boundary is defined by the Challenge's published data",
+   "id": "training_data.important_region_weight",
+   "rationale": "Weighting training cases toward important regions can improve model accuracy where it matters most. RAMS (arxiv-2509.01234v1) demonstrates that adaptive sampling toward high-residual regions improves physics-informed training, representing the first efficient adaptive sampling approach for operator learning. Active operator learning with predictive UQ (arxiv-2503.03178v4) uses uncertainty to guide sampling to informative cases, improving data efficiency.",
+   "reconstruction": "Carbon ships a per-case weighting function that multiplies the loss for cases in the published important region by the specified weight, with the region boundary loaded from the Challenge's published data, and a test that cases inside and outside the region receive the correct weights.",
+   "sources": [
+    "card:arxiv-2509.01234v1",
+    "card:arxiv-2503.03178v4",
+    "contract:training_data.important_region_weight"
+   ]
+  },
+  {
+   "adds": "Ordered admission of TRAIN cases by charge rate over the first half of training, transitioning to full-case training for the second half",
+   "attack_surface": "A curriculum that admits high-rate cases first could bias the model toward high-rate behavior, potentially neglecting low-rate dynamics that are underrepresented in early training; the reverse could delay exposure to the harder high-rate regime, leaving it undertrained.",
+   "bounds": "choice ['none','low_rate_first','high_rate_first'], default 'none'; applies to mlp, deeponet, fno",
+   "id": "training_data.curriculum",
+   "rationale": "Curriculum learning\u2014presenting easier or more representative cases first\u2014can improve convergence and final accuracy. Multi-stage curriculum training (arxiv-2602.02264v1) demonstrates that progressively enforcing constraints (boundary first, then interior residuals) stabilizes physics-informed operator learning, with optimizer re-initialization at each stage. Transfer-learning aided DeepONet (arxiv-2212.04663v1) shows that sequential updates to operator networks improve long-time accuracy while reducing sample size.",
+   "reconstruction": "Carbon ships a curriculum scheduler that admits cases by charge rate over the first half of training, transitioning to all cases for the second half, with deterministic ordering and a test that the admitted case set at each step matches the curriculum specification.",
+   "sources": [
+    "card:arxiv-2602.02264v1",
+    "card:arxiv-2212.04663v1",
+    "contract:training_data.curriculum"
+   ]
+  },
+  {
+   "adds": "Exponential up-weighting of cases with high current training loss, with periodic re-evaluation of per-case loss",
+   "attack_surface": "High hard-example weights could cause the model to overfit to a small number of difficult cases, potentially at the expense of the majority; the feedback loop (re-evaluating loss on the current model) could progressively amplify specific cases, and an attacker could exploit this to steer training toward adversarial cases that are hard for the wrong reasons.",
+   "bounds": "float 0.0\u20134.0, default 0.0; applies to mlp, deeponet, fno; realizes training_data.hard_example_sampling; 0.0 disables hard-example weighting (uniform)",
+   "id": "training_data.hard_example_weight",
+   "rationale": "Focusing training on hard examples can improve model performance on difficult cases. RAMS (arxiv-2509.01234v1) moves samples according to adversarial gradient directions to maximize PDE residual, representing the first efficient adaptive sampling approach for operator learning. AMORE (arxiv-2510.12999v2) uses adaptive loss functions that consider each state variable's and sample's error to penalize the loss function, ensuring reliable multi-output operator learning.",
+   "reconstruction": "Carbon ships a hard-example mining loop that periodically re-evaluates per-case training loss and applies exponential weighting (loss^exponent), with the re-evaluation cadence fixed to avoid excessive computation, and a test that the weighting is correctly applied and that exponent=0 produces uniform weighting.",
+   "sources": [
+    "card:arxiv-2509.01234v1",
+    "card:arxiv-2510.12999v2",
+    "contract:training_data.hard_example_weight"
+   ]
+  }
+ ],
+ "left_out": [
+  "stages.physics_warmup_steps is research_only: it ramps a PDE residual that the battery Challenge does not have; no candidate-side governing equation is registered for the DFN model, so a physics warmup has no residual to ramp.",
+  "training_data.exact_symmetry_augmentation is research_only: no exact symmetry of the battery cycling protocol is registered, so symmetry-based augmentation cannot be constructed or validated.",
+  "training_data.support_leaving_augmentation is research_only (owner_decision): augmentations that leave TRAIN support require a new comparison or resource regime and are not designed for this Challenge.",
+  "training_data.label_method is excluded (evidence_design_change): per-submission reference labels are not permitted; the reference is PyBaMM and validation is JAX-only.",
+  "training_data.submitted_datasets is excluded (external_data_or_learned_state): uploaded datasets or miner-chosen seeds are not permitted; only the seeded TRAIN v1 subset is available."
+ ],
+ "status": "ACCEPTED",
+ "decision": {
+  "by": "Ryan",
+  "on": "2026-10-03",
+  "ref": "Asked \"Accept Graphite's six battery level proposals?\", the technical owner chose \"Accept all six (Recommended)\" (level-plan-3, GRAPHITE-GRANT-PLANNER-02)"
+ }
+}

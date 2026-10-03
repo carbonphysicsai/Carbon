@@ -218,3 +218,121 @@ on tokens. The plan estimates about USD 0.10 a session on
 reported charge, not from its reservation. The plan's estimate is about
 USD 0.10 of tokens and USD 1-3 of pod time per session. The first live
 session measures the real figures and replaces these numbers.
+
+## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
+
+**Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
+the first grant under the owner's process, "stop requiring grants. Just ask
+for platform and budget and propose one".
+- **Proposed by:** the executor, with every value below.
+- **Approved by:** the owner, directly, on 2026-10-02: "Approve as proposed".
+
+The grant format has no field for the proposer. The file therefore records
+`granted_by: owner`, and this section and the decision record the proposal.
+The controller still treats the file as the hard spend ceiling.
+
+**Use.** Live level-planning sessions. Each session makes one Planner call per
+construction level 0-5, for one Challenge, starting with battery. The runner
+(`python -m carbon.agent_campaign.graphite.level_planner`) enforces three
+things:
+- it accepts only grants in `PLANNER_GRANTS`, which today is this one;
+- it refuses a credential file that is not owner-only;
+- it holds each session to `MAX_CALLS` (24), within this grant's cap of 43.
+
+| Field | Value | Basis |
+|---|---|---|
+| `provider` | `graphite` | Engy inference only, no pods |
+| `account` | `Carbon-Account` | As proposed and approved |
+| `granted_by` | `owner` | OWNER-GRAPHITE-05 |
+| `expires_at` | `2026-12-31T23:59:59Z` | As proposed and approved |
+| `monetary_ceiling` | `5.00` USD | As proposed and approved |
+| `worst_case_run_cost` | `2.50` USD | As proposed and approved; the call cap is derived from it |
+| `cleanup_allowance` | `0.00` USD | No pods or workers: nothing needs cleanup |
+| `permitted_runs` | `2` | Battery first, plus one retry or a second Challenge |
+| `max_concurrency` | `1` | One session at a time |
+| `max_runtime_s` | `12900` | 43 calls × the planner's 300 s timeout |
+| `max_submissions` | `2` | One proposal set per session |
+
+### Arithmetic
+
+This is engineering arithmetic from listed prices, not a new price.
+
+**One call's reservation**, at the planner's settings (`level_planner.SETTINGS`:
+65,536 input tokens and 8,192 output tokens). It is priced at `glm-5.2`, 680
+and 1,500 nanodollars per input and output token:
+
+    65,536 × 680 + 8,192 × 1,500 = 56,852,480 nanodollars = USD 0.05685248
+
+**Call cap.** The most calls one session's worst case covers:
+
+    ⌊ 2.50 / 0.05685248 ⌋ = 43 calls    (43 × 0.05685248 = USD 2.4447)
+
+A session needs six calls, one per level. The runner's `MAX_CALLS` of 24
+leaves room for rate-limit retries. A dearer rung stops on the session's
+money cap and never spends more.
+
+**Runs.**
+
+    ⌊ (5.00 − 0.00) / 2.50 ⌋ = 2 runs    (2 × 2.50 = 5.00 ≤ 5.00)
+
+`tests/cpu/test_graphite_level_planner.py::test_the_planner_grant_covers_its_calls`
+holds this arithmetic.
+
+## GRAPHITE-GRANT-PLANNER-02 (Graphite's level planner, larger briefs)
+
+**Authority: OWNER-GRAPHITE-05.** The executor proposes, the owner approves.
+- **Proposed by:** the executor, on 2026-10-03, after the two runs below.
+- **Approved by:** the owner, directly, on 2026-10-03. Asked "Approve
+  GRAPHITE-GRANT-PLANNER-02 as proposed?", the owner answered "Okay I guess
+  just fit as many relevant cards as we can", then "then approve".
+
+**Why a second grant.** GRAPHITE-GRANT-PLANNER-01's two runs are used:
+- `level-plan-1` was refused before any call. Its 24 cards made a 115 KB
+  request against the 61,440-byte bound: 65,536 input tokens, less the 4,096
+  reserve, at one token per byte before any usage is reported. The stop was
+  mislabelled as an incomplete provider response. It spent nothing.
+- `level-plan-2`, with 6 cards, made one call. The 55.7 KB request was 13,171
+  tokens, about 4.2 bytes per token. The reply ran past 8,192 output tokens and
+  came back incomplete. It booked $0.0569, the full reservation, because the
+  provider reported no charge; at list price it was about $0.021.
+
+**Settings** (`level_planner.SETTINGS`):
+
+| Setting | Value |
+|---|---|
+| input | 196,608 tokens |
+| output | 32,768 tokens |
+| reasoning effort | medium |
+| timeout | 600 s, the most the provider settings allow |
+
+**What the settings cost.** One call reserves 196,608 × 680 + 32,768 × 1,500
+nanodollars, or $0.18284544. The call cap is floor($1.50 / $0.18284544) = 8,
+which equals `MAX_CALLS`: six levels plus two retries. The runtime cap is
+8 × 600 s = 4,800 s.
+
+**Where the settings differ from the proposal.** The proposal said 131,072
+input tokens and a 900 s timeout. The owner asked to fit as many relevant cards
+as we can, so the input is 196,608 tokens, about 47 cards, within the same
+approved money ceilings. The provider settings allow at most 600 s, so the
+runtime cap of 4,800 s is under the approved two hours.
+
+**What the runner enforces:**
+- It accepts only this grant (`PLANNER_GRANTS`). PLANNER-01 was derived for
+  the earlier settings and is no longer accepted.
+- It refuses a brief whose largest request exceeds the bound, before any call
+  (`brief_too_large`).
+- It reports an input-bound stop as `STOPPED_CAP input_tokens`.
+
+| Field | Value | Basis |
+|---|---|---|
+| `provider` | `graphite` | Engy inference only, no pods |
+| `account` | `Carbon-Account` | As proposed and approved |
+| `granted_by` | `owner` | OWNER-GRAPHITE-05 |
+| `expires_at` | `2026-12-31T23:59:59Z` | As PLANNER-01 |
+| `monetary_ceiling` | `3.00` USD | As proposed and approved |
+| `worst_case_run_cost` | `1.50` USD | As proposed and approved; the call cap is derived from it |
+| `cleanup_allowance` | `0.00` USD | No pods or workers |
+| `permitted_runs` | `2` | As proposed and approved |
+| `max_concurrency` | `1` | One session at a time |
+| `max_runtime_s` | `4800` | 8 calls × 600 s, under the approved two hours |
+| `max_submissions` | `2` | As PLANNER-01 |

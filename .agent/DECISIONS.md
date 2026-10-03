@@ -17514,7 +17514,7 @@ session builds it, and the phase 2 grant's account and expiry are reused.
 5. **Graphite, not Mira, is the testing agent.**
    - The roadmap says no external research agent takes Graphite's role.
    - The Mira handoff is re-issued as a Graphite handoff and implemented under
-     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-04).
+     its own ticket and decision (GRAPHITE-ADMISSION-01, OWNER-GRAPHITE-06).
 6. **Rev 2.1's backend wording is corrected.** JAX and PyTorch are where Carbon
    rebuilds a declarative recipe. Executable participant code starts at
    Level 4.
@@ -18469,3 +18469,106 @@ Carbon rents, stops and bills nothing. DEVELOPMENT; testnet 567; nothing is
 qualified. Registration remains the only admission.
 
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
+## 2026-10-02 — OWNER-GRAPHITE-06: Graphite, not Mira, does Carbon's internal admission testing; one generalizable protocol; lessons after every execution; Graphite proposes every level's capabilities
+
+*Renamed 2026-10-03 from OWNER-GRAPHITE-04, which #504's decision on Graphite phase 3 pods also uses; the content is unchanged.*
+
+**Owner, verbatim, in session on 2026-10-02:**
+1. "The plan is to use GRAPHITE not Mira for this testing. Ignore all
+   autoscience and Mira talk and replace it with our graphite agent."
+2. "Make sure everything we have is a generalizable test and design protocol
+   that can be adapted to any challenge and improved as we go. Note lessons
+   learned after every execution."
+3. "I want graphite to propose capabilities for every construction level."
+
+**Decision.**
+1. **Graphite does the admission-testing work.** Graphite, Carbon's in-house
+   research and testing agent (OWNER-GRAPHITE-01), does the construction,
+   attack and optimizer-research work of internal admission testing. No
+   external research agent takes that role.
+2. **The handoff is re-issued for Graphite.** The owner's Mira handoff of
+   2026-10-01 is re-issued with Graphite in Mira's place:
+   `docs/development/graphite/ADMISSION_TESTING_HANDOFF.md`. Its vendor
+   contract section is gone because Graphite is Carbon's own. The work runs
+   under `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`.
+3. **Two standing rules.**
+   - **Generalizable.** Every module, record, study sheet, ladder map, attack
+     family, optimizer request and report takes the Challenge as a parameter
+     and reads that Challenge's specifics from its own registered records or
+     adapter. Battery is the first instance, not the design. A battery-only
+     literal in shared code is a defect to move into battery's own record or
+     adapter.
+   - **Lessons after every execution.** Each execution appends one entry to
+     the pipeline's lessons log (`carbon/challenge_pipeline/lessons/`,
+     OWNER-CHALLENGE-ROADMAP-03). A lesson that should change the protocol is
+     a proposed revision until a named owner adopts or declines it; it is never
+     applied silently.
+4. **Graphite proposes every level's capabilities.** For every Challenge and
+   every level 0-5, Graphite writes a PROPOSED level proposal
+   (`carbon/challenge_pipeline/proposals.py`). The construction contract owner
+   accepts or declines it. Graphite never writes the contract, an expansion
+   record, or an ACCEPTED or DECLINED status.
+5. **Mira stays paused and is superseded for this work.** MIRA-ADMISSION-01
+   stays paused (OWNER-GRAPHITE-02). Its ticket and
+   `docs/development/mira/README.md` carry a superseded note, and nothing is
+   deleted. Its built controller, boundaries, study sheet and design-search
+   commitment layer (#475) are reused, not rebuilt. The Mira adapter keeps
+   refusing every call.
+
+**How it meets earlier decisions.**
+- **OWNER-CHALLENGE-ROADMAP-03: `NO_CONFLICT`.** That decision named this
+  ticket and this decision (item 5) and adopted the level-proposal step
+  (item 7). This record carries them out.
+- **OWNER-GRAPHITE-01 item 4: `NO_CONFLICT`.** A paid Mira comparison stays
+  optional and needs its own owner decision.
+- **OWNER-GRAPHITE-02: `NO_CONFLICT`.** The reconstruction rule binds every
+  level Graphite helps open: Carbon's reconstruction ships with the level.
+
+**Unchanged.**
+- Graphite proposes; Carbon's verifier decides (invariants 7.9 and 7.10).
+- A level opened for Graphite's development campaigns is never opened to
+  miners to gather acceptance data.
+- No live inference, pod or spend without an owner grant enforced by the
+  campaign controller.
+- Scientific, security and launch qualification stay human-reserved, as do
+  network activation and every population, threshold and tolerance.
+
+Ticket: `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`.
+
+## 2026-10-02 — OWNER-GRAPHITE-05: the executor proposes grants and the owner approves them; GRAPHITE-GRANT-PLANNER-01
+
+**Owner, verbatim, in session on 2026-10-02.** The question was whether to
+draft Graphite's Level 1 proposal for battery, which needs a live session and
+so a grant. The answer: "stop requiring grants. Just ask for platform and
+budget and propose one. Approve".
+
+The executor then proposed the planner grant with every value. The owner
+answered "Approve as proposed".
+
+**Decision.**
+1. **Proposals replace owner-written grants.** For paid work, the executor
+   proposes a grant with its derivation, and the owner approves it in a line:
+   - platform and account;
+   - ceiling, runs and worst case per run;
+   - expiry and cleanup.
+
+   The owner no longer writes grants. The proposal and the approval are
+   recorded together, in the grant file, the grants README and this log.
+2. **The spend control is unchanged.** The controller still requires an
+   approved grant file as its hard ceiling, and nothing spends without one.
+3. **GRAPHITE-GRANT-PLANNER-01** (`docs/development/graphite/grants/`),
+   approved as proposed:
+   - Engy inference only, no pods, on `Carbon-Account`;
+   - USD 5.00, expiring 2026-12-31;
+   - 2 runs at a worst case of USD 2.50 each;
+   - a cap of 43 calls per run at the planner's settings;
+   - cleanup 0.00.
+
+   It funds Graphite's level-planner sessions: battery first, plus one retry
+   or a second Challenge. The runner accepts only this grant, refuses a
+   credential file that is not owner-only, and writes PROPOSED proposals only.
+   Accepting or declining them stays the construction contract owner's act.
+
+**Unchanged.**
+- Scientific, security and launch qualification stay human-reserved.
+- Testnet 567 only.

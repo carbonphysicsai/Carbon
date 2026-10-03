@@ -84,6 +84,8 @@ _OPERATION = re.compile(r"card-([0-9a-f]{40})(?:-rl[0-9]+)?")
 WRITE_OFF_CODE = "provider_outcome_unknown"
 _LIMITS = {
     "provider timeout cannot fit remaining campaign time": "elapsed_seconds",
+    # The request outgrew the input bound: a size limit, not an outage.
+    "cumulative history/schema token reservation exhausted": "input_tokens",
     "campaign elapsed-time exhausted or clock regressed": "elapsed_seconds",
 }
 

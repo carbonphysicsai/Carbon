@@ -1,5 +1,13 @@
 # MIRA-ADMISSION-01: supervised external research agent for admission testing
 
+> **Superseded for this work, 2026-10-02 (OWNER-GRAPHITE-06).** The owner:
+> "The plan is to use GRAPHITE not Mira for this testing." Graphite does the
+> admission-testing work under
+> `.agent/tickets/GRAPHITE-ADMISSION-01_graphite_admission_testing.md`. This
+> ticket stays paused and is kept as history. What it built (the controller,
+> boundaries, study sheet and design-search commitment layer, #475) is reused
+> there. The Mira adapter keeps refusing every call.
+
 **Authority:** the owner's handoff "integrate Autoscience Mira into Carbon's
 internal admission testing" (2026-10-01), under OWNER-CHALLENGE-ADMISSION-01 as
 amended 2026-10-01; owner answers of 2026-10-01 (Mira is Autoscience Mira,
