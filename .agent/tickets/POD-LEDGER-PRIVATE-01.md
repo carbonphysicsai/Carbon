@@ -10,6 +10,11 @@
   ids stay private; campaign ceilings and the account balance floor are
   operator configuration; the narrative balance lines and spend totals are
   redacted; history is not rewritten (decided after the impact below);
+- the owner's narrowing of the rule later on 2026-10-02: account balances,
+  account identifiers and credentials are never committed, and spend totals
+  stay out of committed ledgers. Caps, rates and spend in owner decision
+  records and plans are acceptable, so other workstreams' records are not
+  redacted;
 - OWNER-DX-03.
 
 ## Outcome
@@ -66,16 +71,20 @@ pins, the Ask Carbon release, decisions), at least 1,071 full-length
 citations in 59 files on main. It would also force-push 161 branches. The
 figures already committed are treated as disclosed.
 
-## Human input required
+## Follow-up
 
-- **Workbench relay.** `EXAM_DESIGN_CAMPAIGN_RESULT.md` (a balance line) and
-  `EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md` (the ceiling formula) are pinned by
-  digest in the Workbench relay and the Ask Carbon release. The Pilot
-  Designer deliberately shows the campaign's billed compute. Redacting them
-  needs a Workbench and website rebuild, and a decision on that display.
-- **Hub events.** `BATTERY-EV4-01` and `MQ-008-R1-SIMULATED-VALIDATORS-01`
-  carry spend figures. The Hub validator refuses any rewrite of a historical
-  event.
+- **Workbench relay.** `EXAM_DESIGN_CAMPAIGN_RESULT.md` still
+  carries an account balance line, which the narrowed rule still excludes.
+  The Workbench relay and the Ask Carbon release pin that document by
+  digest, so removing the balance needs a Workbench and website rebuild. The
+  billed-compute figure the Pilot Designer shows, and the ceiling formula in
+  `EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, may stay.
+
+Not pursued under the narrowed rule: spend figures in the historical Hub
+events `BATTERY-EV4-01` and `MQ-008-R1-SIMULATED-VALIDATORS-01`, which the
+Hub validator protects from rewriting; caps and estimates in other
+workstreams' decision records and READMEs; planning tables; and published
+rates in documents.
 
 ## Definition of done
 
