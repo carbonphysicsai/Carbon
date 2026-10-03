@@ -25,8 +25,9 @@ with the fields in [Record](#record).
   Nothing Carbon-related may already be installed: no checkout, images, keys
   or `~/.hermes/profiles/carbon`.
 - **Free disk.** 5 GiB beside the checkout, and 12 GiB where Docker keeps its
-  images (24 GiB with the GPU worker). The installer checks both before it
-  builds anything.
+  images (24 GiB with the GPU worker). When one filesystem holds both, as on
+  WSL by default, it needs the sum: 17 GiB, or 29 GiB with the GPU worker.
+  The installer checks before it builds anything.
 - **A registered hotkey on subnet 567.** Register it in your own wallet;
   Wallet & Identity prepares the unsigned call.
 - **Your inference key** for Engy (Chat Completions) or Chutes.
@@ -38,7 +39,9 @@ with the fields in [Record](#record).
   - **Carbon's evaluation endpoint.** When an operator has exposed an intake
     (OWNER-INTAKE-EXPOSURE-01), Carbon publishes it in
     `scripts/dev/miner_launchpad/published_endpoints.json`, and setup's Review
-    writes it into your profile. You type nothing.
+    writes it into your profile. You type nothing. The receiver hotkey listed
+    beside it is for reference: nothing checks it yet, and your signer signs
+    for the receiver the intake reports when you submit.
   - **Until one is published,** setup and the prelaunch review say so: your
     profile can practise and freeze, but cannot submit. Run the validator on
     this machine, tunnel to its loopback yourself, or give setup your own
@@ -126,15 +129,30 @@ the update before anything changes. Then run:
 ~/carbon/scripts/install_miner.sh --update
 ```
 
+An install made before 2026-10-03 has an installer without `--update`, which
+refuses it. Run `~/carbon/scripts/install_miner.sh --no-start` once: that
+older installer moves the checkout to the latest main, which brings the
+current installer, but does not check setup against the new images. Then run
+`~/carbon/scripts/install_miner.sh --update`, which does.
+
 - It moves the checkout to the latest main, or `--ref` in main.
-- It rebuilds every image built before, the GPU worker included.
+- It rebuilds every image built before, the GPU worker included. A plain
+  `install_miner.sh` run does the same; `--update` also needs an earlier
+  install and leaves the Control Center to the service or to you.
 - It checks setup against the new images. A compute check made at the old
-  revision or with the old images is set aside. This machine's compute is
-  checked again, and your profile is written again with the new accepted
-  revision. A remote setup needs the new worker: check Compute again and send
-  or push it.
+  revision or with the old images is set aside, and so is the profile written
+  from it (moved to `environment/runner-profile.stale.json`, so a restarted
+  Control Center does not load it). This machine's compute is checked again,
+  and your profile is written again with the new accepted revision and the
+  intakes you named. A remote setup needs the new worker: check Compute again,
+  send or push it, and review again, naming your own intake again if you use
+  one (setup shows it).
 - It prints what changed, then starts the service again, or prints the
   command that starts the Control Center.
+
+If you move the checkout yourself (`git pull`), setup shows compute as
+unchecked and says to run `install_miner.sh --update`: only the installer
+records a new install, so checking Compute again would not clear it.
 
 Record its output with the run.
 
