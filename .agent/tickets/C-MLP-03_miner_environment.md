@@ -338,8 +338,10 @@ pending Hermes and the miner's keys.
     the miner names), and prints `repository@sha256` (LINKONLY-D8).
 - **Recorded engineering decisions (easy mode, 2026-10-02, LINKONLY-D10):**
   - *One path, one step at a time.* Overview leads with a "Get started" list
-    of six steps: start your signer, register, inference, compute, agent,
-    then review and launch. Setup is the same six steps as a wizard, with
+    of six steps: start your signer, register, who researches, inference,
+    compute, then review and launch (the order since
+    OWNER-MINER-SETUP-AGENT-FIRST-01; the agent step was fifth before it).
+    Setup is the same six steps as a wizard, with
     progress, Back and Next. A step is done only when the controller has
     confirmed it: registration by the chain read, each check by its live
     check, the signer by its identity handshake (asked at step 1 for the
@@ -625,6 +627,20 @@ needs the battery intake (OD-7(b)) merged and exposed under its own record.
   to make this way more intuitive and to match our brand. show me the new
   control center when it's ready". Built as the easy mode below, in the public
   website's design system.
+- **Setup, agent first:** answered 2026-10-02
+  (OWNER-MINER-SETUP-AGENT-FIRST-01): "yes make this more agent first and easy
+  for an agent to automate". Built as AGENTFIRST-D1 to D7:
+  - one setup table drives the browser routes and the MCP tools;
+  - `carbon_setup_status` and the `carbon_setup_workflow_v1` prompt drive an
+    agent from nothing to launch;
+  - the order puts who researches before Inference, which is skipped for the
+    miner's own agent;
+  - starting the signer and signing the registration answer
+    `human_action_required`;
+  - a model key reaches the MCP door only as an owner-only file.
+
+  Tests: `tests/cpu/test_miner_setup_agent_first.py` and the setup browser
+  smoke.
 - **The website font in Carbon's apps:** answered 2026-10-02: "Our license
   covers it, bundle the font". The Montreal licence covers bundling the font
   in Carbon's apps. The Control Center serves `neue-0.otf` (400) and

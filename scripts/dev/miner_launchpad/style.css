@@ -152,6 +152,7 @@ details pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--bor
 .wizard-progress .wp-num{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--red)}
 .wizard-progress .is-done button{color:var(--fg)}
 .wizard-progress .is-done .wp-num:after{content:" \2713";color:var(--fg)}
+.wizard-progress .is-skipped .wp-num:after{content:" \00b7 skipped";color:var(--muted-fg)}
 .wizard-progress [aria-current] {border-top-color:var(--fg);color:var(--fg);font-weight:600}
 .wizard-panel{margin-bottom:0}
 .wizard-panel>.setup-step>h2{margin-bottom:8px}

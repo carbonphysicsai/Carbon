@@ -17583,8 +17583,9 @@ miners figure out what to do easily."
 authority).**
 - **LINKONLY-D10, the Control Center shows the way.**
   - One ordered "Get started" list: start your signer, register, inference,
-    compute, agent, then choose a Challenge and launch. A step shows done only
-    when the controller has confirmed it.
+    compute, agent, then choose a Challenge and launch (reordered the same
+    day by OWNER-MINER-SETUP-AGENT-FIRST-01: who researches comes third). A
+    step shows done only when the controller has confirmed it.
   - Setup is a guided wizard, one step at a time.
   - A "Where's your GPU?" chooser offers this machine and one card per setup
     the wiring guide covers. A card sets the transport and shows that setup's
@@ -17594,6 +17595,93 @@ authority).**
     stay behind Details.
   - The provider cards are notes for the miner's own accounts. Carbon calls no
     provider API and starts, stops or bills nothing.
+
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
+
+## 2026-10-02 — OWNER-MINER-SETUP-AGENT-FIRST-01: miner setup, agent first
+
+**Owner, verbatim, in session on 2026-10-02:** "yes make this more agent first
+and easy for an agent to automate"
+
+**Decision.** Miner setup is built so the miner's own agent can automate it
+end to end, as easily as a person can click through it.
+- The order becomes: start your signer, register on the subnet, who
+  researches, inference, compute, review and launch.
+- Who researches is Carbon's agent or the miner's own agent. The miner's own
+  agent is any MCP client, not only Hermes, and Hermes keeps its ready-made
+  profile.
+- Inference is skipped for an agent that brings its own model.
+- An agent drives setup over MCP from one status call to launch, with no
+  prose to parse.
+
+**Recorded engineering decisions (executor, same day, within delegated
+authority).**
+- **AGENTFIRST-D1, one table, two doors.**
+  `scripts/dev/miner_launchpad/setup_operations.py` holds every setup step.
+  The browser's `/api/v1/setup/<step>` routes and the MCP
+  `carbon_setup_<step>` tools are both generated from it and call one
+  `perform`, over one `EnvironmentSetup` and one set of setup records. The two
+  doors apply the same gates in the same order, and a parity test fails if
+  they drift.
+  - The doors differ in one declared way: the browser may paste a model key
+    once (`key`). The MCP door takes `model_key_file` only.
+  - Both doors write the same records under the Control Center's state
+    directory, behind a file lock (`setup.lock`). Each door sees the other's
+    progress: the page re-reads setup every few seconds.
+- **AGENTFIRST-D2, status drives the loop.** `carbon_setup_status`, and
+  `GET /api/v1/setup/status` on the browser door, return:
+  - the steps and their states (`done`, `next`, `open`, `waiting`, `skipped`);
+  - the next step, and what it is missing, as closed codes;
+  - the exact next call, with its arguments schema and the ids it may name.
+
+  Refusals are closed codes, each with its field and a `next_step`. The
+  prompt `carbon_setup_workflow_v1` states the loop.
+- **AGENTFIRST-D3, where the tools appear (C-MLP-02-D10: absent, not
+  refusing).**
+  - In the open tier, for a miner who has nothing yet: status, the signer
+    check and the registration confirmation.
+  - Once setup has confirmed the registration, added to the live server: the
+    steps after it (agent, quote, inference, compute, send_worker, review).
+  - When review writes the runner profile in that session, the registered
+    tier's operations and attach/detach, added by `open_tier.attach_operations`.
+    It is the same live insertion and strictness check as `attach_campaign`.
+    `attach_campaign` itself binds a campaign, and none exists before launch.
+
+  The pinned SDK sends no list-changed notification, so each result that adds
+  tools names them (`tools_added`).
+- **AGENTFIRST-D4, the miner's own steps.** Starting the signer and signing
+  the registration stay the miner's. A call that reaches one answers a closed
+  `human_action_required` result: the step, the action, the exact instruction
+  and command, and the call to make once it is done. Status shows when it is
+  done. The only hotkey value any tool takes is the public ss58 address. No
+  tool accepts, returns or logs a private key, seed phrase, mnemonic or
+  password.
+- **AGENTFIRST-D5, the model key is a file the miner made.** An agent passes
+  `model_key_file`, an absolute path to a regular file, not a link, owned by
+  the same user, with no group or other access. Carbon references it by path
+  and never copies it. A key passed as a value is refused on the MCP door
+  (`key_must_be_a_file_on_this_door`). The field is not named `key_file`:
+  the product's no-key invariant reserves that name for a hotkey file.
+- **AGENTFIRST-D6, Hermes keeps Inference.** Hermes' ready-made profile is
+  written with setup's model, so choosing Hermes keeps the Inference step.
+  Its files are written at Review once the model is checked, on the consent
+  to those exact files given when Hermes was chosen. Only an agent that brings
+  its own model (`own-agent`) skips Inference. Its runner profile names no
+  model, so Carbon's agent stays unavailable to it.
+- **AGENTFIRST-D7, the connect command and snippets.** The miner's own agent
+  starts `python -m carbon.miner_mcp.standard_cli` from the checkout, with no
+  runner profile. Setup shows that command for this machine, with snippets for
+  Claude Code, Codex and Hermes.
+  - Each snippet was read from that client's public documentation on
+    2026-10-02.
+  - Each is marked UNVERIFIED: Carbon has not run the client against the
+    server.
+  - No flag is invented. Where a client's documentation shows no way to set
+    the working directory, its snippet sets `PYTHONPATH` instead.
+
+**Unchanged.** Compute stays link-only (OWNER-MINER-COMPUTE-LINK-ONLY-01):
+Carbon rents, stops and bills nothing. DEVELOPMENT; testnet 567; nothing is
+qualified. Registration remains the only admission.
 
 Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
 
