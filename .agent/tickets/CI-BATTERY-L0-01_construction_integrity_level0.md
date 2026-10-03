@@ -118,3 +118,29 @@ is not touched.
   - No ratio of the three existing legs reduces the real-model divergence,
     which stays at 7 conditions on EV4 verification. The next scoring
     candidate needs new information, such as margin-aware decision error.
+
+## Update 2026-10-03: slice 3, the battery worker boundary against the pinned image
+
+- **New family `staged_bytes`** (`carbon/battery/track_a.py`,
+  construction_evaluation_isolation).
+  - Attack: stage reconstruction, inference and practice files while
+    validator-private canaries exist beside them (a private root, a hidden
+    batch's references and labels).
+  - Detector: scans every staged byte for those canaries.
+  - Specimen: a leaky stager that also stages the batch and the root. The
+    detector fires on it.
+  - Control: the staged names are exactly the published allow-list.
+- **Service test** `tests/service/test_battery_track_a_service.py`. It runs a
+  real battery practice through the isolated carrier in the pinned C-03
+  worker image, with the same canaries planted beside it on the host, then
+  scans every byte the run left behind. A specimen shows the scan finds a
+  copied canary. It runs in CI's C-03 service lane, which this slice also
+  makes trigger on the battery worker boundary:
+  - `carbon/battery/worker.py`;
+  - `carbon/battery/practice.py`;
+  - `carbon/development_session/research_carrier.py`;
+  - the battery service tests.
+
+  Before this, battery worker changes skipped that lane.
+- **Still open:** surface-edge recipes against the worker's CPU, memory and
+  deadline envelope.
