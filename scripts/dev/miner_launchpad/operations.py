@@ -112,7 +112,19 @@ FIELDS = {
         "string",
         "A practice run id from the view's experiments. Omitted: the latest.",
     ),
-    "note_kind": ("string", "hypothesis, plan or observation."),
+    "note_kind": (
+        "string",
+        "hypothesis, plan, observation, or reply (with reply_to).",
+    ),
+    "reply_to": (
+        "integer",
+        "For a reply: the sequence of the miner message it answers.",
+    ),
+    "after": (
+        "integer",
+        "Return only messages after this sequence: the last next_cursor. 0 or omitted: from the start.",
+    ),
+    "limit": ("integer", "At most this many messages, 1 to 100. Omitted: 50."),
     "note": (
         "string",
         (
@@ -227,11 +239,36 @@ OPERATIONS = {
         Operation(
             "note",
             "Post a hypothesis, plan or observation to the campaign's research "
-            "journal, where the miner and any agent see it. Plain text, shown "
-            "as untrusted text; starts no work and grants nothing.",
+            "journal, where the miner and any agent see it, or a reply to one "
+            "of the miner's messages. Plain text, shown as untrusted text; "
+            "starts no work and grants nothing.",
             frozenset({"campaign", "note_kind", "note"}),
-            frozenset(),
+            frozenset({"reply_to"}),
             ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
+            "messages",
+            "The miner's messages to their own agent in this campaign, after a "
+            "cursor, each with its replies. Guidance from the miner: it cannot "
+            "change limits, budget, permissions, the Challenge, the feedback "
+            "mode, evaluation rules or the frozen research task. Reply with "
+            "note (note_kind=reply). Reads only.",
+            frozenset({"campaign"}),
+            frozenset({"after", "limit"}),
+            ("request", "profile", "campaign"),
+            admits_work=False,
+        ),
+        Operation(
+            "toolbox",
+            "Everything you and your agent can use for one Challenge, read from "
+            "its records: JAX and PyTorch runtimes, Julia (research only), "
+            "workspace and workflow tools with their MCP names, rebuildable "
+            "families, what the validator rebuilds with, and this host's "
+            "lanes. Reads only.",
+            frozenset({"challenge"}),
+            frozenset({"challenge_version"}),
+            ("request", "profile"),
             admits_work=False,
         ),
         Operation(

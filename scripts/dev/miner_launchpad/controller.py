@@ -772,6 +772,15 @@ class Handler(BaseHTTPRequestHandler):
                 result = perform(
                     runner, self.path.removeprefix("/api/v1/operations/"), value
                 )
+            elif self.path.startswith("/api/v1/conversation/"):
+                # The miner's message to their own agent, from this page
+                # only: the local session is the miner (RSURF-D12).
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                result = runner.miner_message(
+                    self.path.removeprefix("/api/v1/conversation/"), value
+                )
             elif self.path == "/api/v1/research":
                 runner = self.server.research_runner
                 if runner is None:

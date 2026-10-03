@@ -26,7 +26,10 @@ from scripts.dev.miner_launchpad.campaign_view import (
     NOTE_KINDS,
     NOTE_SCHEMA,
     build,
+    check_reply,
     contract_section,
+    message_body,
+    messages_since,
     note_text,
     research_view_for,
 )
@@ -37,6 +40,45 @@ PRINCIPAL = "fixture-principal"
 EVIDENCE = "SYNTHETIC_FIXTURE"
 RUNS = 7
 NOTES_MAX = 200
+#: This fixture host's research lanes: made up, so the toolbox has some of
+#: each state to show (one configured, two not).
+LANES = {
+    "julia": {"availability": "configured"},
+    "gpu": {"availability": "unavailable", "reason": "no_gpu_runtime_declared"},
+    "remote_gpu": {"availability": "unavailable", "reason": "no_remote_machine_set_up"},
+}
+#: A short sample conversation: the miner's messages and the agent's replies.
+CONVERSATION = (
+    (
+        30,
+        "miner",
+        (
+            "Spend the rest of epoch 2 on capacity: it is the component that "
+            "moved least. Skip anything that needs a GPU."
+        ),
+    ),
+    (
+        31,
+        "reply",
+        (
+            "Understood. Next two runs keep the MLP and change only the "
+            "capacity head; both are CPU runs."
+        ),
+    ),
+    (
+        44,
+        "miner",
+        "Can you raise the trial ceiling to 20?",
+    ),
+    (
+        45,
+        "reply",
+        (
+            "I cannot: your limits are frozen at launch, and a message never "
+            "changes them. Relaunch with a higher ceiling for more trials."
+        ),
+    ),
+)
 #: Made-up practice scores by run: descriptive, lower is better.
 SCORES = (0.412, 0.371, 0.388, 0.247, 0.229, 0.214, 0.196)
 COMPONENT_SHAPE = (1.10, 0.85, 1.30, 0.75)
@@ -54,11 +96,15 @@ def fixture_challenge():
 
 
 def _strategy(challenge, backbone, width):
+    parameters = {"steps": 2000, "width": width, "depth": 3}
+    if backbone == "fno":
+        # A family only the PyTorch backend rebuilds names it.
+        parameters["backend"] = "pytorch"
     return {
         "schema_version": "1.0",
         "challenge_id": challenge["id"],
         "backbone": backbone,
-        "parameters": {"steps": 2000, "width": width, "depth": 3},
+        "parameters": parameters,
     }
 
 
@@ -105,6 +151,20 @@ class FixtureRunner:
                 },
             },
         ]
+        asked = None
+        for sequence, kind, text in CONVERSATION:
+            if kind == "miner":
+                asked = sequence
+                body = message_body(text, self.created - 3600 + sequence * 60)
+            else:
+                body = {
+                    "schema": NOTE_SCHEMA,
+                    "note_kind": "reply",
+                    "text": text,
+                    "reply_to": asked,
+                }
+            self.notes.append({"sequence": sequence, "body": body})
+        self.notes.sort(key=lambda n: n["sequence"])
 
     # ---- What the controller and the operations table ask of a host.
 
@@ -157,20 +217,23 @@ class FixtureRunner:
             experiment=request.get("experiment"),
         )
 
+    def _append(self, body):
+        sequence = max(n["sequence"] for n in self.notes) + 1
+        self.notes.append({"sequence": sequence, "body": body})
+        del self.notes[:-NOTES_MAX]
+        return sequence
+
     def note_admitted(self, admitted, request):
         """Kept in memory only, so the journal can be tried in the demo."""
         kind = request["note_kind"]
         if kind not in NOTE_KINDS:
             raise Rejected("note_kind_unknown")
         text = note_text(request["note"])
-        sequence = max(n["sequence"] for n in self.notes) + 1
-        self.notes.append(
-            {
-                "sequence": sequence,
-                "body": {"schema": NOTE_SCHEMA, "note_kind": kind, "text": text},
-            }
-        )
-        del self.notes[:-NOTES_MAX]
+        reply_to = check_reply(self.notes, request)
+        body = {"schema": NOTE_SCHEMA, "note_kind": kind, "text": text}
+        if reply_to is not None:
+            body["reply_to"] = reply_to
+        self._append(body)
         return {
             "posted": True,
             "note_kind": kind,
@@ -178,6 +241,23 @@ class FixtureRunner:
             "shown_as": "untrusted text",
             "evidence": EVIDENCE,
         }
+
+    def messages_admitted(self, admitted, request):
+        return messages_since(self.notes, request)
+
+    def toolbox_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad import toolbox
+
+        return {**toolbox.for_request(self, request, LANES), "evidence": EVIDENCE}
+
+    def miner_message(self, identity, value):
+        """The page's message route, kept in memory only."""
+        if type(value) is not dict or set(value) != {"text"}:
+            raise Rejected("closed_message_required")
+        self.owned_campaign(identity)
+        text = note_text(value["text"])
+        sequence = self._append(message_body(text, self.clock()))
+        return {"posted": True, "sequence": sequence, "evidence": EVIDENCE}
 
     def halt_admitted(self, admitted, request):
         raise Rejected("fixture_read_only", 409)
@@ -202,7 +282,20 @@ class FixtureRunner:
             experiment=experiment,
             now=self.clock(),
             fixture=True,
+            toolbox=self.toolbox(),
         )
+
+    def toolbox(self):
+        from scripts.dev.miner_launchpad import toolbox
+
+        value = toolbox.build(self.challenge, lanes=LANES)
+        if value is not None:
+            value["campaign_images"] = [
+                "fixture-worker-image",
+                "fixture-analysis-image",
+            ]
+            value["evidence"] = EVIDENCE
+        return value
 
     def own(self):
         started = self.created - 47 * 60
@@ -243,7 +336,12 @@ class FixtureRunner:
                         "n_params": 12000 * (1 + run % 3),
                         "train_s": 40.0 + 6 * run,
                     },
-                    "backend": {"kind": EVIDENCE},
+                    "backend": {
+                        "kind": EVIDENCE,
+                        "image": "fixture-torch-worker-image"
+                        if self.backbones[run - 1] == "fno"
+                        else "fixture-worker-image",
+                    },
                     # A synthetic learning curve, so the renderer has one to
                     # draw. Real battery practice records none (RSURF-D3).
                     "inline_curve": [
@@ -275,6 +373,7 @@ class FixtureRunner:
             "compute": "local-isolated-cpu",
             "admission": EVIDENCE,
             "runtime_revision": "fixture",
+            "images": ["fixture-worker-image", "fixture-analysis-image"],
             "started_unix": started,
             "deadline_unix": None,
             "attempted_experiments": RUNS + 1,

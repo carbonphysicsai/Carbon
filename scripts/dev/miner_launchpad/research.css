@@ -103,6 +103,25 @@ a.rs-change:hover { background: var(--muted); }
 .rs-note { display: grid; gap: 4px; max-width: 720px; }
 .rs-note label { margin: 10px 0 4px; }
 .rs-note button { justify-self: start; margin-top: 10px; }
+/* Conversation: the miner's messages and their agent's replies, as text. */
+.rs-thread { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rs-msg { max-width: min(640px, 92%); padding: 10px 14px; border: 1px solid var(--border); background: var(--bg); }
+.rs-msg-miner { align-self: flex-end; border-color: var(--fg); box-shadow: inset 3px 0 0 var(--red); }
+.rs-msg-agent { align-self: flex-start; background: var(--card); }
+.rs-msg-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; margin: 0; font-size: 13px; }
+.rs-msg-meta .hint { margin: 0; font-size: 12px; }
+.rs-msg-text { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
+.rs-msg-wait { align-self: flex-start; margin: 0; }
+.rs-compose textarea { min-height: 0; }
+.rs-authority { margin-top: 12px; padding-left: 12px; border-left: 3px solid var(--red); font-size: 14px; color: var(--muted-fg); }
+/* Toolbox */
+.rs-runtimes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.rs-runtime { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid var(--border); background: var(--bg); min-width: 0; }
+.rs-runtime .hint { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.rs-tools td { white-space: normal; min-width: 90px; vertical-align: top; }
+.rs-tools td:nth-child(2) { min-width: 220px; }
+.rs-mcp { font-family: var(--mono); font-size: 12px; color: var(--muted-fg); overflow-wrap: anywhere; }
+.rs-toolbox .rs-panel { padding: 14px; margin-bottom: 10px; }
 .rs-panel .events li { align-items: baseline; flex-wrap: wrap; }
 .rs-panel .events li .hint, .rs-panel .events li code { margin: 0; font-size: 13px; }
 .rs-pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border: 1px solid var(--border); padding: 12px; font-size: 12px; max-height: 360px; overflow: auto; color: var(--fg); }

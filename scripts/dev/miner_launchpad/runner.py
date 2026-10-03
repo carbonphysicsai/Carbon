@@ -1344,6 +1344,24 @@ class RunnerAdapter:
 
         return post_note(self, admitted, request)
 
+    def messages_admitted(self, admitted, request):
+        # The miner's messages to their own agent (RSURF-D12).
+        from scripts.dev.miner_launchpad.campaign_view import ledger_messages
+
+        return ledger_messages(self, admitted, request)
+
+    def toolbox_admitted(self, admitted, request):
+        # Everything the miner and their agent can use (RSURF-D11).
+        from scripts.dev.miner_launchpad.toolbox import for_request
+
+        return for_request(self, request)
+
+    def miner_message(self, identity, value):
+        """The page's own route for the miner's message (RSURF-D12)."""
+        from scripts.dev.miner_launchpad.campaign_view import miner_message
+
+        return miner_message(self, identity, value)
+
     def halt_admitted(self, admitted, request):
         if request["action"] not in {"stop", "pause", "reconcile"}:
             raise Rejected("invalid_research_control")

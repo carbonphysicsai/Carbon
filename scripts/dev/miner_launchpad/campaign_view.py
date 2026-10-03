@@ -42,8 +42,24 @@ from carbon.challenge_registry.research_view import (
 
 SCHEMA = "carbon.control-center.campaign-view.v1"
 NOTE_SCHEMA = "carbon.research-surface.note.v1"
-NOTE_KINDS = ("hypothesis", "plan", "observation")
+#: What an agent posts with carbon_note; a reply answers a miner message.
+REPLY_KIND = "reply"
+NOTE_KINDS = ("hypothesis", "plan", "observation", REPLY_KIND)
 NOTE_MAX = 2000
+#: The miner's own messages to their agent (RSURF-D12), posted from the page.
+MESSAGE_SCHEMA = "carbon.research-surface.miner-message.v1"
+MESSAGE_KIND = "miner_message"
+THREAD_MAX = 50
+READ_MAX = 100
+MESSAGE_AUTHORITY = (
+    "A message is guidance to your own agent only. It cannot change your "
+    "limits or budget, research permissions, the Challenge, the feedback mode, "
+    "the evaluation rules, or the research task frozen at launch and its digest."
+)
+#: RSURF-D13: Carbon's own agent does not read messages. Its input is the
+#: research task frozen at launch, and the browser cannot author its prompts
+#: (C-MLP-02-D6); reading messages would change that, which is the owner's.
+CARBON_AGENT_READS_MESSAGES = False
 #: How much of a campaign the view carries, newest first, so a long campaign
 #: stays a bounded document for any client. The export has the rest.
 FEED_MAX = 100
@@ -289,6 +305,13 @@ def experiment_rows(own, view):
                     "train_s": finite(fit.get("train_s")),
                 },
                 "backend": _str(backend.get("kind"), 64),
+                # What this run actually ran on (RSURF-D11): the framework
+                # its recipe named (None: the Challenge's default) and the
+                # pinned image the worker record names.
+                "framework": _str(
+                    ((recipe or {}).get("parameters") or {}).get("backend"), 32
+                ),
+                "image": _str(backend.get("image"), 160),
                 "learning_curve": _curve(experiment) is not None,
                 "accepted_improvement": False,
             }
@@ -654,11 +677,15 @@ def feed(own, notes):
         )
     for note in notes:
         body = note.get("body")
-        kind, via, text = "notebook", "notebook", None
-        if type(body) is dict and body.get("schema") == NOTE_SCHEMA:
+        kind, via, text, reply_to = "notebook", "notebook", None, None
+        if is_message(note):
+            kind, via, text = MESSAGE_KIND, "miner", clean_text(body.get("text"))
+        elif type(body) is dict and body.get("schema") == NOTE_SCHEMA:
             if body.get("note_kind") in NOTE_KINDS:
                 kind = body["note_kind"]
             via, text = "carbon_note", clean_text(body.get("text"))
+            if kind == REPLY_KIND and type(body.get("reply_to")) is int:
+                reply_to = body["reply_to"]
         elif type(body) is dict:
             text = clean_text(body.get("text"))
         elif type(body) is str:
@@ -670,6 +697,7 @@ def feed(own, notes):
                 "via": via,
                 "text": text or "A structured notebook entry; read it in the export.",
                 "detail": None,
+                **({"reply_to": reply_to} if reply_to is not None else {}),
             }
         )
     entries = [e for e in entries if type(e["sequence"]) is int]
@@ -860,6 +888,144 @@ def per_case_section(view, rows, predictions, practice_case=None, experiment=Non
     }
 
 
+# ---- The conversation between the miner and their own agent (RSURF-D12).
+
+
+def is_message(note):
+    body = note.get("body")
+    return (
+        type(body) is dict
+        and body.get("schema") == MESSAGE_SCHEMA
+        and type(body.get("text")) is str
+    )
+
+
+def is_reply(note):
+    body = note.get("body")
+    return (
+        type(body) is dict
+        and body.get("schema") == NOTE_SCHEMA
+        and body.get("note_kind") == REPLY_KIND
+        and type(body.get("reply_to")) is int
+    )
+
+
+def message_body(text, now):
+    """A miner message as the journal records it: its text, when it was
+    posted and a digest of both, so the record can be checked later."""
+    from carbon.development_session.profile import canonical, digest
+
+    posted = int(now)
+    return {
+        "schema": MESSAGE_SCHEMA,
+        "note_kind": MESSAGE_KIND,
+        "text": text,
+        "posted_unix": posted,
+        "digest": digest(canonical({"text": text, "posted_unix": posted})),
+    }
+
+
+def _message(note, replies):
+    body = note["body"]
+    return {
+        "sequence": note["sequence"],
+        "text": clean_text(body.get("text")),
+        "posted_unix": body.get("posted_unix")
+        if type(body.get("posted_unix")) is int
+        else None,
+        "digest": _str(body.get("digest"), 80),
+        "replies": [
+            {"sequence": r["sequence"], "text": clean_text(r["body"].get("text"))}
+            for r in replies.get(note["sequence"], [])
+        ],
+        "untrusted": True,
+    }
+
+
+def _replies(notes):
+    found = {}
+    for note in sorted(notes, key=lambda n: n.get("sequence") or 0):
+        if is_reply(note):
+            found.setdefault(note["body"]["reply_to"], []).append(note)
+    return found
+
+
+def conversation(notes):
+    """The thread: the miner's messages, oldest first, each with its replies."""
+    replies = _replies(notes)
+    messages = sorted(
+        (n for n in notes if is_message(n) and type(n.get("sequence")) is int),
+        key=lambda n: n["sequence"],
+    )
+    return {
+        "thread": [_message(n, replies) for n in messages[-THREAD_MAX:]],
+        "total": len(messages),
+        "authority": MESSAGE_AUTHORITY,
+        "your_agent": {
+            "read": "carbon_messages",
+            "reply": "carbon_note with note_kind=reply and reply_to=<message sequence>",
+        },
+        "carbon_agent": {
+            "reads_messages": CARBON_AGENT_READS_MESSAGES,
+            "basis": (
+                "Carbon's own agent works from the research task frozen at "
+                "launch, and the browser cannot author its prompts (C-MLP-02-D6). "
+                "Whether it may read your messages is an owner decision "
+                "(RSURF-D13); until then it does not."
+            ),
+        },
+    }
+
+
+def messages_since(notes, request):
+    """`messages`: the miner's messages after a cursor, oldest first."""
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    after = request.get("after", 0)
+    limit = request.get("limit", 50)
+    if type(after) is not int or after < 0:
+        raise Rejected("cursor_out_of_bounds")
+    if type(limit) is not int or not 1 <= limit <= READ_MAX:
+        raise Rejected("limit_out_of_bounds")
+    replies = _replies(notes)
+    found = sorted(
+        (
+            n
+            for n in notes
+            if is_message(n)
+            and type(n.get("sequence")) is int
+            and n["sequence"] > after
+        ),
+        key=lambda n: n["sequence"],
+    )
+    page = found[:limit]
+    return {
+        "schema": "carbon.control-center.miner-messages.v1",
+        "messages": [_message(n, replies) for n in page],
+        "next_cursor": page[-1]["sequence"] if page else after,
+        "more": len(found) > limit,
+        "authority": MESSAGE_AUTHORITY,
+        "reply_with": "carbon_note with note_kind=reply and reply_to=<sequence>",
+        "untrusted": True,
+    }
+
+
+def check_reply(notes, request):
+    """A reply names a miner message of this campaign; any other note names none."""
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    reply_to = request.get("reply_to")
+    if request["note_kind"] != REPLY_KIND:
+        if reply_to is not None:
+            raise Rejected("reply_to_only_for_replies")
+        return None
+    if type(reply_to) is not int or not any(
+        is_message(n) and n.get("sequence") == reply_to for n in notes
+    ):
+        raise Rejected("reply_to_unknown_message", 404)
+    return reply_to
+
+
 def build(
     own,
     *,
@@ -872,6 +1038,7 @@ def build(
     experiment=None,
     now=None,
     fixture=False,
+    toolbox=None,
 ):
     """The campaign view document. Every field is named here."""
     from carbon.chain.models import CARBON_NETUID
@@ -931,6 +1098,8 @@ def build(
             view, rows, predictions, practice_case, experiment
         ),
         "journal": feed(own, notes),
+        "conversation": conversation(notes),
+        "toolbox": toolbox,
         "candidates": candidates(own),
         "journey": {
             key: (own.get("journey") or {}).get(key)
@@ -1066,18 +1235,31 @@ def ledger_view(host, admitted, request):
         predictions=lambda task: verified_predictions(root, view, facts, task),
         practice_case=request.get("practice_case"),
         experiment=request.get("experiment"),
+        toolbox=campaign_toolbox(host, challenge, own),
     )
 
 
-def post_note(host, admitted, request):
-    """`note`: one journal entry through the existing journal path (RSURF-D5)."""
+def campaign_toolbox(host, challenge, own):
+    """The toolbox for this campaign's Challenge, with its pinned images."""
+    from scripts.dev.miner_launchpad import toolbox
+
+    try:
+        value = toolbox.build(challenge, lanes=toolbox.host_lanes(host))
+    except Exception:  # noqa: BLE001 - an unreadable toolbox is shown as such
+        return {"status": "UNAVAILABLE"}
+    if value is not None:
+        images = own.get("images")
+        value["campaign_images"] = [
+            i[:160] for i in (images if type(images) is list else []) if type(i) is str
+        ][:8]
+    return value
+
+
+def _journal(admitted):
+    """The admitted campaign's ledger, journal owner and notebook notes."""
     from carbon.development_session.research_ledger import CampaignLedger
     from scripts.dev.miner_launchpad.controller import Rejected
 
-    kind = request["note_kind"]
-    if kind not in NOTE_KINDS:
-        raise Rejected("note_kind_unknown")
-    text = note_text(request["note"])
     if admitted.campaign["kind"] != "product":
         raise Rejected("retired_grant_campaign", 409)
     root = Path(admitted.campaign["root"])
@@ -1088,14 +1270,70 @@ def post_note(host, admitted, request):
         frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
     if frozen is None:
         raise Rejected("campaign_journal_not_ready", 409)
+    owner = json.loads(frozen[0])["owner"]
+    notes = [n for n in ledger.status(owner=owner)["notes"] if n["kind"] == "notebook"]
+    return ledger, owner, notes
+
+
+def _write(ledger, owner, body):
+    from scripts.dev.miner_launchpad.controller import Rejected
+
     try:
-        ledger.note(
-            owner=json.loads(frozen[0])["owner"],
-            kind="notebook",
-            body={"schema": NOTE_SCHEMA, "note_kind": kind, "text": text},
-        )
+        ledger.note(owner=owner, kind="notebook", body=body)
     except ValueError:
         raise Rejected("note_not_retained", 409) from None
+    with ledger.db() as db:
+        return db.execute(
+            "SELECT MAX(sequence) FROM notes WHERE owner=? AND kind='notebook'",
+            (owner,),
+        ).fetchone()[0]
+
+
+def ledger_messages(host, admitted, request):
+    """`messages` for a campaign on this machine."""
+    return messages_since(_journal(admitted)[2], request)
+
+
+def miner_message(host, identity, value, clock=time.time):
+    """The page's own route: the miner's message to their agent (RSURF-D12).
+
+    Authenticated by the local session; the body is exactly {"text"}. It is
+    one journal entry and nothing else: the frozen manifest, budget, task and
+    feedback mode are never read for writing, so a message cannot change them.
+    """
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    if type(value) is not dict or set(value) != {"text"}:
+        raise Rejected("closed_message_required")
+    text = note_text(value["text"])
+    admitted = SimpleNamespace(campaign=host.owned_campaign(identity))
+    ledger, owner, _ = _journal(admitted)
+    sequence = _write(ledger, owner, message_body(text, clock()))
+    return {
+        "posted": True,
+        "sequence": sequence,
+        "kind": MESSAGE_KIND,
+        "authority": MESSAGE_AUTHORITY,
+    }
+
+
+def post_note(host, admitted, request):
+    """`note`: one journal entry through the existing journal path (RSURF-D5).
+    A reply names the miner message it answers (RSURF-D12)."""
+    from scripts.dev.miner_launchpad.controller import Rejected
+
+    kind = request["note_kind"]
+    if kind not in NOTE_KINDS:
+        raise Rejected("note_kind_unknown")
+    text = note_text(request["note"])
+    ledger, owner, notes = _journal(admitted)
+    reply_to = check_reply(notes, request)
+    body = {"schema": NOTE_SCHEMA, "note_kind": kind, "text": text}
+    if reply_to is not None:
+        body["reply_to"] = reply_to
+    _write(ledger, owner, body)
     return {
         "posted": True,
         "note_kind": kind,

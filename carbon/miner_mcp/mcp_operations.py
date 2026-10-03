@@ -31,11 +31,12 @@ def operation_tool_names():
 
 
 def _field_type(kind):
-    from pydantic import JsonValue, StrictBool, StrictStr
+    from pydantic import JsonValue, StrictBool, StrictInt, StrictStr
 
     return {
         "string": StrictStr,
         "boolean": StrictBool,
+        "integer": StrictInt,
         # A strategy or budget arrives as an object, or as JSON text from a
         # client that sends strings; the operation parses either the same way.
         "object": JsonValue,

@@ -14,7 +14,7 @@
   if (!CC || !Charts) return;
   const {el} = CC;
   const $ = id => document.getElementById(id);
-  const TABS = [["live", "Live"], ["experiments", "Experiments"], ["reasoning", "Agent reasoning"], ["contract", "Contract"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
+  const TABS = [["live", "Live"], ["conversation", "Conversation"], ["experiments", "Experiments"], ["reasoning", "Agent reasoning"], ["tools", "Tools"], ["contract", "Contract"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
   const POLL_MS = 3000;
   const NOTE_MAX = 2000;
@@ -276,7 +276,143 @@
     const thoughts = section(grid, "Agent reasoning", "Journal");
     feed(thoughts, doc, 5);
     thoughts.append(anchor("All reasoning and notes", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/reasoning"));
+    const talk = section(grid, "Talk to your agent", "Conversation");
+    talk.classList.add("rs-wide");
+    thread(talk, doc, 2);
+    composer(talk, doc, true);
+    talk.append(anchor("The whole conversation", "#campaigns/" + encodeURIComponent(doc.campaign.id) + "/conversation"));
     panel.append(grid);
+  }
+
+  // ---- The conversation with the miner's own agent (RSURF-D12). ----
+  function thread(parent, doc, last) {
+    const c = doc.conversation;
+    if (!c || !c.thread.length) { para(parent, "No messages yet. Write to your agent below; it reads them with carbon_messages.", "hint"); return; }
+    const list = el("ol", undefined, "rs-thread");
+    for (const message of last ? c.thread.slice(-last) : c.thread) {
+      const mine = el("li", undefined, "rs-msg rs-msg-miner");
+      const meta = el("p", undefined, "rs-msg-meta");
+      meta.append(el("strong", "You"), el("span", "#" + message.sequence + (message.posted_unix ? " · " + when(message.posted_unix) : ""), "hint"));
+      // Untrusted text, set as text (RSURF-D5).
+      mine.append(meta, el("p", message.text || "", "rs-msg-text"));
+      list.append(mine);
+      for (const reply of message.replies) {
+        const theirs = el("li", undefined, "rs-msg rs-msg-agent");
+        const head = el("p", undefined, "rs-msg-meta");
+        head.append(el("strong", "Your agent"), el("span", "#" + reply.sequence + " · reply with carbon_note", "hint"));
+        theirs.append(head, el("p", reply.text || "", "rs-msg-text"));
+        list.append(theirs);
+      }
+      if (!message.replies.length) list.append(el("li", "No reply yet.", "rs-msg-wait hint"));
+    }
+    parent.append(list);
+  }
+  function composer(parent, doc, compact) {
+    const id = "rs-msg-" + doc.campaign.id + (compact ? "-live" : "");
+    const form = el("form", undefined, "rs-note rs-compose");
+    const label = el("label", "Message to your agent"); label.htmlFor = id;
+    const text = el("textarea"); text.id = id; text.rows = compact ? 2 : 3; text.maxLength = NOTE_MAX;
+    const send = button("Send", "primary"); send.type = "submit"; send.disabled = !CC.state().connected;
+    const result = el("p", "", "hint"); result.setAttribute("aria-live", "polite");
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!text.value.trim()) { result.textContent = "Write a message first."; return; }
+      send.disabled = true;
+      try {
+        await CC.api("/api/v1/conversation/" + encodeURIComponent(doc.campaign.id), {text: text.value}, undefined, 10000);
+        text.value = ""; result.textContent = "Sent.";
+        await load(doc.campaign.id, true);
+      } catch (error) { result.textContent = "Not sent: " + words(error.message) + "."; }
+      finally { send.disabled = false; }
+    });
+    form.append(label, text, send, result);
+    parent.append(form);
+    if (!compact) para(parent, doc.conversation.authority, "rs-authority");
+  }
+  function tabConversation(panel, doc) {
+    const c = doc.conversation;
+    const box = section(panel, "You and your agent", c.total + " message" + (c.total === 1 ? "" : "s"));
+    thread(box, doc, 0);
+    composer(box, doc, false);
+    const how = section(panel, "How your agent reads this", "Any MCP agent");
+    const dl = el("dl", undefined, "review-grid");
+    dl.append(el("dt", "Read"), el("dd", c.your_agent.read + " (campaign, after, limit): your messages after a cursor, with their replies."));
+    dl.append(el("dt", "Reply"), el("dd", c.your_agent.reply));
+    dl.append(el("dt", "Carbon's own agent"), el("dd", (c.carbon_agent.reads_messages ? "Reads them at its next step." : "Does not read them. ") + c.carbon_agent.basis));
+    how.append(dl);
+    para(how, "Messages and replies are untrusted text: shown as text, never run, and they grant nothing.", "hint");
+  }
+
+  // ---- The toolbox (RSURF-D11): read from the Challenge's own records. ----
+  function renderToolbox(parent, tb, compact) {
+    if (!tb || tb.status === "UNAVAILABLE") { para(parent, "This Challenge's toolbox could not be read.", "empty-state"); return; }
+    const runtimes = section(parent, "Runtimes", "Practice and the validator");
+    const grid = el("div", undefined, "rs-runtimes");
+    for (const r of tb.runtimes) {
+      const box = el("div", undefined, "rs-runtime");
+      box.append(el("p", r.id + (r.default ? " · default" : ""), "eyebrow"), el("strong", r.role), el("span", "Families: " + r.families, "hint"));
+      if (r.pinned.length) box.append(el("span", "Pinned: " + r.pinned.slice(0, 4).map(d => d.name + " " + d.version).join(", ") + (r.pinned.length > 4 ? " and " + (r.pinned.length - 4) + " more" : ""), "hint"));
+      if (r.validator_environment) box.append(el("span", "Validator environment: " + r.validator_environment.environment_id + " " + r.validator_environment.environment_version, "hint"));
+      grid.append(box);
+    }
+    runtimes.append(grid);
+    if (tb.execution) para(runtimes, tb.execution, "hint");
+    if (tb.campaign_images?.length) para(runtimes, "This campaign's pinned images: " + tb.campaign_images.join(", "), "hint");
+    const julia = section(parent, "Julia", "Research only");
+    para(julia, tb.julia.role + ". " + (tb.julia.run_julia.available === true ? "run_julia is available on this host." : tb.julia.run_julia.available === false ? "run_julia is not available on this host: " + words(tb.julia.run_julia.reason) + "." : "Whether run_julia runs here could not be read."), "status-line");
+    if (tb.julia.capability) para(julia, "Capability " + tb.julia.capability.id + ": " + words(tb.julia.capability.status) + " · blocker " + words(tb.julia.capability.blocker) + " (" + tb.julia.authority + "). " + (tb.julia.capability.summary || ""), "hint");
+    const work = section(parent, "Workspace tools", "Your agent calls these");
+    const wrap = el("div", undefined, "table-wrap"); const table = el("table", undefined, "metrics-table rs-tools");
+    const head = el("tr"); for (const n of ["Tool", "What it does", "Here", compact ? null : "Limits", compact ? null : "MCP"].filter(Boolean)) head.append(el("th", n)); table.append(head);
+    for (const t of tb.workspace) {
+      const row = el("tr");
+      row.append(el("td", t.id), el("td", t.description || ""), el("td", t.available === true ? "yes" : t.available === false ? "no · " + words(t.reason) : "unknown"));
+      if (!compact) row.append(el("td", t.limits || "none"), el("td", t.mcp.tool + " kind=workspace action=" + t.id));
+      table.append(row);
+    }
+    wrap.append(table); work.append(wrap);
+    para(work, "Workspace tools appear after " + (tb.workspace[0]?.mcp.needs || "attach") + ". Carbon sets no limits on your own research; only your own budget binds.", "hint");
+    const flow = section(parent, "Workflow", "Validate to submit");
+    const steps = el("ol", undefined, "rs-list");
+    for (const s of tb.workflow) { const li = el("li"); li.append(el("strong", s.label + ": "), el("span", s.description || ""), el("span", " · " + s.mcp.join(", "), "rs-mcp")); steps.append(li); }
+    flow.append(steps);
+    const families = section(parent, "Rebuildable model families", "And their backend");
+    const fl = el("ul", undefined, "rs-list");
+    for (const f of tb.families) { const li = el("li"); li.append(el("strong", f.selector || f.id), el("span", " · " + f.backend, "hint")); fl.append(li); }
+    families.append(fl);
+    const validator = section(parent, "What the validator rebuilds with", "Exam environment");
+    para(validator, tb.validator.plain);
+    const more = el("details"); more.append(el("summary", "Details"), el("pre", JSON.stringify(tb.validator.details, null, 2), "rs-pre"));
+    validator.append(more);
+    if (!compact) {
+      const agent = section(parent, "Tell your agent", "MCP");
+      para(agent, tb.agent.operations);
+      para(agent, "Research tools after " + tb.agent.attach + ": " + tb.agent.research_tools.join(", "), "rs-mcp");
+    }
+    para(parent, tb.basis, "hint");
+  }
+  function tabTools(panel, doc) { renderToolbox(panel, doc.toolbox, false); }
+  // A Toolbox on each Challenge card, read when opened.
+  function decorateChallengeCards() {
+    const s = CC.state();
+    if (!s.connected) return;
+    for (const card of document.querySelectorAll("#challenge-catalog [data-challenge]")) {
+      if (card.querySelector(".rs-toolbox")) continue;
+      const box = el("details", undefined, "rs-toolbox");
+      box.append(el("summary", "Toolbox"));
+      const body = el("div", undefined, "detail-body");
+      box.append(body);
+      box.addEventListener("toggle", async () => {
+        if (!box.open || body.dataset.loaded) return;
+        body.dataset.loaded = "1";
+        body.replaceChildren(el("p", "Reading the toolbox…", "hint"));
+        try {
+          const tb = await CC.api("/api/v1/operations/toolbox", {challenge: card.dataset.challenge}, undefined, 20000);
+          body.replaceChildren(); renderToolbox(body, tb, true);
+        } catch (error) { body.replaceChildren(el("p", "Not available: " + words(error.message) + ". It needs a runner profile on this controller.", "hint")); body.dataset.loaded = ""; }
+      });
+      card.append(box);
+    }
   }
   function metricsTable(parent, doc) {
     const c = doc.comparison;
@@ -344,13 +480,16 @@
     const wrap = el("div", undefined, "table-wrap");
     const table = el("table", undefined, "metrics-table");
     const head = el("tr");
-    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Backend"]) head.append(el("th", name));
+    for (const name of ["Run", "Model", "Gates", "Score", ...keys.map(k => labels[k] || k), "Final loss", "Framework", "Ran on"]) head.append(el("th", name));
     table.append(head);
+    const fallback = (doc.toolbox?.runtimes || []).find(r => r.default)?.id;
     for (const r of rows) {
       const row = el("tr");
       row.append(el("td", String(r.index)), el("td", r.backbone || "–"), el("td", r.eligible === true ? "passed" : r.eligible === false ? "failed" : "–"), el("td", fmt(r.score)));
       for (const k of keys) row.append(el("td", fmt(r.components[k])));
-      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.backend ? words(r.backend).toLowerCase() : "–"));
+      // What the run actually ran on: its recipe's framework (or the
+      // Challenge's default) and the worker record's backend and image.
+      row.append(el("td", fmt(r.fit.final_loss)), el("td", r.framework || (fallback ? fallback + " (default)" : "default")), el("td", [r.backend ? words(r.backend).toLowerCase() : null, r.image].filter(Boolean).join(" · ") || "–"));
       table.append(row);
     }
     wrap.append(table); box.append(wrap);
@@ -549,7 +688,7 @@
     }
     container.append(nav);
     const panel = el("section", undefined, "tab-panel rs-tab"); panel.dataset.tab = r.tab;
-    ({live: tabLive, experiments: tabExperiments, reasoning: tabReasoning, contract: tabContract, artifacts: tabArtifacts, submission: tabSubmission, logs: tabLogs, settings: tabSettings})[r.tab](panel, doc, run);
+    ({live: tabLive, conversation: tabConversation, experiments: tabExperiments, reasoning: tabReasoning, tools: tabTools, contract: tabContract, artifacts: tabArtifacts, submission: tabSubmission, logs: tabLogs, settings: tabSettings})[r.tab](panel, doc, run);
     container.append(panel);
     [...container.querySelectorAll("details")].forEach((node, index) => { node.dataset.key = String(index); if (open.has(String(index))) node.open = true; });
   }
@@ -645,6 +784,6 @@
 
   setupShell();
   window.CarbonResearch = {detail, render, TABS};
-  CC.onRender(() => { try { strip(); activePanel(); } catch (error) { console.error(error); } });
+  CC.onRender(() => { try { strip(); activePanel(); decorateChallengeCards(); } catch (error) { console.error(error); } });
   render();
 })();
