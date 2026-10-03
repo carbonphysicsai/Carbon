@@ -226,11 +226,10 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true')
     needs: preflight
     runs-on: ubuntu-24.04
-    # The authored-Julia service suite builds and precompiles both pinned SciML
-    # environments from empty caches, after ~35 minutes of C-03 controls. That
-    # cold build has taken 55-85 minutes on hosted runners; 120 cancelled a run
-    # whose every test had passed, one second before its last step.
-    timeout-minutes: 150
+    # The C-03 controls take about 30 minutes. The authored-Julia suite runs in
+    # its own job (julia-service), in parallel, under the same condition; the
+    # Merge gate requires both whenever either is required.
+    timeout-minutes: 90
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -252,20 +251,6 @@ jobs:
         run: ./scripts/dev/c03_worker_image.sh
       - name: Run required service-backed controls and real numerical paths
         run: ./scripts/dev/c03_worker_service.sh
-      - name: Build pinned native Julia reference worker
-        run: bash ./scripts/dev/julia_worker_image.sh
-      - name: Install pinned Node for the Workbench private build
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: "24.19.0"
-      - name: Exercise registered Julia study and observed cancellation cleanup
-        env:
-          # Read-only (packages: read), for the published Julia depot the
-          # service script adopts before the suite; see julia_worker_service.sh.
-          GHCR_READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
-          CARBON_JULIA_TRACE_PATH: .carbon-artifacts/julia-service-traces.jsonl
-        run: bash ./scripts/dev/julia_worker_service.sh
       - name: Exercise the three retained owner commands
         run: |
           ./scripts/dev/c03_worker.sh doctor
@@ -280,6 +265,57 @@ jobs:
             .carbon-artifacts/c03-worker-image.json
             .carbon-artifacts/c03-service-junit.xml
             .carbon-artifacts/c03-service-traces.jsonl
+          if-no-files-found: error
+
+  julia-service:
+    name: Authored-Julia isolated service acceptance
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true')
+    needs: preflight
+    runs-on: ubuntu-24.04
+    # The authored-Julia service suite builds and precompiles both pinned SciML
+    # environments from empty caches when the published depot cannot be
+    # adopted. That cold build has taken 55-85 minutes on hosted runners; 120
+    # once cancelled a run whose every test had passed. The Julia worker image
+    # builds its own C-03 parent (julia_worker_image.sh), so this job needs
+    # nothing from c03-worker.
+    timeout-minutes: 150
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked controller environment
+        env:
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
+        run: ./scripts/dev/bootstrap.sh
+      - name: Build pinned native Julia reference worker
+        run: bash ./scripts/dev/julia_worker_image.sh
+      - name: Install pinned Node for the Workbench private build
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.19.0"
+      - name: Exercise registered Julia study and observed cancellation cleanup
+        env:
+          # Read-only (packages: read), for the published Julia depot the
+          # service script adopts before the suite; see julia_worker_service.sh.
+          GHCR_READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
+          CARBON_JULIA_TRACE_PATH: .carbon-artifacts/julia-service-traces.jsonl
+        run: bash ./scripts/dev/julia_worker_service.sh
+      - name: Upload exact Julia image and service evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: julia-service-evidence
+          path: |
             .carbon-artifacts/julia-worker-image.json
             .carbon-artifacts/julia-service-traces.jsonl
             .carbon-artifacts/authored-julia-images/depot/events.jsonl
@@ -416,7 +452,7 @@ jobs:
   merge-gate:
     name: Merge gate
     if: always() && github.event.pull_request.draft == false
-    needs: [preflight, canonical, dev-image, c03-worker, workbench, contract-authority, hub-validation, derived-documentation]
+    needs: [preflight, canonical, dev-image, c03-worker, julia-service, workbench, contract-authority, hub-validation, derived-documentation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -577,12 +613,18 @@ jobs:
             c03_job_required=true
           fi
           # JULIA-REQUIREMENT END
+          # The C-03 controls and the authored-Julia suite run as two parallel
+          # jobs under one condition; both are required, or both skipped.
           if [[ "${c03_job_required}" == true ]]; then
             [[ "${{ needs.c03-worker.result }}" == success ]] \
               || { echo "C-03 worker service acceptance did not succeed." >&2; exit 1; }
+            [[ "${{ needs.julia-service.result }}" == success ]] \
+              || { echo "Authored-Julia service acceptance did not succeed." >&2; exit 1; }
           else
             [[ "${{ needs.c03-worker.result }}" == skipped ]] \
               || { echo "Unexpected C-03 worker service result." >&2; exit 1; }
+            [[ "${{ needs.julia-service.result }}" == skipped ]] \
+              || { echo "Unexpected authored-Julia service result." >&2; exit 1; }
           fi
           # Derived from the candidate's own module. classify_changes.py and
           # development_scope.py stay byte-identical to their owner-pinned
