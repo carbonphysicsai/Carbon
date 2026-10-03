@@ -450,7 +450,7 @@
           // Registered: setup opens at its next step, and reads the chain
           // again itself.
           const begun = await setupCall("begin", {address});
-          location.hash = begun ? "#setup/inference" : "#setup/register";
+          location.hash = begun ? "#setup/agent" : "#setup/register";
         }
       } else {
         lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
@@ -470,17 +470,20 @@
   // controller confirmed it: registration by its chain read, each check by its
   // live check, the signer by the Agent step's handshake, the last step by a
   // campaign on record.
+  // The order an agent follows too (OWNER-MINER-SETUP-AGENT-FIRST-01): who
+  // researches comes before Inference, which only an agent calling setup's
+  // model needs. Step ids are stable anchors: #setup/<id>.
   const SETUP_STEPS = [
     ["signer", "Start your signer", "Your signer holds your hotkey on this machine. Carbon never sees your key."],
     ["register", "Register on the subnet", "Your hotkey must be registered on the subnet. You sign that in your own wallet."],
-    ["inference", "Inference", "Choose the model your agent calls, with your own key."],
+    ["agent", "Who researches?", "Carbon's agent, or your own agent over MCP. This step also checks your signer."],
+    ["inference", "Inference", "Choose the model Carbon's agent calls, with your own key."],
     ["compute", "Compute", "Choose where practice runs: this machine, or a GPU you run elsewhere."],
-    ["agent", "Agent", "Choose who researches. This step also checks your signer."],
     ["review", "Review and launch", "Carbon writes your runner profile and loads it. Then you choose a Challenge."],
   ];
   const SETUP_IDS = SETUP_STEPS.map(([id]) => id);
   // One step reads Next; others a miner can take now, in any order, read Open.
-  const STATE_LABEL = {done: "Done", next: "Next", open: "Open", waiting: "Waiting"};
+  const STATE_LABEL = {done: "Done", next: "Next", open: "Open", waiting: "Waiting", skipped: "Skipped"};
   // A per-browser convenience only: never a token, key or address.
   const whereKey = "carbon.control-center.where.v1";
   let setupState = null;
@@ -496,9 +499,41 @@
     renderSetup();
     render();
   }
+  // Progress an agent makes over MCP shows here too: the setup records are
+  // shared, so the page reads them again every few seconds and rebuilds only
+  // when they changed, and never under a person's cursor.
+  let setupPolls = 0;
+  let setupPolling = false;
+  function setupKey(value) {
+    return JSON.stringify([value?.registered_hotkey ?? null, value?.steps ?? null, value?.status?.done ?? null]);
+  }
+  async function pollSetup() {
+    if (!connected || setupPolling || ++setupPolls % 3) return;
+    setupPolling = true;
+    try {
+      const fresh = await api("/api/v1/setup");
+      const typing = $("setup-body").contains(document.activeElement) && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
+      if (setupKey(fresh) !== setupKey(setupState) && !typing) {
+        setupState = fresh; setupVersion++;
+        // A profile written elsewhere changes what can launch.
+        if (fresh.steps?.review?.profile_written && !caps?.profile?.configured) { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
+        renderSetup(); render();
+      }
+    } catch (_) { /* the next poll tries again */ }
+    finally { setupPolling = false; }
+  }
   async function setupCall(step, body, timeout = 60000) {
     try {
       const result = await api("/api/v1/setup/" + step, body, undefined, timeout);
+      // A step only the miner can take (their signer, their registration):
+      // the exact instruction, not an error, and nothing marked done.
+      if (result.result === "human_action_required") {
+        const box = $("setup-result");
+        box.replaceChildren(el("p", result.for_miner, "reason"));
+        if (result.command) copyRow(box, null, result.command);
+        await readSetup();
+        return false;
+      }
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
@@ -514,33 +549,26 @@
       return false;
     }
   }
-  // Where the miner is on the path, from what the controller confirmed.
+  // Where the miner is on the path: the controller's own status, the same one
+  // an agent loops on, so the page and the agent never disagree.
   function journey() {
     const steps = setupState?.steps || {};
     const registered = Boolean(setupState?.registered_hotkey);
     const sendPending = Boolean(steps.compute?.checked && steps.compute.check?.next_step);
     const profile = Boolean(caps?.profile?.configured);
-    const done = {
-      // The signer answered step 1's handshake, or the Agent step's.
-      signer: Boolean(steps.signer?.checked || steps.agent?.checked),
-      register: registered,
-      inference: Boolean(steps.inference?.checked),
-      compute: Boolean(steps.compute?.checked) && !sendPending,
-      agent: Boolean(steps.agent?.checked),
-      review: research.runs.length > 0,
-    };
-    const ready = done.inference && done.compute && done.agent;
     const state = {};
-    for (const id of SETUP_IDS) {
-      if (done[id]) state[id] = "done";
-      else if (id === "signer" || id === "register") state[id] = "next";
-      else if (id === "review") state[id] = (registered && ready) || profile ? "next" : "waiting";
-      else state[id] = registered ? "next" : "waiting";
-    }
+    for (const row of setupState?.status?.steps || []) state[row.id] = row.state;
+    for (const id of SETUP_IDS) state[id] ||= id === "signer" || id === "register" ? "open" : "waiting";
+    // Step 6 is done with a campaign on record; a written profile is next.
+    if (state.review === "done" && !research.runs.length) state.review = "open";
+    for (const id of SETUP_IDS) if (state[id] === "next") state[id] = "open";
+    const done = Object.fromEntries(SETUP_IDS.map(id => [id, state[id] === "done"]));
+    const skipped = Object.fromEntries(SETUP_IDS.map(id => [id, state[id] === "skipped"]));
     // The first open step is the one next; the rest can be taken in any order.
-    const current = SETUP_IDS.find(id => state[id] === "next") || null;
-    for (const id of SETUP_IDS) if (state[id] === "next" && id !== current) state[id] = "open";
-    return {state, done, current, registered, ready, profile, sendPending, steps};
+    const current = SETUP_IDS.find(id => state[id] === "open") || null;
+    if (current) state[current] = "next";
+    const ready = ["agent", "inference", "compute"].every(id => done[id] || skipped[id]);
+    return {state, done, skipped, current, registered, ready, profile, sendPending, steps};
   }
   function stepTitle(id, j) {
     if (id === "review" && j.profile && !j.done.review) return "Choose a Challenge and launch";
@@ -563,9 +591,10 @@
     if (id === "signer") return state === "done" ? "Your signer answered for " + shortKey(steps.signer?.hotkey || setupState?.registered_hotkey) + "." : "Start carbon-miner-signer in your own terminal, then check it here.";
     if (id === "register") return state === "done" ? "Registered: " + shortKey(setupState.registered_hotkey) + "." : "Confirm your hotkey is registered on the subnet." + (state === "open" ? " Steps 1 and 2 can be done in either order." : "");
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
+    if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
     if (id === "compute") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : "Choose where practice runs.";
-    if (id === "agent") return state === "done" ? "Checked: " + checkedText(id, steps) + ", and your signer answered." : "Choose your agent. This checks your signer.";
+    if (id === "agent") return state === "done" ? "Checked: " + checkedText(id, steps) + ", and your signer answered." : "Carbon's agent, or your own agent over MCP.";
     if (state === "done") return "Campaigns on record: " + research.runs.length + ".";
     if (state === "waiting") return "Opens when steps 3 to 5 are done.";
     return j.profile ? "Your profile is loaded. Pick a Challenge that is ready." : "Write your profile, then choose a Challenge.";
@@ -580,8 +609,15 @@
     if (id === "signer") return null;
     if (id === "register") return j.registered ? null : "Confirm your registration first.";
     if (id === "compute" && j.sendPending) return "Send your worker first.";
-    if (["inference", "compute", "agent"].includes(id)) return j.done[id] ? null : "Run this step's check first.";
+    if (["inference", "compute", "agent"].includes(id)) return j.done[id] || j.skipped[id] ? null : "Run this step's check first.";
     return null;
+  }
+  // The step after (or before) `id` on this miner's path: a skipped one is
+  // passed over.
+  function stepFrom(id, direction, j) {
+    let index = SETUP_IDS.indexOf(id) + direction;
+    while (index >= 0 && index < SETUP_IDS.length && j.skipped[SETUP_IDS[index]]) index += direction;
+    return SETUP_IDS[index] || null;
   }
   function setupTarget() {
     const j = journey();
@@ -622,19 +658,21 @@
     $("setup-nav").hidden = !ready;
     $("setup-back").disabled = index === 0;
     const problem = nextProblem(id, j);
-    $("setup-next").hidden = index === SETUP_STEPS.length - 1;
+    const following = stepFrom(id, 1, j);
+    $("setup-next").hidden = !following;
     $("setup-next").disabled = Boolean(problem);
-    $("setup-next").textContent = index < SETUP_STEPS.length - 1 ? "Next: " + SETUP_STEPS[index + 1][1] : "Next";
+    $("setup-next").textContent = following ? "Next: " + SETUP_STEPS[SETUP_IDS.indexOf(following)][1] : "Next";
     $("setup-next-reason").textContent = problem || "";
   }
   $("setup-back").addEventListener("click", () => {
-    const index = SETUP_IDS.indexOf(setupStepShown);
-    if (index > 0) location.hash = "#setup/" + SETUP_IDS[index - 1];
+    const before = stepFrom(setupStepShown, -1, journey());
+    if (before) location.hash = "#setup/" + before;
   });
   $("setup-next").addEventListener("click", () => {
-    const index = SETUP_IDS.indexOf(setupStepShown);
-    if (index < 0 || index >= SETUP_IDS.length - 1 || nextProblem(setupStepShown, journey())) return;
-    location.hash = "#setup/" + SETUP_IDS[index + 1];
+    const j = journey();
+    const following = stepFrom(setupStepShown, 1, j);
+    if (!following || nextProblem(setupStepShown, j)) return;
+    location.hash = "#setup/" + following;
   });
   function setupField(form, name, labelText, type = "text") {
     const id = "setup-" + form.dataset.step + "-" + name;
@@ -682,7 +720,7 @@
     try {
       const value = await api("/api/v1/onboarding/confirm", {address});
       if (value.registered && value.confirmed) {
-        if (await setupCall("begin", {address})) location.hash = "#setup/inference";
+        if (await setupCall("begin", {address})) location.hash = "#setup/agent";
         return;
       }
       const line = el("p", "Not registered on netuid " + value.netuid + " yet. Prepare the unsigned registration under Wallet & Identity, sign it in your own wallet, then check again.", "reason");
@@ -748,6 +786,12 @@
 
     // 3. Inference.
     const inferencePanel = stepPanel(body, "inference", steps.inference?.checked ? "Checked: " + checkedText("inference", steps) + "." : null);
+    if (j.skipped.inference) {
+      // The miner's own agent brings its own model.
+      const skip = el("p", undefined, "step-done"); skip.id = "setup-inference-skipped";
+      skip.append(pill("Skipped", "pill-wait"), el("span", "Your agent uses its own model. Set one here only if you also want Carbon's agent."));
+      inferencePanel.prepend(skip);
+    }
     const inference = stepForm(inferencePanel, "inference");
     const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
     const model = setupField(inference, "model_id", "Model id");
@@ -1064,11 +1108,34 @@
       });
     }
 
-    // 5. Agent.
+    // 3. Who researches? Carbon's agent, or the miner's own agent over MCP
+    // (OWNER-MINER-SETUP-AGENT-FIRST-01): any MCP client, or Hermes with its
+    // ready-made profile.
     const agentPanel = stepPanel(body, "agent", steps.agent?.checked ? "Checked: " + checkedText("agent", steps) + ", and your signer answered." : null);
     const agent = stepForm(agentPanel, "agent");
-    const agentChoice = setupSelect(agent, "choice", "Agent", offered.agent.map(c => [c.id, c.display_name]));
+    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name]));
     const agentCost = el("div"); agent.append(agentCost);
+    // Your own agent: the one command, and each client's snippet to copy.
+    const connectBox = el("div", undefined, "guide-panel"); connectBox.id = "setup-agent-connect"; agent.append(connectBox);
+    const describeConnect = choice => {
+      connectBox.replaceChildren();
+      connectBox.hidden = !choice?.connect;
+      if (!choice?.connect) return;
+      const connect = choice.connect;
+      connectBox.append(el("h3", "Connect your agent"), el("p", "Skips Inference: " + choice.skips.inference + ". " + connect.note, "hint"));
+      copyRow(connectBox, "The one command, run from your Carbon checkout (" + connect.cwd + ")", connect.command, "setup-agent-command-copy");
+      // One disclosure per client: its snippets, its source and what Carbon
+      // has not verified.
+      for (const client of connect.clients) {
+        const body = details(connectBox, client.name, []).querySelector(".detail-body");
+        body.append(el("p", "From " + client.source + ".", "hint"));
+        client.snippets.forEach((snippet, index) => copyRow(body, snippet.label, snippet.text, "setup-agent-" + client.id + "-" + index));
+        for (const note of client.unverified) {
+          const line = el("p", undefined, "hint"); line.append(el("strong", "UNVERIFIED:", "unverified"), " " + note.replace(/^UNVERIFIED: /, "")); body.append(line);
+        }
+      }
+      connectBox.append(el("p", "Then your agent loops on carbon_setup_status until launch; the carbon_setup_workflow_v1 prompt says how. You can finish here too: both doors share one setup.", "hint"));
+    };
     researchNote(agent, "Carbon never asks for your hotkey or its password. Start carbon-miner-signer for your registered hotkey in your own terminal; this step asks it which hotkey it holds.", "hint");
     // Hermes (C-MLP-03 slice 5): nothing is written to the miner's Hermes
     // without their consent to the exact files, unticked by default.
@@ -1089,6 +1156,7 @@
       agentCost.replaceChildren();
       const about = details(agentCost, "About this agent", []);
       costNote(about.querySelector(".detail-body"), choice);
+      describeConnect(choice);
       hermesBox.hidden = !choice?.needs_consent_to_write;
       hermesAgree.checked = false;
       if (choice?.needs_consent_to_write) {
@@ -1117,9 +1185,9 @@
     const reviewPanel = stepPanel(body, "review", written ? "Your profile is written." : null);
     const review = stepForm(reviewPanel, "review");
     const summary = el("dl", undefined, "review-grid"); review.append(summary);
-    for (const [name, label] of [["inference", "Inference"], ["compute", "Compute"], ["agent", "Agent"]]) {
+    for (const [name, label] of [["agent", "Who researches"], ["inference", "Inference"], ["compute", "Compute"]]) {
       const state = steps[name] || {};
-      summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : "Not checked yet"));
+      summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
     // A validator's intake, when a Challenge's validator runs elsewhere
@@ -1138,7 +1206,7 @@
       reviewAction.prepend(go);
     }
     review.append(reviewAction);
-    if (!steps.review?.ready) researchNote(review, "Check inference, compute and agent first.", "hint");
+    if (!steps.review?.ready) researchNote(review, "Finish steps 3 to 5 first.", "hint");
     review.addEventListener("submit", async event => {
       event.preventDefault();
       const request = {confirm: true};
@@ -1193,6 +1261,7 @@
       land();
       render();
       if (!setupRead) { setupRead = true; readSetup(); }
+      else pollSetup();
       $("connection-state").textContent = "Connected";
     } catch (error) {
       connected = false;

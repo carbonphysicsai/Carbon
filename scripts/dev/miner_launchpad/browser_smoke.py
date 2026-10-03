@@ -1422,11 +1422,11 @@ def setup_journey():
                 click(session, "onboarding-confirm")
                 # Confirmed: the wizard opens at its next step, and the
                 # registration step shows done.
-                wait(session, "location.hash === '#setup/inference'")
-                wait(session, "Boolean(document.getElementById('setup-inference-key'))")
+                # Step 3 is who researches (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                wait(session, "location.hash === '#setup/agent'")
                 wait(
                     session,
-                    "!document.querySelector('[data-step-panel=inference]').hidden"
+                    "!document.querySelector('[data-step-panel=agent]').hidden"
                     " && document.getElementById('setup-eyebrow').textContent.includes('Step 3 of 6')",
                 )
                 assert session.evaluate(
@@ -1444,6 +1444,92 @@ def setup_journey():
                 assert session.evaluate(
                     "document.getElementById('setup-next').disabled"
                     " && document.getElementById('setup-next-reason').textContent.includes('check')"
+                )
+                # Hermes is offered beside Carbon's agent, and names the exact
+                # files it would write; nothing is agreed by default.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'hermes';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-hermes-consent').checked"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('profiles/carbon/config.yaml')"
+                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
+                    ".textContent.includes('hermes -p carbon chat')",
+                )
+                # Your own agent: the one command and each client's snippet,
+                # to copy, with what was not run marked UNVERIFIED; it skips
+                # Inference because it brings its own model.
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'own-agent';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                wait(
+                    session,
+                    "!document.getElementById('setup-agent-connect').hidden"
+                    " && document.getElementById('setup-agent-connect').textContent"
+                    ".includes('Skips Inference')",
+                )
+                snippets = json.loads(
+                    session.evaluate(
+                        "JSON.stringify([...document.querySelectorAll("
+                        "'#setup-agent-connect .copy-line code')].map(c => c.textContent))"
+                    )
+                )
+                # The command names this controller's own setup records.
+                command = snippets[0]
+                assert command.endswith(
+                    "-m carbon.miner_mcp.standard_cli --state-dir "
+                    + str(root / "state")
+                ), command
+                assert any(
+                    c.startswith("claude mcp add --transport stdio") for c in snippets
+                )
+                assert any(c.startswith("codex mcp add carbon") for c in snippets)
+                assert any("mcp_servers:" in c for c in snippets)
+                assert session.evaluate(
+                    "document.querySelectorAll('#setup-agent-connect .unverified').length >= 3"
+                    " && [...document.querySelectorAll('#setup-agent-connect button')]"
+                    ".every(b => b.type === 'button')"
+                )
+                session.evaluate(
+                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
+                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                )
+                # External signing: the Agent step asks for no hotkey file
+                # and no password; it only asks the miner's signer.
+                assert (
+                    session.evaluate(
+                        "document.querySelectorAll('form[data-step=agent] input[type=password],"
+                        " #setup-agent-hotkey_file, #setup-agent-password').length"
+                    )
+                    == 0
+                )
+                # A miner names no operator file: setup reads the network.
+                assert session.evaluate(
+                    "document.querySelector('label[for=setup-agent-operator_config]')"
+                    ".textContent.includes('operators only')"
+                )
+                session.evaluate(
+                    "document.querySelector('form[data-step=agent]').requestSubmit()"
+                )
+                wait(
+                    session,
+                    "document.getElementById('setup-result').textContent === 'Checked: agent.'",
+                )
+                # The Agent step asked the signer: step 1 is done only now.
+                wait(
+                    session,
+                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'",
+                )
+                click(session, "setup-next")
+                wait(
+                    session,
+                    "location.hash === '#setup/inference'"
+                    " && !document.querySelector('[data-step-panel=inference]').hidden"
+                    " && document.getElementById('setup-eyebrow').textContent.includes('Step 4 of 6')",
                 )
                 assert session.evaluate(
                     "document.getElementById('setup-body').textContent.includes('billed by')"
@@ -1724,56 +1810,6 @@ def setup_journey():
                 click(session, "setup-next")
                 wait(
                     session,
-                    "location.hash === '#setup/agent'"
-                    " && !document.querySelector('[data-step-panel=agent]').hidden",
-                )
-                # Hermes is offered beside Carbon's agent, and names the exact
-                # files it would write; nothing is agreed by default.
-                session.evaluate(
-                    "document.getElementById('setup-agent-choice').value = 'hermes';"
-                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
-                )
-                wait(
-                    session,
-                    "!document.getElementById('setup-agent-hermes-consent').checked"
-                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
-                    ".textContent.includes('profiles/carbon/config.yaml')"
-                    " && document.querySelector('label[for=setup-agent-hermes-consent]')"
-                    ".textContent.includes('hermes -p carbon chat')",
-                )
-                session.evaluate(
-                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
-                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
-                )
-                # External signing: the Agent step asks for no hotkey file
-                # and no password; it only asks the miner's signer.
-                assert (
-                    session.evaluate(
-                        "document.querySelectorAll('form[data-step=agent] input[type=password],"
-                        " #setup-agent-hotkey_file, #setup-agent-password').length"
-                    )
-                    == 0
-                )
-                # A miner names no operator file: setup reads the network.
-                assert session.evaluate(
-                    "document.querySelector('label[for=setup-agent-operator_config]')"
-                    ".textContent.includes('operators only')"
-                )
-                session.evaluate(
-                    "document.querySelector('form[data-step=agent]').requestSubmit()"
-                )
-                wait(
-                    session,
-                    "document.getElementById('setup-result').textContent === 'Checked: agent.'",
-                )
-                # The Agent step asked the signer: step 1 is done only now.
-                wait(
-                    session,
-                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'",
-                )
-                click(session, "setup-next")
-                wait(
-                    session,
                     "location.hash === '#setup/review'"
                     " && !document.querySelector('[data-step-panel=review]').hidden",
                 )
@@ -1823,7 +1859,7 @@ def setup_journey():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad setup smoke passed: after a confirmed registration a person set up inference, compute and agent in a real browser, one wizard step at a time with each step done only once checked and the signer done only after the Agent step asked it; each Where's your GPU? card set the transport its guide section names and showed that section, UNVERIFIED marks kept, with its commands to copy; they checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
+        "Launchpad setup smoke passed: after a confirmed registration a person set up who researches (with your own agent's connect command and client snippets to copy), inference and compute in a real browser, in the agent-first order, one wizard step at a time with each step done only once checked and the signer done only after the Agent step asked it; each Where's your GPU? card set the transport its guide section names and showed that section, UNVERIFIED marks kept, with its commands to copy; they checked their own remote machine and sent it the worker only after agreeing to that destination and image, a missing image was refused by name with its build step, and the profile was written and loaded without a restart; no API key reached the page or the profile, and the Agent step asked only the miner's signer. Chain, providers, SSH and images were fixtures."
     )
 
 
@@ -1869,9 +1905,9 @@ def fresh_miner():
                 assert [s[0] for s in steps] == [
                     "signer",
                     "register",
+                    "agent",
                     "inference",
                     "compute",
-                    "agent",
                     "review",
                 ], steps
                 # Nothing is confirmed yet, so nothing is done. One step reads
@@ -1910,8 +1946,28 @@ def fresh_miner():
                     )
                 )
                 assert locked == [False, False, True, True, True, True], locked
-                # The signer is checked here, before registration: its public
-                # address names the socket and it says which hotkey it holds.
+                # The miner's agent checks the signer over the MCP door, on the
+                # same setup records: the page shows it, without a reload
+                # (OWNER-MINER-SETUP-AGENT-FIRST-01).
+                from scripts.dev.miner_launchpad import setup_operations
+
+                setup_operations.perform(
+                    server.setup,
+                    "signer",
+                    {"address": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"},
+                    door=setup_operations.MCP,
+                )
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline and not session.evaluate(
+                    "document.querySelector('#setup-progress li:first-child').className === 'is-done'"
+                ):
+                    time.sleep(0.2)
+                assert session.evaluate(
+                    "document.querySelector('[data-step-panel=signer] .step-done') !== null"
+                ), "the page did not show the agent's signer check"
+                # The signer is checked here too, before registration: its
+                # public address names the socket and it says which hotkey it
+                # holds.
                 session.evaluate(
                     "document.getElementById('setup-signer-address').value = "
                     + json.dumps("5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY")
@@ -2077,7 +2133,7 @@ def fresh_miner():
                 server.server_close()
                 thread.join(timeout=5)
     print(
-        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and one step next (the signer, registration open beside it in either order), setup led with that step, checked the signer before registration by its handshake and locked the steps after registration, the navigation wrapped at 800 and 390 px, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
+        "Launchpad fresh-miner smoke passed: a new miner saw six ordered steps with nothing done and one step next (the signer, registration open beside it in either order), setup led with that step, an agent's signer check over the MCP door showed on the page without a reload, the page checked the signer before registration by its handshake and locked the steps after registration, the navigation wrapped at 800 and 390 px, a hotkey the chain did not read as registered was refused in place, each blocking Challenge said one plain sentence with its fix and kept its code behind Details, Compute listed this machine and a GPU run elsewhere, the guide and Carbon's font came from this controller, and nothing was fetched from anywhere else."
     )
 
 
