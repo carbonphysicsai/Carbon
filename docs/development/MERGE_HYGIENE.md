@@ -12,7 +12,8 @@ one night. Every conflict was in generated Development Hub files, the Hub's
 snapshot repin, or the append-only `.agent/DECISIONS.md`, never in code, and
 each re-merge restarted about 55 minutes of serial CI. The owner then retired
 the Hub ("I don't care about this HUB anymore") and asked for the workflow to
-be optimized. The canonical CI job now runs on 8 parallel shards (#532).
+be optimized. The canonical CI job now runs on parallel shards (#532: 8; 6 since the
+first run's measured timings showed 6 finish as fast with fewer runners).
 
 ## Rules
 
@@ -80,7 +81,7 @@ be optimized. The canonical CI job now runs on 8 parallel shards (#532).
 
 ## What changed in CI (#532)
 
-- The canonical job is a matrix of 8 shards. `scripts/dev/ci.sh` reads
+- The canonical job is a matrix of 6 shards. `scripts/dev/ci.sh` reads
   `CARBON_CI_SHARD=<index>/<count>`; the default CPU suite is split by test
   file (`scripts/dev/ci_shard.py`) and every other lane runs whole on one
   shard. The job succeeds only when every shard does. Unset, `ci.sh` is the

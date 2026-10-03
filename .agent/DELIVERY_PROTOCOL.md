@@ -219,7 +219,7 @@ or to block implementation; GitHub's pinned environment supplies acceptance.
 Native-host tests are diagnostics, not canonical qualification.
 
 For a ready runtime PR, CI runs the CPU regression suite, invariant tests,
-quality ratchet, and package/import checks, on 8 parallel shards that split the
+quality ratchet, and package/import checks, on 6 parallel shards that split the
 CPU suite by test file and run every other lane once (OWNER-WORKFLOW-SPEED-01).
 Unknown paths retain full runtime acceptance. Contract-only and generated-doc changes
 retain their existing lighter classified suites. Test semantics remain intact.

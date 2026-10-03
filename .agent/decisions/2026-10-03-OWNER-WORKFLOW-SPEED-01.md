@@ -29,7 +29,10 @@ untouched PRs when main's Hub data moved.
    `docs/development/carbon_hub/` stay as frozen history: one invariant test
    reads its last recorded program state, and the Launchpad browser smoke
    imports its browser helper.
-2. **The canonical CI job runs on 8 shards** (#532). Every test still runs
+2. **The canonical CI job runs on parallel shards**: 8 in #532, then 6 in this
+   decision's follow-up, because the first run's measured timings showed 6
+   finish as fast (one 11.4-minute test file is the floor) with a quarter fewer
+   runners on GitHub Free's 20-job limit. Every test still runs
    exactly once, and the job succeeds only when every shard does.
 3. **One decision per file**, `.agent/decisions/YYYY-MM-DD-<ID>.md`. This is
    OWNER-MERGE-HYGIENE-01 part B rule 10, now in force. `.agent/DECISIONS.md`
