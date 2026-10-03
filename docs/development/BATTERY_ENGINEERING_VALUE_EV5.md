@@ -46,8 +46,10 @@ engineering work in §8.
   OKane2022) and the scoring set.
 - **Panel.** The 100 panel recipes and seeds (`carbon/battery/value/panel.py`)
   and the 5 constructed controls.
-- **Optimizer.** Mode D and Mode X with EV4's maxima.
-- **Statistics.** The bootstrap (B = 10000) and the τ noise band.
+- **Optimizer.** EV4's designs, K, band, Mode D, Mode X and maxima, on fresh
+  grids of EV4's shape (§3; OWNER-EV5-Q2-01).
+- **Statistics.** The bootstrap (B = 10000, seed 20261001) and the τ noise
+  band.
 
 ## 3. What is new
 
@@ -69,6 +71,23 @@ freeze:
   (soc0 0.24, not 0.20: OWNER-EV5-Q1-01 counts EV4's protected optimizer
   grid, soc0 {0.05, 0.20, 0.35, 0.50}, as EV4 conditions.)
 
+**Optimizer** (OWNER-EV5-Q2-01, `ev5.optimizer_spec`):
+- **Grids.** EV4's shape, so the maxima and the cost are unchanged:
+  - model: t_amb {5, 10, …, 40} °C × soc0 {0.055, 0.21, 0.36, 0.495}
+    (32; Mode D uses the 20 in band);
+  - verification: t_amb linspace(5, 40, 18) × soc0 {0.052, 0.165, 0.27,
+    0.385, 0.498} (90).
+  - No EV1, EV2, EV4 or EV5 condition uses these soc0 values. EV4's grids
+    cannot be reused: Q1 counts them as EV4 conditions, and with EV4's
+    recipes and seeds a reused grid would only repeat EV4's predictions and
+    solves.
+- **Members.** EV4's five roles. `best_proposed` is the best member under the
+  SR-2 candidate among those the gate passes. The other four are ungated, as
+  in EV4. Selection refuses without gate verdicts or candidate scores.
+- No sixth role for attack constructions: it would raise the maxima above
+  the approved estimate, and the adversarial-score verdict (§4) already
+  covers them.
+
 ## 4. Hypotheses (fixed at freeze)
 
 - **H1 (ranking, paired).** Δτ = τ(SR-2 candidate) − τ(deciding) on the 12
@@ -89,6 +108,11 @@ freeze:
   - the real members that FAIL have a higher mean verification decision loss
     than those that PASS, and the 95 % bootstrap interval of the difference
     excludes 0.
+  - The bootstrap (OWNER-EV5-Q4-01) is percentile, B = 10000, seed 20261001.
+    It resamples the FAIL and PASS members separately, each to its own size,
+    and the conditions jointly, so every replicate has both groups
+    (`hypotheses.group_difference_bootstrap`). If either group is empty, the
+    difference is undefined and reported as such.
   - The number of real members failed is reported. A cutoff that fails more
     than half the real members is reported as such, not tuned after the fact.
 - **H3 (known blind spot, reported).** The localized sign-error control's
@@ -188,9 +212,8 @@ per hour. EV4 itself cost USD 2.52 in total.
 The engineering work (conditions, the `ATTACK_CONSTRUCTION` panel kind, plans,
 campaign and freeze manifest) is built (#536). What still blocks the freeze is
 the sealed confirmation batch: made on the validator host and committed by
-journal fingerprint before use. Two engineering questions remain open and do
-not block the freeze: how EV5's optimizer is parameterized (#536 Q2), and the
-H2 bootstrap's B and seed (#536 Q4).
+journal fingerprint before use. The optimizer (#536 Q2) and the H2 bootstrap
+(#536 Q4) are settled: OWNER-EV5-Q2-01 and OWNER-EV5-Q4-01 (§3, §4).
 
 **Sealing the batch (operator, validator host).** One command, from a checkout
 that has it, against the deployment's own configuration:

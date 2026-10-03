@@ -16,6 +16,8 @@ The contract fixes everything here before any solve
   select a protocol the reference verifies INFEASIBLE on any verification
   condition, each with its rank under both rules.
 
+`group_difference_bootstrap` is EV5's H2 interval (OWNER-EV5-Q4-01).
+
 Nothing here chooses a number. Members or replicates where a quantity is
 undefined are counted and reported, never imputed.
 """
@@ -151,6 +153,79 @@ def paired_bootstrap(proposed, deciding, losses, *, replicates, seed, level):
         "members": int(keep.sum()),
         "conditions": k,
         "decision": decision,
+    }
+
+
+def group_difference_bootstrap(losses, failed, *, replicates, seed, level):
+    """EV5 H2: mean verification decision loss of the members the gate FAILs
+    minus that of the members it PASSes, with a percentile interval.
+
+    `losses`: member × condition matrix (NaN = undefined); `failed`: one
+    Boolean per member. Each replicate resamples the FAIL members and the PASS
+    members separately, each group to its own size (stratified, so every
+    replicate has both groups), and the conditions jointly for all members. A
+    member's loss is its mean over the drawn conditions where defined; a
+    member with none is left out of that replicate, and a replicate where
+    either group is then empty is skipped and counted. Either group empty
+    leaves the difference and its interval undefined.
+    """
+    losses = np.asarray(losses, float)
+    failed = np.asarray(failed, bool)
+    n, k = losses.shape
+    if failed.shape != (n,):
+        raise ValueError("one verdict per member")
+
+    def group_means(matrix, mask):
+        defined = ~np.isnan(matrix)
+        counts = defined.sum(axis=1)
+        means = np.where(defined, matrix, 0.0).sum(axis=1) / np.maximum(counts, 1)
+        keep = counts > 0
+        a, b = means[keep & mask], means[keep & ~mask]
+        if not len(a) or not len(b):
+            return None
+        return float(a.mean() - b.mean())
+
+    fail_rows = np.flatnonzero(failed)
+    pass_rows = np.flatnonzero(~failed)
+    point = group_means(losses, failed)
+    out = {
+        "difference": point,
+        "members_failed": len(fail_rows),
+        "members_passed": len(pass_rows),
+        "level": level,
+        "replicates": replicates,
+        "rng_seed": seed,
+    }
+    if not len(fail_rows) or not len(pass_rows):
+        return {
+            **out,
+            "interval": [None, None],
+            "replicates_skipped": replicates,
+            "excludes_zero": False,
+        }
+    rng = np.random.default_rng(seed)
+    labels = np.r_[np.ones(len(fail_rows), bool), np.zeros(len(pass_rows), bool)]
+    values, skipped = [], 0
+    for _ in range(replicates):
+        rows = np.r_[
+            rng.choice(fail_rows, len(fail_rows)), rng.choice(pass_rows, len(pass_rows))
+        ]
+        cols = rng.integers(0, k, k)
+        value = group_means(losses[np.ix_(rows, cols)], labels)
+        if value is None:
+            skipped += 1
+            continue
+        values.append(value)
+    if values:
+        tail = (1.0 - level) / 2.0
+        low, high = (float(v) for v in np.quantile(values, [tail, 1.0 - tail]))
+    else:
+        low = high = None
+    return {
+        **out,
+        "interval": [low, high],
+        "replicates_skipped": skipped,
+        "excludes_zero": low is not None and (low > 0 or high < 0),
     }
 
 

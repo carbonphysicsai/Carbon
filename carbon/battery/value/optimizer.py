@@ -51,6 +51,7 @@ from __future__ import annotations
 import gzip
 import json
 import math
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -107,6 +108,82 @@ DECIDING_RULE = dv.DECIDING_RULE
 PROPOSED_RULE = "dar-p0-r100-a0"
 
 
+@dataclass(frozen=True)
+class Spec:
+    """One study's optimizer: its grids, its proposed rule and the roles the
+    admissibility gate applies to. Designs, K, the band, Mode D and Mode X are
+    shared; the maxima follow from the grids and the roles."""
+
+    study: str
+    model_conditions: tuple
+    verify_conditions: tuple
+    proposed_rule: str
+    prior_solves: int
+    #: Roles whose pool is only the members the gate passes (`select_members`).
+    gated_roles: tuple = ()
+    #: EV4 tolerates an unscored proposed rule (the role is then empty); a
+    #: later study refuses it.
+    proposed_required: bool = False
+
+    @property
+    def mode_d_conditions(self):
+        return tuple(
+            ci for ci, (t, _s) in enumerate(self.model_conditions) if in_band(t)
+        )
+
+    @property
+    def max_designs(self):
+        return len(MEMBER_ROLES) + 1
+
+    @property
+    def max_mode_d_solves(self):
+        return self.max_designs * len(self.verify_conditions)
+
+    @property
+    def max_mode_x_solves(self):
+        return len(MEMBER_ROLES) * K
+
+    @property
+    def max_total_solves(self):
+        return self.prior_solves + self.max_mode_d_solves + self.max_mode_x_solves
+
+    @property
+    def in_band_verify(self):
+        return tuple(c for c in self.verify_conditions if in_band(c[0]))
+
+    @property
+    def out_of_band_verify(self):
+        return tuple(c for c in self.verify_conditions if not in_band(c[0]))
+
+    def maxima(self):
+        return {
+            "mode_d_solves": self.max_mode_d_solves,
+            "mode_x_solves": self.max_mode_x_solves,
+            "designs": self.max_designs,
+            "k": K,
+            "total_solves": self.max_total_solves,
+        }
+
+
+EV4_SPEC = Spec(
+    study="ev4",
+    model_conditions=MODEL_CONDITIONS,
+    verify_conditions=VERIFY_CONDITIONS,
+    proposed_rule=PROPOSED_RULE,
+    prior_solves=EV4_SOLVES,
+)
+
+
+def spec_for(contract):
+    """The optimizer spec of the study a contract belongs to: EV5's for EV5's
+    contract (`ev5.optimizer_spec`), EV4's otherwise."""
+    if contract.get("contract_id") == "ev5-battery-charge-protocol-selection":
+        from . import ev5
+
+        return ev5.optimizer_spec()
+    return EV4_SPEC
+
+
 class OptimizerError(ValueError):
     def __init__(self, code, detail=""):
         super().__init__(f"{code}: {detail}" if detail else code)
@@ -117,14 +194,14 @@ def design_id(c1, c2):
     return ev.candidate_id({"c1": c1, "c2": c2})
 
 
-def case_id(c1, c2, t_amb, soc0):
-    """A verification case id: the design and the condition, nothing else."""
-    return f"ev4opt:{design_id(c1, c2)}:t={t_amb!r},soc0={soc0!r}"
+def case_id(c1, c2, t_amb, soc0, spec=EV4_SPEC):
+    """A verification case id: the study, the design and the condition."""
+    return f"{spec.study}opt:{design_id(c1, c2)}:t={t_amb!r},soc0={soc0!r}"
 
 
-def _job(c1, c2, t_amb, soc0):
+def _job(c1, c2, t_amb, soc0, spec=EV4_SPEC):
     return {
-        "case_id": case_id(c1, c2, t_amb, soc0),
+        "case_id": case_id(c1, c2, t_amb, soc0, spec),
         "c1": float(c1),
         "c2": float(c2),
         "t_amb_c": float(t_amb),
@@ -135,7 +212,7 @@ def _job(c1, c2, t_amb, soc0):
 # --- the model's grid predictions (made on the pod) ------------------------------------------
 
 
-def grid_inputs():
+def grid_inputs(spec=EV4_SPEC):
     """Model inputs for every (design, model condition), by index ids."""
     return {
         f"g{di:04d}c{ci:02d}": {
@@ -145,17 +222,19 @@ def grid_inputs():
             "soc0": soc0,
         }
         for di, (c1, c2) in enumerate(DESIGNS)
-        for ci, (t_amb, soc0) in enumerate(MODEL_CONDITIONS)
+        for ci, (t_amb, soc0) in enumerate(spec.model_conditions)
     }
 
 
 def grid_predictions(contract, infer, *, chunk=4096):
     """Decision quantities for every grid point, from `infer(inputs) ->
     {case id: outputs}` (a member's prediction function). Only quantities
-    are kept: [design][condition] lists, None where CV is not reached."""
-    inputs = grid_inputs()
+    are kept: [design][condition] lists, None where CV is not reached. The
+    model grid is the contract's study's (`spec_for`)."""
+    inputs = grid_inputs(spec_for(contract))
     ids = sorted(inputs)
-    out = {q: [[None] * len(MODEL_CONDITIONS) for _ in DESIGNS] for q in QUANTITIES}
+    width = len(spec_for(contract).model_conditions)
+    out = {q: [[None] * width for _ in DESIGNS] for q in QUANTITIES}
     for start in range(0, len(ids), chunk):
         part = ids[start : start + chunk]
         predictions = infer({i: inputs[i] for i in part})
@@ -175,20 +254,22 @@ def grid_document(contract, member, recipe_digest, seed, quantities, extra=None)
         "seed": seed,
         "contract_digest": ev.digest(contract),
         "designs": "optimizer.DESIGNS (c1-major)",
-        "conditions": [list(c) for c in MODEL_CONDITIONS],
+        "conditions": [list(c) for c in spec_for(contract).model_conditions],
         "quantities": quantities,
         **(extra or {}),
     }
 
 
-def load_grid(path):
+def load_grid(path, spec=EV4_SPEC):
     document = json.loads(gzip.decompress(Path(path).read_bytes()))
     if document.get("schema") != GRID_SCHEMA:
         raise OptimizerError("grid_schema", str(path))
+    if document.get("conditions") != [list(c) for c in spec.model_conditions]:
+        raise OptimizerError("grid_conditions", str(path))
     for name in QUANTITIES:
         rows = document["quantities"][name]
         if len(rows) != len(DESIGNS) or any(
-            len(r) != len(MODEL_CONDITIONS) for r in rows
+            len(r) != len(spec.model_conditions) for r in rows
         ):
             raise OptimizerError("grid_shape", str(path))
     return document
@@ -211,11 +292,12 @@ def mode_d(contract, grid):
     """The design predicted feasible at all 20 in-band conditions with the
     lowest worst-case predicted time to CV there; ties by lower c1 then c2;
     else ABSTAIN. Out-of-band predictions play no part."""
+    spec = spec_for(contract)
     best = None
     feasible = 0
     for di, (c1, c2) in enumerate(DESIGNS):
         worst = -math.inf
-        for ci in MODE_D_CONDITIONS:
+        for ci in spec.mode_d_conditions:
             q = _point(grid, di, ci)
             if not _predicted_pass(contract, q):
                 break
@@ -266,9 +348,10 @@ def mode_x(contract, grid, k=K):
     smallest band-normalised constraint margin; ties by c1, c2, t_amb, soc0."""
     if k > K:
         raise OptimizerError("budget_exceeded", f"K {k} > {K}")
+    spec = spec_for(contract)
     points = []
     for di, (c1, c2) in enumerate(DESIGNS):
-        for ci, (t_amb, soc0) in enumerate(MODEL_CONDITIONS):
+        for ci, (t_amb, soc0) in enumerate(spec.model_conditions):
             q = _point(grid, di, ci)
             if not _predicted_pass(contract, q):
                 continue
@@ -283,7 +366,7 @@ def mode_x(contract, grid, k=K):
             "c2": c2,
             "t_amb_c": t_amb,
             "soc0": soc0,
-            "case_id": case_id(c1, c2, t_amb, soc0),
+            "case_id": case_id(c1, c2, t_amb, soc0, spec),
             "in_band": in_band(t_amb),
             "predicted_margin_bands": margin,
             "binding_constraint": binding,
@@ -301,12 +384,17 @@ def _score(results, member, rule):
     return value if isinstance(value, (int, float)) else None
 
 
-def select_members(results, backbones):
-    """The pre-registered five members, from an EV4 result.
+def select_members(results, backbones, spec=EV4_SPEC, *, scores=None, admissible=None):
+    """The pre-registered five members, from a study's result.
 
     `backbones` maps member → architecture family. Ties within a criterion go
     to the lower member id. A role whose first choice is already selected
     takes the next member in its own order.
+
+    `scores` adds rule → {member: score} for a rule the contract does not
+    declare (EV5's SR-2 candidate). `admissible` is the set of members the
+    admissibility gate passes; a role in `spec.gated_roles` draws only from
+    it, and a spec with gated roles refuses to select without it.
     """
     members = results["summary"]["members"]
     eligible = sorted(
@@ -314,12 +402,29 @@ def select_members(results, backbones):
         for m, row in members.items()
         if row["kind"] == "RECONSTRUCTED" and row["eligible"] is True
     )
+    if spec.gated_roles and admissible is None:
+        raise OptimizerError("gate_missing", ",".join(spec.gated_roles))
+    extra = scores or {}
+
+    def score(member, rule):
+        if rule in extra:
+            value = extra[rule].get(member)
+            return value if isinstance(value, (int, float)) else None
+        return _score(results, member, rule)
 
     def by_score(rule, pool):
-        scored = [m for m in pool if _score(results, m, rule) is not None]
-        return sorted(scored, key=lambda m: (-_score(results, m, rule), m))
+        scored = [m for m in pool if score(m, rule) is not None]
+        return sorted(scored, key=lambda m: (-score(m, rule), m))
 
-    deciding = by_score(DECIDING_RULE, eligible)
+    if spec.proposed_required and not by_score(spec.proposed_rule, eligible):
+        raise OptimizerError("proposed_unscored", spec.proposed_rule)
+
+    def pool(role):
+        if role in spec.gated_roles:
+            return [m for m in eligible if m in admissible]
+        return eligible
+
+    deciding = by_score(DECIDING_RULE, pool("best_deciding"))
     median = deciding[(len(deciding) - 1) // 2 :] + deciding[: (len(deciding) - 1) // 2]
     loss = sorted(
         (m for m in eligible if members[m]["loss_verification"] is not None),
@@ -327,7 +432,7 @@ def select_members(results, backbones):
     )
     orders = {
         "best_deciding": deciding,
-        "best_proposed": by_score(PROPOSED_RULE, eligible),
+        "best_proposed": by_score(spec.proposed_rule, pool("best_proposed")),
         "median_deciding": median,
         "best_knn": by_score(
             DECIDING_RULE, [m for m in eligible if backbones.get(m) == "knn"]
@@ -350,38 +455,41 @@ def verification_plan(contract, mode_d_results, mode_x_results):
     """The reference jobs for Mode D (committed designs and the baseline at the
     90 verification conditions) and Mode X (each member's top K). Refuses to
     exceed the pre-registered maxima."""
+    spec = spec_for(contract)
     base = contract["baseline"]["protocol"]
     designs = [(float(base["c1"]), float(base["c2"]))]
     for row in mode_d_results.values():
         if row["status"] == "DESIGN" and (row["c1"], row["c2"]) not in designs:
             designs.append((row["c1"], row["c2"]))
-    if len(designs) > MAX_DESIGNS:
+    if len(designs) > spec.max_designs:
         raise OptimizerError("budget_exceeded", f"{len(designs)} designs")
     mode_d_jobs = [
-        _job(c1, c2, t_amb, soc0)
+        _job(c1, c2, t_amb, soc0, spec)
         for c1, c2 in designs
-        for t_amb, soc0 in VERIFY_CONDITIONS
+        for t_amb, soc0 in spec.verify_conditions
     ]
-    if len(mode_d_jobs) > MAX_MODE_D_SOLVES:
+    if len(mode_d_jobs) > spec.max_mode_d_solves:
         raise OptimizerError("budget_exceeded", f"Mode D {len(mode_d_jobs)}")
     if len(mode_x_results) > len(MEMBER_ROLES) or any(
         len(points) > K for points in mode_x_results.values()
     ):
         raise OptimizerError("budget_exceeded", "Mode X points")
     mode_x_jobs = [
-        _job(p["c1"], p["c2"], p["t_amb_c"], p["soc0"])
+        _job(p["c1"], p["c2"], p["t_amb_c"], p["soc0"], spec)
         for member in sorted(mode_x_results)
         for p in mode_x_results[member]
     ]
-    if len(mode_x_jobs) > MAX_MODE_X_SOLVES:
+    if len(mode_x_jobs) > spec.max_mode_x_solves:
         raise OptimizerError("budget_exceeded", f"Mode X {len(mode_x_jobs)}")
     jobs, seen = [], set()
     for job in mode_d_jobs + mode_x_jobs:
         if job["case_id"] not in seen:
             seen.add(job["case_id"])
             jobs.append(job)
-    if EV4_SOLVES + len(jobs) > MAX_TOTAL_SOLVES:
-        raise OptimizerError("budget_exceeded", f"total {EV4_SOLVES + len(jobs)}")
+    if spec.prior_solves + len(jobs) > spec.max_total_solves:
+        raise OptimizerError(
+            "budget_exceeded", f"total {spec.prior_solves + len(jobs)}"
+        )
     return {
         "designs": [design_id(c1, c2) for c1, c2 in designs],
         "mode_d_solves": len(mode_d_jobs),
@@ -390,10 +498,14 @@ def verification_plan(contract, mode_d_results, mode_x_results):
     }
 
 
-def select(contract, results, backbones, grids):
+def select(contract, results, backbones, grids, *, scores=None, admissible=None):
     """Members, Mode D designs, Mode X points and the verification jobs.
-    `grids` maps member → loaded grid document."""
-    selection = select_members(results, backbones)
+    `grids` maps member → loaded grid document; `scores` and `admissible` as
+    in `select_members`."""
+    spec = spec_for(contract)
+    selection = select_members(
+        results, backbones, spec, scores=scores, admissible=admissible
+    )
     mode_d_results, mode_x_results = {}, {}
     for row in selection:
         member = row["member"]
@@ -402,7 +514,11 @@ def select(contract, results, backbones, grids):
         grid = grids.get(member)
         if grid is None:
             raise OptimizerError("grid_missing", member)
-        if grid["member"] != member or grid["contract_digest"] != ev.digest(contract):
+        if (
+            grid["member"] != member
+            or grid["contract_digest"] != ev.digest(contract)
+            or grid.get("conditions") != [list(c) for c in spec.model_conditions]
+        ):
             raise OptimizerError("grid_mismatch", member)
         mode_d_results[member] = mode_d(contract, grid)
         mode_x_results[member] = mode_x(contract, grid)
@@ -445,7 +561,7 @@ def _summary(contract, c1, c2, references, conditions):
     times, unreached = [], 0
     for t_amb, soc0 in conditions:
         verdict, checks, q = _verify(
-            contract, references.get(case_id(c1, c2, t_amb, soc0))
+            contract, references.get(case_id(c1, c2, t_amb, soc0, spec_for(contract)))
         )
         counts[verdict] += 1
         if checks is None:
@@ -481,9 +597,11 @@ def design_outcome(contract, c1, c2, references):
         "design": design_id(c1, c2),
         "c1": c1,
         "c2": c2,
-        "primary_in_band": _summary(contract, c1, c2, references, IN_BAND_VERIFY),
+        "primary_in_band": _summary(
+            contract, c1, c2, references, spec_for(contract).in_band_verify
+        ),
         "secondary_out_of_band": _summary(
-            contract, c1, c2, references, OUT_OF_BAND_VERIFY
+            contract, c1, c2, references, spec_for(contract).out_of_band_verify
         ),
     }
 
