@@ -1,5 +1,14 @@
 # Carbon — Agent Engineering Instructions
 
+> **OWNER-MERGE-HYGIENE-01 (2026-10-03):** never hand-edit generated Hub
+> files (resolve their conflicts by taking main's and re-running
+> `render_hub.py`); resolve `.agent/DECISIONS.md` conflicts by keeping both
+> sides, main's first; merge main only just before the final push; merge the
+> moment a PR is green; and before merging, defer to any open PR labelled
+> `merge-priority` whose CI is running or green. See
+> `docs/development/MERGE_HYGIENE.md` (part B, no committed Hub outputs and one
+> decision per file, takes effect with the MERGE-HYGIENE-01 ticket).
+
 > **OWNER-RESEARCH-ENVIRONMENT-01 (2026-09-27):** every mining environment
 > MUST give miners everything they need to research, hypothesize, train,
 > generate data, test and iterate, including the Challenge's public generator
