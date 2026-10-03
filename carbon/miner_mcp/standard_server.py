@@ -9,6 +9,7 @@ the installed SDK matches the version used by the wire interoperability tests.
 from __future__ import annotations
 
 import json
+import uuid
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from typing import Annotated, Literal
@@ -16,11 +17,45 @@ from typing import Annotated, Literal
 from carbon import research
 from carbon.development_session.research_tools import FIELDS, PREFIX
 from carbon.miner_mcp.standard import (
+    OPERATION_ID_PATTERN,
     AdapterFailure,
     ResearchToolAdapter,
     ResearchToolRequest,
+    object_wording,
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
+
+#: How a client names one business operation, stated once for every schema.
+OPERATION_ID_DESCRIPTION = (
+    "Optional. Omitted, the server generates one and returns it as "
+    "operation_id. Pass your own to make a retry idempotent: the same "
+    "operation_id with the same arguments replays the original instead of "
+    "starting again, including after a reconnect; a different request under a "
+    "used one is refused (OPERATION_ID_REUSED). 16 to 114 characters: letters, "
+    "digits, '.', '_', ':' or '-'. Read-only tools never need one."
+)
+
+
+def generated_operation_id():
+    """A fresh server-side operation id: `mcp-auto-` and 32 hex digits."""
+    return "mcp-auto-" + uuid.uuid4().hex
+
+
+#: Per-operation notes added to the SDK's descriptions on this wire.
+_NOTES = {
+    "start_research_task": (
+        " On this server strategy and arguments are JSON objects, not strings, "
+        "and strategy, action and arguments default to null, so send only the "
+        "ones your kind uses. run_python and run_julia take hypothesis and "
+        "expected_effect twice: at the top level and again inside arguments "
+        "(the same text is fine)."
+    ),
+    "get_research_result": (
+        " poll_sequence starts at 0 for a task and goes up by 1 with each poll "
+        "of it (at most 9999); every client polling the same task shares that "
+        "sequence. With the MCP Tasks extension, tasks/get needs no sequence."
+    ),
+}
 
 SDK_VERSION = "2.2.0"
 CAPABILITIES_URI = "carbon://research/v1/capabilities"
@@ -46,7 +81,7 @@ Practice feedback is adaptive development evidence, not unseen confirmation.
 
 Keep operation_id stable when retrying the same business operation, including
 after reconnect. Choose a new ID only for an intentionally new operation within
-the existing grant. Use get_research_result for existing task IDs and explicit
+the existing campaign. Use get_research_result for existing task IDs and explicit
 cancel_research_task to request domain cancellation. A disconnected stdio client
 or protocol cancellation is not evidence that workers or allocations stopped.
 Only controller-observed cleanup can establish release. Reconcile uncertain work
@@ -91,9 +126,16 @@ def _create_server(
     authorize_workbench=None,
     capacity=None,
     record_sink=None,
+    served_extensions=None,
     **settings,
 ):
-    """Shared tools; authenticated HTTP supplies a guard for every data access."""
+    """Shared tools; authenticated HTTP supplies a guard for every data access.
+
+    `served_extensions`, when given, are the extensions of the live server the
+    tools will actually be served from (`open_tier.attach_campaign`): the
+    catalogue then lists those, never ones this reference server negotiates
+    but the live one cannot offer.
+    """
     if type(adapter) is not ResearchToolAdapter:
         raise TypeError("an operator-bound ResearchToolAdapter is required")
     if (workbench is None) != (authorize_workbench is None):
@@ -136,23 +178,95 @@ def _create_server(
     actions = list(DEVELOPMENT_WORKSPACE_ACTIONS)
     if adapter.authored_julia_available:
         actions.append("run_julia")
+    # The SDK's own per-operation descriptions - each workspace action and its
+    # fields - in this wire's object-valued terms (LP-PROD-B).
+    described = {
+        tool["name"].removeprefix(PREFIX): object_wording(tool["description"])
+        for tool in adapter.sdk_tools
+    }
     fields = {
         "operation_id": (
-            Annotated[str, Field(pattern=r"^[A-Za-z0-9._:-]{16,114}$")],
-            ...,
+            Annotated[
+                str,
+                Field(
+                    pattern="^" + OPERATION_ID_PATTERN + "$",
+                    min_length=16,
+                    max_length=114,
+                    description=OPERATION_ID_DESCRIPTION,
+                ),
+            ],
+            Field(default_factory=generated_operation_id),
         ),
-        "strategy": (dict[str, JsonValue], ...),
-        "seconds": (Annotated[int, Field(ge=1, le=600)], ...),
-        "task_id": (Annotated[str, Field(pattern=r"^rtsk_[a-f0-9]{64}$")], ...),
-        "poll_sequence": (Annotated[int, Field(ge=0, le=9999)], ...),
-        "kind": (Literal["practice", "workspace"], ...),
+        "strategy": (
+            dict[str, JsonValue],
+            Field(
+                ...,
+                description=(
+                    "A registered recipe as a JSON object: schema_version, "
+                    "challenge_id, backbone, parameters."
+                ),
+            ),
+        ),
+        "seconds": (
+            Annotated[int, Field(ge=1, le=600)],
+            Field(..., description="Seconds to forecast, 1 to 600."),
+        ),
+        "task_id": (
+            Annotated[str, Field(pattern=r"^rtsk_[a-f0-9]{64}$")],
+            Field(..., description="rtsk_ and 64 hex digits, from the start."),
+        ),
+        "poll_sequence": (
+            Annotated[int, Field(ge=0, le=9999)],
+            Field(
+                ...,
+                description=(
+                    "0 for the first poll of this task, then 1, 2, ... (at most "
+                    "9999), shared by every client polling it."
+                ),
+            ),
+        ),
+        "kind": (
+            Literal["practice", "workspace"],
+            Field(
+                ...,
+                description=(
+                    "practice: run a registered recipe (strategy). workspace: "
+                    "run one workspace action (action and arguments)."
+                ),
+            ),
+        ),
         "action": (
             Literal[tuple(actions)] | None,
-            ...,
+            Field(
+                None,
+                description=(
+                    "kind=workspace only: the action to run. null (the "
+                    "default) for kind=practice."
+                ),
+            ),
         ),
-        "arguments": (dict[str, JsonValue] | None, ...),
-        "hypothesis": (Annotated[str, Field(min_length=1, max_length=2048)], ...),
-        "expected_effect": (Annotated[str, Field(min_length=1, max_length=2048)], ...),
+        "arguments": (
+            dict[str, JsonValue] | None,
+            Field(
+                None,
+                description=(
+                    "kind=workspace only: the action's arguments as a JSON "
+                    "object; the description lists each action's fields. null "
+                    "(the default) for kind=practice."
+                ),
+            ),
+        ),
+        "hypothesis": (
+            Annotated[str, Field(min_length=1, max_length=2048)],
+            Field(..., description="What this trial tests, 1 to 2048 characters."),
+        ),
+        "expected_effect": (
+            Annotated[str, Field(min_length=1, max_length=2048)],
+            Field(
+                ...,
+                description="What you expect it to show, 1 to 2048 characters.",
+            ),
+        ),
     }
 
     models = {}
@@ -172,7 +286,17 @@ def _create_server(
             )
             parameters[name] = fields[name]
         if operation == "start_research_task":
-            parameters["strategy"] = (dict[str, JsonValue] | None, ...)
+            parameters["strategy"] = (
+                dict[str, JsonValue] | None,
+                Field(
+                    None,
+                    description=(
+                        "kind=practice only: the registered recipe as a JSON "
+                        "object (schema_version, challenge_id, backbone, "
+                        "parameters). null (the default) for kind=workspace."
+                    ),
+                ),
+            )
         model = create_model(
             operation + "Arguments", __base__=StrictArguments, **parameters
         )
@@ -181,7 +305,11 @@ def _create_server(
         async def invoke(**arguments):
             if guard is not None:
                 guard()
-            operation_id = arguments.pop("operation_id")
+            # Present whenever the SDK validated the call; a direct caller
+            # that skips validation still gets a generated one.
+            operation_id = arguments.pop("operation_id", None)
+            if operation_id is None:
+                operation_id = generated_operation_id()
 
             # Derived from the adapter, never from the call. The adapter
             # re-verifies its owner binding on the way, so a record can only
@@ -202,8 +330,9 @@ def _create_server(
                     )
                 )
                 raise ToolError(
-                    "CAPACITY_UNAVAILABLE; dispatch_may_have_occurred=false; "
-                    "next_action=" + serving.NEXT_ACTION["CAPACITY_UNAVAILABLE"]
+                    serving.refusal(
+                        "CAPACITY_UNAVAILABLE", dispatch_may_have_occurred=False
+                    )
                 )
             clock = serving.timed()
             try:
@@ -226,9 +355,10 @@ def _create_server(
                 # step. The next action is fixed per slug: a provider message
                 # here is how unbounded internal detail reaches the wire.
                 raise ToolError(
-                    f"{exc.code.value}; dispatch_may_have_occurred="
-                    f"{str(exc.dispatch_may_have_occurred).lower()}; "
-                    f"next_action={serving.NEXT_ACTION[exc.code.value]}"
+                    serving.refusal(
+                        exc.code.value,
+                        dispatch_may_have_occurred=exc.dispatch_may_have_occurred,
+                    )
                 ) from None
             finally:
                 capacity.release()
@@ -256,8 +386,11 @@ def _create_server(
             fn=invoke,
             name=PREFIX + operation,
             description=(
-                f"Call Carbon {operation} through the existing bound research "
-                "controller. Reuse operation_id on retry."
+                described.get(operation, f"Call Carbon {operation}.")
+                + _NOTES.get(operation, "")
+                + " Runs through this campaign's bound research controller. "
+                "operation_id is optional; pass your own to make a retry "
+                "idempotent."
             ),
             parameters=model.model_json_schema(),
             fn_metadata=ExactMetadata(arg_model=model, output_model=Result),
@@ -272,6 +405,7 @@ def _create_server(
             validate_start=lambda arguments: (
                 models["start_research_task"].model_validate(arguments).model_dump()
             ),
+            fields=frozenset(models["start_research_task"].model_fields),
         ),
         make_skills_extension(guard=guard),
     ]
@@ -330,7 +464,14 @@ def _create_server(
         return json.dumps(
             serving.catalogue(
                 operations=[PREFIX + name for name in research.SUPPORTED_OPERATIONS],
-                extensions=[type(extension).__name__ for extension in extensions],
+                # What this server can actually negotiate: on the attach path
+                # the live server's extensions, never the reference's Tasks.
+                extensions=[
+                    type(extension).__name__
+                    for extension in (
+                        extensions if served_extensions is None else served_extensions
+                    )
+                ],
                 resources=[
                     CAPABILITIES_URI,
                     GUIDANCE_URI,

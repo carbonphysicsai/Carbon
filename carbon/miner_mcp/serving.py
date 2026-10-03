@@ -113,7 +113,70 @@ NEXT_ACTION = {
         "This server is at its concurrent-call bound. Nothing was dispatched. "
         "Retry the same operation_id shortly."
     ),
+    # Pre-dispatch stops (LP-PROD-B): each names the limit, says nothing
+    # started, and gives the step that lets a retry succeed.
+    AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED.value: (
+        "The elapsed budget you set for this campaign is spent. Nothing was "
+        "dispatched, so there is nothing to reconcile. This campaign admits no "
+        "more research; launch a new one (with a larger budget, or none) to "
+        "continue."
+    ),
+    AdapterCode.CAMPAIGN_ADMISSION_STOPPED.value: (
+        "This campaign is not admitting work right now: it is paused, stopped, "
+        "completed or awaiting reconciliation, or another holder took its "
+        "control. Nothing was dispatched. Check its state (carbon_observe where "
+        "offered, or the Control Center), resume or reconcile it, then retry "
+        "the same operation_id."
+    ),
+    AdapterCode.OPERATION_ID_REUSED.value: (
+        "This operation_id already names a different request in this campaign, "
+        "so this one was refused before anything started. Nothing was "
+        "dispatched. To repeat the earlier request, send it unchanged with the "
+        "same operation_id; for a new request use a new operation_id, or omit "
+        "it and the server generates one."
+    ),
+    AdapterCode.TASK_NOT_FOUND.value: (
+        "This campaign holds no task with that id; an id from another campaign "
+        "or another miner is indistinguishable from an unknown one. Nothing "
+        "changed. Use the taskId (task_id) your start returned."
+    ),
 }
+
+#: How each code reads on a task observation (tasks/get, tasks/cancel): only
+#: these mean the task itself is unavailable. Every other code is a failure of
+#: this observation - a stopped signer, a campaign not admitting, a dropped
+#: registration read - after which the same observation can be retried.
+TASK_UNAVAILABLE = frozenset(
+    {
+        AdapterCode.TASK_NOT_FOUND.value,
+        AdapterCode.OWNER_BINDING.value,
+        AdapterCode.INVALID_ARGUMENT.value,
+        AdapterCode.INVALID_RESULT.value,
+    }
+)
+
+#: The next action for a task observation that failed without saying anything
+#: about the task: observing changes nothing, so retrying is safe.
+OBSERVATION_RETRY = (
+    "This observation did not complete and changed nothing; retry it. If it "
+    "keeps failing, the campaign needs reconciliation through its operator."
+)
+
+
+def refusal(code: str, *, dispatch_may_have_occurred: bool, field=None) -> str:
+    """The one refusal line every research door sends: a stable code, whether
+    anything may have started, the field when one is to blame, and the fixed
+    next action for the code. Never a provider message or a caller's value;
+    `field` is only ever a name from a server-side schema."""
+    parts = [
+        code,
+        "dispatch_may_have_occurred=" + str(dispatch_may_have_occurred).lower(),
+    ]
+    if field is not None:
+        parts.append("field=" + field)
+    parts.append("next_action=" + NEXT_ACTION[code])
+    return "; ".join(parts)
+
 
 #: Reported outcomes. Closed, so a record cannot carry free text describing what
 #: a caller supplied.
@@ -206,6 +269,9 @@ class Capacity:
         self.queue_deadline = queue_deadline
         self.budget = budget
         self._semaphore = None
+        #: Calls holding capacity now: what an attachment waits on before it
+        #: lets a detach pull the campaign out from under them.
+        self.in_flight = 0
 
     def _gate(self):
         # Built on first use: an asyncio primitive must bind to the loop that
@@ -220,9 +286,11 @@ class Capacity:
             await asyncio.wait_for(self._gate().acquire(), self.queue_deadline)
         except TimeoutError:
             return False
+        self.in_flight += 1
         return True
 
     def release(self):
+        self.in_flight -= 1
         self._gate().release()
 
     def overran(self, duration_ms: int) -> bool:
