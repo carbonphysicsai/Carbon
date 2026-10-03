@@ -3,8 +3,9 @@
 The claims tested: with no cutoff the gate is inactive and changes nothing;
 with a cutoff, a model at or above it is inadmissible and scores 0, so
 ranking cannot compensate; an unmeasured model fails a set gate; the
-shipped cutoff is HUMAN_INPUT (None); and the retained evidence shows the
-boundary-optimist control above most real members.
+shipped cutoff is OWNER-GATE-CUTOFF-01's 2.0 bands; and on the retained
+evidence it fails the boundary optimist, passes the oracle, fails fewer than
+half the real members, and fails ones that decide worse than those it passes.
 """
 
 import json
@@ -15,8 +16,11 @@ from carbon.battery.value import admissibility as gate
 REPO = Path(__file__).resolve().parents[2]
 
 
-def test_the_shipped_gate_is_inactive_until_the_science_lead_sets_a_cutoff():
-    assert gate.THRESHOLD_BANDS is None
+def test_the_shipped_cutoff_is_the_recorded_one(monkeypatch):
+    assert gate.THRESHOLD_BANDS == 2.0
+    assert gate.verdict(2.0) == gate.FAIL and gate.verdict(1.99) == gate.PASS
+    # Specimen: with no cutoff the gate is inactive and changes nothing.
+    monkeypatch.setattr(gate, "THRESHOLD_BANDS", None)
     assert gate.verdict(9.9) == gate.INACTIVE
     assert gate.gated(0.8, 9.9) == 0.8
 
@@ -68,7 +72,14 @@ def test_the_retained_evidence_matches_what_it_reports():
             / "docs/development/evidence/admissibility-optimism-2026-10-03/optimism.json"
         ).read_text()
     )
-    assert report["threshold_bands"] is None and report["state"] == gate.INACTIVE
+    assert report["threshold_bands"] == gate.THRESHOLD_BANDS
+    assert report["state"] == "ACTIVE"
+    for dataset in report["datasets"].values():
+        at = dataset["at_cutoff"]
+        assert at["controls"]["control-boundary_optimist"] == gate.FAIL
+        assert at["controls"]["control-oracle"] == gate.PASS
+        assert len(at["real_members_failed"]) * 2 < dataset["real_members"]
+        assert at["mean_verification_loss_failed"] > at["mean_verification_loss_passed"]
     ev4 = report["datasets"]["ev4-2026-10-01"]
     optimist = ev4["at_control_levels"]["control-boundary_optimist"]
     assert ev4["real_members"] == 99

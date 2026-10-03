@@ -1,8 +1,9 @@
 # EV5: the battery Level 0 combined admission run — pre-registration DRAFT
 
 **Status. DRAFT, not frozen. Nothing dispatches.** The owner approved option
-A's USD 6 cap on 2026-10-03 (OWNER-EV5-CAP-01). The gate cutoff still blocks
-the freeze (§8).
+A's USD 6 cap on 2026-10-03 (OWNER-EV5-CAP-01). The gate cutoff is set
+(2.0 bands, OWNER-GATE-CUTOFF-01). The freeze now waits only on the
+engineering work in §8.
 
 **Authority.**
 - OWNER-ADMISSION-COMBINED-01 (2026-10-02): construction, attack and value
@@ -27,7 +28,7 @@ the freeze (§8).
    decision quality better than the deciding rule? EV4 said "not beyond
    noise" (τ 0.420 vs 0.403); EV5 is the one confirmation.
 2. **Value: admissibility.** Does the near-limit optimism gate
-   (`carbon/battery/value/admissibility.py`), at the SciML lead's cutoff, fail
+   (`carbon/battery/value/admissibility.py`), at its 2.0-band cutoff, fail
    the boundary optimist? Do the real models it fails decide worse than those
    it passes?
 3. **Attack.** Do the Track A families and the worker-boundary attacks find
@@ -79,7 +80,8 @@ freeze:
   - Otherwise the deciding rule is confirmed for ranking.
   - EV4's prediction from `real_divergence.py` is that the last condition
     fails: 5 against 1.
-- **H2 (gate).** At cutoff `THRESHOLD_BANDS = c` (HUMAN_INPUT):
+- **H2 (gate).** At cutoff `THRESHOLD_BANDS = 2.0` (OWNER-GATE-CUTOFF-01),
+  fixed before any EV5 solve:
   - the boundary optimist FAILs;
   - oracle, conservative and rank-preserving delay PASS;
   - the real members that FAIL have a higher mean verification decision loss
@@ -160,10 +162,10 @@ per hour. EV4 itself cost USD 2.52 in total.
 
 ## 8. Freeze blockers (HUMAN_INPUT)
 
-1. **Gate cutoff:** `THRESHOLD_BANDS`, from the SciML/technical lead (#42).
-   The evidence is in
-   `docs/development/evidence/admissibility-optimism-2026-10-03/`. Without
-   it, H2 cannot be registered.
+1. **Gate cutoff: resolved.** `THRESHOLD_BANDS = 2.0` (OWNER-GATE-CUTOFF-01,
+   2026-10-03): the SciML/technical lead deferred it to the lead session and
+   the owner approved it. Evidence:
+   `docs/development/evidence/admissibility-optimism-2026-10-03/`.
 2. **Spend: resolved.** OWNER-EV5-CAP-01 (2026-10-03) approves option A: RunPod
    A40 at no more than USD 0.49 per hour, a hard cap of USD 6, counted inside
    the USD 25 L0 cap.
@@ -172,7 +174,7 @@ per hour. EV4 itself cost USD 2.52 in total.
    built and proposed for H3 (§4). It is descriptive, with no cutoff, and the
    SciML lead may amend it before the freeze.
 
-Engineering work before the freeze (it may proceed now; the freeze waits on 1):
+Engineering work before the freeze (the only remaining blocker):
 - condition and panel builders, with tests for freshness and maxima;
 - the `ATTACK_CONSTRUCTION` panel kind;
 - plans and the campaign;
