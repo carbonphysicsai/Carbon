@@ -261,6 +261,23 @@ def test_prepare_gives_the_command_the_miner_runs_in_their_own_wallet():
     )
 
 
+def test_the_registration_command_is_written_from_the_context_it_describes():
+    """The subnet and network come from the context `prepare` validated, so
+    a change to either constant cannot leave the command naming another."""
+    import dataclasses
+
+    context = onboarding.carbon_testnet_context()
+    elsewhere = dataclasses.replace(context, netuid=999)
+    assert "--netuid 999 " in onboarding.register_command(elsewhere)["text"]
+    # The short btcli name only for the endpoint Carbon's testnet pins.
+    moved = dataclasses.replace(context, endpoint="wss://test.example.org:443")
+    assert (
+        "--network wss://test.example.org:443 "
+        in onboarding.register_command(moved)["text"]
+    )
+    assert onboarding.btcli_network(context) == "test"
+
+
 def test_prepare_refuses_an_already_registered_hotkey():
     reader = _Reader(_registered())
     with pytest.raises(onboarding.OnboardingFailure) as caught:

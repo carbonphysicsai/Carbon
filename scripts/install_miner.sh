@@ -19,8 +19,9 @@
 #      environment (scripts/dev/bootstrap.sh) with the groups the documented
 #      commands use: science, chain, archive and MCP;
 #   4. builds the pinned worker and analysis images on this machine, and the
-#      GPU worker with --gpu, or on --update when one was built before;
-#      Carbon publishes no image registry;
+#      GPU worker with --gpu or whenever one was built here before (every
+#      install moves the checkout, so an old GPU worker would no longer match
+#      it); Carbon publishes no image registry;
 #   5. records where those images are, owner-only, for setup to fill in, and
 #      checks setup against them: a compute check made at another revision or
 #      with other images is set aside and checked again where it can be, and
@@ -109,10 +110,17 @@ free_gib() {
   df -Pk -- "$1" 2>/dev/null | awk 'NR == 2 { print int($4 / 1048576) }'
 }
 
-#: need_space PATH GIB WHAT: refuse unless GIB are free where PATH is.
+#: Where the filesystem holding $1 is mounted, or nothing when unreadable.
+mount_of() {
+  df -Pk -- "$1" 2>/dev/null | awk 'NR == 2 { print $6 }'
+}
+
+#: need_space PATH GIB WHAT: refuse unless GIB are free where PATH is. When
+#: df cannot say (it failed, under set -e and pipefail), it says so and goes
+#: on rather than ending the install without a word.
 need_space() {
   local free
-  free="$(free_gib "$1")"
+  free="$(free_gib "$1" || true)"
   if [[ -z "${free}" ]]; then
     echo "Could not read the free space at $1; make sure $2 GiB are free there for $3."
     return 0
@@ -142,17 +150,26 @@ if [[ -f "${STATE_DIR}/owner.lock" ]] && command -v flock >/dev/null 2>&1 \
   && ! flock -n "${STATE_DIR}/owner.lock" true 2>/dev/null; then
   fail "a Control Center is running from ${STATE_DIR}. Stop it first ($(stop_hint)); this install moves the checkout it runs from. Then run this again."
 fi
+# A GPU worker built here before is rebuilt by every install (step 4).
 gpu_space=0
-if [[ "${GPU}" == 1 ]] || { [[ "${UPDATE}" == 1 ]] && {
-  grep -qs '"gpu_image_manifest"' "${STATE_DIR}/installed-images.json" \
-    || [[ -f "${repo_root}/.carbon-artifacts/accelerator-worker-image.json" ]]; }; }; then
+if [[ "${GPU}" == 1 ]] \
+  || grep -qs '"gpu_image_manifest"' "${STATE_DIR}/installed-images.json" \
+  || [[ -f "${repo_root}/.carbon-artifacts/accelerator-worker-image.json" ]]; then
   gpu_space=1
 fi
 need_space "${repo_root}" "${CHECKOUT_GIB}" "Carbon's locked environment and its cache"
 docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
 images_gib=$(( IMAGES_GIB + gpu_space * GPU_GIB ))
 if [[ -n "${docker_root}" && -d "${docker_root}" ]]; then
-  need_space "${docker_root}" "${images_gib}" "Carbon's images"
+  checkout_mount="$(mount_of "${repo_root}" || true)"
+  docker_mount="$(mount_of "${docker_root}" || true)"
+  if [[ -n "${checkout_mount}" && "${checkout_mount}" == "${docker_mount}" ]]; then
+    # One filesystem holds both (WSL's default): it needs room for both.
+    need_space "${docker_root}" "$(( CHECKOUT_GIB + images_gib ))" \
+      "Carbon's locked environment and images (one filesystem holds both)"
+  else
+    need_space "${docker_root}" "${images_gib}" "Carbon's images"
+  fi
 else
   echo "Docker keeps its images outside this filesystem (${docker_root:-not reported}); make sure ${images_gib} GiB are free there."
 fi
@@ -168,7 +185,14 @@ if [[ -n "${CARBON_INSTALL_AT:-}" && "${CARBON_INSTALL_AT}" == "$(git rev-parse 
 else
   dirty="$(git status --porcelain=v1 --untracked-files=all)"
   if [[ -n "${dirty}" ]]; then
-    printf '%s\n' "${dirty}" | head -n 10 >&2
+    # A here-string, not a pipe: with thousands of paths, printf into a head
+    # that has stopped reading dies of SIGPIPE, and set -e would end the
+    # install before it says what to do.
+    head -n 10 <<<"${dirty}" >&2
+    changed="$(wc -l <<<"${dirty}")"
+    if (( changed > 10 )); then
+      echo "... and $(( changed - 10 )) more." >&2
+    fi
     fail "this checkout has local changes (above), and the image build needs it clean: an image's identity is the exact source tree. Set them aside with
   git -C ${repo_root} stash push --include-untracked -m 'set aside by install_miner.sh'
 then run this again. git -C ${repo_root} stash pop brings them back."
@@ -186,6 +210,16 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
     || fail "--ref ${REF} (${target:0:12}) is not in Carbon's main, and setup accepts only a revision in main (clean_accepted_checkout_required). Use --ref main, or a commit or tag on main."
+  if [[ "${UPDATE}" == 1 ]]; then
+    # The installer at the target carries on with these options; one from
+    # before --update existed would refuse it after the checkout had moved.
+    # It knows --update when its option parser has that case label (built
+    # here from parts, so this test does not match its own text).
+    target_installer="$(git show "${target}:scripts/install_miner.sh" 2>/dev/null || true)"
+    update_label="--update"
+    [[ "${target_installer}" == *"${update_label})"* ]] \
+      || fail "the installer at ${target:0:12} has no --update. Run it without --update: ${self} --ref ${REF}"
+  fi
   if [[ "${target}" != "${previous}" ]]; then
     git checkout --quiet --detach "${target}"
     echo "Carbon moved from ${previous:0:12} to ${target:0:12}."
@@ -211,10 +245,13 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/bootstrap.sh
 python="${repo_root}/.venv/bin/python"
 setup_cli=("${python}" -m scripts.dev.miner_launchpad.environment_setup)
 
+# Every install, not only --update: a plain run moves the checkout to the
+# latest main too, and an old GPU worker would then be checked again, and
+# written into the profile, beside images of the new revision.
 gpu_build="${GPU}"
-if [[ "${UPDATE}" == 1 && "${GPU}" == 0 ]] \
+if [[ "${GPU}" == 0 ]] \
   && [[ "$("${setup_cli[@]}" gpu-installed --state-dir "${STATE_DIR}")" == "yes" ]]; then
-  echo "A GPU worker was built here before; this update rebuilds it too."
+  echo "A GPU worker was built here before; this install rebuilds it too."
   gpu_build=1
 fi
 
@@ -271,6 +308,13 @@ if [[ "${SERVICE}" == 1 || -f "${UNIT}" ]]; then
   mkdir -p "$(dirname -- "${UNIT}")"
   "${setup_cli[@]}" service-unit --state-dir "${STATE_DIR}" --port "${PORT}" > "${UNIT}.tmp"
   mv -f "${UNIT}.tmp" "${UNIT}"
+  # The log carries the session token. The unit's UMask covers a log the
+  # service creates; systemd leaves an existing one's mode alone, so this
+  # makes it owner-only either way.
+  log="${STATE_DIR}/control-center.log"
+  [[ ! -L "${log}" ]] || fail "${log} is a symbolic link; remove it, then run this again."
+  ( umask 077 && : >> "${log}" )
+  chmod 600 "${log}"
   systemctl --user daemon-reload
   systemctl --user enable --quiet "${SERVICE_NAME}"
   if [[ "${START}" == 1 ]]; then

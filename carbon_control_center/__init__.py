@@ -10,12 +10,18 @@ this environment was installed from, with the same options, and nothing else:
 the controller binds 127.0.0.1 only and prints its session token. The checkout
 is put on the import path because its `scripts` package is not installed.
 
+Its output is line-buffered. As the user service `install_miner.sh --service`
+installs, the output goes to a file, which Python would block-buffer: the
+session token line would reach the file only when the Control Center exits,
+and the miner reads the token from that file (review finding, 2026-10-03).
+
 It holds no key and imports nothing that could open one: the miner's hotkey
 stays with their own signer.
 """
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 
@@ -37,6 +43,11 @@ def main(argv=None) -> None:
         sys.path.insert(0, str(CHECKOUT))
     if argv is not None:
         sys.argv = [sys.argv[0], *argv]
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            with contextlib.suppress(ValueError, OSError):
+                reconfigure(line_buffering=True)
     from scripts.dev.miner_launchpad import controller
 
     controller.main()

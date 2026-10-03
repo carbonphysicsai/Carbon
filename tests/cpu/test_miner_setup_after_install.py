@@ -23,6 +23,7 @@ the checkout's revision is patched.
 from __future__ import annotations
 
 import json
+import stat
 from pathlib import Path
 
 import pytest
@@ -41,8 +42,11 @@ from scripts.dev.miner_launchpad.environment_setup import (
     INSTALLATION_SCHEMA,
     LOCAL_CPU,
     LOCAL_GPU,
+    RECHECK_STEP,
+    REINSTALL_STEP,
     REMOTE,
     REMOTE_RECHECK,
+    STALE_PROFILE,
     STALE_UNPINNED,
     EnvironmentSetup,
     SetupRefused,
@@ -213,11 +217,98 @@ def test_once_installed_a_check_at_another_revision_is_refused(tmp_path, state, 
     step = refused.value.next_step
     assert "Carbon was installed at " + NEW[:12] in step
     assert "this checkout is at " + REVISION[:12] in step
+    # The checkout moved since the install: only the installer clears that
+    # (review finding, 2026-10-03), so it is the step named.
+    assert step.startswith(REINSTALL_STEP + ": ")
     # A record that is not the installer's is never read past.
     setup.installation_path.write_text("not json")
-    assert setup.state()["steps"]["compute"]["stale"] == [
-        "the installer's record here is unreadable"
+    compute = setup.state()["steps"]["compute"]
+    assert compute["stale"] == ["the installer's record here is unreadable"]
+    assert compute["next_step"] == REINSTALL_STEP
+
+
+def test_a_check_at_a_moved_checkout_names_the_installer_not_a_loop(
+    tmp_path, state, head
+):
+    """Review finding, 2026-10-03: after a `git pull` (or an update whose
+    build failed once the checkout had moved), Review said to check Compute
+    again, but a new check at HEAD is stale again for the same reason while
+    the install record names the old revision. The step is the installer's,
+    and checking again indeed does not clear it."""
+    checks = Reinstalled(REVISION)
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    made = completed(tmp_path, setup)
+    write_private(
+        setup.installation_path,
+        json.dumps(
+            {"schema": INSTALLATION_SCHEMA, "revision": REVISION, "images": {}}
+        ).encode(),
+    )
+    assert setup.state()["steps"]["compute"]["checked"] is True
+    head["revision"] = checks.revision = NEW  # moved by hand
+    compute = setup.state()["steps"]["compute"]
+    assert compute["checked"] is False
+    assert compute["next_step"] == REINSTALL_STEP
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": made["worker.json"],
+            "analysis_image_manifest": made["analysis.json"],
+        }
+    )
+    with pytest.raises(SetupRefused) as refused:
+        setup.review({"confirm": True})
+    assert refused.value.code == "compute_check_is_stale"
+    assert refused.value.next_step.startswith(REINSTALL_STEP + ": ")
+    assert "this checkout is at " + NEW[:12] in refused.value.next_step
+
+
+def test_a_check_that_checking_again_clears_names_setup(tmp_path, state, head):
+    """While the checkout is the installed revision, a check made at another
+    revision or with other images is cleared by checking again: setup's step,
+    not a reinstall."""
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=Reinstalled())
+    made = completed(tmp_path, setup)
+    record = setup._record()
+    record["compute"]["runtime"]["implementation"]["revision"] = NEW
+    setup._save(record)
+    # The installer built its worker image elsewhere than setup checked.
+    installed_worker = tmp_path / "installed-worker.json"
+    installed_worker.write_bytes(Path(made["worker.json"]).read_bytes())
+    write_private(
+        setup.installation_path,
+        json.dumps(
+            {
+                "schema": INSTALLATION_SCHEMA,
+                "revision": REVISION,
+                "images": {"image_manifest": {"path": str(installed_worker)}},
+            }
+        ).encode(),
+    )
+    compute = setup.state()["steps"]["compute"]
+    assert compute["stale"] == [
+        "Carbon was installed at "
+        + REVISION[:12]
+        + " and the check was made at "
+        + NEW[:12],
+        "setup checked another worker image than the one the installer built",
     ]
+    assert compute["next_step"] == RECHECK_STEP
+    with pytest.raises(SetupRefused) as refused:
+        setup.review({"confirm": True})
+    assert refused.value.next_step.startswith(RECHECK_STEP + ": ")
+    # Checking again, at HEAD and with the installer's own worker image, as
+    # setup fills it in, clears both.
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": str(installed_worker),
+            "analysis_image_manifest": made["analysis.json"],
+        }
+    )
+    assert "stale" not in setup.state()["steps"]["compute"]
+    setup.review({"confirm": True})
+    assert profile(setup)["accepted_revision"] == REVISION
 
 
 # --- after the installer ---------------------------------------------------------
@@ -253,6 +344,9 @@ def test_a_reinstall_sets_the_old_check_aside_and_writes_the_profile_again(
     assert cfg["runtime"]["implementation"]["revision"] == NEW
     compute = setup.state()["steps"]["compute"]
     assert compute["checked"] is True and "set_aside" not in compute
+    # The old profile was moved aside, and the new one replaced it.
+    assert report["profile_set_aside"] == STALE_PROFILE
+    assert "profile_set_aside" not in setup._record()
     lines = describe_install(report)
     assert "  Carbon: " + REVISION[:12] + " -> " + NEW[:12] in lines
     assert "  Compute: checked again with the new images." in lines
@@ -309,6 +403,56 @@ def test_an_update_leaves_the_miners_remote_setup_to_them(tmp_path, state, head)
     assert report["next_steps"] == [REMOTE_RECHECK]
     assert len(checks.calls) == calls  # nothing reached
     assert "compute" not in setup._record()
+
+
+def test_a_set_aside_profile_is_moved_where_no_restart_attaches_it(
+    tmp_path, state, head, challenge
+):
+    """Review finding, 2026-10-03: the controller attaches
+    `runner-profile.json` on start whenever it exists, so a remote miner's
+    profile at the old accepted revision was attached after an update while
+    setup said none was written. It is moved aside, owner-only, and the
+    miner's own intake in it is kept for setup to show."""
+    checks = Intakes()
+    setup = EnvironmentSetup(state, onboarding=Onboarding(), checks=checks)
+    completed(tmp_path, setup)
+    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    written = setup.profile_path.read_bytes()
+    record = setup._record()
+    record["compute"]["choice"] = REMOTE
+    setup._save(record)
+    head["revision"] = checks.revision = NEW
+    worker, analysis = rebuild(tmp_path, state, NEW)
+    report = setup.after_install()
+    assert report["compute"] == "set aside"
+    assert report["profile_set_aside"] == STALE_PROFILE
+    # Nothing is left where the controller looks on start.
+    assert not (state / "environment" / "runner-profile.json").exists()
+    stale = state / "environment" / STALE_PROFILE
+    assert stale.read_bytes() == written
+    assert stat.S_IMODE(stale.stat().st_mode) == 0o600
+    assert setup.state()["steps"]["review"]["profile_written"] is False
+    item = setup.state()["steps"]["evaluation"]["challenges"][0]
+    assert item["set_aside_intake"] == OWN
+    assert "name yours again at Review" in item["note"]
+    assert any(
+        "set aside with the compute check" in line for line in describe_install(report)
+    )
+    # Checked again and reviewed with the intake named: a new profile, at
+    # the new revision, and the set-aside marker is gone.
+    setup.compute(
+        {
+            "choice": LOCAL_CPU,
+            "image_manifest": str(worker),
+            "analysis_image_manifest": str(analysis),
+        }
+    )
+    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    assert profile(setup)["accepted_revision"] == NEW
+    assert profile(setup)["intakes"] == {challenge["id"]: OWN}
+    assert "profile_set_aside" not in setup._record()
+    item = setup.state()["steps"]["evaluation"]["challenges"][0]
+    assert "set_aside_intake" not in item
 
 
 def test_an_update_keeps_the_intake_the_miner_named(tmp_path, state, head, challenge):
@@ -404,6 +548,9 @@ def test_review_writes_the_published_endpoint_without_reaching_it(
     written = result["steps"]["evaluation"]["challenges"][0]
     assert (written["intake"], written["source"]) == (URL, "published")
     assert written["receiver_hotkey"] == HOTKEY
+    # Shown for reference: nothing enforces it yet, and setup says so.
+    assert written["receiver_hotkey_note"] == environment.RECEIVER_NOTE
+    assert "receiver_hotkey" not in json.dumps(profile(setup))
 
 
 def test_with_none_published_review_says_so_and_still_writes(

@@ -96,20 +96,37 @@ REGISTER_COMMAND = (
     "btcli subnet register --netuid {netuid} --network {network} "
     "--wallet.name <your wallet name> --wallet.hotkey <your hotkey name>"
 )
-#: The Bittensor CLI's own name for the network an endpoint serves.
-BTCLI_NETWORKS = {"wss://test.finney.opentensor.ai:443": "test"}
+#: The Bittensor CLI's own name for each Carbon network, by
+#: `carbon.chain.models.CARBON_NETWORK`'s name for it.
+BTCLI_NETWORKS = {"testnet": "test"}
+
+
+def btcli_network(context) -> str:
+    """btcli's name for the network `context` reaches, or its endpoint.
+
+    The short name only when the context is the deployment Carbon settled on
+    (`carbon_testnet_context`): the network it names and the endpoint the
+    operator config pins. Any other endpoint is passed through as it is, so
+    the command never names a network other than the one `prepare` checked.
+    """
+    from carbon.development_testnet.operator import DEFAULT_ENDPOINT
+
+    if context.network in BTCLI_NETWORKS and context.endpoint == DEFAULT_ENDPOINT:
+        return BTCLI_NETWORKS[context.network]
+    return context.endpoint
 
 
 def register_command(context) -> dict[str, object]:
     """The registration `prepare` describes, as the command a miner runs.
 
-    Written for `context`: the network is btcli's name for the context's
-    endpoint, or the endpoint itself. Nothing here runs it, and the only
-    inputs are the public subnet and endpoint.
+    Written for `context`, its subnet and network, so the command cannot
+    drift from the context `prepare` validated. Nothing here runs it, and
+    the only inputs are the public subnet and endpoint.
     """
-    network = BTCLI_NETWORKS.get(context.endpoint, context.endpoint)
     return {
-        "text": REGISTER_COMMAND.format(netuid=CARBON_NETUID, network=network),
+        "text": REGISTER_COMMAND.format(
+            netuid=context.netuid, network=btcli_network(context)
+        ),
         "tool": "btcli (the Bittensor CLI), if that is your wallet tooling",
         "fill_in": ["<your wallet name>", "<your hotkey name>"],
         "run_in": (
