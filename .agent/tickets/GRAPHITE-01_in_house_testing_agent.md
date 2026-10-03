@@ -408,6 +408,47 @@ Nothing from that sample is committed.
     `unknown_call_write_off` in `tests/cpu/test_graphite_phase2_mutations.py`
     shows that without the scan a new run resends the call.
   - File: `graphite/triage.py`.
+- **GRAPHITE-D27, a hard deadline on every provider call** (2026-10-02,
+  owner order "Do it now"; numbered D27 because D18-D26 are taken on other
+  branches).
+  - The problem. Twice on 2026-10-02 a live triage call sat with no response
+    for 26 minutes or more, its operation still `RESERVED` (created 19:28:18
+    and 20:00:12 UTC). `model_provider._post` passed `timeout_seconds` (120)
+    to urllib, which applies it to each socket operation separately:
+    connect, proxy CONNECT, TLS handshake and every `recv`. Nothing bounded
+    the whole call. Headers or a body that arrive in pieces, each piece
+    inside 120 s, keep the read alive until the 2 MiB response bound, and DNS
+    resolution has no timeout at all. The rate-limit retry loop is bounded
+    (two resends, at most 30 s apart) and is not the cause. Which of these
+    the live calls hit is not known from the code alone.
+  - The fix. `_post` runs the exchange in a daemon worker thread and joins it
+    for `call_deadline_seconds(settings)`: `timeout_seconds` plus
+    `DEADLINE_MARGIN_SECONDS` (10), so 130 s for triage. The margin admits
+    the connect, handshake and send before the reply wait, so a call that
+    completed within its per-read timeout before still completes. Past the
+    deadline the call's sockets (TCP, and TLS before its handshake) are shut,
+    which unblocks the worker, and `ProviderDeadlineExceeded` is raised. A
+    daemon thread never holds up process exit; a stall inside DNS cannot be
+    shut and ends when the resolver returns.
+  - The outcome. `ProviderDeadlineExceeded` is not an HTTP rejection, so
+    `classify` makes it UNKNOWN: the full reservation stays, nothing is
+    settled and nothing is resent. Triage stops `RECONCILIATION_REQUIRED`
+    and the GRAPHITE-D17 write-off handles the call at the next start.
+  - Every adapter shares `_post`, so the deadline applies to engy-anthropic,
+    engy-chat, chutes, anthropic, openai-responses and both
+    openai-compatible adapters. Per-read timeouts and all replies inside the
+    deadline are unchanged.
+  - Not changed. The elapsed-envelope check still asks that
+    `timeout_seconds` fit the remaining campaign time, so a call can overrun
+    it by at most the 10 s margin. `fetch_models` (an operator check with no
+    reservation) keeps its per-read timeout only.
+  - Tests: `tests/cpu/test_provider_call_deadline.py`. A local HTTPS server
+    stalls before headers, trickles the body a byte at a time, or accepts and
+    never speaks; each call ends within a 0.5 s injected deadline plus 2 s
+    as UNKNOWN, keeps its reservation, is refused on replay and is sent once,
+    and its worker exits. A fast reply is unchanged. The mutation case
+    removes the deadline and shows the stall outliving the bound.
+  - File: `carbon/development_session/model_provider.py`.
 
 **Running phase 2 live** (the grant is complete as of 2026-10-02):
 
