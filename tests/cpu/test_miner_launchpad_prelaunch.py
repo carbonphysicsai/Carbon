@@ -27,6 +27,7 @@ from carbon.development_session.research_ledger import (
 )
 from scripts.dev.miner_launchpad.controller import Controller, Rejected, Server
 from scripts.dev.miner_launchpad.runner import PATH_FIELDS, RunnerAdapter
+from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
 
 def configured_bridge(tmp_path, monkeypatch, *, chain=None):
@@ -224,7 +225,14 @@ def test_paused_direct_http_request_rejects_and_review_requires_auth(
     try:
         assert request("GET", False)[0] == 401
         assert request("GET")[1]["preflight"]["status"] == "OWNER_EXPERIMENT_PAUSE"
-        assert request("POST") == (409, {"error": "research_dispatch_disabled"})
+        # The refusal carries its next step (LP-PROD-C D8, review repair).
+        assert request("POST") == (
+            409,
+            {
+                "error": "research_dispatch_disabled",
+                "next_step": NEXT_ACTIONS["research_dispatch_disabled"],
+            },
+        )
         assert bridge.recent() == []
     finally:
         server.shutdown()

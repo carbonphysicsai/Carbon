@@ -17,6 +17,7 @@ import dataclasses
 import http.client
 import json
 import os
+import sqlite3
 import subprocess
 import threading
 from contextlib import ExitStack
@@ -37,8 +38,10 @@ from scripts.dev.miner_launchpad.controller import (
     LockHeld,
     Rejected,
     Server,
+    error_body,
     failure_answer,
     owner_lock,
+    session_link_supported,
     session_url,
 )
 from scripts.dev.miner_launchpad.journey_fixture import (
@@ -47,6 +50,7 @@ from scripts.dev.miner_launchpad.journey_fixture import (
     reference_burgers_campaign,
 )
 from scripts.dev.miner_launchpad.operations import perform
+from scripts.dev.miner_launchpad.projection import RecordsDiffer
 from scripts.dev.miner_launchpad.runner import (
     CARBON_UPDATED,
     PATH_FIELDS,
@@ -194,6 +198,60 @@ def test_the_gate_reads_what_the_battery_campaign_submits_through(tmp_path):
         assert (refused is None) == (configured is not None), cfg
         answers.append(refused)
     assert answers == ["evaluation_unavailable", None, None, None, None]
+
+
+def test_the_mirror_knows_every_argument_the_battery_campaign_reads(tmp_path):
+    """`evaluation_refusal` mirrors the battery campaign's readers instead of
+    importing them (this runner names no Challenge's module). Any argument
+    those readers start to read that the mirror does not know fails here,
+    so the synchronous gate cannot drift from what submission reads."""
+    from carbon.battery import campaign as battery
+
+    read = set()
+
+    class Recording(SimpleNamespace):
+        def __getattribute__(self, name):
+            if not name.startswith("__"):
+                read.add(name)
+            return super().__getattribute__(name)
+
+    cfg = {"paths": {"miner_public": "/fixture/miner-public.json"}}
+    prepared = SimpleNamespace(
+        args=Recording(**vars(campaign_args(cfg, root=tmp_path)))
+    )
+    battery.evaluation_config(prepared)
+    battery._intake(prepared)
+    # What `runner.validators` and `runner.intakes` read, by name and legacy name.
+    assert read <= {"validators", "intakes", "battery_validator", "battery_intake"}
+    assert {"validators", "intakes"} <= read
+
+
+def test_the_http_door_says_what_to_do_about_a_submit_it_refuses(
+    journey, monkeypatch, tmp_path
+):
+    """Review finding: the synchronous `evaluation_unavailable` came with no
+    next action at either door. The browser's answer now carries it."""
+    evaluated_by_a_validator(monkeypatch)
+    identity = frozen_campaign(journey)
+    server, thread = serve(tmp_path, journey)
+    try:
+        answer = request(
+            server,
+            "POST",
+            "/api/v1/operations/submit",
+            {"campaign": identity, "idempotency_key": "submit-key-0000001"},
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(5)
+    assert answer == (
+        409,
+        {
+            "error": "evaluation_unavailable",
+            "next_step": supervision.NEXT_ACTIONS["evaluation_unavailable"],
+        },
+    )
 
 
 def test_a_submit_refuses_at_once_what_its_thread_would_have(tmp_path):
@@ -592,13 +650,30 @@ def request(server, method, path, body=None):
     ("failure", "reading", "writing"),
     [
         (
-            ValueError("campaign projection association differs"),
+            RecordsDiffer("campaign projection association differs"),
             "campaign_readback_unavailable",
+            "campaign_readback_unavailable",
+        ),
+        (
+            ValueError("private detail"),
+            "campaign_read_failed",
             "operation_not_completed",
         ),
-        (RuntimeError("private detail"), None, "operation_not_completed"),
-        (LockHeld("Another launcher owns this state directory"), None, None),
-        (research_campaign.OperationRefused("evaluation_queued"), None, None),
+        (
+            RuntimeError("private detail"),
+            "campaign_read_failed",
+            "operation_not_completed",
+        ),
+        (
+            LockHeld("Another launcher owns this state directory"),
+            "campaign_busy",
+            "campaign_busy",
+        ),
+        (
+            research_campaign.OperationRefused("evaluation_queued"),
+            "evaluation_queued",
+            "evaluation_queued",
+        ),
     ],
 )
 def test_the_http_door_answers_what_failed_not_reconciliation(
@@ -606,13 +681,11 @@ def test_the_http_door_answers_what_failed_not_reconciliation(
 ):
     """Until 2026-10-03 every ValueError and RuntimeError was answered
     `research_reconciliation_required`, naming a state the campaign was not
-    in. A held lock is campaign_busy; a typed failure is its own code."""
-    expected_code = {
-        LockHeld: "campaign_busy",
-        research_campaign.OperationRefused: "evaluation_queued",
-    }.get(type(failure))
-    reading = reading or expected_code or "campaign_readback_unavailable"
-    writing = writing or expected_code
+    in. A held lock is campaign_busy; a typed failure is its own code; a
+    campaign whose records disagree is `campaign_readback_unavailable`, and
+    one that merely could not be read just now is the milder
+    `campaign_read_failed` (review: an unexpected error was told to launch a
+    new campaign)."""
     server, thread = serve(tmp_path, FailingHost(failure))
     identity = "e" * 32
     try:
@@ -623,20 +696,43 @@ def test_the_http_door_answers_what_failed_not_reconciliation(
         server.shutdown()
         server.server_close()
         thread.join(5)
-    # One error shape on both doors: {error}. The next action for each code
-    # is the refusal catalog's, served once.
-    assert read == (409, {"error": reading})
-    assert wrote == (409, {"error": writing})
+    # Each answer carries its next step (review: a synchronous refusal gave
+    # none), the catalog's fixed text, under the name setup refusals use.
+    next_actions = supervision.NEXT_ACTIONS
+    assert read == (409, {"error": reading, "next_step": next_actions[reading]})
+    assert wrote == (409, {"error": writing, "next_step": next_actions[writing]})
     assert refusals == (200, supervision.catalog())
-    for code in (reading, writing):
-        assert code in refusals[1]["next_actions"]
     assert "private detail" not in json.dumps([read, wrote])
+
+
+def test_an_error_body_carries_the_catalogs_next_step_only():
+    """`next_step` is the catalog's text for a code it names; a setup
+    refusal's own field and step win; an unnamed code stays `{error}`."""
+    assert error_body("campaign_busy") == {
+        "error": "campaign_busy",
+        "next_step": supervision.NEXT_ACTIONS["campaign_busy"],
+    }
+    assert error_body("closed_request_required") == {"error": "closed_request_required"}
+    own = SimpleNamespace(field="address", next_step="Paste your hotkey address.")
+    assert error_body("hotkey_address_required", own) == {
+        "error": "hotkey_address_required",
+        "field": "address",
+        "next_step": "Paste your hotkey address.",
+    }
 
 
 def test_failure_answers_are_closed():
     assert failure_answer(ValueError("x"), reading=True) == (
         409,
         "readback_unavailable",
+    )
+    assert failure_answer(ValueError("x"), reading=True, campaign=True) == (
+        409,
+        "campaign_read_failed",
+    )
+    assert failure_answer(RecordsDiffer("x"), reading=True, campaign=True) == (
+        409,
+        "campaign_readback_unavailable",
     )
     assert failure_answer(KeyError("x"), reading=False) == (
         409,
@@ -653,6 +749,7 @@ def test_failure_answers_are_closed():
         "campaign_busy",
         "campaign_paused",
         "campaign_readback_unavailable",
+        "campaign_read_failed",
         "readback_unavailable",
         "operation_not_completed",
         "profile_changed_since_launch",
@@ -661,6 +758,9 @@ def test_failure_answers_are_closed():
         "task_left_running",
         "the_agent_selects_in_this_campaign",
         "final_exams_used",
+        "campaign_owner_changed",
+        supervision.HANDED_OVER,
+        "withdrawn_when_supervisor_closed",
     ):
         assert code in listed["next_actions"], code
 
@@ -683,6 +783,7 @@ def test_one_unreadable_campaign_never_takes_the_list_down(journey, tmp_path):
     rows = {row["id"]: row for row in journey.recent()}
     assert rows[good]["state"] == "READY"
     assert rows[bad]["state"] == "READBACK_UNAVAILABLE"
+    assert rows[bad]["code"] == "campaign_readback_unavailable"
     assert (
         rows[bad]["next_action"]
         == supervision.NEXT_ACTIONS["campaign_readback_unavailable"]
@@ -696,7 +797,33 @@ def test_one_unreadable_campaign_never_takes_the_list_down(journey, tmp_path):
         server.server_close()
         thread.join(5)
     assert listed[0] == 200 and len(listed[1]["runs"]) == 2
-    assert one == (409, {"error": "campaign_readback_unavailable"})
+    assert one == (
+        409,
+        {
+            "error": "campaign_readback_unavailable",
+            "next_step": supervision.NEXT_ACTIONS["campaign_readback_unavailable"],
+        },
+    )
+    # A failure that may pass (a busy database) is never advice to abandon
+    # the campaign (review nit): it is `campaign_read_failed`.
+    real = journey.get
+
+    def busy(identity):
+        if identity == good:
+            raise sqlite3.OperationalError("database is locked")
+        return real(identity)
+
+    journey.get = busy
+    try:
+        rows = {row["id"]: row for row in journey.recent()}
+    finally:
+        del journey.get
+    assert (rows[good]["state"], rows[good]["code"]) == (
+        "READBACK_UNAVAILABLE",
+        "campaign_read_failed",
+    )
+    assert rows[good]["next_action"] == supervision.NEXT_ACTIONS["campaign_read_failed"]
+    assert rows[bad]["code"] == "campaign_readback_unavailable"
 
 
 # --- item 10 / D14: the session link --------------------------------------------
@@ -713,6 +840,27 @@ def test_the_session_link_keeps_the_token_in_its_fragment():
         "",
     )
     assert parts.fragment == "token=token_0123-abc"
+
+
+def test_the_session_link_is_printed_only_once_the_page_reads_it(tmp_path):
+    """Review finding: a page that does not read `#token=` would keep the
+    printed link's token in its saved route and history, and not connect.
+    So the link is printed only once the page declares, in its own head,
+    that it reads the fragment (slice F), whatever order the two land in."""
+    page = tmp_path / "index.html"
+    page.write_text('<head><meta charset="utf-8"></head>', encoding="utf-8")
+    assert not session_link_supported(page)
+    page.write_text(
+        '<head><meta name="carbon-session-link"  content="fragment-v1"></head>',
+        encoding="utf-8",
+    )
+    assert session_link_supported(page)
+    for other in ('content="fragment-v2"', 'content="yes"'):
+        page.write_text(
+            f'<head><meta name="carbon-session-link" {other}></head>', encoding="utf-8"
+        )
+        assert not session_link_supported(page)
+    assert not session_link_supported(tmp_path / "missing.html")
 
 
 # --- helpers ---------------------------------------------------------------------

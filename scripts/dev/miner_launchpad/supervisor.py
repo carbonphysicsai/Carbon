@@ -27,13 +27,25 @@ database, released by the OS when its process exits. Only the holder starts
 queued work, and only the holder recovers campaigns a dead process left
 behind, because only then is every earlier holder known to be gone.
 
+**A Control Center that starts while a detached supervisor holds the lock
+takes over** (the handover): it holds a second OS lock, its presence, for as
+long as it runs. A detached supervisor that sees it starts nothing more,
+pauses Carbon's agent in each campaign it runs (`paused_for_handover`), lets
+the miner's operations finish, then releases the lock and exits; the Control
+Center takes the lock and resumes what was paused for it. Until then the
+Control Center queues its own work like a client, and if it closes first,
+what it admitted is withdrawn or paused, as closing it would pause what it
+supervised.
+
 The queue (`launchpad_dispatch`, in the runner's own database) holds what a
 client admitted, not authority: the supervisor re-reads the runner profile,
 refuses an item admitted under a different profile, and re-reads the chain for
 a launch it rebuilds (`RunnerAdapter._recorded_launch`). A claimed item is
 never started twice. One whose supervisor died is marked interrupted and never
 replayed: the campaign's ledger, not the queue, says what may have been
-dispatched.
+dispatched. (A launch that died before it was prepared, with nothing
+outstanding, is carried out again once, as a new item: nothing could have been
+dispatched for it. See `RunnerAdapter._redispatch_stranded`.)
 
 `INLINE` is the historical single-process behaviour, kept for fixtures and
 tests that drive a host directly: it starts its own threads and recovers at
@@ -77,6 +89,10 @@ CLOSE_JOIN_SECONDS = 5.0
 #: Queue item states. A QUEUED item is admitted and not started; RUNNING was
 #: claimed by one supervisor; DONE never runs again.
 QUEUED, RUNNING, DONE = "QUEUED", "RUNNING", "DONE"
+#: The `last_refusal` a detached supervisor records on a campaign whose agent
+#: it paused so a starting Control Center could take it over. Only a Control
+#: Center resumes it; any other supervisor keeps the pause (D4).
+HANDED_OVER = "paused_for_handover"
 #: What a queue item carries out: the campaign's run (a launch or resume), or
 #: one of a miner's operations.
 OPERATIONS = ("run", "practice", "freeze_candidate", "submit")
@@ -134,6 +150,15 @@ NEXT_ACTIONS = {
         "The Control Center (or the supervisor running this campaign) closed, "
         "so the campaign was paused, not stopped. Resume it to continue."
     ),
+    "paused_for_handover": (
+        "Paused for a moment so the Control Center could take this campaign "
+        "over from the background supervisor running it; the Control Center "
+        "resumes it on its own once it has it. If it stays paused, resume it."
+    ),
+    "withdrawn_when_supervisor_closed": (
+        "The Control Center closed before this request started, so it was "
+        "withdrawn and nothing ran. Send it again."
+    ),
     # Launch and profile.
     "launch_choices_unrecorded": (
         "This launch was recorded before its choices were kept, so it cannot "
@@ -168,6 +193,10 @@ NEXT_ACTIONS = {
         "This campaign's records could not be read back consistently. Nothing "
         "was changed. Export its record if you need it, and launch a new "
         "campaign to continue."
+    ),
+    "campaign_read_failed": (
+        "This campaign could not be read just now. Nothing was changed. Reload "
+        "the page; if it persists, restart the Control Center."
     ),
     "operation_not_completed": (
         "The request did not complete. Observe the campaign: its state and "
@@ -295,8 +324,13 @@ NEXT_ACTIONS = {
         "used. Check it under Set up your environment, Compute, then try again."
     ),
     "session_unavailable": (
-        "This campaign's authenticated session is missing or its owner "
-        "changed. Resume the campaign once so it is prepared, then attach."
+        "This campaign has no prepared authenticated session yet. Resume the "
+        "campaign once so it is prepared, then attach."
+    ),
+    "campaign_owner_changed": (
+        "Your signer authenticates as another miner than the one this "
+        "campaign was launched under. Attach with the hotkey and signer that "
+        "launched it, or launch a new campaign; this one stays readable."
     ),
     "registration_check_failed": (
         "Your hotkey's registration could not be confirmed on the subnet. "
@@ -386,18 +420,22 @@ def read_refusal(stored):
     return entry if entry["code"] == value["code"] else None
 
 
-def recovery_actions(state, in_flight=None):
+def recovery_actions(state, in_flight=None, *, resumable=True):
     """What gets a campaign moving again from `state`, as operations a door
-    can call: `[{"action", "operation"}]`, empty when nothing is needed."""
-    resume = {"action": "resume", "operation": "resume"}
+    can call: `[{"action", "operation"}]`, empty when nothing is needed.
+
+    `resumable` is False for a campaign nothing resumes - one launched under
+    the retired grant, or on a retired Challenge - whose resume is always
+    refused: it is offered only what can succeed (stop, reconcile)."""
+    resume = [{"action": "resume", "operation": "resume"}] if resumable else []
     stop = {"action": "stop", "operation": "halt"}
     if state == "RECONCILIATION_REQUIRED":
         return [{"action": "reconcile", "operation": "halt"}, stop]
     if state in ("INTERRUPTED", "PAUSED", "PAUSE_REQUESTED"):
-        return [resume, stop]
+        return [*resume, stop]
     if state == "QUEUED" and in_flight is None:
         # Admitted and nothing carrying it out: resume dispatches it again.
-        return [resume, stop]
+        return [*resume, stop]
     return []
 
 
@@ -467,6 +505,26 @@ def finish(db, seq, outcome):
     )
 
 
+def withdraw(db, seq):
+    """Withdraw a QUEUED item no supervisor has claimed. True when withdrawn;
+    False when one claimed it first (it is then that supervisor's)."""
+    return (
+        db.execute(
+            "UPDATE launchpad_dispatch SET state=?,outcome=?,finished=? WHERE seq=? AND state=?",
+            (DONE, "withdrawn", time.time(), seq, QUEUED),
+        ).rowcount
+        == 1
+    )
+
+
+def interrupted_runs(db, *, principal, campaign):
+    """How many of the campaign's runs a dead supervisor left unfinished."""
+    return db.execute(
+        "SELECT COUNT(*) FROM launchpad_dispatch WHERE principal=? AND campaign=? AND operation='run' AND outcome='interrupted'",
+        (principal, campaign),
+    ).fetchone()[0]
+
+
 def active(db, *, principal, campaign):
     """The newest item admitted for `campaign` and not yet done, or None."""
     row = db.execute(
@@ -509,6 +567,13 @@ def lock_directory(database, principal):
     return Path(database).parent / (
         ".supervisor-" + digest(canonical([str(principal)]))[7:23]
     )
+
+
+def presence_directory(database, principal):
+    """Where a running Control Center's presence lock lives: beside the
+    supervisor lock. Held for the Control Center's whole life, so a detached
+    supervisor knows to hand over to it."""
+    return lock_directory(database, principal) / "control-center"
 
 
 class SupervisorLock:
@@ -612,6 +677,12 @@ class Supervisor:
     supervisor left, once per acquisition), then start every queued item.
     The Control Center runs `start` (a daemon thread, until closed); a
     detached supervisor runs `run_until_idle`.
+
+    The handover: a Control Center's `tick` also holds its presence lock; a
+    detached supervisor's `tick` that finds it held starts nothing more and
+    hands over (`RunnerAdapter.hand_over`), releasing the lock once nothing of
+    its own is working. The Control Center's next `tick` takes the lock,
+    recovers, and resumes what was paused for it (`RunnerAdapter.take_over`).
     """
 
     def __init__(
@@ -624,18 +695,37 @@ class Supervisor:
     ):
         self.host = host
         self.lock = SupervisorLock(lock_directory(host.database, host.principal))
+        self.presence_directory = presence_directory(host.database, host.principal)
+        #: The Control Center's presence (SUPERVISOR only), held while it runs.
+        self.presence = (
+            SupervisorLock(self.presence_directory) if host.role == SUPERVISOR else None
+        )
         self.poll, self.idle_exit, self.acquire_wait = poll, idle_exit, acquire_wait
         self.wakeup = threading.Event()
         self.stopping = threading.Event()
         self.thread = None
         self.tick_lock = threading.Lock()
+        #: DETACHED: a Control Center is running and this supervisor is
+        #: handing over to it; `handed_over` once it released the lock to it.
+        self.handing_over = False
+        self.handed_over = False
 
     @property
     def held(self):
         return self.lock.held
 
+    def control_center_running(self):
+        """Whether a Control Center for this runner holds its presence lock.
+        Probed by taking it for an instant; a Control Center that meets the
+        probe takes it on its next pass."""
+        return supervisor_alive(self.presence_directory)
+
     def acquire(self, wait=0.0):
-        """Hold the lock; on taking it, recover what an earlier holder left."""
+        """Hold the lock; on taking it, recover what an earlier holder left.
+
+        A detached supervisor that takes it with no Control Center running
+        leaves what was paused to hand over to one paused, and says why
+        (D4)."""
         if self.lock.held:
             return True
         if not self.lock.try_acquire(wait):
@@ -644,13 +734,42 @@ class Supervisor:
         # not settle is settled by the next one, or by its miner.
         with contextlib.suppress(Exception):
             self.host.recover(redispatch=True)
+        if self.presence is None:
+            with contextlib.suppress(Exception):
+                if not self.control_center_running():
+                    self.host.release_handover_pauses()
         return True
 
     def tick(self, wait=0.0):
-        """Start every queued item, if this process holds (or takes) the lock."""
+        """Start every queued item, if this process holds (or takes) the lock.
+
+        A detached supervisor that finds a Control Center running starts
+        nothing: it hands over, and answers False. A Control Center holding
+        the lock resumes, on each pass, what was paused to hand over to it
+        once the process that paused it is gone (`RunnerAdapter.take_over`)."""
         with self.tick_lock:
+            if self.presence is not None:
+                with contextlib.suppress(Exception):
+                    self.presence.try_acquire()
+            elif self.host.role == DETACHED:
+                if self.control_center_running():
+                    if self.lock.held:
+                        self.handing_over = True
+                        if self.host.hand_over():
+                            self.lock.release()
+                            self.handed_over = True
+                    return False
+                if self.handing_over:
+                    # The Control Center closed before it took over: what was
+                    # paused for it stays paused, as closing it pauses (D4).
+                    self.handing_over = False
+                    with contextlib.suppress(Exception):
+                        self.host.release_handover_pauses()
             if not self.acquire(wait):
                 return False
+            if self.presence is not None:
+                with contextlib.suppress(Exception):
+                    self.host.take_over()
             with self.host.db() as db:
                 items = claim(
                     db, principal=self.host.principal, supervisor=self.host.token
@@ -681,22 +800,31 @@ class Supervisor:
         self.thread.start()
 
     def idle(self):
-        """No queued item and no live campaign thread in this process."""
+        """No queued item and no campaign thread here still working.
+
+        A run parked at its campaign's checkpoint while the campaign is
+        paused (`RunnerAdapter.busy_threads`) does not count: it waits for a
+        resume that a new run carries out anywhere, so exiting loses nothing.
+        Before this, one paused autonomous campaign kept a detached
+        supervisor alive for as long as it stayed paused."""
         with self.host.db() as db:
             waiting = queued(db, principal=self.host.principal)
-        return not waiting and not self.host.live_threads()
+        return not waiting and not self.host.busy_threads()
 
     def run_until_idle(self, clock=time.monotonic):
         """A detached supervisor's life: take the lock, work, and exit once
-        idle for `idle_exit` seconds. Returns False when another supervisor
-        held the lock throughout (it drains the queue instead)."""
+        idle for `idle_exit` seconds, or once it has handed over to a
+        Control Center. Returns False when it never held the lock (another
+        supervisor, or a running Control Center, carries the work out)."""
         if not self.tick(self.acquire_wait):
-            return False
+            return self.handed_over
         idle_since = None
         while not self.stopping.is_set():
             with contextlib.suppress(Exception):
                 self.tick()
-            if not self.idle():
+            if self.handed_over:
+                return True
+            if self.handing_over or not self.idle():
                 idle_since = None
             else:
                 idle_since = clock() if idle_since is None else idle_since
@@ -708,10 +836,15 @@ class Supervisor:
 
     def _retire(self):
         """Release the lock, then look once more: work queued in between is
-        taken back (or left to whoever took the lock). True when retired."""
+        taken back (or left to whoever took the lock, or to a Control Center
+        now running). True when retired."""
         self.lock.release()
         with contextlib.suppress(Exception):
-            if not self.idle() and self.acquire(self.acquire_wait):
+            if (
+                not self.idle()
+                and not self.control_center_running()
+                and self.acquire(self.acquire_wait)
+            ):
                 return False
         return True
 
@@ -722,7 +855,11 @@ class Supervisor:
             self.thread.join(timeout=5)
 
     def release(self):
+        """Release the lock, then the presence: a detached supervisor that
+        sees the presence go hands nothing over any more."""
         self.lock.release()
+        if self.presence is not None:
+            self.presence.release()
 
 
 def main(argv=None):

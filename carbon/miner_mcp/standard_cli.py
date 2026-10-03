@@ -262,10 +262,13 @@ def _connection(profile, paths):
             miner_network=paths.get("miner_network"),
         )
         public = json.loads(private_file(paths["miner_public"]).read_bytes())
+        # A public record without these is the profile's to fix, not a
+        # runtime that is unavailable.
+        netuid, hotkey = public["netuid"], public["hotkey"]
     differs = "existing miner differs from the registered miner"
-    if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
+    if netuid != CARBON_NETUID or config.netuid != CARBON_NETUID:
         raise AttachRefused("registration_wrong_network", differs)
-    if public["hotkey"] != profile.registered_hotkey:
+    if hotkey != profile.registered_hotkey:
         raise AttachRefused("miner_differs_from_campaign", differs)
     # The miner's own signer holds the hotkey; Carbon only reaches it. A
     # signer failure names itself (`SignerCode`); anything else is the
@@ -559,8 +562,10 @@ async def attached_profile(profile: OperatorProfile):
         with _check("registration_check_failed"):
             owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
+            # Resuming would not fix this: preparation refuses the same
+            # change. The campaign needs the miner it was launched under.
             raise AttachRefused(
-                "session_unavailable", "authenticated campaign owner changed"
+                "campaign_owner_changed", "authenticated campaign owner changed"
             )
         if not cleanup_only:
             # Must match the existing immutable record.

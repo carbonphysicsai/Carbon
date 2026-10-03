@@ -20,12 +20,13 @@ import json
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from carbon.development_session import research_campaign
+from carbon.development_session import research_campaign, research_control
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
@@ -372,6 +373,136 @@ def test_an_admitted_launch_nothing_carried_out_is_redispatched_with_its_choices
     assert (manifest["agent"], manifest["challenge"]) == ("none", FIXTURE_CHALLENGE)
 
 
+def test_an_orphaned_launch_never_prepared_is_carried_out_again_once(journey):
+    """Review finding: the supervisor that claimed the launch died while
+    preparing it. Recovery re-queued it from a row read before it recorded the
+    interruption, so the campaign ran to READY still reading
+    `campaign_interrupted` ("Resume it"). It is carried out again - nothing
+    could have been dispatched before its manifest - and the interruption is
+    history once it is."""
+    client = journey.peer(supervision.CLIENT)
+    identity = launch(client)["id"]
+    root = campaign_root(client, identity)
+    with client.db() as db:
+        db.execute(
+            "UPDATE launchpad_dispatch SET state='RUNNING', supervisor='sup-dead', claimed=1"
+        )
+    CampaignControl(CampaignLedger(root)).acquire()  # died while preparing
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    queued = supervisor.get(identity)
+    assert queued["last_refusal"] is None  # being carried out, not interrupted
+    join(supervisor)
+    supervisor.supervisor.tick()
+    join(supervisor)
+    view = supervisor.get(identity)
+    assert view["state"] == "READY" and view["last_refusal"] is None
+    assert (root / "campaign-manifest.json").exists()
+    assert [(d["operation"], d["outcome"]) for d in dispatches(supervisor)] == [
+        ("run", "interrupted"),
+        ("run", "finished"),
+    ]
+
+
+def test_a_launch_interrupted_again_waits_for_its_miner(journey):
+    """Carried out again once, it died again: preparation itself may be what
+    ends the process, so recovery does not try a third time on its own. It
+    keeps its interruption, and Resume carries it out."""
+    client = journey.peer(supervision.CLIENT)
+    identity = launch(client)["id"]
+    root = campaign_root(client, identity)
+    with client.db() as db:
+        db.execute(
+            "UPDATE launchpad_dispatch SET state='DONE', outcome='interrupted', supervisor='sup-dead-1'"
+        )
+        supervision.enqueue(
+            db,
+            principal="alice",
+            campaign=identity,
+            operation="run",
+            params={},
+            config_digest="sha256:again",
+            state=supervision.RUNNING,
+            supervisor="sup-dead-2",
+        )
+    CampaignControl(CampaignLedger(root)).acquire()
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    join(supervisor)
+    view = supervisor.get(identity)
+    assert view["state"] == "INTERRUPTED"
+    assert view["last_refusal"]["code"] == "campaign_interrupted"
+    assert view["recovery"] == [RESUME, STOP]
+    assert [d["outcome"] for d in dispatches(supervisor)] == [
+        "interrupted",
+        "interrupted",
+    ]
+    assert not (root / "campaign-manifest.json").exists()
+    supervisor.control(identity, "resume")
+    join(supervisor)
+    assert supervisor.get(identity)["state"] == "READY"
+
+
+def test_a_run_settled_paused_keeps_why_it_was_paused(journey):
+    """A run left mid-flight with a pause asked - its Control Center closed,
+    or a handover - settles PAUSED and keeps that reason, rather than being
+    retold it was interrupted."""
+    host = journey.host
+    identity = launch(host)["id"]
+    join(host)
+    control = CampaignControl(CampaignLedger(campaign_root(host, identity)))
+    control.acquire()
+    control.request("pause")
+    host._refused(identity, "paused_when_supervisor_closed", None, kind="paused")
+    with host.db() as db:
+        supervision.enqueue(
+            db,
+            principal="alice",
+            campaign=identity,
+            operation="run",
+            params={},
+            config_digest="sha256:closed",
+            state=supervision.RUNNING,
+            supervisor="sup-closed",
+        )
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    view = supervisor.get(identity)
+    assert view["state"] == "PAUSED"
+    assert view["last_refusal"]["code"] == "paused_when_supervisor_closed"
+
+
+def test_an_operation_left_waiting_at_a_pause_is_reported(journey):
+    """A practice that reached the campaign's pause before it dispatched
+    anything, in a process that then exited: it never ran. The campaign
+    stays PAUSED and says the practice did not finish, so it is sent again
+    rather than silently lost."""
+    host = journey.host
+    identity = launch(host)["id"]
+    join(host)
+    assert host.control(identity, "pause")["state"] == "PAUSED"
+    with host.db() as db:
+        supervision.enqueue(
+            db,
+            principal="alice",
+            campaign=identity,
+            operation="practice",
+            params={},
+            config_digest="sha256:parked",
+            state=supervision.RUNNING,
+            supervisor="sup-exited",
+        )
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    view = supervisor.get(identity)
+    assert view["state"] == "PAUSED"
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"]) == (
+        "operation_interrupted",
+        "practice",
+    )
+
+
 def test_a_launch_without_its_recorded_choices_never_falls_to_another_path(journey):
     """Before 2026-10-03 resuming an unprepared launch ran with no product,
     which is the retired grant path. Now it is refused by name."""
@@ -575,22 +706,303 @@ def test_a_credential_refusal_settles_rather_than_leaving_the_run_in_flight(
 
 
 def test_one_supervisor_holds_the_lock_and_a_detached_one_retires_when_idle(journey):
+    """(Until the handover this test used a Control Center as the second
+    supervisor and let the detached one carry out its launch; a running
+    Control Center is now handed the work instead - see the handover tests
+    below - so the second supervisor here is another detached one.)"""
     detached = journey.peer(supervision.DETACHED)
     detached.supervisor.poll, detached.supervisor.idle_exit = 0.05, 0.2
-    control_center = journey.peer(supervision.SUPERVISOR)
+    other = journey.peer(supervision.DETACHED)
     directory = supervision.lock_directory(journey.host.database, "alice")
     assert detached.supervisor.tick()
-    assert not control_center.supervisor.tick()  # one holder at a time
+    assert not other.supervisor.tick()  # one holder at a time
     assert supervision.supervisor_alive(directory)
-    # While it does not hold the lock, the Control Center queues its work.
-    identity = launch(control_center)["id"]
-    assert control_center.threads == {}
+    client = journey.peer(supervision.CLIENT)
+    identity = launch(client)["id"]
+    assert client.threads == {}
     assert detached.supervisor.run_until_idle() is True
     join(detached)
     assert not detached.supervisor.held
     assert not supervision.supervisor_alive(directory)
+    assert client.get(identity)["state"] == "READY"
+    assert other.supervisor.tick()  # the next supervisor takes over
+
+
+# --- the handover: a Control Center started after a detached supervisor -------
+
+
+def practices_of(host, identity):
+    return [
+        (d["state"], d["outcome"])
+        for d in dispatches(host)
+        if d["campaign"] == identity and d["operation"] == "practice"
+    ]
+
+
+def slow_practice_fixture(monkeypatch):
+    """A practice that runs until its gate opens; entered once it started."""
+    entered, gate = threading.Event(), threading.Event()
+
+    async def slow_practice(prepared, **kwargs):
+        entered.set()
+        await asyncio.to_thread(gate.wait, 20)
+        return {"status": "SUCCEEDED"}
+
+    monkeypatch.setattr(research_campaign, "practice_recipe", slow_practice)
+    return entered, gate
+
+
+def test_a_control_center_takes_over_from_a_detached_supervisor(journey, monkeypatch):
+    """The review's case: a Control Center started while a detached
+    supervisor held the lock stayed a client for as long as that process
+    lived - its own launch ran there, and closing it paused nothing. Now the
+    detached supervisor starts nothing more, lets the miner's practice finish
+    (it is never cut off), and hands the lock over; the Control Center then
+    carries out what it queued."""
+    detached = journey.peer(supervision.DETACHED)
+    assert detached.supervisor.tick()
+    identity = launch(detached)["id"]
+    join(detached)
+    entered, gate = slow_practice_fixture(monkeypatch)
+    perform(detached, "practice", practice(identity, "practice-key-00001"))
+    assert entered.wait(20)
+    control_center = journey.peer(supervision.SUPERVISOR)
+    assert not control_center.supervisor.tick()  # present; the lock is held
+    second = launch(control_center, key="launch-key-0000002")["id"]
+    assert control_center.threads == {}
+    assert not detached.supervisor.tick()  # handing over: claims nothing
+    assert detached.supervisor.held and detached.supervisor.handing_over
+    assert [d["state"] for d in dispatches(detached) if d["campaign"] == second] == [
+        "QUEUED"
+    ]
+    gate.set()
+    join(detached)
+    assert not detached.supervisor.tick()  # nothing of its own working: released
+    assert detached.supervisor.handed_over and not detached.supervisor.held
+    assert control_center.supervisor.tick()
+    join(control_center)
+    assert control_center.get(second)["state"] == "READY"
     assert control_center.get(identity)["state"] == "READY"
-    assert control_center.supervisor.tick()  # the next supervisor takes over
+    assert practices_of(control_center, identity) == [("DONE", "finished")]
+    assert list(control_center.threads) == [second]  # carried out here
+
+
+class ProcessGone(Exception):
+    """Stands in, in one test process, for the detached process exiting."""
+
+
+def test_a_detached_supervisor_hands_carbons_agent_over_to_the_control_center(
+    journey, monkeypatch
+):
+    """Carbon's agent pauses at its next checkpoint - between bounded
+    operations, never mid-call - and the detached supervisor releases the
+    lock once its run is parked there: a parked run holds nothing a process
+    must keep, so it is not waited for, and it no longer keeps a detached
+    supervisor alive while its campaign stays paused. The Control Center
+    resumes it only once that run's process is gone: resuming earlier would
+    wake the run in a process about to exit."""
+    entered, gone = threading.Event(), threading.Event()
+    calls = []
+
+    async def run_agent(prepared):
+        control = CampaignControl(prepared.ledger)
+        calls.append(1)
+        entered.set()
+        try:
+            while not gone.is_set():
+                # The agent's real checkpoint: parks while the campaign is
+                # paused.
+                control.checkpoint(prepared.ledger.generation)
+                await asyncio.sleep(0.02)
+        except ProcessGone:
+            return
+
+    real_sleep = time.sleep
+
+    def parked_sleep(seconds):
+        if gone.is_set():
+            raise ProcessGone
+        real_sleep(seconds)
+
+    monkeypatch.setattr(research_campaign, "run_agent", run_agent)
+    monkeypatch.setattr(research_control, "time", SimpleNamespace(sleep=parked_sleep))
+    detached = journey.peer(supervision.DETACHED)
+    assert detached.supervisor.tick()
+    identity = launch(detached, agent="autonomous")["id"]
+    assert entered.wait(20)
+    assert detached.busy_threads() == [identity]
+    control_center = journey.peer(supervision.SUPERVISOR)
+    assert not control_center.supervisor.tick()
+    deadline = time.monotonic() + 20
+    while not detached.supervisor.handed_over and time.monotonic() < deadline:
+        detached.supervisor.tick()
+        real_sleep(0.05)
+    assert detached.supervisor.handed_over and not detached.supervisor.held
+    root = campaign_root(detached, identity)
+
+    def status():
+        value = CampaignControl(CampaignLedger(root)).status()
+        return value["desired"], value["state"]
+
+    assert status() == ("PAUSE", "PAUSED")
+    refused = detached.get(identity)["last_refusal"]
+    assert (refused["code"], refused["kind"]) == (supervision.HANDED_OVER, "paused")
+    # Parked: alive until its process exits, but nothing to wait for.
+    assert detached.live_threads() == [identity] and detached.busy_threads() == []
+    assert detached.supervisor.idle()
+    # The Control Center holds the lock now, but the parked run's process
+    # has not exited: nothing is resumed yet.
+    assert control_center.supervisor.tick()
+    assert status() == ("PAUSE", "PAUSED") and len(calls) == 1
+    assert control_center.get(identity)["last_refusal"]["code"] == (
+        supervision.HANDED_OVER
+    )
+    gone.set()  # the detached process exits
+    join(detached)
+    assert control_center.supervisor.tick()
+    join(control_center)
+    assert len(calls) == 2  # Carbon's agent carried on in the Control Center
+    assert control_center.get(identity)["last_refusal"] is None
+    runs = [d for d in dispatches(control_center) if d["campaign"] == identity]
+    assert [(d["supervisor"], d["outcome"]) for d in runs] == [
+        (detached.token, "interrupted"),
+        (control_center.token, "finished"),
+    ]
+
+
+def pause_as_a_departed_supervisor_left_it(host, identity):
+    """What a detached supervisor that paused Carbon's agent and exited
+    leaves: the run parked at its checkpoint (settled PAUSED) and its queue
+    item still RUNNING under a process that is gone."""
+    ledger = CampaignLedger(campaign_root(host, identity))
+    control = CampaignControl(ledger)
+    generation = control.acquire()
+    control.request("pause")
+    assert control.settled(generation, cleanup_verified=True) == "PAUSED"
+    with host.db() as db:
+        supervision.enqueue(
+            db,
+            principal="alice",
+            campaign=identity,
+            operation="run",
+            params={},
+            config_digest="sha256:departed",
+            state=supervision.RUNNING,
+            supervisor="sup-departed-detached",
+        )
+
+
+def test_a_control_center_resumes_what_was_paused_for_it(journey, monkeypatch):
+    """Opening the Control Center never leaves a running campaign paused: what
+    was paused to hand it over is resumed once it holds the lock, exactly as
+    a Resume would. A campaign its miner paused stays paused."""
+    started = []
+
+    async def run_agent(prepared):
+        started.append(1)
+
+    monkeypatch.setattr(research_campaign, "run_agent", run_agent)
+    host = journey.host
+    handed = launch(host, agent="autonomous")["id"]
+    paused = launch(host, key="launch-key-0000002", agent="autonomous")["id"]
+    join(host)
+    assert len(started) == 2
+    for identity in (handed, paused):
+        pause_as_a_departed_supervisor_left_it(host, identity)
+    host._refused(handed, supervision.HANDED_OVER, None, kind="paused")
+    control_center = journey.peer(supervision.SUPERVISOR)
+    assert control_center.supervisor.tick()
+    join(control_center)
+    assert len(started) == 3  # the handed-over agent carried on here
+    assert control_center.get(handed)["last_refusal"] is None
+    carried = [d for d in dispatches(control_center) if d["campaign"] == handed]
+    assert [(d["supervisor"], d["outcome"]) for d in carried][-2:] == [
+        ("sup-departed-detached", "interrupted"),
+        (control_center.token, "finished"),
+    ]
+    assert control_center.get(paused)["state"] == "PAUSED"
+
+
+def test_without_a_control_center_a_handover_pause_stays_a_pause(journey):
+    """The Control Center went away before it took over: a detached
+    supervisor never resumes what was paused for it, and says why as closing
+    the Control Center would (D4)."""
+    host = journey.host
+    identity = launch(host)["id"]
+    join(host)
+    assert host.control(identity, "pause")["state"] == "PAUSED"
+    host._refused(identity, supervision.HANDED_OVER, None, kind="paused")
+    detached = journey.peer(supervision.DETACHED)
+    assert detached.supervisor.tick()
+    join(detached)
+    view = detached.get(identity)
+    assert view["state"] == "PAUSED"
+    assert view["last_refusal"]["code"] == "paused_when_supervisor_closed"
+    assert detached.threads == {}
+
+
+def test_closing_a_control_center_before_it_took_over_leaves_nothing_running(
+    journey, monkeypatch
+):
+    """D4 for work a Control Center admitted while it was not yet the
+    supervisor: what no supervisor started is withdrawn (its launch then
+    waits, paused, for Resume); the detached supervisor carries on only what
+    was its own."""
+    detached = journey.peer(supervision.DETACHED)
+    assert detached.supervisor.tick()
+    ready = launch(detached)["id"]
+    join(detached)
+    entered, gate = slow_practice_fixture(monkeypatch)
+    perform(detached, "practice", practice(ready, "practice-key-00001"))
+    assert entered.wait(20)
+    control_center = journey.peer(supervision.SUPERVISOR)
+    assert not control_center.supervisor.tick()
+    queued = launch(control_center, key="launch-key-0000002")["id"]
+    assert not detached.supervisor.tick()  # handing over: nothing claimed
+    control_center.close()
+    view = detached.get(queued)
+    assert view["state"] == "QUEUED" and view["in_flight"] is None
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"], refused["kind"]) == (
+        "paused_when_supervisor_closed",
+        "run",
+        "paused",
+    )
+    assert view["recovery"] == [RESUME, STOP]
+    (item,) = [d for d in dispatches(detached) if d["campaign"] == queued]
+    assert (item["state"], item["outcome"]) == ("DONE", "withdrawn")
+    gate.set()
+    assert detached.supervisor.tick()  # no Control Center: supervising again
+    join(detached)
+    assert detached.get(ready)["state"] == "READY"
+    assert practices_of(detached, ready) == [("DONE", "finished")]
+    assert not (campaign_root(detached, queued) / "campaign-manifest.json").exists()
+    detached.control(queued, "resume")  # carried out from its record (D3)
+    join(detached)
+    assert detached.get(queued)["state"] == "READY"
+
+
+def test_a_withdrawn_operation_says_it_never_ran(journey):
+    """A practice the Control Center queued and closed before any supervisor
+    started it: withdrawn, nothing ran, and the campaign is not paused for
+    it - it is simply sent again."""
+    host = journey.host
+    identity = launch(host)["id"]
+    join(host)
+    detached = journey.peer(supervision.DETACHED)
+    assert detached.supervisor.tick()
+    control_center = journey.peer(supervision.SUPERVISOR)
+    assert not control_center.supervisor.tick()
+    perform(control_center, "practice", practice(identity, "practice-key-00001"))
+    control_center.close()
+    view = host.get(identity)
+    assert view["state"] == "READY" and view["in_flight"] is None
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"]) == (
+        "withdrawn_when_supervisor_closed",
+        "practice",
+    )
+    assert view["completed_experiments"] == 0
 
 
 def test_work_queued_while_retiring_is_taken_back(journey):
@@ -641,6 +1053,48 @@ def test_a_client_observing_waiting_work_starts_a_supervisor_at_most_once(
     monkeypatch.setattr(supervision, "ACQUIRE_SECONDS", 0.0)
     client.get(identity)
     assert journey.spawned == [1, 1]
+
+
+def test_admitted_work_is_never_answered_as_failed_when_no_supervisor_starts(
+    journey, monkeypatch
+):
+    """Review nit: a supervisor that could not be started (the host out of
+    processes, say) answered a launch already recorded and queued as a
+    failure. The work is admitted; the next observe or client start wakes a
+    supervisor for it."""
+
+    def cannot_start(configuration):
+        raise OSError(11, "Resource temporarily unavailable")
+
+    monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(cannot_start))
+    client = journey.peer(supervision.CLIENT)
+    launched = launch(client)
+    assert launched["state"] == "QUEUED"
+    assert launched["in_flight"]["state"] == "QUEUED"
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    join(supervisor)
+    assert supervisor.get(launched["id"])["state"] == "READY"
+
+
+def test_a_paused_launch_never_prepared_wakes_no_supervisor(journey):
+    """Review nit: `_stranded` ignored what recovery checks, so a paused or
+    stopped launch that was never prepared started an idle detached
+    supervisor on every client start."""
+    client = journey.peer(supervision.CLIENT)
+    identity = launch(client)["id"]
+    with client.db() as db:
+        db.execute("UPDATE launchpad_dispatch SET state='DONE', outcome='lost'")
+    row = dict(client._bound(identity)[0])
+    assert RunnerAdapter._stranded(row)  # specimen: waiting for a supervisor
+    control = CampaignControl(CampaignLedger(campaign_root(client, identity)))
+    generation = control.acquire()
+    control.request("pause")
+    assert control.settled(generation, cleanup_verified=True) == "PAUSED"
+    assert not RunnerAdapter._stranded(row)
+    control.request("stop")
+    assert control.settled(control.acquire(), cleanup_verified=True) == "STOPPED"
+    assert not RunnerAdapter._stranded(row)
 
 
 def test_the_detached_supervisor_is_started_in_its_own_session(monkeypatch, tmp_path):
@@ -715,6 +1169,14 @@ def test_the_view_publishes_only_the_closed_shapes():
     assert supervision.recovery_actions("RECONCILIATION_REQUIRED") == [RECONCILE, STOP]
     assert supervision.recovery_actions("READY") == []
     assert supervision.recovery_actions("QUEUED", {"state": "QUEUED"}) == []
+    # Nothing resumes a retired-grant or retired-Challenge campaign, so it is
+    # offered only what can succeed (review nit: it was offered resume).
+    assert supervision.recovery_actions("PAUSED", resumable=False) == [STOP]
+    assert supervision.recovery_actions("INTERRUPTED", resumable=False) == [STOP]
+    assert supervision.recovery_actions("RECONCILIATION_REQUIRED", resumable=False) == [
+        RECONCILE,
+        STOP,
+    ]
     queued = {"state": "QUEUED", "in_flight": {"state": "QUEUED"}}
     stranded = {"state": "QUEUED", "in_flight": None}
     available = {

@@ -442,10 +442,14 @@ def evaluation_refusal(cfg, manifest):
     (`validators`) nor an intake (`intakes`, and their legacy names) - else
     None (LP-PROD-C D11).
 
-    Exactly what the Challenge's campaign reads when it submits
+    Asked before a submit is admitted, so the miner is told at once instead
+    of reading "Submitted" and finding the refusal later. It mirrors what
+    the Challenge's campaign reads when it submits
     (`carbon.battery.campaign.evaluation_config` and `_intake`, through
-    `campaign_args`), asked before a submit is admitted, so the miner is told
-    at once instead of reading "Submitted" and finding the refusal later. A
+    `campaign_args`) rather than importing them: this runner names no
+    Challenge's own module. Two tests hold the mirror to them: the same
+    answer for every profile shape, and a recording test that fails as soon
+    as the battery campaign reads an argument this mirror does not know. A
     Challenge whose campaign returns no validator feedback (`feedback_schema`
     None) needs no deployment here. A deployment that is configured but
     unusable is still refused by the campaign, by its own code."""
@@ -837,6 +841,12 @@ class RunnerAdapter:
         # a real `ExternalSigner`, which nothing here can construct.
         self.signer = signer or (signer_ready if registration is None else None)
         self.threads = {}
+        #: What each campaign thread here carries out: "run" or an operation.
+        self.thread_operations = {}
+        #: SUPERVISOR: campaigns it admitted work for while another process
+        #: held the supervisor lock, so closing it pauses or withdraws that
+        #: work as it would its own (D4).
+        self.delegated = set()
         self.lock = threading.RLock()
         #: Who runs this host's campaign threads (LP-PROD-C). INLINE: this
         #: process, as before supervision existed (fixtures and tests).
@@ -909,8 +919,9 @@ class RunnerAdapter:
         With `redispatch` (a supervisor that has just taken the lock): queue
         items a dead supervisor had claimed are marked interrupted - never
         replayed - and a launch that was admitted but never prepared (QUEUED,
-        no frozen manifest, nothing refused) is queued again, to be carried
-        out with its own recorded choices.
+        no frozen manifest, nothing refused before) is queued again as a new
+        item, once, to be carried out with its own recorded choices
+        (`_redispatch_stranded`).
         """
         orphans, waiting = {}, set()
         with self.db() as db:
@@ -935,14 +946,16 @@ class RunnerAdapter:
             ]
         for row, table in rows:
             kind = "product" if table == "launchpad_campaigns" else "retired_grant"
+            orphan = orphans.get(row["id"])
             # One campaign that cannot be recovered never blocks the rest; it
             # stays as it is for its miner or the next supervisor.
             with contextlib.suppress(Exception):
-                settled = self._recover_one(
-                    row, kind, orphans.get(row["id"]), row["id"] in waiting
-                )
+                settled = self._recover_one(row, kind, orphan, row["id"] in waiting)
                 if redispatch and kind == "product" and settled:
-                    self._redispatch_stranded(row)
+                    # `row` is as it was before this recovery, on purpose: a
+                    # refusal in it was kept by an earlier attempt; the one
+                    # recovery just recorded is this interruption's own.
+                    self._redispatch_stranded(row, orphan)
 
     def _recover_one(self, row, kind, orphan, waiting=False):
         """Settle one campaign if a dead process left it in flight. True when
@@ -959,40 +972,66 @@ class RunnerAdapter:
                 ledger = self._ledger(row, kind, root)
                 control = CampaignControl(ledger)
                 status = control.status()
-                if status["state"] not in supervision.IN_FLIGHT:
-                    return True
-                if waiting and orphan is None and not self._outstanding(ledger):
-                    return True
-                try:
-                    generation = control.acquire()
-                except DispatchStopped:
-                    return True
-                ledger.generation = generation
-                completed = (root / "campaign-complete.json").exists()
-                state = control.settled(
-                    generation,
-                    completed=completed,
-                    ready=not completed
-                    and status["desired"] == "RUN"
-                    and product_agent(root) == "none",
-                    cleanup_verified=self._cleanup(ledger),
-                )
+                state, settled_now = status["state"], False
+                if state in supervision.IN_FLIGHT:
+                    if waiting and orphan is None and not self._outstanding(ledger):
+                        return True
+                    try:
+                        generation = control.acquire()
+                    except DispatchStopped:
+                        return True
+                    ledger.generation = generation
+                    completed = (root / "campaign-complete.json").exists()
+                    state = control.settled(
+                        generation,
+                        completed=completed,
+                        ready=not completed
+                        and status["desired"] == "RUN"
+                        and product_agent(root) == "none",
+                        cleanup_verified=self._cleanup(ledger),
+                    )
+                    settled_now = True
         except RuntimeError:
             return False  # Another live owner still holds the exact campaign lock.
+        self._recovered(row, orphan, state, settled_now)
+        return True
+
+    def _recovered(self, row, orphan, state, settled_now):
+        """What recovery tells the miner, as `last_refusal`.
+
+        A campaign settled before this recovery is left as it is, except an
+        operation a dead process left waiting at a pause: it never ran, so it
+        is `operation_interrupted` (send it again). A campaign settled now is
+        told why: its interrupted run or operation, or the reconciliation it
+        needs - except a run settled PAUSED that already says why it was
+        paused (its supervisor closed, a handover), which keeps that reason.
+        """
+        identity = row["id"]
+        if not settled_now:
+            if orphan not in (None, "run") and state == "PAUSED":
+                self._refused(
+                    identity, "operation_interrupted", orphan, kind="interrupted"
+                )
+            return
         if orphan is not None:
+            kept = supervision.read_refusal(row.get("last_refusal"))
+            if (
+                orphan == "run"
+                and state == "PAUSED"
+                and kept is not None
+                and kept["kind"] == "paused"
+            ):
+                return
             self._refused(
-                row["id"],
+                identity,
                 "campaign_interrupted" if orphan == "run" else "operation_interrupted",
                 orphan,
                 kind="interrupted",
             )
         elif state == "RECONCILIATION_REQUIRED":
-            self._refused(
-                row["id"], "reconciliation_required", None, kind="interrupted"
-            )
+            self._refused(identity, "reconciliation_required", None, kind="interrupted")
         elif state == "INTERRUPTED":
-            self._refused(row["id"], "campaign_interrupted", None, kind="interrupted")
-        return True
+            self._refused(identity, "campaign_interrupted", None, kind="interrupted")
 
     @staticmethod
     def _outstanding(ledger):
@@ -1018,9 +1057,22 @@ class RunnerAdapter:
             if control.status()["state"] in supervision.IN_FLIGHT:
                 self._settle_if_idle(ledger, control, root)
 
-    def _redispatch_stranded(self, row):
-        """Queue again a launch admitted and never prepared: QUEUED, no frozen
-        manifest, nothing refused, not paused or stopped, nothing queued."""
+    def _redispatch_stranded(self, row, orphan=None):
+        """Queue again a launch admitted and never prepared (D5): QUEUED, its
+        choices recorded, no frozen manifest, not paused, stopped or awaiting
+        reconciliation, nothing queued for it, and nothing refused it before
+        this recovery (`row` is read before it).
+
+        This is the live failure's own case - the process carrying a launch
+        died before preparing it - and nothing can have been dispatched for
+        it: there is no manifest, and recovery found nothing outstanding (it
+        would be awaiting reconciliation otherwise). A new item carries it
+        out; the queue item that died is never replayed. Once only: a run
+        interrupted again after that may be one preparation itself ends, so
+        it keeps its `campaign_interrupted` and waits for its miner's Resume.
+        Re-queued, the interruption recovery just recorded is history, so the
+        campaign does not read as interrupted while it is carried out.
+        """
         root = Path(row["root"])
         if (
             row["state"] != "QUEUED"
@@ -1029,6 +1081,13 @@ class RunnerAdapter:
             or (root / "campaign-manifest.json").exists()
         ):
             return
+        if orphan == "run":
+            with self.db() as db:
+                again = supervision.interrupted_runs(
+                    db, principal=self.principal, campaign=row["id"]
+                )
+            if again > 1:
+                return
         if (root / "campaign.sqlite3").exists():
             status = CampaignControl(CampaignLedger(root)).status()
             if status["desired"] != "RUN" or status["state"] in {
@@ -1047,6 +1106,10 @@ class RunnerAdapter:
                 params={},
                 config_digest=row["config_digest"],
                 state=supervision.QUEUED,
+            )
+            db.execute(
+                "UPDATE launchpad_campaigns SET last_refusal=NULL WHERE id=?",
+                (row["id"],),
             )
 
     @contextmanager
@@ -1284,17 +1347,25 @@ class RunnerAdapter:
         loop, or else a detached supervisor started for this profile. A
         client starts at most one per `supervisor.ACQUIRE_SECONDS`, however
         often it is asked, so polling never fans out processes (one that
-        loses the lock race exits by itself)."""
-        if self.supervisor is not None:
-            self.supervisor.wake()
+        loses the lock race exits by itself).
+
+        Never raises: it is called after work was recorded, and that work is
+        admitted whether or not a process could be started now (the host out
+        of processes, say). It waits in the queue, and the next observe or
+        client start wakes a supervisor for it."""
+        try:
+            if self.supervisor is not None:
+                self.supervisor.wake()
+                return
+            if self.role != supervision.CLIENT or self._supervisor_running():
+                return
+            now = time.monotonic()
+            if now - self._spawned_at < supervision.ACQUIRE_SECONDS:
+                return
+            self._spawned_at = now
+            self.spawn(self.configuration)
+        except Exception:  # noqa: BLE001 - admitted work is never answered as failed
             return
-        if self.role != supervision.CLIENT or self._supervisor_running():
-            return
-        now = time.monotonic()
-        if now - self._spawned_at < supervision.ACQUIRE_SECONDS:
-            return
-        self._spawned_at = now
-        self.spawn(self.configuration)
 
     def wake_if_stranded(self):
         """At a client's start: wake a supervisor when work is waiting or a
@@ -1314,11 +1385,25 @@ class RunnerAdapter:
 
     @staticmethod
     def _stranded(row):
+        """Whether a supervisor has something to do for this campaign: its
+        ledger says a process was working (recovery settles it), or it is a
+        launch recovery would carry out - the same checks
+        `_redispatch_stranded` applies, so a paused, stopped or
+        reconciliation-bound launch wakes nothing. A campaign held live (an
+        attached agent) also reads as in flight; telling the two apart would
+        mean probing its lock on every client start, which could refuse that
+        agent's own attach, so it costs one detached supervisor that finds
+        nothing to do and exits."""
         root = Path(row["root"])
-        if (root / "campaign.sqlite3").exists() and CampaignControl(
-            CampaignLedger(root)
-        ).status()["state"] in supervision.IN_FLIGHT:
-            return True
+        if (root / "campaign.sqlite3").exists():
+            status = CampaignControl(CampaignLedger(root)).status()
+            if status["state"] in supervision.IN_FLIGHT:
+                return True
+            if status["desired"] != "RUN" or status["state"] in {
+                "RECONCILIATION_REQUIRED",
+                *supervision.TERMINAL,
+            }:
+                return False
         return (
             row["state"] == "QUEUED"
             and row.get("last_refusal") is None
@@ -1328,6 +1413,154 @@ class RunnerAdapter:
 
     def live_threads(self):
         return [i for i, t in tuple(self.threads.items()) if t.is_alive()]
+
+    def busy_threads(self):
+        """Live campaign threads here that are still working: every live one
+        except a thread parked at its campaign's checkpoint while the
+        campaign is paused - settled PAUSED, nothing reserved or held.
+
+        A parked thread holds nothing a process must keep: a parked run is
+        carried on by a new run when the campaign is resumed, anywhere; a
+        parked operation never dispatched, and recovery reports it
+        (`operation_interrupted`) so it is sent again. So a supervisor may
+        exit, or hand over, with parked threads alive."""
+        return [i for i in self.live_threads() if not self._parked(i)]
+
+    def _parked(self, identity):
+        try:
+            row, kind, root = self._bound(identity)
+            if not (root / "campaign.sqlite3").exists():
+                return False
+            ledger = self._ledger(row, kind, root)
+            status = CampaignControl(ledger).status()
+            return (status["desired"], status["state"]) == (
+                "PAUSE",
+                "PAUSED",
+            ) and not self._outstanding(ledger)
+        except Exception:  # noqa: BLE001 - unreadable: treated as working
+            return False
+
+    # -- The handover (LP-PROD-C, review repair): a Control Center that starts
+    # -- while a detached supervisor holds the lock becomes the supervisor.
+
+    def hand_over(self):
+        """DETACHED, while a Control Center is running: pause Carbon's agent
+        in each campaign this process runs (`paused_for_handover`), so the
+        Control Center can carry it on, and let everything else here finish -
+        a launch still being prepared, a miner's practice, freeze or submit.
+        True once nothing here is working, so the lock can be released.
+
+        An agent's run pauses at its next checkpoint, between bounded
+        operations: a paid model call or a training run under way finishes
+        first, and nothing is cut off mid-flight."""
+        for identity in self.live_threads():
+            if self.thread_operations.get(identity) == "run":
+                with contextlib.suppress(Exception):
+                    self._pause_for_handover(identity)
+        return not self.busy_threads()
+
+    def _pause_for_handover(self, identity):
+        row, kind, root = self._bound(identity)
+        if product_agent(root) in (None, "none"):
+            # Still being prepared, or nobody's agent runs in it: it ends on
+            # its own.
+            return
+        control = CampaignControl(self._ledger(row, kind, root))
+        status = control.status()
+        if status["desired"] != "RUN" or status["state"] in supervision.TERMINAL:
+            return
+        control.request("pause")
+        self._refused(identity, supervision.HANDED_OVER, None, kind="paused")
+
+    def _handed_over(self):
+        """The campaigns whose last refusal is the handover's pause."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT id,last_refusal FROM launchpad_campaigns WHERE principal=? AND last_refusal IS NOT NULL",
+                (self.principal,),
+            ).fetchall()
+        return [
+            r["id"]
+            for r in rows
+            if (supervision.read_refusal(r["last_refusal"]) or {}).get("code")
+            == supervision.HANDED_OVER
+        ]
+
+    def take_over(self):
+        """SUPERVISOR, on each pass while it holds the lock: carry on each
+        campaign a detached supervisor paused so this Control Center could
+        take it over, exactly as a Resume would - so opening the Control
+        Center never leaves a running campaign paused. One that changed since
+        (stopped, resumed, awaiting reconciliation) is left to that; one whose
+        resume is refused (its profile changed, say) stays paused with that
+        code.
+
+        Only once the campaign's own lock is free. The agent's run parked in
+        the detached process holds it until that process has exited, and a
+        resume asked before then would wake that run in a process about to
+        end - cutting off whatever it started next. Until then it is left for
+        a later pass."""
+        self.delegated.clear()
+        for identity in self._handed_over():
+            with contextlib.suppress(Exception):
+                row, kind, root = self._bound(identity)
+                status = CampaignControl(self._ledger(row, kind, root)).status()
+                if (status["desired"], status["state"]) != ("PAUSE", "PAUSED"):
+                    continue
+                try:
+                    with owner_lock(root):
+                        pass
+                except RuntimeError:
+                    continue  # Its parked run's process has not exited yet.
+                try:
+                    self._control(identity, "resume")
+                except Rejected as refused:
+                    self._refused(identity, refused.code, "run")
+
+    def release_handover_pauses(self):
+        """No Control Center will take them over (it closed first): each
+        campaign paused for a handover stays paused, and says so as closing
+        the Control Center would (`paused_when_supervisor_closed`, D4)."""
+        for identity in self._handed_over():
+            self._refused(
+                identity, "paused_when_supervisor_closed", None, kind="paused"
+            )
+
+    def _withdraw_or_pause(self, identity):
+        """A Control Center closing before it took over: the work it admitted
+        for `identity` that no supervisor started is withdrawn, and work
+        already started elsewhere is asked to pause - as closing pauses what
+        a supervising Control Center runs (D4). A withdrawn launch or resume
+        leaves its campaign paused; a withdrawn practice, freeze or submit
+        never ran and is sent again."""
+        with self.db() as db:
+            item = supervision.active(db, principal=self.principal, campaign=identity)
+            withdrawn = (
+                item is not None
+                and item["state"] == supervision.QUEUED
+                and supervision.withdraw(db, item["seq"])
+            )
+        if item is None:
+            return
+        if not withdrawn:
+            self._pause_for_close(identity)
+            return
+        if item["operation"] != "run":
+            self._refused(
+                identity, "withdrawn_when_supervisor_closed", item["operation"]
+            )
+            return
+        row, kind, root = self._bound(identity)
+        if (root / "campaign.sqlite3").exists():
+            ledger = self._ledger(row, kind, root)
+            control = CampaignControl(ledger)
+            status = control.status()
+            if status["desired"] == "RUN" and status["state"] not in (
+                supervision.TERMINAL
+            ):
+                control.request("pause")
+                self._settle_if_idle(ledger, control, root)
+        self._refused(identity, "paused_when_supervisor_closed", "run", kind="paused")
 
     def _record(self, identity, operation, params, cfg, state):
         with self.db() as db:
@@ -1411,6 +1644,7 @@ class RunnerAdapter:
                     daemon=True,
                 )
                 self.threads[identity] = thread
+                self.thread_operations[identity] = operation
                 thread.start()
         except Rejected as refused:
             self._refused(identity, refused.code, operation)
@@ -1734,6 +1968,8 @@ class RunnerAdapter:
                 config_digest=digest(canonical(cfg)),
                 state=supervision.QUEUED,
             )
+        if self.role == supervision.SUPERVISOR:
+            self.delegated.add(run_id)
         self._wake()
 
     def _recorded_launch(self, row, cfg):
@@ -1985,22 +2221,24 @@ class RunnerAdapter:
 
     def tools_busy_hint(self, identity):
         """Who can hold a campaign's lock, as far as this host knows: its own
-        agent or operation thread, or another session (RSURF-D16)."""
+        agent or operation thread, the supervisor's when that is another
+        process (LP-PROD-C), or another session (RSURF-D16). A paused agent's
+        run still holds the campaign while it waits at its checkpoint, here
+        or in the supervisor, so "pause it" is not the advice then (D12)."""
         thread = self.threads.get(identity)
-        if thread is not None and thread.is_alive():
-            # A paused agent's run still holds the campaign while it waits at
-            # its checkpoint, so "pause it" is not the advice (D12).
-            with contextlib.suppress(Exception):
-                row, kind, root = self._bound(identity)
-                control = CampaignControl(self._ledger(row, kind, root))
-                if control.status()["desired"] == "PAUSE":
-                    return "carbon_agent_paused"
-            return "carbon_agent_or_operation"
-        # Or in the supervisor, when that is another process (LP-PROD-C).
+        if thread is None or not thread.is_alive():
+            try:
+                elsewhere = self._in_flight(identity) is not None
+            except Exception:  # noqa: BLE001 - unknown: no claim about who
+                elsewhere = False
+            if not elsewhere:
+                return "another_session"
         with contextlib.suppress(Exception):
-            if self._in_flight(identity) is not None:
-                return "carbon_agent_or_operation"
-        return "another_session"
+            row, kind, root = self._bound(identity)
+            control = CampaignControl(self._ledger(row, kind, root))
+            if control.status()["desired"] == "PAUSE":
+                return "carbon_agent_paused"
+        return "carbon_agent_or_operation"
 
     def miner_message(self, identity, value):
         """The page's own route for the miner's message (RSURF-D12)."""
@@ -2203,6 +2441,8 @@ class RunnerAdapter:
                     identity, operation, params, admitted.profile, supervision.QUEUED
                 )
                 self._state(identity, state)
+                if self.role == supervision.SUPERVISOR:
+                    self.delegated.add(identity)
             else:
                 item = self._record(
                     identity, operation, params, admitted.profile, supervision.RUNNING
@@ -2218,6 +2458,7 @@ class RunnerAdapter:
                     daemon=True,
                 )
                 self.threads[identity] = thread
+                self.thread_operations[identity] = operation
                 self._state(identity, state)
                 thread.start()
         if delegating:
@@ -2454,6 +2695,7 @@ class RunnerAdapter:
                 daemon=True,
             )
             self.threads[run_id] = thread
+            self.thread_operations[run_id] = "run"
             thread.start()
 
     def _run(self, run_id, cfg, root, product, choice=None):
@@ -2844,14 +3086,18 @@ class RunnerAdapter:
         (`recovery`), all null or empty when there is none."""
         from scripts.dev.miner_launchpad.projection import project
 
-        row, _, root = self._bound(identity)
+        row, kind, root = self._bound(identity)
         row = dict(row)
         value = project(row, root)
         # A retired-grant row has no such column: never refused here.
         value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
         value["in_flight"] = self._in_flight(identity)
+        # Only what can succeed: nothing resumes a retired-grant campaign or
+        # one on a retired Challenge (`_control`), so neither is offered it.
         value["recovery"] = supervision.recovery_actions(
-            value["state"], value["in_flight"]
+            value["state"],
+            value["in_flight"],
+            resumable=kind == "product" and not retired_challenge(root),
         )
         return value
 
@@ -2890,18 +3136,25 @@ class RunnerAdapter:
             # says so; the list, and the page built on it, stays up (D13).
             # Until 2026-10-03 only a `Rejected` was caught, so one bad
             # projection failed GET /api/v1/research and the whole page read
-            # "Connection interrupted".
+            # "Connection interrupted". Records that disagree with each other
+            # (`projection.RecordsDiffer`) are `campaign_readback_unavailable`;
+            # anything else may pass - a busy database, a bug - so it is the
+            # milder `campaign_read_failed`, never advice to abandon it.
             try:
                 result.append(self.get(identity))
-            except Exception:  # noqa: BLE001 - never a trace or a path
+            except Exception as exc:  # noqa: BLE001 - never a trace or a path
+                code = (
+                    "campaign_readback_unavailable"
+                    if exception_code(exc) == "campaign_readback_unavailable"
+                    else "campaign_read_failed"
+                )
                 result.append(
                     {
                         "id": identity,
                         "state": "READBACK_UNAVAILABLE",
                         "mode": "LIVE_PRACTICE_RESEARCH",
-                        "next_action": supervision.NEXT_ACTIONS[
-                            "campaign_readback_unavailable"
-                        ],
+                        "code": code,
+                        "next_action": supervision.NEXT_ACTIONS[code],
                     }
                 )
         return result
@@ -2918,6 +3171,17 @@ class RunnerAdapter:
         recovery from its ledger. Before 2026-10-03 closing sent every live
         campaign an irreversible stop, so closing an agent mid-practice
         stopped its campaign for good.
+
+        A Control Center closing before it took over from a detached
+        supervisor does the same for the work it admitted meanwhile: what no
+        supervisor started is withdrawn, what started is asked to pause
+        (`_withdraw_or_pause`), and what was paused to hand over to it stays
+        paused (`release_handover_pauses`). Closing it never leaves work it
+        admitted running unattended (D4).
+
+        It waits until each live thread has ended or is parked at its
+        campaign's pause (`busy_threads`): a parked run never ends on its own,
+        and waiting for it only delayed the next supervisor.
         """
         # The page's tool sessions release their campaigns first (RSURF-D16).
         self.tool_sessions.close_all()
@@ -2931,11 +3195,23 @@ class RunnerAdapter:
         for identity, _thread in live:
             with contextlib.suppress(Exception):
                 self._pause_for_close(identity)
+        if self.role == supervision.SUPERVISOR:
+            for identity in tuple(self.delegated):
+                with contextlib.suppress(Exception):
+                    self._withdraw_or_pause(identity)
         deadline = time.monotonic() + supervision.CLOSE_JOIN_SECONDS
-        for _identity, thread in live:
-            join = getattr(thread, "join", None)
-            if join is not None:
-                join(timeout=max(0.0, deadline - time.monotonic()))
+        while live and time.monotonic() < deadline:
+            busy = set(self.busy_threads())
+            live = [
+                (i, t)
+                for i, t in live
+                if i in busy and t.is_alive() and hasattr(t, "join")
+            ]
+            if live:
+                live[0][1].join(timeout=0.05)
+        if self.role == supervision.SUPERVISOR:
+            with contextlib.suppress(Exception):
+                self.release_handover_pauses()
         if self.supervisor is not None:
             self.supervisor.release()
 

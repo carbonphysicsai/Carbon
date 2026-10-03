@@ -48,8 +48,10 @@ BUSY = {
     ),
     "carbon_agent_paused": (
         "Carbon's agent is paused, but its run still holds this campaign "
-        "while it waits to be resumed. Restart the Control Center to release "
-        "it: the campaign stays paused, and the tools open on it then."
+        "while it waits to be resumed. A background supervisor lets it go "
+        "within seconds of the Control Center starting: try again shortly. "
+        "If it still holds it, restart the Control Center: the campaign "
+        "stays paused, and the tools open on it then."
     ),
     "another_session": (
         "Another session holds this campaign: most likely your own agent "

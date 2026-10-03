@@ -423,6 +423,56 @@ def test_a_held_campaign_is_named_busy(tmp_path, monkeypatch, capsys):
     assert "Carbon MCP unavailable: campaign_busy." in capsys.readouterr().err
 
 
+def test_an_owner_change_is_named_for_what_fixes_it(tmp_path, monkeypatch, capsys):
+    """Review nit: an authenticated owner other than the campaign's was named
+    `session_unavailable`, whose step (resume once) cannot fix it -
+    preparation refuses the same change."""
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    path, _ledger, _owner = prepare(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        standard_cli,
+        "_runtime",
+        lambda profile: (fixture_connection(profile.root), None, None, profile.root),
+    )
+
+    async def another_owner(connection):
+        return "another-owner"
+
+    monkeypatch.setattr(standard_cli, "_requester", another_owner)
+    assert (
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN]) == 2
+    )
+    err = capsys.readouterr().err
+    assert "Carbon MCP unavailable: campaign_owner_changed." in err
+    assert NEXT_ACTIONS["campaign_owner_changed"] in err
+
+
+def test_a_public_record_missing_its_fields_is_the_profiles_to_fix(
+    tmp_path, monkeypatch
+):
+    """Review nit: the miner public record's `netuid` and `hotkey` were read
+    outside any check, so a record without them was named by the check
+    around it - `runtime_unavailable`, "Docker is not running"."""
+    from carbon.chain.models import CARBON_NETUID
+    from carbon.development_session import miner_network
+
+    path, _ledger, _owner = prepare(tmp_path, monkeypatch)
+    profile = standard_cli.load_profile(path, CAMPAIGN)
+    paths = {name: Path(value) for name, value in profile.document["paths"].items()}
+    monkeypatch.setattr(
+        miner_network,
+        "binding",
+        lambda **_: SimpleNamespace(
+            netuid=CARBON_NETUID, context=None, publisher_hotkey=None
+        ),
+    )
+    private_write(paths["miner_public"], {"netuid": CARBON_NETUID})
+    with pytest.raises(KeyError) as failed:
+        standard_cli._connection(profile, paths)
+    assert standard_cli.refusal_code(failed.value) == "runner_profile_unusable"
+
+
 def test_a_paused_campaign_is_attachable_and_stays_paused(tmp_path, monkeypatch):
     """LP-PROD-C D12: the Tools tab of a campaign its miner paused opens.
     Attaching lifts the pause only for the attachment, which holds the
