@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import functools
 import hashlib
 import json
 import math
@@ -91,6 +92,27 @@ CONFIRMATION_ROLE = "ev5-confirmation"
 GATE_MUST_FAIL = ("boundary_optimist",)
 GATE_MUST_PASS = ("oracle", "conservative", "rank_preserving_delay")
 SIGN_ERROR_CONTROL = "localized_sign_error"
+
+#: H2's bootstrap (OWNER-EV5-Q4-01): EV4's B, seed, level and interval, with
+#: the FAIL and PASS members resampled separately so every replicate has both
+#: groups (`hypotheses.group_difference_bootstrap`).
+H2_BOOTSTRAP = {
+    "function": "carbon.battery.value.hypotheses.group_difference_bootstrap",
+    "statistic": (
+        "mean verification decision loss of the real members the gate FAILs "
+        "minus that of those it PASSes"
+    ),
+    "interval": "percentile",
+    "level": 0.95,
+    "resample": (
+        "FAIL and PASS members separately, each to its own size, with "
+        "replacement; conditions jointly for all members"
+    ),
+    "replicates": 10000,
+    "rng": "numpy.random.default_rng (PCG64)",
+    "rng_seed": 20261001,
+    "undefined": "either group empty: no difference and no interval, reported",
+}
 
 #: H3's localized measurement (OWNER-EXEC-APPROVALS-01, §8 item 3): near-limit
 #: false acceptance (`false_acceptance.py`), registered descriptive. No cutoff
@@ -312,13 +334,66 @@ def optimizer_plans(jobs, shards=OPTIMIZER_SHARDS):
     return vp.verify_plans(shards, f"{PLANS}/optimizer-jobs.json")
 
 
-def optimizer_maxima():
-    """EV4's optimizer maxima, which EV5 keeps (§2, §5)."""
+def optimizer_conditions():
+    """EV5's optimizer grids (OWNER-EV5-Q2-01): inside the box, never repeated,
+    and fresh against every earlier condition (EV4's optimizer grids
+    included) and against EV5's own decision conditions."""
+    prior = prior_conditions()
+    cr.check_conditions(
+        {
+            **_splits(),
+            "optimizer_model": conditions_record.EV5_MODEL,
+            "optimizer_verification": conditions_record.EV5_OPTIMIZER_VERIFICATION,
+        },
+        box(),
+        {name: prior[name] for name in FRESH_AGAINST},
+    )
     return {
-        "mode_d_solves": op.MAX_MODE_D_SOLVES,
-        "mode_x_solves": op.MAX_MODE_X_SOLVES,
-        "designs": op.MAX_DESIGNS,
-        "k": op.K,
+        "model": conditions_record.EV5_MODEL,
+        "verification": conditions_record.EV5_OPTIMIZER_VERIFICATION,
+    }
+
+
+@functools.cache
+def optimizer_spec(repository=REPOSITORY):
+    """EV5's optimizer (OWNER-EV5-Q2-01): EV4's designs, K, band, Mode D and
+    Mode X on fresh grids of EV4's shape; `best_proposed` is the best member
+    under the SR-2 candidate among those the gate passes."""
+    grids = optimizer_conditions()
+    return op.Spec(
+        study="ev5",
+        model_conditions=grids["model"],
+        verify_conditions=grids["verification"],
+        proposed_rule=candidate_rule(repository)["rule"],
+        prior_solves=sum(len(g) for g in _splits().values())
+        * len(ev.candidates(ev.load(EV4_CONTRACT)[0])),
+        gated_roles=("best_proposed",),
+        proposed_required=True,
+    )
+
+
+def optimizer_maxima():
+    """EV5's optimizer maxima: EV4's, since the grids keep EV4's shape (§2, §5)."""
+    return optimizer_spec().maxima()
+
+
+def optimizer_record(repository=REPOSITORY):
+    """The optimizer as the freeze manifest records it."""
+    spec = optimizer_spec(repository)
+    return {
+        "decision": "OWNER-EV5-Q2-01",
+        "maxima": spec.maxima(),
+        "model_conditions": [list(c) for c in spec.model_conditions],
+        "verification_conditions": [list(c) for c in spec.verify_conditions],
+        "member_roles": list(op.MEMBER_ROLES),
+        "proposed_rule": spec.proposed_rule,
+        "gated_roles": list(spec.gated_roles),
+        "gate": (
+            "a gated role draws only from members admissibility.verdict passes "
+            "at the cutoff; best_deciding, median_deciding, best_knn and "
+            "lowest_verification_loss are ungated, as in EV4"
+        ),
+        "case_prefix": "ev5opt",
     }
 
 
@@ -466,6 +541,7 @@ def hypotheses(cutoff, repository=REPOSITORY):
                 "loss than those that PASS, and the 95 % bootstrap interval of the "
                 "difference excludes 0"
             ),
+            "bootstrap": H2_BOOTSTRAP,
             "reported": (
                 "the number of real members failed; a cutoff that fails more than "
                 "half of them is reported as such, never tuned after the fact"
@@ -616,7 +692,7 @@ def freeze_manifest(confirmation_commitment=None, repository=REPOSITORY):
                 "built after selection by ev5.optimizer_plans, refused above the maxima"
             ),
         },
-        "optimizer": {"maxima": optimizer_maxima()},
+        "optimizer": optimizer_record(repository),
         "confirmation": {**confirmation(repository), "commitment": commitment},
         "rules_compared": rules_compared(cutoff, repository),
         "hypotheses": hypotheses(cutoff, repository),

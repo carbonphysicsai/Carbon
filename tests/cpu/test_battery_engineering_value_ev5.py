@@ -3,7 +3,11 @@
 - the fresh conditions are the draft's, inside the published box, never
   repeated, fresh against every EV1, EV2 and EV4 decision condition, and
   protected from research agents as EV4's are;
-- the optimizer keeps EV4's maxima, and a plan above them is refused;
+- the optimizer keeps EV4's shape and maxima on fresh grids
+  (OWNER-EV5-Q2-01), its `best_proposed` is the SR-2 candidate's best among
+  members the gate passes, and a plan above the maxima is refused;
+- H2's bootstrap is stratified by verdict with EV4's B and seed
+  (OWNER-EV5-Q4-01);
 - the panel keeps EV4's 100 members, seeds and 5 controls byte for byte, and
   adds the Track A harness's admitted constructions as ATTACK_CONSTRUCTION
   members, rebuilt, scored and value-tested like real ones; participant code
@@ -127,6 +131,127 @@ def test_no_condition_sits_on_ev4s_protected_optimizer_grid():
     assert {(10.0, 0.2), (20.0, 0.2), (30.0, 0.2)} <= set(EV4_MODEL)
 
 
+def test_ev5s_optimizer_grids_keep_ev4s_shape_on_fresh_conditions():
+    # OWNER-EV5-Q2-01: EV4's grids count as EV4 conditions (OWNER-EV5-Q1-01),
+    # so EV5's optimizer cannot reuse them.
+    spec = ev5.optimizer_spec()
+    model, verify = spec.model_conditions, spec.verify_conditions
+    assert len(model) == 32 and len(verify) == 90
+    assert len(spec.mode_d_conditions) == len(op.EV4_SPEC.mode_d_conditions) == 20
+    assert len(spec.in_band_verify) == len(op.EV4_SPEC.in_band_verify)
+    assert {t for t, _ in model} == {t for t, _ in op.MODEL_CONDITIONS}
+    (lo_t, hi_t), (lo_s, hi_s) = ev5.box()
+    assert all(lo_t <= t <= hi_t and lo_s <= s <= hi_s for t, s in model + verify)
+    prior = ev5.prior_conditions()
+    used = {cr.key(c) for name in ev5.FRESH_AGAINST for c in prior[name]}
+    used |= {cr.key(c) for g in ev5.conditions().values() for c in g}
+    assert not {cr.key(c) for c in model + verify} & used
+    assert not set(model) & set(verify)
+    # Every soc0 is one no earlier or EV5 condition uses, at any temperature.
+    socs = {round(c[1], 9) for c in prior_all(prior) + ev5_all()}
+    assert not {round(s, 9) for _, s in model + verify} & socs
+    # Specimen: EV4's grids are refused as EV5's.
+    with pytest.raises(cr.CombinedRunError, match="condition_not_fresh"):
+        cr.check_conditions(
+            {"optimizer_model": op.MODEL_CONDITIONS},
+            ev5.box(),
+            {"ev4_protected": prior["ev4_protected"]},
+        )
+    for t, s in model + verify:
+        assert search._protected()(t, s)
+
+
+def prior_all(prior):
+    return [c for name in ev5.FRESH_AGAINST for c in prior[name]]
+
+
+def ev5_all():
+    return [c for g in ev5.conditions().values() for c in g]
+
+
+def _results(rows):
+    """A minimal EV5 result: member -> (deciding score, loss)."""
+    members = {
+        m: {
+            "kind": "RECONSTRUCTED",
+            "eligible": True,
+            "loss_development": loss,
+            "loss_verification": loss,
+        }
+        for m, (_score, loss) in rows.items()
+    }
+    scores = {m: {"control-exam-v1": score} for m, (score, _loss) in rows.items()}
+    return {"summary": {"members": members}, "rule_scores": scores}
+
+
+def test_best_proposed_is_the_sr2_candidates_best_among_members_the_gate_passes():
+    spec = ev5.optimizer_spec()
+    assert spec.proposed_rule == ev5.candidate_rule()["rule"]
+    assert spec.gated_roles == ("best_proposed",)
+    rows = {
+        "a-s0": (-0.1, 3.0),
+        "b-s0": (-0.2, 2.0),
+        "c-s0": (-0.3, 1.0),
+        "d-s0": (-0.4, 4.0),
+        "knn-s0": (-0.5, 5.0),
+    }
+    backbones = {m: ("knn" if m.startswith("knn") else "mlp") for m in rows}
+    sr2 = {spec.proposed_rule: {"a-s0": 0.5, "b-s0": 0.9, "c-s0": 0.4, "d-s0": 0.3}}
+    picks = op.select_members(
+        _results(rows), backbones, spec, scores=sr2, admissible=set(rows)
+    )
+    assert [p["member"] for p in picks] == ["a-s0", "b-s0", "c-s0", "knn-s0", "d-s0"]
+    # The gate fails b: the candidate's next best that the gate passes.
+    picks = op.select_members(
+        _results(rows), backbones, spec, scores=sr2, admissible=set(rows) - {"b-s0"}
+    )
+    assert picks[1] == {"role": "best_proposed", "member": "c-s0"}
+    # The gate binds best_proposed only: best_deciding stays a, as in EV4.
+    assert picks[0] == {"role": "best_deciding", "member": "a-s0"}
+    # Fail closed: no gate verdicts, or no candidate scores, selects nothing.
+    with pytest.raises(op.OptimizerError, match="gate_missing"):
+        op.select_members(_results(rows), backbones, spec, scores=sr2)
+    with pytest.raises(op.OptimizerError, match="proposed_unscored"):
+        op.select_members(_results(rows), backbones, spec, admissible=set(rows))
+
+
+def test_the_ev5_contract_selects_ev5s_optimizer_and_ev4s_keeps_its_own():
+    assert op.spec_for(ev5.contract()) == ev5.optimizer_spec()
+    assert op.spec_for(EV4) is op.EV4_SPEC
+    point = (1.0, 0.5, 20.0, 0.21)
+    assert op.case_id(*point, ev5.optimizer_spec()).startswith("ev5opt:")
+    assert op.case_id(*point).startswith("ev4opt:")
+
+
+def test_h2s_bootstrap_is_stratified_with_ev4s_replicates_and_seed():
+    from carbon.battery.value import hypotheses as hy
+
+    spec = ev5.H2_BOOTSTRAP
+    paired = EV4["acceptance"]["paired_comparison"]
+    assert spec["replicates"] == paired["replicates"] == 10000
+    assert spec["rng_seed"] == paired["rng_seed"] == 20261001
+    assert spec["level"] == paired["level"] and spec["interval"] == paired["interval"]
+    rng = __import__("numpy").random.default_rng(0)
+    losses = rng.normal(1.0, 0.1, (12, 12))
+    losses[:3] += 1.0  # three FAIL members decide worse
+    losses[0, 0] = float("nan")
+    failed = [True] * 3 + [False] * 9
+    run = {"replicates": 500, "seed": spec["rng_seed"], "level": spec["level"]}
+    out = hy.group_difference_bootstrap(losses, failed, **run)
+    assert out == hy.group_difference_bootstrap(losses, failed, **run)
+    assert out["members_failed"] == 3 and out["members_passed"] == 9
+    assert 0.8 < out["difference"] < 1.2
+    assert out["interval"][0] > 0 and out["excludes_zero"] is True
+    assert out["replicates_skipped"] == 0  # stratified: both groups every time
+    same = hy.group_difference_bootstrap(losses[3:], [True] * 4 + [False] * 5, **run)
+    assert same["interval"][0] < 0 < same["interval"][1]
+    assert same["excludes_zero"] is False
+    # Either group empty: undefined, never zero.
+    empty = hy.group_difference_bootstrap(losses, [False] * 12, **run)
+    assert empty["difference"] is None and empty["interval"] == [None, None]
+    assert empty["excludes_zero"] is False
+
+
 def test_ev5_conditions_are_protected_from_research_agents_as_ev4s_are():
     import test_design_search_commitment as ts
 
@@ -152,7 +277,10 @@ def test_ev5_keeps_ev4s_optimizer_maxima():
         "mode_x_solves": 250,
         "designs": 6,
         "k": 50,
+        "total_solves": 1630,
     }
+    assert ev5.optimizer_maxima() == op.EV4_SPEC.maxima()
+    assert op.EV4_SPEC.max_mode_d_solves == op.MAX_MODE_D_SOLVES
     assert "Mode D ≤ 540 + Mode X ≤ 250 solves" in DOC
     assert "Optimizer verification (≤ 790)" in DOC
 
@@ -298,7 +426,9 @@ def small_ev5(monkeypatch):
 
 
 def test_attack_constructions_are_rebuilt_scored_and_value_tested_like_real_ones(
-    tmp_path, scoring_refs, small_ev5  # noqa: F811
+    tmp_path,
+    scoring_refs,  # noqa: F811
+    small_ev5,
 ):
     from carbon.battery.value import divergence
 
@@ -593,6 +723,10 @@ def test_the_freeze_manifest_builds_once_the_cutoff_is_set(monkeypatch):
     assert manifest["contract"]["digest"] == ev.digest(ev5.contract())
     assert manifest["confirmation"]["commitment"] == SEALED
     assert manifest["optimizer"]["maxima"] == ev5.optimizer_maxima()
+    assert manifest["optimizer"]["decision"] == "OWNER-EV5-Q2-01"
+    assert manifest["optimizer"]["gated_roles"] == ["best_proposed"]
+    assert len(manifest["optimizer"]["verification_conditions"]) == 90
+    assert hypotheses["H2"]["bootstrap"] == ev5.H2_BOOTSTRAP
     assert not any(manifest["claims"].values())
     assert not (REPOSITORY / ev5.EVIDENCE).exists()  # nothing written
 
