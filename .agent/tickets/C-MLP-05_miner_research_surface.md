@@ -69,15 +69,22 @@ The screen a miner and their agent work from once setup is done:
 
 ## Owner input
 
-- **RSURF-D3.** May the battery worker record a bounded, TRAIN-only loss
-  history? It would change the trusted worker program and its implementation
-  identity. Until the owner decides, the learning-curve slot says why it is
-  empty.
-- **RSURF-D13.** May Carbon's own autonomous agent read the miner's messages
-  as user-role input at step boundaries? That would amend C-MLP-02-D6, which
-  freezes its task at launch and keeps the browser from authoring its
-  prompts. Until the owner decides, it does not read them, and the page says
-  so.
+Both questions were answered on 2026-10-03
+(OWNER-MINER-RESEARCH-SURFACE-02), and both are built:
+
+- **RSURF-D3, yes, as a new trainer version.** Battery trainer v2 records up
+  to 64 points of the trainer's own TRAIN loss, in practice only. The
+  validator's reconstruction never records it and computes exactly what it
+  did. The implementation identity changes prospectively, and running
+  deployments carry over under OWNER-BATTERY-CARRYOVER-01. The Learning curve
+  chart draws the recorded history.
+- **RSURF-D13, yes, recorded.** This amends C-MLP-02-D6 prospectively.
+  - A campaign launched under the frozen miner-guidance rule has Carbon's
+    agent read new messages at each step boundary, at most 4 per step.
+  - Each step's messages are recorded with their digests, chained from the
+    epoch plan, and replayed exactly.
+  - The agent replies through the same reply note.
+  - Earlier campaigns read none.
 
 ## Boundaries
 
