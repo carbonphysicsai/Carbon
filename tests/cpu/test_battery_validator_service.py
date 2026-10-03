@@ -483,6 +483,105 @@ def test_run_every_is_one_pass_per_period_until_stopped(tmp_path, capsys, signal
     }
 
 
+def test_only_a_configuration_refusal_exits_2(tmp_path):
+    """Before this review fix every `EvaluationUnavailable` exited 2, so a
+    carrier start refused only because Docker was down or still starting
+    (`evaluation_host_unavailable`) was treated as a refused configuration:
+    the supervisor stopped both children and systemd never restarted them."""
+    assert operate.exit_code("evaluation_host_unavailable") == 1
+    for code in (
+        "evaluation_input_not_owner_only",
+        "evaluation_config_image",
+        "evaluation_journal_refused",
+        "evaluation_identities_changed",
+        "run_every_too_short",
+    ):
+        assert operate.exit_code(code) == 2, code
+    # A code not known as a configuration costs restarts, never an outage.
+    assert operate.exit_code("evaluation_some_future_state") == 1
+
+
+def test_run_every_waits_out_the_host_and_keeps_a_heartbeat(tmp_path, monkeypatch):
+    made = throwaway(tmp_path)
+    state = svc.owner_only_directory(tmp_path / "service", create=True)
+    heartbeat = state / svc.HEARTBEAT
+    stop = threading.Event()
+    attempts = []
+    real = deployment.validator
+
+    def docker_down_twice(config_path, *, repository, readonly=False):
+        attempts.append(1)
+        if len(attempts) <= 2:
+            raise deployment.EvaluationUnavailable("evaluation_host_unavailable")
+        return real(config_path, repository=repository, readonly=readonly)
+
+    passes = []
+    run_pending = BatteryValidator.run_pending
+
+    def counted(self):
+        passes.append(1)
+        stop.set()
+        return run_pending(self)
+
+    monkeypatch.setattr(operate, "validator", docker_down_twice)
+    monkeypatch.setattr(BatteryValidator, "run_pending", counted)
+    monkeypatch.setattr(operate, "MIN_EVERY_S", 0.01)
+    out = io.StringIO()
+    made_passes = operate.run_every(
+        made.deployment, 0.01, stop=stop, out=out, heartbeat=heartbeat
+    )
+    assert made_passes == 3
+    events = [json.loads(line) for line in out.getvalue().splitlines()]
+    assert [e["event"] for e in events] == [
+        "started",
+        "pass_unavailable",
+        "pass_unavailable",
+        "pass",
+        "stopped",
+    ]
+    assert events[1]["code"] == "evaluation_host_unavailable"
+    beat = json.loads(heartbeat.read_text())
+    assert (beat["passes"], beat["last_pass"], beat["stopped"]) == (3, "ok", True)
+    assert beat["in_pass"] is False and beat["pid"] == os.getpid()
+    assert heartbeat.stat().st_mode & 0o777 == 0o600
+    # The liveness lock is released when the daemon returns.
+    assert not svc.lock_held(Path(str(heartbeat) + ".lock"))
+    # A configuration refusal on a later attempt still propagates.
+    attempts.clear()
+
+    def refused(config_path, *, repository, readonly=False):
+        raise deployment.EvaluationUnavailable("evaluation_identities_changed")
+
+    monkeypatch.setattr(operate, "validator", refused)
+    with pytest.raises(deployment.EvaluationUnavailable) as stopped:
+        operate.run_every(made.deployment, 0.01, stop=threading.Event(), out=out)
+    assert stopped.value.code == "evaluation_identities_changed"
+
+
+def test_a_heartbeat_needs_an_owner_only_directory_and_one_daemon(
+    tmp_path, monkeypatch
+):
+    made = throwaway(tmp_path)
+    open_dir = tmp_path / "open"
+    open_dir.mkdir(mode=0o755)
+    open_dir.chmod(0o755)
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        operate.run_every(made.deployment, 5.0, heartbeat=open_dir / "beat.json")
+    assert refused.value.code == "run_heartbeat_not_owner_only"
+    state = svc.owner_only_directory(tmp_path / "service", create=True)
+    heartbeat = state / svc.HEARTBEAT
+    fd = os.open(str(heartbeat) + ".lock", os.O_RDWR | os.O_CREAT, 0o600)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    monkeypatch.setattr(operate, "LOCK_TRIES", 2)
+    try:
+        with pytest.raises(deployment.EvaluationUnavailable) as refused:
+            operate.run_every(made.deployment, 5.0, heartbeat=heartbeat)
+        assert refused.value.code == "run_daemon_already_running"
+        assert operate.exit_code(refused.value.code) == 2
+    finally:
+        os.close(fd)
+
+
 def test_a_failing_pass_is_logged_by_type_and_retried(tmp_path):
     made = throwaway(tmp_path)
     stop = threading.Event()
@@ -602,22 +701,146 @@ def test_a_restore_verifies_and_never_overwrites(tmp_path, monkeypatch):
     assert not (spare.validator / "root.bin").exists()
 
 
-def test_a_restore_is_refused_while_the_service_runs(tmp_path):
+@contextlib.contextmanager
+def holding(path):
+    """Hold an exclusive `flock` on `path`, as a running process does."""
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    try:
+        yield
+    finally:
+        os.close(fd)
+
+
+def test_a_restore_is_refused_while_the_service_runs(tmp_path, monkeypatch):
     made = throwaway(tmp_path)
     deployment.validator(made.deployment, repository=REPOSITORY)
     folder = Path(bk.backup(made.service, repository=REPOSITORY)["backup"])
     state = svc.owner_only_directory(tmp_path / "service", create=True)
-    fd = os.open(state / "supervisor.lock", os.O_RDWR | os.O_CREAT, 0o600)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    try:
+    monkeypatch.setattr(sup, "LOCK_TRIES", 2)
+    with holding(state / "supervisor.lock"):
         with pytest.raises(svc.ServiceRefused) as refused:
             bk.restore(made.service, folder, repository=REPOSITORY)
         assert refused.value.code == "restore_service_running"
+        assert refused.value.detail["running"] == ["supervisor"]
         with pytest.raises(svc.ServiceRefused) as refused:
             sup.supervise(made.service, repository=REPOSITORY)
         assert refused.value.code == "supervisor_already_running"
-    finally:
-        os.close(fd)
+    # Under the systemd units no supervisor runs: before this review fix the
+    # restore saw nothing and only its target check stood in the way. The
+    # intake's and the daemon's own locks are read now.
+    service = svc.load_service(made.service)
+    intake_config = json.loads(made.intake.read_text())
+    for part, lock in (
+        ("intake", ib.serve_lock_path(intake_config)),
+        ("daemon", svc.daemon_lock_path(service)),
+    ):
+        with holding(lock):
+            with pytest.raises(svc.ServiceRefused) as refused:
+                bk.restore(made.service, folder, repository=REPOSITORY)
+            assert refused.value.code == "restore_service_running"
+            assert refused.value.detail["running"] == [part]
+            assert "systemctl --user stop" in refused.value.next_step
+
+
+def emptied(tmp_path, name):
+    """A throwaway whose root and journal are removed: a fresh host's paths."""
+    folder = tmp_path / name
+    folder.mkdir()
+    made = throwaway(folder)
+    for member in ("root.bin", "journal.jsonl"):
+        (made.validator / member).unlink()
+    return made
+
+
+def leftovers(made):
+    """Every file under the throwaway's validator and intake directories."""
+    return sorted(
+        str(p.relative_to(made.root))
+        for folder in (made.validator, made.root / "intake")
+        for p in folder.rglob("*")
+        if p.is_file()
+    )
+
+
+def test_a_restore_is_all_or_nothing(tmp_path, monkeypatch):
+    """Before this review fix a destination directory was made and checked,
+    and each member written in place, inside the write loop: a failure after
+    the first member (a group-readable intake directory, a full disk) left
+    root and journal without their state, and a rerun was then refused."""
+    source = throwaway(tmp_path / "a")
+    deployment.validator(source.deployment, repository=REPOSITORY)
+    ib.Inbox(tmp_path / "a" / "intake" / "inbox.sqlite3")
+    folder = Path(bk.backup(source.service, repository=REPOSITORY)["backup"])
+    assert (
+        "inbox.sqlite3" in json.loads((folder / "manifest.json").read_text())["files"]
+    )
+    # A directory that is not owner-only is refused before any byte lands.
+    made = emptied(tmp_path, "b")
+    before = leftovers(made)
+    (made.root / "intake").chmod(0o750)
+    with pytest.raises(svc.ServiceRefused) as refused:
+        bk.restore(made.service, folder, repository=REPOSITORY)
+    assert refused.value.code == "service_directory_not_owner_only"
+    assert leftovers(made) == before
+    (made.root / "intake").chmod(0o700)
+    # A failure while linking the members into place removes what it made.
+    real_link, linked = os.link, []
+
+    def full_disk(src, dst, **kwargs):
+        if len(linked) == 2:
+            raise OSError(28, "No space left on device")
+        linked.append(dst)
+        return real_link(src, dst, **kwargs)
+
+    monkeypatch.setattr(bk.os, "link", full_disk)
+    with pytest.raises(OSError):
+        bk.restore(made.service, folder, repository=REPOSITORY)
+    assert leftovers(made) == before
+    # A check that fails after every member landed removes them too.
+    monkeypatch.setattr(bk.os, "link", real_link)
+    manifest = json.loads((folder / "manifest.json").read_text())
+    (folder / "manifest.json").write_text(
+        json.dumps({**manifest, "root_commitment": "sha256:" + "0" * 64})
+    )
+    with pytest.raises(svc.ServiceRefused) as refused:
+        bk.restore(made.service, folder, repository=REPOSITORY)
+    assert refused.value.code == "restore_root_differs"
+    assert leftovers(made) == before
+    (folder / "manifest.json").write_text(json.dumps(manifest))
+    # So a rerun completes, owner-only, with nothing staged left behind.
+    restored = bk.restore(made.service, folder, repository=REPOSITORY)
+    assert restored["root_commitment"] == manifest["root_commitment"]
+    assert not [p for p in leftovers(made) if p.endswith(bk.RESTORING)]
+    assert (made.root / "intake" / "inbox.sqlite3").stat().st_mode & 0o777 == 0o600
+
+
+def test_a_restore_never_lands_a_database_beside_a_stale_log(tmp_path):
+    source = throwaway(tmp_path / "a")
+    deployment.validator(source.deployment, repository=REPOSITORY)
+    folder = Path(bk.backup(source.service, repository=REPOSITORY)["backup"])
+    made = emptied(tmp_path, "b")
+    (made.validator / "state.sqlite3-wal").write_bytes(b"stale")
+    with pytest.raises(svc.ServiceRefused) as refused:
+        bk.restore(made.service, folder, repository=REPOSITORY)
+    assert refused.value.code == "restore_target_exists"
+    assert refused.value.detail["member"] == "daemon_state"
+    assert not (made.validator / "root.bin").exists()
+
+
+def test_a_failed_backup_leaves_no_copy_of_the_root(tmp_path, monkeypatch):
+    import sqlite3
+
+    made = throwaway(tmp_path)
+    deployment.validator(made.deployment, repository=REPOSITORY)
+
+    def broken(source, destination):
+        raise sqlite3.OperationalError("disk I/O error")
+
+    monkeypatch.setattr(bk, "_sqlite_copy", broken)
+    with pytest.raises(sqlite3.OperationalError):
+        bk.backup(made.service, repository=REPOSITORY)
+    assert list((tmp_path / "backups").iterdir()) == []
 
 
 # --- supervision and units --------------------------------------------------------
@@ -670,6 +893,162 @@ def test_a_failing_child_is_restarted_and_a_refusal_stops_everything(tmp_path, q
     assert state["children"]["steady"]["state"] == "stopped"  # stopped with it
     for path in logs.iterdir():
         assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_an_intake_start_refused_for_the_host_is_restarted(tmp_path, quick, signals):
+    """The intake's own `main`, in a child process, refused only because the
+    host cannot serve yet (`evaluation_host_unavailable`): exit 1, which the
+    supervisor restarts. Before this review fix it exited 2, and the
+    supervisor stopped both children for good."""
+    made = throwaway(tmp_path)
+    marker = tmp_path / "ran"
+    child = (
+        "import pathlib, sys, time\n"
+        "from carbon.battery import deployment, intake\n"
+        f"p = pathlib.Path({str(marker)!r})\n"
+        "n = int(p.read_text()) if p.exists() else 0\n"
+        "p.write_text(str(n + 1))\n"
+        "if n == 0:\n"
+        "    def docker_down(*args, **kwargs):\n"
+        "        raise deployment.EvaluationUnavailable('evaluation_host_unavailable')\n"
+        "    intake.serve = docker_down\n"
+        "    sys.exit(intake.main(['serve', '--config', 'unused']))\n"
+        "time.sleep(60)\n"
+    )
+    stop = threading.Event()
+    codes = []
+    thread = threading.Thread(
+        target=lambda: codes.append(
+            sup.supervise(
+                made.service,
+                repository=REPOSITORY,
+                preflight=ready,
+                commands={"intake": script(child)},
+                stop=stop,
+                poll_s=0.02,
+            )
+        )
+    )
+    thread.start()
+    try:
+        deadline = time.monotonic() + 60
+        while not (marker.exists() and marker.read_text() == "2"):
+            assert time.monotonic() < deadline and thread.is_alive()
+            time.sleep(0.05)
+    finally:
+        stop.set()
+        thread.join(30)
+    assert codes == [0]
+    logs = tmp_path / "service" / "logs"
+    events = [json.loads(line) for line in (logs / "supervisor.jsonl").open()]
+    exited = [e for e in events if e["event"] == "child_exited"]
+    assert [e["exit"] for e in exited] == [1]
+    assert "child_refused" not in [e["event"] for e in events]
+    lines = (logs / "intake.log").read_text()
+    assert '"event": "unavailable"' in lines
+    assert "evaluation_host_unavailable" in lines
+
+
+def test_the_intake_exit_code_follows_the_refusal(monkeypatch, capsys, signals):
+    def raising(error):
+        def serve(*args, **kwargs):
+            raise error
+
+        return serve
+
+    for error, code in (
+        (deployment.EvaluationUnavailable("evaluation_host_unavailable"), 1),
+        (deployment.EvaluationUnavailable("evaluation_config_image"), 2),
+        (ib.IntakeUnavailable("intake_config_fields"), 2),
+        (OSError(98, "Address already in use"), 1),
+    ):
+        monkeypatch.setattr(ib, "serve", raising(error))
+        assert ib.main(["serve", "--config", "unused"]) == code, error
+    assert "Address already in use" not in capsys.readouterr().err
+
+
+def test_the_intake_waits_out_the_host_before_it_listens(monkeypatch, capsys):
+    monkeypatch.setattr(ib, "HOST_RETRY_MIN_S", 0.01)
+    attempts = []
+
+    def docker_down_twice(config_path, *, repository, readonly=False):
+        attempts.append(1)
+        if len(attempts) <= 2:
+            raise deployment.EvaluationUnavailable("evaluation_host_unavailable")
+        return "built"
+
+    monkeypatch.setattr(deployment, "validator", docker_down_twice)
+    config = {"deployment": "unused"}
+    assert ib._when_host_ready(config, REPOSITORY, threading.Event()) == "built"
+    lines = [json.loads(line) for line in capsys.readouterr().err.splitlines()]
+    assert [line["event"] for line in lines] == ["waiting_for_host"] * 2
+    assert [line["retry_in_s"] for line in lines] == [0.01, 0.02]
+    # Stopped while waiting: nothing is built and nothing listens.
+    attempts.clear()
+    stop = threading.Event()
+    stop.set()
+    assert ib._when_host_ready(config, REPOSITORY, stop) is None
+    # A refused configuration is answered at once.
+
+    def refused(config_path, *, repository, readonly=False):
+        raise deployment.EvaluationUnavailable("evaluation_identities_changed")
+
+    monkeypatch.setattr(deployment, "validator", refused)
+    with pytest.raises(deployment.EvaluationUnavailable):
+        ib._when_host_ready(config, REPOSITORY, threading.Event())
+
+
+def test_one_intake_serves_an_inbox(tmp_path, monkeypatch):
+    monkeypatch.setattr(operate, "LOCK_TRIES", 2)
+    config = {"inbox": str(tmp_path / "inbox.sqlite3")}
+    held = ib._serving_lock(config)
+    try:
+        assert svc.lock_held(ib.serve_lock_path(config))
+        with pytest.raises(ib.IntakeUnavailable) as refused:
+            ib._serving_lock(config)
+        assert refused.value.code == "intake_already_serving"
+    finally:
+        os.close(held)
+    assert not svc.lock_held(ib.serve_lock_path(config))
+
+
+def docker(code):
+    return {
+        "ready": False,
+        "checks": [
+            {"check": "service", "status": "ok"},
+            {
+                "check": "images",
+                "status": "refused",
+                "refused": "image_not_eligible",
+                "doctor": code,
+            },
+        ],
+    }
+
+
+def test_a_start_waits_out_a_docker_that_is_still_starting():
+    reports = iter([docker("worker.doctor.docker_unavailable")] * 2 + [ready()])
+    ticks, slept = iter(range(100)), []
+    report = svc.wait_for_host(
+        lambda: next(reports),
+        wait_s=30,
+        poll_s=5,
+        clock=lambda: next(ticks),
+        sleep=slept.append,
+    )
+    assert report["ready"] and slept == [5, 5]
+    # A missing image is the operator's to fix: answered at once.
+    missing = docker("worker.doctor.image_unavailable")
+    assert svc.wait_for_host(lambda: missing, wait_s=30, sleep=slept.append) is missing
+    assert len(slept) == 2
+    # Docker still down when the wait runs out: not ready, by its code.
+    down = docker("worker.doctor.docker_unavailable")
+    clock = iter([0, 4, 8, 12])
+    found = svc.wait_for_host(
+        lambda: down, wait_s=10, poll_s=5, clock=lambda: next(clock), sleep=slept.append
+    )
+    assert found is down and svc.host_not_ready(found)
 
 
 def test_a_child_that_keeps_failing_hits_the_restart_limit(
@@ -747,6 +1126,8 @@ def test_the_supervised_commands_are_the_intake_and_operate_run(tmp_path):
         str(made.deployment),
         "--every",
         "30.0",
+        "--heartbeat",
+        str(tmp_path / "service" / "daemon-heartbeat.json"),
     ]
 
 
@@ -761,16 +1142,31 @@ def test_units_are_written_owner_only_and_never_over_a_file(tmp_path):
     text = (out / "carbon-battery-intake.service").read_text()
     assert "ExecStart=/venv/python -m carbon.battery.intake serve --config" in text
     assert "RestartPreventExitStatus=2" in text and "Restart=on-failure" in text
-    assert f"preflight --config {made.service}" in text
+    # A Docker still starting after a reboot is waited out inside the start.
+    assert f"preflight --config {made.service} --wait-for-host 300" in text
+    assert "TimeoutStartSec=360" in text
     assert (out / "carbon-battery-intake.service").stat().st_mode & 0o777 == 0o600
     daemon = (out / "carbon-battery-validator.service").read_text()
     assert "carbon.battery.operate run --config" in daemon and "--every 60.0" in daemon
+    assert (
+        "--heartbeat " + str(tmp_path / "service" / "daemon-heartbeat.json") in daemon
+    )
+    # The daemon keeps its heartbeat there; no supervisor runs to make it.
+    assert (tmp_path / "service").stat().st_mode & 0o777 == 0o700
     with pytest.raises(svc.ServiceRefused) as refused:
         sup.units(made.service, out, python="/venv/python")
     assert refused.value.code == "unit_exists"
 
 
+def answering(config):
+    return {"listening": True, "answer": "ok"}
+
+
 def test_status_is_unhealthy_until_the_intake_answers(tmp_path):
+    """Before this review fix `healthy` was only "the intake answers" when no
+    supervisor ran, as under the systemd units: a failed or restart-limited
+    daemon unit still read healthy. Every part is now seen by its own lock,
+    and the daemon by its heartbeat too."""
     made = throwaway(tmp_path)
     found = svc.status(
         made.service,
@@ -779,11 +1175,123 @@ def test_status_is_unhealthy_until_the_intake_answers(tmp_path):
     )
     assert found["healthy"] is False
     assert found["supervisor"] == {"state": "not_running"}
+    assert found["daemon"] == {"state": "not_running", "healthy": False}
+    assert found["intake"]["serving"] is False
     assert found["inbox"] is None and found["latest_backup"] is None
     assert found["deployment"]["bound"] is False
-    found = svc.status(
-        made.service,
-        repository=REPOSITORY,
-        probe=lambda config: {"listening": True, "answer": "ok"},
+    # The intake answering is not enough while the daemon cannot be seen.
+    service = svc.load_service(made.service)
+    intake_config = json.loads(made.intake.read_text())
+    with holding(ib.serve_lock_path(intake_config)):
+        found = svc.status(made.service, repository=REPOSITORY, probe=answering)
+    assert found["intake"]["serving"] is True and found["healthy"] is False
+    # With the daemon running and fresh, it is healthy, then not once it ends.
+    svc.owner_only_directory(service.state_dir, create=True)
+    stop, passed = threading.Event(), threading.Event()
+    daemon = threading.Thread(
+        target=operate.run_every,
+        args=(made.deployment, 5.0),
+        kwargs={
+            "stop": stop,
+            "out": io.StringIO(),
+            "heartbeat": svc.heartbeat_path(service),
+        },
     )
+    real = BatteryValidator.run_pending
+
+    def noted(self):
+        try:
+            return real(self)
+        finally:
+            passed.set()
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(BatteryValidator, "run_pending", noted)
+        daemon.start()
+        try:
+            assert passed.wait(60)
+            deadline = time.monotonic() + 10
+            while svc.daemon_view(service).get("last_pass") != "ok":
+                assert time.monotonic() < deadline
+                time.sleep(0.05)
+            with holding(ib.serve_lock_path(intake_config)):
+                found = svc.status(made.service, repository=REPOSITORY, probe=answering)
+        finally:
+            stop.set()
+            daemon.join(30)
+    assert found["daemon"]["state"] == "running"
+    assert found["daemon"]["passes"] >= 1
     assert found["healthy"] is True
+    with holding(ib.serve_lock_path(intake_config)):
+        found = svc.status(made.service, repository=REPOSITORY, probe=answering)
+    assert found["daemon"]["state"] == "not_running" and found["healthy"] is False
+
+
+def beating(service, **fields):
+    """Write a heartbeat as the daemon does, for a daemon the test plays."""
+    value = {
+        "schema": operate.HEARTBEAT_SCHEMA,
+        "pid": os.getpid(),
+        "every_s": 60.0,
+        "passes": 4,
+        "in_pass": False,
+        "last_pass": "ok",
+        "stopped": False,
+        "updated_unix": time.time(),
+        **fields,
+    }
+    write(svc.heartbeat_path(service), value)
+
+
+def test_a_stuck_failing_or_waiting_daemon_is_unhealthy(tmp_path):
+    made = throwaway(tmp_path)
+    service = svc.load_service(made.service)
+    svc.owner_only_directory(service.state_dir, create=True)
+    with holding(svc.daemon_lock_path(service)):
+        assert svc.daemon_view(service)["state"] == "starting"
+        beating(service)
+        assert svc.daemon_view(service)["healthy"] is True
+        # Between passes for longer than twice the period plus a margin.
+        beating(service, updated_unix=time.time() - 200)
+        assert svc.daemon_view(service)["state"] == "stale"
+        # A pass in flight is never stale: rebuilds run for minutes.
+        beating(
+            service,
+            in_pass=True,
+            updated_unix=time.time() - 900,
+            pass_started_unix=time.time() - 900,
+        )
+        view = svc.daemon_view(service)
+        assert (view["state"], view["healthy"]) == ("running", True)
+        assert view["pass_running_s"] >= 899
+        beating(service, last_pass="failed")
+        view = svc.daemon_view(service)
+        assert (view["state"], view["healthy"]) == ("running", False)
+        beating(service, last_pass="unavailable")
+        assert svc.daemon_view(service)["state"] == "waiting_for_host"
+        # The previous daemon's last word, before a new one has written.
+        beating(service, stopped=True)
+        assert svc.daemon_view(service)["state"] == "starting"
+    # Its lock released, a heartbeat however fresh is a daemon not running.
+    beating(service)
+    assert svc.daemon_view(service)["state"] == "not_running"
+
+
+def test_a_probe_never_makes_a_start_fail(tmp_path):
+    """`status` and `restore` probe the supervisor's lock shared, for an
+    instant; the supervisor retries its own lock, so a probe at the moment it
+    starts is never `supervisor_already_running`."""
+    made = throwaway(tmp_path)
+    service = svc.load_service(made.service)
+    svc.owner_only_directory(service.state_dir, create=True)
+    lock = service.state_dir / "supervisor.lock"
+    lock.touch(mode=0o600)
+    fd = os.open(lock, os.O_RDONLY)
+    fcntl.flock(fd, fcntl.LOCK_SH)
+    threading.Timer(0.3, os.close, args=(fd,)).start()
+    held = sup._lock(service)
+    try:
+        assert svc.running(service) is True
+    finally:
+        os.close(held)
+    assert svc.running(service) is False

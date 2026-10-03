@@ -46,9 +46,13 @@ Tests are not a security audit; this module is security-sensitive (AGENTS
 **As a service** (`scripts/dev/battery_validator_service`, LP-PROD-G) the
 intake logs one JSON line per event to stderr - start, stop, worker passes
 that moved something, worker failures by type, and the refresher failing or
-recovering - and never a peer address, hotkey, path or request. SIGTERM
-stops it: the listener closes and the worker may finish its pass. A
-configuration refusal exits 2, so a supervisor does not restart into it.
+recovering - and never a peer address, hotkey, path or request. It holds
+`<inbox>.serve.lock` while it runs, so the service's status and restore see
+it however it was started. A start the host cannot serve yet (Docker down
+or still starting) is waited out before anything listens. SIGTERM stops it:
+the listener closes and the worker may finish its pass within a grace
+period. A configuration refusal exits 2, so a supervisor does not restart
+into it; any other failure exits 1 and is restarted after a backoff.
 
 Nothing here scores, qualifies, commits on chain or signs with a key: the
 miner signs; the service key, if configured, belongs to the daemon.
@@ -58,8 +62,10 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import fcntl
 import ipaddress
 import json
+import os
 import re
 import signal
 import sqlite3
@@ -97,6 +103,10 @@ SOCKET_TIMEOUT_S = 10.0
 #: On SIGTERM the worker may finish the pass in flight for this long; a run
 #: cut off after it is recovered as infrastructure on the next start.
 STOP_GRACE_S = 30.0
+#: A start refused for the host's state is retried after this backoff,
+#: doubling up to the maximum (engineering values).
+HOST_RETRY_MIN_S, HOST_RETRY_MAX_S = 1.0, 60.0
+SERVE_LOCK_SUFFIX = ".serve.lock"
 EXPOSURE_RECORD = r"OWNER-[A-Z0-9-]*INTAKE-EXPOSURE-[0-9]{2}"
 SERVICE = "battery-intake"
 
@@ -902,6 +912,60 @@ def listener(config, intake):
     return httpd
 
 
+def serve_lock_path(config):
+    """The lock a serving intake holds: `<inbox>.serve.lock`."""
+    return Path(str(config["inbox"]) + SERVE_LOCK_SUFFIX)
+
+
+def _serving_lock(config):
+    """Hold the serving lock for the intake's life and return its fd.
+
+    It is the signal the service's `status` and `restore` read to see the
+    intake running, under a supervisor or a systemd unit, even while it
+    waits for the host and does not listen yet. A probe holds it shared for
+    an instant, so it is retried briefly; a lock still held belongs to
+    another intake on the same inbox (`intake_already_serving`).
+    """
+    from .operate import LOCK_RETRY_S, LOCK_TRIES
+
+    fd = os.open(serve_lock_path(config), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    for _ in range(LOCK_TRIES):
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            time.sleep(LOCK_RETRY_S)
+        else:
+            return fd
+    os.close(fd)
+    raise IntakeUnavailable("intake_already_serving")
+
+
+def _when_host_ready(config, repository, stop):
+    """The writable deployment, once the host can serve it.
+
+    A start refused for the host's state - `evaluation_host_unavailable`:
+    Docker down, or still starting after a reboot - is retried after a
+    backoff doubling from 1 s to 60 s, each attempt logged
+    `waiting_for_host`, until it builds, or `stop` is set (None). Exiting
+    instead would spend a supervisor's restart limit on a passing outage. A
+    configuration refusal (`operate.exit_code`) propagates at once.
+    """
+    from . import deployment
+    from .operate import REFUSED_EXIT, exit_code
+
+    delay = HOST_RETRY_MIN_S
+    while True:
+        try:
+            return deployment.validator(config["deployment"], repository=repository)
+        except deployment.EvaluationUnavailable as unavailable:
+            if exit_code(unavailable.code) == REFUSED_EXIT:
+                raise
+            log("waiting_for_host", code=unavailable.code, retry_in_s=delay)
+        if stop.wait(delay):
+            return None
+        delay = min(HOST_RETRY_MAX_S, delay * 2)
+
+
 def serve(
     config_path,
     *,
@@ -919,19 +983,34 @@ def serve(
     given, is called with the bound `(host, port)` once the listener accepts
     connections. Everything that can refuse is checked before anything
     listens or starts: the configuration, the exposure and its isolation,
-    the TLS material and the deployment.
+    the TLS material, the serving lock and the deployment. A deployment the
+    host cannot serve yet is waited for (`_when_host_ready`).
     """
+    from . import deployment
+
+    config = load_config(config_path, repository=repository)
+    require_isolation(config, deployment.load_config(config["deployment"]))
+    tls_context(config)  # refused by name before the deployment starts
+    stop = threading.Event() if stop is None else stop
+    lock = _serving_lock(config)
+    try:
+        target = _when_host_ready(config, repository, stop)
+        if target is not None:
+            _serve(config, target, repository, stop, reader, verifier, ready)
+    finally:
+        os.close(lock)
+
+
+def _serve(config, target, repository, stop, reader, verifier, ready):
+    """`serve` once the deployment is built: the refresher, the worker and
+    the listener, until `stop` is set."""
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.development_session.chain_onboarding import carbon_testnet_context
     from carbon.transport.store import ReceiptJournal
 
     from . import deployment
 
-    config = load_config(config_path, repository=repository)
-    require_isolation(config, deployment.load_config(config["deployment"]))
-    tls_context(config)  # refused by name before the deployment starts
     context = carbon_testnet_context()
-    target = deployment.validator(config["deployment"], repository=repository)
     status = deployment.validator(
         config["deployment"], repository=repository, readonly=True
     )
@@ -948,7 +1027,6 @@ def serve(
         rule=target.rule,
     )
     httpd = listener(config, intake)
-    stop = threading.Event() if stop is None else stop
     threads = [
         threading.Thread(
             target=refresher,
@@ -986,6 +1064,7 @@ def main(argv=None):
     import argparse
 
     from .deployment import EvaluationUnavailable
+    from .operate import REFUSED_EXIT, exit_code
 
     parser = argparse.ArgumentParser(prog="carbon.battery.intake")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -998,11 +1077,22 @@ def main(argv=None):
         signal.signal(number, lambda *_: stop.set())
     try:
         serve(args.config, repository=repository, stop=stop)
-    except (IntakeUnavailable, EvaluationUnavailable) as refused:
+    except IntakeUnavailable as refused:
         # A configuration state: exit 2, which a supervisor does not restart.
         log("refused", code=refused.code)
         print(json.dumps({"unavailable": refused.code}))
-        return 2
+        return REFUSED_EXIT
+    except EvaluationUnavailable as unavailable:
+        # The deployment's own code decides: its configuration exits 2; the
+        # host's state (`evaluation_host_unavailable`, or a code not known
+        # as a configuration) exits 1, restarted after a backoff.
+        code = exit_code(unavailable.code)
+        log(
+            "refused" if code == REFUSED_EXIT else "unavailable",
+            code=unavailable.code,
+        )
+        print(json.dumps({"unavailable": unavailable.code}))
+        return code
     except OSError as failure:
         # The address is taken or the host refused the bind: infrastructure,
         # which a supervisor retries after its backoff.

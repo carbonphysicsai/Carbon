@@ -27,8 +27,17 @@ def main(argv=None):
         prog="python -m scripts.dev.battery_validator_service"
     )
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("preflight", "parity", "status", "backup", "supervise"):
+    for name in ("parity", "status", "backup", "supervise"):
         sub.add_parser(name).add_argument("--config", required=True)
+    preflight = sub.add_parser("preflight")
+    preflight.add_argument("--config", required=True)
+    preflight.add_argument(
+        "--wait-for-host",
+        type=float,
+        default=0.0,
+        metavar="SECONDS",
+        help="re-check for up to SECONDS while Docker is not answering yet",
+    )
     restore = sub.add_parser("restore")
     restore.add_argument("--config", required=True)
     restore.add_argument("--from", dest="source", required=True)
@@ -37,13 +46,15 @@ def main(argv=None):
     units.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     try:
-        if args.command in ("preflight", "parity"):
-            run = (
-                service.preflight
-                if args.command == "preflight"
-                else service.parity_report
+        if args.command == "preflight":
+            report = service.wait_for_host(
+                lambda: service.preflight(args.config),
+                wait_s=max(0.0, args.wait_for_host),
             )
-            report = run(args.config)
+            _print(report)
+            return 0 if report["ready"] else 2
+        if args.command == "parity":
+            report = service.parity_report(args.config)
             _print(report)
             return 0 if report["ready"] else 2
         if args.command == "status":

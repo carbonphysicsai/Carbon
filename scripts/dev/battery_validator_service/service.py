@@ -6,7 +6,7 @@ The service configuration is an owner-only JSON file (schema
 - `intake`: the intake configuration (`carbon.battery.intake.v1`). It names
   the deployment, so the service never names a second one;
 - `state_dir`: owner-only directory for the supervisor's lock, state file
-  and logs;
+  and logs, and the validator daemon's heartbeat and its lock;
 - `backups`: owner-only directory backups are written to;
 - `practice_images` (required for a carrier deployment): the worker image
   manifests miners practise against, under the deployment's own keys -
@@ -21,19 +21,25 @@ The service configuration is an owner-only JSON file (schema
 Every check answers with a closed code and, where there is one, the next
 step. Nothing here starts, recovers, locks or advances the deployment, and
 nothing prints a key, seed, root or case.
+
+**What runs is read from locks**, the same however the service was started
+(`supervise` or the systemd units): the supervisor holds
+`<state_dir>/supervisor.lock`, the intake `<inbox>.serve.lock`, and the
+validator daemon `<state_dir>/daemon-heartbeat.json.lock` beside the
+heartbeat it keeps (`operate run --every --heartbeat`). Each is probed
+shared and non-blocking, for an instant (`lock_held`).
 """
 
 from __future__ import annotations
 
 import fcntl
 import hashlib
+import http.client
 import json
 import os
 import ssl
 import stat
 import time
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,6 +53,16 @@ IMAGE_KEYS = {"image_manifest": "jax", "torch_image_manifest": "pytorch"}
 #: The validator daemon's default period: an engineering value. The intake's
 #: own worker advances every submission it receives at once.
 RUN_EVERY_S = 60.0
+#: The validator daemon's heartbeat, in `state_dir`.
+HEARTBEAT = "daemon-heartbeat.json"
+#: A daemon between passes is fresh while its heartbeat is at most twice its
+#: period plus a margin old. A pass in flight is never stale: rebuilds and
+#: scoring run for minutes. Engineering values.
+STALE_PERIODS, STALE_MARGIN_S = 2.0, 30.0
+#: `preflight --wait-for-host` and `supervise` re-check this long, this
+#: often, while the only refusal is the host's passing state (Docker not
+#: answering). Engineering values; a unit's start timeout allows for them.
+HOST_WAIT_S, HOST_POLL_S = 300.0, 5.0
 #: A pinned worker image's identity, every field compared by parity.
 IDENTITY_FIELDS = (
     "image_id",
@@ -135,15 +151,19 @@ def owner_only_directory(path, *, create=False):
     return path
 
 
-def running(service):
-    """Whether a supervisor holds this service's lock right now."""
-    lock = service.state_dir / "supervisor.lock"
+def lock_held(path):
+    """Whether a process holds an exclusive `flock` on `path` right now.
+
+    Probed shared and non-blocking, for an instant: two probes never
+    conflict, and every holder retries its own lock briefly when it starts,
+    so a probe never makes a start fail.
+    """
     try:
-        fd = os.open(lock, os.O_RDWR)
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     except OSError:
         return False
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
     except BlockingIOError:
         return True
     else:
@@ -151,6 +171,33 @@ def running(service):
         return False
     finally:
         os.close(fd)
+
+
+def running(service):
+    """Whether a supervisor holds this service's lock right now."""
+    return lock_held(service.state_dir / "supervisor.lock")
+
+
+def heartbeat_path(service):
+    """Where the validator daemon keeps its heartbeat (`--heartbeat`)."""
+    return service.state_dir / HEARTBEAT
+
+
+def daemon_lock_path(service):
+    return Path(str(heartbeat_path(service)) + ".lock")
+
+
+def running_parts(service, intake_config):
+    """Which of the service's processes run right now, read from their locks
+    whoever started them: `supervisor`, `intake`, `daemon`."""
+    from carbon.battery.intake import serve_lock_path
+
+    locks = {
+        "supervisor": service.state_dir / "supervisor.lock",
+        "intake": serve_lock_path(intake_config),
+        "daemon": daemon_lock_path(service),
+    }
+    return sorted(name for name, path in locks.items() if lock_held(path))
 
 
 def load_service(path):
@@ -514,6 +561,36 @@ def preflight(path, *, repository=REPOSITORY, doctor=None):
     return report
 
 
+def host_not_ready(report):
+    """Whether a preflight refused for nothing but the host's passing state:
+    every refusal is a pinned image the doctor could not check because
+    Docker is not answering (down, or still starting after a reboot)."""
+    refused = [item for item in report["checks"] if item["status"] == "refused"]
+    return bool(refused) and all(
+        item.get("refused") == "image_not_eligible"
+        and item.get("doctor") == "worker.doctor.docker_unavailable"
+        for item in refused
+    )
+
+
+def wait_for_host(
+    check, *, wait_s, poll_s=HOST_POLL_S, clock=time.monotonic, sleep=time.sleep
+):
+    """Run `check` (a preflight) until it is ready, refuses for anything but
+    the host's passing state (`host_not_ready`), or `wait_s` has passed, and
+    return its last report. A unit's or a supervisor's start therefore waits
+    out a Docker that is still starting instead of failing into its restart
+    limit; a refused configuration is still answered at once."""
+    deadline = clock() + wait_s
+    while True:
+        report = check()
+        if report["ready"] or not host_not_ready(report):
+            return report
+        if clock() + poll_s > deadline:
+            return report
+        sleep(poll_s)
+
+
 def parity_report(path, *, repository=REPOSITORY):
     """The parity check alone, with what it needs."""
     report = _run_checks(
@@ -535,37 +612,64 @@ def parity_report(path, *, repository=REPOSITORY):
     return report
 
 
+def _leaf_sha256(cert_file):
+    """SHA-256 of the first certificate in a PEM file: the leaf the intake
+    serves (a full chain lists it first)."""
+    text = Path(cert_file).read_text(encoding="ascii")
+    begin, end = "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"
+    first = text[text.index(begin) : text.index(end) + len(end)]
+    return hashlib.sha256(ssl.PEM_cert_to_DER_cert(first)).hexdigest()
+
+
 def probe_intake(intake_config, *, timeout=5.0):
     """The intake's own public answer, read over its bound address.
 
-    A wildcard bind is probed on loopback. Over TLS the listener must present
-    exactly the configured certificate (it is the only trust anchor; the
-    host name is not checked, since the probe connects by address). Only the
-    public facts are read: the probe sends nothing signed.
+    A wildcard bind is probed on loopback. Over TLS the handshake verifies
+    against the configured certificate file (the host name is not checked,
+    since the probe connects by address), and then the leaf the listener
+    presents must be the file's first certificate, byte for byte: another
+    certificate from the same issuer is `intake_certificate_differs`. Only
+    the public facts are read: the probe sends nothing signed.
     """
     from carbon.battery.intake import INFO_PATH
 
     host = intake_config["host"]
     host = {"0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
-    shown = "[" + host + "]" if ":" in host else host
-    scheme, context = "http", None
-    if "tls_cert" in intake_config:
-        scheme = "https"
-        context = ssl.create_default_context(cafile=intake_config["tls_cert"])
-        context.check_hostname = False
-        context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
-    url = f"{scheme}://{shown}:{intake_config['port']}{INFO_PATH}"
+    port = intake_config["port"]
+    tls = "tls_cert" in intake_config
     try:
-        with urllib.request.urlopen(url, timeout=timeout, context=context) as answer:
-            facts = json.loads(answer.read(65536))
-    except urllib.error.HTTPError as refused:
+        if tls:
+            context = ssl.create_default_context(cafile=intake_config["tls_cert"])
+            context.check_hostname = False
+            context.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
+            connection = http.client.HTTPSConnection(
+                host, port, timeout=timeout, context=context
+            )
+        else:
+            connection = http.client.HTTPConnection(host, port, timeout=timeout)
         try:
-            body = json.loads(refused.read(65536) or b"{}")
-        except ValueError:
-            body = {}
-        return {"listening": True, "answer": body.get("refused", refused.code)}
-    except (OSError, ValueError):
+            connection.connect()
+            if tls:
+                served = connection.sock.getpeercert(binary_form=True) or b""
+                if hashlib.sha256(served).hexdigest() != _leaf_sha256(
+                    intake_config["tls_cert"]
+                ):
+                    return {"listening": True, "answer": "intake_certificate_differs"}
+            connection.request("GET", INFO_PATH)
+            response = connection.getresponse()
+            status, body = response.status, response.read(65536)
+        finally:
+            connection.close()
+    except (OSError, ValueError, http.client.HTTPException):
         return {"listening": False, "answer": "intake_not_listening"}
+    try:
+        facts = json.loads(body or b"{}")
+    except ValueError:
+        facts = None
+    if type(facts) is not dict:
+        return {"listening": True, "answer": "intake_answer_unrecognised"}
+    if status != 200:
+        return {"listening": True, "answer": facts.get("refused", status)}
     snapshot = facts.get("snapshot") or {}
     stamp = snapshot.get("timestamp_ms")
     return {
@@ -590,11 +694,62 @@ def _latest_backup(service):
     return names[-1] if names else None
 
 
+def daemon_view(service, *, now=None):
+    """The validator daemon as its liveness lock and heartbeat show it.
+
+    `state` is `not_running` (no process holds the lock), `starting` (held,
+    no heartbeat of its own yet), `waiting_for_host` (its last pass could not
+    build the deployment: Docker down or starting), `stale` (between passes
+    for longer than twice its period plus a margin: stuck), or `running`.
+    `healthy` only when `running` and its last pass, if it has finished one,
+    succeeded. Times, counts and the pass outcome only.
+    """
+    now = time.time() if now is None else now
+    if not lock_held(daemon_lock_path(service)):
+        return {"state": "not_running", "healthy": False}
+    try:
+        beat = json.loads(heartbeat_path(service).read_bytes())
+    except (OSError, ValueError):
+        beat = None
+    if type(beat) is not dict or beat.get("stopped"):
+        return {"state": "starting", "healthy": False}
+
+    def number(key):
+        value = beat.get(key)
+        return value if type(value) in (int, float) else None
+
+    updated, every = number("updated_unix"), number("every_s")
+    if updated is None or every is None:
+        return {"state": "starting", "healthy": False}
+    last = beat.get("last_pass")
+    view = {
+        "passes": number("passes"),
+        "last_pass": last if last in ("ok", "failed", "unavailable") else None,
+        "heartbeat_age_s": round(now - updated, 1),
+        "in_pass": beat.get("in_pass") is True,
+    }
+    if view["in_pass"] and number("pass_started_unix") is not None:
+        view["pass_running_s"] = round(now - number("pass_started_unix"), 1)
+    if view["last_pass"] == "unavailable":
+        state = "waiting_for_host"
+    elif not view["in_pass"] and now - updated > STALE_PERIODS * every + STALE_MARGIN_S:
+        state = "stale"
+    else:
+        state = "running"
+    view["state"] = state
+    view["healthy"] = state == "running" and view["last_pass"] in ("ok", None)
+    return view
+
+
 def status(path, *, repository=REPOSITORY, probe=probe_intake):
-    """The service as it runs: healthy when the intake answers its public
-    facts and every supervised process is running."""
+    """The service as it runs, however it was started (`supervise` or the
+    systemd units). Healthy only when the intake holds its serving lock and
+    answers its public facts, the validator daemon is alive with a fresh
+    heartbeat and its last pass did not fail (`daemon_view`), and, under a
+    supervisor, every supervised process is running. A process status
+    cannot see is never counted healthy."""
     from carbon.battery import deployment
-    from carbon.battery.intake import Inbox
+    from carbon.battery.intake import Inbox, serve_lock_path
 
     from .supervisor import read_state
 
@@ -602,7 +757,11 @@ def status(path, *, repository=REPOSITORY, probe=probe_intake):
     intake_config = _intake(service, repository)
     found = {"schema": REPORT_SCHEMA, "service": str(service.path)}
     found["supervisor"] = read_state(service)
-    found["intake"] = probe(intake_config)
+    found["intake"] = {
+        "serving": lock_held(serve_lock_path(intake_config)),
+        **probe(intake_config),
+    }
+    found["daemon"] = daemon_view(service)
     inbox = Path(intake_config["inbox"])
     found["inbox"] = Inbox(inbox).counts() if inbox.exists() else None
     try:
@@ -621,8 +780,11 @@ def status(path, *, repository=REPOSITORY, probe=probe_intake):
         found["deployment"] = {"refused": refused.code}
     found["latest_backup"] = _latest_backup(service)
     supervised = found["supervisor"].get("children") or {}
-    found["healthy"] = found["intake"]["answer"] == "ok" and all(
-        child.get("state") == "running" for child in supervised.values()
+    found["healthy"] = (
+        found["intake"]["serving"]
+        and found["intake"]["answer"] == "ok"
+        and found["daemon"]["healthy"]
+        and all(child.get("state") == "running" for child in supervised.values())
     )
     return found
 

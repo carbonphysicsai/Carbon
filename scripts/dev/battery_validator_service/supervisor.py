@@ -2,23 +2,30 @@
 
 `supervise` is for an operator host without systemd (a WSL distribution
 without it enabled, for one). It takes the service's lock (one supervisor per
-service), refuses to start unless the preflight is ready, and runs two
-children from the repository root:
+service), refuses to start unless the preflight is ready - waiting up to
+`HOST_WAIT_S` while the only refusal is a Docker that is not answering yet -
+and runs two children from the repository root:
 
 - `intake`: `python -m carbon.battery.intake serve --config <intake>`;
 - `daemon`: `python -m carbon.battery.operate run --config <deployment>
-  --every <run_every_s>`.
+  --every <run_every_s> --heartbeat <state_dir>/daemon-heartbeat.json`.
 
 Restart policy, the same as the systemd units':
 - a child that exits 2 refused its configuration. Restarting would only
   repeat the refusal, so the supervisor stops both and exits 2;
-- any other exit is restarted after a backoff that doubles from 1 s up to
-  60 s and resets once the child has run for 10 minutes;
+- any other exit - including the host's state, such as Docker down when a
+  child starts (`operate.exit_code`) - is restarted after a backoff that
+  doubles from 1 s up to 60 s and resets once the child has run for 10
+  minutes. Both children also wait out such an outage themselves rather
+  than exit;
 - more than 5 restarts of one child within 10 minutes stops both, exit 1
   (`restart_limit`): something needs the operator.
 
-SIGTERM or SIGINT stops both children (SIGTERM, then SIGKILL after the grace
-period) and exits 0.
+SIGTERM or SIGINT stops both children (SIGTERM, then SIGKILL after
+`STOP_GRACE_S`) and exits 0. A child given SIGTERM finishes its pass in
+flight only if that pass ends within the grace period; a longer pass (a
+carrier run may take up to its deployment's `seconds`) is cut off, and its
+run is recovered as infrastructure on the next start, never as a verdict.
 
 Logs are structured and owner-only under `<state_dir>/logs/`: the
 supervisor's own events as JSON lines in `supervisor.jsonl`, and each child's
@@ -39,12 +46,15 @@ import time
 from pathlib import Path
 
 from .service import (
+    HOST_WAIT_S,
     REPOSITORY,
     ServiceRefused,
     _intake,
+    heartbeat_path,
     load_service,
     owner_only_directory,
     running,
+    wait_for_host,
 )
 
 STATE_SCHEMA = "carbon.battery.validator-supervisor.v1"
@@ -54,6 +64,9 @@ STABLE_S = 600.0
 RESTART_BURST, RESTART_WINDOW_S = 5, 600.0
 STOP_GRACE_S = 45.0
 REFUSED_EXIT = 2
+#: A status probe holds the supervisor's lock for an instant, so a starting
+#: supervisor retries it this often, this far apart.
+LOCK_TRIES, LOCK_RETRY_S = 40, 0.05
 
 
 def children(service, *, repository=REPOSITORY, python=None):
@@ -78,6 +91,8 @@ def children(service, *, repository=REPOSITORY, python=None):
             str(intake_config["deployment"]),
             "--every",
             repr(service.run_every_s),
+            "--heartbeat",
+            str(heartbeat_path(service)),
         ],
     }
 
@@ -172,18 +187,19 @@ def supervise(
 
     service = load_service(path)
     owner_only_directory(service.state_dir, create=True)
-    lock_fd = os.open(
-        service.state_dir / "supervisor.lock", os.O_RDWR | os.O_CREAT, 0o600
-    )
-    try:
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        os.close(lock_fd)
-        raise ServiceRefused("supervisor_already_running") from None
+    lock_fd = _lock(service)
     stop = threading.Event() if stop is None else stop
     log = Log(service)
     try:
-        report = (preflight or default_preflight)(path, repository=repository)
+        check = preflight or default_preflight
+        report = wait_for_host(
+            lambda: check(path, repository=repository),
+            wait_s=HOST_WAIT_S,
+            sleep=stop.wait,
+        )
+        if stop.is_set():
+            log.event("stopped", code=0)
+            return 0
         if not report["ready"]:
             refused = [c for c in report["checks"] if c["status"] == "refused"]
             log.event("preflight_refused", codes=[c["refused"] for c in refused])
@@ -197,6 +213,26 @@ def supervise(
     finally:
         fcntl.flock(lock_fd, fcntl.LOCK_UN)
         os.close(lock_fd)
+
+
+def _lock(service):
+    """Take the service's supervisor lock, or refuse: one supervisor per
+    service. A `status` or `restore` probe holds it shared for an instant,
+    so it is retried briefly before `supervisor_already_running`."""
+    fd = os.open(
+        service.state_dir / "supervisor.lock",
+        os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW,
+        0o600,
+    )
+    for _ in range(LOCK_TRIES):
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            time.sleep(LOCK_RETRY_S)
+        else:
+            return fd
+    os.close(fd)
+    raise ServiceRefused("supervisor_already_running")
 
 
 def _start(child, log, repository, clock):
@@ -308,11 +344,12 @@ StartLimitBurst={burst}
 Type=simple
 WorkingDirectory={repository}
 Environment=PYTHONUNBUFFERED=1
-ExecStartPre={python} -m scripts.dev.battery_validator_service preflight --config {service}
+ExecStartPre={python} -m scripts.dev.battery_validator_service preflight --config {service} --wait-for-host {host_wait}
 ExecStart={command}
 Restart=on-failure
 RestartSec={backoff}
 RestartPreventExitStatus={refused}
+TimeoutStartSec={start_timeout}
 TimeoutStopSec={grace}
 UMask=0077
 NoNewPrivileges=yes
@@ -337,12 +374,22 @@ def units(path, out, *, repository=REPOSITORY, python=None):
     """Write `systemd --user` units for the two children into `out`.
 
     Writes files only, owner-only, never over an existing one; installing and
-    enabling them is the operator's step (`systemctl --user`).
+    enabling them is the operator's step (`systemctl --user`). The service's
+    `state_dir` is made owner-only here, since the daemon keeps its
+    heartbeat there and no supervisor runs to make it.
+
+    Each unit's `ExecStartPre` runs the preflight with `--wait-for-host`, so
+    a Docker still starting after a reboot is waited out (up to
+    `HOST_WAIT_S`, inside `TimeoutStartSec`) instead of failing into the
+    start limit. `RestartPreventExitStatus` applies to the main process only:
+    a preflight that refuses its configuration is retried, read-only, until
+    the start limit (5 starts in 10 minutes) stops the unit.
     """
     import shlex
 
     service = load_service(path)
     python = python or sys.executable
+    owner_only_directory(service.state_dir, create=True)
     out = owner_only_directory(out, create=True)
     if any((Path(out) / unit).exists() for unit, _ in UNIT_NAMES.values()):
         raise ServiceRefused(
@@ -361,6 +408,8 @@ def units(path, out, *, repository=REPOSITORY, python=None):
             command=shlex.join(argv),
             backoff=int(BACKOFF_MIN_S * 5),
             refused=REFUSED_EXIT,
+            host_wait=int(HOST_WAIT_S),
+            start_timeout=int(HOST_WAIT_S + 60),
             grace=int(STOP_GRACE_S),
         )
         target = Path(out) / unit

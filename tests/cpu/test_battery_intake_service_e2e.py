@@ -24,6 +24,7 @@ recipe. Not a security audit; the intake is not SECURITY_QUALIFIED.
 from __future__ import annotations
 
 import asyncio
+import io
 import json
 import socket
 import sys
@@ -56,7 +57,7 @@ from test_battery_validator_service import (
     throwaway,
 )
 
-from carbon.battery import campaign, deployment
+from carbon.battery import campaign, deployment, operate
 from carbon.battery import intake as ib
 from carbon.battery import intake_client as ic
 from carbon.battery import remote_submission as rs
@@ -197,6 +198,9 @@ def test_a_signed_submission_is_scored_and_read_back_over_loopback(served):
     status, answer = send(url, MINER, ic.submission_message(public, STRATEGY, DIGEST))
     assert (status, answer["state"]) == (202, "RECEIVED")
     sid = answer["submission_id"]
+    # A client works out the same id before sending (a resend's check).
+    assert ic.submission_id(MINER.ss58_address, STRATEGY, DIGEST) == sid
+    assert ic.submission_id(OTHER.ss58_address, STRATEGY, DIGEST) != sid
     status, outcome = until_terminal(url, MINER, sid)
     assert (status, outcome["state"]) == (200, "SCORED")
     # The miner's allow-listed outcome: development evidence, never a reward.
@@ -218,17 +222,60 @@ def test_a_signed_submission_is_scored_and_read_back_over_loopback(served):
     assert inbox.counts() == {"RECEIVED": 0, "ADMITTED": 1, "REFUSED": 0}
     with served.target.store.db() as db:
         assert db.execute("SELECT COUNT(*) FROM submissions").fetchone() == (1,)
-    # The operator's status reads the live intake over its bound address.
+    # The operator's status reads the live intake over its bound address, and
+    # the daemon by its heartbeat: not healthy until the daemon is seen.
     found = svc.status(served.made.service, repository=REPOSITORY)
-    assert found["healthy"] is True and found["intake"]["answer"] == "ok"
+    assert found["intake"]["answer"] == "ok" and found["intake"]["serving"] is True
+    assert found["daemon"]["state"] == "not_running" and found["healthy"] is False
+    with daemon_running(served.made) as beat:
+        assert beat.wait(60)
+        found = svc.status(served.made.service, repository=REPOSITORY)
+    assert found["healthy"] is True, found
+    assert found["daemon"]["last_pass"] == "ok"
     assert found["inbox"]["ADMITTED"] == 1
     assert found["deployment"]["pool"]["admitted"] == 1
 
 
-def prepared(root, url):
-    root.mkdir(mode=0o700)
+@contextmanager
+def daemon_running(made):
+    """`operate run --every --heartbeat` in a thread, as its unit runs it.
+    Yields an event set once its first pass has ended."""
+    service = svc.load_service(made.service)
+    svc.owner_only_directory(service.state_dir, create=True)
+    stop, done = threading.Event(), threading.Event()
+
+    def run():
+        operate.run_every(
+            made.deployment,
+            operate.MIN_EVERY_S,
+            stop=stop,
+            out=io.StringIO(),
+            heartbeat=svc.heartbeat_path(service),
+        )
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+
+    def first_pass():
+        deadline = time.monotonic() + 60
+        while svc.daemon_view(service).get("last_pass") is None:
+            if time.monotonic() > deadline:
+                return
+            time.sleep(0.05)
+        done.set()
+
+    threading.Thread(target=first_pass, daemon=True).start()
+    try:
+        yield done
+    finally:
+        stop.set()
+        thread.join(60)
+
+
+def prepared(root, url, key=MINER):
+    root.mkdir(mode=0o700, exist_ok=True)
     return SimpleNamespace(
-        sdk=SimpleNamespace(connection=SimpleNamespace(miner_key="miner-signer")),
+        sdk=SimpleNamespace(connection=SimpleNamespace(miner_key=key)),
         ledger=SimpleNamespace(root=root),
         manifest={"contract_digest": DIGEST},
         args=SimpleNamespace(intakes={BATTERY: url}, validators={}),
@@ -237,9 +284,9 @@ def prepared(root, url):
 
 @pytest.fixture
 def miner_signs(monkeypatch):
-    """The miner's signer, as a fixture: the test hotkey signs in test code.
-    Carbon's own path never holds a key."""
-    monkeypatch.setattr(rs, "_signed", lambda signer, facts, body: signed(MINER, body))
+    """The miner's signer, as a fixture: the campaign's signer is a test
+    hotkey, which signs in test code. Carbon's own path never holds a key."""
+    monkeypatch.setattr(rs, "_signed", lambda signer, facts, body: signed(signer, body))
     monkeypatch.setattr(rs, "POLL_S", 0.3)
 
 
@@ -265,6 +312,31 @@ def test_the_launchpad_intake_path_reports_a_verdict_and_stays_one_admission(
         asyncio.run(campaign.evaluate_candidate(elsewhere, 1, record))
     assert refused.value.code == "intake_changed_since_submission"
     assert campaign.intake_outcome(refused.value.code) == "REFUSED"
+
+
+def test_a_changed_signer_never_resubmits_the_candidate(served, tmp_path, miner_signs):
+    """Before this review fix a status poll signed by a new hotkey answered
+    `not_found` (the epoch's submission belongs to the old one), and the
+    campaign resent the frozen candidate under the new hotkey first and
+    compared ids only afterwards: a second submission was received and
+    admitted, using the new hotkey's window. The id a resend would name is
+    now worked out first, and nothing is sent."""
+    record = {"strategy": NINE_NEIGHBOURS}
+    ready = prepared(tmp_path / "campaign", served.url)
+    first = asyncio.run(campaign.evaluate_candidate(ready, 1, record))
+    assert first["outcome"]["state"] == "SCORED"
+    changed = prepared(tmp_path / "campaign", served.url, key=OTHER)
+    for _ in range(2):
+        with pytest.raises(OperationRefused) as refused:
+            asyncio.run(campaign.evaluate_candidate(changed, 1, record))
+        assert refused.value.code == "intake_signer_changed"
+        assert campaign.intake_outcome(refused.value.code) == "REFUSED"
+    assert sum(ib.Inbox(served.config["inbox"]).counts().values()) == 1
+    with served.target.store.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM submissions").fetchone() == (1,)
+    # The original signer reads the same verdict again.
+    again = asyncio.run(campaign.evaluate_candidate(ready, 1, record))
+    assert again["outcome"]["state"] == "SCORED"
 
 
 def test_a_refusal_at_admission_is_not_a_verdict_and_resubmits_as_one(
@@ -334,6 +406,15 @@ def test_a_silent_connection_never_stalls_the_tls_listener(
             assert time.monotonic() - started < 5.0
         finally:
             silent.close()
+        # The probe pins the served leaf, not just a trusted chain: a file
+        # that trusts this certificate but names another first is refused.
+        other = tmp_path / "other"
+        other.mkdir(mode=0o700)
+        other_cert, _ = self_signed(other)
+        bundle = tls / "bundle.crt"
+        bundle.write_bytes(other_cert.read_bytes() + cert.read_bytes())
+        answer = svc.probe_intake({**live.config, "tls_cert": str(bundle)})
+        assert answer == {"listening": True, "answer": "intake_certificate_differs"}
 
 
 def test_the_listener_refuses_what_it_must_before_listening(tmp_path):
