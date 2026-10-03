@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "2eaf8b90c04a7d2500b81e0ab6198ba195bb1981",
+  "integration_revision_at_packaging": "544e46ed7bc0825c4a233a84d3f4acc6c259edaf",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -180,11 +180,11 @@
   "files": {
     "Carbon_Client_Intake_Preview.html": {
       "bytes": 377682,
-      "sha256": "9e8d62692a7c5e3c0a2e83da3392120e64b37312631564d0e16178c80a84e6df"
+      "sha256": "4e0780e90a737df5eee1d9a7629f7274e4a9c58a3be94f9179d21d6ee5491b2c"
     },
     "Carbon_Client_Pilot_Designer_Preview.html": {
       "bytes": 377682,
-      "sha256": "9e8d62692a7c5e3c0a2e83da3392120e64b37312631564d0e16178c80a84e6df"
+      "sha256": "4e0780e90a737df5eee1d9a7629f7274e4a9c58a3be94f9179d21d6ee5491b2c"
     },
     "Carbon_Opportunity_Workbench.html": {
       "bytes": 865034,
@@ -240,7 +240,7 @@
     },
     "data/challenge_families_v1.json": {
       "bytes": 59711,
-      "sha256": "51a15872a832304b627d3fb04517995cd7067b12b80eda1086206ed3f54e2eb8"
+      "sha256": "32653f418f4fb23c8be868929422a7460df9afb7a71c9328b683a3b65c4a2e07"
     },
     "data/client_model_provider_schedule.json": {
       "bytes": 2309,

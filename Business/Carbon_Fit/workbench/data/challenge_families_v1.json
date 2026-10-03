@@ -1144,7 +1144,7 @@
       "summary": "A bounded development campaign that solved 2,604 battery references without a failure, tested the gates against authored faults, replayed the exam loop over nine batch and rotation settings, and verified a frozen comparison rule on 200 private cases. It is public/synthetic DEVELOPMENT research: nothing in it is scientifically, security or production qualified.",
       "source": {
         "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
-        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+        "sha256": "sha256:38fbd38eb7f3863866464927fed057a2206c3d1ff99c518e3cfaef0fb6d4d2ba"
       },
       "settings": [
         {
@@ -1508,7 +1508,7 @@
       "value": "USD 4.80 billed",
       "source": {
         "path": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
-        "sha256": "sha256:3713a237600d4a1536772f01397f94ac07330c5af02b79f233b4ddc67e98c117"
+        "sha256": "sha256:38fbd38eb7f3863866464927fed057a2206c3d1ff99c518e3cfaef0fb6d4d2ba"
       }
     },
     "training_budget": {
