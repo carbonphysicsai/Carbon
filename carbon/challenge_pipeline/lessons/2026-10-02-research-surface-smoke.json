@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-02-research-surface-smoke",
+  "recorded_at": "2026-10-03T00:45:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "browser_smoke",
+    "ref": "scripts/dev/miner_launchpad/research_demo.py on 127.0.0.1:8794, walked in a Chromium browser pane at 1280x800 and 390x844, light and dark",
+    "description": "The research surface over the synthetic demo campaign: Launchpad, the active campaign and every tab, a note posted through the page, and the rail at phone width."
+  },
+  "expected": "Every view fits without a horizontal page scroll at 390 px. The charts read at both widths. A note with markup shows as text.",
+  "observed": "No horizontal page scroll on any view at 390 px; only the tab strip and wide tables scroll inside themselves. The rail collapses behind Menu, and the dark theme and the inverted wordmark hold. A posted note containing an img tag rendered as text, with no element created. Six layout faults, all fixed: tile hints ran into one line; the back link carried the link arrow; a 640-unit chart viewBox shrank its text to about 5 px in a half-width panel (now 480); direct labels collided where reference and prediction converge, and ran off the edge (now plain series only, spread apart); bar legend swatches did not match the bars; and the six setup cards wrapped five and one. The palette check passes CVD separation (37.4) and contrast, and fails the categorical lightness and chroma bands by design: ink, one red and a dashed gray, with dashes as the secondary encoding. A click by coordinate under a scaled viewport emulation landed on the theme toggle, not the note field.",
+  "keep": [
+    "Walk the page at the phone width and the desktop width with a populated fixture before calling a surface done; a projection test cannot see layout.",
+    "Check horizontal overflow by measuring elements against the viewport, excluding containers that scroll on purpose."
+  ],
+  "change": [
+    "Size SVG charts for the panel they sit in, and test the label positions where series converge.",
+    "Do interactive checks at the pane's own size, or by element, not by coordinates under a scaled emulation."
+  ],
+  "protocol_elements": [
+    "browser smoke at 1280 and 390 px over a fixture with every panel populated",
+    "notes with markup posted through the page render as text"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
