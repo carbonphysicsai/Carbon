@@ -582,6 +582,25 @@ class BatteryPractice:
 
         return compile_recipe(strategy)
 
+    def backend_refusal(self, strategy):
+        """The backends this host serves, when `strategy` names another; None
+        when it names a served one or does not compile.
+
+        The request path reads this before dispatch, so a recipe this host
+        cannot practise starts nothing and charges no trial slot
+        (`backend_not_served`, LP-PROD-D). A recipe that does not compile is
+        not refused here: the compiler names its issues.
+        """
+        from carbon.development_session.research_catalog import RecipeRejected
+
+        try:
+            _compiled, recipe = self.compile(strategy)
+        except (RecipeRejected, ValueError, TypeError, KeyError):
+            return None
+        if recipe.settings.get("backend", "jax") in self.backends:
+            return None
+        return tuple(self.backends)
+
     def _seed(self, identity):
         """Carbon's per-trial randomness, retained so a replay is identical."""
         from carbon.development_session.data import write_once
@@ -833,7 +852,7 @@ def make_battery_research_service(
                 Path(julia_analysis.__file__),
             ),
         )
-    return compose_research_service(
+    composition = compose_research_service(
         parts,
         root=root,
         ledger=ledger,
@@ -847,3 +866,7 @@ def make_battery_research_service(
         cleanup_only=cleanup_only,
         demand=demand,
     )
+    # Battery's own registry answers capability requests, the roadmap and
+    # demand (OD-8), never Burgers' default.
+    composition.executor.challenge = BATTERY_CHALLENGE
+    return composition

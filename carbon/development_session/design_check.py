@@ -268,23 +268,58 @@ def _rebuild(strategy):
     }
 
 
+def design_refusal(design):
+    """What makes `design` malformed, or None.
+
+    Returns `(code, field, message)`: a closed correction code, the registered
+    sub-field it is about and the historical message. A design is exactly
+    `{strategy, capabilities?}`; anything beside them (such as a verdict
+    copied from an example) is refused, never ignored, so the design checked
+    is the one sent. The request path reads this before dispatch, and
+    `check_design` raises its message, so both refuse by one rule.
+    """
+    if type(design) is not dict:
+        return (
+            "check_design_shape",
+            "arguments_json.design",
+            "a design is {strategy, capabilities?}",
+        )
+    if "strategy" not in design:
+        return (
+            "check_design_shape",
+            "arguments_json.design.strategy",
+            "a design is {strategy, capabilities?}",
+        )
+    if not set(design) <= {"strategy", "capabilities"}:
+        return (
+            "check_design_shape",
+            "arguments_json.design",
+            "a design is {strategy, capabilities?}",
+        )
+    strategy = design["strategy"]
+    if type(strategy) is not dict or type(strategy.get("parameters")) is not dict:
+        return (
+            "check_design_strategy_shape",
+            "arguments_json.design.strategy",
+            "strategy is {schema_version, challenge_id, backbone, parameters}",
+        )
+    requested = design.get("capabilities", [])
+    if type(requested) is not list or len(requested) > MAX_REQUESTED:
+        return (
+            "check_design_capabilities_shape",
+            "arguments_json.design.capabilities",
+            f"capabilities is a list of at most {MAX_REQUESTED} registry ids",
+        )
+    return None
+
+
 def check_design(design) -> dict:
     """The verdict for one design. Raises only for a malformed request."""
-    if type(design) is not dict or not {"strategy"} <= set(design) <= {
-        "strategy",
-        "capabilities",
-    }:
-        raise ValueError("a design is {strategy, capabilities?}")
+    refused = design_refusal(design)
+    if refused is not None:
+        raise ValueError(refused[2])
     strategy = design["strategy"]
     requested = design.get("capabilities", [])
-    if type(strategy) is not dict or type(strategy.get("parameters")) is not dict:
-        raise ValueError(
-            "strategy is {schema_version, challenge_id, backbone, parameters}"
-        )
-    if type(requested) is not list or len(requested) > MAX_REQUESTED:
-        raise ValueError(
-            f"capabilities is a list of at most {MAX_REQUESTED} registry ids"
-        )
     json.dumps(design, allow_nan=False)  # finite, plain JSON only
 
     # The strategy names its Challenge; only that Challenge's contract answers.

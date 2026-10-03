@@ -150,9 +150,17 @@ def test_demand_and_roadmap_run_through_the_real_workspace_executor(tmp_path):
     assert demand[LION] == 1
     assert demand["model_family.unet1d"] == 1
     assert demand[PRECISION] == 1
-    # A request naming something that is not a registry id is refused.
-    refused, _ = run(
+    # A request naming something that is not a registry id is refused: since
+    # LP-PROD-D the task completes as a typed refusal naming the field, not as
+    # an infrastructure failure, and nothing is recorded or counted.
+    notes = len(e.ledger.status(owner="test-miner")["notes"])
+    refused, answer = run(
         "capability_request", {"request": {**fields, "capability": "made.up"}}, 3
     )
-    assert refused.state is not research.ResearchTaskState.SUCCEEDED
+    assert refused.state is research.ResearchTaskState.SUCCEEDED
+    assert answer["result"]["outcome"] == "REQUEST_REFUSED"
+    assert answer["result"]["correction_code"] == "capability_id_unknown"
+    assert answer["result"]["field"] == "arguments_json.request.capability"
+    assert "made.up" not in str(answer["result"])
+    assert len(e.ledger.status(owner="test-miner")["notes"]) == notes
     p.close()

@@ -444,7 +444,11 @@ def test_an_unexpected_workspace_field_is_refused_without_echoing_it(tmp_path):
 
 def test_a_complete_run_python_request_builds_its_task(tmp_path):
     """Specimen for the refusals above: the same request with every
-    required field builds a workspace task spec."""
+    required field builds a workspace task spec.
+
+    It names a wall allowance: this ledger's miner set a compute-time budget,
+    and a run with none is now refused before dispatch (LP-PROD-D) rather
+    than started to fail at the carrier."""
     sdk, _, composition = _workspace_sdk(tmp_path)
     try:
         request = sdk._request(
@@ -453,6 +457,7 @@ def test_a_complete_run_python_request_builds_its_task(tmp_path):
                 {
                     "source": "print(1)",
                     "files": [],
+                    "seconds": 60,
                     "hypothesis": "h",
                     "expected_effect": "e",
                 }
@@ -465,15 +470,24 @@ def test_a_complete_run_python_request_builds_its_task(tmp_path):
 
 
 def test_the_pre_dispatch_check_and_the_executor_share_one_field_table():
+    """The executor and the request path read one field table and, since
+    LP-PROD-D, one value check: what is refused before dispatch is refused by
+    the rule execution applies."""
     import inspect
 
     from carbon.development_session import research_tasks
     from carbon.development_session.research_tools import ResearchMinerTools
 
-    assert "workspace_fields(spec.action)" in inspect.getsource(
+    assert "workspace_fields(action)" in inspect.getsource(
+        research_tasks.check_workspace_request
+    )
+    assert "check_workspace_request(self, spec.action, args)" in inspect.getsource(
         research_tasks.PublicResearchExecutor._workspace_action
     )
     assert "workspace_fields(args[" in inspect.getsource(ResearchMinerTools._request)
+    assert "check_workspace_request(c.executor" in inspect.getsource(
+        ResearchMinerTools._check_values
+    )
 
 
 @pytest.mark.parametrize(

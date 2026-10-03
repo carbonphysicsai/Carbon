@@ -934,6 +934,56 @@ _DOCKER_OWN_EXITS = frozenset({125, 126, 127})
 #: 2026-10-03: "Keep both, capped").
 KEPT_BYTES = 64 * 1024
 STDOUT_FILE, STDERR_FILE = "stdout.txt", "stderr.txt"
+#: What a code cell's result returns of what the program printed: the last
+#: 4 KiB of its stdout and of its stderr, and on a nonzero exit the tail of
+#: its traceback (LP-PROD-D). An engineering bound on what reaches a model's
+#: context per call, not a limit on the program: the kept 64 KiB stay in the
+#: operation folder.
+OUTPUT_TAIL_BYTES = 4096
+#: Where a traceback starts, in the order looked for: Python's, then Julia's.
+_TRACEBACK_MARKERS = (b"Traceback (most recent call last):", b"ERROR: ")
+
+
+def _text_tail(body):
+    """The last `OUTPUT_TAIL_BYTES` of `body` as text; bytes that are not
+    UTF-8 (or a character the cut split) become U+FFFD, never an error."""
+    return body[-OUTPUT_TAIL_BYTES:].decode("utf-8", "replace")
+
+
+def program_output(ledger, operation, *, observation=None):
+    """What the miner's program printed, bounded, for its own result.
+
+    `operation` is the run's operation folder name, from its worker result.
+    Each tail is None where no kept file exists (a replayed or reconciled
+    operation from before output was kept). On `NONZERO_EXIT`, the last
+    traceback in the kept stderr is returned from its start, its own last
+    `OUTPUT_TAIL_BYTES` if longer, so the exception line is always there even
+    when the program printed more after it. The output is the miner's own,
+    self-reported and untrusted: it is returned to them, never interpreted.
+    """
+    if type(operation) is not str or "/" in operation or not operation:
+        return {"stdout_tail": None, "stderr_tail": None}
+    folder = ledger.root / operation
+
+    def kept(name):
+        path = folder / name
+        if path.is_symlink() or not path.is_file():
+            return None
+        return path.read_bytes()[-KEPT_BYTES:]
+
+    stdout, stderr = kept(STDOUT_FILE), kept(STDERR_FILE)
+    value = {
+        "stdout_tail": None if stdout is None else _text_tail(stdout),
+        "stderr_tail": None if stderr is None else _text_tail(stderr),
+    }
+    if observation == "NONZERO_EXIT":
+        start = -1
+        for marker in _TRACEBACK_MARKERS if stderr is not None else ():
+            start = stderr.rfind(marker)
+            if start >= 0:
+                break
+        value["traceback_tail"] = None if start < 0 else _text_tail(stderr[start:])
+    return value
 
 
 class _Tail:

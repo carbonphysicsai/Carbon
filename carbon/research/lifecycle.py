@@ -900,6 +900,19 @@ class InMemoryResearchTaskProvider:
                 return self._view(task)
         raise ResearchTaskProviderError(ResearchServiceErrorCode.INTERNAL_FAILURE)
 
+    def started_task(
+        self, challenge_key: ChallengeKey, idempotency_key: str
+    ) -> ResearchTaskId | None:
+        """Trusted local lookup: the task an idempotency key already started.
+
+        Never a wire operation. A requester's pre-dispatch check uses it to
+        tell a resend of a started request (which returns that task) from a
+        new request (whose values it may refuse before anything starts).
+        """
+
+        with self._lock:
+            return self._idempotency.get((challenge_key, idempotency_key))
+
     def get_experiment_record(self, task_id: ResearchTaskId) -> ExperimentRecord:
         """Trusted local retrieval; the private record has no wire operation."""
 

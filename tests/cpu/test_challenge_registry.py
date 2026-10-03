@@ -107,9 +107,13 @@ def test_the_battery_description_is_derived_from_executable_registrations():
     assert described["feedback"]["evaluation_fields"] == list(
         EVALUATION_FEEDBACK_FIELDS
     )
-    # Every example passes the admission a submission meets.
+    # Every example passes the admission a submission meets. Since LP-PROD-D
+    # the verdict sits beside the examples, so each example is a check_design
+    # design as is: `{strategy}`, nothing else.
     assert described["examples"][0]["strategy"] == SCAFFOLD
-    assert all(e["admission"]["valid"] for e in described["examples"])
+    assert all(set(e) == {"strategy"} for e in described["examples"])
+    assert len(described["examples_admission"]) == len(described["examples"])
+    assert all(v["valid"] for v in described["examples_admission"])
     assert described["profiles"][0]["usable_here"] is True
     # Nothing private is described: not a seed, root, hidden case or label.
     text = json.dumps(described).lower()

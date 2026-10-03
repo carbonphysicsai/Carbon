@@ -802,8 +802,15 @@ def agent_observation(prepared, epoch, feedback):
     less its long list of unsupported capabilities, which the agent can read
     through `public_material capabilities` or `roadmap`. Nothing private: the
     prior feedback is the daemon's allow-listed outcome.
+
+    A campaign whose run plan froze the research tools rule
+    (`research_tools.TOOLS_RULE`, LP-PROD-D) also sees this host's research
+    environment, `research_environment`: whether the campaign has a GPU lane
+    for its code cells, and which backends its practice serves. A plan frozen
+    without the rule sees exactly what it always saw.
     """
     from carbon.challenge_registry import describe
+    from carbon.development_session.research_tools import frozen_tools_rule
 
     from .research import SCAFFOLD
 
@@ -811,12 +818,23 @@ def agent_observation(prepared, epoch, feedback):
     unsupported = document.pop("unsupported")
     manifest = prepared.manifest
     mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
+    rule = frozen_tools_rule(manifest)
+    extra = {}
+    if rule is not None:
+        extra["research_environment"] = research_environment(prepared, rule)
     return {
         "challenge": document,
         "unsupported_capabilities": {
             "count": len(unsupported),
-            "read_with": "workspace public_material {name: capabilities} or roadmap {}",
+            "read_with": (
+                "workspace public_material {name: capabilities} or roadmap {}"
+                if rule is None
+                else "start_research_task kind=workspace action=public_material "
+                'arguments_json="{\\"name\\":\\"capabilities\\"}", or '
+                'action=roadmap arguments_json="{}"'
+            ),
         },
+        **extra,
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
@@ -833,4 +851,38 @@ def agent_observation(prepared, epoch, feedback):
             "and revise or reject hypotheses. Select only a recipe you actually "
             "practiced, or stop for a supported reason."
         ),
+    }
+
+
+def research_environment(prepared, rule):
+    """What this host gives a campaign's research, as its agent should know it.
+
+    Facts about the miner's own composition only: whether the campaign's
+    frozen runtime has a GPU lane for code cells (and which), which backends
+    its practice serves on this host, and whether authored Julia is offered.
+    Nothing here is evaluation material, and nothing grants anything.
+    """
+    executor = getattr(getattr(prepared, "composition", None), "executor", None)
+    lane = getattr(executor, "gpu", None)
+    practice = getattr(executor, "practice", None)
+    backends = getattr(practice, "backends", None)
+    gpu_practice = getattr(practice, "gpu_image", None) is not None
+    return {
+        "rule": rule,
+        "gpu_lane": None if lane is None else lane.describe(),
+        "code_cell_devices": (
+            "cpu only: this campaign was launched without a GPU lane, so "
+            "run_python and run_julia take device=cpu (the default)"
+            if lane is None
+            else "cpu (the default) or gpu: run_python and run_julia take "
+            "device=gpu on the lane above"
+        ),
+        "practice_backends": None if backends is None else list(backends),
+        "practice_device": "gpu" if gpu_practice else "cpu",
+        "practice_note": (
+            "a practice whose recipe names a backend outside practice_backends "
+            "is refused before it starts (backend_not_served) and charges "
+            "nothing"
+        ),
+        "authored_julia": getattr(executor, "julia_image", None) is not None,
     }
