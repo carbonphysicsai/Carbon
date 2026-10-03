@@ -1,8 +1,9 @@
 # CHALLENGE-MOTOR-01 — the electric motor as a DEVELOPMENT exam, ready for testing
 
-**Status:** slices 1-3 complete. Slice 4's pools (150/30/60) are running on
-the owner's host, and its baselines are scored when they finish. Readiness record v3
-waits in CHALLENGE-READINESS-RELAY-01.
+**Status:** slices 1-4 complete. The pools are done and both baselines are
+scored on the private pool. Readiness record v4 (baselines MEASURED, PROCEED)
+records them. Under the Challenge Roadmap (OWNER-CHALLENGE-ROADMAP-01) this
+design is prior work for the magnetostatics family (f09).
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`, `HUB_UPDATE_REQUIRED`.
 **Authority:** OWNER-CHALLENGE-DESIGN-01 (2026-10-01) and OWNER-DX-03; the
 internal admission protocol OWNER-CHALLENGE-ADMISSION-01 (amended).
@@ -156,6 +157,24 @@ DEVELOPMENT, internal, non-paying. It confers:
   - Its two hyperparameters are chosen on PRACTICE.
   - Its one clamp lifts a negative-mean curve to a zero mean.
 
+- **D10. The public pools were solved on rented CPU pods; the private pool
+  on the owner's host only** (CHALLENGE-POOLS-CLOUD-01, under the owner's
+  grant of 2026-10-02).
+  - 149 cases ran natively on a RunPod CPU pod: 124 TRAIN and 25 PRACTICE.
+    The pod used the pinned Ubuntu base, with this ticket's Dockerfile steps
+    replayed and SHA-256-checked.
+  - Native results are bitwise identical to the container on the smoke
+    cases.
+  - `assemble.py` built each pool from every run that solved its cases. No
+    case changed.
+- **D11. The learned baseline uses the widened shared grid** (cold plate
+  D11).
+  - On the original grid the cold plate's PRACTICE choice sat at the grid's
+    edge, so the shared grid now spans lengths 0.25 to 16 and ridges 1e-8
+    to 1.
+  - `select` reports any choice on an edge.
+  - The motor's private pool is scored once, with this grid.
+
 ## Evidence so far
 
 **Rung M1, linear iron (mu_r 1,000), the benchmark's dimensions.**
@@ -199,6 +218,37 @@ the tables.
 - **Provenance.** The committed sources equal those that ran after three
   cosmetic transforms, recorded and checked in the evidence's
   `PROVENANCE.md`.
+
+## Pools and baselines (slice 4)
+
+Evidence is in `docs/development/evidence/motor-pools-v1/`: the public
+pools, `pools.json` and `baselines.json`, which holds aggregates only.
+
+- **Pools.**
+  - 150 TRAIN and 30 PRACTICE, all OK. 149 of them were solved on a RunPod
+    CPU pod (D10).
+  - 60 private cases from the operator-held root (commitment
+    `sha256:5ec0222502eb608c52d1162f4be6c7347deed7b6d4f03777ec4ea31b6d619559`),
+    solved on the owner's host only.
+  - 59 private cases OK and 1 REFERENCE_INVALID: the reference's periodicity
+    check, 0.0012 against 0.001. It is charged to the reference and scored
+    for no one.
+- **Exam.**
+  - Gates hold on every OK reference of every pool.
+  - The scales come from TRAIN alone: mean-torque spread
+    2.478 N·m, ripple spread 0.4821 N·m.
+- **Baselines**, scored through the exam (lower is better):
+
+  | | PRACTICE | Private | Private mean torque | Private ripple shape |
+  | --- | --- | --- | --- | --- |
+  | Textbook closed form | 0.500 | 0.463 | 0.165 | 0.761 |
+  | Kernel ridge (length 4, ridge 0.0001) | 0.173 | 0.214 | 0.038 | 0.391 |
+
+  - The learned model's choice lies inside the declared grid (D11).
+  - Both baselines lose most on ripple shape. That is the part of the curve
+    a closed form omits, so the exam separates models.
+  - A test reproduces the PRACTICE scores and the scales from the committed
+    public pools.
 
 ## Slices
 
