@@ -1482,14 +1482,19 @@ def test_one_maximal_read_fits_beside_the_battery_agents_first_request(tmp_path)
     raises=AdapterFailure,
     reason=(
         "LP-PROD-B: carbon/miner_mcp/standard.py _result accepts a correction "
-        "only for start_research_task, only without its field, tool or listed "
-        "choices, and reports anything else as INVALID_RESULT that may have "
-        "dispatched. It must verify a refusal with "
+        "only for start_research_task and only as text it rebuilds without "
+        "the tool or listed choices a correction names (on origin/main, also "
+        "only without its field); anything else it reports as INVALID_RESULT "
+        "that may have dispatched. It must verify a refusal with "
         "research_tools.registered_correction. Strict: when the door is "
         "fixed this passes, and the mark must go."
     ),
 )
 def test_a_value_refusal_crosses_the_standard_mcp_door_as_refused(door):
+    """Nothing started, so the door must say so: a refusal with its code,
+    field and fix, not an invalid result that may have dispatched. Checked
+    against slice B's door with `registered_correction` in `_correction`:
+    this passes, and B's own door tests still pass."""
     from carbon.miner_mcp.standard import (
         AdapterCode,
         ResearchToolAdapter,
