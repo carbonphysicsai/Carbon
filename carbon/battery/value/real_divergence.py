@@ -139,7 +139,9 @@ def report(root="."):
         }
     return {
         "schema": SCHEMA,
-        "candidates": {s: {"rule": r, "weights": w} for s, (r, w) in candidates.items()},
+        "candidates": {
+            s: {"rule": r, "weights": w} for s, (r, w) in candidates.items()
+        },
         "datasets": datasets,
         "claims": {
             "prospective_only": True,
@@ -150,7 +152,9 @@ def report(root="."):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="python -m carbon.battery.value.real_divergence")
+    parser = argparse.ArgumentParser(
+        prog="python -m carbon.battery.value.real_divergence"
+    )
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     out = report(".")

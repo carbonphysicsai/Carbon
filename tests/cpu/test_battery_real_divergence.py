@@ -54,7 +54,12 @@ def _toy():
         "deeponet-s0": ("RECONSTRUCTED", 0.6, 0.5),
     }
     members = {
-        m: {"kind": k, "eligible": True, "loss_development": loss, "loss_verification": loss}
+        m: {
+            "kind": k,
+            "eligible": True,
+            "loss_development": loss,
+            "loss_verification": loss,
+        }
         for m, (k, _, loss) in names.items()
     }
     return {
@@ -72,7 +77,10 @@ def test_pairs_are_classed_by_family_and_a_condition_by_its_worst_pair():
     # mlp_a outranks a better MLP (within) and a better kNN/DeepONet (across).
     assert rows["mlp_a-s0"]["class"] == "across_families"
     assert rows["mlp_a-s0"]["pairs"]["within_family"] == ["mlp_b-s0"]
-    assert set(rows["mlp_a-s0"]["pairs"]["across_families"]) == {"knn-s0", "deeponet-s0"}
+    assert set(rows["mlp_a-s0"]["pairs"]["across_families"]) == {
+        "knn-s0",
+        "deeponet-s0",
+    }
     assert out["counts"]["verification"] == {
         "across_families": 2,  # mlp_a, and kNN above both better ones
         "within_family": 0,
