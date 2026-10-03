@@ -76,7 +76,7 @@ def test_the_conditions_are_the_ones_the_draft_lists():
         (float(t), s) for t in (6, 16, 26, 35) for s in (0.10, 0.30, 0.46)
     }
     assert set(built["verification"]) == {
-        (float(t), s) for t in (10, 20, 30, 39) for s in (0.07, 0.20, 0.38)
+        (float(t), s) for t in (10, 20, 30, 39) for s in (0.07, 0.24, 0.38)
     }
 
 
@@ -113,20 +113,18 @@ def test_no_condition_repeats_an_ev1_ev2_or_ev4_condition():
     assert cr.repeats(built, {n: prior[n] for n in ev5.PRIOR_STUDIES}) == []
 
 
-def test_three_verification_conditions_sit_on_ev4s_protected_model_grid():
-    # An open question, not a pass: `ev4_protected_conditions` counts EV4's
-    # optimizer model-query grid as EV4 material, and three proposed
-    # verification conditions are on it. The freeze refuses until it is
-    # answered (see the freeze tests).
+def test_no_condition_sits_on_ev4s_protected_optimizer_grid():
+    # OWNER-EV5-Q1-01: EV4's protected optimizer grid counts as EV4
+    # conditions, so the verification soc0 moved from 0.20 to 0.24.
+    assert "ev4_protected" in ev5.FRESH_AGAINST
     found = cr.repeats(
         ev5.conditions(), {"ev4_protected": ev5.prior_conditions()["ev4_protected"]}
     )
-    assert [(r["split"], tuple(r["condition"])) for r in found] == [
-        ("verification", (10.0, 0.2)),
-        ("verification", (20.0, 0.2)),
-        ("verification", (30.0, 0.2)),
-    ]
-    assert all(tuple(r["condition"]) in EV4_MODEL for r in found)
+    assert found == []
+    every = ev5.conditions()["development"] + ev5.conditions()["verification"]
+    assert not set(every) & set(EV4_MODEL)
+    # Specimen: the old choice did sit on the grid, so the check is not empty.
+    assert {(10.0, 0.2), (20.0, 0.2), (30.0, 0.2)} <= set(EV4_MODEL)
 
 
 def test_ev5_conditions_are_protected_from_research_agents_as_ev4s_are():
@@ -478,7 +476,9 @@ def test_the_confirmation_skeleton_holds_nothing_private():
     population = sheet["population"]["confirmation"]
     for key in ("source", "law", "subgroups", "custody"):
         assert skeleton[key] == population[key]
-    assert skeleton["solved_on"] is None  # open: where the private cases run
+    # OWNER-EV5-Q3-01: the private cases are solved on the operator host only.
+    assert skeleton["solved_on"].startswith("the operator host only")
+    assert "rented compute" in skeleton["solved_on"]
     # Counts and descriptions only: no case, input, seed, root or duplicate map.
     assert set(skeleton) == {
         "study_sheet",
@@ -548,20 +548,16 @@ def test_the_freeze_names_every_blocker_today(monkeypatch):
     with pytest.raises(cr.CombinedRunError) as refused:
         ev5.freeze_manifest()
     blockers = refused.value.blockers
-    assert blockers[0] == "gate_cutoff_unset"
-    assert blockers[1].startswith("conditions_not_fresh: [10.0, 0.2] in ev4_protected")
-    assert blockers[2:] == ("confirmation_not_sealed",)
+    # OWNER-EV5-Q1-01 moved the verification soc0 off EV4's optimizer grid,
+    # so freshness no longer blocks; the cutoff and the seal remain.
+    assert blockers == ("gate_cutoff_unset", "confirmation_not_sealed")
 
 
 def test_the_freeze_manifest_builds_once_the_cutoff_is_set(monkeypatch):
-    # Synthetic stand-ins for three answers this branch does not give: the
-    # cutoff (#528), whether EV4's protected optimizer grid counts as EV4
-    # conditions, and the sealed batch's public commitment.
+    # A synthetic cutoff and the sealed batch's public commitment stand in;
+    # freshness holds against EV4's protected grid too (OWNER-EV5-Q1-01).
     monkeypatch.setattr(admissibility, "THRESHOLD_BANDS", 1.2345)
-    with pytest.raises(cr.CombinedRunError) as refused:
-        ev5.freeze_manifest(SEALED)
-    assert [x.split(":")[0] for x in refused.value.blockers] == ["conditions_not_fresh"]
-    monkeypatch.setattr(ev5, "FRESH_AGAINST", ev5.PRIOR_STUDIES)
+    assert "ev4_protected" in ev5.FRESH_AGAINST
     manifest = ev5.freeze_manifest(SEALED)
     assert manifest == ev5.freeze_manifest(SEALED)  # deterministic
     json.dumps(manifest, allow_nan=False)

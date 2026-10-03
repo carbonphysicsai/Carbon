@@ -344,9 +344,13 @@ def confirmation(repository=REPOSITORY):
             "the validator host only (prepare_batch: seeds.make_batch, then "
             "SeedJournal.commit before any use); never in the repository"
         ),
-        # Open: where the private cases are solved and predicted. Private
-        # inputs never enter a committed plan.
-        "solved_on": None,
+        # OWNER-EV5-Q3-01: private inputs never enter a committed plan or
+        # rented compute (POOLS-D2).
+        "solved_on": (
+            "the operator host only (OWNER-EV5-Q3-01): the private cases are "
+            "solved and the panel's predictions on them made there; never in "
+            "a committed pod plan, never on rented compute"
+        ),
     }
 
 

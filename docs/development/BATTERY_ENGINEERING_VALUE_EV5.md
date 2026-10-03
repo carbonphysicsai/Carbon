@@ -65,7 +65,9 @@ published box (t_amb 5-40 °C, soc0 0.05-0.5) at temperatures that none of
 EV2's or EV4's conditions use; a test checks them against EV1, EV2 and EV4 at
 freeze:
 - development: t_amb {6, 16, 26, 35} °C × soc0 {0.10, 0.30, 0.46};
-- verification: t_amb {10, 20, 30, 39} °C × soc0 {0.07, 0.20, 0.38}.
+- verification: t_amb {10, 20, 30, 39} °C × soc0 {0.07, 0.24, 0.38}.
+  (soc0 0.24, not 0.20: OWNER-EV5-Q1-01 counts EV4's protected optimizer
+  grid, soc0 {0.05, 0.20, 0.35, 0.50}, as EV4 conditions.)
 
 ## 4. Hypotheses (fixed at freeze)
 
@@ -174,11 +176,21 @@ per hour. EV4 itself cost USD 2.52 in total.
    built and proposed for H3 (§4). It is descriptive, with no cutoff, and the
    SciML lead may amend it before the freeze.
 
-Engineering work before the freeze (the only remaining blocker):
-- condition and panel builders, with tests for freshness and maxima;
-- the `ATTACK_CONSTRUCTION` panel kind;
-- plans and the campaign;
-- the freeze manifest.
+4. **Freshness against EV4's optimizer grid: resolved.** OWNER-EV5-Q1-01
+   (2026-10-03): EV4's protected optimizer grid counts as EV4 conditions. The
+   verification soc0 moved from 0.20 to 0.24 (§3), so no EV5 condition sits on
+   it.
+5. **Where the confirmation set runs: resolved.** OWNER-EV5-Q3-01
+   (2026-10-03): the 124 sealed private cases are solved, and the panel's
+   predictions on them made, on the operator host only. They never enter a
+   committed pod plan or rented compute (POOLS-D2).
+
+The engineering work (conditions, the `ATTACK_CONSTRUCTION` panel kind, plans,
+campaign and freeze manifest) is built (#536). What still blocks the freeze is
+the sealed confirmation batch: made on the validator host and committed by
+journal fingerprint before use. Two engineering questions remain open and do
+not block the freeze: how EV5's optimizer is parameterized (#536 Q2), and the
+H2 bootstrap's B and seed (#536 Q4).
 
 ## 9. What it cannot show
 
