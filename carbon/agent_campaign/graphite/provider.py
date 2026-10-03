@@ -82,7 +82,7 @@ from .literature import (
     literature_record,
 )
 from .model import ENGY_ADAPTERS
-from .roles import ROLES, RoleName
+from .roles import PARALLEL_RULES, ROLES, RoleName
 
 PROVIDER = "graphite"
 SESSION_SCHEMA = "carbon.graphite.session-record.v1"
@@ -722,7 +722,8 @@ class GraphiteProvider:
 
     async def _epoch(self, run_id, ledger, role, brief, selection):
         """One research epoch of the session: the role's toolbox as the loop's
-        `sdk`, the role's prompt and closed tools. A later phase overrides
+        `sdk`, the role's prompt and closed tools, and the role's rule for a
+        turn with several tool calls (GRAPHITE-D33). A later phase overrides
         this to attach what its role acts through (GRAPHITE-D18)."""
         sdk = toolbox.GraphiteToolbox(
             role=role,
@@ -742,6 +743,7 @@ class GraphiteProvider:
             provider=selection,
             instructions=role.prompt,
             tools=role.tool_schemas(),
+            parallel_calls=PARALLEL_RULES.get(role.name),
         )
 
     def _unresolved(self, run_id):

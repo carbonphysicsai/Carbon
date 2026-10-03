@@ -29,6 +29,10 @@ from dataclasses import dataclass
 
 from carbon.development_session.model_provider import ENGY_LADDER
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent_policy import (
+    PARALLEL_CALLS,
+    one_call_per_turn,
+)
 from carbon.development_session.research_loop import SELECT, SELECTION_TOOL
 from carbon.development_session.research_tools import PREFIX
 from carbon.development_session.research_tools import TOOLS as MINER_TOOLS
@@ -189,6 +193,17 @@ class FailureKind(str, enum.Enum):
     WRITEUP_FAILED_CHECKLIST = "writeup_failed_checklist"
 
 
+#: The rule a role's session applies to a turn with several tool calls,
+#: passed to `run_epoch` as `parallel_calls` (GRAPHITE-D33; owner,
+#: 2026-10-03). The Constructor runs under the loop's existing rule
+#: `PARALLEL_CALLS` (owner decision of 28 September 2026): the first call
+#: runs, every other one is answered with a journalled refusal, and the
+#: session stops after the rule's `consecutive_limit` such turns in a row. A
+#: role not named keeps the loop's historical rule: such a turn stops the
+#: session.
+PARALLEL_RULES = {RoleName.CONSTRUCTOR: PARALLEL_CALLS}
+
+
 _COMMON = """
 Operating terms for every Graphite role:
 - You are Graphite, Carbon's internal research and testing agent. You propose;
@@ -218,7 +233,8 @@ nothing yourself. When a card points at a capability outside the recorded
 construction contract, you may record it with graphite_propose_next_level: a
 proposal for the owner, which widens nothing and is never scored.
 """),
-    RoleName.CONSTRUCTOR: _prompt("""
+    RoleName.CONSTRUCTOR: _prompt(
+        """
 Role: Constructor. Turn the plan you are given into a recipe inside the
 permission profile, using the miner research tools. Validate and compile
 before practice, read the development feedback, and iterate within your
@@ -229,7 +245,10 @@ a recipe only with evidence, or stop and say why. When a card points at a
 capability outside the recorded construction contract, you may record it with
 graphite_propose_next_level: a proposal for the owner, which widens nothing and
 is never scored.
-"""),
+"""
+        # The rule PARALLEL_RULES applies to this role, as the loop enforces it.
+        + one_call_per_turn("session")
+    ),
     RoleName.ATTACKER: _prompt("""
 Role: Attacker. Red-team the admission boundaries named in your brief
 (leakage, boundary optimism, resource and disclosure) through the same miner
