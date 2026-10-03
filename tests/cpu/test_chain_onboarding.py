@@ -232,6 +232,52 @@ def test_prepare_describes_an_unsigned_registration():
     assert value["cost"]["value"] == "NOT_READ"
 
 
+def test_prepare_gives_the_command_the_miner_runs_in_their_own_wallet():
+    """LP-PROD-E: the same unsigned registration, as a command template the
+    miner runs themselves. Carbon fills in only the public subnet and network,
+    runs nothing and reads no cost."""
+    reader = _Reader()
+    value = asyncio.run(
+        onboarding.prepare(reader, onboarding.carbon_testnet_context(), HOTKEY)
+    )
+    command = value["command"]
+    assert command["text"] == (
+        "btcli subnet register --netuid 567 --network test "
+        "--wallet.name <your wallet name> --wallet.hotkey <your hotkey name>"
+    )
+    assert command["fill_in"] == ["<your wallet name>", "<your hotkey name>"]
+    assert command["verified"].startswith("UNVERIFIED")
+    assert value["signed"] is False and value["cost"]["value"] == "NOT_READ"
+    assert "run this command or read its cost" in value["carbon_did_not"]
+    # The hotkey's address is not a wallet name: nothing of the miner's is
+    # filled in, and the only read was the status read.
+    assert HOTKEY not in command["text"]
+    assert reader.calls == 1
+    # Another endpoint is named as itself.
+    other = asyncio.run(onboarding.prepare(_Reader(), _context(), HOTKEY))
+    assert (
+        "--network wss://entrypoint-finney.opentensor.ai:443"
+        in other["command"]["text"]
+    )
+
+
+def test_the_registration_command_is_written_from_the_context_it_describes():
+    """The subnet and network come from the context `prepare` validated, so
+    a change to either constant cannot leave the command naming another."""
+    import dataclasses
+
+    context = onboarding.carbon_testnet_context()
+    elsewhere = dataclasses.replace(context, netuid=999)
+    assert "--netuid 999 " in onboarding.register_command(elsewhere)["text"]
+    # The short btcli name only for the endpoint Carbon's testnet pins.
+    moved = dataclasses.replace(context, endpoint="wss://test.example.org:443")
+    assert (
+        "--network wss://test.example.org:443 "
+        in onboarding.register_command(moved)["text"]
+    )
+    assert onboarding.btcli_network(context) == "test"
+
+
 def test_prepare_refuses_an_already_registered_hotkey():
     reader = _Reader(_registered())
     with pytest.raises(onboarding.OnboardingFailure) as caught:

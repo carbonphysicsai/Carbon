@@ -17,25 +17,32 @@ review before anyone treats it as audited.
 
 ## What you do
 
-First time, from your Carbon checkout:
+`scripts/install_miner.sh` installs the signer with the rest of Carbon's
+environment. Every session, in a terminal you leave open:
 
 ```bash
-uv sync --locked --group chain          # the signer needs only the Bittensor SDK
+~/carbon/.venv/bin/carbon-miner-signer --wallet YOUR_WALLET --hotkey YOUR_HOTKEY
 ```
 
-Every session, in a terminal you leave open:
+This is the command the installer and setup print, with your own checkout's
+path. With the Control Center running as a service (`install_miner.sh
+--service`), this is the only terminal you need.
+
+Without the installer, sync the environment once from your Carbon checkout
+with every group Carbon's documented commands use. A `uv sync` with fewer
+groups removes the others, including the ones the Control Center needs.
 
 ```bash
+uv sync --locked --group science-jax --group chain --group archive --group mcp
 uv run --locked --group chain python -m carbon_miner_signer \
   --wallet YOUR_WALLET --hotkey YOUR_HOTKEY
 ```
 
-(`carbon-miner-signer` is the same command once the package is installed.) If
-your hotkey file is encrypted, the Bittensor SDK asks for its password **in this
-terminal**. The password goes to the SDK in your signer process and nowhere
-else. The signer prints the hotkey it holds and the socket it listens on. After
-that, each request it signs appears as one line: the receiver and a prefix of
-the body hash.
+If your hotkey file is encrypted, the Bittensor SDK asks for its password **in
+this terminal**. The password goes to the SDK in your signer process and
+nowhere else. The signer prints the hotkey it holds and the socket it listens
+on. After that, each request it signs appears as one line: the receiver and a
+prefix of the body hash.
 
 Then use the Control Center or `carbon-mcp` as usual. There is nothing to paste
 and nothing to configure. Carbon finds the signer at the path it derives from
@@ -115,8 +122,12 @@ point calls it, and it is never a miner's key.
   SDK's feature in your signer's environment, not a Carbon input.
 - On non-Linux hosts the `0700` directory is the only boundary; there is no
   peer-uid check.
-- Submission still evaluates in-process on the validator host (#431). That is
-  the OD-7 submission-path decision, not this boundary. The seam is
-  `carbon/battery/campaign.py`, where the signed headers are handed to
-  `gateway.receive`. A future intake transport replaces that call and receives
-  the same signed body and headers unchanged.
+- A frozen candidate reaches a validator one of two ways
+  (`carbon/battery/campaign.py`). When the profile names the Challenge's
+  validator intake, the evaluation endpoint Carbon publishes or one you run,
+  the signer signs a `battery_submit` message and Carbon POSTs it to that
+  intake over https (`carbon/battery/remote_submission.py`), then asks for
+  its status. Only when the validator runs beside the campaign does the
+  signed body go to `gateway.receive` in the same process (#431, the OD-7
+  submission-path decision). A profile with neither cannot submit, and setup
+  and the prelaunch review say so before launch.

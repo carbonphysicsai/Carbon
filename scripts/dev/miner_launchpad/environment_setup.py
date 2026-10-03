@@ -46,10 +46,24 @@ Only launchable choices are offered.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
   only an operator running Carbon's own deployment does.
+- The evaluation endpoint (LP-PROD-E) is the one Carbon publishes for each
+  Challenge in `published_endpoints.json`. Review writes it into the
+  profile, and says plainly when none is published yet: such a profile
+  practises and freezes, but cannot submit.
+
+**A check describes one install** (LP-PROD-E). The compute check pins each
+image manifest it verified by digest, and the installer records what it
+installed. A check made at another revision or with other images is stale:
+setup shows it unchecked and Review refuses it. After a (re)install,
+`python -m scripts.dev.miner_launchpad.environment_setup after-install` sets a
+stale check aside, checks this machine's compute again, and writes the
+profile again.
 """
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import os
 import re
@@ -199,6 +213,75 @@ _ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 
 #: What a miner does when the Agent step cannot reach their signer.
 SIGNER_STEP = "start `carbon-miner-signer` for your registered hotkey"
+
+#: The evaluation endpoints Carbon publishes (LP-PROD-E): for a network,
+#: subnet and Challenge, the validator intake a frozen candidate is
+#: submitted to and the hotkey that receives it. An operator adds the live
+#: entry by pull request (BATTERY_VALIDATOR_SERVICE_RUNBOOK); an empty list
+#: publishes none. The receiver hotkey is shown for reference only: Review
+#: does not write or check it, and nothing yet compares it with the receiver
+#: the intake reports at submit (`RECEIVER_NOTE`).
+PUBLISHED_ENDPOINTS = Path(__file__).resolve().with_name("published_endpoints.json")
+PUBLISHED_SOURCE = "scripts/dev/miner_launchpad/published_endpoints.json"
+PUBLISHED_SCHEMA = "carbon.launchpad.published-endpoints.v1"
+PUBLISHED_KEYS = frozenset({"schema", "about", "entry_fields", "endpoints"})
+PUBLISHED_FIELDS = frozenset(
+    {"network", "netuid", "challenge", "intake_url", "receiver_hotkey"}
+)
+#: What Review says for a Challenge with no evaluation endpoint.
+NO_ENDPOINT = (
+    "No evaluation endpoint is published for {title} yet. Your profile can "
+    "practise and freeze, but cannot submit to it until one is published; "
+    "update Carbon and review again then, or name a validator intake you "
+    "run yourself."
+)
+#: What setup says beside a published receiver hotkey.
+RECEIVER_NOTE = (
+    "for reference: the hotkey Carbon publishes as this endpoint's receiver. "
+    "Nothing checks it yet; your signer signs for the receiver the intake "
+    "reports when you submit."
+)
+#: What setup says about the miner's own intake in a profile an update set
+#: aside: Review writes only the intakes it is given, so it is named again.
+KEPT_INTAKE_NOTE = (
+    "Your own intake for {title} was in the runner profile this update set "
+    "aside. Review writes only the intakes you name, and otherwise Carbon's "
+    "published endpoint if there is one: name yours again at Review to keep it."
+)
+
+#: What the installer installed here (LP-PROD-E): the checkout's revision and
+#: each image manifest it recorded, with the manifest's digest and image ID.
+INSTALLATION = "installation.json"
+INSTALLATION_SCHEMA = "carbon.launchpad.installation.v1"
+#: The image manifests a compute check pins, and what each is called.
+IMAGE_LABELS = {
+    "image_manifest": "the worker image",
+    "analysis_image_manifest": "the analysis image",
+    "gpu_image_manifest": "the GPU worker image",
+}
+#: A compute check made before checks pinned their images.
+STALE_UNPINNED = "this check was made before setup pinned the images it checked"
+#: What a miner does about a stale compute check that checking again clears:
+#: an image rebuilt or gone, a check from before pinning, or one made at
+#: another revision or with other images while this checkout is still the
+#: one the installer installed (setup fills in the installer's images).
+RECHECK_STEP = "check Compute again in setup"
+#: What a miner does when only the installer can clear it: its own record is
+#: unusable, or this checkout moved since it ran (a check made now would be
+#: made at a revision the installer built no images for).
+REINSTALL_STEP = "run scripts/install_miner.sh --update"
+#: Where `after_install` moves a runner profile whose compute check it set
+#: aside, so no restarted Control Center attaches it (LP-PROD-E).
+STALE_PROFILE = "runner-profile.stale.json"
+#: Why an update leaves the miner's own remote setup to them.
+REMOTE_RECHECK = (
+    "your remote setup needs the new GPU worker: check Compute again in "
+    "setup, then send or push the worker; Carbon reaches your setup only "
+    "when you check it"
+)
+#: Characters a path may have in the service unit: nothing systemd would
+#: expand, split or quote.
+_UNIT_PATH = re.compile(r"/[A-Za-z0-9._/@+=:,-]{1,4095}")
 
 
 class SetupRefused(Rejected):
@@ -1295,6 +1378,154 @@ def intake_challenges() -> list[dict]:
     ]
 
 
+def published_endpoints(path=None) -> dict:
+    """The evaluation endpoints Carbon publishes for this network and subnet,
+    by Challenge id, and whether the published list could be read.
+
+    The list is closed: a top level of `schema`, `about`, `entry_fields` and
+    `endpoints`, and entries of exactly `network`, `netuid`, `challenge`,
+    `intake_url` (https) and `receiver_hotkey` (an ss58 address), one per
+    network, subnet and Challenge. Entries for another network or subnet are
+    not this deployment's and are skipped. A list that breaks any of this is
+    read as publishing nothing, with `problem` saying so: a malformed entry
+    never reaches a profile.
+    """
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+    from scripts.dev.miner_launchpad.runner import _intake_url
+
+    source = Path(path or PUBLISHED_ENDPOINTS)
+    try:
+        if source.is_symlink() or source.stat().st_size > 64 * 1024:
+            raise ValueError("published endpoints unreadable")
+        document = json.loads(source.read_bytes())
+        if (
+            type(document) is not dict
+            or document.get("schema") != PUBLISHED_SCHEMA
+            or not set(document) <= PUBLISHED_KEYS
+            or type(document.get("endpoints")) is not list
+        ):
+            raise ValueError("published endpoints malformed")
+        seen, found = set(), {}
+        for entry in document["endpoints"]:
+            if type(entry) is not dict or set(entry) != PUBLISHED_FIELDS:
+                raise ValueError("published endpoint malformed")
+            if (
+                type(entry["network"]) is not str
+                or type(entry["netuid"]) is not int
+                or type(entry["challenge"]) is not str
+                or not 1 <= len(entry["challenge"]) <= 128
+                or type(entry["intake_url"]) is not str
+                or not entry["intake_url"].startswith("https://")
+                or not _intake_url(entry["intake_url"])
+                or type(entry["receiver_hotkey"]) is not str
+                or not _ADDRESS.fullmatch(entry["receiver_hotkey"])
+            ):
+                raise ValueError("published endpoint malformed")
+            key = (entry["network"], entry["netuid"], entry["challenge"])
+            if key in seen:
+                raise ValueError("one published endpoint per Challenge")
+            seen.add(key)
+            if (entry["network"], entry["netuid"]) == (CARBON_NETWORK, CARBON_NETUID):
+                found[entry["challenge"]] = dict(entry)
+    except (OSError, ValueError):
+        return {"endpoints": {}, "problem": "published_endpoints_unreadable"}
+    return {"endpoints": found, "problem": None}
+
+
+def checkout_revision(repo=REPO):
+    """This checkout's HEAD commit, or None when git cannot say."""
+    try:
+        head = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repo,
+            text=True,
+            timeout=30,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return head if re.fullmatch(r"[0-9a-f]{40}", head) else None
+
+
+def _manifest(path) -> dict | None:
+    """An image manifest's digest and the image ID it names, or None when
+    there is no regular file at `path`."""
+    path = Path(path)
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 2**20:
+            return None
+        data = path.read_bytes()
+    except OSError:
+        return None
+    try:
+        image = json.loads(data).get("image_id")
+    except (ValueError, AttributeError):
+        image = None
+    return {
+        "path": str(path),
+        "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+        "image_id": image if type(image) is str else None,
+    }
+
+
+def _manifest_paths(compute) -> dict:
+    """{field: path} of each image manifest a compute step was checked with."""
+    paths = {
+        field: path
+        for field, path in (compute.get("paths") or {}).items()
+        if field in IMAGE_LABELS
+    }
+    if compute.get("gpu_image"):
+        paths["gpu_image_manifest"] = compute["gpu_image"]
+    return paths
+
+
+def _revision_of(compute):
+    runtime = compute.get("runtime") or {}
+    return (runtime.get("implementation") or {}).get("revision")
+
+
+def service_unit(state_dir, port, repo=REPO) -> str:
+    """The systemd user unit that runs this checkout's Control Center
+    (LP-PROD-E): `carbon-control-center` on loopback, restarted on failure.
+
+    Its output, which carries the session token, goes to an owner-only file
+    in the owner-only state directory rather than to the journal, unbuffered:
+    Python block-buffers output to a file, so without it the token line
+    would reach the file only when the Control Center exits (review finding,
+    2026-10-03). Every path must be absolute and plain (no space, quote, `%`
+    or `$`), so nothing in it is expanded or split by systemd.
+    """
+    state_dir, repo = Path(state_dir), Path(repo)
+    binary = repo / ".venv" / "bin" / "carbon-control-center"
+    log = state_dir / "control-center.log"
+    for path in (state_dir, repo, binary, log):
+        if not _UNIT_PATH.fullmatch(str(path)):
+            raise ValueError("service_paths_must_be_plain_absolute_paths")
+    if type(port) is not int or not 1024 <= port <= 65535:
+        raise ValueError("service_port_must_be_unprivileged")
+    return (
+        "# Written by scripts/install_miner.sh (LP-PROD-E); it rewrites this\n"
+        "# file on every install. Loopback only: nothing here is public.\n"
+        "[Unit]\n"
+        "Description=Carbon Control Center (DEVELOPMENT, loopback only)\n"
+        "\n"
+        "[Service]\n"
+        "Type=simple\n"
+        f"WorkingDirectory={repo}\n"
+        f"ExecStart={binary} --state-dir {state_dir} --port {port}\n"
+        "Environment=PYTHONUNBUFFERED=1\n"
+        "UMask=0077\n"
+        f"StandardOutput=append:{log}\n"
+        "StandardError=inherit\n"
+        "Restart=on-failure\n"
+        "RestartSec=5\n"
+        "\n"
+        "[Install]\n"
+        "WantedBy=default.target\n"
+    )
+
+
 class EnvironmentSetup:
     """One miner's setup, kept under the controller's owner-only state dir.
 
@@ -1337,8 +1568,116 @@ class EnvironmentSetup:
             raise SetupRefused("address", "registration_not_confirmed")
         record[name] = {**value, "checked_at": int(time.time())}
         record.pop("profile", None)  # Any change needs a new review.
+        record.pop(name + "_set_aside", None)  # Checked again.
         self._save(record)
         return self.state()
+
+    @property
+    def installation_path(self) -> Path:
+        return self.root / INSTALLATION
+
+    def installation(self) -> dict | None:
+        """What the installer last installed here, or None when it never ran
+        here (a developer's checkout). A record that is not one is refused,
+        never read past."""
+        path = self.installation_path
+        if not path.exists() and not path.is_symlink():
+            return None
+        try:
+            if not _owner_only(path) or path.stat().st_size > 64 * 1024:
+                raise ValueError("installation record not owner-only")
+            stamp = json.loads(path.read_bytes())
+        except (OSError, ValueError):
+            stamp = None
+        if (
+            type(stamp) is not dict
+            or stamp.get("schema") != INSTALLATION_SCHEMA
+            or type(stamp.get("revision")) is not str
+            or type(stamp.get("images")) is not dict
+        ):
+            raise SetupRefused(
+                "state_dir",
+                "installation_record_unreadable",
+                503,
+                next_step=REINSTALL_STEP,
+            )
+        return stamp
+
+    def _stale(self, compute) -> list[str]:
+        """Why a checked compute step no longer describes this install, or
+        [] when it still does (LP-PROD-E)."""
+        return self._staleness(compute)[0]
+
+    def _staleness(self, compute) -> tuple[list[str], str | None]:
+        """Why a checked compute step no longer describes this install, and
+        the one step that clears every reason: ([], None) when it still does
+        (LP-PROD-E).
+
+        The check pinned each image manifest it verified by digest; one
+        rebuilt or removed since makes it stale. Once the installer has run
+        here, so does a check made at another revision than the one it
+        installed or than this checkout's, or with other images than the
+        ones it built.
+
+        Checking Compute again clears all of that while this checkout is the
+        one the installer installed: a new check is made at HEAD, with the
+        images setup fills in from the installer's record. When the checkout
+        moved since (a `git pull`, or an update whose build failed after the
+        checkout moved), or the record is unusable, a new check would be
+        stale again for the same reason, so the step is the installer's
+        (review finding, 2026-10-03: the miner was sent round a loop).
+        """
+        pinned = compute.get("manifests")
+        manifests = _manifest_paths(compute)
+        reasons, reinstall = [], False
+        if type(pinned) is not dict:
+            reasons.append(STALE_UNPINNED)
+        else:
+            for field, path in manifests.items():
+                found = _manifest(path)
+                if found is None:
+                    reasons.append(IMAGE_LABELS[field] + " is gone since the check")
+                elif found["digest"] != pinned.get(field):
+                    reasons.append(IMAGE_LABELS[field] + " was rebuilt since the check")
+        try:
+            stamp = self.installation()
+        except SetupRefused:
+            stamp = None
+            reasons.append("the installer's record here is unreadable")
+            reinstall = True
+        if stamp is not None:
+            checked = _revision_of(compute)
+            if stamp["revision"] != checked:
+                reasons.append(
+                    "Carbon was installed at "
+                    + stamp["revision"][:12]
+                    + " and the check was made at "
+                    + str(checked)[:12]
+                )
+            head = checkout_revision()
+            if head != stamp["revision"]:
+                reasons.append(
+                    "this checkout is at "
+                    + str(head)[:12]
+                    + ", not the "
+                    + stamp["revision"][:12]
+                    + " Carbon was installed at"
+                )
+                reinstall = True
+            for field, entry in stamp["images"].items():
+                if (
+                    field in manifests
+                    and type(entry) is dict
+                    and entry.get("path") != manifests[field]
+                ):
+                    reasons.append(
+                        "setup checked another "
+                        + IMAGE_LABELS[field].removeprefix("the ")
+                        + " than the one the installer built"
+                    )
+        if not reasons:
+            return [], None
+        return reasons, REINSTALL_STEP if reinstall else RECHECK_STEP
 
     # -- the steps
 
@@ -1350,7 +1689,22 @@ class EnvironmentSetup:
             for name in STEPS[:-1]
             if name != "inference" or _needs_inference(record)
         ]
-        done = {name: name in record for name in needed}
+        # A compute check that no longer describes this install shows as
+        # unchecked, with why and the step that clears it (LP-PROD-E).
+        stale, clears = (
+            self._staleness(record["compute"]) if "compute" in record else ([], None)
+        )
+        done = {
+            name: name in record and not (name == "compute" and stale)
+            for name in needed
+        }
+        compute = _public(
+            record.get("compute"), ("choice", "challenge", "remote_machine", "check")
+        )
+        if stale:
+            compute = {**compute, "checked": False, "stale": stale, "next_step": clears}
+        elif "compute_set_aside" in record and "compute" not in record:
+            compute = {**compute, "set_aside": record["compute_set_aside"]}
         from scripts.dev.miner_launchpad import installed
 
         return {
@@ -1373,10 +1727,7 @@ class EnvironmentSetup:
                         "check",
                     ),
                 ),
-                "compute": _public(
-                    record.get("compute"),
-                    ("choice", "challenge", "remote_machine", "check"),
-                ),
+                "compute": compute,
                 "agent": _public(record.get("agent"), ("choice", "check")),
                 "review": {
                     "ready": "hotkey" in record and all(done.values()),
@@ -1387,7 +1738,66 @@ class EnvironmentSetup:
                 # Agent step makes. It counts only for the registered hotkey,
                 # once there is one.
                 "signer": self._signer(record),
+                # Where a frozen candidate of each Challenge is evaluated:
+                # Carbon's published endpoint, or the miner's own intake
+                # (LP-PROD-E). Nothing to check: Review writes it.
+                "evaluation": self._evaluation(record),
             },
+        }
+
+    def _evaluation(self, record) -> dict:
+        """Each Challenge a frozen candidate is submitted to through an
+        intake, and the intake its profile submits to: what Review wrote, or,
+        before Review, what it will write. Says plainly when none is
+        published."""
+        published = published_endpoints()
+        written = (record.get("profile") or {}).get("intakes")
+        if "profile" in record and type(written) is not dict:
+            # Written before Review recorded its intakes: they were the
+            # miner's own, in the profile itself.
+            written = {
+                challenge_id: {"url": url, "source": "yours"}
+                for challenge_id, url in self._own_intakes(record).items()
+            }
+        # The miner's own intakes in a profile an update set aside: Review
+        # writes only what it is given, so setup says to name them again.
+        kept = {}
+        if type(written) is not dict:
+            kept = (record.get("profile_set_aside") or {}).get("intakes") or {}
+        challenges = []
+        for challenge in intake_challenges():
+            entry = published["endpoints"].get(challenge["id"])
+            if type(written) is dict:
+                mine = written.get(challenge["id"])
+                intake = mine.get("url") if type(mine) is dict else None
+                source = mine.get("source") if type(mine) is dict else None
+            else:
+                intake = entry["intake_url"] if entry else None
+                source = "published" if entry else None
+            item = {**challenge, "intake": intake, "source": source}
+            if source == "published" and entry and entry["intake_url"] == intake:
+                # Shown, never enforced: see RECEIVER_NOTE.
+                item["receiver_hotkey"] = entry["receiver_hotkey"]
+                item["receiver_hotkey_note"] = RECEIVER_NOTE
+            if intake is None:
+                item["note"] = NO_ENDPOINT.format(title=challenge["title"])
+                if entry is not None:
+                    item["note"] = (
+                        "An evaluation endpoint has been published for "
+                        + challenge["title"]
+                        + " since your profile was written: review again to "
+                        "add it."
+                    )
+            own = kept.get(challenge["id"])
+            if type(own) is dict and type(own.get("url")) is str:
+                item["set_aside_intake"] = own["url"]
+                item["note"] = KEPT_INTAKE_NOTE.format(title=challenge["title"])
+            challenges.append(item)
+        return {
+            "published_by": PUBLISHED_SOURCE,
+            "ready": all(item["intake"] for item in challenges),
+            "challenges": challenges,
+            **({"problem": published["problem"]} if published["problem"] else {}),
         }
 
     @staticmethod
@@ -1605,17 +2015,21 @@ class EnvironmentSetup:
         if remote and campaign.remote_worker is None:
             raise SetupRefused("challenge", "challenge_offers_no_remote_practice")
         machine = _remote_machine(value["remote"]) if remote else None
-        paths = {}
+        paths, manifests = {}, {}
         fields = ("image_manifest", "analysis_image_manifest") + (
             ("gpu_image_manifest",) if gpu else ()
         )
         for field in fields:
             path = _absolute(value[field], field)
-            if not path.is_file() or path.is_symlink():
+            found = _manifest(path)
+            if found is None:
                 raise SetupRefused(
                     field, "image_not_built", next_step=BUILD_STEPS[field]
                 )
             paths[field] = str(path)
+            # Each manifest this check verifies, pinned by digest: one rebuilt
+            # or removed afterwards makes the check stale (LP-PROD-E).
+            manifests[field] = found["digest"]
         gpu_image = paths.pop("gpu_image_manifest", None)
         with self.lock:
             runtime = self.checks.compute(
@@ -1626,7 +2040,11 @@ class EnvironmentSetup:
                 "images": runtime["images"],
                 "balance": "not applicable: your own machine",
             }
-            step = {"choice": value["choice"], "paths": paths}
+            step = {
+                "choice": value["choice"],
+                "paths": paths,
+                "manifests": manifests,
+            }
             if gpu:
                 # GPU practice is set up for one Challenge, the miner's choice.
                 step["challenge"] = dict(value["challenge"])
@@ -1867,6 +2285,17 @@ class EnvironmentSetup:
             raise SetupRefused(
                 "compute", retired.RENTED_GPU_RETIRED, next_step=retired.NEXT_STEP
             )
+        stale, clears = self._staleness(compute)
+        if stale:
+            # Observed 2026-10-03: after a reinstall at a new revision, Review
+            # wrote a profile with the old accepted revision. A check that no
+            # longer describes this install is never written (LP-PROD-E). The
+            # next step is the one that clears every reason.
+            raise SetupRefused(
+                "compute",
+                "compute_check_is_stale",
+                next_step=clears + ": " + "; ".join(stale),
+            )
         key = (
             self._credential(inference)
             if inference
@@ -1923,6 +2352,14 @@ class EnvironmentSetup:
         intake's public facts are checked first, by that Challenge's own
         campaign. A legacy `battery_intake` is read as the intake of the
         Challenge it was written for.
+
+        Every other Challenge submitted through an intake gets the
+        evaluation endpoint Carbon publishes for it (LP-PROD-E). A published
+        endpoint was reviewed into `published_endpoints.json` and is checked
+        by the intake client when a candidate is submitted, so Review reaches
+        no network for it. A Challenge with no endpoint is never passed over
+        silently: the profile is written and `warnings` says it cannot
+        submit there, and setup's Evaluation step keeps saying so.
         """
         from carbon.challenge_registry import ResolutionError
         from carbon.challenge_registry.campaigns import campaign_for_id
@@ -1951,6 +2388,32 @@ class EnvironmentSetup:
             if campaign.intake_check is None:
                 raise SetupRefused("intakes", "challenge_has_no_intake")
             self.checks.intake(url, campaign=campaign)
+        sources = {challenge_id: "yours" for challenge_id in intakes}
+        published = published_endpoints()
+        warnings = []
+        if published["problem"]:
+            warnings.append(
+                {
+                    "code": published["problem"],
+                    "message": "Carbon's list of evaluation endpoints could not "
+                    "be read, so none was written: " + REINSTALL_STEP + ".",
+                }
+            )
+        for challenge in intake_challenges():
+            if challenge["id"] in intakes:
+                continue
+            entry = published["endpoints"].get(challenge["id"])
+            if entry is None:
+                warnings.append(
+                    {
+                        "code": "no_evaluation_endpoint",
+                        "challenge": challenge["id"],
+                        "message": NO_ENDPOINT.format(title=challenge["title"]),
+                    }
+                )
+                continue
+            intakes[challenge["id"]] = entry["intake_url"]
+            sources[challenge["id"]] = "published"
         with self.lock:
             cfg = self.profile()
             if intakes:
@@ -1973,10 +2436,213 @@ class EnvironmentSetup:
                     "tools_ask_first": True,
                 }
             write_private(self.profile_path, canonical(cfg))
-            record["profile"] = {"written_at": int(time.time())}
+            record["profile"] = {
+                "written_at": int(time.time()),
+                # Each intake written and whose it is, so setup shows them and
+                # an update keeps the miner's own (LP-PROD-E).
+                "intakes": {
+                    challenge_id: {"url": url, "source": sources[challenge_id]}
+                    for challenge_id, url in intakes.items()
+                },
+                "warnings": warnings,
+            }
+            # A profile an update set aside is replaced by this one.
+            record.pop("profile_set_aside", None)
             self._save(record)
         attached = self.attach(self.profile_path) if self.attach is not None else False
-        return {**self.state(), "attached": attached}
+        return {**self.state(), "attached": attached, "warnings": warnings}
+
+    def _own_intakes(self, record) -> dict:
+        """The intakes the miner named in their last Review, which an update
+        writes again; Carbon's published ones are looked up afresh."""
+        written = (record.get("profile") or {}).get("intakes")
+        if type(written) is dict:
+            return {
+                challenge_id: entry["url"]
+                for challenge_id, entry in written.items()
+                if type(entry) is dict
+                and entry.get("source") == "yours"
+                and type(entry.get("url")) is str
+            }
+        # A profile Review wrote before it recorded whose each intake was:
+        # every intake in it was the miner's own; none was published then.
+        from scripts.dev.miner_launchpad.runner import intakes
+
+        try:
+            if not _owner_only(self.profile_path):
+                return {}
+            cfg = json.loads(self.profile_path.read_bytes())
+            return {
+                challenge_id: url
+                for challenge_id, url in intakes(cfg).items()
+                if type(challenge_id) is str and type(url) is str
+            }
+        except (OSError, ValueError, TypeError, AttributeError):
+            return {}
+
+    def _set_profile_aside(self) -> str | None:
+        """Move the written runner profile, if any, to `STALE_PROFILE` in the
+        same owner-only directory, replacing an earlier one, and return its
+        new name; None when there was none. The controller attaches
+        `runner-profile.json` on start whenever it exists, so a profile whose
+        compute check was set aside must not stay there. Called under the
+        setup lock."""
+        path = self.profile_path
+        if not os.path.lexists(path):
+            return None
+        os.replace(path, self.root / STALE_PROFILE)
+        return STALE_PROFILE
+
+    def after_install(self) -> dict:
+        """What a (re)install changed for this setup, and what it did about
+        it (LP-PROD-E). `scripts/install_miner.sh` runs it once it has built
+        and recorded the images.
+
+        Observed live 2026-10-03: after a reinstall at a new revision, setup
+        still showed compute as checked, at the old revision and images, and
+        Review wrote a profile with the old accepted revision. So:
+        1. What was installed is recorded: the checkout's revision and each
+           recorded image manifest's digest and image ID.
+        2. A compute check that no longer describes it is set aside, with
+           why, and the profile with it: the marker, and the profile file,
+           moved to `STALE_PROFILE`, since a restarted Control Center
+           attaches `runner-profile.json` whenever it exists (review
+           finding, 2026-10-03). The miner's own intakes in it are kept in
+           the record, so setup can say to name them again.
+        3. This machine's compute (CPU, or its own GPU) is checked again with
+           the new images: no network and no cost, as in setup. The miner's
+           own remote setup is never reached: they check it again, since it
+           needs the new GPU worker.
+        4. A profile written before is written again by Review, with the
+           intakes the miner named and the endpoints Carbon publishes.
+        Each refusal is reported with its next step; nothing is retried.
+        """
+        from scripts.dev.miner_launchpad import installed
+
+        recorded = installed.read(self.root.parent) or {}
+        if not {"image_manifest", "analysis_image_manifest"} <= set(recorded):
+            raise SetupRefused(
+                "image_manifest",
+                "installed_images_not_recorded",
+                next_step=REINSTALL_STEP,
+            )
+        head = checkout_revision()
+        if head is None:
+            raise SetupRefused(
+                "accepted_revision",
+                "clean_accepted_checkout_required",
+                next_step=REINSTALL_STEP,
+            )
+        images = {}
+        for field, path in recorded.items():
+            found = _manifest(path)
+            if found is not None:
+                images[field] = found
+        stamp = {
+            "schema": INSTALLATION_SCHEMA,
+            "revision": head,
+            "images": images,
+            "installed_at": int(time.time()),
+        }
+        report = {"revision": {"to": head}, "images": {}, "next_steps": []}
+        with self.lock:
+            try:
+                before = self.installation()
+            except SetupRefused:
+                before = None
+            record = self._record()
+            compute = record.get("compute")
+            write_private(self.installation_path, canonical(stamp))
+            # What was installed before: the installer's last record, or,
+            # the first time it runs here, what the compute check recorded.
+            was = {}
+            if before is not None:
+                report["revision"]["from"] = before["revision"]
+                was = {
+                    field: entry.get("image_id")
+                    for field, entry in before["images"].items()
+                    if type(entry) is dict
+                }
+            elif compute is not None:
+                report["revision"]["from"] = _revision_of(compute)
+                checked = (compute.get("runtime") or {}).get("images") or []
+                was = dict(zip(("image_manifest", "analysis_image_manifest"), checked))
+            for field, found in images.items():
+                report["images"][field] = {
+                    "from": was.get(field),
+                    "to": found["image_id"],
+                }
+            if compute is None:
+                report["compute"] = "not set up yet"
+                return report
+            stale = self._stale(compute)
+            if not stale:
+                report["compute"] = "unchanged"
+                return report
+            had_profile = "profile" in record
+            own = self._own_intakes(record) if had_profile else {}
+            now = int(time.time())
+            record.pop("compute")
+            record.pop("profile", None)
+            record["compute_set_aside"] = {"reasons": stale, "at": now}
+            moved = self._set_profile_aside()
+            if had_profile or moved:
+                record["profile_set_aside"] = {
+                    "at": now,
+                    **({"file": moved} if moved else {}),
+                    "intakes": {
+                        challenge_id: {"url": url, "source": "yours"}
+                        for challenge_id, url in own.items()
+                    },
+                }
+            self._save(record)
+        report.update(compute="set aside", reasons=stale)
+        if moved:
+            report["profile_set_aside"] = moved
+        if compute.get("choice") not in (LOCAL_CPU, LOCAL_GPU):
+            report["next_steps"].append(
+                REMOTE_RECHECK if compute.get("choice") == REMOTE else RECHECK_STEP
+            )
+            return report
+        request = {
+            "choice": compute["choice"],
+            "image_manifest": recorded["image_manifest"],
+            "analysis_image_manifest": recorded["analysis_image_manifest"],
+        }
+        if compute["choice"] == LOCAL_GPU:
+            gpu = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
+            if gpu["path"] is None:
+                report["next_steps"].append(
+                    "build the GPU worker (" + gpu["build"] + "), then " + RECHECK_STEP
+                )
+                return report
+            request.update(
+                gpu_image_manifest=gpu["path"], challenge=dict(compute["challenge"])
+            )
+        try:
+            self.compute(request)
+        except SetupRefused as refused:
+            report["recheck"] = _refusal(refused)
+            report["next_steps"].append(RECHECK_STEP)
+            return report
+        report["compute"] = "checked again"
+        if not had_profile:
+            report["next_steps"].append("review in setup to write your profile")
+            return report
+        try:
+            reviewed = self.review(
+                {"confirm": True, **({"intakes": own} if own else {})}
+            )
+        except SetupRefused as refused:
+            report["profile"] = {"written": False, **_refusal(refused)}
+            report["next_steps"].append("review in setup to write your profile")
+            return report
+        report["profile"] = {
+            "written": True,
+            "accepted_revision": head,
+            "warnings": reviewed["warnings"],
+        }
+        return report
 
 
 def _needs_inference(record) -> bool:
@@ -2067,3 +2733,157 @@ def _public(step, fields):
         "checked_at": step["checked_at"],
         **{f: step[f] for f in fields if f in step},
     }
+
+
+def _refusal(refused: SetupRefused) -> dict:
+    """A refusal as a report states it: its code, field and next step."""
+    return {
+        "code": refused.code,
+        "field": refused.field,
+        **({"next_step": refused.next_step} if refused.next_step else {}),
+    }
+
+
+def _short(value) -> str:
+    text = str(value)
+    return text.removeprefix("sha256:")[:12]
+
+
+def describe_install(report: dict) -> list[str]:
+    """`after_install`'s report as the lines the installer prints."""
+    lines = ["What this install changed:"]
+    revision = report["revision"]
+    if revision.get("from") and revision["from"] != revision["to"]:
+        lines.append(
+            "  Carbon: " + _short(revision["from"]) + " -> " + _short(revision["to"])
+        )
+    else:
+        lines.append(
+            "  Carbon: "
+            + _short(revision["to"])
+            + (", unchanged" if revision.get("from") else "")
+        )
+    for field, image in report["images"].items():
+        label = IMAGE_LABELS[field].removeprefix("the ")
+        label = label[0].upper() + label[1:]
+        if image["from"] and image["from"] != image["to"]:
+            lines.append(
+                "  "
+                + label
+                + ": "
+                + _short(image["from"])
+                + " -> "
+                + _short(image["to"])
+            )
+        else:
+            lines.append(
+                "  "
+                + label
+                + ": "
+                + _short(image["to"])
+                + (", unchanged" if image["from"] else "")
+            )
+    lines.append("Your setup:")
+    compute = report.get("compute")
+    if compute == "not set up yet":
+        lines.append(
+            "  Compute: not set up yet. Set up your environment in the Control Center."
+        )
+    elif compute == "unchanged":
+        lines.append("  Compute: your check still describes this install.")
+    else:
+        lines.append(
+            "  Compute: your earlier check was set aside ("
+            + "; ".join(report.get("reasons", []))
+            + ")."
+        )
+        if compute == "checked again":
+            lines.append("  Compute: checked again with the new images.")
+    if "recheck" in report:
+        refused = report["recheck"]
+        lines.append(
+            "  Compute check refused: "
+            + refused["code"]
+            + " ("
+            + refused["field"]
+            + ")"
+            + (". " + refused["next_step"] if "next_step" in refused else "")
+        )
+    profile = report.get("profile")
+    if profile and profile["written"]:
+        lines.append(
+            "  Runner profile: written again, accepted revision "
+            + _short(profile["accepted_revision"])
+            + "."
+        )
+        for warning in profile["warnings"]:
+            lines.append("  Note: " + warning["message"])
+    elif profile:
+        lines.append(
+            "  Runner profile: not written: "
+            + profile["code"]
+            + (". " + profile["next_step"] if "next_step" in profile else "")
+        )
+    if report.get("profile_set_aside") and not (profile and profile["written"]):
+        lines.append(
+            "  Runner profile: set aside with the compute check, as environment/"
+            + report["profile_set_aside"]
+            + "; the Control Center will not load it."
+        )
+    for next_step in report.get("next_steps", []):
+        lines.append("Next: " + next_step[0].upper() + next_step[1:] + ".")
+    return lines
+
+
+def main(argv=None) -> int:
+    """The installer's commands (LP-PROD-E), run by scripts/install_miner.sh:
+    `after-install` checks setup against what was just installed and prints
+    what changed; `gpu-installed` says whether a GPU worker was built here
+    before; `service-unit` prints the systemd user unit for the Control
+    Center."""
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in ("after-install", "gpu-installed", "service-unit"):
+        command = commands.add_parser(name)
+        command.add_argument("--state-dir", type=Path, required=True)
+        if name == "service-unit":
+            command.add_argument("--port", type=int, required=True)
+    args = parser.parse_args(argv)
+    state_dir = args.state_dir
+    if args.command == "gpu-installed":
+        from scripts.dev.miner_launchpad import installed
+
+        found = installed.found(state_dir, REPO)["gpu_image_manifest"]["path"]
+        print("yes" if found else "no")
+        return 0
+    if args.command == "service-unit":
+        try:
+            print(service_unit(state_dir, args.port), end="")
+        except ValueError as refused:
+            print("Carbon service unit refused: " + str(refused), file=sys.stderr)
+            return 2
+        return 0
+    setup = EnvironmentSetup(state_dir, onboarding=None)
+    try:
+        report = setup.after_install()
+    except SetupRefused as refused:
+        print(
+            "Carbon could not check your setup against this install: "
+            + refused.code
+            + " ("
+            + refused.field
+            + ")"
+            + (". Next: " + refused.next_step if refused.next_step else ""),
+            file=sys.stderr,
+        )
+        return 2
+    print("\n".join(describe_install(report)))
+    return 0
+
+
+if __name__ == "__main__":
+    # One module, whichever way it is run: the installer's commands use the
+    # same classes the Control Center imports.
+    from scripts.dev.miner_launchpad import environment_setup as module
+
+    raise SystemExit(module.main())
