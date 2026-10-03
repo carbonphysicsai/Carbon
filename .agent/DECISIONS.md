@@ -18127,3 +18127,99 @@ forbid auto-merge.
 
 *Unchanged.* Every scientific, security and delivery rule. These rules change
 how PRs are assembled and merged, not what any PR may decide.
+
+## 2026-10-02 — OWNER-GRAPHITE-03: Graphite phase 3 under one USD 15 grant that includes RunPod pod time; build phase 3 in parallel
+
+**Owner, verbatim, in session on 2026-10-02.** Asked for the phase-3 grant
+amount (USD 15 suggested) and whether RunPod pod time is inside it or
+separate, the owner answered: "$15 runpod included". The owner then said:
+"Start phase 3 build in parallel".
+
+**Decision.**
+1. **Phase 3 grant.** The ceiling is **USD 15.00**, and it covers both Engy
+   tokens and RunPod pod time under one grant. It is recorded as
+   `docs/development/graphite/grants/GRAPHITE-GRANT-PHASE3.json` in the
+   existing `SpendingGrant` format: provider `graphite`, currency USD.
+   - `account` (`Carbon-Account`) and `expires_at` (`2026-12-31T23:59:59Z`)
+     are the phase-2 grant's. The owner set both for phase 2
+     (OWNER-GRAPHITE-02), and phase 3 reuses them.
+   - `permitted_runs` is 3, the plan's first block of 3 sessions (plan §7).
+   - The other limits are derived, not chosen. The arithmetic is in
+     `docs/development/graphite/grants/README.md`:
+     - the pod price is the EV4 tooling's (`pod_control.MAX_RATE` USD 0.49 an
+       hour, which the EV4 ledger records as RunPod's `costPerHr`, plus 20 GB
+       of disk);
+     - `cleanup_allowance` is pod_control's `CLEANUP_RESERVE_USD`, USD 0.25,
+       and covers pod termination;
+     - `worst_case_run_cost` is USD 4.91 a run: 2.96 for 12 thirty-minute
+       pods and 1.95 for tokens;
+     - `max_runtime_s` is 27,360, `max_concurrency` is 1 and
+       `max_submissions` is 3.
+   - One ceiling covers both kinds of spend:
+     - the controller reserves each run's worst case;
+     - inside a run, every model call is reserved before dispatch and every
+       pod before launch, against the same run cap;
+     - each settles from the provider's reported charge;
+     - an unknown outcome keeps its full reservation.
+2. **Build in parallel.** Phase 3 is built now, without spend. The live
+   sessions run later, in a session that has `ENGY_API_KEY` and
+   `RUNPOD_API_KEY`.
+
+**Unchanged.**
+- Phase 3 constructs only inside the recorded battery construction contract
+  (the reconstruction rule, OWNER-GRAPHITE-02). Level 0 widens nothing.
+- Graphite proposes; Carbon's frozen rule decides (invariants 7.9 and 7.10).
+- No official, protected or EV4 confirmation material reaches the agent or a
+  pod.
+- Reconstruction tolerances and the Level-0 study population stay
+  science-reserved (plan §9).
+- Scientific, security and launch qualification stay human-reserved.
+
+Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
+
+**Amendment (2026-10-02): a Constructor session gets 150 model calls.**
+
+*Owner, verbatim, in session on 2026-10-02.* Told of a known limitation of
+the phase-3 build (a Constructor session could make at most 48 model calls,
+because the research loop ran `range(MAX_PROVIDER_CALLS)` with the shared
+`research_agent_policy.MAX_PROVIDER_CALLS = 48`, while the plan expects about
+150 turns a session), the owner answered: "up the plan to 150".
+
+*Decision.*
+1. A Graphite Constructor session (one research epoch) may make up to 150
+   model calls: `roles.CONSTRUCTOR_SESSION_TURNS = 150`, passed by the
+   phase-3 runner to `research_loop.run_epoch` as `max_provider_calls` and
+   used as the run ledger's `provider_attempts` cap (GRAPHITE-D26).
+2. The shared `MAX_PROVIDER_CALLS` stays 48. Frozen studies, such as the
+   battery agent-campaign pre-registrations, depend on it, and every epoch
+   that does not pass its own cap behaves byte for byte as before.
+3. In `GRAPHITE-GRANT-PHASE3.json`, `max_runtime_s` is recomputed as
+   150 × 120 s + 12 × 1,800 s = **39,600** (it was 27,360). The ceiling
+   (USD 15.00), `worst_case_run_cost` (USD 4.91) and the pod budget
+   (USD 2.96, 12 pods) are unchanged.
+4. Token arithmetic: on `deepseek-v4-flash-0731`, 150 × 3,133,440
+   nanodollars reserve USD 0.47, within the 1.95 token share. On `glm-5.2`
+   the 1.95 money cap still stops a run after 40 calls, before the call cap.
+
+*Unchanged.* Everything else in OWNER-GRAPHITE-03 above. No live session has
+run, and nothing was spent.
+
+## 2026-10-03 — OWNER-GRAPHITE-04: Graphite phase 3 keeps one RunPod pod per proposal on Carbon's own account
+
+**Owner, in session on 2026-10-03.** Asked how phase 3 should get GPUs after
+#511 (OWNER-MINER-COMPUTE-LINK-ONLY-01) removed the RunPod code it creates
+pods with, the owner chose "Carbon's own RunPod" over running proposals on a
+machine the owner starts, or pausing phase 3.
+
+**Decision.** Phase 3 keeps its design: one RunPod pod per proposal, created,
+watched and terminated by Carbon on Carbon's own account, with Carbon's key,
+under the phase-3 grant (OWNER-GRAPHITE-03). This is operator compute, which
+LINKONLY-D1 leaves outside OWNER-MINER-COMPUTE-LINK-ONLY-01. No miner key is
+ever used, and the miner path is unchanged.
+
+**Engineering (GRAPHITE-D32).** The provisioning layer phase 3 relies on is
+restored, same behaviour, under `scripts/dev/exam_design/runpod/operator_compute/`
+beside `pod_control`. Nothing under `carbon/` names a provider API.
+
+*Unchanged.* OWNER-MINER-COMPUTE-LINK-ONLY-01 for miners; OWNER-GRAPHITE-03's
+grant and limits. No live session has run, and nothing was spent.

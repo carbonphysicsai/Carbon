@@ -98,7 +98,8 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
     tests/service/test_standard_mcp_apps.py tests/service/test_mcp_app_composition.py \
     tests/service/test_standard_mcp_extensions.py \
     tests/service/test_mcp_task_supervisor.py \
-    tests/service/test_battery_mcp_research.py -q
+    tests/service/test_battery_mcp_research.py \
+    tests/service/test_graphite_miner_path.py -q
   if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then
     "${python_bin}" -m pytest tests/service/test_standard_mcp_typescript.py -q
     # The MCP conformance suite is not collected by the default testpaths, so it
