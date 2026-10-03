@@ -161,9 +161,10 @@ def test_the_recipes_install_one_toolkit_and_keep_the_device_runtime():
     # Only GPUCompiler's compiled runtime survives, and an empty one fails the
     # build rather than shipping a depot that recompiles on every GPU run.
     assert f"! -name {depot.GPUCOMPILER_UUID}" in compile_recipe
-    assert f"ls /opt/carbon-julia-analysis/depot/{runtime}/compiled/*/*/runtime_*.bc" in (
-        compile_recipe
+    required = (
+        f"ls /opt/carbon-julia-analysis/depot/{runtime}/compiled/*/*/runtime_*.bc"
     )
+    assert required in compile_recipe
     assert "rm -rf /opt/carbon-julia-analysis/depot/logs" in compile_recipe
 
 
