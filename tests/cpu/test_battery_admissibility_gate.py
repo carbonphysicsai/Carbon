@@ -79,9 +79,7 @@ def test_the_retained_evidence_matches_what_it_reports():
         assert at["controls"]["control-boundary_optimist"] == gate.FAIL
         assert at["controls"]["control-oracle"] == gate.PASS
         assert len(at["real_members_failed"]) * 2 < dataset["real_members"]
-        assert (
-            at["mean_verification_loss_failed"] > at["mean_verification_loss_passed"]
-        )
+        assert at["mean_verification_loss_failed"] > at["mean_verification_loss_passed"]
     ev4 = report["datasets"]["ev4-2026-10-01"]
     optimist = ev4["at_control_levels"]["control-boundary_optimist"]
     assert ev4["real_members"] == 99
