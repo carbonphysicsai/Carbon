@@ -17657,10 +17657,11 @@ authority).**
   tool accepts, returns or logs a private key, seed phrase, mnemonic or
   password.
 - **AGENTFIRST-D5, the model key is a file the miner made.** An agent passes
-  `model_key_file`, an absolute path to a regular file, not a link, owned by the same
-  user, with no group or other access. Carbon references it by path and never
-  copies it. A key passed as a value is refused on the MCP door
-  (`key_must_be_a_file_on_this_door`).
+  `model_key_file`, an absolute path to a regular file, not a link, owned by
+  the same user, with no group or other access. Carbon references it by path
+  and never copies it. A key passed as a value is refused on the MCP door
+  (`key_must_be_a_file_on_this_door`). The field is not named `key_file`:
+  the product's no-key invariant reserves that name for a hotkey file.
 - **AGENTFIRST-D6, Hermes keeps Inference.** Hermes' ready-made profile is
   written with setup's model, so choosing Hermes keeps the Inference step.
   Its files are written at Review once the model is checked, on the consent

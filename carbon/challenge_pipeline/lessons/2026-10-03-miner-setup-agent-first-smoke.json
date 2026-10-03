@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-03-miner-setup-agent-first-smoke",
+  "recorded_at": "2026-10-03T00:27:48Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "scripts/dev/miner_launchpad/browser_smoke.py (run, journey, setup_journey, fresh_miner) with the private venv and the host's Playwright Chromium: all four passed after three fixes to the smoke itself",
+    "description": "The browser smoke on the agent-first order: the setup journey walks signer, register, who researches, inference, compute and review, and checks the own-agent connect command and client snippets; the fresh-miner journey has an agent check the signer over the MCP door and the page show it without a reload."
+  },
+  "expected": "Reordering the smoke's existing steps is mechanical.",
+  "observed": "Three smoke defects, none in the product: a local named like the smoke's connect() helper shadowed it; the expected connect command lacked the --state-dir the page correctly adds for a non-default state directory; and the fresh-miner journey still listed the old step order. Moving a block of steps was done by a small script with exact anchors, which failed loudly where an anchor had moved.",
+  "keep": [
+    "Assert the page shows another door's progress by acting through that door in the test and waiting for the page, without a reload.",
+    "Reorder test blocks with an anchored script that fails if an anchor is missing, not by hand."
+  ],
+  "change": [
+    "Never reuse a helper's name for a local in a long smoke function."
+  ],
+  "protocol_elements": [
+    "miner.control_center",
+    "miner.mcp"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
