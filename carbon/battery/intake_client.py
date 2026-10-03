@@ -148,6 +148,34 @@ REFUSALS = {
         "This validator requires an on-chain commitment it cannot yet read."
     ),
     "commitment_required": "Commit this recipe's hash on chain, then resend.",
+    "backend_not_served": (
+        "This validator has no worker image for your recipe's backend. This is "
+        "not a verdict on your recipe and nothing was recorded; send it to a "
+        "validator that serves the backend, or resend once this one does."
+    ),
+    # A campaign's own trip through an intake (`campaign._evaluate_through_intake`).
+    "evaluation_queued": (
+        "Your submission is on the validator's queue and has no verdict yet. "
+        "Your candidate stays frozen; submit again later to ask for its result. "
+        "It is the same submission, never a second one."
+    ),
+    "intake_unreachable": (
+        "The validator's intake could not be reached. Nothing was evaluated; "
+        "check the intake address and your connection, then submit again."
+    ),
+    "evaluation_failed_infra": (
+        "The validator's infrastructure failed on every retry. This is not a "
+        "verdict on your recipe and your epoch is not used."
+    ),
+    "intake_changed_since_submission": (
+        "This epoch's candidate was submitted to another validator intake than "
+        "the one now configured. Configure that intake again to read its "
+        "result; a candidate is never submitted twice."
+    ),
+    "intake_answer_unrecognised": (
+        "The validator answered in a way this client does not recognise. "
+        "Nothing was evaluated; check the intake serves this version."
+    ),
     "TRANSPORT_IDENTITY": (
         "Your hotkey is not registered on this subnet (or the validator's is "
         "not). Register first, then resend."
@@ -196,6 +224,12 @@ _WAITING = {
 
 def _minutes(seconds):
     return max(1, round(seconds / 60))
+
+
+def explain(code):
+    """The plain explanation of one closed refusal code, or None for a code
+    this client does not know (shown as the code itself, never guessed)."""
+    return REFUSALS.get(code)
 
 
 def describe(status, answer):

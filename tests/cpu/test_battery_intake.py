@@ -487,7 +487,12 @@ def test_every_refusal_code_has_a_plain_explanation():
 
     source = (REPOSITORY / "carbon/battery/intake.py").read_text()
     intake_codes = set(re.findall(r'_refused\(\s*\d+,\s*"([a-z_]+)"\)', source))
-    worker_codes = {"hotkey_window_used", "receipt_block_missing"}
+    # Every refusal the worker records at admission (LP-PROD-G: all five,
+    # where only the window's two were listed before).
+    worker_codes = set(ib.RECEIVED_AGAIN)
+    worker_source = source.split("def work_once", 1)[1].split("def worker", 1)[0]
+    # Specimen: the worker's own source names each of them.
+    assert all(f'"{code}"' in worker_source for code in worker_codes)
     codes = (
         intake_codes
         | worker_codes
@@ -504,3 +509,92 @@ def test_describe_never_calls_a_failure_of_the_validator_a_verdict():
     for state in ("FAILED_INFRA", "FAILED_INFRA_EXHAUSTED"):
         text = ic.describe(200, {"state": state})
         assert "not a verdict on your recipe" in text
+
+
+# --- LP-PROD-G: a refusal that is no verdict never holds a recipe's id for good ---
+
+TORCH = {
+    **STRATEGY,
+    "backbone": "mlp",
+    "parameters": {"backend": "pytorch", "width": 16, "depth": 1, "steps": 32},
+}
+
+
+def test_an_unserved_backend_is_received_again_on_resend(deployed, monkeypatch):
+    """Before LP-PROD-G only a window refusal was received again; a recipe
+    refused because this validator had no image for its backend kept its one
+    submission id refused for good, even once the backend was served."""
+    intake, target = deployed
+    monkeypatch.setattr(target.backend, "backends", ("jax",))
+    first = ic.submission_message(facts(intake), TORCH, DIGEST, request="a")
+    sid = post(intake, MINER, first).body["submission_id"]
+    ib.work_once(intake.inbox, target)
+    status = post(intake, MINER, ic.status_message(facts(intake), sid, request="s"))
+    assert status.body["state"] == "REFUSED"
+    assert status.body["failure"] == {
+        "code": "backend_not_served",
+        "backend": "pytorch",
+    }
+    assert ic.describe(status.status, status.body).startswith(
+        "This validator has no worker image"
+    )
+    again = ic.submission_message(facts(intake), TORCH, DIGEST, request="b")
+    assert post(intake, MINER, again).body == {
+        "submission_id": sid,
+        "state": "RECEIVED",
+    }
+    assert intake.inbox.row(sid)["state"] == "RECEIVED"
+    assert [s for s, _ in intake.inbox.received()] == [sid]
+    with target.store.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM submissions").fetchone() == (0,)
+
+
+@pytest.mark.parametrize("code", sorted(ib.RECEIVED_AGAIN))
+def test_every_admission_refusal_is_received_again(tmp_path, code):
+    inbox = ib.Inbox(tmp_path / "inbox.sqlite3")
+    submission = AuthenticatedSubmission(
+        MINER.ss58_address,
+        {"block": 5},
+        STRATEGY["challenge_id"],
+        "1.0",
+        STRATEGY,
+        DIGEST,
+    )
+    _, sid = submission_identity(submission)
+    assert inbox.receive(sid, submission, 1)
+    inbox.mark(sid, "REFUSED", {"failure": {"code": code}})
+    assert inbox.receive(sid, submission, 2)
+    assert inbox.row(sid) == {
+        "hotkey": MINER.ss58_address,
+        "state": "RECEIVED",
+        "failure": None,
+    }
+    # Specimen: a refusal outside the set stays refused on resend.
+    inbox.mark(sid, "REFUSED", {"failure": {"code": "a_future_verdict"}})
+    assert inbox.receive(sid, submission, 3)
+    assert inbox.row(sid)["state"] == "REFUSED"
+    assert inbox.counts() == {"RECEIVED": 0, "ADMITTED": 0, "REFUSED": 1}
+
+
+def test_the_worker_logs_a_failure_by_type_only(tmp_path):
+    import io
+
+    inbox = ib.Inbox(tmp_path / "inbox.sqlite3")
+    stop, wake, out = threading.Event(), threading.Event(), io.StringIO()
+
+    class Failing:
+        lock_path = str(tmp_path / "state.lock")
+
+        def run_pending(self):
+            stop.set()
+            raise RuntimeError("a private path that must never be logged")
+
+    ib.worker(inbox, Failing(), wake, stop=stop, idle_s=0, out=out)
+    (line,) = out.getvalue().splitlines()
+    record = json.loads(line)
+    assert (record["service"], record["event"], record["type"]) == (
+        "battery-intake",
+        "worker_failure",
+        "RuntimeError",
+    )
+    assert "private path" not in line
