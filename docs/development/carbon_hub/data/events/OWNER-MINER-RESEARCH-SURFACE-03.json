@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "OWNER-MINER-RESEARCH-SURFACE-03",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "OWNER-MINER-RESEARCH-SURFACE-03 (owner, 2026-10-03: \"yes to your question\" on carrying messages across epochs; \"my other request for the research surface was access to the tooling in the control center\"). Built in C-MLP-05. RSURF-D14: under a new frozen rule, miner-guidance v2, Carbon's agent starts each new epoch with the last 3 messages it read, each with up to 2 of its own replies. They are recorded with digests, chained like new messages and replayed exactly; v1 campaigns carry nothing. RSURF-D15 to D18: the Tools tab is a working toolbox. A page tool session attaches through the same path as carbon_attach_campaign, under the campaign's ownership lock and after the same profile, registration and signer gates. Its tools are the MCP server's own Tool objects and input schemas, and long tasks use the MCP Tasks projection. One holder at a time: a held campaign is refused with what to do, and a session ends on close or after 10 idle minutes. The workspace, run_python and run_julia, results, recipes, practice, notebook, design checks and capability requests all work from the page. run_output is a shared read-only operation for a run's retained stdout, files and raster images, within stated bounds; the unchanged carrier keeps no stderr and no stdout for a failed run. The demo shows the toolbox working on synthetic answers and runs nothing. No new authority; the carrier and isolation are unchanged. DEVELOPMENT, testnet 567.",
+  "primary_detail": ".agent/tickets/C-MLP-05_miner_research_surface.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/GOVERNANCE"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-10-03T02:57:26Z"
+}
