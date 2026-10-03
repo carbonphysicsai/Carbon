@@ -113,7 +113,7 @@ def test_the_endpoint_transport_is_refused_by_name():
         {"transport": "ssh-docker", "destination": "-oProxyCommand=x"},
         {"transport": "ssh-docker", "destination": "gpu-box", "port": "22"},
         {"transport": "ssh-docker", "destination": "gpu-box", "port": 0},
-        {"transport": "ssh-docker", "destination": "gpu-box", "key": "/home/m/.ssh/id"},
+        {"transport": "ssh-docker", "destination": "gpu-box", "key": "id_ed25519"},
     ],
 )
 def test_anything_else_is_refused(value):
