@@ -360,7 +360,10 @@
   async function setupCall(step, body) {
     try {
       const result = await api("/api/v1/setup/" + step, body, undefined, 60000);
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Launch from Campaigns." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent below." : "Checked: " + step + "."));
+      // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
+      // compute check deleted Carbon's copy of a rented-GPU key, it says so.
+      const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Launch from Campaigns." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent below." : "Checked: " + step + "." + (removed ? " " + removed : "")));
       await readSetup();
       if (step === "review") refresh();
       return true;
@@ -515,35 +518,12 @@
     gpuImage.value = installed.gpu_image_manifest || "";
     // GPU practice is set up for one Challenge you choose (C-MLP-04).
     const gpuChallenge = setupSelect(gpuBox, "challenge", "Challenge to practise on the GPU", []);
-    // A GPU rented on the miner's own account (C-MLP-03 slice 4): the
-    // provider, its key (entered once), the pushed image by digest, the GPU
-    // and the hourly ceilings. Nothing is rented by the check.
-    const rentedBox = el("div"); rentedBox.dataset.step = "compute"; compute.append(rentedBox);
-    const rentedChoice = offered.compute.find(c => c.id === "rented-gpu");
-    const rentedProvider = setupSelect(rentedBox, "provider", "Provider", (rentedChoice?.providers || []).map(p => [p.id, p.display_name]));
-    const rentedKey = setupField(rentedBox, "compute_key", "Provider API key (entered once; leave empty to keep the stored key)", "password");
-    const rentedImage = setupField(rentedBox, "image_ref", "Your pushed GPU worker (repository@sha256:...)");
-    const rentedGpu = setupField(rentedBox, "gpu_type_id", "GPU type (as your provider names it)");
-    const rentedRate = setupField(rentedBox, "max_rate_usd_per_hr", "Most you will pay per hour (USD)", "number");
-    const rentedStorage = setupField(rentedBox, "storage_usd_per_gb_month", "Storage price ceiling (USD per GB-month)", "number");
-    const rentedCloud = setupSelect(rentedBox, "cloud_type", "Cloud", [["SECURE", "Secure"], ["COMMUNITY", "Community"]]);
-    rentedRate.step = rentedStorage.step = "0.01";
-    // A VM provider (Targon, C-MLP-03 slice 4b) boots a VM image you name and
-    // runs your pushed worker in it with Docker, reached over SSH.
-    const vmBox = el("div"); vmBox.dataset.step = "compute"; rentedBox.append(vmBox);
-    const rentedVm = setupField(vmBox, "vm_image", "VM image (needs Docker and the NVIDIA Container Toolkit)");
-    researchNote(vmBox, "The GPU type is the provider's VM type, such as h100-small. Each trial rents one VM, signs in with a key made for it, runs your worker over SSH and deletes the VM. The provider reports no per-VM charge, so its console statement is the record.", "hint");
-    const isVm = () => (rentedChoice?.providers || []).some(p => p.id === rentedProvider.value && p.vm);
-    const describeVm = () => { vmBox.hidden = !isVm(); };
-    rentedProvider.addEventListener("change", describeVm);
-    describeVm();
     const describeCompute = () => {
       const choice = offered.compute.find(c => c.id === computeChoice.value);
       computeCost.replaceChildren();
       costNote(computeCost, choice);
       if (choice?.note) researchNote(computeCost, choice.note, "hint");
       gpuBox.hidden = !choice?.needs_gpu_image;
-      rentedBox.hidden = choice?.id !== "rented-gpu";
       const forChallenges = choice?.for_challenges || [];
       const previous = gpuChallenge.value;
       gpuChallenge.replaceChildren(...forChallenges.map(item => { const option = el("option", item.title + " · v" + item.version); option.value = JSON.stringify({id: item.id, version: item.version}); return option; }));
@@ -559,19 +539,6 @@
       if (!gpuBox.hidden) {
         request.gpu_image_manifest = gpuImage.value.trim();
         if (gpuChallenge.value) request.challenge = JSON.parse(gpuChallenge.value);
-      }
-      if (!rentedBox.hidden) {
-        request.rented = {
-          provider: rentedProvider.value,
-          image_ref: rentedImage.value.trim(),
-          gpu_type_id: rentedGpu.value.trim(),
-          max_rate_usd_per_hr: Number(rentedRate.value),
-          storage_usd_per_gb_month: Number(rentedStorage.value),
-          cloud_type: rentedCloud.value,
-        };
-        if (isVm()) request.rented.vm_image = rentedVm.value.trim();
-        if (rentedKey.value) request.key = rentedKey.value;
-        rentedKey.value = "";
       }
       await setupCall("compute", request);
     });
@@ -994,7 +961,7 @@
       row("Research environment", Object.entries(entry.provisions).map(([name, state]) => name + (state.status === "gap" ? ": gap (" + state.reason + ")" : ": provided")).join(" · "));
     }
     const offers = entry.setup_offers || {};
-    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.rented_gpu ? "a rented GPU on your account" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
+    row("Setup offers", [offers.gpu ? "GPU practice on your machine" : "", offers.intake ? "submission to a remote validator's intake" : "", offers.feedback_modes?.length ? "feedback modes: " + offers.feedback_modes.join(", ") : ""].filter(Boolean).join(" · "));
     parent.append(grid);
   }
   function renderAgentCatalog() {
