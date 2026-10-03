@@ -1230,8 +1230,12 @@ def chat_request(request):
     A turn's function calls, and any text the model wrote before them, become
     one assistant message carrying all of them, as the model returned it and
     as Chat Completions requires before their tool replies (a turn with
-    several calls, LP-PROD-A). The loop journals the Responses-shaped request,
-    never this translation, so a replay is unaffected.
+    several calls, LP-PROD-A). A call the model sent with no arguments, or
+    blank ones, is sent back as "{}", the loop's own reading of an empty call
+    (`research_loop.tool_arguments`): a chat endpoint may refuse a history
+    whose tool call carries no arguments string. The loop journals the
+    Responses-shaped request, never this translation, so a replay is
+    unaffected.
     """
     messages = [{"role": "system", "content": request["instructions"]}]
     for item in request["input"]:
@@ -1243,12 +1247,17 @@ def chat_request(request):
                 {"role": item.get("role", "assistant"), "content": _text(item)}
             )
         elif kind == "function_call":
+            arguments = item.get("arguments")
             call = {
                 "id": item["call_id"],
                 "type": "function",
                 "function": {
                     "name": item["name"],
-                    "arguments": item["arguments"],
+                    "arguments": (
+                        arguments
+                        if type(arguments) is str and arguments.strip()
+                        else "{}"
+                    ),
                 },
             }
             previous = messages[-1]

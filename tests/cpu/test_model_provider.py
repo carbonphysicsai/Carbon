@@ -614,6 +614,32 @@ def test_chat_adapter_sends_one_turns_calls_as_one_assistant_message():
     assert body["parallel_tool_calls"] is True
 
 
+@pytest.mark.parametrize("arguments", [None, "", "  "])
+def test_chat_adapter_sends_an_empty_call_as_an_empty_object(arguments):
+    """The loop reads an empty call as {} (`research_loop.tool_arguments`);
+    the chat history says the same, so an endpoint never sees a tool call
+    without an arguments string."""
+    value = {
+        **request(),
+        "input": [
+            {"role": "user", "content": "observe"},
+            {
+                "type": "function_call",
+                "call_id": "c1",
+                "name": "t",
+                "arguments": arguments,
+            },
+            {"type": "function_call_output", "call_id": "c1", "output": "{}"},
+        ],
+    }
+    (call,) = mp.chat_request(value)["messages"][2]["tool_calls"]
+    assert call["function"]["arguments"] == "{}"
+    # Anything else the model sent is carried back unchanged.
+    value["input"][1]["arguments"] = '{"a":1}'
+    (call,) = mp.chat_request(value)["messages"][2]["tool_calls"]
+    assert call["function"]["arguments"] == '{"a":1}'
+
+
 def test_responses_adapter_omits_a_null_reasoning_setting():
     selection = mp.select(
         provider_id="openai-responses",
