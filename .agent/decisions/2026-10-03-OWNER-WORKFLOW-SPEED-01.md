@@ -6,6 +6,8 @@
 - "I don't care about this HUB anymore"
 - On the proposal to stop requiring the Hub in the Merge gate and to run the
   canonical job on 8 parallel shards: "Approve both".
+- "tell all sessions to go through you for optimized merge priority and
+  keeping main in optimal state"
 
 **Context.** Under OWNER-MERGE-HYGIENE-01 (same day, `.agent/DECISIONS.md`),
 every PR still committed generated Hub files and a Hub snapshot repin and
@@ -29,6 +31,10 @@ untouched PRs when main's Hub data moved.
 4. **No re-merging main into a green PR without a real conflict.** Main does
    not require up-to-date branches and CI tests the PR's own head
    (`docs/development/MERGE_HYGIENE.md` rule 3).
+5. **One merge manager.** All sessions route merges through the owner's
+   designated merge-manager session ("PR Head" on 2026-10-03), which owns merge
+   order, the `merge-priority` lane, any merge of main into a branch, and the
+   health of `main` (`docs/development/MERGE_HYGIENE.md` rule 0).
 
 **Unchanged.** Every scientific, security, economic and delivery rule; the
 `Merge gate` requirement itself; what any test asserts. A merge queue remains

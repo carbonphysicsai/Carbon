@@ -16,6 +16,18 @@ be optimized. The canonical CI job now runs on 8 parallel shards (#532).
 
 ## Rules
 
+0. **One merge manager.** The owner designates one merge-manager session
+   (2026-10-03: "PR Head"). It owns merge order, `merge-priority`, the merge
+   of main into a branch when one is needed, and the health of `main`. Every
+   other session or agent:
+   - does not merge PRs;
+   - does not merge main into a branch;
+   - sends the merge manager each ready PR's number and head SHA, either by
+     message or with a `Ready for PR Head: <sha>` comment on the PR;
+   - fixes failures as normal commits, never force-pushing;
+   - reports anything broken on `main` to the merge manager.
+
+   With no merge manager running, the remaining rules apply to everyone.
 1. **The Development Hub is retired.** It is no merge requirement: no
    `HUB_UPDATE_REQUIRED` / `HUB_IMPACT_NONE` line in PR bodies, no Hub events,
    no regenerated Hub files, no snapshot repin. Do not edit
