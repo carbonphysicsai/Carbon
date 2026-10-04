@@ -17,10 +17,12 @@ submit, halt, resume - needs neither.
 What this door adds, and only as a door (LP-PROD-B): schemas that state the
 table's closed values and the fields a body cannot run without; a launch
 idempotency key generated when the client sends none, and returned; refusals as
-JSON with the code, the field to correct and the next step; a run's images as
-MCP image content rather than base64 inside JSON; and, while this session is
-attached to a campaign, an up-front `campaign_busy` for the calls whose body
-needs that campaign's lock, instead of a run that cannot take it.
+JSON with the code, the field to correct and the next step - the refusal
+catalog's step, the one the browser's door gives for the same code (W1); a
+run's images as MCP image content rather than base64 inside JSON; and, while
+this session is attached to a campaign, an up-front `campaign_busy` for the
+calls whose body needs that campaign's lock, instead of a run that cannot take
+it.
 
 Nothing here is Carbon-issued. A miner's own client, their own runner profile
 and their own registered hotkey are the whole of it.
@@ -393,37 +395,22 @@ class Attachment:
         return {"detached": campaign, "research_tools_removed": list(removed)}
 
 
-#: The closed refusals of attach and detach, with their next steps.
-_ATTACHMENT_REFUSALS = {
-    "already_attached": (
-        None,
-        "this session already holds a campaign: call " + DETACH + " first",
-    ),
-    "attachment_busy": (
-        None,
-        "another attach or detach of this session is under way; retry when it returns",
-    ),
-    "research_calls_in_flight": (
-        None,
-        "research calls of this session are still running; detach when they return",
-    ),
-    "attach_unavailable": (
-        "campaign",
-        (
-            "the campaign must be one of yours, unfinished and not held by another "
-            "operation or session, and your hotkey registered with your signer "
-            "running; carbon_observe shows its state"
-        ),
-    ),
-}
+#: The closed refusals of attach and detach. Their next steps and field are
+#: the refusal catalog's, as every other refusal's (`operations.refusal`).
+ATTACHMENT_REFUSALS = frozenset(
+    {
+        "already_attached",
+        "attachment_busy",
+        "research_calls_in_flight",
+        "attach_unavailable",
+    }
+)
 
 
 def _attachment_refusal(code):
-    field, step = _ATTACHMENT_REFUSALS[code]
-    body = {"error": code, "next_step": step}
-    if field is not None:
-        body["field"] = field
-    return json_refusal(body)
+    from scripts.dev.miner_launchpad.operations import refusal
+
+    return json_refusal(refusal(code))
 
 
 def make_attachment_tools(attachment, *, guard=None):

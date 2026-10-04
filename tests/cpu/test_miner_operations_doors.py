@@ -162,12 +162,69 @@ def test_a_request_outside_the_table_is_refused_on_both_doors(browser):
     op = OPERATIONS["freeze_candidate"]
     extra = {**sample(op), "official": True}
     code, body = through_browser(browser, SpyHost(), op.name, extra)
-    assert (code, body) == (400, {"error": "closed_request_required"})
+    # The catalog's step, as the MCP door gives it for the same code (W1).
+    assert (code, body) == (
+        400,
+        {
+            "error": "closed_request_required",
+            "next_step": NEXT_ACTIONS["closed_request_required"],
+        },
+    )
     code, body = through_browser(browser, SpyHost(), "official_submit", {})
     assert (code, body) == (404, {"error": "unknown_operation"})
     assert PREFIX + "official_submit" not in {
         t.name for t in make_operation_tools(SpyHost())
     }
+
+
+class RefusingHost(SpyHost):
+    """A host whose operation bodies refuse with one closed code."""
+
+    def __init__(self, code):
+        super().__init__()
+        self.code = code
+
+    def __getattr__(self, name):
+        if not name.endswith("_admitted"):
+            raise AttributeError(name)
+
+        def body(admitted, request):
+            raise launchpad.Rejected(self.code, 409)
+
+        return body
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        # C's catalog codes the MCP door used to answer with a generic step.
+        "evaluation_unavailable",
+        "candidate_awaits_submission",
+        "practice_result_required",
+        # B's codes the browser's door used to answer with no step at all.
+        "challenge_required",
+        "invalid_budget",
+        # LP-PROD-G's intake codes, wherever a door meets one.
+        "intake_mismatch",
+        "AUTH_STALE",
+    ],
+)
+def test_a_refusal_reads_the_same_next_step_at_both_doors(browser, code):
+    """W1: one catalog of next steps (`supervisor.NEXT_ACTIONS`) for both
+    doors. The MCP door adds only the field to correct."""
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from scripts.dev.miner_launchpad.operations import REFUSAL_FIELDS
+
+    op = OPERATIONS["submit"]
+    status, body = through_browser(browser, RefusingHost(code), op.name, sample(op))
+    assert (status, body) == (409, {"error": code, "next_step": NEXT_ACTIONS[code]})
+    with pytest.raises(ToolError) as refused:
+        through_mcp(RefusingHost(code), op.name, sample(op))
+    answered = json.loads(str(refused.value))
+    assert answered["error"] == code
+    assert answered["next_step"] == NEXT_ACTIONS[code]
+    assert answered.get("field") == REFUSAL_FIELDS.get(code)
 
 
 def test_an_operation_that_admits_work_cannot_skip_registration():

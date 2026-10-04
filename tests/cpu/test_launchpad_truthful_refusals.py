@@ -712,7 +712,10 @@ def test_an_error_body_carries_the_catalogs_next_step_only():
         "error": "campaign_busy",
         "next_step": supervision.NEXT_ACTIONS["campaign_busy"],
     }
-    assert error_body("closed_request_required") == {"error": "closed_request_required"}
+    # A code the catalog does not name (the browser's own 404 for a route
+    # outside the operations table; the MCP door has no such tool).
+    assert "unknown_operation" not in supervision.NEXT_ACTIONS
+    assert error_body("unknown_operation") == {"error": "unknown_operation"}
     own = SimpleNamespace(field="address", next_step="Paste your hotkey address.")
     assert error_body("hotkey_address_required", own) == {
         "error": "hotkey_address_required",
