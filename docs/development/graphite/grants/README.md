@@ -366,6 +366,53 @@ settles at its full reservation, as on `engy-anthropic`:
   hold 30 calls, where 120 s calls would hold 150.
 - Pods are admitted exactly as before.
 
+## GRAPHITE-GRANT-PHASE3-R2 (GRAPHITE-01 phase 3, refund of sessions 2 and 3)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-REFUND-01
+(`.agent/decisions/2026-10-04-OWNER-GRAPHITE-PHASE3-REFUND-01.md`). Asked
+whether session 2 counts as one of GRAPHITE-GRANT-PHASE3's runs, the owner said
+"no". Asked to approve this grant, which also refunds session 3, the owner said
+"approve R2". Both sessions failed on Carbon harness defects, not Graphite
+attempts:
+
+- session 2 stopped on `context_ceiling` (GRAPHITE-D34);
+- session 3 hit the pod store's cross-thread `sqlite3.ProgrammingError`.
+
+**Why a second grant.** The controller counts every run row against
+`permitted_runs` and binds its store to the exact grant document it first
+opened. GRAPHITE-GRANT-PHASE3 therefore stays unchanged, at 3 of 3 runs used,
+and can never launch again. This grant runs in a fresh controller root.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `10.07` USD | 2 × `worst_case_run_cost` + `cleanup_allowance` (below) |
+| `permitted_runs` | `2` | Sessions 2 and 3 refunded |
+| `max_submissions` | `2` | One per run, as GRAPHITE-GRANT-PHASE3 |
+| `worst_case_run_cost` | `4.91` USD | Unchanged from GRAPHITE-GRANT-PHASE3 |
+| `cleanup_allowance` | `0.25` USD | Unchanged |
+| `max_runtime_s`, `max_concurrency`, `provider`, `account`, `expires_at`, `granted_by` | as GRAPHITE-GRANT-PHASE3 | Unchanged |
+
+### Arithmetic
+
+    validator:   cleanup + worst case          = 0.25 + 4.91        = 5.16  ≤ 10.07
+    run 1 gate:  0 + 4.91 + 0.25               = 5.16               ≤ 10.07
+    run 2 gate:  run 1 (at most 4.91) + 4.91 + 0.25 = 10.07         ≤ 10.07
+
+Run 2 can always launch, even if run 1 is held at its full reservation.
+
+**Phase-3 total.** Sessions 1–3 spent about USD 0.015 (USD 0.0031, 0.0063 and
+0.0055) and created no pods. With this grant, phase 3's worst case is about
+USD 10.09, inside the original USD 15.00. GRAPHITE-GRANT-PHASE3's unused
+headroom cannot be spent, because that grant cannot launch.
+
+**Entry conditions for each run.** These apply in addition to the phase-3
+handoff:
+
+- the pod-thread fix has merged;
+- the real-path no-spend pre-live check passes at the run's REF;
+- the owner confirms the REF;
+- the operator host is agreed with Data Collection.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
