@@ -1528,15 +1528,37 @@ scenario("Library: a plan written from scratch has no parent", async () => {
   const page = await open(state);
   page.go("#library/plans");
   await page.advance(0);
+  // Cancel lets a new plan go and leaves its page.
+  await page.press(page.$("library-plan-new"));
+  assert.equal(one(page, "#library-body [data-part=editor]").hidden, false);
+  await page.press(page.$("library-plan-cancel"));
+  assert.equal(page.window.location.hash, "#library/plans");
+  assert.equal(one(page, "#library-body [data-part=editor]").hidden, true);
   await page.press(page.$("library-plan-new"));
   await page.type(page.$("library-plan-hypothesis-0"), "Mine: a smaller MLP keeps the score.");
   await page.type(page.$("library-plan-expected_effect-0"), "the same score");
   await page.type(page.$("library-plan-stopping_rule-0"), "one practice run");
+  const typed = page.$("library-plan-stopping_rule-0");
   await page.press(page.$("library-plan-pin-0"));
+  // A card pinned meanwhile (from another door) gets its own box, once the
+  // box in hand is let go; the hypothesis being written is never redrawn.
+  state.library.pins.push("fixture-hunt-0001");
+  for (let i = 0; i < 8; i++) await refresh(page);
+  assert.equal(all(page, "#library-plan-pin-1").length, 0, "not redrawn under a focused box");
+  page.$("library-plan-pin-0").blur();
+  await refresh(page);
+  assert.ok(typed.isConnected, "the hypothesis fields were not redrawn for a pin");
+  assert.equal(page.$("library-plan-hypothesis-0").value, "Mine: a smaller MLP keeps the score.");
+  assert.ok(page.$("library-plan-pin-0").checked, "the box ticked before is still ticked");
+  assert.match(page.text(page.$("library-plan-pin-1").parentNode), /MLP width schedule/);
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /consider every pinned card: Fixture card: MLP width schedule from a hunt \(plan invalid\)/);
+  await page.press(page.$("library-plan-pin-1"));
   await page.press(page.$("library-plan-save"));
   const plan = lastPost(state, "/api/v1/plans/edit").body.plan;
   assert.equal(plan.parent, null);
   assert.equal(plan.created_by, "miner");
+  assert.deepEqual(plan.pins_considered, ["fixture-shared-0001", "fixture-hunt-0001"]);
   assert.deepEqual(plan.hypotheses, [{hypothesis: "Mine: a smaller MLP keeps the score.", expected_effect: "the same score", stopping_rule: "one practice run", cites: []}]);
   clean(page);
 });

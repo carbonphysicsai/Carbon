@@ -523,9 +523,6 @@
 
   // ---- Plans. ----
   function writer(createdBy) { return createdBy === "miner" ? "Your edit" : createdBy === "planner" ? "Graphite's Planner" : words(createdBy || "unknown"); }
-  function planLabel(item) {
-    return writer(item.created_by) + " · " + short(item.digest) + (item.parent ? " · from " + short(item.parent) : "") + (CC.when(item.created_at) ? " · " + CC.when(item.created_at) : "");
-  }
   function cites(parent, list) {
     const items = listOf(list).filter(Boolean);
     if (!items.length) return;
@@ -604,8 +601,17 @@
         box.append(edit);
       }
     }, "panel lib-plan-part");
-    const editor = part(panel, "editor", editing || r.plan === "new" ? "draft:" + lib.draftVersion : "", box => { if (lib.draft && lib.draftFor === (r.plan || "")) drawEditor(box); }, "panel lib-editor-part");
-    editor.hidden = !(lib.draft && lib.draftFor === (r.plan || ""));
+    // The editor's hypotheses are redrawn from the draft only when its rows
+    // move; the pins it considered are their own part, redrawn when the pins
+    // change (a pin made meanwhile gets its own box to tick); its actions are
+    // drawn once per draft. Typing never redraws any of them.
+    const drafting = Boolean(lib.draft && lib.draftFor === (r.plan || ""));
+    const parts = [
+      part(panel, "editor", drafting ? "draft:" + lib.draftVersion : "", box => { if (drafting) drawEditorRows(box); }, "panel lib-editor-part"),
+      part(panel, "considered", drafting ? JSON.stringify([lib.draftVersion, lib.curation.pins, lib.curation.pins.map(id => lib.cards.get(id)?.title || null)]) : "", box => { if (drafting) drawConsidered(box); }, "panel lib-considered-part"),
+      part(panel, "editor-actions", drafting ? "actions:" + lib.draftVersion : "", box => { if (drafting) drawEditorActions(box); }, "lib-editor-actions"),
+    ];
+    for (const node of parts) node.hidden = !drafting;
     const result = $("library-plan-result");
     if (result) {
       CC.setText(result, lib.draftResult ? lib.draftResult.text : "");
@@ -637,7 +643,7 @@
     lib.draftFor = key; lib.draftVersion++; lib.draftResult = null;
   }
   function citesOf(row) { return [...new Set(row.cites.split(/[\s,]+/).map(item => item.trim()).filter(Boolean))]; }
-  function drawEditor(box) {
+  function drawEditorRows(box) {
     const draft = lib.draft;
     box.append(el("h2", draft.parent ? "Edit as a new version of " + short(draft.parent) : "Write a plan"));
     para(box, "Ranked: the first hypothesis is the one Graphite tries first. Saving checks the plan here, then the controller checks it again and stores it as a new version; the plan it came from is kept.", "hint");
@@ -668,6 +674,10 @@
     const add = button("Add a hypothesis", "", () => { draft.rows.push(rowFrom(null)); lib.draftVersion++; CC.redraw(); });
     add.id = "library-plan-add";
     box.append(add);
+  }
+  // The pinned cards, each with its box: ticked from the draft.
+  function drawConsidered(box) {
+    const draft = lib.draft;
     const pins = lib.curation.pins;
     const considered = el("fieldset", undefined, "lib-considered");
     considered.append(el("legend", "Pinned cards this plan considered"));
@@ -681,9 +691,17 @@
     });
     para(considered, "Every pinned card must be considered: tick each once your plan accounts for it.", "hint");
     box.append(considered);
+  }
+  function drawEditorActions(box) {
     const actions = el("div", undefined, "controls");
     const save = button("Check and save a new version", "primary", () => saveDraft()); save.id = "library-plan-save";
-    const cancel = button("Cancel", "", () => { lib.draft = null; lib.draftFor = null; lib.draftResult = null; CC.redraw(); });
+    const cancel = button("Cancel", "", () => {
+      const was = lib.draftFor;
+      lib.draft = null; lib.draftFor = null; lib.draftResult = null;
+      // A new plan let go of leaves its page; an edit goes back to its plan.
+      if (was === "new") location.hash = "#library/plans"; else CC.redraw();
+    });
+    cancel.id = "library-plan-cancel";
     actions.append(save, cancel);
     box.append(actions);
     const result = el("p", "", "hint"); result.id = "library-plan-result"; result.setAttribute("role", "status");
