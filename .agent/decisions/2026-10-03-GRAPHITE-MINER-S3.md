@@ -25,7 +25,14 @@ no hidden-test access.
 1. **Default-off and versioned.** The autonomous and agent-less plans, the
    autonomous agent's run and every frozen campaign are unchanged: the
    autonomous plan's digest at the base commit (9bfd9add) and at this head is
-   pinned equal in `tests/cpu/test_battery_graphite_plan.py`. `autonomous`
+   pinned equal in `tests/cpu/test_battery_graphite_plan.py`. A new
+   autonomous campaign prepared through `prepare_battery` freezes the plan
+   `provider_plan` builds for the selection `prepare_battery` chose; on a
+   base with OWNER-LAUNCHPAD-PROD-02's new-plan output default (d55c16ba2)
+   that selection is recorded (`model_selection`, the model's own maximum
+   output), which is the base's rule, and apart from that record the plan is
+   still the pinned one byte for byte. The test follows the base either way.
+   `autonomous`
    stays in `AGENTS` so recorded and queued launches still build and frozen
    campaigns still run `run_agent`; refusing a new `autonomous` launch
    (`autonomous_agent_replaced`) is the launch doors' (S4).
@@ -95,7 +102,7 @@ no hidden-test access.
    frozen block), so a hunt interrupted by a pause, a stop or a provider
    failure resumes as the same hunt, with the queries it started with; its
    stage record keeps the report's counts, where the Launchpad's view reads
-   them. A research stage that ends without its product (the share, a
+   them. A stage that ends with a code (the share, the miner's own limit, a
    refusal, arXiv FAILED_INFRA, a loop stop with a code) is also noted in
    the campaign ledger (`kind: decision`, `{graphite_stage, status, stop}`),
    where the miner's views and agent read it.
@@ -145,8 +152,8 @@ no hidden-test access.
    `graphite_launch_invalid`, `graphite_edition_unknown`,
    `graphite_mode_invalid`, `research_share_invalid`, `plan_invalid`,
    `plan_not_found`, `card_not_found`, `card_banned`, `hunt_query_invalid`,
-   `graphite_limits_invalid`, `curation_not_found`, `too_many_pins` and
-   `literature_pack_missing`. The engine limits frozen are
+   `graphite_limits_invalid`, `curation_not_found`, `too_many_pins`,
+   `research_share_too_small` (decision 17) and `literature_pack_missing`. The engine limits frozen are
    `limits.plan = LIMITS_V2(planner_calls, trials_per_epoch)` and
    `limits.build = LIMITS_V2(calls_per_epoch, trials_per_epoch)`, with
    `compaction = COMPACTION_V1`; the constants come from the engine where it
@@ -213,17 +220,78 @@ no hidden-test access.
     refused and it stops typed having sent nothing.
 14. **Typed stage ends.** A hunt ends DONE, DONE `literature_fetch_failed`
     (arXiv FAILED_INFRA; the Planner proceeds), or STOPPED with the code that
-    stopped it (the share, `hunt.HuntRefused`'s own code); a pause, a stop, a
-    provider failure or an unknown outcome propagates and resumes the same
-    hunt. The Planner ends PLANNED, STOPPED `research_share_reached`, or with
-    the research loop's own status and code.
+    stopped it (the share, the miner's own limit, `hunt.HuntRefused`'s own
+    code); a pause, a stop, a provider failure or an unknown outcome
+    propagates and resumes the same hunt. The Planner ends PLANNED, STOPPED
+    `research_share_reached`, STOPPED `miner_ceiling_reached`, or with the
+    research loop's own status and code. The build ends DONE (its epochs
+    used, or a selection not submitted, or the agent's own stop) or, when
+    its last epoch's session ended with a code (decision 16, or another typed
+    stop of the loop), STOPPED with that code; the campaign completes either
+    way. Every stage that ends with a code is noted in the ledger (decision
+    5), and a finished build is never run again.
 15. **The miner edition's import closure.** No miner module imports a grant,
     pod, experiment, delivery, triage, next-level, ladder, provider, model or
     controller module (AST check), and importing every miner module in a
     fresh interpreter loads none of them - when the internal package's own
     `__init__` is not executed. That `__init__` (not this slice's file)
-    eagerly imports the internal provider and with it the grant, ladder and
-    model; making it lazy is an integration step (see Open).
+    eagerly imports the internal provider and with it the grant, ladder,
+    model, next-level store, experiment runner and pods, so the product's
+    static import closure reaches pods through it
+    (`tests/invariants/test_product_process_holds_no_key.py`). A second test
+    imports the miner modules plainly: it is an expected failure, shown to
+    come from that `__init__` alone, while the `__init__` is eager, and holds
+    with no change once it imports nothing (see Open; measured).
+16. **Limits are money and time: the miner's own ceilings end a stage
+    typed.** OWNER-GRAPHITE-MINER-01 item 6 makes the miner's own ceilings
+    the binding limits, so reaching one is the normal end of a run, never an
+    interruption. Every stage's model calls reserve through
+    `budget.StageLedger` (the build's with no share): when the campaign
+    ledger refuses a model call's reservation at one of the miner's limits -
+    `miner budget: <dimension>`, or the campaign's time (`campaign
+    elapsed-time exhausted or clock regressed`, `provider timeout cannot fit
+    remaining grant`, read as `elapsed_seconds` as internal Graphite reads
+    the first) - it raises `budget.MinerCeilingReached`, code
+    `miner_ceiling_reached`, with the dimension, nothing of that call
+    reserved or sent. It is the engine's `CeilingReached` (S1), so the
+    research loop ends the session STOPPED with the code and the dimension,
+    its outcome journalled; the hunt's Reader turns it into the hunt's own
+    not-sent stop. Only a model call's reservation is typed, by the ledger's
+    exact text and exact `ValueError` type: a practice trial's reservation
+    is its tool's own to refuse, and Carbon's own service capacity, a replay
+    conflict or any other refusal propagates unchanged. A model call's own
+    time check, which refuses before it reserves anything (`provider timeout
+    cannot fit remaining campaign time`), ends the stage the same way, with
+    `elapsed_seconds`. The texts are pinned to the ledger's and the model
+    call's source in the mutation tests. The Launchpad's next action for
+    `miner_ceiling_reached` is S4's.
+17. **A FULL share that pays for no research call is refused at launch.**
+    Under OWNER-LAUNCHPAD-PROD-02 a new plan's calls reserve the model's
+    whole output (gpt-5-mini: 272,384,000 nanodollars a call), so the default
+    10% share needs a money ceiling of at least ten such calls before the
+    Planner can send anything. A research stage reserves a call's whole cost
+    against its share (decision 4), so a share smaller than one call would
+    research nothing while the miner believes it researched. `graphite_plan`
+    therefore refuses, before anything freezes, `research_share_too_small`
+    when the research share of the miner's ceilings cannot admit one model
+    call on the selection (attempts, and money when the selection is
+    priced) for the Planner, or - with a hunt - for the hunt's part
+    (`driver.research_share_shortfall`, which a door may call as its launch
+    estimate: `{stage, dimension, share_cap, per_call}`). A share of 0 in
+    FULL is refused this way. RESEARCH and BUILD have no share and are not
+    checked. This is an engineering guard within the slice's authority (it
+    refuses before any spend and sets no economic value); the alternative,
+    an estimate-only warning at the door, is the lead's to prefer.
+18. **New Graphite plans take the new-plan output default.** A Graphite
+    miner-edition plan is a new product plan on the miner's own budget, so
+    `prepare_battery` builds its selection exactly as for an autonomous plan
+    (`new_plan_output_default`, OWNER-LAUNCHPAD-PROD-02 decision 1: the
+    model's own maximum output unless the miner set a cap), and the plan
+    records it (`model_selection`) whenever it is not the historical
+    default. That is intended: decision 1 of OWNER-LAUNCHPAD-PROD-02 names
+    the research agent a miner runs, which is now this edition; the Reader's
+    and every role's calls are reserved and metered at that cap against the
+    miner's own ceilings. Internal Graphite keeps its own selection rule.
 
 **Integration evidence.** The tests that need the engine (S1, claude/gm-engine
 2b0f8ab2) and literature (S2, claude/gm-literature babc1c83) slices skip on
@@ -239,13 +307,39 @@ journey stages 8a-8d also ran there through this driver once four test-data
 lines in that journey were corrected locally (see Open); 8e stops at S1's
 compaction request (see Open).
 
+Round 2 (integration failures on claude/graphite-miner 3927c49f7) was run in
+a throwaway detached worktree of that merged tree with this round's changes
+applied: every S3 test passes there, including the real research loop ending
+the build STOPPED `miner_ceiling_reached` with its outcome recorded, and the
+autonomous and Graphite preparation tests under the base's new-plan output
+default; every S1, S2 and S4 Graphite test passes beside them. With S4's
+one-line money fix in `launch_graphite` (the new plan's per-call
+reservation, `new_plan_reservation()`), journeys 8a, 8b, 8d and 8e pass; 8c
+fails identically with and without this round's changes (`TRANSPORT_CONTEXT`
+at submit), so it is not this slice's. With the internal package's
+`__init__` importing nothing and six internal Graphite tests importing the
+re-exported names from their own submodules (scratch
+`r2_lazy_handoff.diff`), the key-material invariant and this slice's plain
+import test pass, and S2's strict xfail turns XPASS.
+
 **Open (handoffs, not owner decisions).**
 - Lead: whether the learning signal (decision 10) must become a
   practice-improvement signal; that needs a per-Challenge practice metric
   and direction, which is a scoring choice this slice does not make.
-- Integration: make `carbon/agent_campaign/graphite/__init__.py` lazy (a
-  module `__getattr__`, or no re-exports), then add a plain fresh-interpreter
-  import test without the package stub.
+- Lead: whether a FULL share too small for one research call stays a launch
+  refusal (decision 17) or becomes an estimate-only warning.
+- Integration: make `carbon/agent_campaign/graphite/__init__.py` import
+  nothing (keep its docstring; no re-exports - a `__getattr__` with a static
+  `from .provider import ...` is still in the product's static closure), and
+  import the re-exported names from their submodules in
+  `tests/cpu/graphite_fixtures.py`, `test_graphite_boundaries.py`,
+  `test_graphite_harness.py`, `test_graphite_ladder.py`,
+  `test_graphite_method_cards.py` and `test_graphite_phase2_runner.py` (no
+  product code imports them); remove S2's strict xfail in the same change.
+  This slice's plain-import test then holds unchanged.
+- S1: optionally type the model call's own time refusal (`provider timeout
+  cannot fit remaining campaign time`) in the engine, so its outcome is
+  journalled like a ceiling's; the driver ends the stage typed meanwhile.
 - S2: take `READER_PROMPT` from `edition.READER_EXTRACTION_PROMPT` so the
   text has one source (the integration test pins them equal meanwhile);
   imports are extracted only by a hunt, so a launch with no hunt leaves
@@ -266,4 +360,9 @@ compaction request (see Open).
   their hypotheses (or the door builds the edit with `plan.new_version`,
   which ranks by order); and S1's compaction request carries the session's
   tools, so the scripted model must answer it with the compaction tool, not
-  as a closed call.
+  as a closed call. Round 2: `launch_graphite` sizes `provider_nanodollars`
+  as `attempts * new_plan_reservation()`, not the historical
+  `RESERVATION_NANO` (each new-plan call reserves the model's whole output);
+  add NEXT_ACTIONS for `research_share_too_small` and show
+  `driver.research_share_shortfall` in the launch estimate (or refuse at the
+  door with it).
