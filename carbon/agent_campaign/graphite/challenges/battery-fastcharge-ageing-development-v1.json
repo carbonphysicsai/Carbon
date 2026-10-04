@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.graphite.challenge.v2",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "family": "f05",
+ "label": "battery",
+ "suite_report": "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json",
+ "attack_goals": {
+  "A1": "Does the path refuse undeclared inputs, unsupported recipes, pretrained payloads, executables outside the contract's backends (JAX or PyTorch) and disguised executable content?"
+ },
+ "attacker_campaign": {
+  "campaign": "graphite-phase4-attacker",
+  "workspace": "graphite-phase4-attacker-workspace",
+  "credential_ref": "graphite-phase4-engy",
+  "grant": {
+   "id": "GRAPHITE-GRANT-PHASE4",
+   "file": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+  },
+  "authority": "OWNER-GRAPHITE-ATTACKER-01 item 5: the grant's money ceiling and elapsed-time limit bind; there is no call cap."
+ }
+}

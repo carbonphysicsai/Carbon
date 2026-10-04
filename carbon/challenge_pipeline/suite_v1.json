@@ -1,0 +1,330 @@
+{
+ "schema": "carbon.challenge-pipeline.suite.v1",
+ "suite_version": "suite-v1-draft",
+ "status": "DRAFT",
+ "roadmap": "Design_Specs/Challenge_Roadmap.md",
+ "admission_protocol": "carbon.challenge-admission.v1",
+ "owners": {
+  "track_a": "technical",
+  "track_b": "science",
+  "approval": "process"
+ },
+ "severity": {
+  "status": "DRAFT",
+  "graded_by": "technical",
+  "levels": {
+   "critical": "A producer obtains or influences protected evaluation material (seeds, references, exam batches, the sealed pool or evaluation services); obtains a grade it did not earn (a forged or altered result accepted, a gate bypassed, a partial artifact graded as valid); or escapes isolation to the host, a credential or another job.",
+   "high": "A defense fails open under a reproducible condition without a demonstrated grade or protected-data impact: an undeclared input, recipe or payload admitted; an overrun not terminated; a replay or duplicate counted; a rebuild that does not reproduce within the declared tolerance; feedback beyond the disclosure budget.",
+   "medium": "The defense holds but its evidence does not: a refusal without its typed reason; a finding not emitted or not ledgered; a missing provenance field that changes no grade; an infrastructure failure misclassified but never scored.",
+   "low": "Hardening and hygiene: disclosure of non-protected internals such as timing; a defense with no test of its own; documentation that misstates a defense."
+  },
+  "rules": [
+   "A check that did not run is NOT_RUN. It is neither a pass nor a finding, and a vector with a NOT_RUN check has unresolved coverage.",
+   "Specimens are diagnostic: a specimen's expected refusal is detector-sensitivity evidence, never a finding against the candidate profile.",
+   "A finding stops construction widening and escalates (OWNER-CHALLENGE-ADMISSION-01 §3.3). It is never suppressed.",
+   "The technical owner grades every open finding at freeze; the counts enter the pipeline record as attC, attH, attM and attL.",
+   "A clean run does not prove resistance to unrestricted agents."
+  ]
+ },
+ "track_a": [
+  {
+   "id": "A1",
+   "name": "Admission",
+   "roadmap": "Reject undeclared inputs, unsupported recipes, pretrained payloads, any surface above the challenge's recorded construction level, executable content at a level that admits none (submissions are declarative below Level 4; Carbon rebuilds the recipe in a backend the construction contract supports, JAX or PyTorch) and disguised executable content.",
+   "admission_checks": [
+    "baseline_and_permission_ablation",
+    "artifact_and_dependency_attacks"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_strategy_schema.py::test_forbidden_capability_keys_are_rejected_recursively",
+     "tests/cpu/test_strategy_schema.py::test_forbidden_key_matching_cannot_be_bypassed_by_spelling_variants",
+     "tests/cpu/test_strategy_schema.py::test_dangerous_looking_strings_are_inert_under_neutral_keys",
+     "tests/cpu/test_strategy_schema.py::test_non_finite_numbers_are_rejected",
+     "tests/cpu/test_b02b_strategy_compiler.py::test_catalog_cannot_smuggle_forbidden_authority_into_a_plan"
+    ]
+   },
+   "open_parameters": [],
+   "gaps": [
+    "No byte-level detection of disguised executable content (ELF, pickle and similar magic); strings are only kept inert.",
+    "Executable submissions do not exist at Level 0, so their rejection is not a containment test."
+   ],
+   "admitted_backends": {
+    "backends": [
+     "jax",
+     "pytorch"
+    ],
+    "authority": "OWNER-CHALLENGE-ROADMAP-02 (roadmap rev 2.1); OWNER-PYTORCH-BACKEND-01",
+    "note": "Executables outside the construction contract's backends, and disguised executable content, are still rejected. PyTorch stays DEVELOPMENT-only until its reserved values are set."
+   },
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": 4,
+    "participant_code": "Rejecting and containing disguised or executable participant content"
+   }
+  },
+  {
+   "id": "A2",
+   "name": "Execution isolation",
+   "roadmap": "Block unauthorized filesystem, network, process, credential and cross-job access.",
+   "admission_checks": [
+    "construction_evaluation_isolation"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_c03_worker_contract.py::test_docker_argv_has_fixed_security_and_no_caller_command",
+     "tests/cpu/test_c03_worker_contract.py::test_stage_rejects_cross_attempt_and_policy_mismatch",
+     "tests/cpu/test_c03_worker_contract.py::test_worker_entry_path_has_no_scoring_archive_reward_or_network_authority",
+     "tests/cpu/test_agent_campaign_controller.py::test_workspaces_and_credentials_are_never_shared",
+     "tests/cpu/test_agent_campaign_controller.py::test_a_task_cannot_reach_another_sessions_workspace",
+     "tests/cpu/test_agent_campaign_boundaries.py::test_denied_and_escaping_paths_are_refused"
+    ],
+    "sandbox": [
+     "tests/service/test_c03_worker_service.py::test_network_filesystem_pid_memory_and_scratch_enforcement",
+     "tests/service/test_c03_worker_service.py::test_network_none_denies_controlled_canary_and_negative_control_detects_it",
+     "tests/service/test_c03_worker_service.py::test_descendant_cannot_survive_exact_container_termination"
+    ]
+   },
+   "open_parameters": [],
+   "gaps": [],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": 4,
+    "participant_code": "Isolating hostile participant code at run time (filesystem, network, process, credential and cross-job access)"
+   }
+  },
+  {
+   "id": "A3",
+   "name": "Protected-data separation",
+   "roadmap": "Test whether a producer can observe or influence seeds, references, exam batches, the sealed pool or evaluation services.",
+   "admission_checks": [
+    "construction_evaluation_isolation",
+    "fresh_attack_confirmation"
+   ],
+   "checks": {
+    "generic": [
+     "tests/invariants/test_a12_invariants.py::test_a12_r01_no_seed_leakage_across_public_surfaces",
+     "tests/invariants/test_a12_invariants.py::test_a12_r04_miner_disclosure_uses_positive_allow_lists",
+     "tests/cpu/test_graphite_boundaries.py::test_requests_for_protected_material_are_refused_typed",
+     "tests/cpu/test_graphite_boundaries.py::test_a_requested_canary_reaches_the_controller_as_a_finding",
+     "tests/cpu/test_agent_campaign_controller.py::test_canary_exposure_is_a_finding_and_halts_dispatch"
+    ]
+   },
+   "open_parameters": [
+    "sealed-pool registration (Phase 1 step 3 registers the fields; the size is HUMAN_INPUT)"
+   ],
+   "gaps": [
+    "The sealed pool is not a registered artifact yet.",
+    "Influence on the evaluation service is tested only by refusing a seed field."
+   ],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": null,
+    "participant_code": null
+   }
+  },
+  {
+   "id": "A4",
+   "name": "Resource enforcement",
+   "roadmap": "Terminate time, memory, storage and compute overruns; never grade a partial artifact as valid.",
+   "admission_checks": [
+    "resource_and_failure_accounting"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_c03_worker_contract.py::test_output_snapshot_caps_members_and_seals_late_writes",
+     "tests/cpu/test_c03_worker_contract.py::test_controller_capture_enforces_cap_during_receipt_and_reaps_writer",
+     "tests/invariants/test_a12_invariants.py::test_a12_r07_infrastructure_cannot_be_scored_as_science",
+     "tests/cpu/test_agent_campaign_controller.py::test_runtime_limit_cancels_and_verifies"
+    ],
+    "sandbox": [
+     "tests/service/test_c03_worker_service.py::test_external_timeout_reaps_blocked_worker"
+    ]
+   },
+   "open_parameters": [],
+   "gaps": [],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": 4,
+    "participant_code": "Enforcing resource limits on participant-controlled code"
+   }
+  },
+  {
+   "id": "A5",
+   "name": "Clean reconstruction",
+   "roadmap": "Rebuild from the declaration, permitted data and pinned environment on a fresh worker; repeat seeds to measure variation.",
+   "admission_checks": [
+    "reconstruction_and_recipient_rebuild"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_c10_independent_reexecution.py::test_fresh_execution_agrees_without_scientific_or_economic_authority"
+    ]
+   },
+   "open_parameters": [
+    "reconstruction tolerance (HUMAN_INPUT, study sheet)"
+   ],
+   "gaps": [
+    "The recipient-rebuild and undeclared-dependency specimens are NOT_RUN."
+   ],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": null,
+    "participant_code": null
+   }
+  },
+  {
+   "id": "A6",
+   "name": "Artifact integrity",
+   "roadmap": "Bind recipe, data, dependencies, model and report hashes; test substitutions, stale cache reuse and replay.",
+   "admission_checks": [
+    "artifact_and_dependency_attacks"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_cpes_reference_reuse_gauntlet.py::test_cache_binding_rejects_every_scientific_identity_mismatch"
+    ]
+   },
+   "open_parameters": [],
+   "gaps": [
+    "The model-state and output-change refusals have no tests of their own."
+   ],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": null,
+    "participant_code": null
+   }
+  },
+  {
+   "id": "A7",
+   "name": "Evidence integrity",
+   "roadmap": "Test forged outputs, altered metrics, missing provenance and disagreement between workers; quarantine unresolved grades.",
+   "admission_checks": [
+    "score_exploitation_and_tail_failures"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_construction_expansion_record.py::test_an_unrecorded_widening_is_refused",
+     "tests/cpu/test_construction_expansion_record.py::test_a_tampered_or_reordered_record_is_found",
+     "tests/cpu/test_challenge_admission.py::test_evidence_tampering_is_detected_even_with_unchanged_success_fields",
+     "tests/cpu/test_challenge_admission.py::test_a_finding_after_the_lock_voids_it",
+     "tests/cpu/test_c10_independent_reexecution.py::test_changed_bytes_remain_unresolved_and_quarantine_without_tolerance",
+     "tests/cpu/test_c10_independent_reexecution.py::test_missing_or_revoked_receipt_evidence_quarantines",
+     "tests/cpu/test_agent_campaign_controller.py::test_ledger_tampering_is_detected"
+    ]
+   },
+   "open_parameters": [],
+   "gaps": [],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": null,
+    "participant_code": null
+   }
+  },
+  {
+   "id": "A8",
+   "name": "Adaptive exposure",
+   "roadmap": "Test memorization, repeated-query feedback against a rotating batch, and cross-case leakage; enforce the disclosure budget.",
+   "admission_checks": [
+    "adaptive_feedback_and_state_attacks"
+   ],
+   "checks": {
+    "generic": [
+     "tests/cpu/test_design_search_commitment.py::test_oracle_enforces_budget_and_declared_points"
+    ]
+   },
+   "open_parameters": [
+    "disclosure budget (HUMAN_INPUT)",
+    "rotation cadence and selection rule (HUMAN_INPUT beyond a challenge's registered rule)"
+   ],
+   "gaps": [
+    "No cross-case leakage test."
+   ],
+   "ladder": {
+    "applies_from_level": 0,
+    "participant_code_from_level": null,
+    "participant_code": null
+   }
+  }
+ ],
+ "track_b": [
+  {
+   "id": "B1",
+   "name": "EV1, fixed choice",
+   "roadmap": "A diverse model panel chooses from the same finite candidate set; reference-score each choice. Include feasible and infeasible scenarios.",
+   "admission_checks": [
+    "reference_and_decision_contract",
+    "independent_model_families",
+    "eligibility_before_ranking",
+    "rank_and_useful_effect_uncertainty"
+   ],
+   "requires": [
+    "frozen pre-registration commit",
+    "decision contract",
+    "model panel with independent families and seed repeats",
+    "positive and negative controls",
+    "feasible and infeasible scenarios"
+   ]
+  },
+  {
+   "id": "B2",
+   "name": "EV2, boundary behavior",
+   "roadmap": "Flawed controls, near-limit cases and fresh conditions. Measure false-feasible decisions, missed feasible options and abstention behavior.",
+   "admission_checks": [
+    "unsafe_and_subgroup_outcomes",
+    "coverage_and_unresolved_sensitivity"
+   ],
+   "requires": [
+    "frozen pre-registration commit",
+    "flawed controls (boundary optimist)",
+    "near-limit and fresh conditions",
+    "false-feasible, missed-feasible and abstention counts"
+   ]
+  },
+  {
+   "id": "B3",
+   "name": "EV3, design search",
+   "roadmap": "Each model drives the same frozen optimizer, bounds, stopping rules, initialization and query budget. Reference-check each proposed design and its registered perturbations.",
+   "admission_checks": [
+    "adaptive_design_search"
+   ],
+   "requires": [
+    "frozen optimizer, bounds, stopping rule, initialization and query budget",
+    "every model on the same optimizer",
+    "reference check of each proposed design and its registered perturbations"
+   ]
+  },
+  {
+   "id": "B4",
+   "name": "Baselines",
+   "roadmap": "Compare against the direct solver with caching or factorization reuse, interpolation, and a reduced-order model where one exists, at matched budgets.",
+   "admission_checks": [],
+   "requires": [
+    "direct solver with reuse",
+    "interpolation",
+    "reduced-order model where one exists",
+    "matched budgets"
+   ]
+  }
+ ],
+ "metrics": {
+  "rho": "Spearman correlation between the challenge score and reference-measured engineering value across candidate models on the sealed pool.",
+  "false_feasible_bound": "One-sided 95 % upper bound (Clopper-Pearson) from k false-feasible events in n independent scenarios: carbon.challenge_pipeline.roadmap.ff_upper.",
+  "regret": "Mean shortfall of chosen feasible designs against the best achievable, as a percentage of the best.",
+  "scenarios": "Independent scenario blocks, not correlated points from one sweep."
+ },
+ "exam": {
+  "registration": [
+   "rotation cadence",
+   "selection rule",
+   "disclosure budget",
+   "anchor set present in every rotation",
+   "sealed pool sampled across the whole envelope, never in rotation, under an operator-held root"
+  ]
+ },
+ "ladder": {
+  "source": "Design_Specs/Challenge_Admission.md §3; carbon/challenge_pipeline/ladder.py",
+  "rule": "Track A runs at every implemented construction level with the same legitimate panel and attack budget, plus single-permission ablations and combined-permission attacks. A part of a vector that needs a level the challenge has not reached is NOT_RUN at that level, never a pass."
+ },
+ "challenge_maps": "carbon/challenge_pipeline/suite_maps/<challenge>.json: each challenge's cited checks per vector, its dependency groups, and its Track B and exam specifics. The suite itself names no challenge."
+}

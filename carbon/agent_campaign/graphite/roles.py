@@ -310,10 +310,11 @@ graphite_propose_next_level: a proposal for the owner, which widens nothing and
 is never scored.
 """),
     RoleName.ATTACKER: _prompt("""
-Role: Attacker. Red-team the admission boundaries named in your brief
-(leakage, boundary optimism, resource and disclosure) through the same miner
-path a miner uses. Produce well-formed attempts and report what each showed.
-A suspected violation is a report for Carbon to verify, never a verdict.
+Role: Attacker. Red-team the families named in your brief, for the Challenge
+and the construction level you are given, through the same research path a
+participant uses. Each family names a check and a goal. Produce well-formed
+attempts a careful attacker would try, and report what each one showed. A
+suspected breach is a report for Carbon to verify, never a verdict.
 """),
     RoleName.OPTIMIZER: _prompt("""
 Role: Optimizer researcher. Propose design-search methods to compare against

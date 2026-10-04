@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-test-lead-repairs",
+ "recorded_at": "2026-10-04T23:30:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "carbonphysicsai/Carbon#563 repairs after Test Lead review; .agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-E.md",
+  "description": "Repaired the integrated attack engine before its first live run: every finding to the controller, the store pinned by the suite record, the grant pinned by digest, rebuild refusals and protected-withheld attempts kept out of held coverage, real held-out controls refused by identity, and sealed material recognised by registered public identity."
+ },
+ "expected": "Each slice's own tests passed, so the integrated engine was ready for a live run.",
+ "observed": "Seams between the slices leaked: held-out and baseline findings never reached the controller, a control finding hashed a bare boolean, the replay guard compared the view with itself, a missing pin re-snapshotted silently, a local grant copy could raise the ceiling, a rebuild refusal and a protected-withheld attempt counted toward held coverage, two families' held-out controls were canonical copies of the trained ones, and the checkout deny list turned a genuine sandbox-escape breach into an exposure without its specimen.",
+ "keep": [
+  "One record path for every finding, whatever raised it, each bound to digest evidence (identity, input digest, outcome for a control).",
+  "Guards compare against an independently recorded value (the session pin, the committed grant), never the object with itself.",
+  "A held-out control is identified by its content, so a label cannot move it between splits, and held-out must be canonically distinct from trained.",
+  "Sealed material is matched by registered public identity after normalisation; attack targets such as .env or tests/ are not material."
+ ],
+ "change": [
+  "An integration review checks each cross-slice hand-off (who records, who compares against what) as well as each slice's own boundary.",
+  "An empty or unmeasurable rate reports NOT_MEASURED, never zero; a family that only cites evidence is listed, never skipped."
+ ],
+ "protocol_elements": [
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
