@@ -23,8 +23,10 @@ import time
 from pathlib import Path
 
 SCHEMA = "carbon.challenge-validator.ledger.v1"
-#: Every attempt ends as one of these.
-KINDS = ("OUTCOME", "REFUSED", "UNAVAILABLE", "FAILED_INFRA")
+#: Every attempt ends as one of these. `RECEIVED` is a submission a queueing
+#: transport (battery's intake) screened and queued for the adapter's own
+#: worker; its later outcome is the adapter's, joined by submission id.
+KINDS = ("OUTCOME", "RECEIVED", "REFUSED", "UNAVAILABLE", "FAILED_INFRA")
 #: Identity strings longer than this are kept by digest only.
 MAX_KEPT = 128
 DDL = """
@@ -233,6 +235,15 @@ class AttemptLedger:
                 " ORDER BY seq"
             ).fetchall()
         return [{"action": a, "code": c, "contract_digest": d} for a, c, d in rows]
+
+    def totals(self):
+        """Attempts by kind across every hotkey: counts only, for the
+        operator's status."""
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT kind, COUNT(*) FROM attempts GROUP BY kind"
+            ).fetchall()
+        return {**dict.fromkeys(KINDS, 0), **dict(rows)}
 
     def attempt_counts(self, hotkey):
         """Attempts by this hotkey: in total, by kind and by contract digest."""
