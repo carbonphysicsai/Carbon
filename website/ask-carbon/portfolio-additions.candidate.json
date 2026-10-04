@@ -1,0 +1,35 @@
+{
+  "schema": "carbon.ask-carbon.site-additions.v1",
+  "status": "DRAFT_NOT_APPROVED_FOR_PUBLICATION",
+  "note": "Deterministic candidate only. Existing approved additions and release decisions are unchanged. Before publication, reconcile the current live baseline, approve public content, add reviewed navigation/sitemap changes and derive a new exact release candidate.",
+  "additions": [
+    {
+      "path": "portfolio/index.html",
+      "source": "site/portfolio/index.html",
+      "sha256": "34cb3e3e236b4357f9d356d0ab669b0dad11d3e8866324f889c8945649894f9f",
+      "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
+      "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
+    },
+    {
+      "path": "portfolio/portfolio.css",
+      "source": "site/portfolio/portfolio.css",
+      "sha256": "a95f831b58d6d3d987d575b6304113334eb244bbdd409df3d926261b30a40b68",
+      "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
+      "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
+    },
+    {
+      "path": "portfolio/portfolio.js",
+      "source": "site/portfolio/portfolio.js",
+      "sha256": "3228c37060254ea435ba3b0ac6b48402a92bd97c5ff2962e96636c81ea2522e7",
+      "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
+      "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
+    },
+    {
+      "path": "portfolio/economics.mjs",
+      "source": "site/portfolio/economics.mjs",
+      "sha256": "2e4a3445e0085dfa464dd268b770e5f04b86b6f823396ff25d524605bcc8055d",
+      "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
+      "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
+    }
+  ]
+}
