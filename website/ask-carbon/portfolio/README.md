@@ -1,15 +1,19 @@
 # Carbon research portfolio page
 
 Compact investor-facing `/portfolio/` review candidate for WEB-PORTFOLIO-01.
-Eight cards, each containing the problem, highlight, industrial use, illustrative
-surrogate screening impact, customer target categories and a concept visual.
+Eight cards, each containing the problem, highlight, industrial use, physical
+outcome to prove, conditional value at scale, customer targets and a concept visual.
+One compact future model-versus-solver automated design-contest section follows.
 No dossiers, filters, calculator, tracking, backend, storage or model calls.
 The programs are proposals, not eight live products or new emission allocations.
 Website content/source remains proprietary under `website/LICENSE`.
 
 ## Source and build
 
-- `highlights.mjs`: concise cards and explicit trained-model screening arithmetic.
+- `highlights.mjs`: concise cards and retained off-page historical timing context.
+- `impact.mjs`: conditional economic/physical sensitivities, not savings forecasts.
+- `solver-preview.mjs`: local finite-difference/conjugate-gradient illustration of
+  a dimensionless steady 2D heat equation with a manufactured analytical control.
 - `visuals.mjs`: eight accessible, distinct code-native SVG concept illustrations.
 - `content.mjs`: retained investment context and immutable repository citations.
 - `render.mjs`: complete semantic HTML with no JavaScript dependency.
@@ -30,13 +34,24 @@ npm run validate
 npm run eval:contract
 ```
 
-Savings are an explicit operating illustration: 1,000 candidate cases, 20 final
-solver checks, 100 ms predictions and an assumed $5/run-hour for a model already
-trained. They are serial run-hours and compute spend, not elapsed project time,
-current cloud prices, measured Carbon performance or total ROI. Build, data,
-training, calibration and upkeep are excluded. Solver times are roadmap estimates
-or labelled historical evidence. Optimized solvers and cheap reduced baselines
-can erase the advantage. Customer categories are targets, never claimed clients.
+The old 1,000-case compute-savings figures and assumed latency are no longer on
+the page. Scale examples instead convert an explicitly hypothetical physical
+improvement into its value at a stated scale: electrical demand to annual energy
+cost; throughput to accelerator-equivalents; percentage-point pass-rate gain to
+devices; charge-time reduction to daily dwell; unit cost to manufacturing spend;
+flow-rate gain to fixed-volume processing time. Prototype rounds deliberately
+have no invented price or duration. None is a performance target, achieved gain,
+actual tariff, customer quote or ROI. Net value needs data, training, verification,
+integration, serving and upkeep. Operational claims need separate validation.
+Customer categories are targets, not clients; card visuals are concepts.
+
+The contest preview contains an actual locally solved public analytical test
+field, not a cold-plate benchmark, optimization run, physical experiment, model
+result or contest winner. Its matrix residual and refinement are checked. The
+model panel is empty. The prospective comparison would require strong automated
+solver/reduced-method baselines, common design bounds/constraints and fixed compute
+and wall-clock budgets, independently checked final designs, and preparation plus
+model-build/search costs. This page selects no production scientific contract.
 
 ## Review preview
 
@@ -60,6 +75,7 @@ bytes into a new exact release candidate, run applicable checks and follow the
 established owner-approved deployment/rollback process. Do not reuse an existing
 release identity for new bytes. English-only page; no translation is claimed.
 
-No live numerical/physical experiment or matched-resource contest ran here.
+No live challenge/physical experiment or matched-resource contest ran here.
+Only the public synthetic numerical illustration and local UI checks were run.
 UI diagnostics and illustrative arithmetic are not scientific, security,
 commercial or production qualification.

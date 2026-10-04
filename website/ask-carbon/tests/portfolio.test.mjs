@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { programs, sources, evidenceRevision } from "../portfolio/content.mjs";
 import { highlights, screeningImpact, screeningScenario } from "../portfolio/highlights.mjs";
 import { visual } from "../portfolio/visuals.mjs";
+import { impactCases, outcomes, calculateScale, scaleIllustration } from "../portfolio/impact.mjs";
+import { solveIllustration, renderSolverIllustration } from "../portfolio/solver-preview.mjs";
 import { renderPortfolio } from "../portfolio/render.mjs";
 import { calculateEconomics } from "../portfolio/economics.mjs";
 import { loadBaselineManifest, loadSiteAdditions } from "../tools/integrate-static.mjs";
@@ -43,6 +45,9 @@ test("eight concise cards contain the requested fields and distinct concept visu
   for (const p of highlights) {
     for (const key of ["title", "highlight", "industry", "customers", "baseline", "basis", "state"]) assert.ok(typeof p[key] === "string" && p[key].length > 5, `${p.id}: missing ${key}`);
     assert.ok(sources[p.source]);
+    assert.ok(outcomes[p.id]?.length > 15);
+    const scale = scaleIllustration(p.id);
+    for (const key of ["first", "firstLabel", "second", "secondLabel", "note"]) assert.ok(scale[key]?.length > 0, `${p.id}: missing ${key}`);
     assert.ok(p.basis.includes("Illustrative") || p.basis.includes("Historical"));
     assert.match(visual(p.id, p.title), /<svg[^>]+role="img"/);
     assert.ok(visual(p.id, p.title).includes(`<title>${p.title}</title>`));
@@ -53,24 +58,80 @@ test("HTML is a compact static page, source-synchronized and complete without Ja
   const html = await readFile(resolve(root, "site/portfolio/index.html"), "utf8");
   assert.equal(html, renderPortfolio());
   assert.equal((html.match(/<article class="pf-card"/g) ?? []).length, 8);
-  assert.equal((html.match(/<svg /g) ?? []).length, 8);
+  assert.equal((html.match(/<svg /g) ?? []).length, 9);
   assert.equal((html.match(/<h3>Industrial use<\/h3>/g) ?? []).length, 8);
   assert.equal((html.match(/<h3>Customer targets<\/h3>/g) ?? []).length, 8);
-  assert.equal((html.match(/simulation time avoided/g) ?? []).length, 8);
-  assert.equal((html.match(/compute cost avoided/g) ?? []).length, 8);
+  assert.equal((html.match(/<h3>Impact to prove<\/h3>/g) ?? []).length, 8);
+  assert.equal((html.match(/If achieved at scale/g) ?? []).length, 8);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, "duplicate ID");
   for (const target of [...html.matchAll(/href="#([^"]+)"/g)].map((match) => match[1])) assert.ok(ids.includes(target), `missing anchor ${target}`);
   assert.ok(html.includes("25% Bittensor investor fit"));
   assert.ok(html.includes("not an emissions allocation or launch approval"));
-  assert.ok(html.includes("not measured Carbon results or total ROI"));
-  assert.ok(html.includes("already-trained model, not elapsed project time"));
-  assert.ok(html.includes("Build, data, training, calibration and upkeep costs are excluded"));
+  assert.ok(html.includes("not Carbon results, performance targets, forecasts or total ROI"));
+  assert.ok(html.includes("Net value must include data, training, verification, integration, serving and upkeep"));
+  assert.ok(html.includes("Operational gains require separate validation"));
+  assert.ok(html.includes("Prototype costs and lead times need customer quotes"));
+  assert.ok(!/run-hours|100 ms|1,000 candidate cases|Solve assumption|compute cost avoided/.test(html));
   assert.ok(html.includes("Customer types are targets, not clients"));
   assert.ok(!/<details|<input|pf-filter|pf-calculator/.test(html));
   const visibleCopy = html.replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<head>[\s\S]*?<\/head>/g, "").replace(/<[^>]*>/g, " ");
-  assert.ok(visibleCopy.trim().split(/\s+/).length < 1000, "Keep the page concise");
+  assert.ok(visibleCopy.trim().split(/\s+/).length < 1100, "Keep the page concise even with the contest preview");
   assert.ok(!/fetch\(|<iframe|gtag|analytics|localStorage|api\/ask-carbon/.test(html));
+});
+
+test("value-at-scale illustrations use explicit units and correct conditional arithmetic", () => {
+  assert.deepEqual(calculateScale(impactCases.cooling), { kwh: 876000, annualUsd: 87600 });
+  assert.deepEqual(calculateScale(impactCases.thermal), { equivalents: 100 });
+  assert.deepEqual(calculateScale(impactCases.photonics), { passingDevices: 10000 });
+  assert.equal(calculateScale(impactCases.battery).hoursPerDay, 5000 / 60);
+  assert.deepEqual(calculateScale(impactCases.motors), { rounds: 1 });
+  assert.deepEqual(calculateScale(impactCases.vibration), { rounds: 1 });
+  assert.deepEqual(calculateScale(impactCases.acoustics), { annualUsd: 100000 });
+  assert.ok(Math.abs(calculateScale(impactCases.mixing).minutesAvoided - 480 * (1 - 1 / 1.1)) < 1e-10);
+  assert.equal(scaleIllustration("mixing").second, "~44 min");
+  assert.ok(!JSON.stringify(scaleIllustration("motors")).includes("$"), "Do not invent a prototype price");
+  assert.ok(Object.values(impactCases).every(Object.isFrozen));
+});
+
+test("scale illustrations refuse invalid units/counts instead of manufacturing value", () => {
+  for (const c of Object.values(impactCases)) {
+    for (const key of Object.keys(c).filter((k) => k !== "kind")) {
+      for (const bad of [-1, 0, NaN, Infinity, "1", null]) assert.throws(() => calculateScale({ ...c, [key]: bad }), RangeError);
+    }
+  }
+  for (const kind of ["prototype", "capacity", "yield", "dwell", "unitCost"]) {
+    const c = Object.values(impactCases).find((item) => item.kind === kind);
+    const key = ({ prototype: "rounds", capacity: "units", yield: "devices", dwell: "events", unitCost: "annualUnits" })[kind];
+    assert.throws(() => calculateScale({ ...c, [key]: 1.5 }), RangeError);
+  }
+  assert.throws(() => calculateScale({ ...impactCases.cooling, hours: 8761 }), RangeError);
+  assert.throws(() => calculateScale({ ...impactCases.photonics, gainPoints: 101 }), RangeError);
+  assert.throws(() => calculateScale({ kind: "unknown" }), RangeError);
+  assert.throws(() => scaleIllustration("unknown"), RangeError);
+});
+
+test("solver illustration actually solves a public manufactured field with refinement controls", () => {
+  const coarse = solveIllustration(16), fine = solveIllustration(32);
+  assert.equal(fine.values.length, 1024);
+  assert.ok(fine.values.every((value) => Number.isFinite(value) && value > 0));
+  assert.ok(fine.relativeResidual < 1e-8);
+  assert.ok(fine.maxError < 0.001);
+  assert.ok(fine.maxError < coarse.maxError / 3);
+  assert.deepEqual(solveIllustration(32), fine, "Deterministic public illustration");
+  for (const invalid of [0, 7, 65, 16.5, "32"]) assert.throws(() => solveIllustration(invalid), RangeError);
+  assert.ok(renderSolverIllustration().includes("SYNTHETIC TEST"));
+});
+
+test("future contest reserves an empty model slot and makes no winner or benchmark claim", () => {
+  const html = renderPortfolio();
+  assert.ok(html.includes('id="design-contest"'));
+  assert.ok(html.includes("Side by side when models ship"));
+  assert.ok(html.includes("No model output or winner is shown yet"));
+  assert.ok(html.includes("Not a cold-plate benchmark, optimization run or contest result"));
+  assert.ok(html.includes("compute and wall-clock budgets"));
+  assert.ok(html.includes("including preparation and model build"));
+  assert.ok(html.includes("competitive reduced methods"));
 });
 
 test("screening savings include surrogate time and final solver checks", () => {

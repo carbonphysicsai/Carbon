@@ -1,4 +1,5 @@
-// Explicit operating scenarios, not measured model results or total ROI.
+// Retained legacy screening context, not used for the page's impact figures.
+// The visible page now uses impact.mjs. No values are production/model claims.
 export const screeningScenario = Object.freeze({ designs: 1000, solverChecks: 20, predictionSeconds: 0.1, dollarsPerRunHour: 5 });
 export const highlights = [
   { id: "cooling", title: "AI accelerator cooling", highlight: "More compute. Less pumping.", industry: "Screen cold-plate channel designs for AI servers with hotspot-temperature and pumping constraints.", customers: "Cold-plate manufacturers · Server OEMs", solverSeconds: 1200, baseline: "20 min / design", basis: "Illustrative manifold-flow estimate from roadmap f04; not current cold-plate timing.", source: "roadmap", state: "Foundation + proposed expansion" },

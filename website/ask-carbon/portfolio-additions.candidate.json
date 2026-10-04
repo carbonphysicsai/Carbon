@@ -6,14 +6,14 @@
     {
       "path": "portfolio/index.html",
       "source": "site/portfolio/index.html",
-      "sha256": "1282982537d5a538c9b6947d63bfbac47fe4a5f562fa3c440e728c5f103feca2",
+      "sha256": "34cb3e3e236b4357f9d356d0ab669b0dad11d3e8866324f889c8945649894f9f",
       "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
       "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
     },
     {
       "path": "portfolio/portfolio.css",
       "source": "site/portfolio/portfolio.css",
-      "sha256": "bd0d1adea2016e521504fc13bb781795b7bc3848c57479c4dea00f4be58952bf",
+      "sha256": "a95f831b58d6d3d987d575b6304113334eb244bbdd409df3d926261b30a40b68",
       "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
       "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
     },
