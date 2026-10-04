@@ -15,18 +15,25 @@ reads only public material and the miner's own practice results:
   syntax is never accepted: Carbon writes every query itself, each term
   quoted in the abstract field, restricted to `CATEGORIES`.
 - **Triage** (`triage`). A free first pass on a record's title and abstract
-  before any paid extraction: its categories, and whether it names the
-  Challenge's domain or its methods.
+  before any paid extraction: its categories, then `TRIAGE_RULE`: the
+  Challenge's primary domain, a secondary domain with a surrogate cue, two
+  method cues one of which is a surrogate cue, or every term of one of the
+  miner's focus terms. A broad machine-learning cue never keeps a record
+  alone.
 - **Ranking** (`assess`, `rank`). A grade 0-3 with reasons: relevance to the
   Challenge's public focus, buildability under the Challenge's public
-  construction contract (`capability_registry.public_registry`), and the
-  miner's own practice outcomes. A card whose recognised capabilities are all
-  outside the contract is a `capability_request` candidate, never a plan
-  input, and its grade is at most 1. Pins are flagged; bans are applied by
-  the caller before ranking.
+  construction contract (`capability_registry.public_registry`), the miner's
+  own focus terms, and the miner's own practice outcomes on this Challenge. A
+  card whose recognised capabilities are all outside the contract is a
+  `capability_request` candidate, never a plan input, and its grade is at
+  most 1. Pins are flagged; bans are applied by the caller before ranking.
 - **Learning.** `learned_queries` seeds the next hunt from the techniques of
-  cards the miner's practice improved with. Only the `improved` and
-  `not_improved` counts of the miner's own outcomes reach the ranking.
+  cards the miner's practice on the same Challenge improved with. Only the
+  `improved` and `not_improved` counts of the miner's own outcomes reach the
+  ranking.
+- **Freezing.** `frozen_context` cuts the discovery document and contract to
+  what this rule reads, so a campaign can freeze exactly the public inputs
+  its ranking used and replay them.
 
 A card is read only through `RANKED_FIELDS`. No other field, and nothing an
 outcome's evidence holds beyond its two counts, can change a grade or an
@@ -176,8 +183,8 @@ METHOD_LEXICON = (
         ("nearest", "neighbor"),
     ),
 )
-#: Method cues every Challenge shares: learned fast models of physics.
-GENERIC_METHOD_CUES = (
+#: Method cues that name learned fast models of physics specifically.
+SURROGATE_CUES = (
     "surrogate",
     "surrogates",
     "neural operator",
@@ -186,10 +193,47 @@ GENERIC_METHOD_CUES = (
     "reduced order",
     "emulator",
     "physics-informed",
-    "neural network",
-    "deep learning",
-    "machine learning",
 )
+#: Broad machine-learning cues: they count toward a grade, but never keep a
+#: record in triage on their own.
+BROAD_ML_CUES = ("neural network", "deep learning", "machine learning")
+#: Method cues every Challenge shares.
+GENERIC_METHOD_CUES = SURROGATE_CUES + BROAD_ML_CUES
+#: Rebuildable families whose cues are broad machine learning, not surrogate
+#: cues, in triage.
+BROAD_FAMILIES = ("mlp", "knn")
+#: The cues triage treats as surrogate cues: `SURROGATE_CUES` and the operator
+#: families of `METHOD_LEXICON`.
+TRIAGE_SURROGATE_CUES = tuple(
+    sorted(
+        set(SURROGATE_CUES)
+        | {
+            cue
+            for selector, cues, _ in METHOD_LEXICON
+            if selector not in BROAD_FAMILIES
+            for cue in cues
+        }
+    )
+)
+#: When triage keeps an allowed-category record, in order; anything else is
+#: triaged out before any paid call.
+TRIAGE_RULE = (
+    "primary_domain",
+    "secondary_domain_and_surrogate",
+    "two_methods_one_surrogate",
+    "miner_focus_terms",
+)
+#: The raw-score weights of a grade (see `assess`).
+SCORES = {
+    "primary_domain": 3,
+    "secondary_domain": 1,
+    "method": 1,
+    "buildable": 1,
+    "miner_focus_terms": 1,
+    "practice": 1,
+}
+#: The highest grade of a card that is not a plan input.
+NOT_PLAN_INPUT_MAX_GRADE = 1
 #: A small public training set (cases) makes small-data methods relevant.
 SMALL_DATA_CASES = 2000
 SMALL_DATA_CUES = (
@@ -364,9 +408,18 @@ def rule_document():
         "discovery_fields": list(DISCOVERY_FIELDS),
         "ranked_fields": list(RANKED_FIELDS),
         "grade_thresholds": [list(pair) for pair in GRADE_THRESHOLDS],
+        "scores": dict(SCORES),
+        "not_plan_input_max_grade": NOT_PLAN_INPUT_MAX_GRADE,
+        "triage": {
+            "keep_when": list(TRIAGE_RULE),
+            "primary_domains": 2,
+            "surrogate_cues": list(TRIAGE_SURROGATE_CUES),
+            "broad_families": list(BROAD_FAMILIES),
+        },
         "domain_lexicon": [[n, list(c), list(t)] for n, c, t in DOMAIN_LEXICON],
         "method_lexicon": [[s, list(c), list(t)] for s, c, t in METHOD_LEXICON],
-        "generic_method_cues": list(GENERIC_METHOD_CUES),
+        "surrogate_cues": list(SURROGATE_CUES),
+        "broad_ml_cues": list(BROAD_ML_CUES),
         "small_data_cues": list(SMALL_DATA_CUES),
         "capability_cues": [[i, list(c)] for i, c in CAPABILITY_CUES],
         "stopwords": sorted(STOPWORDS),
@@ -473,6 +526,91 @@ def discovery_focus(discovery):
         "small_data": small,
         "train_cases": cases if type(cases) is int else None,
     }
+
+
+def discovery_projection(discovery):
+    """The discovery document cut to `DISCOVERY_FIELDS`, in its own shape.
+
+    `discovery_focus` and `queries_for` give the same answer for the
+    projection as for the whole document, so a campaign freezes this.
+    """
+    if type(discovery) is not dict:
+        return {}
+    projected = {
+        key: discovery[key]
+        for key in ("challenge_id", "title", "task")
+        if type(discovery.get(key)) is str
+    }
+    interface = discovery.get("interface")
+    sides = {}
+    for side, fields in (("inputs", ("unit",)), ("outputs", ("unit", "meaning"))):
+        items = interface.get(side) if type(interface) is dict else None
+        if type(items) is dict:
+            sides[side] = {
+                str(name): {
+                    field: item[field]
+                    for field in fields
+                    if type(item.get(field)) is str
+                }
+                for name, item in items.items()
+                if type(item) is dict
+            }
+    if sides:
+        projected["interface"] = sides
+    reference = discovery.get("reference")
+    if type(reference) is dict:
+        kept = {
+            key: reference[key]
+            for key in ("reference", "protocol")
+            if type(reference.get(key)) is str
+        }
+        if kept:
+            projected["reference"] = kept
+    selectors = _selectors(discovery)
+    if selectors:
+        projected["models"] = {
+            "rebuildable": [{"selector": selector} for selector in selectors]
+        }
+    cases = _get(discovery, "public_material", "train", "cases")
+    if type(cases) is int:
+        projected["public_material"] = {"train": {"cases": cases}}
+    return projected
+
+
+def contract_projection(contract):
+    """The public registry cut to what this rule reads: `{capabilities:
+    [{id, status}]}` by id, or None when there is no contract."""
+    statuses = contract_statuses(contract)
+    if statuses is None:
+        return None
+    return {
+        "capabilities": [
+            {"id": cid, "status": statuses[cid]} for cid in sorted(statuses)
+        ]
+    }
+
+
+def frozen_context(discovery, contract):
+    """`{discovery, contract}`: the public inputs a ranking reads, cut to
+    what it reads. Passing them back reproduces every grade and order."""
+    return {
+        "discovery": discovery_projection(discovery),
+        "contract": contract_projection(contract),
+    }
+
+
+def checked_context(context):
+    """A frozen context as `frozen_context` makes it, or ValueError."""
+    if type(context) is not dict or set(context) != {"discovery", "contract"}:
+        raise ValueError("a frozen context is {discovery, contract}")
+    discovery, contract = context["discovery"], context["contract"]
+    if type(discovery) is not dict or (
+        contract is not None and type(contract) is not dict
+    ):
+        raise ValueError("a frozen context holds a discovery and a contract")
+    if frozen_context(discovery, contract) != context:
+        raise ValueError("a frozen context holds only what the focus rule reads")
+    return context
 
 
 def _query(query_id, terms, source, purpose):
@@ -676,33 +814,73 @@ def learned_queries(cards, evidence, discovery):
 # -- triage -------------------------------------------------------------------------
 
 
-def triage(record, focus, *, extra_terms=()):
+def focus_phrases(values):
+    """The miner's focus terms (text, as hunt queries take them), validated,
+    as lower-case term tuples. A card or record matches one when it names
+    every term of it."""
+    return tuple(
+        tuple(term.lower() for term in query["terms"])
+        for query in parse_miner_queries(values)
+    )
+
+
+def _phrase_hit(text, phrases):
+    """The first phrase every term of which the lower-case text names."""
+    for phrase in phrases:
+        if phrase and all(_has(text, (term,)) for term in phrase):
+            return phrase
+    return None
+
+
+def triage(record, focus, *, phrases=()):
     """`(keep, score, reasons)` for an arXiv record, before any paid call.
 
-    Reads the record's title, abstract and categories only. A record is kept
-    when one of its categories is allowed and it names the Challenge's domain,
-    or two of its methods, or one of the miner's own query terms.
+    Reads the record's title, abstract and categories only. A record in an
+    allowed category is kept by `TRIAGE_RULE`: it names the Challenge's
+    primary domain; or a secondary domain and a surrogate cue; or two method
+    cues, one of them a surrogate cue; or every term of one of the miner's
+    focus `phrases` (`focus_phrases`). The score is the number of distinct
+    cues it names, for the record only.
     """
     categories = record.get("categories") if type(record) is dict else None
     if type(categories) is not list or not set(categories) & set(CATEGORIES):
         return False, 0, ["category outside the hunt's arXiv categories"]
     text = _lower(record.get("title")) + " | " + _lower(record.get("abstract"))
     cues = text_cues(text)
-    domain = len(cues & set(focus["domain_cues"]))
-    method = len(cues & set(focus["method_cues"]))
-    extra = sum(1 for term in extra_terms if _has(text, (term.lower(),)))
-    score = 2 * min(domain, 1) + min(method, 2) + 2 * min(extra, 1)
+    primary = cues & set(focus["primary_cues"])
+    secondary = cues & set(focus["secondary_cues"])
+    surrogate = cues & set(TRIAGE_SURROGATE_CUES)
+    method = cues & (set(focus["method_cues"]) | surrogate)
+    phrase = _phrase_hit(text, phrases)
+    kept = {
+        "primary_domain": bool(primary),
+        "secondary_domain_and_surrogate": bool(secondary and surrogate),
+        "two_methods_one_surrogate": bool(surrogate) and len(method) >= 2,
+        "miner_focus_terms": phrase is not None,
+    }
     reasons = [
         (
-            f"names the Challenge's domain ({domain} cue(s))"
-            if domain
-            else "no domain cue"
+            f"names the Challenge's primary domain ({len(primary)} cue(s))"
+            if primary
+            else (
+                f"names a secondary domain ({len(secondary)} cue(s))"
+                if secondary
+                else "no domain cue"
+            )
         ),
-        f"names {method} method cue(s)" if method else "no method cue",
+        (
+            f"names {len(method)} method cue(s), {len(surrogate)} of them "
+            "surrogate cues"
+            if method
+            else "no method cue"
+        ),
     ]
-    if extra:
-        reasons.append("names a term of the miner's own queries")
-    return score >= 2, score, reasons
+    if phrase is not None:
+        reasons.append("names every term of the miner's focus terms")
+    keep = next((rule for rule in TRIAGE_RULE if kept[rule]), None)
+    reasons.append(f"kept: {keep}" if keep else "triaged out")
+    score = len(primary | secondary | method) + (1 if phrase else 0)
+    return keep is not None, score, reasons
 
 
 # -- ranking ------------------------------------------------------------------------
@@ -767,21 +945,27 @@ def buildability(card, statuses, cues=None):
     }
 
 
-def assess(card, *, focus, statuses, counts, pinned=False):
+def assess(card, *, focus, statuses, counts, pinned=False, phrases=()):
     """The grade 0-3 and reasons for one card under one Challenge.
 
-    Raw score: 3 when the card names the Challenge's primary domain, 1 for a
-    secondary domain, 1 for one of its methods, 1 when a capability it names
-    is rebuildable for the Challenge, and +1 or -1 from the miner's own
-    practice outcomes. Grade 3 from 5, 2 from 3, 1 from 1. A card whose named
-    capabilities are all outside the contract is not a plan input and grades
-    at most 1.
+    Raw score (`SCORES`): 3 when the card names the Challenge's primary
+    domain, 1 for a secondary domain, 1 for one of its methods, 1 when a
+    capability it names is rebuildable for the Challenge, 1 when it names
+    every term of one of the miner's focus `phrases`, and +1 or -1 from the
+    miner's own practice outcomes on this Challenge (`counts`). Grade 3 from
+    5, 2 from 3, 1 from 1. A card whose named capabilities are all outside
+    the contract is not a plan input and grades at most 1.
     """
-    cues = text_cues(_card_text(card))
+    text = _card_text(card)
+    cues = text_cues(text)
     primary = sorted(cues & set(focus["primary_cues"]))
     secondary = sorted(cues & set(focus["secondary_cues"]))
     method = sorted(cues & set(focus["method_cues"]))
-    relevance = (3 if primary else 1 if secondary else 0) + (1 if method else 0)
+    relevance = (
+        SCORES["primary_domain"]
+        if primary
+        else SCORES["secondary_domain"] if secondary else 0
+    ) + (SCORES["method"] if method else 0)
     reasons = []
     if relevance:
         named = ", ".join((primary + secondary + method)[:4])
@@ -806,22 +990,30 @@ def assess(card, *, focus, statuses, counts, pinned=False):
                 f"capability_request candidate: {row['id']} is {row['status']} "
                 "for this Challenge"
             )
+    phrase = _phrase_hit(text, phrases)
+    if phrase is not None:
+        reasons.append("miner focus: names " + " ".join(phrase))
     count = counts.get(card.get("card_id"), {"improved": 0, "not_improved": 0})
     learning = 0
     if count["improved"] > count["not_improved"]:
-        learning = 1
+        learning = SCORES["practice"]
     elif count["not_improved"] > count["improved"]:
-        learning = -1
+        learning = -SCORES["practice"]
     if count["improved"] or count["not_improved"]:
         reasons.append(
             f"miner practice: {count['improved']} plan(s) citing it improved, "
             f"{count['not_improved']} did not"
         )
-    raw = relevance + (1 if build["buildable"] else 0) + learning
+    raw = (
+        relevance
+        + (SCORES["buildable"] if build["buildable"] else 0)
+        + (SCORES["miner_focus_terms"] if phrase is not None else 0)
+        + learning
+    )
     grade = next((g for low, g in GRADE_THRESHOLDS if raw >= low), 0)
     plan_input = build["buildable"] or not build["capability_request_candidate"]
     if not plan_input:
-        grade = min(grade, 1)
+        grade = min(grade, NOT_PLAN_INPUT_MAX_GRADE)
         reasons.append("not a plan input: request the capability instead")
     if pinned:
         reasons.append("pinned by the miner: the Planner must consider it")
@@ -843,6 +1035,18 @@ def assess(card, *, focus, statuses, counts, pinned=False):
     }
 
 
+@functools.lru_cache(maxsize=64)
+def _registered_version(challenge_id):
+    try:
+        from carbon.challenge_registry import entries
+
+        return next(
+            (e.version for e in entries() if e.challenge_id == challenge_id), None
+        )
+    except (LookupError, ValueError, TypeError, OSError):  # none registered
+        return None
+
+
 @functools.lru_cache(maxsize=16)
 def _public_context(challenge_id, version):
     discovery = contract = None
@@ -853,12 +1057,8 @@ def _public_context(challenge_id, version):
     except (LookupError, ValueError, TypeError):  # no registered contract
         contract = None
     try:
-        from carbon.challenge_registry import describe, entries
+        from carbon.challenge_registry import describe
 
-        if version is None:
-            version = next(
-                (e.version for e in entries() if e.challenge_id == challenge_id), None
-            )
         if version is not None:
             discovery = describe(challenge_id, version)
     except (LookupError, ValueError, TypeError, OSError):  # none registered
@@ -874,19 +1074,42 @@ def challenge_id(challenge):
     return challenge
 
 
+def challenge_ref(challenge):
+    """`{id, version}`: the version given, else the registered one, else None.
+
+    Practice outcomes and frozen literature are bound to this reference: a
+    result on one Challenge (or version) never steers another's ranking.
+    """
+    cid = challenge_id(challenge)
+    version = challenge.get("version") if type(challenge) is dict else None
+    if version is not None and (type(version) is not str or not version):
+        raise ValueError("a challenge version is text")
+    return {"id": cid, "version": version or _registered_version(cid)}
+
+
 def public_context(challenge):
     """`(discovery, contract)`: the Challenge's public discovery document and
     its public capability registry, or None for either Carbon does not have."""
-    version = challenge.get("version") if type(challenge) is dict else None
-    return _public_context(challenge_id(challenge), version)
+    ref = challenge_ref(challenge)
+    return _public_context(ref["id"], ref["version"])
 
 
-def rank(cards, *, challenge, contract=None, evidence=None, discovery=None, pins=()):
+def rank(
+    cards,
+    *,
+    challenge,
+    contract=None,
+    evidence=None,
+    discovery=None,
+    pins=(),
+    focus_terms=None,
+):
     """`[(card, score, reasons)]`, best first, for one Challenge.
 
     `contract` is the Challenge's public registry document and `discovery`
     its public discovery document; either defaults to Carbon's own for the
-    Challenge. `evidence` is the miner's own outcome counts.
+    Challenge. `evidence` is the miner's own outcome counts on this
+    Challenge. `focus_terms` are the miner's focus terms (as hunt queries).
     """
     if discovery is None or contract is None:
         found_discovery, found_contract = public_context(challenge)
@@ -895,6 +1118,7 @@ def rank(cards, *, challenge, contract=None, evidence=None, discovery=None, pins
     focus = discovery_focus(discovery)
     statuses = contract_statuses(contract)
     counts = _counts(evidence)
+    phrases = focus_phrases(focus_terms)
     pinned = set(pins)
     rows = []
     for card in cards:
@@ -904,6 +1128,7 @@ def rank(cards, *, challenge, contract=None, evidence=None, discovery=None, pins
             statuses=statuses,
             counts=counts,
             pinned=card.get("card_id") in pinned,
+            phrases=phrases,
         )
         rows.append((result["_order"], _text_of(card, "card_id"), card, result))
     rows.sort(key=lambda row: (row[0], row[1]))

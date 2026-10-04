@@ -51,7 +51,7 @@ DISCOVERY = {
 CONTRACT = public_registry(BATTERY_CHALLENGE)
 #: The pinned digest of rule `carbon.graphite.miner-focus.v1`.
 FOCUS_RULE_DIGEST = (
-    "sha256:0258d66b992365c6276ead3894a6cefa02fffb6381d722bfbbb76f4ff8794e92"
+    "sha256:da91b31634ddcc511dc7d75a3599b485ffa99e04ecddc0dbe1ab465450fd7448"
 )
 
 
@@ -252,13 +252,65 @@ def test_triage_reads_title_abstract_and_categories_only():
         "categories": ["cs.LG"],
     }
     assert not focus.triage(off, target)[0]
-    assert focus.triage(off, target, extra_terms=("colouring",))[0]
+    assert focus.triage(off, target, phrases=(("colouring",),))[0]
+    assert focus.triage(off, target, phrases=focus.focus_phrases(["graph colouring"]))[
+        0
+    ]
+    assert not focus.triage(off, target, phrases=(("graph", "theory"),))[0]
     two_methods = {
         "title": "Operator learning",
         "abstract": "A neural operator surrogate.",
         "categories": ["stat.ML"],
     }
     assert focus.triage(two_methods, target)[0]
+
+
+def test_triage_keeps_no_record_on_a_secondary_domain_or_broad_cue_alone():
+    """Mutation (review P3): a stray domain word ('temperature', 'aging') or
+    broad machine-learning words never cost the miner a Reader call."""
+    target = focus.discovery_focus(DISCOVERY)
+    assert "battery" in target["primary_cues"]
+    assert {"temperature", "aging"} <= set(target["secondary_cues"])
+
+    def record(title, abstract):
+        return {"title": title, "abstract": abstract, "categories": ["cs.LG"]}
+
+    for dropped in (
+        record(
+            "Calibrating softmax temperature for language models",
+            "We study temperature scaling for classification networks.",
+        ),
+        record(
+            "Aging-aware scheduling of GPUs",
+            "We study aging of hardware in data centres.",
+        ),
+        record(
+            "Temperature scaling for deep learning",
+            "We calibrate deep learning classifiers with a neural network.",
+        ),
+        record(
+            "Deep learning for images",
+            "A deep learning neural network for machine learning on images.",
+        ),
+    ):
+        keep, _, reasons = focus.triage(dropped, target)
+        assert not keep and reasons[-1] == "triaged out"
+    for kept, rule in (
+        (
+            record("Lithium-ion fast charging protocols", "We compare protocols."),
+            "primary_domain",
+        ),
+        (
+            record("A thermal surrogate", "A surrogate of heat transfer in cells."),
+            "secondary_domain_and_surrogate",
+        ),
+        (
+            record("Operator learning", "A neural network emulator."),
+            "two_methods_one_surrogate",
+        ),
+    ):
+        keep, _, reasons = focus.triage(kept, target)
+        assert keep and reasons[-1] == f"kept: {rule}"
 
 
 # -- ranking ------------------------------------------------------------------------
@@ -345,6 +397,79 @@ def test_the_miners_own_practice_raises_or_sinks_a_card():
     assert ranked_ids(evidence=junk) == ranked_ids()
 
 
+def test_the_miners_focus_terms_steer_the_ranking():
+    baseline = dict(ranked_ids())
+    focused = focus.rank(
+        CARDS,
+        challenge=BATTERY_CHALLENGE,
+        contract=CONTRACT,
+        discovery=DISCOVERY,
+        focus_terms=["graph colouring"],
+    )
+    scores = {c["card_id"]: s for c, s, _ in focused}
+    assert scores[OFF_TOPIC["card_id"]] == baseline[OFF_TOPIC["card_id"]] + 1
+    reasons = {c["card_id"]: r for c, _, r in focused}
+    assert "miner focus: names graph colouring" in reasons[OFF_TOPIC["card_id"]]
+    # Every term of one focus term must be named; one word is not enough.
+    partial = focus.rank(
+        CARDS,
+        challenge=BATTERY_CHALLENGE,
+        contract=CONTRACT,
+        discovery=DISCOVERY,
+        focus_terms=["graph neural network"],
+    )
+    assert {c["card_id"]: s for c, s, _ in partial} == baseline
+    with pytest.raises(focus.QueryRefused):
+        focus.rank(CARDS, challenge=BATTERY_CHALLENGE, focus_terms=["cat:cs.LG"])
+
+
+def test_a_projection_keeps_exactly_what_the_rule_reads():
+    real, contract = focus.public_context({"id": BATTERY_CHALLENGE, "version": "1.0"})
+    for document in (DISCOVERY, real):
+        projected = focus.discovery_projection(document)
+        assert focus.discovery_focus(projected) == focus.discovery_focus(document)
+        assert focus.queries_for(projected) == focus.queries_for(document)
+        assert focus.discovery_projection(projected) == projected
+    assert "public_material" in focus.discovery_projection(DISCOVERY)
+    assert set(focus.discovery_projection({**DISCOVERY, "exam": 1})) == set(
+        focus.discovery_projection(DISCOVERY)
+    )
+    frozen = focus.frozen_context(real, contract)
+    assert focus.contract_statuses(frozen["contract"]) == focus.contract_statuses(
+        contract
+    )
+    assert focus.checked_context(frozen) is frozen
+    assert focus.frozen_context(None, None) == {"discovery": {}, "contract": None}
+    for bad in (
+        {**frozen, "extra": 1},
+        {**frozen, "discovery": {**frozen["discovery"], "exam": {"x": 1}}},
+        {**frozen, "contract": {"capabilities": [], "summary": "x"}},
+        {"discovery": None, "contract": None},
+    ):
+        with pytest.raises(ValueError):
+            focus.checked_context(bad)
+
+
+def test_a_challenge_reference_carries_its_version():
+    from carbon.challenge_registry import entries
+
+    registered = next(
+        e.version for e in entries() if e.challenge_id == BATTERY_CHALLENGE
+    )
+    assert focus.challenge_ref(BATTERY_CHALLENGE) == {
+        "id": BATTERY_CHALLENGE,
+        "version": registered,
+    }
+    assert focus.challenge_ref({"id": "x", "version": "2"}) == {
+        "id": "x",
+        "version": "2",
+    }
+    assert focus.challenge_ref("an-unregistered-challenge")["version"] is None
+    for bad in (None, "", {"id": "x", "version": 2}, {"version": "1"}):
+        with pytest.raises(ValueError):
+            focus.challenge_ref(bad)
+
+
 def test_pins_come_first_and_say_so():
     rows = focus.rank(
         CARDS,
@@ -370,6 +495,10 @@ def test_the_focus_rule_is_versioned_by_digest():
     assert document["schema"] == "carbon.graphite.miner-focus.v1"
     assert focus.rule_digest() == FOCUS_RULE_DIGEST
     assert "applicability" not in document["ranked_fields"]
+    # The triage rule and the grade weights are part of the rule's data.
+    assert document["triage"]["keep_when"] == list(focus.TRIAGE_RULE)
+    assert document["scores"] == focus.SCORES
+    assert not set(focus.BROAD_ML_CUES) & set(document["triage"]["surrogate_cues"])
     assert document["categories"] == [
         "cs.LG",
         "physics.comp-ph",

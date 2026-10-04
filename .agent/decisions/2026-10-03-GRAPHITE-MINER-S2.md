@@ -53,47 +53,72 @@ default and no authority boundary changes.
      own write-once stores.
    - **Claims.** Every Reader call is preceded by a write-once claim on the
      paper's key (arXiv id lower case, `/` as `-`, no version) or the import
-     id. A claimed key is never claimed again. A claim is released only when
-     the reader says the call was certainly not sent (`ReaderNotSent`). An
-     open claim (outcome unknown) is retried only by the same hunt with the
-     byte-identical request, so the driver's ledger replays it; any other
-     open claim is never sent again.
+     id. A claim is written whole to a temporary file and hard-linked into
+     place, so a crash leaves a complete claim or none. A claimed key is
+     never claimed again. A claim is released only when the reader says the
+     call was certainly not sent (`ReaderNotSent`). An open claim (outcome
+     unknown) is retried only by the same hunt with the byte-identical
+     request, so the driver's ledger replays it; any other open claim is
+     never sent again. The Library lists such an import as
+     `outcome_unknown`, not `queued`.
+   - **Journals** (curation, outcomes, plan index, hunt progress) are
+     append-only and fsynced per line. A torn final line a crash left is
+     never read as a line; the next append cuts it off and records it in
+     `<journal>.torn`.
    - **Curation journal.** Pins and bans, with a digest over the resulting
      state; every state is stored by digest. A ban unpins; a banned card
-     cannot be pinned.
+     cannot be pinned. Pinning or banning needs a card the library serves;
+     undoing a pin or a ban always works.
    - **Plans** are stored write-once by digest with an index of
      `{digest, created_by, parent, created_at}`. The library checks only
      `created_by` (`planner` or `miner`), that a parent exists, the size and
      protected material; the plan schema is the driver's (S3).
-   - **Outcomes** (`record_outcome`) are the miner's own practice results
-     per cited card, recorded once per identical entry. The ranking reads
-     only how many improved and how many did not.
+   - **Outcomes** (`record_outcome(..., challenge=)`) are the miner's own
+     practice results per cited card on one Challenge `{id, version}` (a
+     version is required), recorded once per identical entry. The ranking and
+     the learned queries read only how many improved and how many did not on
+     the same Challenge and version (AGENTS.md 7.6): practice on one
+     Challenge never steers another.
    - **Snapshots** freeze the private layer (served cards by digest and the
-     outcome counts) so a campaign serves exactly what it froze.
+     outcome counts per Challenge) so a campaign serves exactly what it
+     froze.
 3. **What a campaign serves** (`MinerLiterature`). Frozen by the pack
-   digest, a private snapshot digest, a curation state and the focus rule
-   digest, which together give a `literature_digest`.
+   digest, a private snapshot digest, a curation state, the Challenge
+   `{id, version}`, the focus rule digest, the digest of the public inputs
+   its ranking reads (`focus.frozen_context`: the discovery document cut to
+   `DISCOVERY_FIELDS` and the contract cut to capability statuses) and the
+   miner's focus terms. Together they give a `literature_digest`: the same
+   digest always serves the same cards, grades and order. `record()` carries
+   the frozen context, and passing it back (`context=`) replays the view
+   whatever Carbon's registries hold later.
    - Every served card carries `origin` (`shared`, `miner_hunt`,
      `miner_import`) and `check_status` `UNCHECKED`, with an UNCHECKED note.
-   - A card that names protected material is withheld when written and again
-     when served. A banned card is refused `card_banned`; an unknown or
-     withheld one `card_not_found`. A private card for a paper the pack holds
-     is shadowed by the pack's card.
+   - One predicate (`MinerLibrary.served_card`) says what the library serves:
+     a pack card the protected rule does not withhold, or a private card the
+     pack does not shadow (its paper is not one the pack knows) that is
+     relevant and names no protected material. A card outside it cannot be
+     read, pinned, banned or cited in an outcome (`card_not_found`); a banned
+     one is refused `card_banned`. A pin the view does not serve is not one
+     the Planner can consider: `pinned()` lists only served pins.
 4. **The hunt** (`hunt.run_hunt`).
    - Imports first, then queries in this order: the miner's own (at most 8,
      at most 6 terms of `[A-Za-z0-9-]`, at most 40 characters a term, no
      operator words; raw query syntax is refused `hunt_query_invalid`),
-     at most 2 seeded by the miner's own improved outcomes, at most 6 composed
-     from the public discovery document, then the registered `QUERY_SET`.
+     at most 2 seeded by the miner's own improved outcomes on the same
+     Challenge, at most 6 composed from the public discovery document, then
+     the registered `QUERY_SET`.
      Carbon writes every search: each term quoted in the abstract field, all
      required, restricted to the categories cs.LG, physics.comp-ph, math.NA,
      eess.SY, physics.chem-ph, cond-mat.mtrl-sci and stat.ML.
    - Deduplication against the pack, the claims and the private store comes
      before triage and before any Reader call.
-   - The first-pass triage is free and deterministic: allowed category, and
-     the record's title and abstract name the Challenge's domain, two of its
-     methods, or a term of the miner's own queries. A record naming protected
-     material is withheld before any call.
+   - The first-pass triage is free and deterministic: an allowed category,
+     and the record's title and abstract name the Challenge's primary domain
+     (its first two domains), a secondary domain together with a surrogate
+     cue, two method cues one of which is a surrogate cue, or every term of
+     one of the miner's own queries. A secondary-domain word ("temperature",
+     "aging") or broad machine-learning words never keep a record alone. A
+     record naming protected material is withheld before any call.
    - The Reader prompt is the miner variant (`READER_PROMPT`, pinned by
      digest), with the same closed answer fields, so `parse_extraction`
      applies unchanged. Extraction is Challenge-neutral, so a card serves
@@ -102,16 +127,23 @@ default and no authority boundary changes.
      unchanged: the miner request mirrors `extraction_request`'s shape.
    - `max_records` (default 200, at most 5,000) counts new papers after
      deduplication, so it bounds the hunt's Reader calls. 50 records a page,
-     at most 2 pages a query.
+     at most 2 pages a query, so a large `max_records` can end `COMPLETED`
+     below it: the report says how many queries the page bound cut short
+     while arXiv had more (`page_bound_queries`).
    - An arXiv `FAILED_INFRA` ends the hunt, recorded (`literature_fetch_failed`),
      and the campaign goes on. `ReaderNotSent` ends it `STOPPED` with the
      reader's code (for example `research_share_reached`). `checkpoint` runs
      before every page and before every claim and call; a pause there leaves
      nothing claimed.
-   - A hunt id's report is written once; the same hunt id replays it with no
-     arXiv or model call. A resumed hunt keeps the queries it started with and
-     never fetches a journalled page again; a hunt id reused with another plan
-     is refused.
+   - Every hunt has an explicit id (required; the driver's, distinct per
+     campaign stage), so a later campaign with the same plan hunts again
+     rather than receiving an earlier report. A hunt id's report is written
+     once; the same hunt replays it with no arXiv or model call. A hunt id
+     reused with another hunt (Challenge `{id, version}`, the miner's
+     queries, registered queries on or off, caps, Reader prompt, focus rule,
+     pack or model selection) is refused, finished or not. A resumed hunt
+     keeps the queries and the Challenge focus it started with and never
+     fetches a journalled page again.
 5. **The arXiv gate** (`ArxivGate`). One file per user and host
    (`$CARBON_ARXIV_GATE`, else `$XDG_CACHE_HOME/carbon/arxiv-gate`, else
    `~/.cache/carbon/arxiv-gate`), 0600, under an exclusive lock. It holds the
@@ -123,18 +155,28 @@ default and no authority boundary changes.
    - Only the discovery fields `DISCOVERY_FIELDS` are read: title, task,
      interface units and meanings, reference and protocol, the rebuildable
      model families and the public training-set size.
-   - A grade 0-3 with reasons from a raw score: 3 for the Challenge's primary
-     domain, 1 for a secondary one, 1 for one of its methods, 1 when a
-     capability the card names is rebuildable under the Challenge's public
-     contract (`capability_registry.public_registry`), and +1 or -1 from the
-     miner's own outcomes. A card whose named capabilities are all outside
-     the contract is a `capability_request` candidate, not a plan input,
-     and grades at most 1. Pins come first and say so.
+   - A grade 0-3 with reasons from a raw score (`SCORES`): 3 for the
+     Challenge's primary domain, 1 for a secondary one, 1 for one of its
+     methods, 1 when a capability the card names is rebuildable under the
+     Challenge's public contract (`capability_registry.public_registry`), 1
+     when the card names every term of one of the miner's focus terms (the
+     campaign's hunt queries), and +1 or -1 from the miner's own outcomes on
+     the same Challenge. A card whose named capabilities are all outside the
+     contract is a `capability_request` candidate, not a plan input, and
+     grades at most 1. Pins come first and say so. Bans, pins and focus terms
+     all steer the ranking.
    - Only `RANKED_FIELDS` of a card are read (title, technique, claimed
      effect, data regime, abstract). `applicability` is left out: it is the
      phase-2 extraction prompt's speculation about Carbon's battery
      Challenge, not the paper's content. No other field, and nothing in an
      outcome's evidence beyond its two counts, can change a grade or an order.
+   - The rule's document holds its lexicons, limits, triage rule and score
+     weights, so any change to them changes its digest. The rule was revised
+     before release (triage, focus terms, weights in the document); no
+     campaign has frozen an earlier digest, so it keeps the name
+     `carbon.graphite.miner-focus.v1` with the pinned digest
+     `sha256:da91b31634ddcc511dc7d75a3599b485ffa99e04ecddc0dbe1ab465450fd7448`.
+     From the first release on, a change is a new rule version.
 7. **Imports** (`library_import`). A one-line title of 1-300 characters and a
    text of 1-20,000 characters, no control characters, no protected
    material, or `import_invalid`. Content-addressed ids, so the same text
@@ -142,10 +184,19 @@ default and no authority boundary changes.
    card whose abstract is the text's first 4,000 characters. PDF import stays
    a follow-up.
 
+**Imports.** The literature modules, and everything they import, load no
+grant, pod, experiment, delivery, triage, next-level, ladder, controller,
+provider or model module (a subprocess test checks `sys.modules`). Importing
+them through the package today also runs
+`carbon/agent_campaign/graphite/__init__.py`, which is not S2's: it imports
+`provider` eagerly, which loads `grant`, `controller`, `ladder` and
+`next_level` (loaded, never called). A strict expected-failure test records
+this gap; making that `__init__` lazy is handed off, and the mark comes off
+when it is.
+
 **Unchanged.** Every internal Graphite module, prompt and digest
 (`method_cards`, `literature_fetch`, `literature`, `tools`); the phase-2
-snapshot, read only; every frozen plan, prompt, digest and journal. The
-literature modules import no grant, pod, experiment, delivery, triage,
-next-level or ladder module. Every scientific value, threshold and gate; no
-hidden-test access; no chain writes; no weights. Contributing cards back to
-the shared pack stays deferred; provenance and origin are its seam.
+snapshot, read only; every frozen plan, prompt, digest and journal. Every
+scientific value, threshold and gate; no hidden-test access; no chain
+writes; no weights. Contributing cards back to the shared pack stays
+deferred; provenance and origin are its seam.

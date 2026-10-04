@@ -27,12 +27,18 @@ or pod. `run_hunt`:
    data message), parsed by `method_cards.parse_extraction`. A card is written
    `UNCHECKED`; one that names protected material is withheld, never served.
 6. **Caps and stops.** At most `max_records` new papers (default 200) per
-   hunt, `pages_per_query` pages per query. An arXiv `FAILED_INFRA` ends the
-   hunt, recorded, and the campaign goes on. A Reader call the driver
-   refuses before sending (`ReaderNotSent`, for example the research share)
-   ends it typed. `checkpoint` runs before every page and every call.
-7. **Replay.** A hunt id's finished report is written once; running the same
-   hunt id again returns it and makes no arXiv or model call.
+   hunt, `pages_per_query` pages per query; the report counts the queries
+   the page bound cut short while arXiv had more (`page_bound_queries`). An
+   arXiv `FAILED_INFRA` ends the hunt, recorded, and the campaign goes on. A
+   Reader call the driver refuses before sending (`ReaderNotSent`, for
+   example the research share) ends it typed. `checkpoint` runs before every
+   page and every call.
+7. **Replay.** Every hunt has an explicit id (the driver's, distinct per
+   campaign stage). A hunt id's finished report is written once; running the
+   same hunt again returns it and makes no arXiv or model call. A hunt id
+   reused with another hunt (Challenge, the miner's queries, caps, prompt,
+   rule, pack or selection) is refused, finished or not. A resumed hunt
+   keeps the queries and the focus it started with.
 
 Abstract and import text is data. Nothing here interprets it.
 """
@@ -348,14 +354,17 @@ def _check_max_records(value):
         raise HuntRefused(HUNT_QUERY_INVALID, f"max_records is 1-{MAX_RECORDS}")
 
 
-def plan_queries(library, *, discovery, queries=None, include_registered=True):
+def plan_queries(
+    library, *, challenge, discovery, queries=None, include_registered=True
+):
     """The hunt's queries in order: the miner's, learned, discovery,
-    registered. `queries` are the miner's own (validated here)."""
+    registered. `queries` are the miner's own (validated here); learned
+    queries come from the miner's own practice on `challenge` only."""
     try:
         miner = focus.parse_miner_queries(queries)
     except focus.QueryRefused as error:
         raise HuntRefused(HUNT_QUERY_INVALID, error.detail) from None
-    evidence = library.evidence()
+    evidence = library.evidence(challenge)
     cards = {}
     for card_id, counts in evidence.items():
         if counts["improved"] > counts["not_improved"]:
@@ -507,10 +516,14 @@ def extract_imports(
 # -- the hunt ---------------------------------------------------------------------
 
 
-#: What a resumed hunt must share with the hunt that started under its id.
+#: What a hunt run again under an id must share with the hunt that started
+#: under it, finished or not. Its learned queries and the Challenge's focus
+#: may since have changed; a resumed hunt keeps the ones it stored.
 _RESUME_FIELDS = (
     "schema",
     "challenge",
+    "miner_queries",
+    "include_registered",
     "max_records",
     "page_size",
     "pages_per_query",
@@ -547,7 +560,7 @@ def run_hunt(
     clock=None,
     checkpoint=None,
     selection=None,
-    hunt_id=None,
+    hunt_id,
     gate=None,
     sleep=None,
     include_registered=True,
@@ -560,21 +573,23 @@ def run_hunt(
     miner's model and budget; it raises `ReaderNotSent` for a call it refused
     before sending. `selection` (or `reader.selection`) is the campaign's
     frozen model selection; without one, requests lack the model fields (see
-    `reader_request`). `hunt_id` names this hunt: stable across a resume,
-    distinct across campaigns; by default it is the digest of the hunt's plan.
-    `clock` is wall-clock seconds (`time.time`); a clock with a `sleep`
-    method supplies the sleep. `gate` defaults to the host-wide `ArxivGate`.
+    `reader_request`). `hunt_id` (required) names this hunt: stable across a
+    resume, distinct across campaigns and stages. `clock` is wall-clock
+    seconds (`time.time`); a clock with a `sleep` method supplies the sleep.
+    `gate` defaults to the host-wide `ArxivGate`.
     """
     if type(library) is not MinerLibrary:
         raise TypeError("exact MinerLibrary required")
     if not callable(reader):
         raise TypeError("a reader is callable")
+    if type(hunt_id) is not str or not _HUNT_ID.fullmatch(hunt_id):
+        raise ValueError("a hunt id is 1-200 identifier characters")
     _check_max_records(max_records)
     if type(page_size) is not int or not 1 <= page_size <= 200:
         raise HuntRefused(HUNT_QUERY_INVALID, "page_size is 1-200")
     if type(pages_per_query) is not int or not 1 <= pages_per_query <= 10:
         raise HuntRefused(HUNT_QUERY_INVALID, "pages_per_query is 1-10")
-    challenge_key = focus.challenge_id(challenge)
+    challenge_ref = focus.challenge_ref(challenge)
     clock = time.time if clock is None else clock
     sleep = sleep or getattr(clock, "sleep", None) or time.sleep
     checkpoint = checkpoint or (lambda: None)
@@ -583,14 +598,18 @@ def run_hunt(
     )
     plan = plan_queries(
         library,
+        challenge=challenge_ref,
         discovery=discovery,
         queries=queries,
         include_registered=include_registered,
     )
     document = {
         "schema": HUNT_SCHEMA,
-        "challenge": challenge_key,
+        "challenge": challenge_ref,
+        "miner_queries": [q["terms"] for q in plan if q["source"] == "miner"],
+        "include_registered": bool(include_registered),
         "queries": plan,
+        "focus": focus.discovery_focus(discovery),
         "max_records": max_records,
         "page_size": page_size,
         "pages_per_query": pages_per_query,
@@ -601,33 +620,30 @@ def run_hunt(
             None if selection is None else digest(canonical(selection.record()))
         ),
     }
-    if hunt_id is None:
-        hunt_id = digest(canonical(document))
-    if type(hunt_id) is not str or not _HUNT_ID.fullmatch(hunt_id):
-        raise HuntRefused(
-            HUNT_QUERY_INVALID, "a hunt id is 1-200 identifier characters"
-        )
     tag = digest(canonical({"hunt_id": hunt_id}))[7:]
     directory = library.root / "hunts" / tag
     directory.mkdir(exist_ok=True, mode=0o700)
     report_path = directory / "report.json"
-    if report_path.exists():
-        return json.loads(report_path.read_bytes())
     plan_path = directory / "plan.json"
     if plan_path.exists():
-        # A resumed hunt keeps the queries it started with (its learned
-        # queries may since have changed), and must be the same hunt.
+        # The same hunt, finished or resumed. A resumed hunt keeps the
+        # queries and focus it started with (its learned queries, or the
+        # Challenge's public document, may since have changed).
         stored = json.loads(plan_path.read_bytes())
         if any(stored.get(name) != document[name] for name in _RESUME_FIELDS):
             raise ValueError("a hunt id was reused with another hunt plan")
-        plan = stored["queries"]
+        if report_path.exists():
+            return json.loads(report_path.read_bytes())
+        plan, focus_now = stored["queries"], stored["focus"]
     else:
+        if report_path.exists():
+            raise ValueError("a hunt report has no plan")
         write_once(plan_path, canonical({**document, "hunt_id": hunt_id}))
-    miner_terms = tuple(
-        term.lower()
+        focus_now = document["focus"]
+    phrases = tuple(
+        tuple(term.lower() for term in query["terms"])
         for query in plan
         if query["source"] == "miner"
-        for term in query["terms"]
     )
     progress_path = directory / "progress.jsonl"
     decided = {}
@@ -646,7 +662,6 @@ def run_hunt(
             if e["decision"] != "deduped" and e.get("kind") != "import"
         )
 
-    focus_now = focus.discovery_focus(discovery)
     raw = library.raw()
     status, stop_code, failure = COMPLETED, None, None
     imported = extract_imports(
@@ -716,7 +731,7 @@ def run_hunt(
         ):
             decide(key, WITHHELD, query_id=query_id, record_digest=address)
             return
-        keep, score, _ = focus.triage(record, focus_now, extra_terms=miner_terms)
+        keep, score, _ = focus.triage(record, focus_now, phrases=phrases)
         if not keep:
             decide(key, "triaged_out", query_id=query_id, score=score)
             return
@@ -794,6 +809,7 @@ def run_hunt(
         for e in raw.retrievals()
         if e["query_set_digest"] == query_set.digest
     }
+    page_bound = 0
     if status == COMPLETED:
         if gate is None:
             gate = ArxivGate(clock=clock, sleep=sleep)
@@ -817,6 +833,10 @@ def run_hunt(
                         and start + page_size >= entry["total_results"]
                     ):
                         break
+                else:
+                    # Every page the bound allows came back full: arXiv had
+                    # more for this query than the hunt reads.
+                    page_bound += 1
         except _Capped:
             status = CAPPED
         except _Stopped as stop:
@@ -829,7 +849,7 @@ def run_hunt(
             }
     report = _report(
         hunt_id=hunt_id,
-        challenge=challenge_key,
+        challenge=challenge_ref,
         plan=plan,
         decided=decided,
         imported=imported,
@@ -840,6 +860,7 @@ def run_hunt(
             1 for e in raw.retrievals() if e["query_set_digest"] == query_set.digest
         ),
         max_records=max_records,
+        page_bound=(pages_per_query, page_bound),
     )
     write_once(report_path, canonical(report))
     return report
@@ -893,6 +914,7 @@ def _report(
     failure,
     pages,
     max_records,
+    page_bound,
 ):
     every = list(decided.values())
     decisions = [entry for entry in every if entry.get("kind") != "import"]
@@ -937,6 +959,11 @@ def _report(
         "reader_calls": sum(1 for entry in every if entry.get("paid")),
         "arxiv_pages": pages,
         "max_records": max_records,
+        "pages_per_query": page_bound[0],
+        # Queries whose every allowed page came back full: a COMPLETED hunt
+        # under `max_records` with this above zero stopped at the page bound,
+        # not because arXiv ran out.
+        "page_bound_queries": page_bound[1],
         "queries": [
             {
                 "query_id": query["query_id"],

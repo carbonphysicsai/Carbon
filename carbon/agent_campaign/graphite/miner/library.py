@@ -14,23 +14,31 @@ OWNER-GRAPHITE-MINER-01 §3-§5. Two objects:
   and curate it; none of its operations admits work.
 - `MinerLiterature(pack, library, ...)`: the read-only literature one campaign
   serves through `lit_search` and `lit_card`, frozen by digest: the shared
-  pack, one private-library snapshot (`MinerLibrary.snapshot`) and one
-  curation state. Replaying a campaign serves the same cards in the same
-  order, whatever the library holds later.
+  pack, one private-library snapshot (`MinerLibrary.snapshot`), one curation
+  state, the Challenge `{id, version}`, the public inputs its ranking reads
+  (`focus.frozen_context`) and the miner's focus terms. Replaying a campaign
+  serves the same cards in the same order, whatever the library or Carbon's
+  registries hold later.
 
 Every served card carries its `origin` (`shared`, `miner_hunt` or
 `miner_import`) and `check_status` `UNCHECKED`. A card that names protected
 material (`tools.protected`) is withheld when it is written and again when it
-is served. A banned card is never served. A pinned card is flagged so the
-Planner must consider it. Card text is data, never instructions.
+is served. A private card for a paper the pack knows is shadowed. One
+predicate (`MinerLibrary.served_card`) says what the library serves; a card
+it does not serve cannot be read, pinned, banned or cited in an outcome. A
+banned card is never served. A pinned card is flagged so the Planner must
+consider it. Practice outcomes are bound to one Challenge `{id, version}`.
+Card text is data, never instructions.
 """
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import json
 import os
 import re
+import secrets
 import time
 from pathlib import Path
 
@@ -115,18 +123,73 @@ def _locked(path):
         os.close(descriptor)
 
 
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
+
+
+def _fsync_directory(path):
+    with contextlib.suppress(OSError):
+        descriptor = os.open(path, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+
+def _keep_torn(path, torn, offset):
+    """Record a journal's torn final line (a crash mid-append) beside it."""
+    entry = {
+        "schema": "carbon.graphite.miner-torn-line.v1",
+        "journal": path.name,
+        "offset": offset,
+        "bytes": base64.b64encode(torn).decode("ascii"),
+    }
+    sidecar = path.with_name(path.name + ".torn")
+    descriptor = os.open(
+        sidecar, os.O_WRONLY | os.O_CREAT | os.O_APPEND | _NOFOLLOW, 0o600
+    )
+    try:
+        os.write(descriptor, canonical(entry) + b"\n")
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _append(path, payload):
-    with path.open("ab") as stream:
-        stream.write(payload + b"\n")
-        stream.flush()
-        os.fsync(stream.fileno())
+    """Append one line to a journal, durably. A torn final line a crash left
+    is cut off (and recorded beside the journal) before the new line."""
+    descriptor = os.open(path, os.O_RDWR | os.O_CREAT | os.O_APPEND | _NOFOLLOW, 0o600)
+    try:
+        size = os.fstat(descriptor).st_size
+        if size:
+            os.lseek(descriptor, size - 1, os.SEEK_SET)
+            if os.read(descriptor, 1) != b"\n":
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                body = b""
+                while len(body) < size:
+                    chunk = os.read(descriptor, size - len(body))
+                    if not chunk:
+                        break
+                    body += chunk
+                keep = body.rfind(b"\n") + 1
+                _keep_torn(path, body[keep:], keep)
+                os.ftruncate(descriptor, keep)
+        line = memoryview(payload + b"\n")
+        while line:
+            line = line[os.write(descriptor, line) :]
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
     path.chmod(0o600)
 
 
 def _lines(path):
+    """A journal's complete lines. A torn final line (no newline yet) is not
+    a line: a crash mid-append never makes the journal unreadable."""
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_bytes().splitlines() if line]
+    body = path.read_bytes()
+    complete = body[: body.rfind(b"\n") + 1]
+    return [json.loads(line) for line in complete.splitlines() if line]
 
 
 def _hex(value):
@@ -166,6 +229,16 @@ def checked_curation(curation):
     if state["digest"] != curation["digest"]:
         raise ValueError("a curation state does not match its digest")
     return state
+
+
+def evidence_for(rows, challenge):
+    """One Challenge's `{card_id: {improved, not_improved}}` from per-Challenge
+    evidence rows: the same id and version, nothing from any other."""
+    ref = focus.challenge_ref(challenge)
+    for row in rows:
+        if row["challenge"] == ref:
+            return {cid: dict(counts) for cid, counts in row["counts"].items()}
+    return {}
 
 
 def _served(card, origin):
@@ -221,21 +294,36 @@ def _pack_served(pack):
     return found[1], found[2]
 
 
+def _shadowed(pack, card_id):
+    """A private card for a paper the pack already knows is not served."""
+    key = card_paper_key(card_id)
+    return card_id in pack.by_id or (key is not None and key in pack.paper_keys)
+
+
 class _Served:
     """One served view: pack cards, private cards, a curation state, the
-    miner's outcome counts and one Challenge's public context."""
+    miner's outcome counts on one Challenge, that Challenge's public context
+    and the miner's focus terms."""
 
-    def __init__(self, pack, private, *, curation, evidence, discovery, contract):
+    def __init__(
+        self,
+        pack,
+        private,
+        *,
+        curation,
+        evidence,
+        discovery,
+        contract,
+        phrases=(),
+    ):
         pack_cards, withheld = _pack_served(pack)
         self.withheld = list(withheld)
         self.bans, self.pins = set(curation["bans"]), set(curation["pins"])
         self.cards, self.banned, self.shadowed = {}, {}, []
         for card in pack_cards:
             self._add(card)
-        known = pack.paper_keys
         for card in private:
-            key = card_paper_key(card["card_id"])
-            if card["card_id"] in self.cards or (key is not None and key in known):
+            if _shadowed(pack, card["card_id"]):
                 self.shadowed.append(card["card_id"])
                 continue
             if protected(card):
@@ -245,6 +333,7 @@ class _Served:
         self.focus = focus.discovery_focus(discovery)
         self.statuses = focus.contract_statuses(contract)
         self.counts = focus._counts(evidence)
+        self.phrases = tuple(phrases)
         self._assessed = {}
 
     def _add(self, card):
@@ -260,6 +349,7 @@ class _Served:
                 statuses=self.statuses,
                 counts=self.counts,
                 pinned=cid in self.pins,
+                phrases=self.phrases,
             )
         return self._assessed[cid]
 
@@ -432,8 +522,14 @@ class MinerLibrary:
 
     def claim(self, key, *, request_digest, hunt):
         """Claim a paper (or an import) for one extraction. False when it is
-        already claimed: a claim is never taken twice."""
+        already claimed: a claim is never taken twice.
+
+        The claim is written whole to a temporary file and then linked into
+        place, so a crash leaves a complete claim or none, never an empty
+        one."""
         path = self._claim_path(key, ".claim")
+        if path.exists():
+            return False
         payload = canonical(
             {
                 "schema": CLAIM_SCHEMA,
@@ -442,14 +538,24 @@ class MinerLibrary:
                 "hunt": hunt,
             }
         )
+        # Claim names start with a letter or digit; temporary names with ".".
+        temporary = path.with_name(f".{key}.{os.getpid()}.{secrets.token_hex(8)}")
+        descriptor = os.open(
+            temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | _NOFOLLOW, 0o600
+        )
         try:
-            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        except FileExistsError:
-            return False
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            try:
+                os.link(temporary, path)
+            except FileExistsError:
+                return False
+        finally:
+            with contextlib.suppress(FileNotFoundError):
+                temporary.unlink()
+        _fsync_directory(path.parent)
         return True
 
     def claim_state(self, key):
@@ -511,18 +617,26 @@ class MinerLibrary:
         ).exists()
 
     def pending_imports(self):
-        """Queued imports with neither a card nor a rejection, by id."""
+        """Queued imports with neither a card nor a rejection, by id.
+
+        `state` is `queued` (the next Reader stage extracts it) or
+        `outcome_unknown`: a Reader call for it was started and its outcome
+        is unknown. Only the hunt that started it, resumed with the identical
+        request, sends it again; nothing else ever does (no blind resend).
+        """
         rows = []
         for path in sorted((self.root / "imports" / "queue").glob("*.json")):
             if self.import_done(path.stem):
                 continue
             item = self.import_item(path.stem)
+            claimed = self.claim_state(item["import_id"]) is not None
             rows.append(
                 {
                     "import_id": item["import_id"],
                     "title": item["title"],
                     "chars": item["chars"],
                     "text_digest": item["text_digest"],
+                    "state": "outcome_unknown" if claimed else "queued",
                 }
             )
         return rows
@@ -558,18 +672,34 @@ class MinerLibrary:
             raise LibraryError("curation_not_found")
         return checked_curation(json.loads(path.read_bytes()))
 
-    def _exists(self, card_id):
+    def served_card(self, card_id):
+        """The served form of a card the library serves now, banned or not;
+        else None. A pack card the protected rule withholds, a private card
+        the pack shadows, a protected or irrelevant private card and an
+        unknown id are not served. Every door uses this one predicate."""
         if type(card_id) is not str:
-            return False
-        if card_id in self.pack.by_id:
-            return True
-        return self._private_served(card_id) is not None
+            return None
+        found = self.pack.by_id.get(card_id)
+        if found is not None:
+            served = _served(found, SHARED)
+            return None if protected(served) else served
+        if _shadowed(self.pack, card_id):
+            return None
+        return self._private_served(card_id)
+
+    def _exists(self, card_id):
+        return self.served_card(card_id) is not None
 
     def _curate(self, action, card_id):
-        if not self._exists(card_id):
-            raise LibraryError(CARD_NOT_FOUND, str(card_id)[:100])
         with self._lock():
             pins, bans = self._curation_fold()
+            # Undoing a pin or a ban always works, even for a card no longer
+            # served; pinning or banning needs a served card.
+            undo = (action == "unpin" and card_id in pins) or (
+                action == "unban" and card_id in bans
+            )
+            if not undo and not self._exists(card_id):
+                raise LibraryError(CARD_NOT_FOUND, str(card_id)[:100])
             if action == "pin" and card_id in bans:
                 raise LibraryError(CARD_BANNED, card_id)
             unchanged = (
@@ -611,11 +741,18 @@ class MinerLibrary:
         return self._curate("unban", card_id)
 
     # -- the miner's own practice outcomes ---------------------------------------------
-    def record_outcome(self, card_ids, improved, evidence):
+    def record_outcome(self, card_ids, improved, evidence, *, challenge):
         """Record that a plan citing `card_ids` did (or did not) improve in the
-        miner's own practice. Only the miner's permitted practice results may
-        be recorded; the ranking reads only whether it improved. Recording the
-        same outcome twice records it once."""
+        miner's own practice on `challenge` (an id or `{id, version}`). Only
+        the miner's permitted practice results may be recorded; the ranking
+        reads only whether it improved, and only for the same Challenge and
+        version. Recording the same outcome twice records it once."""
+        try:
+            ref = focus.challenge_ref(challenge)
+        except ValueError:
+            raise LibraryError(EVIDENCE_INVALID, "challenge is an id") from None
+        if ref["version"] is None:
+            raise LibraryError(EVIDENCE_INVALID, "the challenge has no version")
         if (
             type(card_ids) is not list
             or not 1 <= len(card_ids) <= MAX_OUTCOME_CARDS
@@ -637,6 +774,7 @@ class MinerLibrary:
             raise LibraryError(EVIDENCE_INVALID, "evidence names protected material")
         entry = {
             "schema": OUTCOME_SCHEMA,
+            "challenge": ref,
             "card_ids": sorted(set(card_ids)),
             "improved": improved,
             "evidence_digest": digest(body),
@@ -648,14 +786,27 @@ class MinerLibrary:
                 return
             _append(path, canonical(entry))
 
-    def evidence(self):
-        """`{card_id: {improved, not_improved}}` from the miner's outcomes."""
-        counts = {}
+    def _evidence_rows(self):
+        """`[{challenge, counts}]`: the outcome counts per Challenge, sorted."""
+        by_challenge = {}
         for entry in _lines(self.root / "outcomes.jsonl"):
+            ref = entry["challenge"]
+            counts = by_challenge.setdefault((ref["id"], ref["version"]), {})
             for cid in entry["card_ids"]:
                 row = counts.setdefault(cid, {"improved": 0, "not_improved": 0})
                 row["improved" if entry["improved"] else "not_improved"] += 1
-        return dict(sorted(counts.items()))
+        return [
+            {
+                "challenge": {"id": key[0], "version": key[1]},
+                "counts": dict(sorted(by_challenge[key].items())),
+            }
+            for key in sorted(by_challenge)
+        ]
+
+    def evidence(self, challenge):
+        """`{card_id: {improved, not_improved}}` from the miner's outcomes on
+        `challenge` (an id or `{id, version}`) only."""
+        return evidence_for(self._evidence_rows(), challenge)
 
     # -- snapshots of the private layer ----------------------------------------------
     def _snapshot_document(self):
@@ -669,7 +820,7 @@ class MinerLibrary:
                 }
                 for card in self.private_cards()
             ],
-            "evidence": self.evidence(),
+            "evidence": self._evidence_rows(),
         }
 
     def snapshot(self):
@@ -682,7 +833,9 @@ class MinerLibrary:
         return value
 
     def load_snapshot(self, value):
-        """`(cards, evidence)` a snapshot froze, each card verified."""
+        """`(cards, evidence_rows)` a snapshot froze, each card verified;
+        `evidence_for(evidence_rows, challenge)` gives one Challenge's
+        counts."""
         path = self.root / "snapshots" / (_hex(value) + ".json")
         if not path.exists():
             raise LibraryError("snapshot_not_found")
@@ -772,15 +925,16 @@ class MinerLibrary:
         ]
 
     # -- reading the library now (the Library doors) ----------------------------------
-    def _view(self, challenge, curation):
-        evidence = self.evidence()
+    def _view(self, challenge, curation, phrases=()):
+        evidence = self.evidence(challenge)
         private = self.private_cards()
         key = (
             self.pack.digest,
             digest(canonical([c["card_id"] for c in private])),
             curation["digest"],
             digest(canonical(evidence)),
-            json.dumps(challenge, sort_keys=True),
+            json.dumps(focus.challenge_ref(challenge), sort_keys=True),
+            phrases,
         )
         view = self._views.get(key)
         if view is None:
@@ -792,6 +946,7 @@ class MinerLibrary:
                 evidence=evidence,
                 discovery=discovery,
                 contract=contract,
+                phrases=phrases,
             )
             self._views = {key: view}
         return view
@@ -804,16 +959,34 @@ class MinerLibrary:
         pins = (set(current["pins"]) | set(pins or ())) - bans
         return curation_state(pins, bans)
 
-    def search(self, query, *, challenge, limit=10, bans=None, pins=None):
+    def search(
+        self,
+        query,
+        *,
+        challenge,
+        limit=10,
+        bans=None,
+        pins=None,
+        focus_terms=None,
+    ):
         """Cards matching `query` (all cards, best first, for an empty query),
         ranked for `challenge`: each with its origin, `check_status`, score
         0-3 and reasons. Banned cards are never returned. `bans` and `pins`
-        add to the library's own curation."""
+        add to the library's own curation; `focus_terms` (as hunt queries)
+        steer the ranking."""
         if type(query) is not str or len(query) > 512:
             raise LibraryError(SEARCH_INVALID, "a query is at most 512 characters")
         if type(limit) is not int or not 1 <= limit <= MAX_SEARCH_LIMIT:
             raise LibraryError(SEARCH_INVALID, f"limit is 1-{MAX_SEARCH_LIMIT}")
-        view = self._view(challenge, self._curation_for(bans, pins))
+        try:
+            focus.challenge_ref(challenge)
+        except ValueError:
+            raise LibraryError(SEARCH_INVALID, "challenge is an id") from None
+        try:
+            phrases = focus.focus_phrases(focus_terms)
+        except focus.QueryRefused as error:
+            raise LibraryError(SEARCH_INVALID, error.detail) from None
+        view = self._view(challenge, self._curation_for(bans, pins), phrases)
         return [
             _row(card, result, full=True)
             for card, result in view.ranked(query.strip(), limit)
@@ -823,16 +996,11 @@ class MinerLibrary:
         """One served card by id; `card_not_found` or `card_banned`."""
         if type(card_id) is not str:
             raise LibraryError(CARD_NOT_FOUND, "a card id is text")
-        if card_id in self.curation()["bans"] and self._exists(card_id):
-            raise LibraryError(CARD_BANNED, card_id)
-        found = self.pack.by_id.get(card_id)
-        served = (
-            _served(found, SHARED)
-            if found is not None
-            else self._private_served(card_id)
-        )
-        if served is None or protected(served):
+        served = self.served_card(card_id)
+        if served is None:
             raise LibraryError(CARD_NOT_FOUND, card_id[:100])
+        if card_id in self.curation()["bans"]:
+            raise LibraryError(CARD_BANNED, card_id)
         return served
 
     def list_cards(self, *, origin=None, offset=0, limit=50):
@@ -878,7 +1046,11 @@ class MinerLiterature:
     `MinerLibrary.snapshot()` digest (or None for no private layer);
     `curation` a `{pins, bans, digest}` state (or None for none). The
     Challenge's public discovery document and contract default to Carbon's
-    own for `challenge`.
+    own for `challenge`; a campaign that froze `context()` passes it back as
+    `context` instead, so a later Carbon update cannot change what it serves.
+    `focus_terms` are the miner's focus terms (as hunt queries). Everything
+    that can change a served card, grade or order is in `document()`, so the
+    same `literature_digest` always serves the same results.
     """
 
     def __init__(
@@ -891,23 +1063,34 @@ class MinerLiterature:
         curation,
         discovery=None,
         contract=None,
+        context=None,
+        focus_terms=None,
     ):
         if type(pack) is not SharedPack:
             raise TypeError("exact SharedPack required")
         if library is not None and type(library) is not MinerLibrary:
             raise TypeError("exact MinerLibrary required")
         self.curation = checked_curation(curation)
+        self.challenge_ref = focus.challenge_ref(challenge)
+        self.challenge = self.challenge_ref["id"]
         if private_snapshot_digest is None:
             private, evidence = [], {}
         else:
             if library is None:
                 raise ValueError("a private snapshot needs its library")
-            private, evidence = library.load_snapshot(private_snapshot_digest)
-        if discovery is None or contract is None:
-            found_discovery, found_contract = focus.public_context(challenge)
-            discovery = found_discovery if discovery is None else discovery
-            contract = found_contract if contract is None else contract
-        self.challenge = focus.challenge_id(challenge)
+            private, rows = library.load_snapshot(private_snapshot_digest)
+            evidence = evidence_for(rows, self.challenge_ref)
+        if context is not None:
+            if discovery is not None or contract is not None:
+                raise ValueError("pass a frozen context or discovery/contract")
+            self._context = focus.checked_context(context)
+        else:
+            if discovery is None or contract is None:
+                found_discovery, found_contract = focus.public_context(challenge)
+                discovery = found_discovery if discovery is None else discovery
+                contract = found_contract if contract is None else contract
+            self._context = focus.frozen_context(discovery, contract)
+        self.focus_terms = [list(phrase) for phrase in focus.focus_phrases(focus_terms)]
         self.pack_digest = pack.digest
         self.private_snapshot_digest = private_snapshot_digest
         self._view = _Served(
@@ -915,19 +1098,27 @@ class MinerLiterature:
             private,
             curation=self.curation,
             evidence=evidence,
-            discovery=discovery,
-            contract=contract,
+            discovery=self._context["discovery"],
+            contract=self._context["contract"],
+            phrases=tuple(tuple(phrase) for phrase in self.focus_terms),
         )
+
+    def context(self):
+        """The frozen public inputs of this view's ranking (`focus.frozen_context`):
+        pass it back as `context` to serve exactly the same view."""
+        return json.loads(canonical(self._context))
 
     def document(self):
         return {
             "schema": LITERATURE_SCHEMA,
-            "challenge": self.challenge,
+            "challenge": dict(self.challenge_ref),
             "pack_digest": self.pack_digest,
             "private_snapshot_digest": self.private_snapshot_digest,
             "curation_digest": self.curation["digest"],
             "focus_rule": focus.FOCUS_RULE,
             "focus_rule_digest": focus.rule_digest(),
+            "context_digest": digest(canonical(self._context)),
+            "focus_terms": [list(phrase) for phrase in self.focus_terms],
         }
 
     @property
@@ -935,12 +1126,14 @@ class MinerLiterature:
         return digest(canonical(self.document()))
 
     def record(self):
-        """What a campaign record pins about its literature."""
+        """What a campaign record pins about its literature, including the
+        frozen context that reproduces it."""
         origins = {name: 0 for name in ORIGINS}
         for card in self._view.cards.values():
             origins[card["origin"]] += 1
         return {
             **self.document(),
+            "context": self.context(),
             "literature_digest": self.digest,
             "served": len(self._view.cards),
             "served_by_origin": origins,
@@ -965,8 +1158,15 @@ class MinerLiterature:
         return None if card is None else dict(card)
 
     def pinned(self):
+        """The pins this view serves (a pin it does not serve is not one the
+        Planner can consider), each with its origin and UNCHECKED status."""
         return [
-            {"card_id": c["card_id"], "title": c["title"], "origin": c["origin"]}
+            {
+                "card_id": c["card_id"],
+                "title": c["title"],
+                "origin": c["origin"],
+                "check_status": c["check_status"],
+            }
             for c in self._view.pinned()
         ]
 

@@ -10,6 +10,7 @@ a frozen view by digest. No network, no model, no spend.
 
 from __future__ import annotations
 
+import base64
 import gzip
 import json
 import os
@@ -31,6 +32,8 @@ from carbon.development_session.profile import canonical, digest
 from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
 REPOSITORY = Path(__file__).resolve().parents[2]
+#: A Challenge reference with its version, as a campaign records it.
+BATTERY = {"id": BATTERY_CHALLENGE, "version": "1.0"}
 #: Set to the phase-2 snapshot file to check the shipped pack rebuilds from it.
 SNAPSHOT_ENV = "CARBON_GRAPHITE_P2_SNAPSHOT"
 
@@ -329,6 +332,62 @@ def test_the_literature_modules_import_no_internal_only_module(name):
     assert not imported & INTERNAL_ONLY
 
 
+#: Internal-only modules, plus the internal campaign controller and providers
+#: (which load the grant), that must not even be loaded.
+NEVER_LOADED = INTERNAL_ONLY | {"controller", "provider", "model"}
+_LOADED = """
+import importlib, json, sys, types
+if sys.argv[1] == "own":
+    # Stand in for the graphite package's __init__, which is not S2's: this
+    # measures what the literature modules themselves load.
+    package = types.ModuleType("carbon.agent_campaign.graphite")
+    package.__path__ = [sys.argv[2]]
+    sys.modules[package.__name__] = package
+for name in ("pack", "library", "hunt", "imports", "focus"):
+    importlib.import_module("carbon.agent_campaign.graphite.miner." + name)
+print(json.dumps(sorted(m for m in sys.modules if m.startswith("carbon."))))
+"""
+
+
+def _loaded(mode):
+    import subprocess
+    import sys
+
+    graphite = REPOSITORY / "carbon" / "agent_campaign" / "graphite"
+    result = subprocess.run(
+        [sys.executable, "-c", _LOADED, mode, str(graphite)],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=REPOSITORY,
+    )
+    loaded = json.loads(result.stdout.strip().splitlines()[-1])
+    return {
+        name.rsplit(".", 1)[-1]
+        for name in loaded
+        if name.startswith("carbon.agent_campaign.")
+    }
+
+
+def test_the_literature_modules_load_no_internal_only_module():
+    """At runtime, not only in their own import lines: what the literature
+    modules and everything they import load."""
+    assert not _loaded("own") & NEVER_LOADED
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason=(
+        "carbon/agent_campaign/graphite/__init__.py (not S2's) eagerly imports "
+        "provider, which loads grant, controller, ladder and next_level; handed "
+        "off to make it lazy. Remove this mark when it is."
+    ),
+)
+def test_importing_the_miner_literature_loads_no_internal_only_module():
+    assert not _loaded("package") & NEVER_LOADED
+
+
 def test_paper_keys_drop_the_version():
     assert pack.paper_key("2401.12345v2") == pack.paper_key("2401.12345v1")
     assert pack.paper_key("cond-mat/0601001v3") == "cond-mat-0601001"
@@ -508,7 +567,14 @@ def test_pins_are_flagged_for_the_planner(lib):
         private_snapshot_digest=None,
         curation=lib.curation(),
     )
-    assert [p["card_id"] for p in view.pinned()] == ["arxiv-2610.00003v1"]
+    assert view.pinned() == [
+        {
+            "card_id": "arxiv-2610.00003v1",
+            "title": "Synthetic graph colouring",
+            "origin": "shared",
+            "check_status": "UNCHECKED",
+        }
+    ]
     assert view.top(2)[0]["pinned"]
     assert view.lit_card({"card_id": "arxiv-2610.00003v1"})["assessment"]["pinned"]
 
@@ -675,17 +741,260 @@ def test_plans_are_stored_by_digest_with_their_lineage(lib):
 
 def test_outcomes_are_the_miners_own_counted_once(lib):
     cards = ["arxiv-2610.00001v1"]
-    lib.record_outcome(cards, True, {"practice_task": "t-1", "rank_delta": 1})
-    lib.record_outcome(cards, True, {"practice_task": "t-1", "rank_delta": 1})
-    lib.record_outcome(cards, False, {"practice_task": "t-2"})
-    assert lib.evidence() == {"arxiv-2610.00001v1": {"improved": 1, "not_improved": 1}}
-    for args, code in (
-        ((["arxiv-0000.00000v1"], True, {}), "card_not_found"),
-        ((cards, "yes", {}), "evidence_invalid"),
-        ((cards, True, {"hidden": "official_seed 7"}), "evidence_invalid"),
-        ((cards, True, ["not", "a", "dict"]), "evidence_invalid"),
-        (([], True, {}), "evidence_invalid"),
+    on = {"challenge": BATTERY}
+    lib.record_outcome(cards, True, {"practice_task": "t-1", "rank_delta": 1}, **on)
+    lib.record_outcome(cards, True, {"practice_task": "t-1", "rank_delta": 1}, **on)
+    lib.record_outcome(cards, False, {"practice_task": "t-2"}, **on)
+    assert lib.evidence(BATTERY) == {
+        "arxiv-2610.00001v1": {"improved": 1, "not_improved": 1}
+    }
+    for args, challenge, code in (
+        ((["arxiv-0000.00000v1"], True, {}), BATTERY, "card_not_found"),
+        ((cards, "yes", {}), BATTERY, "evidence_invalid"),
+        ((cards, True, {"hidden": "official_seed 7"}), BATTERY, "evidence_invalid"),
+        ((cards, True, ["not", "a", "dict"]), BATTERY, "evidence_invalid"),
+        (([], True, {}), BATTERY, "evidence_invalid"),
+        ((cards, True, {}), "an-unregistered-challenge", "evidence_invalid"),
+        ((cards, True, {}), None, "evidence_invalid"),
     ):
         with pytest.raises(LibraryError) as refused:
-            lib.record_outcome(*args)
+            lib.record_outcome(*args, challenge=challenge)
         assert refused.value.code == code
+
+
+def test_outcomes_on_one_challenge_never_steer_another(lib):
+    """Mutation (review): practice is bound to one Challenge and version; it
+    moves neither another Challenge's grades nor its learned queries."""
+    from carbon.agent_campaign.graphite.miner import focus, hunt
+
+    other = {"id": BATTERY_CHALLENGE, "version": "9.9"}
+    practised = "arxiv-2610.00003v1"
+    before = lib.search("", challenge=other, limit=50)
+    for task in ("t-1", "t-2", "t-3"):
+        lib.record_outcome(
+            [practised], True, {"practice_task": task}, challenge=BATTERY
+        )
+    assert lib.evidence(BATTERY)[practised] == {"improved": 3, "not_improved": 0}
+    assert lib.evidence(BATTERY_CHALLENGE) == lib.evidence(BATTERY)
+    assert lib.evidence(other) == {}
+    assert lib.search("", challenge=other, limit=50) == before
+    assert not any("miner practice" in r for row in before for r in row["reasons"])
+    rows = {r["card_id"]: r for r in lib.search("", challenge=BATTERY, limit=50)}
+    assert "miner practice: 3 plan(s) citing it improved, 0 did not" in (
+        rows[practised]["reasons"]
+    )
+    discovery = {"title": "Battery fast charge"}
+    assert "learned" in [
+        q["source"]
+        for q in hunt.plan_queries(lib, challenge=BATTERY, discovery=discovery)
+    ]
+    assert "learned" not in [
+        q["source"]
+        for q in hunt.plan_queries(lib, challenge=other, discovery=discovery)
+    ]
+    frozen = lib.snapshot()
+    for challenge, counted in ((BATTERY, True), (other, False)):
+        view = MinerLiterature(
+            lib.pack,
+            lib,
+            challenge=challenge,
+            private_snapshot_digest=frozen,
+            curation=None,
+            context=focus.frozen_context(*focus.public_context(BATTERY)),
+        )
+        reasons = view.lit_card({"card_id": practised})["assessment"]["reasons"]
+        assert any("miner practice" in r for r in reasons) is counted
+
+
+def test_the_literature_digest_freezes_everything_its_ranking_reads(lib):
+    """Mutation (review P2): the Challenge version, the public discovery
+    fields and contract the ranking reads, and the miner's focus terms are
+    all in `literature_digest`; a frozen context replays the same view."""
+    from carbon.agent_campaign.graphite.miner import focus
+
+    discovery, contract = focus.public_context(BATTERY)
+
+    def view(**changes):
+        kw = {
+            "challenge": BATTERY,
+            "private_snapshot_digest": None,
+            "curation": None,
+            "discovery": discovery,
+            "contract": contract,
+        }
+        kw.update(changes)
+        return MinerLiterature(lib.pack, lib, **kw)
+
+    base = view()
+    target = {"card_id": "arxiv-2610.00001v1"}
+    changed = json.loads(json.dumps(contract))
+    for item in changed["capabilities"]:
+        if item["id"] == "model_family.deeponet":
+            item["status"] = "research_only"
+    moved = view(contract=changed)
+    assert moved.lit_card(target)["assessment"] != base.lit_card(target)["assessment"]
+    assert moved.digest != base.digest
+    retitled = {**discovery, "title": "Plasma sheath dynamics"}
+    assert view(discovery=retitled).digest != base.digest
+    assert view(challenge={**BATTERY, "version": "9.9"}).digest != base.digest
+    assert view(focus_terms=["graph colouring"]).digest != base.digest
+    # Fields the rule does not read change nothing.
+    noise = {**discovery, "host": {"cpus": 1}, "exam": {"hidden": "turbulence"}}
+    assert view(discovery=noise).digest == base.digest
+    # The frozen context replays the same view, whatever Carbon holds later.
+    frozen = json.loads(json.dumps(base.record()["context"]))
+    replayed = MinerLiterature(
+        lib.pack,
+        lib,
+        challenge=BATTERY,
+        private_snapshot_digest=None,
+        curation=None,
+        context=frozen,
+    )
+    assert replayed.digest == base.digest
+    assert replayed.lit_card(target) == base.lit_card(target)
+    query = {"query": "battery DeepONet"}
+    assert replayed.lit_search(query) == base.lit_search(query)
+    with pytest.raises(ValueError):
+        view(context=frozen)
+    with pytest.raises(ValueError):
+        view(discovery=None, contract=None, context={**frozen, "extra": 1})
+    with pytest.raises(ValueError):
+        view(
+            discovery=None,
+            contract=None,
+            context={**frozen, "discovery": {**frozen["discovery"], "exam": 1}},
+        )
+
+
+def test_focus_terms_steer_the_campaign_ranking(lib):
+    plain = MinerLiterature(
+        lib.pack,
+        lib,
+        challenge=BATTERY,
+        private_snapshot_digest=None,
+        curation=None,
+    )
+    focused = MinerLiterature(
+        lib.pack,
+        lib,
+        challenge=BATTERY,
+        private_snapshot_digest=None,
+        curation=None,
+        focus_terms=["graph colouring"],
+    )
+    target = {"card_id": "arxiv-2610.00003v1"}
+    before = plain.lit_card(target)["assessment"]
+    after = focused.lit_card(target)["assessment"]
+    assert not any("miner focus" in r for r in before["reasons"])
+    assert "miner focus: names graph colouring" in after["reasons"]
+    # All three cards already grade 3 here; the focus term orders them.
+    assert plain.top(3)[0]["card_id"] != target["card_id"]
+    assert focused.top(3)[0]["card_id"] == target["card_id"]
+    assert focused.record()["focus_terms"] == [["graph", "colouring"]]
+    searched = {
+        row["card_id"]: row
+        for row in lib.search(
+            "", challenge=BATTERY, limit=50, focus_terms=["graph colouring"]
+        )
+    }
+    assert "miner focus: names graph colouring" in (
+        searched[target["card_id"]]["reasons"]
+    )
+    with pytest.raises(LibraryError) as refused:
+        lib.search("", challenge=BATTERY, focus_terms=['abs:"x"'])
+    assert refused.value.code == "search_invalid"
+
+
+def test_one_predicate_says_what_the_library_serves(lib, tmp_path):
+    """Mutation (review P4/P5): a card the campaign view never serves (shadowed
+    by the pack, or withheld at serve) cannot be read, pinned, banned or cited
+    in an outcome."""
+    shadow = hunted(lib, 7, arxiv="2610.00001v3")
+    for door in (lib.card, lib.pin, lib.ban):
+        with pytest.raises(LibraryError) as refused:
+            door(shadow)
+        assert refused.value.code == "card_not_found"
+    with pytest.raises(LibraryError) as refused:
+        lib.record_outcome([shadow], True, {"practice_task": "t"}, challenge=BATTERY)
+    assert refused.value.code == "card_not_found"
+    assert lib.served_card(shadow) is None
+    flagged = synthetic_pack(
+        cards=(*CARDS, index_card("arxiv-2610.00005v1", cost="a draw_id"))
+    )
+    other = MinerLibrary(tmp_path / "other-library", pack=flagged)
+    for door in (other.card, other.pin, other.ban):
+        with pytest.raises(LibraryError) as refused:
+            door("arxiv-2610.00005v1")
+        assert refused.value.code == "card_not_found"
+    assert other.served_card("arxiv-2610.00001v1")["origin"] == "shared"
+
+
+def test_a_pin_on_a_card_no_longer_served_can_be_undone(tmp_path):
+    root = tmp_path / "graphite-library"
+    first = MinerLibrary(root, pack=synthetic_pack())
+    private = hunted(first, 8, arxiv="2612.00001v1")
+    first.pin(private)
+    first.ban("arxiv-2610.00001v1")
+    # A later pack holds the paper: the private card is shadowed now.
+    later = MinerLibrary(
+        root, pack=synthetic_pack(cards=(*CARDS, index_card("arxiv-2612.00001v2")))
+    )
+    view = MinerLiterature(
+        later.pack,
+        later,
+        challenge=BATTERY,
+        private_snapshot_digest=later.snapshot(),
+        curation=later.curation(),
+    )
+    assert private not in [p["card_id"] for p in view.pinned()]
+    later.unpin(private)
+    assert later.curation()["pins"] == []
+    with pytest.raises(LibraryError):
+        later.pin(private)
+    later.unban("arxiv-2610.00001v1")
+    assert later.curation()["bans"] == []
+
+
+def test_a_torn_journal_line_never_blocks_the_library(lib):
+    lib.pin("arxiv-2610.00001v1")
+    journal = lib.root / "curation.jsonl"
+    torn = b'{"action":"ban","card_id":"arxiv-2610.0'
+    with journal.open("ab") as stream:
+        stream.write(torn)  # a crash mid-append
+    assert lib.curation()["pins"] == ["arxiv-2610.00001v1"]
+    lib.ban("arxiv-2610.00002v2")
+    assert lib.curation() == {
+        "pins": ["arxiv-2610.00001v1"],
+        "bans": ["arxiv-2610.00002v2"],
+        "digest": lib.curation()["digest"],
+    }
+    assert all(json.loads(line) for line in journal.read_bytes().splitlines())
+    sidecar = lib.root / "curation.jsonl.torn"
+    [kept] = [json.loads(line) for line in sidecar.read_bytes().splitlines()]
+    assert kept["journal"] == "curation.jsonl"
+    assert base64.b64decode(kept["bytes"]) == torn
+    assert stat.S_IMODE(sidecar.stat().st_mode) == 0o600
+    assert stat.S_IMODE(journal.stat().st_mode) == 0o600
+
+
+def test_a_claim_is_whole_or_absent(lib, monkeypatch):
+    key, request = "2610.00005", "sha256:" + "0" * 64
+
+    class Killed(BaseException):
+        pass
+
+    def killed(source, target):
+        raise Killed()  # the process dies before the claim lands
+
+    monkeypatch.setattr(lib_module.os, "link", killed)
+    with pytest.raises(Killed):
+        lib.claim(key, request_digest=request, hunt="h")
+    monkeypatch.undo()
+    assert lib.claim_state(key) is None
+    assert lib.claim(key, request_digest=request, hunt="h") is True
+    assert lib.claim(key, request_digest=request, hunt="other") is False
+    assert lib.claim_state(key)["claim"]["hunt"] == "h"
+    claims = lib.root / "claims"
+    assert [p.name for p in claims.iterdir()] == [key + ".claim"]
+    assert stat.S_IMODE((claims / (key + ".claim")).stat().st_mode) == 0o600

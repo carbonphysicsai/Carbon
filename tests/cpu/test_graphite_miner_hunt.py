@@ -174,6 +174,7 @@ def run(library, opener, reader, clock, tmp_path, **kw):
     kw.setdefault("discovery", {})
     kw.setdefault("queries", ["neural operator"])
     kw.setdefault("include_registered", False)
+    kw.setdefault("hunt_id", "campaign-1-epoch-1-research")
     kw.setdefault(
         "gate", hunt.ArxivGate(tmp_path / "gate", clock=clock, sleep=clock.sleep)
     )
@@ -200,6 +201,7 @@ def test_a_paper_the_pack_holds_is_never_read(library, clock, tmp_path):
     assert report["fetched"] == 2 and report["deduped"] == 1
     assert report["extracted"] == 1 and report["cards"] == ["arxiv-2610.00002v1"]
     assert report["reader_calls"] == 1 and report["arxiv_pages"] == 1
+    assert report["page_bound_queries"] == 0
     served = library.card("arxiv-2610.00002v1")
     assert served["origin"] == "miner_hunt" and served["check_status"] == "UNCHECKED"
     sent = json.loads(reader.requests[0]["input"][0]["content"])
@@ -246,6 +248,127 @@ def test_a_finished_hunt_replays_without_any_call(library, clock, tmp_path):
     opener, reader = Opener([], clock), Reader()
     assert run(library, opener, reader, clock, tmp_path, hunt_id="h") == report
     assert opener.urls == [] and reader.requests == []
+
+
+def test_every_hunt_names_an_explicit_id(library, clock, tmp_path):
+    """Mutation (review P1): no default id, so a later campaign with the same
+    hunt plan can never be handed an earlier campaign's report."""
+    gate = hunt.ArxivGate(tmp_path / "gate", clock=clock, sleep=clock.sleep)
+    with pytest.raises(TypeError):
+        hunt.run_hunt(
+            library,
+            challenge=BATTERY_CHALLENGE,
+            discovery={},
+            reader=Reader(),
+            arxiv_opener=Opener([], clock),
+            clock=clock,
+            gate=gate,
+        )
+    for bad in (None, "", "has space", "x" * 201, 7):
+        with pytest.raises(ValueError):
+            run(library, Opener([], clock), Reader(), clock, tmp_path, hunt_id=bad)
+
+
+def test_a_later_campaign_with_the_same_plan_hunts_again(library, clock, tmp_path):
+    run(
+        library,
+        Opener([feed(entry(2))], clock),
+        Reader(reply()),
+        clock,
+        tmp_path,
+        hunt_id="campaign-a-epoch-1-research",
+    )
+    opener, reader = Opener([feed(entry(2), entry(3))], clock), Reader(reply())
+    later = run(
+        library, opener, reader, clock, tmp_path, hunt_id="campaign-b-epoch-1-research"
+    )
+    assert len(opener.urls) == 1 and len(reader.requests) == 1
+    assert later["cards"] == ["arxiv-2610.00003v1"] and later["deduped"] == 1
+
+
+def test_a_finished_hunt_id_reused_with_another_hunt_is_refused(
+    library, clock, tmp_path
+):
+    """Mutation (review P6): the finished report is returned only for the
+    same hunt; another Challenge, query set or cap under the id is refused."""
+    report = run(
+        library, Opener([feed(entry(2))], clock), Reader(reply()), clock, tmp_path
+    )
+    for changes in (
+        {"challenge": "another-challenge"},
+        {"challenge": {"id": BATTERY_CHALLENGE, "version": "9.9"}},
+        {"queries": ["totally different"]},
+        {"queries": None},
+        {"max_records": 3},
+        {"include_registered": True},
+        {"selection": Selection()},
+    ):
+        with pytest.raises(ValueError, match="reused"):
+            run(library, Opener([], clock), Reader(), clock, tmp_path, **changes)
+    # The same hunt, even with another discovery document, replays its report.
+    assert (
+        run(
+            library,
+            Opener([], clock),
+            Reader(),
+            clock,
+            tmp_path,
+            discovery={"title": "Battery fast charge"},
+        )
+        == report
+    )
+
+
+def test_the_report_says_when_the_page_bound_cut_a_query_short(
+    library, clock, tmp_path
+):
+    opener = Opener([feed(entry(2), total=500)], clock)
+    report = run(
+        library,
+        opener,
+        Reader(reply()),
+        clock,
+        tmp_path,
+        page_size=1,
+        pages_per_query=1,
+    )
+    assert report["status"] == "COMPLETED" and report["extracted"] == 1
+    assert report["pages_per_query"] == 1 and report["page_bound_queries"] == 1
+
+
+def test_a_resumed_hunt_keeps_the_focus_it_started_with(library, clock, tmp_path):
+    battery_only = entry(
+        3, title="Battery ageing study", abstract="We measure capacity fade in cells."
+    )
+    discovery = {"title": "Battery fast charge"}
+    with pytest.raises(RuntimeError):
+        run(
+            library,
+            Opener([feed(entry(2), battery_only)], clock),
+            Reader(RuntimeError("crash")),
+            clock,
+            tmp_path,
+            discovery=discovery,
+        )
+    # Resumed after the public document changed: the stored focus still
+    # keeps the battery-only paper, so the resume decides as the start would.
+    resumed = Reader(reply(), reply())
+    report = run(
+        library, Opener([feed()], clock), resumed, clock, tmp_path, discovery={}
+    )
+    assert len(resumed.requests) == 2 and report["extracted"] == 2
+    fresh = Reader()
+    other = run(
+        library,
+        Opener(
+            [feed(entry(4, title="Battery cells", abstract="Capacity fade."))], clock
+        ),
+        fresh,
+        clock,
+        tmp_path,
+        hunt_id="campaign-2-epoch-1-research",
+    )
+    assert fresh.requests == [] and other["triaged_out"] == 1
 
 
 def test_a_hunt_resumes_after_a_crash_without_refetching_or_repaying(
@@ -537,6 +660,26 @@ def test_imports_are_read_first_into_miner_import_cards(library, clock, tmp_path
     assert origins == {"shared": 1, "miner_hunt": 1, "miner_import": 1}
 
 
+def test_an_import_left_in_flight_by_another_stage_shows_outcome_unknown(
+    library, clock, tmp_path
+):
+    queued = library.import_text("Notes", "Operator learning notes.")
+    assert library.pending_imports()[0]["state"] == "queued"
+    with pytest.raises(RuntimeError):
+        hunt.extract_imports(library, reader=Reader(RuntimeError("died in flight")))
+    assert library.pending_imports()[0]["state"] == "outcome_unknown"
+    reader = Reader()
+    report = run(library, Opener([feed()], clock), reader, clock, tmp_path)
+    # Another stage never resends a call whose outcome is unknown ...
+    assert reader.requests == [] and report["imports"]["extracted"] == 0
+    assert [(r["import_id"], r["state"]) for r in library.pending_imports()] == [
+        (queued, "outcome_unknown")
+    ]
+    # ... and the stage that started it resends only the identical request.
+    summary = hunt.extract_imports(library, reader=Reader(reply()))
+    assert summary["extracted"] == 1 and library.pending_imports() == []
+
+
 def test_an_import_whose_card_names_protected_material_is_withheld(library):
     queued = library.import_text("Notes", "Operator learning notes.")
     summary = hunt.extract_imports(library, reader=Reader(reply(cost="a draw_id")))
@@ -614,12 +757,22 @@ def test_a_hunt_with_a_selection_records_it_on_each_card(library, clock, tmp_pat
 
 
 def test_the_hunt_plan_orders_miner_learned_discovery_registered(library):
-    library.record_outcome([f"arxiv-{PACK_PAPER}v1"], True, {"practice": "p-1"})
+    library.record_outcome(
+        [f"arxiv-{PACK_PAPER}v1"],
+        True,
+        {"practice": "p-1"},
+        challenge=BATTERY_CHALLENGE,
+    )
     discovery = {
         "title": "Battery fast charge",
         "models": {"rebuildable": [{"selector": "deeponet"}]},
     }
-    plan = hunt.plan_queries(library, discovery=discovery, queries=["my query"])
+    plan = hunt.plan_queries(
+        library,
+        challenge=BATTERY_CHALLENGE,
+        discovery=discovery,
+        queries=["my query"],
+    )
     sources = [q["source"] for q in plan]
     assert sources[0] == "miner" and sources[1] == "learned"
     assert sources.index("discovery") < sources.index("registered")
@@ -629,6 +782,14 @@ def test_the_hunt_plan_orders_miner_learned_discovery_registered(library):
         literature_fetch.Query(
             query["query_id"], query["search_query"], query["purpose"]
         )
+    # Practice on one Challenge never seeds another Challenge's hunt.
+    other = hunt.plan_queries(
+        library,
+        challenge={"id": BATTERY_CHALLENGE, "version": "9.9"},
+        discovery=discovery,
+        queries=["my query"],
+    )
+    assert "learned" not in [q["source"] for q in other]
 
 
 def test_a_launch_hunt_block_is_validated():
