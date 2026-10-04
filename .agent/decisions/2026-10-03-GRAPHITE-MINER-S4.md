@@ -33,7 +33,19 @@ No scientific value, threshold or gate is set or changed here.
    - A field with another agent is refused
      `graphite_fields_need_the_graphite_agent`. A field the mode does not read
      is refused `graphite_field_not_used_by_mode`: a share outside FULL, a plan
-     outside BUILD, a hunt where no Planner runs (BUILD with a plan).
+     outside BUILD, and a hunt in BUILD, with or without a plan. S3 runs a
+     hunt only before RESEARCH's and FULL's Planner and its `launch_fields`
+     refuses one in BUILD, so admission refuses it first rather than letting
+     a created campaign fail its preparation. Queued imports are therefore
+     read by the next launch that hunts. If S3 later runs a hunt before a
+     BUILD's own Planner, this rule relaxes with it.
+   - A Graphite field sent as null means what leaving it out means. The
+     request gate drops null Graphite fields before anything is digested, so
+     the browser (which keeps nulls) and MCP (which strips them) send one
+     launch with one identity, whichever agent it names. The fields are new,
+     so no recorded launch's identity changes.
+   - A plan is named by its digest as the library and S3 name it,
+     `sha256:` and 64 hex digits; anything else is `plan_not_found`.
    - Shapes: a share in [0, 1], never a boolean or NaN; up to 8 hunt queries
      of 1 to 6 terms of `[A-Za-z0-9-]` (raw query syntax is refused
      `hunt_query_invalid`); `max_records` 1 to 10000; limits only
@@ -50,9 +62,17 @@ No scientific value, threshold or gate is set or changed here.
      (`graphite_not_offered_for_challenge`).
    - The shared card pack loads (`literature_pack_missing`).
    - The miner's library opens (`library_unavailable`).
-   - A BUILD plan exists in the library (`plan_not_found`) and passes S3's
-     plan rule against the current pins and bans (`plan_invalid`, with the
-     rule's own closed reason in the next step).
+   - A BUILD plan exists in the library (`plan_not_found`), is the launch's
+     own Challenge's (`plan_invalid`, reason `plan_for_another_challenge`),
+     and passes S3's plan rule against the current pins and bans
+     (`plan_invalid`, with the rule's own closed reason in the next step).
+     S3's preparation checks the same again; admission refuses first so no
+     campaign is created only to fail.
+   - S2's library refuses by a typed `LibraryError` carrying a closed code.
+     The doors answer `card_not_found`, `card_banned`, `plan_not_found`,
+     `plan_invalid` and `import_invalid` by that code, and S2's
+     `search_invalid` as `library_query_invalid`; any other library failure
+     is `library_unavailable`, never its text.
 4. **The curation digest is captured at admission.** It is recorded beside the
    request, in the launch record under `graphite_admission`. That key is never
    a request field (the closed-request gate refuses it), so it never joins the
@@ -61,13 +81,21 @@ No scientific value, threshold or gate is set or changed here.
    judged again against pins and bans changed since. Only the plan's existence
    is checked again.
 5. **What the campaign receives (the S3 interface).** On creation only,
-   `LaunchChoice.apply` sets `args.graphite` = `{edition, mode,
-   research_share, plan_digest, hunt: {queries, max_records} | None, limits,
-   curation_digest}`. The edition is `carbon.graphite.miner-edition.v1`. On
-   every run, resume and operation of a Graphite campaign, `args.graphite_library`
-   is the library's path. It is never frozen, since a path is private and may
-   move. Other campaigns' args are as they were. `args.agent_policy` stays the
-   autonomous policy for every campaign, as before.
+   `LaunchChoice.apply` sets `args.graphite` to exactly the names S3's
+   `edition.launch_fields` reads - `{mode, research_share, plan, hunt:
+   {queries, max_records} | None, limits}` - and, beside it,
+   `args.graphite_curation_digest`, the curation digest admission captured.
+   The edition is the campaign's to name (S3 freezes its own published
+   edition and digest). S3 should freeze the curation recorded under that
+   digest (`MinerLibrary.curation_state`), so a queued launch runs with the
+   pins and bans its miner launched with; until it does, it freezes the
+   library's curation at preparation. On every run, resume and operation of
+   a Graphite campaign, `args.graphite_library` is the library's path. It is
+   never frozen, since a path is private and may move. The library root is
+   absolute: the profile path a host is built on is already absolute and
+   resolved, and the root is made absolute regardless. Other campaigns' args
+   are as they were. `args.agent_policy` stays the autonomous policy for
+   every campaign, as before; S3's preparation accepts it for Graphite.
 6. **The Library is eleven rows of the one operations table.**
    - Reads `library_search`, `library_card`, `library_list`, `plan_list` and
      `plan_get` run the gates request and profile.
@@ -90,7 +118,9 @@ No scientific value, threshold or gate is set or changed here.
    campaign operation's row leaves it NULL. A retry replays the answer; the
    same key with another request is `operation_replay_conflict`. A failed
    write frees its key. A claim still being written answers
-   `operation_not_completed`.
+   `operation_not_completed`. The host's lock is held only while a key is
+   claimed and while its answer is kept, never across the write: S2's
+   library serialises its own writes, and a write may read the whole pack.
 9. **The door filters what it serves**, whatever the library answers:
    - only a card's own fields (`runner.CARD_FIELDS`), its origin, `pinned`,
      and a search's score and reasons;
@@ -105,19 +135,29 @@ No scientific value, threshold or gate is set or changed here.
    A pin of a banned card is refused `card_banned`. `plan_edit` stamps
    `created_by: miner`, needs its parent in the library, and runs the plan
    rule.
-10. **Progress in observe and the campaign view** comes from three sources:
-    - The frozen plan's `provider.graphite` block gives the mode, plan digest
-      and share.
-    - The ledger gives the stage, in S1's namespace: `research-epoch-N-<stage>`
-      and `epoch-N-<stage>-provider|tool-NNN`. An unstaged epoch call counts
-      as `build`, and a hunt's Reader calls are `graphite-hunt-*`.
-    - The driver's hunt report, `<root>/graphite/hunt-report.json`, gives the
-      hunt.
+10. **Progress in observe and the campaign view** is S3's own view of its
+    records, never a second reading of them under other names:
+    - The frozen plan's `provider.graphite` block gives the edition and mode;
+      the research share is shown for FULL only, the one mode that applies
+      it.
+    - S3's `driver.view(root, operations=...)` gives the stages with their
+      state and closed code, the current stage (`complete` once done), the
+      plan digest - the miner's chosen plan, or the one the campaign's
+      Planner wrote - and what the research stages (the Reader's
+      `graphite-reader-*` calls and the Planner's `epoch-1-plan-*` calls)
+      spent against the cap the share sets.
+    - The hunt's counts come from S3's hunt stage record
+      (`<root>/graphite/stages/hunt.json`, S2's report), and its Reader calls
+      and their cost live from the ledger. S2's `failed_infra` flag is shown
+      as a count, 0 or 1.
+    - Without S3's view (an unreadable record) only the frozen block's values
+      show, and the stage and spend are unknown (null), never invented.
 
-    Research spend is what every stage except `construct`, `constructor` and
-    `build` booked: settled where settled, reserved otherwise. Stage
-    subfolders `epoch-N/<stage>/` are never read as an epoch's own outcome or
-    candidate. The projection labels a Graphite campaign `carbon-graphite`.
+    Stage subfolders `epoch-N/<stage>/` are never read as an epoch's own
+    outcome or candidate. The projection labels a Graphite campaign
+    `carbon-graphite`. Library search results also carry S2's buildability
+    flags (`plan_input`, `capability_request_candidate`); plans list newest
+    first with S2's timestamp text; an import's size is S2's `chars`.
 11. **Setup** offers `carbon-graphite`, the miner's own agent and Hermes. A
     new `carbon-autonomous` choice is refused `autonomous_agent_replaced` with
     a step naming carbon-graphite. A setup that recorded it keeps it, and its
@@ -140,9 +180,34 @@ No scientific value, threshold or gate is set or changed here.
       recorded autonomous launch carried out from its record.
     - Stage 7 of the journey launches Graphite.
 
+15. **The journey's stage 8 runs Graphite end to end** through the launch
+    door, over the real S1 to S3 code where it is present: the preparation
+    fixture freezes Graphite's block as S3's preparation does
+    (`driver.freeze_launch`), Reader calls are counted by S3's ledger
+    identity, the compaction is recognised by the engine's own note and its
+    `-compact-` identity and its summary by its `SUMMARY` label, the FULL
+    stop by its stage code, and the limits scenario runs until the miner's
+    own ceiling stops it. Each scenario ran green over the 2026-10-03 heads
+    of S1 to S3, with four S2/S3 seams bridged outside the repository (see
+    the slice report); 8d needs none.
+
+**The OWNER-LAUNCHPAD-PROD-02 smoke test.** Item 12 approves one live smoke
+test before Graphite's remaining phase-3 runs: a single-epoch autonomous
+Launchpad campaign. After this slice a new autonomous Launchpad launch is
+refused at both doors. The smoke test therefore runs on the Launchpad
+wiring head this slice is stacked on (`claude/lp-prod-wiring`, 9bfd9add, or
+its merged successor) before the Graphite miner stack lands. Running it
+instead as a single-epoch Graphite BUILD campaign would change what the
+owner approved, so that substitution is the owner's to make, not this
+slice's.
+
 **Not decided here.**
 - The driver's own records are S3's. S4 reads them as item 10 states and
   shows nothing it cannot read.
+- How a session ends at the miner's own ceiling is the engine's and the
+  driver's (S1, S3). Today the campaign ledger refuses past a ceiling with a
+  bare error, which interrupts the campaign; S4 adds a catalog step for the
+  typed stop it proposes (`miner_ceiling_reached`).
 - Contributing cards back to the shared pack, and PDF import, are deferred
   by the owner decision.
 

@@ -25,20 +25,27 @@ production work (LP-PROD-A to G), each through the doors a miner uses:
 7. closing the Control Center pauses, never stops; restarting it flags no
    idle campaign; resume survives a profile change that does not matter.
 8. Graphite, the agent miners run (OWNER-GRAPHITE-MINER-01): a RESEARCH
-   campaign hunts (a paper already in the pack is never read again), reads,
-   and writes a plan citing the miner's own card, practising nothing (8a);
-   the miner pins, bans and edits the plan through both doors, and a banned
-   card is not served (8b); a BUILD campaign constructs from the edited
-   plan, practises, selects the practised recipe and submits through the
-   intake, frozen by plan and curation digests, and a resume calls nothing
-   (8c); a FULL campaign's research stops at its share and the build goes on
-   (8d); with no per-epoch cap a campaign runs past 48 calls, bounded by its
-   ceiling, and a long run compacts once, recorded, and replays exactly (8e).
+   campaign hunts (a paper already in the pack is never read again: one
+   Reader call, by its ledger identity), reads, and writes a plan citing the
+   miner's own card, practising nothing, and the view shows that plan (8a);
+   the miner pins, bans and edits the plan through both doors - an edit at
+   each - and a banned card is neither served nor citable (8b); a BUILD
+   campaign constructs from the edited plan, practises, selects the
+   practised recipe and submits through the intake, frozen by plan and
+   curation digests, and a resume calls nothing (8c); a FULL campaign's
+   research stops typed at its share (`research_share_reached`) after the
+   calls the share admits, and the build goes on (8d); with no per-epoch cap
+   a campaign runs past 48 calls until the miner's own ceiling stops it,
+   and a long run compacts once - a metered call, its summary labelled -
+   and replays exactly (8e).
 
 Stages 4 and 5 run Carbon's autonomous agent as campaigns launched before
 Graphite replaced it still run it: from their record (`recorded_launch`).
 Stage 8 needs Graphite's miner edition (S1 to S3); it is skipped until that
-is present.
+is present. Run over S1 to S3's heads of 2026-10-03, 8d passes as it is;
+8a, 8b, 8c and 8e also need the S2/S3 seams the S4 report names (the hunt's
+id, the Reader's prompt, `record_outcome`'s Challenge, and the miner's
+ceiling as a typed stop).
 
 No paid call is made. Real here: the MCP SDK client and the stdio servers
 (`standard_cli`), the campaign host (`RunnerAdapter`, the operations table and
@@ -755,12 +762,25 @@ def battery_prepare(patch, *, miner_key=None):
         if path.exists():
             manifest = json.loads(path.read_bytes())
         else:
-            # A Graphite launch's frozen choice reaches the plan as the real
-            # preparation passes it (S3), where the builder takes it.
+            # A Graphite launch's choice is frozen as the real preparation
+            # freezes it (S3's `prepare_battery`): its launch fields and the
+            # miner's library read once (`driver.freeze_launch`), the block
+            # that gives passed to the plan builder.
             frozen = {}
             parameters = inspect.signature(battery.manifest_document).parameters
-            if "graphite" in parameters and getattr(args, "graphite", None):
-                frozen["graphite"] = args.graphite
+            if "graphite" in parameters and args.product.agent == "graphite":
+                from carbon.agent_campaign.graphite.miner.driver import (
+                    freeze_launch,
+                )
+
+                frozen["graphite"] = freeze_launch(
+                    args,
+                    args.root,
+                    challenge={
+                        "id": CHALLENGE.challenge_id,
+                        "version": CHALLENGE.version,
+                    },
+                )
             manifest = battery.manifest_document(
                 args.product,
                 owner=owner,
@@ -1727,44 +1747,60 @@ EXTRACTION = {
 }
 
 
-def closed_reply(request):
-    """A call offered no tools: the Reader's extraction, a triage verdict or
-    a compaction summary, recognised from its instructions."""
-    text = json.dumps(request.get("instructions", "")).lower()
-    if "compact" in text or "summar" in text:
-        return message(
-            {
-                "findings": ["the kNN recipe practised; neighbours=6"],
-                "open_hypotheses": ["wider neighbourhoods"],
-                "best_recipes": [KNN],
-                "constraints": ["select only a practised recipe"],
-            }
-        )
-    if "triage" in text:
-        return message({"relevant": True, "grade": 3, "reasons": ["fits the task"]})
-    return message(EXTRACTION)
+#: The model's own summary when the engine asks it to compact its context
+#: (S1's `COMPACTION_FIELDS`, every field text).
+COMPACTION_SUMMARY = {
+    "findings": "lit_card found no card under the id tried; nothing practised yet",
+    "open_hypotheses": "neighbours interpolate the protocol-to-ageing map",
+    "best_recipes": json.dumps(KNN),
+    "constraints": "select only a practised recipe",
+    "next_steps": "practise the kNN recipe",
+}
+
+
+def compaction_asked(request):
+    """Whether the engine's last note asks for a compaction (S1's
+    `COMPACTION_V1`): its compaction request ends with that user note."""
+    items = request.get("input") or []
+    last = items[-1] if items else {}
+    content = last.get("content") if type(last) is dict else None
+    return (
+        type(last) is dict
+        and last.get("role") == "user"
+        and type(content) is str
+        and content.startswith(("Carbon context compaction", "Carbon: no valid"))
+    )
 
 
 class GraphiteModel:
     """DEVELOPMENT FIXTURE: the miner's model, scripted by role. Each request
-    is kept as sent; a closed call (no tools) is answered by `closed_reply`;
-    a Planner turn (its finish tool is offered) or a Constructor turn
-    (SELECT is offered) by that role's script, in order. A script item is a
-    reply, a callable of the request, or an exception the transport raises."""
+    is kept as sent. A closed call (no tools) is the Reader's, answered with
+    the extraction; a compaction request (the engine's note asking for one)
+    is answered with `COMPACTION_SUMMARY`; a Planner turn (its finish tool is
+    offered) or a Constructor turn (SELECT is offered) by that role's script,
+    in order. A script item is a reply, a callable of the request, or an
+    exception the transport raises."""
 
     def __init__(self, *, planner=(), constructor=()):
         self.scripts = {"planner": list(planner), "constructor": list(constructor)}
-        self.requests = {"closed": [], "planner": [], "constructor": []}
+        self.requests = {"closed": [], "compaction": [], "planner": [], "constructor": []}
+        #: What a scripted reply raised: the provider layer settles it as an
+        #: unknown outcome, so a test shows it here rather than guessing.
+        self.errors = []
 
     def __call__(self, request):
         from carbon.development_session.profile import canonical
+        from carbon.development_session.research_agent_policy import COMPACT
         from carbon.development_session.research_loop import SELECT
 
         kept = json.loads(canonical(request))
         names = {t.get("name") for t in request.get("tools") or [] if type(t) is dict}
         if not names:
             self.requests["closed"].append(kept)
-            return closed_reply(request)
+            return message(EXTRACTION)
+        if COMPACT in names and compaction_asked(request):
+            self.requests["compaction"].append(kept)
+            return reply(call("compact", COMPACT, COMPACTION_SUMMARY))
         role = "planner" if PLAN_TOOL in names else "constructor"
         assert role == "planner" or SELECT in names, sorted(names)
         self.requests[role].append(kept)
@@ -1773,15 +1809,24 @@ class GraphiteModel:
         item = script.pop(0)
         if isinstance(item, BaseException):
             raise item
-        return item(kept) if callable(item) else item
+        if not callable(item):
+            return item
+        try:
+            return item(kept)
+        except Exception as failure:
+            self.errors.append(role + ": " + repr(failure))
+            raise
 
     @property
     def reader_calls(self):
-        return [
-            r
-            for r in self.requests["closed"]
-            if "extract" in json.dumps(r.get("input", "")).lower()
-        ]
+        """The Reader's calls: the closed calls (no tools). A test also counts
+        them by the ledger identity S3 meters them under (`graphite-reader-*`)."""
+        return list(self.requests["closed"])
+
+
+def nothing_called(model):
+    """Whether the scripted model was asked nothing at all."""
+    return not any(model.requests.values())
 
 
 def cards_answered(request):
@@ -1810,18 +1855,34 @@ def miner_card(request):
 
 
 def plan_citing(card, *, recipe=None):
+    """The Planner's `graphite_record_plan` arguments (S3's finish tool)."""
     return {
         "hypotheses": [
             {
                 "hypothesis": "Neighbours interpolate the protocol-to-ageing map",
                 "expected_effect": "lower practice error than the control",
                 "stopping_rule": "stop after two practices without improvement",
-                **({"recipe": recipe} if recipe is not None else {}),
+                "recipe_json": None if recipe is None else json.dumps(recipe),
                 "cites": [{"card_id": card["card_id"], "origin": card["origin"]}],
             }
         ],
         "pins_considered": [],
     }
+
+
+#: A capability request the Planner files for a family the contract lacks
+#: (`research_workspace.CAPABILITY_FIELDS`).
+GP_REQUEST = {
+    "purpose": "Practise a Gaussian-process surrogate family on battery",
+    "operation": "add a Gaussian-process model family to the research tools",
+    "hypothesis": "a GP interpolates sparse protocols with calibrated error",
+    "public_evidence": "the public discovery document lists no GP family",
+    "reason": "missing_adapter",
+    "expected_benefit": "a comparison point for the neighbour surrogate",
+    "estimated_cost": "one adapter, CPU only",
+    "minimal_safe_design": "the existing practice runner with one new family",
+    "verification": "practice on the public cases",
+}
 
 
 class GraphiteLaunchpad(BatteryLaunchpad):
@@ -1852,22 +1913,26 @@ class GraphiteLaunchpad(BatteryLaunchpad):
 
         monkeypatch.setattr(driver, "run", run)
 
-    def launch_graphite(self, key, *, attempts=24, **fields):
+    def launch_graphite(self, key, *, attempts=24, epochs=None, **fields):
+        """A Graphite launch through the shared operation, on the miner's
+        own ceilings: `attempts` provider attempts (and their reservation's
+        worth of money), four practice trials and, when given, `epochs`
+        committed final epochs."""
         from carbon.battery.challenge import CHALLENGE
         from carbon.development_session.research_agent import RESERVATION_NANO
 
+        ceilings = {
+            "provider_attempts": attempts,
+            "provider_nanodollars": attempts * RESERVATION_NANO,
+            "research_trials": 4,
+            **({} if epochs is None else {"epochs": epochs}),
+        }
         body = {
             "challenge": CHALLENGE.challenge_id,
             "challenge_version": CHALLENGE.version,
             "agent": "graphite",
             "idempotency_key": key,
-            "budget": {
-                "ceilings": {
-                    "provider_attempts": attempts,
-                    "provider_nanodollars": attempts * RESERVATION_NANO,
-                    "research_trials": 4,
-                }
-            },
+            "budget": {"ceilings": ceilings},
             **fields,
         }
         campaign = self.perform("launch", body)["id"]
@@ -1922,10 +1987,7 @@ def researched(graphite):
                     *task(
                         "workspace",
                         action="capability_request",
-                        arguments={
-                            "purpose": "a Gaussian-process family",
-                            "reason": "missing_family",
-                        },
+                        arguments={"request": GP_REQUEST},
                         why="A family the contract lacks",
                     ),
                 ),
@@ -1946,33 +2008,50 @@ def researched(graphite):
 def test_8a_a_research_campaign_hunts_reads_once_and_plans(graphite):
     campaign = researched(graphite)
     model = graphite.model
-    assert graphite.arxiv.requests  # the hunt asked arXiv (on no network)
-    # The paper the pack holds was never read again: one extraction only.
-    assert len(model.reader_calls) == 1
+    # The hunt asked arXiv (on no network).
+    assert graphite.arxiv.requests, graphite.view(campaign)["last_refusal"]
+    # The paper the pack holds was never read again: one Reader call, metered
+    # under S3's Reader identity, for the new paper only.
+    ledger, owner = graphite.ledger(campaign), graphite.owner(campaign)
+    operations = ledger.status(owner=owner)["operations"]
+    read = [op["id"] for op in operations if op["id"].startswith("graphite-reader-")]
+    assert len(read) == 1 and len(model.reader_calls) == 1, model.errors
     assert NEW_PAPER["title"] in json.dumps(model.reader_calls[0])
-    # The parallel turn ran in the model's order.
+    # The parallel turn ran in the model's order: the literature, a design
+    # check and a capability request, each answered.
     answered = outputs(model.requests["planner"][1])
     assert list(answered) == ["a", "b", "c"]
+    assert answered["c"]["terminal_task"]["state"] == "SUCCEEDED", answered["c"]
     # The plan cites the miner's own card, and is in their library.
     plans = graphite.perform("plan_list", {})["plans"]
-    assert [p["created_by"] for p in plans] == ["planner"]
+    assert [p["created_by"] for p in plans] == ["planner"], (
+        model.errors,
+        outputs(model.requests["planner"][-1]).get("d"),
+    )
     plan = graphite.perform("plan_get", {"plan": plans[0]["digest"]})["plan"]
     (cited,) = plan["hypotheses"][0]["cites"]
     assert cited["origin"] == "miner_hunt"
     card = graphite.perform("library_card", {"card_id": cited["card_id"]})["card"]
     assert (card["origin"], card["check_status"]) == ("miner_hunt", "UNCHECKED")
     # Research only: nothing practised, selected or submitted; complete.
-    ledger, owner = graphite.ledger(campaign), graphite.owner(campaign)
     assert ledger.status(owner=owner)["used"]["research_trials"] == 0
     root = graphite.campaign_root(campaign)
     assert not list(root.glob("epoch-*/selected-recipe.json"))
     view = graphite.view(campaign)
     assert view["state"] == "COMPLETED", view["last_refusal"]
     assert view["journey"]["submitted_epochs"] == []
+    # The view shows the plan this campaign's Planner wrote, its stages and
+    # what its research spent: the Reader's call and the Planner's two.
     shown = graphite.graphite_view(campaign)
-    assert shown["mode"] == "RESEARCH" and shown["plan_digest"] is None
+    assert shown["mode"] == "RESEARCH" and shown["stage"] == "complete"
+    assert shown["plan_digest"] == plans[0]["digest"]
+    assert [(s["stage"], s["state"]) for s in shown["stages"]] == [
+        ("hunt", "DONE"),
+        ("plan", "DONE"),
+    ]
     assert (shown["hunt"]["deduped"], shown["hunt"]["extracted"]) == (1, 1)
-    assert shown["research_spent"]["provider_attempts"] >= 3
+    assert shown["hunt"]["reader_calls"] == 1
+    assert shown["research_spent"]["provider_attempts"] == 3
 
 
 def edited(graphite):
@@ -2002,14 +2081,18 @@ def edited(graphite):
         "library_search", {"query": "surrogate", "challenge": BATTERY, "card_limit": 50}
     )
     assert banned not in {c["card_id"] for c in found["cards"]}
-    # The miner's edit: the pin considered, and a second hypothesis.
+    # The miner's edit, in the stored plan's own shape (as plan_get gave it):
+    # the pin considered, and a second ranked hypothesis citing it.
     document = {
         **plan,
         "parent": plan_digest,
-        "pins_considered": [pinned],
+        "pins_considered": [
+            {"card_id": pinned, "consideration": "worth one comparison practice"}
+        ],
         "hypotheses": [
             *plan["hypotheses"],
             {
+                "rank": len(plan["hypotheses"]) + 1,
                 "hypothesis": "A pinned method is worth one practice",
                 "expected_effect": "a comparison point",
                 "stopping_rule": "one practice",
@@ -2022,21 +2105,65 @@ def edited(graphite):
     )
     assert status == 200, body
     assert (body["parent"], body["created_by"]) == (plan_digest, "miner")
-    return body["digest"], plan
+    # A second edit through the MCP door, of the first: one more version.
+    first = body["digest"]
+    second = {
+        **document,
+        "parent": first,
+        "hypotheses": [
+            *document["hypotheses"][:-1],
+            {**document["hypotheses"][-1], "stopping_rule": "two practices"},
+        ],
+    }
+    result = asyncio.run(
+        tools["carbon_plan_edit"].fn(plan_document=json.dumps(second))
+    )
+    assert (result.payload["parent"], result.payload["created_by"]) == (
+        first,
+        "miner",
+    )
+    # A plan citing a banned card is refused at the MCP door as at the other.
+    banned_cite = {
+        **second,
+        "hypotheses": [
+            {
+                **second["hypotheses"][0],
+                "cites": [{"card_id": banned, "origin": "shared"}],
+            },
+            *second["hypotheses"][1:],
+        ],
+    }
+    with pytest.raises(ToolError, match="plan_invalid"):
+        asyncio.run(tools["carbon_plan_edit"].fn(plan_document=banned_cite))
+    return result.payload["digest"], plan, (plan_digest, first)
 
 
 def test_8b_the_miner_pins_bans_and_edits_through_both_doors(graphite):
-    digest, original = edited(graphite)
+    digest, original, (planned, first) = edited(graphite)
     plans = {p["digest"]: p for p in graphite.perform("plan_list", {})["plans"]}
-    assert plans[digest]["created_by"] == "miner"
+    # Each edit is a new version; the Planner's plan and the first edit are
+    # kept beside the last, newest first.
+    assert list(plans) == [digest, first, planned]
+    assert [plans[d]["parent"] for d in (digest, first, planned)] == [
+        first,
+        planned,
+        None,
+    ]
+    assert [plans[d]["created_by"] for d in (digest, first, planned)] == [
+        "miner",
+        "miner",
+        "planner",
+    ]
     saved = graphite.perform("plan_get", {"plan": digest})["plan"]
     assert saved["created_by"] == "miner"
-    # The edit is a new version: the planner's plan is kept beside it, and
-    # the edit carries its hypotheses and the pin it considered.
-    assert len(plans) == 2
+    # The edit carries the Planner's hypothesis, the miner's own and the pin
+    # it considered.
     assert saved["hypotheses"][0] == original["hypotheses"][0]
     assert len(saved["hypotheses"]) == len(original["hypotheses"]) + 1
-    assert saved["pins_considered"]
+    assert saved["hypotheses"][-1]["stopping_rule"] == "two practices"
+    assert [p["card_id"] for p in saved["pins_considered"]] == [
+        graphite.perform("library_list", {})["curation"]["pins"][0]
+    ]
 
 
 @pytest.fixture
@@ -2069,7 +2196,7 @@ def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
     from carbon.development_session.research_loop import SELECT
 
     graphite = intake_graphite
-    digest, original = edited(graphite)
+    digest, original, _versions = edited(graphite)
     cited = original["hypotheses"][0]["cites"][0]["card_id"]
     curation = graphite.perform("library_list", {})["curation"]["digest"]
     select = {"strategy_json": json.dumps(KNN), "used_feedback": False}
@@ -2088,12 +2215,14 @@ def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
     open_pool(made, refs)
     with serving(made) as live:
         graphite.cfg = {**graphite.cfg, "intakes": {BATTERY: live.url}}
+        # One committed final epoch: the build selects once and completes.
         campaign = graphite.launch_graphite(
-            "e2e-graphite-build-0001", graphite_mode="BUILD", plan=digest
+            "e2e-graphite-build-0001", epochs=1, graphite_mode="BUILD", plan=digest
         )
     model = graphite.model
     assert not model.requests["planner"] and not model.reader_calls
-    assert graphite.arxiv.requests == []  # a BUILD with a plan hunts nothing
+    assert len(model.requests["constructor"]) == 2 and model.errors == []
+    assert graphite.arxiv.requests == []  # a BUILD hunts nothing
     answered = outputs(model.requests["constructor"][1])
     assert answered["b"]["terminal_task"]["state"] == "SUCCEEDED"
     # The card the plan cites is the miner's own, served as such.
@@ -2104,18 +2233,23 @@ def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
     selected = json.loads((root / "epoch-1" / "selected-recipe.json").read_bytes())
     assert selected["strategy"] == KNN
     view = graphite.view(campaign)
+    assert view["state"] == "COMPLETED", view["last_refusal"]
     assert view["journey"]["submitted_epochs"] == [1], view["last_refusal"]
     assert view["final_results"][0]["status"] == "VALIDATOR_OUTCOME"
+    # The plan and the curation the miner launched with are frozen by digest.
     manifest = json.loads((root / "campaign-manifest.json").read_bytes())
     block = manifest["provider"]["graphite"]
     assert (block["mode"], block["plan_digest"]) == ("BUILD", digest)
     assert block["curation_digest"] == curation
     assert block["escalation"] == []
+    shown = graphite.graphite_view(campaign)
+    assert (shown["plan_digest"], shown["stage"]) == (digest, "complete")
+    assert [(s["stage"], s["state"]) for s in shown["stages"]] == [("build", "DONE")]
     # A resume replays: no model call, no arXiv request.
     graphite.model, graphite.arxiv = GraphiteModel(), FakeArxiv([])
     graphite.host.control(campaign, "resume")
     graphite.join()
-    assert graphite.model.requests == {"closed": [], "planner": [], "constructor": []}
+    assert nothing_called(graphite.model)
     assert graphite.arxiv.requests == []
 
 
@@ -2145,74 +2279,128 @@ def test_8d_a_full_campaigns_research_stops_at_its_share(graphite):
             ),
         ],
     )
+    # One committed final epoch: no second build epoch is scripted.
     campaign = graphite.launch_graphite(
-        "e2e-graphite-full-00001", attempts=24, research_share=0.1
+        "e2e-graphite-full-00001", attempts=24, epochs=1, research_share=0.1
     )
+    model = graphite.model
     shown = graphite.graphite_view(campaign)
     assert shown["mode"] == "FULL" and shown["research_share"] == 0.1
-    # 10% of 24 attempts: at most two research calls were admitted.
-    assert shown["research_spent"]["provider_attempts"] <= 2
-    assert len(graphite.model.requests["planner"]) <= 2
-    notes = graphite.ledger(campaign).status(owner=graphite.owner(campaign))["notes"]
-    assert "research_share_reached" in json.dumps(notes)
-    assert graphite.model.requests["constructor"]  # the build went on
+    # 10% of 24 attempts is 2: the Planner made two calls, both research,
+    # and its third was refused before it was reserved or sent.
+    assert shown["research_cap"]["provider_attempts"] == 2
+    assert shown["research_spent"]["provider_attempts"] == 2
+    assert len(model.requests["planner"]) == 2 and model.errors == []
+    # The research stage stopped typed, by its closed code.
+    stages = {s["stage"]: s for s in shown["stages"]}
+    assert (stages["plan"]["state"], stages["plan"]["code"]) == (
+        "STOPPED",
+        "research_share_reached",
+    )
+    # The build went on, with no plan (the Planner was cut): it practised and
+    # selected; this host names no validator, so the candidate is kept for a
+    # later submit (`evaluation_unavailable`), never reported as submitted.
+    assert len(model.requests["constructor"]) == 2
     root = graphite.campaign_root(campaign)
     assert (root / "epoch-1" / "selected-recipe.json").exists()
+    view = graphite.view(campaign)
+    assert view["last_refusal"]["code"] == "evaluation_unavailable"
+    assert view["journey"]["submitted_epochs"] == []
+
+
+#: An unknown card id: `lit_card` answers it with a short refusal, so a long
+#: scripted run grows its context slowly and on purpose.
+NO_CARD = "arxiv-0000.00000v1"
+
+
+def shared_plan(graphite):
+    """A plan the miner wrote through the plan door, citing a card of the
+    shared pack: a BUILD needs no hunt for it."""
+    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
+
+    from carbon.battery.challenge import CHALLENGE
+
+    card = load_shared_pack().cards[0]
+    document = {
+        "schema": "carbon.graphite.miner-plan.v1",
+        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "hypotheses": [
+            {
+                "rank": 1,
+                "hypothesis": "Neighbours interpolate the protocol-to-ageing map",
+                "expected_effect": "lower practice error than the control",
+                "stopping_rule": "stop when the ceiling binds",
+                "recipe": KNN,
+                "cites": [{"card_id": card["card_id"], "origin": "shared"}],
+            }
+        ],
+        "pins_considered": [],
+        "parent": None,
+        "created_by": "miner",
+    }
+    return graphite.perform("plan_edit", {"plan_document": document})["digest"]
+
+
+def summaries(request):
+    """The compaction summaries a request carries, by their label."""
+    found = []
+    for item in request["input"]:
+        content = item.get("content") if item.get("role") == "user" else None
+        if type(content) is not str or "carbon_context_compaction" not in content:
+            continue
+        found.append(json.loads(content)["carbon_context_compaction"])
+    return found
 
 
 def test_8e_limits_are_money_and_time_and_a_long_run_compacts_once(graphite):
-    from carbon.development_session.research_loop import SELECT
-    from carbon.development_session.research_tools import PREFIX
-
-    digest, _original = edited(graphite)
-    cheap = [reply(call(f"r{i}", PREFIX + "get_challenge_info", {})) for i in range(52)]
+    digest = shared_plan(graphite)
+    # More turns than the campaign's 80 provider attempts admit, none of them
+    # a selection: what ends the run is the miner's own ceiling.
+    cheap = [reply(call(f"r{i}", "lit_card", {"card_id": NO_CARD})) for i in range(100)]
     # One reply reports a context near the selection's admission ceiling:
-    # the next request is the recorded compaction, then the run continues.
-    cheap[20] = reply(call("big", PREFIX + "get_challenge_info", {}), output_tokens=100)
-    cheap[20]["usage"]["input_tokens"] = 60000
-    graphite.model = GraphiteModel(
-        constructor=[
-            *cheap,
-            reply(call("b", *task("practice", strategy=KNN, why="Practice"))),
-            reply(
-                call(
-                    "c",
-                    SELECT,
-                    {
-                        "strategy_json": json.dumps(KNN),
-                        "used_feedback": False,
-                        "reason": "practised",
-                    },
-                )
-            ),
-        ]
-    )
+    # before the next turn the engine asks for the recorded compaction.
+    cheap[20]["usage"]["input_tokens"] = 53000
+    graphite.model = GraphiteModel(constructor=cheap)
     graphite.arxiv = FakeArxiv([])
     campaign = graphite.launch_graphite(
-        "e2e-graphite-limits-001", attempts=80, graphite_mode="BUILD", plan=digest
+        "e2e-graphite-limits-001",
+        attempts=80,
+        epochs=1,
+        graphite_mode="BUILD",
+        plan=digest,
     )
     model = graphite.model
-    # No per-epoch cap was set: past the historical 48, bounded only by the
-    # campaign's own ceiling.
-    assert len(model.requests["constructor"]) > 48
-    used = graphite.ledger(campaign).status(owner=graphite.owner(campaign))["used"]
-    assert 48 < used["provider_attempts"] <= 80
-    # Compacted once, as a recorded call, and labelled as a summary.
-    compactions = [
-        r
-        for r in model.requests["closed"]
-        if "compact" in json.dumps(r.get("instructions", "")).lower()
-    ]
-    assert len(compactions) == 1
-    after = model.requests["constructor"][21]
-    assert "summary" in json.dumps(after).lower()
-    root = graphite.campaign_root(campaign)
-    assert (root / "epoch-1" / "selected-recipe.json").exists()
+    assert model.errors == []
+    # No per-epoch cap was set: past the historical 48 calls, until the
+    # campaign's own ceiling - 80 attempts, the compaction call among them.
+    ledger, owner = graphite.ledger(campaign), graphite.owner(campaign)
+    status = ledger.status(owner=owner)
+    assert status["used"]["provider_attempts"] == 80
+    assert len(model.requests["constructor"]) == 79
+    outcome = json.loads(
+        (graphite.campaign_root(campaign) / "epoch-1" / "outcome.json").read_bytes()
+    )
+    assert outcome["status"] == "STOPPED", outcome
+    assert "provider_attempts" in json.dumps(outcome), outcome
+    # Compacted once, as a metered and journalled call of its own...
+    # (before turn 21, counted from 0: the one after the large reply)...
+    compacted = [op["id"] for op in status["operations"] if "-compact-" in op["id"]]
+    assert compacted == ["epoch-1-compact-021"]
+    assert len(model.requests["compaction"]) == 1
+    # ...after which every request carries the model's own summary, labelled
+    # as its summary, in place of the turns that left the context.
+    before, after = model.requests["constructor"][20], model.requests["constructor"][21]
+    assert summaries(before) == []
+    (summary,) = summaries(after)
+    assert summary["label"] == "SUMMARY"
+    assert summary["summary"]["findings"] == COMPACTION_SUMMARY["findings"]
+    assert all(len(summaries(r)) == 1 for r in model.requests["constructor"][21:])
+    assert graphite.view(campaign)["state"] == "COMPLETED"
     # Replay is exact: a resume calls nothing.
     graphite.model = GraphiteModel()
     graphite.host.control(campaign, "resume")
     graphite.join()
-    assert graphite.model.requests == {"closed": [], "planner": [], "constructor": []}
+    assert nothing_called(graphite.model)
 
 
 # --- entry points of the processes above --------------------------------------
