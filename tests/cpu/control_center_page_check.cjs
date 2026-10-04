@@ -477,18 +477,19 @@ scenario("a campaign without last_refusal shows no refusal", async () => {
   clean(page);
 });
 
-// ---- 5. The controller's recovery in reach whenever the state needs it. ----
+// ---- 5. Reconcile in reach whenever the state needs it. ----
 // The page offers what the controller publishes (slice C's `recovery`), and
 // each state's documents are the controller's own for that state
 // (fx.recovering: the observe row with `supervisor.recovery_actions`, and the
 // campaign view built for that state by the real campaign-view code), so a
-// state is never paired with another state's recovery.
+// state is never paired with another state's recovery. The controller offers
+// Reconcile for each of these states (the lead's W3 contract; review repair).
 const LABELS = {reconcile: "Reconcile", resume: "Resume", stop: "Stop"};
 for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED"]) {
-  scenario("the controller's recovery is on the Live tab, with why, for " + stateName, async () => {
+  scenario("Reconcile is on the Live tab, with why, for " + stateName, async () => {
     const real = fx.recovering[stateName];
     const offered = real.view.recovery.map(item => item.action);
-    assert.ok(offered.length, "the controller offers recovery for " + stateName);
+    assert.ok(offered.includes("reconcile"), "the controller offers Reconcile for " + stateName + ": " + offered);
     assert.deepEqual(real.run.recovery, real.view.recovery, "the list row and the view agree");
     const state = launchable(world());
     const run = copy(real.run);
@@ -498,20 +499,24 @@ for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUES
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
     const now = "#campaign-detail [data-part=now]";
-    // Each action the controller offers is first among the Live tab's
-    // controls, ready, and the way forward (Stop aside) is the primary one.
+    // Each action the controller offers is among the Live tab's controls,
+    // ready, and the ways forward (Stop aside) are primary.
     for (const action of offered) {
       const button = one(page, now + " [data-action=" + action + "]");
       assert.equal(button.disabled, false, action);
       assert.equal(button.classList.contains("primary"), action !== "stop", action);
     }
-    // Reconcile is on the Live tab exactly when the controller asks for it.
-    assert.equal(all(page, now + " [data-action=reconcile]").length, offered.includes("reconcile") ? 1 : 0);
+    // Reconcile is there, once, ready.
+    assert.equal(all(page, now + " [data-action=reconcile]").length, 1);
+    const button = one(page, now + " [data-action=reconcile]");
+    assert.equal(button.disabled, false);
+    // Why, naming the way forward and Reconcile.
     const attention = page.text(one(page, "#campaign-detail [data-part=attention]"));
     assert.match(attention, /Needs attention/);
     assert.ok(attention.includes(LABELS[offered[0]]), "why names the way forward: " + attention);
-    await page.press(one(page, now + " [data-action=" + offered[0] + "]"));
-    assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/" + offered[0]));
+    assert.match(attention, /Reconcile/, "why says what Reconcile is for: " + attention);
+    await page.press(button);
+    assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
     clean(page);
   });
 }

@@ -12,9 +12,10 @@ page to that, through its own scripts, without a browser:
   current choices under the same key, and can be discarded;
 - a refusal is shown with what to do, and a submit is "submitted" only once
   the campaign's record shows it admitted;
-- the controller's own recovery actions are in reach whenever the state
-  needs them, with why, each state over its own controller documents (and
-  Reconcile, read from the state, for a controller that publishes none);
+- the controller's own recovery actions, Reconcile among them, are in reach
+  whenever the state needs them, with why, each state over its own
+  controller documents (and Reconcile, read from the state, for a controller
+  that publishes none);
 - practice, freeze and submit keep one key until the answer or the record
   shows how they ended, never into the next epoch; an edited retry is a new
   request, said so; a held one can be discarded; the Tools tab reports

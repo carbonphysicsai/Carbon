@@ -103,8 +103,8 @@
   // The same states, said as the controller's own recovery actions say them.
   const RECOVERY_OFFERED = {
     QUEUED: "Admitted, and nothing is carrying it out. Resume dispatches it again from its record; Stop ends it.",
-    PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Resume cancels the pause; Stop ends the campaign.",
-    INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Stop ends it.",
+    PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Resume cancels the pause; if the step has ended and it stays here, Reconcile settles the pause; Stop ends the campaign.",
+    INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Reconcile checks again what it holds and settles it; Stop ends it.",
     RECONCILIATION_REQUIRED: RECOVERY.RECONCILIATION_REQUIRED,
   };
   const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile"};

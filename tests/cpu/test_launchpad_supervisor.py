@@ -346,7 +346,15 @@ def test_a_restart_settles_a_dead_run_with_the_real_cleanup_check(journey):
     supervisor.supervisor.tick()
     view = supervisor.get(identity)
     assert view["state"] == "INTERRUPTED"
-    assert view["recovery"] == [RESUME, STOP]
+    # Resume is the way forward; Reconcile is offered too (review repair).
+    assert view["recovery"] == [RESUME, RECONCILE, STOP]
+    assert not (root / "campaign-manifest.json").exists()
+    # Reconcile checks again what is held and settles the campaign as it
+    # stands: nothing was outstanding, so it stays INTERRUPTED, and nothing
+    # is dispatched or prepared.
+    before = dispatches(supervisor)
+    assert supervisor.control(identity, "reconcile")["state"] == "INTERRUPTED"
+    assert dispatches(supervisor) == before
     assert not (root / "campaign-manifest.json").exists()
 
 
@@ -432,7 +440,7 @@ def test_a_launch_interrupted_again_waits_for_its_miner(journey):
     view = supervisor.get(identity)
     assert view["state"] == "INTERRUPTED"
     assert view["last_refusal"]["code"] == "campaign_interrupted"
-    assert view["recovery"] == [RESUME, STOP]
+    assert view["recovery"] == [RESUME, RECONCILE, STOP]
     assert [d["outcome"] for d in dispatches(supervisor)] == [
         "interrupted",
         "interrupted",
@@ -567,11 +575,36 @@ def test_a_held_campaign_keeps_the_request_and_resume_stays_available(journey):
         assert view["state"] == "PAUSE_REQUESTED"
         resume = {c["action"]: c for c in controls(view, fixture=False)}["resume"]
         assert resume["available"] is True  # disabled before 2026-10-03
-        assert view["recovery"] == [RESUME, STOP]
+        assert view["recovery"] == [RESUME, RECONCILE, STOP]
     # The holder went away without settling it: resume cancels the pause.
     host.control(identity, "resume")
     join(host)
     assert host.get(identity)["state"] == "READY"
+
+
+def test_reconcile_settles_a_pause_its_holder_left_unsettled(journey):
+    """Review repair: Reconcile is offered for PAUSE_REQUESTED. While the
+    holder lives it is refused `campaign_busy` and changes nothing; once the
+    holder has gone without settling the pause (its process died, and no
+    supervisor has recovered it yet), Reconcile settles it PAUSED - the pause
+    the miner asked for, not a resume - and nothing is dispatched."""
+    host = journey.host
+    identity = launch(host)["id"]
+    join(host)
+    root = campaign_root(host, identity)
+    with owner_lock(root):  # an attached agent holds it
+        assert host.control(identity, "pause")["state"] == "PAUSE_REQUESTED"
+        with pytest.raises(Rejected, match="campaign_busy"):
+            host.control(identity, "reconcile")
+        assert host.get(identity)["state"] == "PAUSE_REQUESTED"
+    view = host.get(identity)
+    assert view["state"] == "PAUSE_REQUESTED"
+    assert RECONCILE in view["recovery"]
+    before = dispatches(host)
+    settled = host.control(identity, "reconcile")
+    assert settled["state"] == "PAUSED"
+    assert settled["recovery"] == [RESUME, STOP]
+    assert dispatches(host) == before
 
 
 def test_reconcile_on_a_held_campaign_is_refused_by_name(journey):
@@ -1172,7 +1205,15 @@ def test_the_view_publishes_only_the_closed_shapes():
     # Nothing resumes a retired-grant or retired-Challenge campaign, so it is
     # offered only what can succeed (review nit: it was offered resume).
     assert supervision.recovery_actions("PAUSED", resumable=False) == [STOP]
-    assert supervision.recovery_actions("INTERRUPTED", resumable=False) == [STOP]
+    assert supervision.recovery_actions("INTERRUPTED", resumable=False) == [
+        RECONCILE,
+        STOP,
+    ]
+    # Reconcile after resume, before stop, wherever the state may hold
+    # something to settle (review repair: the lead's W3 contract).
+    for state in ("INTERRUPTED", "PAUSE_REQUESTED"):
+        assert supervision.recovery_actions(state) == [RESUME, RECONCILE, STOP]
+    assert supervision.recovery_actions("PAUSED") == [RESUME, STOP]
     assert supervision.recovery_actions("RECONCILIATION_REQUIRED", resumable=False) == [
         RECONCILE,
         STOP,

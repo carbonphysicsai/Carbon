@@ -843,12 +843,23 @@ def recovery_actions(state, in_flight=None, *, resumable=True):
 
     `resumable` is False for a campaign nothing resumes - one launched under
     the retired grant, or on a retired Challenge - whose resume is always
-    refused: it is offered only what can succeed (stop, reconcile)."""
+    refused: it is offered only what can succeed (stop, reconcile).
+
+    Reconcile is offered for INTERRUPTED and PAUSE_REQUESTED too, after
+    resume, as the lead's W3 contract states (review repair): it never
+    resends anything. On an INTERRUPTED campaign it checks again what is
+    held and settles it as it stands. A PAUSE_REQUESTED whose holder has
+    gone without settling it (its process died, and no supervisor has
+    recovered it yet) is settled PAUSED; while a holder lives, Reconcile
+    answers `campaign_busy` and changes nothing."""
     resume = [{"action": "resume", "operation": "resume"}] if resumable else []
+    reconcile = {"action": "reconcile", "operation": "halt"}
     stop = {"action": "stop", "operation": "halt"}
     if state == "RECONCILIATION_REQUIRED":
-        return [{"action": "reconcile", "operation": "halt"}, stop]
-    if state in ("INTERRUPTED", "PAUSED", "PAUSE_REQUESTED"):
+        return [reconcile, stop]
+    if state in ("INTERRUPTED", "PAUSE_REQUESTED"):
+        return [*resume, reconcile, stop]
+    if state == "PAUSED":
         return [*resume, stop]
     if state == "QUEUED" and in_flight is None:
         # Admitted and nothing carrying it out: resume dispatches it again.
