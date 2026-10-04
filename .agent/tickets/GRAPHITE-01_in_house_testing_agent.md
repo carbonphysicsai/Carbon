@@ -758,6 +758,30 @@ Other changes:
     the exact argument set of the three tools.
   - Files: `graphite/roles.py`, `graphite/provider.py`, `graphite/phase3.py`,
     `development_session/research_agent_policy.py`.
+- **GRAPHITE-D34, the Constructor's whole context window, a 600 s timeout,
+  and phase 3 on `engy-chat`** (owner, 2026-10-04: "max it out"; recorded in
+  `.agent/decisions/2026-10-04-GRAPHITE-D34.md`).
+  - Live session 2 (`graphite-d90a8ccfd603cf6a`) stopped `context_ceiling`
+    after 2 calls: every Graphite session ran at `DEFAULT_SETTINGS`, whose
+    admission ceiling is 61,440 tokens, and turn 1's five results (about
+    69 KB) after a reported 10,607-token turn passed it.
+  - The Constructor now opens with its model's whole published context, up
+    to `select`'s 1,048,576 (`roles.MODEL_SETTINGS`, from
+    `roles.ENGY_CONTEXT_TOKENS`, Engy's list read 2026-10-04), and a 600 s
+    timeout. Output stays 2,048 tokens and reasoning `low`. A model with no
+    recorded context is refused before anything opens. Other roles keep
+    `DEFAULT_SETTINGS`.
+  - Phase 3 opens its sessions on `engy-chat` (`phase3.ADAPTER`): Engy's
+    Messages endpoint reports no `x_engy.charged_micro`, so every call on
+    `engy-anthropic` kept its full reservation.
+  - Prospective: a recorded session resumes with the selection its record
+    froze, so a session opened before this change replays byte-identically.
+  - At full reservation the 1.95 token share holds 41 calls on the first
+    rung and 10 on `glm-5.2`; a `kimi-k3` call (USD 2.0647) cannot be
+    admitted. On `engy-chat` calls settle at their reported charge. See the
+    grants README.
+  - Files: `graphite/roles.py`, `graphite/provider.py`, `graphite/phase3.py`,
+    the phase-3 grant README.
 
 **Running phase 3 live** (the later session; the grant expires 2026-12-31):
 

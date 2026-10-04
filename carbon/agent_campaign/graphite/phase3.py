@@ -70,7 +70,17 @@ turn returns three tool calls at once, as live session 1's model did, so the
 parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 (LP-PROD-A) all three run, and the dry run reports how many calls of
 several-call turns ran and how many did not. It also reports the session's
-limits: no model-call cap, the run's money cap and its elapsed limit.
+limits: no model-call cap, the run's money cap and its elapsed limit; and the
+Constructor's model selection (GRAPHITE-D34): adapter, model, input window,
+admission ceiling, output cap, timeout and per-call reservation.
+
+**Model access** (GRAPHITE-D34, 2026-10-04). A new session opens on
+`engy-chat` (`ADAPTER`): Engy's Chat Completions replies report each call's
+charge (`x_engy.charged_micro`), which settles it; its Messages endpoint
+reports none, so a call there keeps its full reservation. The Constructor's
+input window is its model's whole published context, with a 600 s timeout
+(`roles.MODEL_SETTINGS`). A session recorded before resumes with the
+selection its record froze.
 
 **Session limits** (OWNER-GRAPHITE-MINER-01 §6, 2026-10-03). A new session
 runs under `provider.SESSION_LIMITS_V2`: no session-turn cap (the 150 of
@@ -100,7 +110,9 @@ from decimal import Decimal
 from pathlib import Path
 
 from carbon.development_session.data import write_once
+from carbon.development_session.model_provider import selection_from_record
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_loop import parallel_call_counts, run_epoch
 
@@ -145,6 +157,13 @@ WORKSPACE = "graphite-phase3-workspace"
 CREDENTIAL_REF = "graphite-phase3-engy"
 PROFILE_SCHEMA = "carbon.graphite.phase3.permission-profile.v1"
 _TERMINAL = ("succeeded", "failed", "cancelled")
+#: The Engy adapter a new phase-3 session opens on (GRAPHITE-D34; owner,
+#: 2026-10-04: "perfect. I approve what comes back"). Engy's Chat Completions
+#: replies carry `x_engy.charged_micro`, which settles each call; its Messages
+#: endpoint returns no `x_engy` block (measured 2026-09-27, battery v2
+#: finding 7), so every call of live sessions 1 and 2 on `engy-anthropic` kept
+#: its full reservation. A recorded session keeps the adapter it opened on.
+ADAPTER = "engy-chat"
 
 
 # -- the Constructor's tools ---------------------------------------------------------------
@@ -301,6 +320,7 @@ class Phase3Provider(GraphiteProvider):
         scorer=None,
         repository=REPOSITORY,
         randomness=os.urandom,
+        adapter_id=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
@@ -310,7 +330,13 @@ class Phase3Provider(GraphiteProvider):
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
         super().__init__(
-            root=root, grant=grant, model=model, miner_tools=miner_tools, **kwargs
+            root=root,
+            grant=grant,
+            model=model,
+            miner_tools=miner_tools,
+            # New sessions open on engy-chat (GRAPHITE-D34).
+            adapter_id=ADAPTER if adapter_id is None else adapter_id,
+            **kwargs,
         )
         self.pods, self.miner_attach = pods, miner_attach
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
@@ -867,6 +893,29 @@ def model_call_cap(limits):
     return limits["loop_limits"]["calls_per_epoch"]
 
 
+def model_window(provider, run_id):
+    """What a session's recorded model selection admits (GRAPHITE-D34): its
+    adapter and model, the input window and the admission ceiling the loop
+    holds every request under, the output cap, the provider timeout and the
+    most one call reserves."""
+    selection = selection_from_record(
+        provider._opened(run_id)["model"],
+        credential_file=provider.model.credential_reference,
+    )
+    settings, reservation = selection.settings, selection.reservation_nano
+    return {
+        "provider_id": selection.provider_id,
+        "model": selection.model_id,
+        "max_input_tokens": settings.max_input_tokens,
+        "admission_ceiling_tokens": settings.max_input_tokens - CONTEXT_RESERVE_TOKENS,
+        "max_output_tokens": settings.max_output_tokens,
+        "timeout_seconds": settings.timeout_seconds,
+        "reservation_usd": (
+            None if reservation is None else str(Decimal(reservation) / NANO_PER_USD)
+        ),
+    }
+
+
 def _read(path):
     return json.loads(path.read_bytes()) if path.exists() else None
 
@@ -1265,6 +1314,9 @@ def dry_run(root, literature=None):
         "model_call_cap": model_call_cap(limits),
         "money_cap_usd": str(Decimal(limits["money_cap_nanodollars"]) / NANO_PER_USD),
         "elapsed_limit_s": limits["elapsed_seconds"],
+        # The Constructor's selection, as the session record froze it
+        # (GRAPHITE-D34): window, admission ceiling, timeout and reservation.
+        "constructor_model": model_window(provider, result["run_id"]),
     }
     print(json.dumps(result, indent=1, default=str))
     return 0 if result["provider_state"] == "succeeded" else 4

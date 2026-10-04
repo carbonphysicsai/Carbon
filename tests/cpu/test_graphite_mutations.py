@@ -100,6 +100,14 @@ MUTATIONS = {
         lambda m: m.setattr(gp, "PARALLEL_RULES", {}),
         lambda tmp: tb.test_several_tool_calls_in_one_turn_all_run_for_every_role(tmp),
     ),
+    # A Constructor session opens with its model's whole context (GRAPHITE-D34);
+    # without the rule it runs at DEFAULT_SETTINGS' 65,536 tokens.
+    "constructor_context_window": (
+        lambda m: m.setattr(gp, "MODEL_SETTINGS", {}),
+        lambda tmp: tb.test_a_constructor_opens_with_its_models_whole_context_and_a_reader_does_not(
+            tmp
+        ),
+    ),
 }
 
 

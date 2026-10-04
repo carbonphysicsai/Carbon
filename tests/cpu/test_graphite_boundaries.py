@@ -40,13 +40,21 @@ from carbon.agent_campaign.graphite.model import (
 )
 from carbon.agent_campaign.graphite.provider import GraphiteProvider, SessionBrief
 from carbon.agent_campaign.graphite.roles import (
+    ENGY_CONTEXT_OBSERVED,
+    ENGY_CONTEXT_SOURCE,
+    ENGY_CONTEXT_TOKENS,
+    MODEL_SETTINGS,
     ROLES,
     TOOL_REGISTRY,
     GraphiteRole,
     RoleName,
 )
 from carbon.agent_campaign.provider import ProviderUnavailable
-from carbon.development_session.model_provider import ENGY_LADDER, select
+from carbon.development_session.model_provider import (
+    DEFAULT_SETTINGS,
+    ENGY_LADDER,
+    select,
+)
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import COMPACT
 from carbon.development_session.research_loop import SELECT
@@ -408,6 +416,35 @@ def test_a_constructor_turn_with_several_tool_calls_runs_every_call(tmp_path):
         if item.get("type") == "function_call_output"
     ]
     assert "REFUSED_NOT_RUN" not in answered and len(answered) == 2
+
+
+def test_a_constructor_opens_with_its_models_whole_context_and_a_reader_does_not(
+    tmp_path,
+):
+    """GRAPHITE-D34 (owner, 2026-10-04: "max it out"): a Constructor session
+    opens with its model's whole published context and a 600 s timeout; a
+    role `MODEL_SETTINGS` does not name keeps `DEFAULT_SETTINGS`."""
+    constructor, run_id = started(
+        tmp_path / "constructor", ScriptedModel([]), role=RoleName.CONSTRUCTOR
+    )
+    assert constructor.session_record(run_id)["model"]["settings"] == {
+        "max_input_tokens": 1048576,
+        "max_output_tokens": 2048,
+        "reasoning_effort": "low",
+        "timeout_seconds": 600,
+    }
+    reader, run_id = started(tmp_path / "reader", ScriptedModel([]))
+    assert reader.session_record(run_id)["model"]["settings"] == (
+        DEFAULT_SETTINGS.record()
+    )
+    assert set(MODEL_SETTINGS) == {RoleName.CONSTRUCTOR}
+    # The context table is Engy's published list for exactly the ladder.
+    assert tuple(ENGY_CONTEXT_TOKENS) == ENGY_LADDER
+    assert set(MODEL_SETTINGS[RoleName.CONSTRUCTOR]) == set(ENGY_LADDER)
+    assert (ENGY_CONTEXT_SOURCE, ENGY_CONTEXT_OBSERVED) == (
+        "https://api.engy.ai/v1/models",
+        "2026-10-04",
+    )
 
 
 def test_a_session_brief_is_typed():

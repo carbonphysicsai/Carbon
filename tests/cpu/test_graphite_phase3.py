@@ -17,6 +17,10 @@ Claims tested, all with a scripted model, a scripted pod account and no spend:
   Constructor up exactly one rung;
 - a turn with several tool calls runs every call in order, each journalled,
   with no consecutive-turn stop (LP-PROD-A, superseding GRAPHITE-D33);
+- the Constructor opens with its model's whole context, a 600 s timeout and
+  on engy-chat, where each call settles from Engy's reported charge; live
+  session 2's turns are admitted; a session recorded before replays
+  byte-identically (GRAPHITE-D34);
 - the pod phase reproduces Carbon's pinned build or refuses to run; the code
   ship matches pod_control's manifest; the live RunPod backend drives the
   compute layer; the miner path speaks the standard adapter; the runner
@@ -28,12 +32,14 @@ scientific, security or production qualification.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import sys
 from decimal import Decimal
 from pathlib import Path
 
+import graphite_phase3_fixtures as p3f
 import pytest
 from graphite_fixtures import RecordingMinerTools
 from graphite_phase3_fixtures import (
@@ -60,24 +66,36 @@ from carbon.agent_campaign.controller import SimulatedCrash
 from carbon.agent_campaign.grant import GrantError, SpendingGrant
 from carbon.agent_campaign.graphite import delivery, miner_path, phase3, pod_phase, pods
 from carbon.agent_campaign.graphite import experiment as ex
+from carbon.agent_campaign.graphite import provider as gp
 from carbon.agent_campaign.graphite import tools as gt
 from carbon.agent_campaign.graphite.model import ScriptedModel, tools
 from carbon.agent_campaign.graphite.provider import SESSION_LIMITS_V1
 from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
+    ENGY_CONTEXT_TOKENS,
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
+    SELECT_MAX_INPUT_TOKENS,
     RoleName,
 )
-from carbon.agent_campaign.provider import ProviderUnavailable
-from carbon.development_session.model_provider import ENGY_LADDER
+from carbon.agent_campaign.provider import ProviderUnavailable, TaskSpec
+from carbon.development_session.model_provider import (
+    DEFAULT_SETTINGS,
+    ENGY_LADDER,
+    ModelSelectionRefused,
+    SelectionTransport,
+    select,
+)
+from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import CONTEXT_RESERVE_TOKENS
 from carbon.development_session.research_agent_policy import (
     COMPACT,
     PARALLEL_CALLS_V2,
     every_call_per_turn,
 )
+from carbon.development_session.research_loop import CONTEXT_CEILING
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -329,9 +347,10 @@ def test_a_pytorch_recipe_is_rebuildable_but_not_served_by_these_pods(tmp_path):
 
 # -- caps ------------------------------------------------------------------------------------
 def test_tokens_plus_pods_share_one_run_cap(tmp_path):
-    """worst_case_run_cost 3.00: pods 2.96, tokens 0.04. Two pods settle at
-    1.375 each (2.75); a third (0.2464) fits without the tokens (2.9964) and
-    not with them, so the run's model spend is what refuses it."""
+    """worst_case_run_cost 3.20: pods 2.96, tokens 0.24, which hold the
+    Constructor's whole-context reservations (GRAPHITE-D34). Two pods settle
+    at 1.475 each (2.95); a third (0.2464) fits without the tokens (3.1964)
+    and not with them, so the run's model spend is what refuses it."""
     script = [
         propose(variant(width=128)),
         propose(variant(width=96)),
@@ -339,8 +358,8 @@ def test_tokens_plus_pods_share_one_run_cap(tmp_path):
     ]
     account = ScriptedPods(
         steps=[
-            Step(outputs=pods.synthetic_outputs(1.0), charge="1.375"),
-            Step(outputs=pods.synthetic_outputs(0.4), charge="1.375"),
+            Step(outputs=pods.synthetic_outputs(1.0), charge="1.475"),
+            Step(outputs=pods.synthetic_outputs(0.4), charge="1.475"),
             Step(outputs=pods.synthetic_outputs(0.4), charge="0.10"),
         ]
     )
@@ -348,7 +367,7 @@ def test_tokens_plus_pods_share_one_run_cap(tmp_path):
         tmp_path,
         script,
         account,
-        grant_changes={"worst_case_run_cost": "3.00"},
+        grant_changes={"worst_case_run_cost": "3.20"},
     )
     graphite.model.charged_micro = 3000  # 0.003 USD a call, within its reservation
     control = controller(tmp_path, graphite)
@@ -366,12 +385,12 @@ def test_tokens_plus_pods_share_one_run_cap(tmp_path):
     assert records[1]["reason_code"] == "run_cap_reached_tokens_plus_pods"
     assert len(account.launched) == 2
     tokens = graphite._tokens_usd(run_id())
-    assert Decimal("2.75") + graphite.budget.pod_reservation_usd <= Decimal("3.00")
-    assert tokens + Decimal("2.75") + graphite.budget.pod_reservation_usd > Decimal(
-        "3.00"
+    assert Decimal("2.95") + graphite.budget.pod_reservation_usd <= Decimal("3.20")
+    assert tokens + Decimal("2.95") + graphite.budget.pod_reservation_usd > Decimal(
+        "3.20"
     )
     # The research ledger is capped at the token share of the run.
-    assert graphite.caps()["provider_nanodollars"] == ex.usd_to_nano(Decimal("0.04"))
+    assert graphite.caps()["provider_nanodollars"] == ex.usd_to_nano(Decimal("0.24"))
 
 
 def test_a_model_call_is_refused_when_pods_have_used_the_run_cap(tmp_path):
@@ -522,18 +541,405 @@ def test_every_role_runs_under_the_v2_rule_and_its_prompt_states_it():
         assert "One tool call per turn" not in role.prompt
 
 
+# -- the Constructor's context window (GRAPHITE-D34) ---------------------------------------
+#: Live session 2's first two turns (2026-10-04): three calls, then five
+#: start_research_task calls whose results came to about 69 KB, the largest
+#: about 30 KB. Engy reported 7,055 and 10,607 input tokens for the two turns.
+SESSION_2_REPORTED = (7055, 10607)
+SESSION_2_RESULT_BYTES = (30000, 13000, 10000, 8000, 8000)
+READ_PUBLIC = {
+    "kind": "workspace",
+    "strategy_json": None,
+    "action": "public_material",
+    "arguments_json": json.dumps({"name": "objective"}),
+    "hypothesis": "the objective names what is scored",
+    "expected_effect": "the public objective in the workspace",
+}
+#: The Constructor's input window on each rung: Engy's published context
+#: (`context_length`, equal to `max_model_len`; read 2026-10-04), up to the
+#: 1,048,576 tokens `select` accepts.
+WINDOWS = {
+    "deepseek-v4-flash-0731": 1048576,
+    "qwen3.8-27b": 1001536,
+    "glm-5.3-flash": 262144,
+    "glm-5.2": 262144,
+    "kimi-k3": 1048576,
+}
+#: Digests of a two-probe Constructor session as the code before GRAPHITE-D34
+#: (main 2363950d) wrote it: engy-anthropic, 65,536 input tokens, 120 s.
+BEFORE_D34_OPEN = (
+    "sha256:f07b3f2039ed3f8d552fa4d154d58255bbedecbf4095df55aa66be37bba45abc"
+)
+BEFORE_D34_PLAN = (
+    "sha256:02d3b68498f10b5c28d5174f33327141bcf72618e1181b7d92d8010c1e6b38ac"
+)
+BEFORE_D34_RECORD = (
+    "sha256:1c30f0b5f51a90dd22aa48e1a8809c6d7c563ce5f91060e56f8d6415f3e53d89"
+)
+
+
+class SizedResults(RecordingMinerTools):
+    """The miner path as live session 2 saw it: each start_research_task is
+    answered with the next result size, in bytes of filler."""
+
+    def __init__(self, sizes):
+        super().__init__()
+        self.sizes = list(sizes)
+
+    async def call(self, name, arguments, identity):
+        answer = await super().call(name, arguments, identity)
+        if name == PREFIX + "start_research_task":
+            answer = {**answer, "content_utf8": "x" * self.sizes.pop(0)}
+        return answer
+
+
+def _session_open(graphite, number=1):
+    return json.loads(
+        (graphite._dir(run_id(number)) / "session-open.json").read_bytes()
+    )
+
+
+def _open(graphite, number=1):
+    """Open (not run) a Constructor session; returns its run id."""
+    _document, profile = phase3.permission_profile()
+    spec = TaskSpec(
+        campaign_id=phase3.CAMPAIGN,
+        role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
+        workspace_id=phase3.WORKSPACE,
+        credential_ref=phase3.CREDENTIAL_REF,
+        profile_digest=profile,
+        instructions_digest=graphite.register_brief(p3f.brief(graphite)),
+        max_runtime_s=graphite.grant.max_runtime_s,
+    )
+    return graphite.start(spec, phase3.session_key(number)).provider_run_id
+
+
+def _on_rung(graphite, model_id):
+    graphite.ladder.model = lambda role: model_id
+    graphite.ladder.rung = lambda role: ENGY_LADDER.index(model_id)
+    return graphite
+
+
+def _run(root, graphite):
+    control = controller(root, graphite)
+    try:
+        return phase3.run_session(control, graphite, p3f.brief(graphite), 1)
+    finally:
+        control.close()
+
+
+def live_session_2(root, **kw):
+    """Live session 2's two turns, then a turn that ends the session; returns
+    (result, provider). The scripted model reports session 2's input tokens."""
+    holder = {}
+
+    def reporting(step, tokens):
+        return {
+            **step,
+            "hook": lambda: setattr(holder["model"], "input_tokens", tokens),
+        }
+
+    script = [
+        reporting(SEVERAL, SESSION_2_REPORTED[0]),
+        reporting(
+            tools(*[tool(PREFIX + "start_research_task", READ_PUBLIC)] * 5),
+            SESSION_2_REPORTED[1],
+        ),
+        text("done"),
+    ]
+    miner = SizedResults(SESSION_2_RESULT_BYTES)
+    graphite = provider(root, script, ScriptedPods(), miner=miner, **kw)
+    holder["model"] = graphite.model
+    return _run(root, graphite), graphite
+
+
+def test_live_session_2s_turns_are_admitted_under_the_constructors_window(tmp_path):
+    """GRAPHITE-D34 (owner, 2026-10-04: "max it out"). Live session 2 stopped
+    `context_ceiling` before its third turn: after a reported 10,607-token
+    turn, its five results (about 69 KB) passed `DEFAULT_SETTINGS`' 61,440-
+    token ceiling. Under the Constructor's whole context the session goes on."""
+    result, graphite = live_session_2(tmp_path)
+    assert result["provider_state"] == "succeeded"
+    assert len(graphite.model.requests) == 3
+    assert _outcome(graphite)["reason"] == "agent elected to stop"
+    assert len(graphite.miner_tools.calls) == 8
+    # Turn 2's admission bound is turn 1's reported tokens plus the bytes
+    # appended since: past the old ceiling, inside the new one.
+    first, second = (len(canonical(r)) for r in graphite.model.requests[1:])
+    assert second - first > sum(SESSION_2_RESULT_BYTES) == 69000
+    bound = SESSION_2_REPORTED[1] + second - first
+    window = _session_open(graphite)["model"]["settings"]["max_input_tokens"]
+    old = DEFAULT_SETTINGS.max_input_tokens - CONTEXT_RESERVE_TOKENS
+    assert old == 61440 < bound <= window - CONTEXT_RESERVE_TOKENS
+    assert window == 1048576
+
+
+def test_at_the_old_settings_live_session_2_stops_at_the_context_ceiling(
+    tmp_path, monkeypatch
+):
+    """The same conversation as every Graphite session ran before GRAPHITE-D34
+    (`DEFAULT_SETTINGS`, engy-anthropic) stops before its third turn, typed
+    and retained, as live session 2 did."""
+    monkeypatch.setattr(gp, "MODEL_SETTINGS", {})
+    result, graphite = live_session_2(tmp_path, adapter_id="engy-anthropic")
+    assert _session_open(graphite)["model"]["settings"] == DEFAULT_SETTINGS.record()
+    assert result["provider_state"] == "succeeded"
+    assert len(graphite.model.requests) == 2
+    outcome = _outcome(graphite)
+    assert (outcome["status"], outcome["code"], outcome["reason"]) == (
+        "STOPPED",
+        CONTEXT_CEILING,
+        "context admission ceiling; no history silently discarded",
+    )
+    assert result["delivery"] == {"status": "NO_IMPROVEMENT", "bundle": None}
+
+
+def test_every_rung_opens_with_its_whole_context_a_600_s_timeout_on_engy_chat(
+    tmp_path,
+):
+    """Escalation selects again for each rung, so each rung gets its own
+    window. Output stays 2,048 tokens and reasoning `low`."""
+    assert tuple(WINDOWS) == ENGY_LADDER
+    for model_id, window in WINDOWS.items():
+        graphite = _on_rung(provider(tmp_path / model_id, [], ScriptedPods()), model_id)
+        _open(graphite)
+        opened = _session_open(graphite)
+        assert opened["role"]["model"] == model_id
+        assert opened["model"]["provider_id"] == phase3.ADAPTER == "engy-chat"
+        assert opened["model"]["settings"] == {
+            "max_input_tokens": window,
+            "max_output_tokens": 2048,
+            "reasoning_effort": "low",
+            "timeout_seconds": 600,
+        }
+        # The admission ceiling holds 4,096 tokens back, so a request's input
+        # plus the 2,048 output tokens fits inside the model's max_model_len.
+        assert window - CONTEXT_RESERVE_TOKENS + 2048 < ENGY_CONTEXT_TOKENS[model_id]
+    # 1,048,576 is the most `select` accepts.
+    assert SELECT_MAX_INPUT_TOKENS == 1048576
+    with pytest.raises(ModelSelectionRefused, match="max_input_tokens"):
+        select(
+            provider_id="engy-chat",
+            credential={"kind": "file", "reference": "/k"},
+            settings={"max_input_tokens": SELECT_MAX_INPUT_TOKENS + 1},
+        )
+
+
+def test_a_model_with_no_recorded_context_opens_nothing(tmp_path, monkeypatch):
+    """Fail closed: no value is invented for a model the table does not list."""
+    monkeypatch.setattr(gp, "MODEL_SETTINGS", {RoleName.CONSTRUCTOR: {}})
+    graphite = provider(tmp_path, [], ScriptedPods())
+    with pytest.raises(ProviderUnavailable, match="model_context_not_recorded"):
+        _open(graphite)
+    assert not (graphite._dir(run_id()) / "session-open.json").exists()
+
+
+def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
+    """One kimi-k3 call at its whole window reserves USD 2.0647, more than the
+    run's 1.95 token share, so it is never admitted: the session stops on the
+    money cap before any call. Nothing is sent and nothing is spent."""
+    graphite = _on_rung(
+        provider(tmp_path, [text("never sent")], ScriptedPods()), "kimi-k3"
+    )
+    reservation = graphite._selection("kimi-k3", RoleName.CONSTRUCTOR).reservation_nano
+    assert reservation == 1048576 * 1950 + 2048 * 9750 == 2064691200
+    assert reservation > ex.usd_to_nano(graphite.budget.token_allowance_usd)
+    result = _run(tmp_path, graphite)
+    assert result["provider_state"] == "failed"
+    state = json.loads((graphite._dir(run_id()) / "state.json").read_bytes())
+    assert state["failure"] == {
+        "code": "run_cap_reached",
+        "dimension": "provider_nanodollars",
+    }
+    assert graphite.model.requests == []
+    assert graphite._tokens_usd(run_id()) == 0
+
+
+def _before_d34(root, model, **kw):
+    """A session opened as the code before GRAPHITE-D34 opened it
+    (engy-anthropic, `DEFAULT_SETTINGS`); returns (provider, run id)."""
+    graphite = provider(root, [], ScriptedPods(), adapter_id="engy-anthropic", **kw)
+    graphite.model = model
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gp, "MODEL_SETTINGS", {})
+        return graphite, _open(graphite)
+
+
+def _digests(graphite, run):
+    folder = graphite._dir(run)
+    return (
+        digest((folder / "session-open.json").read_bytes()),
+        digest((folder / "ledger" / "epoch-1" / "plan.json").read_bytes()),
+        graphite.session_record_digest(run),
+    )
+
+
+def test_a_session_recorded_before_d34_replays_byte_identically(tmp_path):
+    """Prospective: a session opened on engy-anthropic at 65,536 tokens and
+    120 s resumes, from every crash point, on a provider that opens
+    engy-chat sessions at the whole context, and writes exactly the bytes the
+    code before this change wrote. No reply is resent."""
+    probe = tool(PREFIX + "get_challenge_info", {})
+    script = [probe, probe, text("done")]
+    reference, reference_run = _before_d34(
+        tmp_path / "reference", ScriptedModel(script)
+    )
+    assert reference.run(reference_run) == "succeeded"
+    pinned = (BEFORE_D34_OPEN, BEFORE_D34_PLAN, BEFORE_D34_RECORD)
+    assert _digests(reference, reference_run) == pinned
+    points = reference._checkpoints
+    assert points >= 4
+    for point in range(1, points + 1):
+        root = tmp_path / f"crash-{point:02d}"
+        model = ScriptedModel(script)
+        crashed, run = _before_d34(root, model, crash_at_checkpoint=point)
+        with pytest.raises(SimulatedCrash):
+            crashed.run(run)
+        resumed = provider(root, [], ScriptedPods())
+        resumed.model = model
+        assert resumed.adapter_id == "engy-chat"
+        assert resumed.run(run) == "succeeded", point
+        assert len(model.requests) == 3, point
+        assert _digests(resumed, run) == pinned, point
+        assert _session_open(resumed)["model"]["provider_id"] == "engy-anthropic"
+        assert _session_open(resumed)["model"]["settings"] == DEFAULT_SETTINGS.record()
+
+
+class ChatOpener:
+    """Engy's Chat Completions endpoint as a fixture: it records each request
+    and replays a reply. No network."""
+
+    def __init__(self, replies):
+        self.replies, self.sent = list(replies), []
+
+    def open(self, outgoing, timeout):
+        self.sent.append(outgoing)
+        return io.BytesIO(json.dumps(self.replies.pop(0)).encode())
+
+
+class ChatFixtureModel:
+    """Model access through Carbon's real transport (`SelectionTransport`) to
+    the fixture opener, with a specimen key file: no network, no real key."""
+
+    live = False
+
+    def __init__(self, key_file, replies):
+        self.credential_reference = str(key_file)
+        self.opener = ChatOpener(replies)
+
+    def transport_for(self, selection):
+        return SelectionTransport(selection, opener=self.opener)
+
+
+def chat_reply(*calls, content=None, charged_micro):
+    """A Chat Completions reply as Engy sends it, with its charge report."""
+    message = {"role": "assistant", "content": content}
+    if calls:
+        message["tool_calls"] = [
+            {
+                "id": f"call_{number}",
+                "type": "function",
+                "function": {"name": name, "arguments": json.dumps(arguments)},
+            }
+            for number, (name, arguments) in enumerate(calls)
+        ]
+    return {
+        "id": "chatcmpl-fixture",
+        "object": "chat.completion",
+        "model": "deepseek-v4-flash-0731",
+        "choices": [
+            {
+                "index": 0,
+                "message": message,
+                "finish_reason": "tool_calls" if calls else "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 1000, "completion_tokens": 50},
+        "x_engy": {
+            "charged_micro": charged_micro,
+            "request_id": "req-fixture",
+            "miner": "fixture-miner",
+            "worker": "fixture-worker",
+        },
+    }
+
+
+def test_on_engy_chat_calls_run_in_order_and_settle_from_the_reported_charge(
+    tmp_path,
+):
+    """GRAPHITE-D34: phase 3 runs on engy-chat, whose replies carry
+    `x_engy.charged_micro` (the Messages endpoint's carry none). Through the
+    real transport: a turn's three tool calls all run, in order; the history
+    sends them back as one assistant message and three tool messages; and
+    every call settles at its reported charge, not its reservation."""
+    folder = tmp_path / "key"
+    folder.mkdir(mode=0o700, parents=True)
+    key = folder / "engy.key"
+    key.write_text("sk-SPECIMEN-not-a-key")
+    key.chmod(0o600)
+    three = [
+        (PREFIX + "get_challenge_info", {}),
+        (PREFIX + "get_interaction_manifest", {}),
+        (PREFIX + "get_mock_scaffold", {}),
+    ]
+    model = ChatFixtureModel(
+        key,
+        [
+            chat_reply(*three, charged_micro=2000),
+            chat_reply(content="done", charged_micro=1000),
+        ],
+    )
+    miner = RecordingMinerTools()
+    graphite = provider(tmp_path, [], ScriptedPods(), miner=miner)
+    graphite.model = model
+    result = _run(tmp_path, graphite)
+    assert result["provider_state"] == "succeeded"
+    assert [call[0] for call in miner.calls] == [name for name, _ in three]
+    assert [r.full_url for r in model.opener.sent] == [
+        "https://api.engy.ai/v1/chat/completions"
+    ] * 2
+    sent = [json.loads(r.data) for r in model.opener.sent]
+    for body in sent:
+        assert body["parallel_tool_calls"] is True
+        assert body["max_tokens"] == 2048
+        assert "reasoning" not in body
+    messages = sent[1]["messages"]
+    [turn] = [m for m in messages if m.get("tool_calls")]
+    assert [c["id"] for c in turn["tool_calls"]] == ["call_0", "call_1", "call_2"]
+    start = messages.index(turn)
+    answers = messages[start + 1 : start + 4]
+    assert [(m["role"], m["tool_call_id"]) for m in answers] == [
+        ("tool", "call_0"),
+        ("tool", "call_1"),
+        ("tool", "call_2"),
+    ]
+    assert [m["role"] for m in messages].count("tool") == 3
+    # Each call settled from Engy's own report, far below its reservation.
+    calls = graphite._calls(run_id())
+    assert [c["settlement"]["provider_nanodollars"] for c in calls] == [
+        2000000,
+        1000000,
+    ]
+    assert {c["charge"]["basis"] for c in calls} == {
+        "provider-reported x_engy.charged_micro"
+    }
+    assert all(c["reservation"]["provider_nanodollars"] == 47370240 for c in calls)
+
+
 def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
-    """On glm-5.2 a call reserves 47,636,480 nanodollars; settled at that
-    charge, the 1.95 token share stops the run after 40 calls. No call cap
-    applies to a new session; the money cap is the bound."""
+    """On glm-5.2 a Constructor call reserves 181,329,920 nanodollars (its
+    whole 262,144-token context, GRAPHITE-D34); settled at that charge, the
+    1.95 token share stops the run after 10 calls (40 at the 65,536 tokens of
+    a session opened before). No call cap applies to a new session; the money
+    cap is the bound."""
     probe = tool(PREFIX + "get_challenge_info", {})
     script = [probe] * CONSTRUCTOR_SESSION_TURNS
     graphite = provider(tmp_path, script, ScriptedPods())
     graphite.ladder.model = lambda role: "glm-5.2"
     graphite.ladder.rung = lambda role: ENGY_LADDER.index("glm-5.2")
-    reservation = graphite._selection("glm-5.2").reservation_nano
-    assert reservation == 65536 * 680 + 2048 * 1500 == 47636480
-    graphite.model.charged_micro = reservation // 1000  # all but 480 nanodollars of it
+    reservation = graphite._selection("glm-5.2", RoleName.CONSTRUCTOR).reservation_nano
+    assert reservation == 262144 * 680 + 2048 * 1500 == 181329920
+    graphite.model.charged_micro = reservation // 1000  # all but 920 nanodollars of it
     control = controller(tmp_path, graphite)
     try:
         result = phase3.run_session(
@@ -550,7 +956,7 @@ def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
         "code": "run_cap_reached",
         "dimension": "provider_nanodollars",
     }
-    assert len(graphite.model.requests) == 40
+    assert len(graphite.model.requests) == 10
     tokens = graphite._tokens_usd(run_id())
     assert tokens <= graphite.budget.token_allowance_usd == Decimal("1.95")
     # The money stop still closed the session (nothing to bundle here).
@@ -1412,6 +1818,16 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert result["dry_run"]["parallel_calls_run"] == 3
     assert result["dry_run"]["parallel_calls_not_run"] == 0
     assert "refused_parallel_calls" not in result["dry_run"]
+    # The Constructor's selection shows before any spend (GRAPHITE-D34).
+    window = result["dry_run"]["constructor_model"]
+    assert window["provider_id"] == "engy-chat"
+    assert window["model"] == "deepseek-v4-flash-0731"
+    assert (window["max_input_tokens"], window["admission_ceiling_tokens"]) == (
+        1048576,
+        1048576 - CONTEXT_RESERVE_TOKENS,
+    )
+    assert (window["max_output_tokens"], window["timeout_seconds"]) == (2048, 600)
+    assert window["reservation_usd"] == "0.04737024"
     assert len(result["findings"]) == 1  # the scripted unrebuildable proposal
     assert phase3.main(["status", "--root", str(tmp_path / "dry-run")]) == 0
 
