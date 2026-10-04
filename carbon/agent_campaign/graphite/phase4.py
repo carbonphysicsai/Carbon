@@ -1165,8 +1165,12 @@ def check_committed_grant(path, repository=REPOSITORY):
       working tree it was taken from, is
       `grant_differs_from_the_committed_phase4_grant`.
     - HEAD must already be on a remote branch (`git branch -r --contains
-      HEAD`), so the grant a run spends under is the pushed, owner-approved
-      one: `grant_commit_not_pushed`.
+      HEAD`): `grant_commit_not_pushed`.
+    - The committed blob must be the one on main, which is what the owner
+      approved: a pushed feature branch carrying an edited grant is not.
+      `origin main` is fetched and the two blob ids compared; a fetch or a
+      main without the grant is `main_grant_unavailable`, a different blob
+      `grant_differs_from_main`.
     - The grants directory must match HEAD (no change, staged or not, and no
       untracked file): `grants_directory_has_uncommitted_changes`.
 
@@ -1187,6 +1191,13 @@ def check_committed_grant(path, repository=REPOSITORY):
     pushed = _git(repository, "branch", "-r", "--contains", "HEAD")
     if pushed.returncode != 0 or not pushed.stdout.strip():
         raise RunnerRefused("grant_commit_not_pushed")
+    fetched = _git(repository, "fetch", "--quiet", "origin", "main")
+    on_main = _git(repository, "rev-parse", "--verify", "origin/main:" + GRANT_FILE)
+    if fetched.returncode != 0 or on_main.returncode != 0:
+        raise RunnerRefused("main_grant_unavailable")
+    at_head = _git(repository, "rev-parse", "--verify", "HEAD:" + GRANT_FILE)
+    if at_head.returncode != 0 or at_head.stdout.strip() != on_main.stdout.strip():
+        raise RunnerRefused("grant_differs_from_main")
     status = _git(
         repository, "status", "--porcelain", "--untracked-files=all", "--", GRANTS_DIR
     )

@@ -1049,6 +1049,38 @@ def test_the_committed_grant_is_read_from_head_not_the_working_tree(tmp_path, ca
     assert refusal(copy) == "phase4_grant_not_committed"
 
 
+def test_a_pushed_branch_carrying_an_edited_grant_is_refused(tmp_path, capsys):
+    """C1. The grant binds to main, which is what the owner approved: a
+    feature branch that commits and pushes a raised ceiling, run with a copy
+    of its own committed grant, is refused; so is a checkout whose remote has
+    no main grant. Back on main the same check passes."""
+    repo, grant = _grant_repo(tmp_path)
+    committed = json.loads(grant.read_bytes())
+    raised = {**committed, "monetary_ceiling": "100.00"}
+    _git(repo, "checkout", "-q", "-b", "feature")
+    grant.write_text(json.dumps(raised))
+    _git(repo, "commit", "-q", "-am", "raise the ceiling")
+    _git(repo, "push", "-q", "-u", "origin", "feature")
+    copy = tmp_path / "copy.json"
+    copy.write_text(json.dumps(raised))
+
+    def refusal(path, repository=repo):
+        return _refusal(capsys, lambda: phase4.check_committed_grant(path, repository))
+
+    assert refusal(copy) == "grant_differs_from_main"
+    # A remote with no main to read the approved grant from.
+    elsewhere = tmp_path / "elsewhere.git"
+    _git(tmp_path, "init", "-q", "--bare", "-b", "main", str(elsewhere))
+    _git(repo, "remote", "set-url", "origin", str(elsewhere))
+    _git(repo, "push", "-q", "origin", "feature")
+    assert refusal(copy) == "main_grant_unavailable"
+    # Main itself passes.
+    _git(repo, "remote", "set-url", "origin", str(tmp_path / "remote.git"))
+    _git(repo, "checkout", "-q", "main")
+    copy.write_bytes(grant.read_bytes())
+    assert phase4.check_committed_grant(copy, repo) == phase4.grant_digest(committed)
+
+
 def test_mutation_reading_the_working_tree_grant_lets_an_edit_through(
     tmp_path, capsys, monkeypatch
 ):

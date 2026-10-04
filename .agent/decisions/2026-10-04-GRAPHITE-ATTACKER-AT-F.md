@@ -24,6 +24,11 @@ spend or pod.
      (`grant_differs_from_the_committed_phase4_grant`), so an edited
      working-tree grant, passed directly or copied, is refused;
    - requires HEAD on a remote branch (`grant_commit_not_pushed`);
+   - binds the grant to main, which is what the owner approved (Test
+     Lead's condition C1 on #569): it fetches `origin main` and requires
+     HEAD's grant blob to be main's (`grant_differs_from_main`; no fetch or
+     no grant on main is `main_grant_unavailable`), so a pushed feature
+     branch carrying an edited grant is refused;
    - requires the grants directory to match HEAD, untracked files included
      (`grants_directory_has_uncommitted_changes`).
    `phase4.live_checks` runs it with #504's `check_code_ref` (HEAD pushed,
