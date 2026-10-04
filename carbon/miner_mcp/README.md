@@ -37,10 +37,17 @@ python -m carbon.miner_mcp.standard_cli \
 ```
 
 - the four `carbon_onboarding_*` tools, reading Carbon's testnet;
-- one tool per miner operation - `carbon_launch` (with `agent` `autonomous`
-  or `none`; setup's names `carbon-autonomous` and `own-agent` are accepted
-  as the same choices), `carbon_observe`, `carbon_practice`,
-  `carbon_freeze_candidate`, `carbon_submit`, `carbon_halt`, `carbon_resume` -
+- one tool per miner operation - `carbon_launch` (with `agent` `graphite`,
+  Graphite, Carbon's research agent, with its `graphite_mode` RESEARCH, BUILD
+  or FULL; or `none`; setup's names `carbon-graphite` and `own-agent` are
+  accepted as the same choices; a new `autonomous` launch is refused
+  `autonomous_agent_replaced`, and one recorded before Graphite replaced it
+  still replays), `carbon_observe`, `carbon_practice`,
+  `carbon_freeze_candidate`, `carbon_submit`, `carbon_halt`, `carbon_resume`,
+  and the Graphite Library's `carbon_library_search`, `carbon_library_card`,
+  `carbon_library_list`, `carbon_library_pin` / `unpin` / `ban` / `unban`,
+  `carbon_library_import`, `carbon_plan_list`, `carbon_plan_get` and
+  `carbon_plan_edit`, which change only your own library and start no work -
   generated from the same operations table
   (`scripts/dev/miner_launchpad/operations.py`) as the browser's
   `/api/v1/operations` routes, with the same gates in the same order over the
@@ -64,8 +71,8 @@ halt only read or withdraw, so a miner can always see and stop their own
 campaign. `carbon_submit` is the DEVELOPMENT submit: a signed message to the
 local development service, with nothing written to the chain. Official
 submission is not an operation on either door. A campaign an MCP session
-launched with the autonomous agent runs while the session lasts; resume
-continues it.
+launched with Graphite is carried out by the campaigns' supervisor, not the
+session; closing the Control Center pauses it, and resume continues it.
 
 ## Starting without a campaign
 
@@ -127,7 +134,7 @@ python -m carbon.miner_mcp.standard_cli            # add --state-dir if the Cont
   operation, with the same gates in the same order. The page shows the
   agent's progress and the agent's status shows the page's.
 - **The order:** start your signer, register on the subnet, who researches
-  (`carbon-autonomous`, `own-agent` or `hermes`), inference (skipped for
+  (`carbon-graphite`, `own-agent` or `hermes`), inference (skipped for
   `own-agent`: it uses its own model), compute, review and launch.
 - **The tiers grow, absent before they are present (C-MLP-02-D10).**
   `carbon_setup_status`, `carbon_setup_signer` and `carbon_setup_begin` are in

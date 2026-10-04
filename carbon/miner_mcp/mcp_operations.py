@@ -64,12 +64,15 @@ def operation_tool_names():
 
 
 def _field_type(kind):
-    from pydantic import JsonValue, StrictBool, StrictInt, StrictStr
+    from pydantic import JsonValue, StrictBool, StrictFloat, StrictInt, StrictStr
 
     return {
         "string": StrictStr,
         "boolean": StrictBool,
         "integer": StrictInt,
+        # A JSON number (Graphite's research_share): an integer or a float,
+        # never a boolean; the operation checks its range.
+        "number": StrictInt | StrictFloat,
         # A strategy or budget arrives as an object, or as JSON text from a
         # client that sends strings; the operation parses either the same way.
         "object": JsonValue,

@@ -42,7 +42,10 @@ Only launchable choices are offered.
   own step, with consent to the destination and the image. Its "Where's your
   GPU?" cards (LINKONLY-D10) set the transport for each setup the wiring
   guide covers and show that setup's notes and commands from the guide.
-- Agent (slice 5) offers Carbon's autonomous agent or Hermes.
+- Agent (slice 5) offers Graphite, Carbon's research agent, which replaced
+  the autonomous agent for new setups (OWNER-GRAPHITE-MINER-01); the miner's
+  own agent over MCP; or Hermes. A setup that recorded the autonomous agent
+  keeps it; choosing it again is refused `autonomous_agent_replaced`.
 - The network (C-MLP-04) is read from the chain: Carbon's testnet and its
   publisher, the hotkey at UID 0. A miner names no operator configuration;
   only an operator running Carbon's own deployment does.
@@ -135,8 +138,13 @@ COMPUTE_KEY_REMOVED = (
 #: The host device record setup installs names this machine and provider.
 GPU_RECORD_ID = "this-machine"
 GPU_PROVIDER = "own-machine"
-#: Carbon's autonomous research agent, running in this controller's process
-#: on this machine.
+#: Graphite, Carbon's research agent (miner edition, OWNER-GRAPHITE-MINER-01),
+#: running in this controller's process on this machine on the miner's own
+#: model, key and budget. Launch's name for it is `graphite`.
+GRAPHITE = "carbon-graphite"
+#: Carbon's autonomous research agent: replaced by Graphite for new setups. A
+#: setup that recorded it keeps it, and its campaigns run as they were;
+#: choosing it now is refused `autonomous_agent_replaced`.
 AUTONOMOUS = "carbon-autonomous"
 #: Hermes Agent on the miner's machine, driving Carbon's MCP server over stdio
 #: (C-MLP-03 slice 5).
@@ -145,8 +153,13 @@ HERMES = "hermes"
 #: it brings its own model, so setup's Inference step is skipped for it.
 OWN_AGENT = "own-agent"
 #: The agents that call a model chosen in setup's Inference step: Carbon's own
-#: agent, and Hermes' ready-made profile, which is written with that model.
-USES_SETUP_MODEL = (AUTONOMOUS, HERMES)
+#: agent (Graphite, or the autonomous agent a setup recorded earlier), and
+#: Hermes' ready-made profile, which is written with that model.
+USES_SETUP_MODEL = (GRAPHITE, AUTONOMOUS, HERMES)
+#: Who researches, as setup offers it now.
+AGENT_CHOICES = (GRAPHITE, OWN_AGENT, HERMES)
+#: Graphite's name, as setup and the capability document both show it.
+GRAPHITE_DISPLAY_NAME = "Graphite, Carbon's research agent"
 #: Where a profile points its model key when no Inference step was taken: no
 #: file is there, so Carbon's agent stays unavailable and nothing reads it.
 NO_MODEL_KEY = "no-model.key"
@@ -738,12 +751,13 @@ def choices(gpu_manifest=None) -> dict:
         ],
         "agent": [
             {
-                "id": AUTONOMOUS,
-                "display_name": "Carbon's autonomous research agent",
+                "id": GRAPHITE,
+                "display_name": GRAPHITE_DISPLAY_NAME,
                 "cost_basis": (
                     "Runs on this machine. It spends only through your "
-                    "inference choice, within the finite ceilings you set at "
-                    "launch."
+                    "inference choice, within the ceilings you set at launch: "
+                    "money and time bind it, and you choose how much of your "
+                    "budget goes to research."
                 ),
                 "live_check": (
                     "Asks your running carbon-miner-signer which hotkey it "
@@ -751,6 +765,13 @@ def choices(gpu_manifest=None) -> dict:
                     "sees your key or password. No network, no cost."
                 ),
                 "uses_setup_model": True,
+                # Chosen at each launch (OWNER-GRAPHITE-MINER-01).
+                "modes": ["RESEARCH", "BUILD", "FULL"],
+                "summary": (
+                    "Hunts and reads literature, writes a ranked plan into "
+                    "your library, then constructs, practises, selects and "
+                    "submits. Choose Research, Build or Full at launch."
+                ),
             },
             {
                 "id": OWN_AGENT,
@@ -2273,9 +2294,10 @@ class EnvironmentSetup:
         )
 
     def agent(self, value) -> dict:
-        """Who researches (setup step 3): Carbon's agent, the miner's own agent
-        over MCP, or Hermes with its ready-made profile. Each asks the miner's
-        signer which hotkey it holds and reads the network.
+        """Who researches (setup step 3): Graphite (Carbon's agent), the
+        miner's own agent over MCP, or Hermes with its ready-made profile.
+        Each asks the miner's signer which hotkey it holds and reads the
+        network.
 
         Hermes' profile is written with setup's model: at once when Inference
         is already checked, otherwise at Review, on the consent given here.
@@ -2285,7 +2307,10 @@ class EnvironmentSetup:
         # `operator_config` is for an operator running Carbon's own deployment;
         # a miner names none, and setup reads the network itself (C-MLP-04).
         _closed(value, {"choice"}, {"operator_config", "signer_socket", "consent"})
-        if value["choice"] not in (AUTONOMOUS, OWN_AGENT, HERMES):
+        if value["choice"] == AUTONOMOUS:
+            # Graphite replaced it for new setups (OWNER-GRAPHITE-MINER-01).
+            raise SetupRefused("choice", "autonomous_agent_replaced")
+        if value["choice"] not in AGENT_CHOICES:
             raise SetupRefused("choice", "agent_not_offered")
         if value["choice"] != HERMES and "consent" in value:
             raise SetupRefused("consent", "nothing_to_consent_to")

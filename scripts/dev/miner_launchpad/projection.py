@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from carbon.development_session.profile import digest
@@ -195,7 +196,9 @@ def project(row, root):
         bounds.append(status["started_unix"] + manifest["elapsed_seconds"])
     value.update(
         # A campaign with no agent calls no model: say so, never a default.
-        agent="manual" if manifest.get("agent") == "none" else "carbon-autoresearch",
+        # Graphite is named as setup names it (OWNER-GRAPHITE-MINER-01); an
+        # autonomous campaign keeps its historical label.
+        agent=AGENT_LABELS.get(manifest.get("agent"), "carbon-autoresearch"),
         reasoning=manifest["provider"].get("model"),
         # Where its practice runs, from its frozen runtime (RSURF-D19):
         # until 2026-10-03 this said CPU for every campaign.
@@ -347,6 +350,10 @@ def project(row, root):
                         }
                     )
     value["completed_experiments"] = len(value["experiments"])
+    if manifest.get("agent") == "graphite":
+        # Graphite's mode, stage, plan, research spend and hunt (S4), read
+        # from the frozen plan and the ledger; observe shows the stage.
+        value["graphite"] = graphite_progress(manifest, status, root)
     value["candidate_freezes"] = []
     # Where a miner's own journey stands, from the campaign's files: which
     # committed final epochs are submitted, and whether a frozen candidate is
@@ -474,6 +481,132 @@ def project(row, root):
                     }
                 )
     return value
+
+
+#: Who researches, as the projection labels it.
+AGENT_LABELS = {"none": "manual", "graphite": "carbon-graphite"}
+
+#: S1's stage namespace (`research_loop.run_epoch(stage=...)`): a staged
+#: epoch's start operation (`research-epoch-N-<stage>`) and its provider and
+#: tool calls (`epoch-N-<stage>-provider-NNN`, `epoch-N-<stage>-tool-NNN[-KK]`).
+#: An unstaged epoch's identities (`epoch-N-provider-NNN`) match neither.
+_STAGE_START = re.compile(r"research-epoch-(\d{1,4})-([a-z][a-z0-9_]{0,31})")
+_STAGE_CALL = re.compile(
+    r"epoch-(\d{1,4})-([a-z][a-z0-9_]{0,31})-(?:provider|tool)-\d{3}(?:-\d{2})?"
+)
+_EPOCH_CALL = re.compile(r"epoch-(\d{1,4})-(?:provider|tool)-\d{3}(?:-\d{2})?")
+#: A hunt's Reader calls, by the identity prefix the driver gives them.
+_HUNT_CALL = re.compile(r"graphite-hunt-[A-Za-z0-9._-]{1,96}")
+#: Stages that construct: their spend is the build's, not research's. Every
+#: other stage (the hunt, the Reader, the Planner) is research.
+BUILD_STAGES = frozenset({"construct", "constructor", "build"})
+#: Where the driver keeps a hunt's report (S3; S2's `HuntReport`).
+HUNT_REPORT = ("graphite", "hunt-report.json")
+_HUNT_FIELDS = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra")
+
+
+def _stage_of(identity):
+    """The stage an operation belongs to: a staged epoch's stage, `hunt`
+    for a hunt's Reader call, `build` for an unstaged epoch's call, or None
+    for anything else (a worker, a practice trial)."""
+    if type(identity) is not str:
+        return None
+    for pattern in (_STAGE_START, _STAGE_CALL):
+        match = pattern.fullmatch(identity)
+        if match:
+            return match.group(2)
+    if _HUNT_CALL.fullmatch(identity):
+        return "hunt"
+    if _EPOCH_CALL.fullmatch(identity):
+        return "build"
+    return None
+
+
+def _hunt_report(root):
+    """The hunt's report as the driver kept it, or None: its counts only."""
+    path = Path(root).joinpath(*HUNT_REPORT)
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1 << 20:
+            return None
+        report = json.loads(path.read_bytes())
+    except (OSError, ValueError):
+        return None
+    if type(report) is not dict:
+        return None
+    counts = {}
+    for name in _HUNT_FIELDS:
+        item = report.get(name)
+        # A count, or (failed_infra) whether arXiv failed; a list is counted.
+        if type(item) is bool or (type(item) is int and item >= 0):
+            counts[name] = item
+        elif type(item) is list:
+            counts[name] = len(item)
+        else:
+            counts[name] = None
+    return counts
+
+
+def graphite_progress(manifest, status, root):
+    """A Graphite campaign's progress, from its frozen plan and its ledger:
+    {edition, mode, stage, plan_digest, research_share, research_spent,
+    hunt}. `stage` is the stage of the newest model call or stage start
+    (None before any); `research_spent` is what research stages booked
+    (settled where settled, reserved otherwise), beside the share of the
+    miner's ceilings they may use; `hunt` the hunt's counts and what its
+    Reader calls booked, or None when there was no hunt. Nothing is read but
+    the plan, the ledger's operations and the hunt's own report."""
+    provider = (
+        manifest.get("provider") if type(manifest.get("provider")) is dict else {}
+    )
+    block = provider.get("graphite") if type(provider.get("graphite")) is dict else {}
+    share = block.get("research_share")
+    stage = None
+    spent = {"provider_nanodollars": 0, "provider_attempts": 0}
+    hunt_cost = 0
+    hunt_calls = 0
+    for op in status["operations"]:
+        found = _stage_of(op.get("id"))
+        if found is None:
+            continue
+        stage = found
+        if found in BUILD_STAGES:
+            continue
+        charge = op["actual"] if op.get("actual") is not None else op.get("reservation")
+        charge = charge if type(charge) is dict else {}
+        for key in spent:
+            amount = charge.get(key)
+            if type(amount) is int:
+                spent[key] += amount
+        if found == "hunt":
+            hunt_calls += 1
+            amount = charge.get("provider_nanodollars")
+            hunt_cost += amount if type(amount) is int else 0
+    hunt = block.get("hunt")
+    report = _hunt_report(root)
+    return {
+        "edition": block.get("edition") if type(block.get("edition")) is str else None,
+        "mode": block.get("mode") if block.get("mode") in GRAPHITE_MODES else None,
+        "stage": stage,
+        "plan_digest": (
+            block.get("plan_digest") if type(block.get("plan_digest")) is str else None
+        ),
+        # Of the miner's provider_nanodollars and provider_attempts ceilings;
+        # the research stages stop at it (`research_share_reached`).
+        "research_share": share if type(share) in (int, float) else None,
+        "research_spent": spent,
+        "hunt": (
+            None
+            if hunt is None and report is None
+            else {
+                **(report or dict.fromkeys(_HUNT_FIELDS)),
+                "reader_calls": hunt_calls,
+                "cost_nanodollars": hunt_cost,
+            }
+        ),
+    }
+
+
+GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 
 
 def _compute(runtime):
