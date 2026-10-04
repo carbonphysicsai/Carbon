@@ -78,14 +78,30 @@ class ComputeService:
                 retry_safe=False,
                 next_action="set a future deadline",
             )
-        intent, _created = self.store.begin_intent(request, provider=self.provider.name)
-        if intent.state is IntentState.REQUESTED:
-            self._spend_gate(request, offer)
-        if intent.state is IntentState.BOUND:
-            return self._primary(intent)
-        if intent.state is IntentState.DISPATCHED:
-            return self.recover(intent)
-        if intent.state is not IntentState.REQUESTED:
+        # The spend gate and the dispatch claim are one admission: a thread
+        # admitted here is counted (DISPATCHED) before the next one is gated.
+        claimed = False
+        with self.store.admission:
+            intent, _created = self.store.begin_intent(
+                request, provider=self.provider.name
+            )
+            if intent.state is IntentState.REQUESTED:
+                self._spend_gate(request, offer)
+                # Record "may have been sent" before sending; only the caller
+                # that moves REQUESTED -> DISPATCHED sends the create.
+                claimed = self.store.claim_dispatch(
+                    intent.campaign_id,
+                    intent.intent_id,
+                    offer_usd_per_hr=None if offer is None else offer.usd_per_hr,
+                )
+                if not claimed:
+                    intent = self.store.intent(intent.campaign_id, intent.intent_id)
+                    assert intent is not None
+        if not claimed:
+            if intent.state is IntentState.BOUND:
+                return self._primary(intent)
+            if intent.state is IntentState.DISPATCHED:
+                return self.recover(intent)
             raise ComputeError(
                 operation="provision",
                 failed=f"intent is {intent.state}",
@@ -94,13 +110,6 @@ class ComputeService:
                 retry_safe=False,
                 next_action="use a new intent_id",
             )
-        # Record "may have been sent" before sending.
-        self.store.set_intent_state(
-            intent.campaign_id,
-            intent.intent_id,
-            IntentState.DISPATCHED,
-            offer_usd_per_hr=None if offer is None else offer.usd_per_hr,
-        )
         log.info(
             "compute provision dispatched campaign=%s intent=%s",
             intent.campaign_id,
