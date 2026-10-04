@@ -1100,6 +1100,46 @@ def _miner_selects(prepared):
         raise OperationRefused("the_agent_selects_in_this_campaign")
 
 
+def retained_candidate(root):
+    """Whether the campaign at `root` holds a frozen candidate the validator
+    has not evaluated: the open committed final epoch - the first with no
+    `permitted-final-feedback.json` - has its `selected-recipe.json`. Read
+    from the campaign's files, as `freeze_refusal` and the projection read
+    them; False once both final exams are used."""
+    for epoch in FINAL_EPOCHS:
+        folder = Path(root) / ("epoch-" + str(epoch))
+        if not (folder / "permitted-final-feedback.json").exists():
+            return (folder / "selected-recipe.json").exists()
+    return False
+
+
+def waits_for_its_miner(root, manifest=None):
+    """Whether the prepared, unfinished campaign at `root` waits for its
+    miner - READY rather than INTERRUPTED once nothing holds it: one with no
+    agent (the miner selects), or one whose agent selected a candidate the
+    validator did not evaluate (`submit_or_retain`'s refusal), kept for a
+    later submit. False with no frozen manifest or once complete.
+    `manifest` is the campaign's frozen manifest where the caller already
+    holds it (an attachment's profile); otherwise it is read from `root`.
+
+    The one rule every settling door asks (LP-PROD-FIX-01): the campaign's
+    own run, recovery after a restart, an idle settle and a detach. Until
+    2026-10-04 they asked only "no agent", so an agent campaign whose submit
+    was refused `evaluation_unavailable` settled INTERRUPTED with no
+    interruption recorded, and a restart overwrote its refusal."""
+    root = Path(root)
+    if (root / "campaign-complete.json").exists():
+        return False
+    if manifest is None:
+        path = root / "campaign-manifest.json"
+        if not path.exists():
+            return False
+        manifest = json.loads(path.read_bytes())
+    if manifest.get("agent", "autonomous") == "none":
+        return True
+    return retained_candidate(root)
+
+
 def freeze_refusal(root, strategy):
     """Why a miner's freeze of `strategy` would be refused, read from the
     campaign's own records without preparing it - or None.

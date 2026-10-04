@@ -303,6 +303,18 @@ def product_agent(root):
     return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
+def waits_for_its_miner(root):
+    """Whether the campaign at `root`, once nothing holds it, settles READY:
+    `research_campaign.waits_for_its_miner` - no agent, or a retained
+    candidate the validator did not evaluate - asked by every door that
+    settles a campaign here (LP-PROD-FIX-01)."""
+    from carbon.development_session.research_campaign import (
+        waits_for_its_miner as waits,
+    )
+
+    return waits(root)
+
+
 def retired_challenge(root):
     """Whether the campaign at `root` was frozen before Challenges were named:
     the Burgers campaign, retired from the research path."""
@@ -1553,7 +1565,7 @@ class RunnerAdapter:
                         completed=completed,
                         ready=not completed
                         and status["desired"] == "RUN"
-                        and product_agent(root) == "none",
+                        and waits_for_its_miner(root),
                         cleanup_verified=self._cleanup(ledger),
                     )
                     settled_now = True
@@ -3918,10 +3930,11 @@ class RunnerAdapter:
                     # read again, from the profile, for the frozen provider.
                     args.api_key_file = credential
                 self._graphite_args(args, root, product)
-                outcome = None
+                outcome = interrupted = None
                 try:
                     outcome = asyncio.run(execute(args, ledger=ledger))
                 except Exception as exc:  # noqa: BLE001 - kept private
+                    interrupted = exc
                     # Never published; record_interruption keeps only its type.
                     record_interruption(root, "run" if creating else "resume", exc)
                     self._state(run_id, "INTERRUPTED")
@@ -3934,12 +3947,20 @@ class RunnerAdapter:
                 finally:
                     clean = self._cleanup(ledger)
                     completed = (root / "campaign-complete.json").exists()
-                    # An agent-less campaign is prepared and waiting for its
-                    # miner: ready, not interrupted - unless a pause or stop
-                    # was asked meanwhile, which it then settles to.
+                    # A campaign waiting for its miner - agent-less, or
+                    # holding a candidate its agent selected and the
+                    # validator did not evaluate (`waits_for_its_miner`) - is
+                    # ready, not interrupted, unless a pause or stop was
+                    # asked meanwhile, which it then settles to. A run that
+                    # raised keeps its interruption: only the agent-less
+                    # rule, as before, applies to it (LP-PROD-FIX-01).
                     ready = (
                         not completed
-                        and product_agent(root) == "none"
+                        and (
+                            waits_for_its_miner(root)
+                            if interrupted is None
+                            else product_agent(root) == "none"
+                        )
                         and control.status()["desired"] == "RUN"
                     )
                     state = control.settled(
@@ -4182,7 +4203,8 @@ class RunnerAdapter:
         """Settle the campaign now, with the real cleanup check, if no live
         process holds its ownership lock: PAUSED or STOPPED as asked, or
         RECONCILIATION_REQUIRED while work may be outstanding; reconciled with
-        nothing outstanding, a campaign whose miner selects is READY again.
+        nothing outstanding, a campaign waiting for its miner
+        (`waits_for_its_miner`) is READY again.
         False when a live holder (a run, an operation, an attached agent or
         the page's tools) has it; that holder settles it. A finished campaign
         is left as it is.
@@ -4216,7 +4238,7 @@ class RunnerAdapter:
                 completed=completed,
                 ready=not completed
                 and control.status()["desired"] == "RUN"
-                and product_agent(root) == "none",
+                and waits_for_its_miner(root),
                 cleanup_verified=self._cleanup(ledger),
             )
         return settlement

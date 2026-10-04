@@ -695,14 +695,18 @@ def _pause_again(control):
 
 
 def _waits_for_its_miner(profile, control):
-    """Whether detaching leaves the campaign READY: one with no agent (the
-    miner selects), not complete, and not asked to pause or stop meanwhile.
-    Until 2026-10-03 detaching settled every campaign INTERRUPTED, so an
-    agent-less campaign looked broken after its miner's agent detached."""
+    """Whether detaching leaves the campaign READY: one waiting for its miner
+    (`research_campaign.waits_for_its_miner`: no agent, or a candidate its
+    agent selected that the validator did not evaluate), not complete, and
+    not asked to pause or stop meanwhile. Until 2026-10-03 detaching settled
+    every campaign INTERRUPTED, so an agent-less campaign looked broken after
+    its miner's agent detached; until 2026-10-04 an agent campaign holding a
+    retained candidate still did (LP-PROD-FIX-01)."""
+    from carbon.development_session.research_campaign import waits_for_its_miner
+
     return (
         not profile.cleanup_only
-        and profile.manifest.get("agent") == "none"
-        and not (profile.root / "campaign-complete.json").exists()
+        and waits_for_its_miner(profile.root, profile.manifest)
         and control.status()["desired"] == "RUN"
     )
 
