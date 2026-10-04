@@ -388,13 +388,15 @@ as sealed outside the pool is refused.
   - the mutation tests that patch `check_observation`, `check_challenge`,
     `admit`, and the scoring port's `REBUILT_FIELDS`.
 - `scripts/check_quality.py --base origin/main`: passed.
-- Canonical, slice 2 at `d55563f43` (same groups). The run covers both new
-  suites, slice 1's validator suites, the lessons log, every Graphite and
-  Attacker suite and the Graphite miner-path service suite. **873 passed, 1
-  failed.** The failure,
+- Canonical, slice 2 at `5b35a6ecc`, after the registered attribution policy
+  (same groups). The run covers both new suites, slice 1's validator suites,
+  the lessons log, every Graphite and Attacker suite and the Graphite
+  miner-path service suite. **910 passed, 1 failed.** Earlier heads gave
+  `d55563f43`: 873 passed, and `73a746033`: 894 passed, each with the same
+  single failure. The failure,
   `test_attack_battery_adapter.py::test_each_disabled_boundary_turns_its_guard_red[protected_marker_removed]`,
   fails identically on main `f49ac6d9f` (checked on a detached main checkout)
-  and is fixed by #569.
+  and is fixed by #572 (PR Head, 2026-10-04).
 
 ## Invariants exercised
 
