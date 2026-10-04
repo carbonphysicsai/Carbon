@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-closeout-validation",
+  "recorded_at": "2026-10-04T15:48:42Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-CLOSEOUT-05 focused host validation",
+    "description": "Ran the cold-plate decision-study and challenge-pipeline CPU tests, Ruff on the changed Python test, diff hygiene, and a Docker availability check after the custody and approval-record repair."
+  },
+  "expected": "The committed closeout and exact approval hash remain internally consistent, the new lessons validate, and the focused tests pass without implying canonical qualification from a Windows host run.",
+  "observed": "The cold-plate suite passed 18/18; the challenge-pipeline suite passed 27 tests with 1 skip after forcing UTF-8 on Windows; Ruff and git diff --check passed. The first combined host run exposed only the existing locale-sensitive roadmap read under CP-1252. Docker Desktop's client was present but its daemon was unavailable, so canonical validation was not run locally and GitHub acceptance remains authoritative.",
+  "keep": [
+    "Bind the approval file digest in the closeout test so the authority record cannot drift independently of the completion manifest.",
+    "Report native-host diagnostics and canonical availability separately."
+  ],
+  "change": [
+    "Use the canonical Linux environment or PYTHONUTF8=1 for Windows diagnostics that read UTF-8 design documents without an explicit encoding."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.closeout",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

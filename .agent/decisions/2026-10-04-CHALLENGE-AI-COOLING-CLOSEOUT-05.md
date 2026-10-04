@@ -20,9 +20,13 @@ The committed status package is
 approved code, construction and campaign identities; evidence hashes; decision
 outcomes; finite-set comparator result; query and reference accounting;
 measured wall/resource facts; claim ceiling; and the known generated-report
-limitations. The 2.935 GiB raw Docker/OpenFOAM archive and SQLite ledger remain
-retained outside Git. The lightweight package is an index and integrity record,
-not a substitute for those raw artifacts.
+limitations. The 2.935 GiB raw Docker/OpenFOAM campaign and SQLite ledger are
+retained read-only outside Git at
+`/home/carbon/shared/evidence/ai-cooling-counted-v1/`. All 6,259 retained files
+match the original by checksum and every completion-manifest anchor matches.
+The original worktree copy remains only until an off-machine replica is
+confirmed. The lightweight package is an index and integrity record, not a
+substitute for those raw artifacts.
 
 ## Evidence disposition
 
@@ -58,7 +62,10 @@ freeze binds its code hash.
 Continue with the motor's next bounded decision-study layer, reusing its
 existing 17-case pilot, public/private pools, learned baseline, GetDP/Gmsh
 reference and full 60-angle torque curve. Do not redo those assets, widen to 3D
-or thermal/efficiency claims, or invent a mean-torque/ripple acceptance limit.
+or thermal/efficiency claims. Use the synthetic mean-torque/ripple decision
+values now supplied by `OWNER-GRAPHITE-TEST-WAVE-01` section 6; do not silently
+reinterpret them as physical requirements, customer limits or qualification
+thresholds.
 The new work must commit proposed designs before independent reference access
 and keep Graphite/launchpad evaluation separate from the later protected
 evidence path.

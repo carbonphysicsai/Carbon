@@ -11,6 +11,9 @@ The machine-readable authority for the numbers below is
 [`completion.json`](completion.json). Its source completion manifest was
 captured after the campaign at SHA-256
 `697a510bd15ab0f350c7ea16dd4d62f7f6826db8eff1176cc1ad1f8c0025054d`.
+The exact human science and compute/spend authorization is retained separately
+as [`approval.json`](approval.json); its digest is bound by the completion
+manifest.
 
 ## Exact identities
 
@@ -74,8 +77,8 @@ The registered screen-then-confirm method did reduce model-query attempts:
 
 ## Artifact retention
 
-The full evidence remains under the original PR worktree's ignored
-`.carbon-artifacts/` directory. Its logical contents are:
+The full evidence has been copied out of the disposable PR worktree to the
+durable WSL store. Its logical contents are:
 
 ```text
 ai-cooling-approval-record.json
@@ -87,12 +90,19 @@ ai-cooling-counted-result/
 ai-cooling-campaign-completion.json
 ```
 
-The current host location at closeout is
-`C:\Users\Ryan_\.codex\worktrees\ai-cooling-challenge-foundation\Carbon\.carbon-artifacts`.
-That absolute path is operational information, not a portable archive URI.
-Do not archive or delete that worktree until the raw campaign is copied to an
-approved durable evidence store. The hashes in `completion.json` support an
-integrity check; they do not recreate missing artifacts.
+The durable host location is
+`/home/carbon/shared/evidence/ai-cooling-counted-v1/` in the
+`Ubuntu-24.04` WSL distribution. It is owned by `carbon:carbon`; directories
+are mode `0550` and files mode `0440`.
+
+The 2026-10-04 custody copy checked all 6,259 files against the original with
+`rsync --checksum --dry-run`. The seven completion-manifest anchors matched
+exactly, and the copied completion manifest itself retained SHA-256
+`697a510bd15ab0f350c7ea16dd4d62f7f6826db8eff1176cc1ad1f8c0025054d`.
+The original worktree copy is intentionally retained until the required
+off-machine replica is confirmed. The planned OneDrive replica is not yet
+evidence: its exact destination and successful sync still need to be recorded.
+The hashes support an integrity check; they do not recreate missing artifacts.
 
 ## Claim ceiling
 

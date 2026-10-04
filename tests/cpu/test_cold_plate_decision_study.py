@@ -114,6 +114,11 @@ def test_counted_campaign_closeout_is_exact_bounded_evidence():
         "697a510bd15ab0f350c7ea16dd4d62f7f6826db8eff1176cc1ad1f8c0025054d"
     )
     closeout = json.loads(CLOSEOUT.read_text(encoding="utf-8"))
+    approval = CLOSEOUT.with_name("approval.json")
+    assert (
+        hashlib.sha256(approval.read_bytes()).hexdigest()
+        == closeout["evidence_hashes_sha256"]["approval_record"]
+    )
     assert closeout["status"] == "COMPLETE"
     assert closeout["approved_head"] == ("0a1994b9bcad0f8b9f9e352d992819b853da4bc5")
     assert closeout["execution"]["backend"] == "DOCKER"

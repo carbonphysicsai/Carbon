@@ -607,10 +607,14 @@ python -m scripts.dev.cold_plate.decision_study counted \
 The checked-in
 `AI_ACCELERATOR_COOLING_SYNTHETIC_V1_V2_CFD_PLAN.json` is an inspectable,
 unauthorized plan bound to the tracked fixture-v2 construction identity; it is
-not the executed plan. Heavy solver artifacts and the durable ledger stay in
-the ignored `.carbon-artifacts/` directory and must be retained for audit. The
-committed closeout package records their hashes and the current retention
-location, but cannot recreate the raw 2.935 GiB archive.
+not the executed plan. Heavy solver artifacts and the durable ledger are
+retained read-only at
+`/home/carbon/shared/evidence/ai-cooling-counted-v1/` in `Ubuntu-24.04` WSL.
+The copy was verified file-for-file against the original and against the
+completion-manifest anchors. The original worktree copy remains until a
+separate off-machine replica is confirmed. The committed closeout package
+records hashes and custody, but cannot recreate the raw 2.935 GiB campaign
+archive.
 
 ### Review-finding disposition
 

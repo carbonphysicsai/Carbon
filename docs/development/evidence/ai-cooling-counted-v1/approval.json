@@ -1,0 +1,44 @@
+{
+  "schema": "carbon.cold-plate.development-campaign-approval-record.v1",
+  "recorded_date": "2026-10-04",
+  "source": "direct human authorization in the current Codex thread",
+  "authorization_statement": "552 is merged and you have both approvals to proceed",
+  "pull_request": "https://github.com/carbonphysicsai/Carbon/pull/552",
+  "approved_head": "0a1994b9bcad0f8b9f9e352d992819b853da4bc5",
+  "merge_commit": "e8b5abb35171bd0cd9d21a2a52aadf0eedf7083b",
+  "merged_pr_paths_preserved": true,
+  "science_approval": {
+    "scope": "synthetic DEVELOPMENT pilot only",
+    "die_temperature_limit_c": 100.0,
+    "periodic_cell_hydraulic_power_limit_w": 0.25,
+    "comparison_set": "unchanged eight designs by six conditions",
+    "operating_control": "registered steady-state flow-per-heat-load assumption",
+    "missing_evidence_policy": "registered corrected policy",
+    "finite_set_comparator_policy": "registered corrected policy",
+    "group_reporting": "representative and boundary-stress groups reported separately",
+    "population_reliability_claim": false,
+    "customer_acceptance_claim": false,
+    "qualification_claim": false
+  },
+  "compute_spend_approval": {
+    "initial_openfoam_executions": 48,
+    "retry_reserve": 12,
+    "max_retries_per_case": 1,
+    "hard_reserved_attempt_cap": 60,
+    "cpus_per_execution": 2,
+    "parallel_executions": 6,
+    "timeout_seconds_per_execution": 3600,
+    "artifact_retention": "all",
+    "retain_campaign_ledger": true,
+    "planning_estimate_core_hours": {
+      "initial": 19.2,
+      "with_maximum_retries": 24.0
+    },
+    "configured_allocation_ceiling_core_hours": {
+      "initial": 96.0,
+      "with_maximum_retries": 120.0
+    },
+    "overhead": "host, storage and orchestration overhead additionally authorized within this bounded campaign"
+  },
+  "claim_ceiling": "No population reliability, customer acceptance, scientific qualification, production qualification or LIVE claim."
+}
