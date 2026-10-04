@@ -906,12 +906,12 @@ def test_the_view_copies_graphite_by_name_and_only_for_graphite():
             "research_share": None,
             "research_spent": {"provider_nanodollars": 7, "provider_attempts": 1},
             "hunt": {"fetched": 2, "extracted": 1, "cost_nanodollars": 3, "secret": 1},
-            "private_path": "/home/miner/key",
+            "private_path": "PRIVATE-PATH-SENTINEL",
         },
     }
     section = graphite_section(own)
     assert section["stage"] == "planner" and section["mode"] == "RESEARCH"
-    assert "private_path" not in json.dumps(section)
+    assert "PRIVATE-PATH-SENTINEL" not in json.dumps(section)
     assert "secret" not in section["hunt"]
     assert section["hunt"]["deduped"] is None
     research = next(s for s in stages(own) if s["id"] == "research")
