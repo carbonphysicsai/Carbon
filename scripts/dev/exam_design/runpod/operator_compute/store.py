@@ -8,6 +8,14 @@ Ordering guarantees the service relies on:
   before the request is sent, so a crash between send and response leaves a
   record that forbids a blind resend;
 * a provider resource id is committed the moment it is known.
+
+Threads. Every operation opens its own connection where it is used and closes
+it before returning, so a store built on one thread is used safely from any
+other: Graphite phase 3 builds its store on the main thread and launches pods
+from `asyncio.to_thread` workers (POD-STORE-THREADS-01). Nothing is shared
+between threads but the database file, so concurrent writers serialize on
+SQLite's own write lock (``BEGIN IMMEDIATE``, busy timeout 30 s), exactly as
+the independent reconciler's process always has beside the controller's.
 """
 
 from __future__ import annotations
@@ -15,6 +23,7 @@ from __future__ import annotations
 import math
 import os
 import sqlite3
+import threading
 import time
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
@@ -146,25 +155,54 @@ class ComputeStore:
             raise ValueError("compute root must not be a symlink")
         self.path = root / "compute.sqlite3"
         self.clock = clock
-        self._db = sqlite3.connect(self.path, isolation_level=None, timeout=30)
-        self._db.row_factory = sqlite3.Row
-        self._db.execute("PRAGMA foreign_keys = ON")
-        self._db.execute("PRAGMA journal_mode = WAL")
-        self._db.executescript(SCHEMA)
+        self._closed = False
+        #: Held by `ComputeService.provision` from the spend gate to the
+        #: dispatch claim, so two threads of one process cannot both be
+        #: admitted against the same observed balance.
+        self.admission = threading.Lock()
+        with self._connect() as db:
+            db.execute("PRAGMA journal_mode = WAL")
+            db.executescript(SCHEMA)
         os.chmod(self.path, 0o600)
 
     def close(self) -> None:
-        self._db.close()
+        """Refuse any later use. No connection outlives an operation."""
+
+        self._closed = True
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """One connection, opened on the calling thread and closed before the
+        operation returns: never shared between threads."""
+
+        if self._closed:
+            raise sqlite3.ProgrammingError("Cannot operate on a closed database.")
+        db = sqlite3.connect(self.path, isolation_level=None, timeout=30)
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys = ON")
+            yield db
+        finally:
+            db.close()
+
+    def _one(self, sql: str, parameters: tuple = ()) -> sqlite3.Row | None:
+        with self._connect() as db:
+            return db.execute(sql, parameters).fetchone()
+
+    def _all(self, sql: str, parameters: tuple = ()) -> list[sqlite3.Row]:
+        with self._connect() as db:
+            return db.execute(sql, parameters).fetchall()
 
     @contextmanager
     def _tx(self) -> Iterator[sqlite3.Connection]:
-        self._db.execute("BEGIN IMMEDIATE")
-        try:
-            yield self._db
-        except BaseException:
-            self._db.execute("ROLLBACK")
-            raise
-        self._db.execute("COMMIT")
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                yield db
+            except BaseException:
+                db.execute("ROLLBACK")
+                raise
+            db.execute("COMMIT")
 
     # campaigns ----------------------------------------------------------
     def start_campaign(
@@ -192,10 +230,10 @@ class ComputeStore:
             )
 
     def miner_budget(self, campaign_id: str) -> float | None:
-        row = self._db.execute(
+        row = self._one(
             "SELECT miner_budget_usd FROM campaigns WHERE campaign_id = ?",
             (campaign_id,),
-        ).fetchone()
+        )
         return None if row is None else row["miner_budget_usd"]
 
     def record_balance(
@@ -223,17 +261,17 @@ class ComputeStore:
     ) -> tuple[float, float] | None:
         """``(balance_usd, observed_at)`` of the newest observation, if any."""
 
-        row = self._db.execute(
+        row = self._one(
             "SELECT balance_usd, observed_at FROM balance_observations "
             "WHERE provider = ? AND campaign_id = ? ORDER BY observed_at DESC, seq DESC",
             (provider, campaign_id),
-        ).fetchone()
+        )
         return None if row is None else (row["balance_usd"], row["observed_at"])
 
     def campaign_status(self, campaign_id: str) -> str | None:
-        row = self._db.execute(
+        row = self._one(
             "SELECT status FROM campaigns WHERE campaign_id = ?", (campaign_id,)
-        ).fetchone()
+        )
         return None if row is None else row["status"]
 
     # intents ------------------------------------------------------------
@@ -285,20 +323,18 @@ class ComputeStore:
             return _intent(row), True
 
     def intent(self, campaign_id: str, intent_id: str) -> IntentRecord | None:
-        row = self._db.execute(
+        row = self._one(
             "SELECT * FROM intents WHERE campaign_id = ? AND intent_id = ?",
             (campaign_id, intent_id),
-        ).fetchone()
+        )
         return None if row is None else _intent(row)
 
     def intent_by_tag(self, tag: str) -> IntentRecord | None:
-        row = self._db.execute(
-            "SELECT * FROM intents WHERE ownership_tag = ?", (tag,)
-        ).fetchone()
+        row = self._one("SELECT * FROM intents WHERE ownership_tag = ?", (tag,))
         return None if row is None else _intent(row)
 
     def intents(self, *states: IntentState) -> list[IntentRecord]:
-        rows = self._db.execute("SELECT * FROM intents ORDER BY created_at").fetchall()
+        rows = self._all("SELECT * FROM intents ORDER BY created_at")
         found = [_intent(row) for row in rows]
         return [item for item in found if not states or item.state in states]
 
@@ -317,6 +353,32 @@ class ComputeStore:
                 "WHERE campaign_id = ? AND intent_id = ?",
                 (state, offer_usd_per_hr, campaign_id, intent_id),
             )
+
+    def claim_dispatch(
+        self,
+        campaign_id: str,
+        intent_id: str,
+        *,
+        offer_usd_per_hr: float | None = None,
+    ) -> bool:
+        """``REQUESTED`` -> ``DISPATCHED`` in one write transaction. True only
+        for the one caller that moved it: a second thread or process
+        provisioning the same intent never sends a second create."""
+
+        with self._tx() as db:
+            moved = db.execute(
+                "UPDATE intents SET state = ?, "
+                "offer_usd_per_hr = COALESCE(?, offer_usd_per_hr) "
+                "WHERE campaign_id = ? AND intent_id = ? AND state = ?",
+                (
+                    IntentState.DISPATCHED,
+                    offer_usd_per_hr,
+                    campaign_id,
+                    intent_id,
+                    IntentState.REQUESTED,
+                ),
+            ).rowcount
+        return moved == 1
 
     # resources ----------------------------------------------------------
     def bind_resource(
@@ -371,9 +433,7 @@ class ComputeStore:
     def resources(
         self, campaign_id: str | None = None, intent_id: str | None = None
     ) -> list[ResourceRecord]:
-        rows = self._db.execute(
-            "SELECT * FROM resources ORDER BY recorded_at, resource_id"
-        ).fetchall()
+        rows = self._all("SELECT * FROM resources ORDER BY recorded_at, resource_id")
         return [
             _resource(row)
             for row in rows
@@ -382,19 +442,24 @@ class ComputeStore:
         ]
 
     def resource(self, provider: str, resource_id: str) -> ResourceRecord | None:
-        row = self._db.execute(
+        row = self._one(
             "SELECT * FROM resources WHERE provider = ? AND resource_id = ?",
             (provider, resource_id),
-        ).fetchone()
+        )
         return None if row is None else _resource(row)
 
     def set_resource_state(
         self, provider: str, resource_id: str, state: ResourceState
     ) -> None:
-        current = self.resource(provider, resource_id)
-        if current is None or current.state == state:
-            return
         with self._tx() as db:
+            # Read inside the write transaction: two threads (or processes)
+            # setting the same state record one event, never two.
+            current = db.execute(
+                "SELECT state FROM resources WHERE provider = ? AND resource_id = ?",
+                (provider, resource_id),
+            ).fetchone()
+            if current is None or current["state"] == state:
+                return
             db.execute(
                 "UPDATE resources SET state = ? WHERE provider = ? AND resource_id = ?",
                 (state, provider, resource_id),
@@ -406,11 +471,11 @@ class ComputeStore:
             )
 
     def state_events(self, provider: str, resource_id: str) -> list[tuple[str, float]]:
-        rows = self._db.execute(
+        rows = self._all(
             "SELECT state, at FROM state_events WHERE provider = ? AND resource_id = ? "
             "ORDER BY seq",
             (provider, resource_id),
-        ).fetchall()
+        )
         return [(row["state"], row["at"]) for row in rows]
 
     def owned(
@@ -418,12 +483,12 @@ class ComputeStore:
     ) -> CarbonOwnedResource:
         """Issue the ownership handle - only for a resource bound to this campaign's intent."""
 
-        row = self._db.execute(
+        row = self._one(
             "SELECT r.provider, r.resource_id, i.ownership_tag FROM resources r "
             "JOIN intents i ON i.campaign_id = r.campaign_id AND i.intent_id = r.intent_id "
             "WHERE r.campaign_id = ? AND r.intent_id = ? AND r.resource_id = ?",
             (campaign_id, intent_id, resource_id),
-        ).fetchone()
+        )
         if row is None:
             raise ComputeError(
                 operation="ownership",
@@ -456,10 +521,10 @@ class ComputeStore:
             )
 
     def provider_charges(self, provider: str, resource_id: str) -> list[float]:
-        rows = self._db.execute(
+        rows = self._all(
             "SELECT amount_usd FROM provider_charges WHERE provider = ? AND resource_id = ?",
             (provider, resource_id),
-        ).fetchall()
+        )
         return [row["amount_usd"] for row in rows]
 
 
