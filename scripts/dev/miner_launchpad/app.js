@@ -2596,9 +2596,11 @@
   // own when its options state them (options.graphite.hunt); a term's and a
   // query's length are the launch rule's. The controller checks again
   // (hunt_query_invalid): these are hints before anything is sent.
-  const HUNT = {records: 200, maxRecords: 10000, queries: 8, terms: 6, termChars: 40, queryChars: 128, query: /^[A-Za-z0-9 -]+$/};
+  // The fallbacks are the launch rule's own (S2's hunt.MAX_RECORDS 5000 and
+  // S3's edition.max_limit() 100000), used only when the options state none.
+  const HUNT = {records: 200, maxRecords: 5000, queries: 8, terms: 6, termChars: 40, queryChars: 128, query: /^[A-Za-z0-9 -]+$/};
   // The largest per-epoch limit the launch takes, unless its options say.
-  const LIMIT_MAX = 1000000;
+  const LIMIT_MAX = 100000;
   const GRAPHITE_STAGES = {hunt: "Hunting arXiv", hunting: "Hunting arXiv", read: "Reading papers", reader: "Reading papers", reading: "Reading papers", triage: "Reading papers", plan: "Writing the plan", planner: "Writing the plan", planning: "Writing the plan", research: "Researching", build: "Building", constructor: "Building", construct: "Building", building: "Building", submit: "Submitting", done: "Done", complete: "Done", completed: "Done"};
   function graphiteMode(mode) { return GRAPHITE_MODE_LABEL[mode] || words(mode || "unknown"); }
   function graphiteStage(stage) {
@@ -3168,7 +3170,7 @@
     box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end an epoch sooner.", "hint"));
     for (const [key, label] of GRAPHITE_LIMITS) {
       const wrap = el("div");
-      graphiteInput(wrap, "graphite-limit-" + key, label, "number", value => setGraphite({limits: {...graphiteChoices().limits, [key]: value}}), {min: "1", max: String(LIMIT_MAX), step: "1", placeholder: "No limit"});
+      graphiteInput(wrap, "graphite-limit-" + key, label, "number", value => setGraphite({limits: {...graphiteChoices().limits, [key]: value}}), {min: "1", max: String(limitMax()), step: "1", placeholder: "No limit"});
       box.append(wrap);
     }
     box.dataset.built = "1";

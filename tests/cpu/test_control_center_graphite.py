@@ -441,7 +441,8 @@ def test_the_documents_carry_graphite_in_s4s_shape(documents):  # noqa: F811
     assert "graphite" in choices and "autonomous" not in choices
     assert choices["graphite"]["launch_agent"] == "graphite"
     hunt = value["options"]["graphite"]["hunt"]
-    assert (hunt["default_records"], hunt["max_records"]) == (200, 10000)
+    assert (hunt["default_records"], hunt["max_records"]) == (200, 5000)
+    assert value["options"]["graphite"]["limits"]["maximum"] == 100000
     assert set(hunt["estimate"]) >= {
         "reader_tokens_per_abstract",
         "model",

@@ -1406,7 +1406,8 @@ scenario("Graphite: per-epoch limits are optional; blank sends none, set sends w
   assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);
   await page.type(page.$("graphite-limit-calls_per_epoch"), "0");
   assert.equal(page.$("wizard-next").disabled, true);
-  assert.match(page.text("wizard-next-reason"), /per-epoch limits: model calls per epoch is a whole number from 1 to 1000000/);
+  assert.ok(page.text("wizard-next-reason").includes("per-epoch limits: model calls per epoch is a whole number from 1 to " + state.options.graphite.limits.maximum), page.text("wizard-next-reason"));
+  assert.equal(page.$("graphite-limit-calls_per_epoch").max, String(state.options.graphite.limits.maximum), "the input's bound is the controller's");
   await page.type(page.$("graphite-limit-calls_per_epoch"), String(state.options.graphite.limits.maximum + 1));
   assert.equal(page.$("wizard-next").disabled, true, "past the controller's own maximum");
   await page.type(page.$("graphite-limit-calls_per_epoch"), "60");

@@ -263,7 +263,8 @@ def graphite_options():
             "max_terms": 6,
             "terms": "letters, digits and -",
             "default_records": 200,
-            "max_records": 10000,
+            # S2's hunt.MAX_RECORDS (S4 1bb9c7a2b).
+            "max_records": 5000,
             "seconds_between_requests": 3,
             "omitted": (
                 "no hunt; the shared pack and your library still serve, and "
@@ -274,7 +275,8 @@ def graphite_options():
         "limits": {
             "keys": ["calls_per_epoch", "trials_per_epoch", "planner_calls"],
             "minimum": 1,
-            "maximum": 1000000,
+            # S3's edition.max_limit() (S4 1bb9c7a2b).
+            "maximum": 100000,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
         },
         "offered_for": _implemented(),

@@ -50,7 +50,11 @@ slice S3's plan schema, and adds no route, operation or gate of its own.
    when one is set. The controller's own defaults and bounds are used when
    its options state them (the default mode, the share's default, the hunt's
    `default_records` and `max_records`, `max_queries`, `max_terms`, the limits'
-   `maximum`), the design's otherwise.
+   `maximum`), the launch rule's otherwise. Those fallbacks follow S4's door
+   bounds as of 1bb9c7a2b: at most 5000 papers (S2's `hunt.MAX_RECORDS`) and a
+   per-epoch limit of at most 100000 (S3's `edition.max_limit()`). The page
+   checks and the fixture read the bound from the options, so the merged
+   tree's shape-equality test flags any later change.
 3. *Fail closed on fields the launch does not take.* When the controller's
    launch listing is read and does not declare a Graphite field the choice
    needs, the launch waits and says which field and what to do (update
