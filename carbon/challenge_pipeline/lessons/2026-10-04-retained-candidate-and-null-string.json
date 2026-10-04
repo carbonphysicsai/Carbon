@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-retained-candidate-and-null-string",
+ "recorded_at": "2026-10-04T15:35:38Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "Launchpad smoke run 382c4276; fixed under LP-PROD-FIX-01 (.agent/decisions/2026-10-04-LP-PROD-FIX-01.md)",
+  "description": "Smoke run of the merged miner front end: Graphite and Carbon's agent campaigns on battery with no validator configured, then the Control Center's Tools tab and a restart."
+ },
+ "expected": "An agent's selected candidate the validator does not evaluate (evaluation_unavailable) is kept, and its campaign waits READY with that refusal and its next step through the Tools tab and a restart. Graphite's Planner corrects a refused argument after being told how.",
+ "observed": "The candidate was kept, but the campaign settled INTERRUPTED with an empty interruptions.jsonl; opening the Tools tab left it RECONCILING, and a restart settled it INTERRUPTED again with campaign_interrupted over the evaluation_unavailable refusal. Every door that settles a campaign treated only agent none as waiting for its miner. Graphite's Planner sent strategy_json as the string \"null\" on kind=workspace, was refused workspace_recipe_forbidden with the JSON-null correction three ways, and never adapted.",
+ "keep": [
+  "A refusal that keeps the candidate reaches the miner as last_refusal with its closed code and next step.",
+  "A run that raised stays INTERRUPTED, recorded in interruptions.jsonl.",
+  "A campaign frozen under an earlier rule replays and continues exactly as it was frozen; tolerance for a model's habit is a new frozen rule, never a silent change."
+ ],
+ "change": [
+  "Every settling door asks one rule, waits_for_its_miner: no agent, or a retained candidate the validator did not evaluate.",
+  "New Graphite plans freeze carbon.autoresearch.argument-normalisation.v1, which reads a workspace strategy_json \"null\" as JSON null; practice still refuses it.",
+  "Test gap closed: journey scenarios 4 and 8d asserted the refusal code but not the campaign state, and no test opened the Tools tab on or restarted the Control Center over an agent campaign holding a retained candidate. They now do; the null-string refusal had a test only of the refusal itself, never of a model that does not correct it."
+ ],
+ "protocol_elements": [
+  "launchpad.campaign_state",
+  "graphite.planner",
+  "research_tools.arguments"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

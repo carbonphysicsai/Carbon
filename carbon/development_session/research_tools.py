@@ -675,6 +675,58 @@ def campaign_tools_rule(ledger):
     return None if row is None else frozen_tools_rule(json.loads(row[0]))
 
 
+#: The argument normalisation rule a campaign freezes in its run plan
+#: (`argument_normalisation`, LP-PROD-FIX-01), beside its tools rule and
+#: separate from it, so the tools a campaign is offered stay byte for byte
+#: what it froze. Under it, start_research_task with kind=workspace reads
+#: strategy_json sent as the string "null" as JSON null - the one value that
+#: field takes there - before the request is checked. Nothing else is
+#: normalised: kind=practice still refuses "null" (it needs a recipe), and a
+#: workspace arguments_json is required, so null is never its value. A
+#: campaign whose plan names no rule refuses "null" as before
+#: (`workspace_recipe_forbidden`) and replays unchanged.
+ARGUMENT_NORMALISATION = "carbon.autoresearch.argument-normalisation.v1"
+ARGUMENT_NORMALISATIONS = (ARGUMENT_NORMALISATION,)
+
+
+def frozen_argument_normalisation(manifest):
+    """The argument normalisation rule a frozen campaign manifest's run plan
+    records: None - no normalisation - when it names none or the manifest
+    has no run plan. A rule this code does not know is refused, never read
+    as none."""
+    plan = manifest.get("provider") if type(manifest) is dict else None
+    rule = plan.get("argument_normalisation") if type(plan) is dict else None
+    if rule is not None and rule not in ARGUMENT_NORMALISATIONS:
+        raise ValueError("unknown argument normalisation rule")
+    return rule
+
+
+def campaign_argument_normalisation(ledger):
+    """The rule the ledger's frozen campaign manifest records (None without
+    a ledger, or before a manifest is frozen)."""
+    if not callable(getattr(ledger, "db", None)):
+        return None
+    with ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    return None if row is None else frozen_argument_normalisation(json.loads(row[0]))
+
+
+def normalised_task_arguments(args, rule):
+    """`args` of a start_research_task call as `rule` reads them: under
+    `ARGUMENT_NORMALISATION`, kind=workspace with strategy_json the string
+    "null" is read with strategy_json JSON null; every other call, and every
+    call under no rule, is returned as sent. A new dict; `args` is never
+    changed, so what was sent is what is journalled and bound."""
+    if (
+        rule == ARGUMENT_NORMALISATION
+        and type(args) is dict
+        and args.get("kind") == "workspace"
+        and args.get("strategy_json") == "null"
+    ):
+        return {**args, "strategy_json": None}
+    return args
+
+
 def tools_for_sdk(sdk, rule=_FROM_CAMPAIGN):
     """Prospective discovery only; historical campaign tool schemas are immutable.
 
@@ -865,6 +917,11 @@ class ResearchMinerTools:
             return research.CancelResearchTaskRequest(key, _task_id(args), identity)
         if operation != "start_research_task":
             raise ValueError("operation requires unavailable prior")
+        # The campaign's frozen argument normalisation (LP-PROD-FIX-01): a
+        # workspace call's strategy_json "null" is JSON null under it.
+        args = normalised_task_arguments(
+            args, campaign_argument_normalisation(self.ledger)
+        )
         for name in ("hypothesis", "expected_effect"):
             if type(args[name]) is not str or not 1 <= len(args[name]) <= 2048:
                 raise TaskContractMismatch("tool_text_bounded", name)

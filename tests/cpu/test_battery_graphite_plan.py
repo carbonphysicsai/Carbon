@@ -41,7 +41,10 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
 )
 from carbon.development_session.research_ledger import CampaignLedger
-from carbon.development_session.research_tools import TOOLS_RULE
+from carbon.development_session.research_tools import (
+    ARGUMENT_NORMALISATION,
+    TOOLS_RULE,
+)
 
 BUDGET = {
     "ceilings": {
@@ -109,6 +112,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "parallel_calls",
         "miner_guidance",
         "research_tools",
+        "argument_normalisation",
         "limits",
         "compaction",
         "graphite",
@@ -122,6 +126,8 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["parallel_calls"] == PARALLEL_CALLS_V2
     assert plan["miner_guidance"] == miner_guidance.RULE
     assert plan["research_tools"] == TOOLS_RULE
+    # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation.
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION
     assert plan["compaction"] == editions.COMPACTION_V1
     assert plan["limits"] == {
         "plan": {
@@ -250,6 +256,7 @@ def test_the_autonomous_and_agentless_plans_are_unchanged():
     assert plan["max_provider_calls_per_epoch"] == 48
     assert plan["max_research_trials_per_epoch"] == 8
     assert "graphite" not in plan and "limits" not in plan
+    assert "argument_normalisation" not in plan  # LP-PROD-FIX-01: Graphite only
     assert battery.provider_plan("none", None) == {"agent": "none", "model_calls": 0}
 
 

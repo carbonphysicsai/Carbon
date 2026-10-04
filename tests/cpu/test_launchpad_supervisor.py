@@ -728,6 +728,143 @@ def test_an_agents_unevaluated_candidate_is_reported_with_its_code(
     assert entry["next_action"] == supervision.NEXT_ACTIONS["evaluation_queued"]
 
 
+def retained_by_its_agent(journey, monkeypatch, key="launch-key-0000001", fail=None):
+    """A Carbon-agent campaign whose agent selected a candidate the validator
+    did not evaluate. DEVELOPMENT FIXTURE: `run_agent` freezes the candidate
+    where the agent's SELECT writes it (`epoch-1/selected-recipe.json`) and
+    returns what `submit_or_retain` returns then - the refusal's closed code,
+    `evaluation_unavailable` - or, with `fail`, raises it after the freeze."""
+
+    from carbon.development_session.research_loop import candidate_record
+
+    async def run_agent(prepared, **_):
+        folder = prepared.ledger.root / "epoch-1"
+        folder.mkdir(mode=0o700, exist_ok=True)
+        (folder / "selected-recipe.json").write_bytes(
+            canonical(candidate_record(RECIPE, "practised", False))
+        )
+        if fail is not None:
+            raise fail
+        return "evaluation_unavailable"
+
+    monkeypatch.setattr(research_campaign, "run_agent", run_agent)
+    identity = launch(journey.host, key=key, agent="autonomous")["id"]
+    join(journey.host)
+    return identity
+
+
+def test_a_retained_candidate_waits_ready_through_tools_and_restarts(
+    journey, monkeypatch
+):
+    """LP-PROD-FIX-01, smoke run 382c4276: a submit refused
+    `evaluation_unavailable` keeps the agent's candidate, and its campaign
+    waits for its miner. Until 2026-10-04 it settled INTERRUPTED with no
+    interruption recorded; the Tools tab then left it RECONCILING, and a
+    restart settled it INTERRUPTED again with `campaign_interrupted` over
+    the refusal."""
+    host = journey.host
+    identity = retained_by_its_agent(journey, monkeypatch)
+    root = campaign_root(host, identity)
+
+    def kept(view):
+        refusal = view["last_refusal"]
+        assert view["state"] == "READY", (view["state"], refusal)
+        assert (refusal["code"], refusal["operation"]) == (
+            "evaluation_unavailable",
+            "submit",
+        )
+        assert (
+            refusal["next_action"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+        )
+        assert (root / "epoch-1" / "selected-recipe.json").exists()
+        assert not (root / "epoch-1" / "permitted-final-feedback.json").exists()
+        assert not (root / "interruptions.jsonl").exists()
+
+    kept(host.get(identity))
+    assert host.get(identity)["journey"]["frozen_awaiting_submission"] is True
+    assert CampaignControl(CampaignLedger(root)).status()["state"] == "READY"
+    # The Tools tab (or an attached agent) holds it, and its process dies
+    # before settling: a restart finds it RECONCILING and settles it READY.
+    CampaignControl(CampaignLedger(root)).acquire()
+    restarted = RunnerAdapter(host.database, principal="alice")
+    try:
+        kept(restarted.get(identity))
+    finally:
+        restarted.close()
+    # A supervisor taking the lock does the same.
+    CampaignControl(CampaignLedger(root)).acquire()
+    supervisor = journey.peer(supervision.SUPERVISOR)
+    assert supervisor.supervisor.tick()
+    join(supervisor)
+    kept(supervisor.get(identity))
+    # An idle settle (the miner's Reconcile) leaves it READY too.
+    kept(host.control(identity, "reconcile"))
+
+
+def test_a_run_that_raised_after_its_agent_selected_stays_interrupted(
+    journey, monkeypatch
+):
+    """Only a refusal that kept the candidate waits READY: a run that raised
+    after the selection keeps its interruption, recorded, as before."""
+    identity = retained_by_its_agent(
+        journey, monkeypatch, fail=RuntimeError("not a refusal")
+    )
+    root = campaign_root(journey.host, identity)
+    view = journey.host.get(identity)
+    assert view["state"] == "INTERRUPTED"
+    assert view["last_refusal"]["code"] == "campaign_interrupted"
+    assert CampaignControl(CampaignLedger(root)).status()["state"] == "INTERRUPTED"
+    assert (root / "interruptions.jsonl").read_text().count("\n") == 1
+
+
+def test_waits_for_its_miner_reads_the_campaigns_own_files(tmp_path):
+    from carbon.development_session.research_campaign import waits_for_its_miner
+    from carbon.miner_mcp.standard_cli import _waits_for_its_miner
+
+    root = tmp_path / "campaign"
+    root.mkdir()
+    assert not waits_for_its_miner(root)  # not prepared: no frozen manifest
+
+    def frozen(agent):
+        manifest = {} if agent is None else {"agent": agent}
+        (root / "campaign-manifest.json").write_bytes(canonical(manifest))
+        return manifest
+
+    def write(epoch, name):
+        folder = root / ("epoch-" + str(epoch))
+        folder.mkdir(exist_ok=True)
+        (folder / name).write_text("{}")
+
+    frozen("none")
+    assert waits_for_its_miner(root)
+    for agent in ("autonomous", "graphite", None):  # None: the historical default
+        frozen(agent)
+        assert not waits_for_its_miner(root)
+    write(1, "selected-recipe.json")
+    assert waits_for_its_miner(root)  # retained, epoch 1 unevaluated
+    write(1, "permitted-final-feedback.json")
+    assert not waits_for_its_miner(root)  # epoch 1 evaluated, nothing frozen in 2
+    write(2, "selected-recipe.json")
+    assert waits_for_its_miner(root)
+    write(2, "permitted-final-feedback.json")
+    assert not waits_for_its_miner(root)  # both final exams used
+    (root / "epoch-2" / "permitted-final-feedback.json").unlink()
+    (root / "campaign-complete.json").write_text("{}")
+    assert not waits_for_its_miner(root)
+    (root / "campaign-complete.json").unlink()
+    # A detach asks the same, with the profile's manifest.
+    profile = SimpleNamespace(
+        cleanup_only=False, manifest=frozen("graphite"), root=root
+    )
+    run = SimpleNamespace(status=lambda: {"desired": "RUN"})
+    pause = SimpleNamespace(status=lambda: {"desired": "PAUSE"})
+    assert _waits_for_its_miner(profile, run)
+    assert not _waits_for_its_miner(profile, pause)
+    assert not _waits_for_its_miner(
+        SimpleNamespace(cleanup_only=True, manifest=profile.manifest, root=root), run
+    )
+
+
 def test_execute_returns_what_the_agent_returns(monkeypatch, tmp_path):
     closed = []
 

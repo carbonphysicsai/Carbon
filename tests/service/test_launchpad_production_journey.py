@@ -12,8 +12,9 @@ production work (LP-PROD-A to G), each through the doors a miner uses:
    naming the field, before dispatch, and the corrected call succeeds;
 4. Carbon's agent runs a three-call parallel turn in order, journalled; a
    malformed selection and an unpractised one are answered recoverably; a
-   practised one is selected; a resume replays with no model call and no
-   dispatch;
+   practised one is selected and, not evaluated, kept with its campaign
+   READY through the Tools tab and restarts; a resume replays with no model
+   call and no dispatch;
 5. a reply cut off at the output cap and a transient 503 do not end the
    epoch; a call whose outcome is unknown is settled conservatively, and the
    epoch goes on (5b: by the Control Center's own reconcile action);
@@ -34,7 +35,8 @@ production work (LP-PROD-A to G), each through the doors a miner uses:
    practised recipe and submits through the intake, frozen by plan and
    curation digests, and a resume calls nothing (8c); a FULL campaign's
    research stops typed at its share (`research_share_reached`) after the
-   calls the share admits, and the build goes on (8d); with no per-epoch cap
+   calls the share admits, and the build goes on, its unevaluated candidate
+   kept READY as in 4 (8d); with no per-epoch cap
    a campaign runs past 48 calls until the miner's own ceiling stops it,
    and a long run compacts once - a metered call, its summary labelled -
    and replays exactly (8e).
@@ -846,6 +848,7 @@ def battery_prepare(patch, *, miner_key=None):
         )
 
     patch(research_campaign, "prepare", prepare)
+    return ticks
 
 
 class Script:
@@ -928,8 +931,9 @@ class BatteryLaunchpad:
         from scripts.dev.miner_launchpad.runner import PATH_FIELDS, RunnerAdapter
 
         self.root = shared_root(tmp_path)
-        install = install_journey(self.root, monkeypatch.setattr)
-        battery_prepare(monkeypatch.setattr, miner_key=miner_key)
+        self.patch = monkeypatch.setattr
+        self.install = install_journey(self.root, monkeypatch.setattr)
+        self.ticks = battery_prepare(monkeypatch.setattr, miner_key=miner_key)
         monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(lambda _: None))
         # Retries wait no wall time here; the waits asked for are recorded.
         self.waits = []
@@ -961,14 +965,61 @@ class BatteryLaunchpad:
                 for name in PATH_FIELDS | {"operator_config"}
             },
         }
-        self.host = RunnerAdapter(
+        self.host = self.new_host()
+        self.servers = []
+
+    def new_host(self):
+        """This Control Center's campaign host over the shared database:
+        INLINE, as the browser smoke's host, so it recovers as it starts."""
+        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+        host = RunnerAdapter(
             self.root / "runner.sqlite3",
             principal=PRINCIPAL,
-            registration=install.registration,
+            registration=self.install.registration,
         )
-        self.host.configured = lambda: self.cfg
-        self.host.preflight = install.preflight
-        self.servers = []
+        host.configured = lambda: self.cfg
+        host.preflight = self.install.preflight
+        return host
+
+    def restart(self):
+        """The Control Center closed and started again: this host closed and
+        a new one over the same records, which recovers what it finds."""
+        library = self.host.library_root
+        self.host.close()
+        self.host = self.new_host()
+        self.host.library_root = library
+
+    def tools(self, campaign):
+        """The Control Center's Tools tab on `campaign`, opened and closed:
+        the host's own tool sessions over the real attachment
+        (`standard_cli.attached`, as `runner_opener` makes it), under this
+        host's runner profile written where the Control Center reads it, with
+        the stdio attach fixtures' runtime (`fixture_runtime`: the host,
+        images and key) on the preparations' own clock. Returns the
+        campaign's ledger state while open."""
+        from test_standard_mcp_cli import fixture_runtime, private_write
+
+        from carbon.miner_mcp import standard_cli
+        from scripts.dev.miner_launchpad.runner import PROFILE_SCHEMA
+
+        def runtime(profile):
+            connection, *rest = fixture_runtime(profile)
+            connection.service.gateway.clock_ns = lambda: next(self.ticks)
+            return (connection, *rest)
+
+        path = self.root / "runner-profile.json"
+        private_write(path, {**self.cfg, "schema": PROFILE_SCHEMA})
+        self.patch(standard_cli, "_runtime", runtime)
+        self.host.configuration = path
+        try:
+            opened = self.host.tool_sessions.open(campaign)
+            assert opened["open"] is True, opened
+            held = ledger_status(self.root, campaign)
+        finally:
+            self.host.tool_sessions.close(campaign)
+            self.host.configuration = None
+        return held
 
     def perform(self, operation, request):
         from scripts.dev.miner_launchpad.operations import perform
@@ -1066,6 +1117,47 @@ def battery(tmp_path, monkeypatch):
     launchpad.close()
 
 
+def waits_ready_with_its_candidate(launchpad, campaign):
+    """An agent's candidate the validator did not evaluate is kept, and its
+    campaign waits for its miner: READY, its `evaluation_unavailable` refusal
+    and next step kept, no interruption recorded - after its run, after the
+    Tools tab opens and closes on it, and after the Control Center restarts,
+    including a restart that finds it held by a Tools tab whose process died
+    (LP-PROD-FIX-01). Smoke run 382c4276 showed each of these INTERRUPTED,
+    the last with `campaign_interrupted` over the refusal."""
+    from carbon.development_session.research_control import CampaignControl
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    root = launchpad.campaign_root(campaign)
+
+    def kept(view):
+        refused = view["last_refusal"]
+        assert view["state"] == "READY", (view["state"], refused)
+        assert (refused["code"], refused["operation"]) == (
+            "evaluation_unavailable",
+            "submit",
+        )
+        assert (
+            refused["next_action"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+        )
+        assert view["journey"]["frozen_awaiting_submission"] is True
+        assert ledger_status(launchpad.root, campaign) == ("RUN", "READY")
+        assert not (root / "interruptions.jsonl").exists()
+
+    kept(launchpad.view(campaign))
+    # The Tools tab holds the campaign while open, and settles it as it
+    # closes.
+    assert launchpad.tools(campaign) == ("RUN", "RECONCILING")
+    kept(launchpad.view(campaign))
+    launchpad.restart()
+    kept(launchpad.view(campaign))
+    # A Tools tab whose process died left it held (RECONCILING): the
+    # restarted Control Center's recovery settles it.
+    CampaignControl(launchpad.ledger(campaign)).acquire()
+    launchpad.restart()
+    kept(launchpad.view(campaign))
+
+
 def test_4_carbons_agent_runs_a_parallel_turn_selects_a_practised_recipe_and_replays(
     battery,
 ):
@@ -1076,8 +1168,10 @@ def test_4_carbons_agent_runs_a_parallel_turn_selects_a_practised_recipe_and_rep
     missing a field and one of a recipe never practised are answered as
     REJECTED_BEFORE_DISPATCH and the epoch goes on; the practised recipe is
     selected (LP-PROD-A). With no validator configured the selection is not
-    evaluated and the campaign says so by name. A resume replays the epoch
-    from its journal: no model call, no dispatch, nothing spent."""
+    evaluated and the campaign says so by name, waiting READY with its
+    candidate through the Tools tab and restarts (LP-PROD-FIX-01). A resume
+    replays the epoch from its journal: no model call, no dispatch, nothing
+    spent."""
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_loop import (
         SELECT,
@@ -1158,6 +1252,7 @@ def test_4_carbons_agent_runs_a_parallel_turn_selects_a_practised_recipe_and_rep
     assert (
         submit_stage(battery, campaign)["refusal"]["code"] == "evaluation_unavailable"
     )
+    waits_ready_with_its_candidate(battery, campaign)
     ledger, owner = battery.ledger(campaign), battery.owner(campaign)
 
     def spent():
@@ -2397,6 +2492,7 @@ def test_8d_a_full_campaigns_research_stops_at_its_share(graphite):
     view = graphite.view(campaign)
     assert view["last_refusal"]["code"] == "evaluation_unavailable"
     assert view["journey"]["submitted_epochs"] == []
+    waits_ready_with_its_candidate(graphite, campaign)
 
 
 #: An unknown card id: `lit_card` answers it with a short refusal, so a long
