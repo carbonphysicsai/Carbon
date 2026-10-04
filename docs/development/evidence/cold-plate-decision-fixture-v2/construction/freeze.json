@@ -153,7 +153,7 @@
       "repeated_commitment": "FORBIDDEN"
     }
   },
-  "freeze_digest": "sha256:6ea66ba95f91fbd293ac7973cbb8b81c32a5069a7027414712da52ddd92837a2",
+  "freeze_digest": "sha256:42c4e23a5e984edecbe3e47e8d616e3c28511e734d7ad937b13bf6e165037f0d",
   "reference_scope": {
     "comparison_set": "all declared design-condition pairs",
     "global_optimality_claim": false,
@@ -167,17 +167,17 @@
       "carbon/cold_plate/analysis.py": "sha256:0f42b8b224c318e232edfb7f4d2ca3449fb22239cebeaaaab61e08f984f877cb",
       "carbon/cold_plate/analytic.py": "sha256:0851499dfefe5d7c23bb99346ab98fd1593b6b91d346af907dedbdec67c24034",
       "carbon/cold_plate/customer_decision.py": "sha256:a34bcf658b0c8dc1f27714d8687b14c6f164d758568bdc65802b0bfe8f8646e9",
-      "carbon/cold_plate/decision_study.py": "sha256:9bbf6e42c7d163cc579e653ca68a3c61c85f323f078dbb4038f409e8c9783e0b",
+      "carbon/cold_plate/decision_study.py": "sha256:5842bcd89566d57a55df56ae27831abf1aa5a12746ba545856e54eb601f439b4",
       "carbon/cold_plate/domain.py": "sha256:63104d66d3e32be7a35d65483a9535845569b13d56d7a76f7e18c503d9a055ee",
       "carbon/cold_plate/exam.py": "sha256:ffb9e94ae17a8b403c5d95f4e4985ef989a81d7ed35c2a45af062cff6cac17be",
       "carbon/cold_plate/openfoam.py": "sha256:e531c7c8c4e241775d94acff1c7caab42198cb97d10a33149be08bfe2805a444",
       "carbon/cold_plate/population.py": "sha256:27e7601d10ba69d87c2724ea95185a053f63d64edd0332eea9f44edda82059b2",
-      "carbon/cold_plate/reference_campaign.py": "sha256:b4bdbea654376e6fe6a48caa51024a564ab2c5c8c8c2492131a07d089c30e32c",
+      "carbon/cold_plate/reference_campaign.py": "sha256:da7d1b4892788168609a8769d8b8695722288cd009713f1d4bd88295db398fbb",
       "carbon/design_search/experiment.py": "sha256:30c3dcc89fa88615c24a2b78bb8ad7556cda581bc0d7fed544c713ef7ec0adb9",
       "carbon/design_search/methods.py": "sha256:98b1f9f812fcba2b50ba463cc1f9e7f3eef5d932502d5b775aa329498f24f8d5",
       "carbon/learned_baseline.py": "sha256:b99f986c7576951ef645f1f4660fd04a45bd7a88399499748c22b126ae682926",
       "scripts/dev/cold_plate/decision_study.py": "sha256:0734cff1de2106392de9e66a8931e4556bf8af95cdfc3cc8298e9e52499d7c58",
-      "scripts/dev/cold_plate/reference/run_batch.py": "sha256:016581131fa6cc6aa0bb6b40767d550b378d2ad5d364446e5b1382aa052bc7d9"
+      "scripts/dev/cold_plate/reference/run_batch.py": "sha256:0a55bd41b2354480b45e572d2bfabc9dfdc1a37f8a6c0b9183d1e140175a16e0"
     },
     "conditions": [
       {
@@ -278,7 +278,7 @@
       }
     ],
     "failure_handling": "an unavailable or unresolved reference result stays exactly that; a model or oracle failure ends that run and is recorded",
-    "freeze_digest": "sha256:4cbfadef4c6c3c4a288e86fc6fa24375472476bd5fae7da3c3c1ef790c2a6196",
+    "freeze_digest": "sha256:dfd4f562824094a352e0f084b72e02db83f4b3b115ab6f02b759f71516b0fd89",
     "initialization": "deterministic; no method draws a random number",
     "material": "DEVELOPMENT",
     "methods": {

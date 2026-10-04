@@ -222,6 +222,54 @@ reserved work remains consumed and fails closed rather than being launched
 again. The importer requires the ledger snapshot and reconciles it with the
 plan, records and campaign limits.
 
+This registered campaign is Docker-only. The runner refuses `--native` before
+it constructs or reserves a campaign ledger, creates the output directory or
+dispatches a solver. It then requires the plan's pinned OpenFOAM image and the
+registered 2 CPUs per execution, 6-way parallelism, 3600-second timeout and
+`all` artifact retention. Native mode remains available for unrelated
+unregistered workflows; it is not evidence for this campaign.
+
+### Interrupted registered campaign
+
+The ledger survives a launcher crash, but the current runner does **not**
+automatically resume or reconcile a partially executed batch. Reservations are
+attempted executions and remain charged even when their final process state is
+unknown. The same attempt cannot be reserved again, and changing the output
+directory does not recover its allowance.
+
+Recovery is an inspection and escalation procedure, not a relaunch procedure:
+
+1. Preserve the exact SQLite ledger, registered plan, bound output directories,
+   `records.jsonl`, `progress.json`, case directories, solver logs and retained
+   artifacts. Do not clean up surviving containers until their identity and
+   state have been recorded.
+2. Read the campaign snapshot from the preserved ledger and compare every
+   execution row with its retained record and case artifacts. Inspect Docker
+   for the case container names beginning with
+   `carbon-cold-plate-<batch>-<case_id>`.
+3. Classify an execution as completed only when the ledger row is `FINISHED`
+   with the matching successful record; classify a recorded typed non-OK
+   terminal result as failed; classify a `RESERVED` row with its exact live
+   container as still running. A `RESERVED` row without decisive matching live
+   or terminal evidence is uncertain. A retained record with a still-reserved
+   row is also uncertain because a crash can occur between record append and
+   the ledger transition.
+4. Keep every uncertain reservation charged. Do not delete or edit the ledger,
+   change the campaign/construction identity, switch output directories, or
+   dispatch a replacement to regain budget.
+5. If the original runner and its exact container are both still alive, do not
+   start a second launcher; monitor the original path so it can write the
+   retained record and supported terminal ledger transition. If the runner is
+   gone, even a surviving or later-finished container is uncertain because no
+   supported process remains to analyze and commit its result. Stop this
+   campaign. The ledger currently has no supported operator transition for
+   reconciling a stranded `RESERVED` row; present the exact affected cases and
+   retained evidence for an owner decision before adding a bounded
+   reconciliation mechanism or authorizing a new versioned campaign.
+
+This limitation is intentional fail-closed behavior for the present study. It
+prevents silent overspend but does not provide automatic process recovery.
+
 Before the full-manifold version can be used, the science owner must approve a
 new reference policy covering topology/mesh rules, turbulence or transition
 applicability, two-dimensional heat maps, convergence/refinement, failed-case
@@ -486,6 +534,39 @@ CFD remains pending the specific approvals below.
 | Group weighting and pass threshold | Keep representative and boundary groups separate; no combined weighting and no pass threshold | No approved customer population or acceptable error rate exists | Evidence remains descriptive; no pass/qualification claim | Science/customer owner | Only required before combining groups or declaring adequacy |
 | Customer requirements and rights | Keep all actual customer values/data absent until supplied and rights-cleared | No customer evidence or rights were provided | Blocks customer acceptance, commercial validation and confidential-data use, but not the synthetic study | Customer/rights owner | Any customer-specific rerun or claim |
 
+### Remaining approvals — not yet granted
+
+The repository decision records, PR #552 discussion, owner inbox #41 and science
+inbox #42 were checked on 2026-10-04. None contains an approval for this exact
+frozen campaign. The prior PR handoff explicitly keeps both approvals blocked.
+The tracked inspectable plan is still `authorized: false`; its current
+construction identity is
+`sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706`
+and its Docker campaign identity is
+`sha256:0cac6087aef35ca24418a3683dd03f286389f5f80fc9f5624b97ad550948e832`.
+These identities describe the regenerated analytical fixture construction and
+ready plan; they do not themselves grant authority.
+
+The smallest remaining approvals are:
+
+1. **Science approval for this synthetic DEVELOPMENT pilot only:** approve the
+   100 °C die-temperature limit; 0.25 W periodic-cell hydraulic-power limit;
+   unchanged eight-design × six-condition set; registered steady-state
+   flow-per-heat-load assumption; corrected missing-evidence and finite-set
+   comparator policies; separate representative and boundary-stress reporting;
+   and no population reliability, customer acceptance or qualification claim.
+2. **Compute/spend approval:** approve 48 initial OpenFOAM executions and up to
+   12 registered retries, at most one per eligible case; a hard cap of 60
+   reserved attempts; 2 CPUs per execution; 6 concurrent executions; a
+   3600-second timeout per execution; and retention of every artifact and the
+   campaign ledger. The planning estimate is 19.2–24 core-hours. The configured
+   allocation ceiling is 96 core-hours initially and 120 with maximum retries,
+   plus host, storage and orchestration overhead.
+
+Approval must cover the exact final engineering head and frozen configuration.
+It authorizes only this bounded campaign; it does not establish scientific
+qualification, customer acceptance or LIVE authority.
+
 After the science and compute/spend owners approve the exact frozen plan, the
 ready-to-run Linux commands are:
 
@@ -503,7 +584,8 @@ python -m scripts.dev.cold_plate.decision_study plan-cfd \
 # STOP here until the science and compute/spend approvals in the table exist.
 
 # Stage 4, attempt 1: reserve all 48 executions in the durable ledger before
-# any solver dispatch.
+# any solver dispatch. Docker is mandatory for this registered campaign;
+# run_batch refuses --native before reservation or artifact creation.
 python -m scripts.dev.cold_plate.reference.run_batch \
   .carbon-artifacts/AI_ACCELERATOR_COOLING_CFD_PLAN.json \
   --out .carbon-artifacts/ai-cooling-cfd-attempt-1 \
@@ -552,6 +634,7 @@ ignored `.carbon-artifacts/` directory and must be retained for import/audit.
 | A best resolved feasible design always supports exact finite-set regret | Confirmed as incorrect and repaired. Potentially competitive unresolved designs withhold exact regret; a confirmed-infeasible design may be excluded despite unrelated missing evidence. |
 | Comparator reference may be read before all proposal commitments exist | Confirmed and repaired. Construction and evaluation are separate CLI stages; evaluation restores all four commitment files before the first reference acquisition. |
 | The 24-core-hour estimate is an enforced launch maximum | Confirmed as incorrect and repaired. Estimates are 19.2/24.0 core-hours; allocation ceilings are 96/120 core-hours. A durable pre-dispatch ledger enforces 48+12 executions, output binding, concurrency exclusion and retry eligibility. |
+| The registered campaign can use `--native` | Confirmed and repaired. Registered plans now refuse native mode before ledger construction/reservation, artifact creation or dispatch; the focused regression proves no campaign or process side effect. Unregistered native workflows remain supported. |
 | Fixture agreement demonstrates a learned-model design-quality advantage | Rejected. The valid fixture outcome is agreement: all arms select `d03`; the learned model does not change or improve this decision, while screen-then-confirm uses fewer model queries. |
 
 No review hypothesis in this focused repair was dismissed without a code or

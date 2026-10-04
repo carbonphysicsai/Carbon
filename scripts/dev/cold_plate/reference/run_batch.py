@@ -287,8 +287,6 @@ def main(argv=None):
         "(a pod started from the pinned image); no container is launched",
     )
     args = parser.parse_args(argv)
-    global NATIVE
-    NATIVE = args.native
     plan = json.loads(args.plan.read_text())
     cases = plan["cases"]
     ids = [c["case_id"] for c in cases]
@@ -299,11 +297,19 @@ def main(argv=None):
     campaign_id = None
     attempt = plan.get("attempt")
     if campaign is not None:
+        if args.native is not None:
+            parser.error(
+                "registered campaign plans require Docker; --native is not permitted"
+            )
         if args.campaign_ledger is None:
             parser.error("registered campaign plan requires --campaign-ledger")
-        if plan.get("solver_image") != openfoam.IMAGE:
+        if (
+            campaign.get("execution_backend") != "DOCKER"
+            or plan.get("solver_image") != openfoam.IMAGE
+            or campaign.get("solver_image") != openfoam.IMAGE
+        ):
             parser.error(
-                "registered campaign plan does not use the pinned solver image"
+                "registered campaign plan does not require the pinned Docker image"
             )
         expected_ledger = (ROOT / campaign.get("ledger_relative_path", "")).resolve()
         if args.campaign_ledger.resolve() != expected_ledger:
@@ -328,6 +334,8 @@ def main(argv=None):
             parser.error(f"campaign reservation failed: {error}")
     elif args.campaign_ledger is not None:
         parser.error("--campaign-ledger requires a registered campaign plan")
+    global NATIVE
+    NATIVE = args.native
     args.out.mkdir(parents=True, exist_ok=True)
     args.out.chmod(0o700)
     if any((args.out / "cases" / i).exists() for i in ids):

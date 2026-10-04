@@ -1,5 +1,5 @@
 {
- "commitment_digest": "sha256:8b839b35bfa1b4c3b08baded1a7acb4ad1ff907f950a2ebbad3134e7d7b401f9",
+ "commitment_digest": "sha256:d33f025f2347086b39d7e82be75406bc6a5528979a9c5ea26928bea03558d03a",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
  "query_attempts": 48,
  "query_log_digest": "sha256:95e13882c38e0d38cfe2c284f6632eb8b030063cded09c4532d29e6ae82fc701",
@@ -105,7 +105,7 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:513172fc864e3fd522eb0f9a9a72730ea47be5884514e0efb60ed1316a14d897",
+   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
    "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
    "name": "fixed_grid"
   },
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:135ebdd7b082939a6cb065d70021e085e41f6bef202899c9d79bac3dfe6e1276",
+  "request_digest": "sha256:5fb23ae3a3b81d41399697ee8c5ccf29bd4c7912a6e6459602c2803372e1877c",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",

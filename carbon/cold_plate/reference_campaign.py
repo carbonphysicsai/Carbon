@@ -34,6 +34,8 @@ def _policy(plan):
         "campaign_id",
         "study_id",
         "construction_identity_digest",
+        "execution_backend",
+        "solver_image",
         "ledger_relative_path",
         "initial_execution_limit",
         "retry_execution_limit",
@@ -47,6 +49,14 @@ def _policy(plan):
     if (
         type(campaign["campaign_id"]) is not str
         or type(campaign["construction_identity_digest"]) is not str
+        or campaign["execution_backend"] != "DOCKER"
+        or type(campaign["solver_image"]) is not str
+        or "@sha256:" not in campaign["solver_image"]
+        or len(campaign["solver_image"].rsplit("@sha256:", 1)[1]) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in campaign["solver_image"].rsplit("@sha256:", 1)[1]
+        )
         or type(campaign["ledger_relative_path"]) is not str
         or not campaign["ledger_relative_path"].startswith(".carbon-artifacts/")
         or Path(campaign["ledger_relative_path"]).is_absolute()

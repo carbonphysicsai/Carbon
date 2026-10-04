@@ -2,8 +2,9 @@
   "attempt": 1,
   "batch": "ai-accelerator-cooling-synthetic-v1-cfd-attempt-1",
   "campaign": {
-    "campaign_id": "sha256:bb38dbcfcbb5159b1c6e7dbc983ffac73d649da874aea1f08bef9b8de7f8fa71",
-    "construction_identity_digest": "sha256:861a6c785d16ca2e41bf225168a53d43ac975bbc5bb1d175d7df156e7c5811af",
+    "campaign_id": "sha256:0cac6087aef35ca24418a3683dd03f286389f5f80fc9f5624b97ad550948e832",
+    "construction_identity_digest": "sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706",
+    "execution_backend": "DOCKER",
     "initial_execution_limit": 48,
     "ledger_relative_path": ".carbon-artifacts/ai-accelerator-cooling-synthetic-v1-campaign.sqlite3",
     "max_retries_per_case": 1,
@@ -20,6 +21,7 @@
     ],
     "retry_execution_limit": 12,
     "schema": "carbon.cold-plate.reference-campaign.v1",
+    "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
     "study_id": "ai-accelerator-cooling-synthetic-v1",
     "total_execution_limit": 60
   },
@@ -793,7 +795,7 @@
       "options": {}
     }
   ],
-  "construction_identity_digest": "sha256:861a6c785d16ca2e41bf225168a53d43ac975bbc5bb1d175d7df156e7c5811af",
+  "construction_identity_digest": "sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706",
   "schema": "carbon.cold-plate.decision-reference-plan.v2",
   "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
 }

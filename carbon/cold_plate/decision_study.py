@@ -570,6 +570,8 @@ def _campaign_policy(config, construction_identity_digest):
     identity = {
         "study_id": config["study_id"],
         "construction_identity_digest": construction_identity_digest,
+        "execution_backend": "DOCKER",
+        "solver_image": openfoam.IMAGE,
         "ledger_relative_path": (
             f".carbon-artifacts/{config['study_id']}-campaign.sqlite3"
         ),

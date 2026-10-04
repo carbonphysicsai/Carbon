@@ -78,6 +78,8 @@ def test_config_freezes_synthetic_scope_groups_and_bounded_reference_plan():
     assert plan["campaign"]["initial_execution_limit"] == 48
     assert plan["campaign"]["retry_execution_limit"] == 12
     assert plan["campaign"]["total_execution_limit"] == 60
+    assert plan["campaign"]["execution_backend"] == "DOCKER"
+    assert plan["campaign"]["solver_image"] == cd.openfoam.IMAGE
     assert plan["campaign"]["ledger_relative_path"] == (
         ".carbon-artifacts/ai-accelerator-cooling-synthetic-v1-campaign.sqlite3"
     )
@@ -571,6 +573,56 @@ def test_counted_runner_rejects_an_alternate_campaign_ledger_path(tmp_path):
                 "all",
             ]
         )
+
+
+def test_counted_runner_rejects_native_before_reservation_or_dispatch(
+    tmp_path, monkeypatch, capsys
+):
+    plan = study.reference_plan(load(), CONSTRUCTION_ID)
+    plan["campaign"]["ledger_relative_path"] = "campaign.sqlite3"
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(plan))
+    output = tmp_path / "output"
+    ledger_path = tmp_path / "campaign.sqlite3"
+    calls = []
+
+    def unexpected(*args, **kwargs):
+        calls.append((args, kwargs))
+        raise AssertionError("registered native rejection must precede side effects")
+
+    monkeypatch.setattr(run_batch, "ROOT", tmp_path)
+    monkeypatch.setattr(run_batch, "NATIVE", None)
+    monkeypatch.setattr(reference_campaign, "CampaignLedger", unexpected)
+    monkeypatch.setattr(run_batch, "run_case", unexpected)
+    monkeypatch.setattr(run_batch.subprocess, "run", unexpected)
+    monkeypatch.setattr(run_batch.subprocess, "Popen", unexpected)
+
+    with pytest.raises(SystemExit, match="2"):
+        run_batch.main(
+            [
+                str(plan_path),
+                "--out",
+                str(output),
+                "--campaign-ledger",
+                str(ledger_path),
+                "--parallel",
+                "6",
+                "--cpus",
+                "2",
+                "--timeout-s",
+                "3600",
+                "--keep",
+                "all",
+                "--native",
+                "test-environment",
+            ]
+        )
+
+    assert "registered campaign plans require Docker" in capsys.readouterr().err
+    assert calls == []
+    assert run_batch.NATIVE is None
+    assert not ledger_path.exists()
+    assert not output.exists()
 
 
 def test_campaign_ledger_allows_one_registered_retry_for_eligible_cases(tmp_path):

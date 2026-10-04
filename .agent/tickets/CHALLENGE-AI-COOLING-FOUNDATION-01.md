@@ -1,7 +1,8 @@
 # CHALLENGE-AI-COOLING-FOUNDATION-01 — customer-bound cooling design foundation
 
-**Status:** focused repair implemented; validation/PR automation pending;
-counted CFD owner-blocked on corrected science and compute envelope
+**Status:** Docker-only registered-campaign follow-up implemented; canonical
+affected-subsystem validation passed; PR automation pending; counted CFD
+owner-blocked on corrected science and compute envelope
 
 **Authority:** OWNER-CHALLENGE-FOUNDATION-01
 
@@ -92,6 +93,12 @@ making the full-manifold, transient and experimental gaps impossible to miss.
 17. A durable pre-dispatch campaign ledger enforces 48 initial executions plus
     at most 12 eligible one-per-case retries across restarts and concurrent
     launchers, with output-directory binding.
+18. The registered campaign refuses native execution before campaign
+    reservation, artifact creation or solver dispatch and uses the pinned
+    Docker image and exact registered resource policy.
+19. The runbook states the current interrupted-campaign limitation and keeps
+    uncertain reserved attempts charged pending an explicit reconciliation
+    decision.
 
 ## Out of scope
 

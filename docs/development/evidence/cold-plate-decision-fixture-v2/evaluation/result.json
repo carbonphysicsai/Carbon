@@ -25,18 +25,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:8b839b35bfa1b4c3b08baded1a7acb4ad1ff907f950a2ebbad3134e7d7b401f9",
-        "file_sha256": "sha256:08566a2eabc8fb2c8256c65f0b3be3992eac5c2fefa75c9277cad3241dfd2d56",
-        "relative_path": "commitments/analytic-v1/fixed_grid/135ebdd7b082939a6cb065d70021e085e41f6bef202899c9d79bac3dfe6e1276.commitment.json",
+        "commitment_digest": "sha256:d33f025f2347086b39d7e82be75406bc6a5528979a9c5ea26928bea03558d03a",
+        "file_sha256": "sha256:fec6ab8a2668cb88bbdc2f82aee07a3185bc885e39c60ad7f2f749d52097f86b",
+        "relative_path": "commitments/analytic-v1/fixed_grid/5fb23ae3a3b81d41399697ee8c5ccf29bd4c7912a6e6459602c2803372e1877c.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.18284920003497973,
+      "construction_wall_s": 0.18325229996116832,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.20551600004546344,
-      "evaluation_wall_s": 0.022666800010483712,
+      "end_to_end_wall_s": 0.20715609996113926,
+      "evaluation_wall_s": 0.023903799999970943,
       "method": "fixed_grid",
       "model": "analytic-v1",
-      "model_inference_wall_s": 0.17712920001940802,
+      "model_inference_wall_s": 0.1751911000465043,
       "model_query_attempts": 48,
       "model_query_successes": 48,
       "predicted_scenarios": [
@@ -681,7 +681,7 @@
           }
         }
       ],
-      "search_wall_s": 0.17966470000101253,
+      "search_wall_s": 0.17741879995446652,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -699,7 +699,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:8b839b35bfa1b4c3b08baded1a7acb4ad1ff907f950a2ebbad3134e7d7b401f9",
+        "commitment_digest": "sha256:d33f025f2347086b39d7e82be75406bc6a5528979a9c5ea26928bea03558d03a",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -724,7 +724,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:135ebdd7b082939a6cb065d70021e085e41f6bef202899c9d79bac3dfe6e1276",
+        "request_digest": "sha256:5fb23ae3a3b81d41399697ee8c5ccf29bd4c7912a6e6459602c2803372e1877c",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -894,18 +894,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:e578053857f953c0f5412cf30368837604bc379684e0d38ec62c9e8d1c503220",
-        "file_sha256": "sha256:fd5462f3745ede365103d233d5b18ab782b4ae38645d7bebe34f3bb474edbab0",
-        "relative_path": "commitments/analytic-v1/screen_then_confirm/50c593d0aa571f2f4e3b202e9a0fa590945966792a786fb243410482b3369abc.commitment.json",
+        "commitment_digest": "sha256:0e86a2306416690e6275a3f090ff75f47961cf6d8dad7f23b201d15c602ba477",
+        "file_sha256": "sha256:85d3bf7678641fdfefac6d9a23a123c82afc8016c6a1ef8eb09204a8862954d6",
+        "relative_path": "commitments/analytic-v1/screen_then_confirm/40ac6b41f0d7553cf03720b2839422ce6c356dc66f9119a4be0bf7a112f3da97.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.04825930000515655,
+      "construction_wall_s": 0.048246300022583455,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.04914319998351857,
-      "evaluation_wall_s": 0.0008838999783620238,
+      "end_to_end_wall_s": 0.04899250000016764,
+      "evaluation_wall_s": 0.0007461999775841832,
       "method": "screen_then_confirm",
       "model": "analytic-v1",
-      "model_inference_wall_s": 0.04640089999884367,
+      "model_inference_wall_s": 0.04623490001540631,
       "model_query_attempts": 13,
       "model_query_successes": 13,
       "predicted_scenarios": [
@@ -1550,7 +1550,7 @@
           }
         }
       ],
-      "search_wall_s": 0.04708380001829937,
+      "search_wall_s": 0.04692230001091957,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -1568,7 +1568,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:e578053857f953c0f5412cf30368837604bc379684e0d38ec62c9e8d1c503220",
+        "commitment_digest": "sha256:0e86a2306416690e6275a3f090ff75f47961cf6d8dad7f23b201d15c602ba477",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -1593,7 +1593,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:50c593d0aa571f2f4e3b202e9a0fa590945966792a786fb243410482b3369abc",
+        "request_digest": "sha256:40ac6b41f0d7553cf03720b2839422ce6c356dc66f9119a4be0bf7a112f3da97",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -1763,18 +1763,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:afbb89a5d7b2cda4c9f2df79068aa109acac7143aba4c0fa9e8aa48cf049173a",
-        "file_sha256": "sha256:62f5cdb3123ff77e4b74ca6c41ba27259dcb8509871c31a46bfb15107071673b",
-        "relative_path": "commitments/learned-krr-v1/fixed_grid/a9022cdef87932f6426dfbb61485ef2e9e4798d7914afc9b7d35abc499aeb4e8.commitment.json",
+        "commitment_digest": "sha256:2cdaf166b1c8f0b4f5169d1366b89ef1d42d79170ec40f97fcb579a931edaa61",
+        "file_sha256": "sha256:d7e4638a74dd83a48e27fc065216ba8a0558ca7a5aadc739e96beb63b253a859",
+        "relative_path": "commitments/learned-krr-v1/fixed_grid/839017e07dda298703a629a3e1f326d2786cc10f421fa5df23dd9a95909f9dfe.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.005584799975622445,
+      "construction_wall_s": 0.005459600011818111,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.006255799962673336,
-      "evaluation_wall_s": 0.0006709999870508909,
+      "end_to_end_wall_s": 0.006020700035151094,
+      "evaluation_wall_s": 0.0005611000233329833,
       "method": "fixed_grid",
       "model": "learned-krr-v1",
-      "model_inference_wall_s": 0.0018915000255219638,
+      "model_inference_wall_s": 0.0014856000198051333,
       "model_query_attempts": 48,
       "model_query_successes": 48,
       "predicted_scenarios": [
@@ -2419,7 +2419,7 @@
           }
         }
       ],
-      "search_wall_s": 0.003955100022722036,
+      "search_wall_s": 0.003632000007200986,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -2437,7 +2437,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:afbb89a5d7b2cda4c9f2df79068aa109acac7143aba4c0fa9e8aa48cf049173a",
+        "commitment_digest": "sha256:2cdaf166b1c8f0b4f5169d1366b89ef1d42d79170ec40f97fcb579a931edaa61",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -2462,7 +2462,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:a9022cdef87932f6426dfbb61485ef2e9e4798d7914afc9b7d35abc499aeb4e8",
+        "request_digest": "sha256:839017e07dda298703a629a3e1f326d2786cc10f421fa5df23dd9a95909f9dfe",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -2632,18 +2632,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:6b193648c4621cf72b2bed0f6b926840b7a5c59e4f3d72d44a02d11998215cfd",
-        "file_sha256": "sha256:1535336198e2f160c9099c4585d808a3d2cd42057e762d8e747b8a66c1ac9ad8",
-        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/39a41c2bd130de9fc8e41087b66f7561975f2ab4c1239fe60fa8aee843301920.commitment.json",
+        "commitment_digest": "sha256:3442cff19178e0c081ced664862d966679f0a3913162a4f8b78ff1ce6adddb48",
+        "file_sha256": "sha256:06d7f262552331e0332551ef5f3e36d15e5ec4cea43e9afa907dad228fc74155",
+        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/935ec0693c46e40ce333053aac68c8b00e3fd31fdca6d238339acb639bc51aa2.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.0032393999863415956,
+      "construction_wall_s": 0.002742099983152002,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.0038627999601885676,
-      "evaluation_wall_s": 0.000623399973846972,
+      "end_to_end_wall_s": 0.003291799977887422,
+      "evaluation_wall_s": 0.0005496999947354198,
       "method": "screen_then_confirm",
       "model": "learned-krr-v1",
-      "model_inference_wall_s": 0.0007718999986536801,
+      "model_inference_wall_s": 0.000652400020044297,
       "model_query_attempts": 18,
       "model_query_successes": 18,
       "predicted_scenarios": [
@@ -3288,7 +3288,7 @@
           }
         }
       ],
-      "search_wall_s": 0.0018037999980151653,
+      "search_wall_s": 0.00151269999332726,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -3306,7 +3306,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:6b193648c4621cf72b2bed0f6b926840b7a5c59e4f3d72d44a02d11998215cfd",
+        "commitment_digest": "sha256:3442cff19178e0c081ced664862d966679f0a3913162a4f8b78ff1ce6adddb48",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -3331,7 +3331,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:39a41c2bd130de9fc8e41087b66f7561975f2ab4c1239fe60fa8aee843301920",
+        "request_digest": "sha256:935ec0693c46e40ce333053aac68c8b00e3fd31fdca6d238339acb639bc51aa2",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -5350,8 +5350,8 @@
       "Does the learned model change or improve the decision in this particular study?"
     ]
   },
-  "construction_digest": "sha256:5d4bb2b0f4f1caf8e7ecee5818687cebf1c8e563db638164442875809cc0f12a",
-  "construction_identity_digest": "sha256:861a6c785d16ca2e41bf225168a53d43ac975bbc5bb1d175d7df156e7c5811af",
+  "construction_digest": "sha256:5b7608fe29fb79fc0ed176e5c98be6a1e45901a9487965fd5928c44b23e4015e",
+  "construction_identity_digest": "sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706",
   "construction_state": "ALL_ARMS_COMMITTED_BEFORE_REFERENCE",
   "control_policy": {
     "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
@@ -5388,17 +5388,17 @@
       "initial_solver_executions": 48,
       "retry_reserve": 12
     },
-    "construction_wall_s": 0.896583899972029,
-    "evaluation_wall_s": 0.19074680004268885,
-    "model_inference_wall_s": 0.22619350004242733,
+    "construction_wall_s": 1.1051675000344403,
+    "evaluation_wall_s": 0.18418360000941902,
+    "model_inference_wall_s": 0.22356400010176003,
     "model_query_attempts": 127,
     "monetary_cost_status": "NO_OWNER_APPROVED_RESOURCE_RATE",
     "monetary_cost_usd": null,
     "per_decision_wall_s_by_arm": {
-      "analytic-v1/fixed_grid": 0.20551600004546344,
-      "analytic-v1/screen_then_confirm": 0.04914319998351857,
-      "learned-krr-v1/fixed_grid": 0.006255799962673336,
-      "learned-krr-v1/screen_then_confirm": 0.0038627999601885676
+      "analytic-v1/fixed_grid": 0.20715609996113926,
+      "analytic-v1/screen_then_confirm": 0.04899250000016764,
+      "learned-krr-v1/fixed_grid": 0.006020700035151094,
+      "learned-krr-v1/screen_then_confirm": 0.003291799977887422
     },
     "reference_campaign_wall_s": 0.0,
     "reference_condition_evaluations": 72,
@@ -5406,24 +5406,24 @@
     "reference_executions": 0,
     "reference_retries": 0,
     "reference_solver_wall_s": 0.0,
-    "study_end_to_end_wall_s": 1.0873307000147179,
+    "study_end_to_end_wall_s": 1.2893511000438593,
     "training_and_reconstruction": {
       "analytic-v1": {
         "kind": "ANALYTICAL_BASELINE"
       },
       "learned-krr-v1": {
-        "cpu_s": 6.875,
+        "cpu_s": 8.640625,
         "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
         "historical_training_and_tuning_cost": null,
         "kind": "LEARNED_RECONSTRUCTION",
         "training_records": 400,
-        "wall_s": 0.5045740000205114
+        "wall_s": 0.6181663000024855
       }
     }
   },
   "evidence_class": "ANALYTICAL_FIXTURE",
   "evidence_label": "ANALYTICAL_FIXTURE_SMOKE_TEST_NOT_CFD",
-  "freeze_digest": "sha256:6ea66ba95f91fbd293ac7973cbb8b81c32a5069a7027414712da52ddd92837a2",
+  "freeze_digest": "sha256:42c4e23a5e984edecbe3e47e8d616e3c28511e734d7ad937b13bf6e165037f0d",
   "material": "DEVELOPMENT",
   "metrics": {
     "abstention_rate": 0.0,

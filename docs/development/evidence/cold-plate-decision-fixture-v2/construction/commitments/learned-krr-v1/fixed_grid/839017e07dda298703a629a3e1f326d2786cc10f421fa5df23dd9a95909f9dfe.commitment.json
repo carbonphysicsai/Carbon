@@ -1,9 +1,9 @@
 {
- "commitment_digest": "sha256:6b193648c4621cf72b2bed0f6b926840b7a5c59e4f3d72d44a02d11998215cfd",
+ "commitment_digest": "sha256:2cdaf166b1c8f0b4f5169d1366b89ef1d42d79170ec40f97fcb579a931edaa61",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
- "query_attempts": 18,
- "query_log_digest": "sha256:fa1dd1f3a0ff16b1314cddd9f6aa839d6452705ea3945d60ddd6a7ea968a2982",
- "query_successes": 18,
+ "query_attempts": 48,
+ "query_log_digest": "sha256:64b53d7237a3afc08487a4bf63957663654d3da65b660daa3da080ce003a475a",
+ "query_successes": 48,
  "request": {
   "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
   "challenge": "chip-cold-plate",
@@ -105,9 +105,9 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:513172fc864e3fd522eb0f9a9a72730ea47be5884514e0efb60ed1316a14d897",
-   "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
-   "name": "screen_then_confirm"
+   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
+   "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
+   "name": "fixed_grid"
   },
   "mode": "PB-INV",
   "model": {
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:39a41c2bd130de9fc8e41087b66f7561975f2ab4c1239fe60fa8aee843301920",
+  "request_digest": "sha256:839017e07dda298703a629a3e1f326d2786cc10f421fa5df23dd9a95909f9dfe",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",

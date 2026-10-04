@@ -1,9 +1,9 @@
 {
- "commitment_digest": "sha256:e578053857f953c0f5412cf30368837604bc379684e0d38ec62c9e8d1c503220",
+ "commitment_digest": "sha256:3442cff19178e0c081ced664862d966679f0a3913162a4f8b78ff1ce6adddb48",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
- "query_attempts": 13,
- "query_log_digest": "sha256:88718c3f8b32488847fb7b67f1c3f0fb409143a0959aeb1d1c00f0bcf49b5f7c",
- "query_successes": 13,
+ "query_attempts": 18,
+ "query_log_digest": "sha256:fa1dd1f3a0ff16b1314cddd9f6aa839d6452705ea3945d60ddd6a7ea968a2982",
+ "query_successes": 18,
  "request": {
   "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
   "challenge": "chip-cold-plate",
@@ -105,14 +105,14 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:513172fc864e3fd522eb0f9a9a72730ea47be5884514e0efb60ed1316a14d897",
+   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
    "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
    "name": "screen_then_confirm"
   },
   "mode": "PB-INV",
   "model": {
-   "member": "analytic-v1",
-   "recipe_digest": "sha256:0c4271a20efd1ad23fe33ae5114e4cf48a98461f789e395a037a946d3aac9783",
+   "member": "learned-krr-v1",
+   "recipe_digest": "sha256:e48b053989d08c9b2ade07d92f13c1efee188e9bad01d899c169c8f2e0cf92fb",
    "seed": 0
   },
   "query_budget": 48,
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:50c593d0aa571f2f4e3b202e9a0fa590945966792a786fb243410482b3369abc",
+  "request_digest": "sha256:935ec0693c46e40ce333053aac68c8b00e3fd31fdca6d238339acb639bc51aa2",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
@@ -143,7 +143,7 @@
    "channel_width_mm": 0.25,
    "fin_width_mm": 0.3,
    "flow_lpm_per_kw": 1.25,
-   "predicted_worst_hydraulic_w": 0.12466262629494432
+   "predicted_worst_hydraulic_w": 0.1297953455389026
   }
  ],
  "status": "PROPOSAL"
