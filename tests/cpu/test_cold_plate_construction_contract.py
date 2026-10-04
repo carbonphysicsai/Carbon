@@ -149,3 +149,11 @@ def test_evaluation_stays_typed_and_fail_closed_until_validator_adapter():
     with pytest.raises(OperationRefused) as refused:
         asyncio.run(campaign.evaluate_frozen(None, 1, strategy()))
     assert refused.value.code == "cooling_validator_not_served"
+
+
+def test_research_uses_the_public_measurement_authoring_surface():
+    source = (REPOSITORY / "carbon" / "cold_plate" / "research.py").read_text(
+        encoding="utf-8"
+    )
+    assert "carbon.evaluation" not in source
+    assert "m.ReferencePolicyRef(" in source

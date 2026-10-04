@@ -22,7 +22,6 @@ from carbon.authoring.model import (
 )
 from carbon.authoring.model import ApplicabilityBinding as A
 from carbon.authoring.primitives import CANONICALIZATION_PROFILE
-from carbon.evaluation.refs import ReferencePolicyRef
 from carbon.reconstruction.capability_registry import (
     COLD_PLATE_CHALLENGE,
     contract,
@@ -301,7 +300,7 @@ def measurement_contract():
         definition(kind.NORMALIZATION, "train_scale_normalized_components"),
         definition(kind.AGGREGATION, "mean_case_error_not_official_score"),
         definition(kind.PRECISION, "binary64_scoring"),
-        ReferencePolicyRef(
+        m.ReferencePolicyRef(
             CHALLENGE,
             digest(canonical({"reference": "carbon.cold-plate.openfoam.v1"})),
         ),
