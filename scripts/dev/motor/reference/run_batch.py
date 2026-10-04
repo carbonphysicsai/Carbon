@@ -27,8 +27,10 @@ import argparse
 import json
 import math
 import os
+import platform
 import shutil
 import signal
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -40,9 +42,10 @@ ROOT = Path(__file__).resolve().parents[4]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from carbon.motor import domain, getdp
+from carbon.motor import domain, getdp, reference_campaign
 
-IMAGE = os.environ.get("CARBON_MOTOR_IMAGE", "carbon-motor-reference:dev")
+DEFAULT_IMAGE = os.environ.get("CARBON_MOTOR_IMAGE", "carbon-motor-reference:dev")
+IMAGE = DEFAULT_IMAGE
 MESH = ROOT / "carbon" / "motor" / "mesh.py"
 RECORD_SCHEMA = "carbon.motor.reference-record.v1"
 #: Reference numerical checks, provisional DEVELOPMENT values: the torque at
@@ -223,7 +226,24 @@ def analyze(case_dir, p):
     }, reasons
 
 
-def run_case(entry, out, args, batch, lock):
+def host_info():
+    return {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "cpu_count": os.cpu_count(),
+    }
+
+
+def run_case(
+    entry,
+    out,
+    args,
+    batch,
+    lock,
+    campaign_ledger=None,
+    campaign_id=None,
+    attempt=None,
+):
     case_id = entry["case_id"]
     case_dir = out / "cases" / case_id
     record = {
@@ -233,6 +253,7 @@ def run_case(entry, out, args, batch, lock):
         "kind": entry.get("kind", "ordinary"),
         "inputs": entry["inputs"],
         "options": entry.get("options", {}),
+        "image": IMAGE,
     }
     try:
         if domain.validity(entry["inputs"]):
@@ -249,7 +270,16 @@ def run_case(entry, out, args, batch, lock):
         raise
     except (OSError, ValueError, TypeError) as exc:
         record.update(status="FAILED_INFRA", reasons=[f"case not written: {exc}"])
-        return _finish(record, out, lock, None, args)
+        return _finish(
+            record,
+            out,
+            lock,
+            None,
+            args,
+            campaign_ledger,
+            campaign_id,
+            attempt,
+        )
     name = f"carbon-motor-{batch}-{case_id}"[:120]
     status, wall, detail = solve(case_dir, p, name, args.cpus, args.timeout_s)
     record.update(wall_s=round(wall, 1), run=detail, image=IMAGE)
@@ -257,7 +287,16 @@ def run_case(entry, out, args, batch, lock):
         record["execution"] = NATIVE
     if status is not None:
         record.update(status=status, reasons=[detail])
-        return _finish(record, out, lock, case_dir, args)
+        return _finish(
+            record,
+            out,
+            lock,
+            case_dir,
+            args,
+            campaign_ledger,
+            campaign_id,
+            attempt,
+        )
     result, reasons = analyze(case_dir, p)
     if result is None:
         record.update(status="REFERENCE_SOLVER_FAILED", reasons=reasons)
@@ -268,10 +307,28 @@ def run_case(entry, out, args, batch, lock):
     mesh = case_dir / "mesh.json"
     if mesh.exists():
         record["mesh"] = json.loads(mesh.read_text())["steps"]["0"]
-    return _finish(record, out, lock, case_dir, args)
+    return _finish(
+        record,
+        out,
+        lock,
+        case_dir,
+        args,
+        campaign_ledger,
+        campaign_id,
+        attempt,
+    )
 
 
-def _finish(record, out, lock, case_dir, args):
+def _finish(
+    record,
+    out,
+    lock,
+    case_dir,
+    args,
+    campaign_ledger=None,
+    campaign_id=None,
+    attempt=None,
+):
     keep = args.keep == "all" or (args.keep == "failed" and record["status"] != "OK")
     if case_dir is not None and case_dir.exists() and not keep:
         shutil.rmtree(case_dir)
@@ -288,6 +345,10 @@ def _finish(record, out, lock, case_dir, args):
         (out / "progress.json").write_text(
             json.dumps({"done": sum(counts.values()), "counts": counts}) + "\n"
         )
+        if campaign_ledger is not None:
+            campaign_ledger.finish_execution(
+                campaign_id, record["case_id"], attempt, record["status"]
+            )
     print(
         f"{record['case_id']}: {record['status']} {record.get('wall_s', '-')} s "
         f"{'; '.join(record.get('reasons', []))}",
@@ -305,30 +366,108 @@ def main(argv=None):
     parser.add_argument("--timeout-s", type=float, default=7200.0)
     parser.add_argument("--keep", choices=("all", "failed", "none"), default="all")
     parser.add_argument(
+        "--campaign-ledger",
+        type=Path,
+        help=(
+            "durable SQLite accounting ledger; required by registered counted "
+            "campaign plans and reserved before dispatch"
+        ),
+    )
+    parser.add_argument(
         "--native",
         metavar="ENVIRONMENT",
         help="run each case directly in this environment, described for the record "
         "(a pod set up as the pinned image is); no container is launched",
     )
     args = parser.parse_args(argv)
-    global NATIVE
-    NATIVE = args.native
     plan = json.loads(args.plan.read_text())
-    ids = [c["case_id"] for c in plan["cases"]]
+    cases = plan["cases"]
+    ids = [c["case_id"] for c in cases]
     if len(ids) != len(set(ids)):
         parser.error("case ids must be unique")
+    campaign = plan.get("campaign")
+    campaign_ledger = None
+    campaign_id = None
+    attempt = plan.get("attempt")
+    global IMAGE, NATIVE
+    IMAGE = DEFAULT_IMAGE
+    if campaign is not None:
+        # This guard intentionally precedes ledger creation, output creation,
+        # Docker inspection and every solver/process launch.
+        if args.native is not None:
+            parser.error(
+                "registered campaign plans require Docker; --native is not permitted"
+            )
+        if args.campaign_ledger is None:
+            parser.error("registered campaign plan requires --campaign-ledger")
+        plan_image = plan.get("solver_image")
+        if (
+            campaign.get("execution_backend") != "DOCKER"
+            or campaign.get("solver_image") != plan_image
+            or type(plan_image) is not str
+            or "@sha256:" not in plan_image
+        ):
+            parser.error("registered campaign plan requires a pinned Docker image")
+        expected_ledger = (ROOT / campaign.get("ledger_relative_path", "")).resolve()
+        if args.campaign_ledger.resolve() != expected_ledger:
+            parser.error(
+                "--campaign-ledger must equal the registered repository-relative "
+                f"path: {expected_ledger}"
+            )
+        resources = campaign.get("resource_policy", {})
+        if (
+            args.cpus != resources.get("cpus_per_execution")
+            or args.parallel != resources.get("parallel_executions")
+            or args.timeout_s != resources.get("timeout_seconds_per_execution")
+            or args.keep != resources.get("artifact_retention")
+        ):
+            parser.error("launch arguments do not match registered resource policy")
+        if args.out.exists() and any(args.out.iterdir()):
+            parser.error("output directory is not empty; refusing to overwrite")
+        IMAGE = plan_image
+        try:
+            campaign_ledger = reference_campaign.CampaignLedger(args.campaign_ledger)
+            campaign_id = campaign_ledger.reserve(plan, args.out)
+        except (reference_campaign.CampaignLedgerError, sqlite3.Error) as error:
+            parser.error(f"campaign reservation failed: {error}")
+    elif args.campaign_ledger is not None:
+        parser.error("--campaign-ledger requires a registered campaign plan")
+    NATIVE = args.native
     args.out.mkdir(parents=True, exist_ok=True)
     args.out.chmod(0o700)
     if any((args.out / "cases" / i).exists() for i in ids):
         parser.error("a case directory exists; refusing to overwrite")
     (args.out / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
+    (args.out / "host.json").write_text(
+        json.dumps(
+            {
+                **host_info(),
+                "execution_backend": "NATIVE" if NATIVE else "DOCKER",
+                "parallel": args.parallel,
+                "cpus": args.cpus,
+                "timeout_s": args.timeout_s,
+                "keep": args.keep,
+                "solver_image": IMAGE,
+            }
+        )
+        + "\n"
+    )
     lock = threading.Lock()
     start = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.parallel) as pool:
         records = list(
             pool.map(
-                lambda c: run_case(c, args.out, args, plan["batch"], lock),
-                plan["cases"],
+                lambda c: run_case(
+                    c,
+                    args.out,
+                    args,
+                    plan["batch"],
+                    lock,
+                    campaign_ledger,
+                    campaign_id,
+                    attempt,
+                ),
+                cases,
             )
         )
     summary = {
@@ -340,6 +479,11 @@ def main(argv=None):
             for s in sorted({r["status"] for r in records})
         },
     }
+    if campaign_ledger is not None:
+        campaign_ledger.finish_batch(campaign_id, attempt)
+        (args.out / "campaign-ledger.json").write_text(
+            json.dumps(campaign_ledger.snapshot(campaign_id), indent=2) + "\n"
+        )
     (args.out / "DONE.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary))
     return 0

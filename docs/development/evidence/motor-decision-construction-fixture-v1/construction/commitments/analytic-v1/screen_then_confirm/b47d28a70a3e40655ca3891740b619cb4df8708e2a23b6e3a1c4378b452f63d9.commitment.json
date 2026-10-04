@@ -1,0 +1,155 @@
+{
+ "commitment_digest": "sha256:839d39be845c6918c767bbd654348fd4ff631a1583b43d4aa364299ef9a03a33",
+ "queries_attempted": 48,
+ "queries_successful": 48,
+ "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
+ "query_log_digest": "sha256:aa0a796d1f90d974b690ecf28804ebc4c10042b254be3ea58e62b9a8215fa38a",
+ "request": {
+  "candidate_space_digest": "sha256:c4c2aebf93746c07bc09a14680fadf9c57407e0976521703b4296a2181f08a38",
+  "challenge": "electric-motor-magnetics",
+  "condition_space_digest": "sha256:fd92ab407e684c7d8f112116ad36d162138f7f9a6961bf37a3e8d2bbd6845a0b",
+  "conditions": [
+   {
+    "current_angle_deg": 0.0,
+    "current_density_a_mm2": 8.0
+   },
+   {
+    "current_angle_deg": 0.0,
+    "current_density_a_mm2": 10.0
+   },
+   {
+    "current_angle_deg": 0.0,
+    "current_density_a_mm2": 12.0
+   },
+   {
+    "current_angle_deg": 15.0,
+    "current_density_a_mm2": 10.0
+   },
+   {
+    "current_angle_deg": 0.0,
+    "current_density_a_mm2": 15.0
+   },
+   {
+    "current_angle_deg": 30.0,
+    "current_density_a_mm2": 12.0
+   }
+  ],
+  "contract_digest": "sha256:3fc9c6bb77523486d4b68611134c5d54074137f429b82a1c7a0e4a6fb53b64a8",
+  "designs": [
+   {
+    "airgap_mm": 0.4,
+    "embrace": 0.65,
+    "magnet_mm": 2.0,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.8,
+    "embrace": 0.65,
+    "magnet_mm": 2.0,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.4,
+    "embrace": 0.85,
+    "magnet_mm": 2.0,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.8,
+    "embrace": 0.85,
+    "magnet_mm": 2.0,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.4,
+    "embrace": 0.65,
+    "magnet_mm": 3.5,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.8,
+    "embrace": 0.65,
+    "magnet_mm": 3.5,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.4,
+    "embrace": 0.85,
+    "magnet_mm": 3.5,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   },
+   {
+    "airgap_mm": 0.8,
+    "embrace": 0.85,
+    "magnet_mm": 3.5,
+    "slot_bottom_mm": 38.16,
+    "slot_open_deg": 3.7,
+    "tooth_mm": 3.5
+   }
+  ],
+  "material": "DEVELOPMENT",
+  "method": {
+   "code_digest": "sha256:ae8ee4e6d088ee9ae99bdd2a9057d4bd26eb8da152e7963e750c88d4e752b7e9",
+   "configuration_digest": "sha256:fb53292cf2a30acc758e73580f2c39655d4363f0f538c15ec1fe9006f78c1f57",
+   "name": "screen_then_confirm"
+  },
+  "mode": "PB-INV",
+  "model": {
+   "member": "analytic-v1",
+   "recipe_digest": "sha256:e5acdcec9d360ed8a33a68b00f9f33cd59cd0181921c7ee48dc1fc60565acee6",
+   "seed": 0
+  },
+  "query_budget": 48,
+  "query_policy": {
+   "accounting_unit": "ATTEMPTED_MODEL_POINT",
+   "duplicate_policy": "FORBID_WITHIN_AND_ACROSS_CALLS",
+   "retry_policy": {
+    "continuation_after_failure": false,
+    "max_retries_per_point": 0,
+    "new_oracle_required": true
+   }
+  },
+  "request_digest": "sha256:b47d28a70a3e40655ca3891740b619cb4df8708e2a23b6e3a1c4378b452f63d9",
+  "schema": "carbon.motor.design-search-request.v1",
+  "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
+  "seed_policy": "deterministic registered DEVELOPMENT baselines; no random draw",
+  "verification_budget": 6,
+  "verification_policy": {
+   "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+   "counted_reference_admission": "ARTIFACT_VERIFIED_PINNED_GETDP_CAMPAIGN_ONLY",
+   "reference_classes": [
+    "ANALYTICAL_FIXTURE",
+    "COUNTED_GETDP"
+   ],
+   "repeated_commitment": "FORBIDDEN"
+  }
+ },
+ "schema": "carbon.motor.design-search-commitment.v1",
+ "selections": [
+  {
+   "airgap_mm": 0.4,
+   "embrace": 0.85,
+   "magnet_mm": 3.5,
+   "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
+   "predicted_worst_ripple_fraction": 0.0,
+   "slot_bottom_mm": 38.16,
+   "slot_open_deg": 3.7,
+   "tooth_mm": 3.5
+  }
+ ],
+ "status": "PROPOSAL"
+}
