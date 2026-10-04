@@ -16,6 +16,7 @@ import logging
 from pathlib import Path
 
 import pytest
+from test_launchpad_graphite import ready_for_graphite
 from test_miner_launchpad_runner import (
     KEY,
     Chain,
@@ -83,6 +84,19 @@ def host(tmp_path, monkeypatch, cfg, chain=None):
     monkeypatch.setattr(bridge, "configured", lambda: cfg)
     started = []
     monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
+    # The agent that calls the chosen model is Carbon's, which for a new
+    # launch is Graphite (OWNER-GRAPHITE-MINER-01): these launch bodies name
+    # no agent, and here mean agent=graphite, on S2's library and pack as
+    # in-memory fixtures (`test_launchpad_graphite.ready_for_graphite`).
+    ready_for_graphite(bridge, monkeypatch, tmp_path)
+    launch = bridge.launch
+
+    def launch_naming_graphite(value, key):
+        if type(value) is dict and "agent" not in value:
+            value = {**value, "agent": "graphite"}
+        return launch(value, key)
+
+    monkeypatch.setattr(bridge, "launch", launch_naming_graphite)
     return bridge, started
 
 

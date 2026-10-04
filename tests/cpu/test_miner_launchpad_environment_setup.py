@@ -18,8 +18,8 @@ import pytest
 from scripts.dev.miner_launchpad import controller as launchpad
 from scripts.dev.miner_launchpad import runner
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
     CHECK_SETTINGS,
+    GRAPHITE,
     LOCAL_CPU,
     SIGNER_STEP,
     EnvironmentSetup,
@@ -148,7 +148,7 @@ def test_a_miner_sets_up_without_an_operator_file(tmp_path, state):
             "analysis_image_manifest": made["analysis.json"],
         }
     )
-    state = setup.agent({"choice": AUTONOMOUS})
+    state = setup.agent({"choice": GRAPHITE})
     check = state["steps"]["agent"]["check"]
     assert (check["publisher"], check["network_block"]) == (PUBLISHER, 4242)
     setup.review({"confirm": True})
@@ -188,7 +188,7 @@ def completed(tmp_path, setup):
             "analysis_image_manifest": made["analysis.json"],
         }
     )
-    setup.agent({"choice": AUTONOMOUS, "operator_config": made["operator.json"]})
+    setup.agent({"choice": GRAPHITE, "operator_config": made["operator.json"]})
     return made
 
 
@@ -227,7 +227,7 @@ def test_choices_offer_only_launchable_options_each_with_a_cost_basis():
     # Slice 5: Hermes beside Carbon's own agent; and the miner's own agent,
     # any MCP client, which brings its own model (OWNER-MINER-SETUP-AGENT-
     # FIRST-01).
-    assert [c["id"] for c in offered["agent"]] == [AUTONOMOUS, "own-agent", "hermes"]
+    assert [c["id"] for c in offered["agent"]] == [GRAPHITE, "own-agent", "hermes"]
     for step in ("inference", "compute", "agent"):
         for choice in offered[step]:
             assert choice["cost_basis"] and choice["live_check"]
@@ -731,7 +731,7 @@ def test_the_agent_step_takes_no_hotkey_file_or_password(tmp_path, state):
         with pytest.raises(SetupRefused) as refused:
             setup.agent(
                 {
-                    "choice": AUTONOMOUS,
+                    "choice": GRAPHITE,
                     "operator_config": made["operator.json"],
                     field: extra,
                 }
@@ -749,7 +749,7 @@ def test_a_password_left_by_an_earlier_page_is_removed(tmp_path, state):
     socket = str(tmp_path / "signer.sock")
     setup.agent(
         {
-            "choice": AUTONOMOUS,
+            "choice": GRAPHITE,
             "operator_config": made["operator.json"],
             "signer_socket": socket,
         }

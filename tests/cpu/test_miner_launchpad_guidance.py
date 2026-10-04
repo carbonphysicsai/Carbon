@@ -7,7 +7,13 @@ import pytest
 from test_cw1_research_loop import response
 from test_miner_launchpad_admission import managed
 from test_miner_launchpad_finite_completion import setup_campaign
-from test_miner_launchpad_runner import KEY, REVISION, RUNTIME, adapter
+from test_miner_launchpad_runner import (
+    KEY,
+    REVISION,
+    RUNTIME,
+    adapter,
+    launches_name_no_agent_as_none,
+)
 
 from carbon.development_session import research_campaign as campaign
 from carbon.development_session import research_guidance as guidance
@@ -328,3 +334,5 @@ def _launches_name_a_challenge(monkeypatch):
     )
 
     launch_with_fixture_challenge(monkeypatch.setattr)
+    # A body naming no agent means agent=none here (OWNER-GRAPHITE-MINER-01).
+    launches_name_no_agent_as_none(monkeypatch)

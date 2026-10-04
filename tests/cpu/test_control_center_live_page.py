@@ -63,7 +63,7 @@ def _open_options():
 
     return {
         "agents": [
-            {"value": "autonomous", "availability": "available"},
+            {"value": "graphite", "availability": "available"},
             {"value": "none", "availability": "available"},
         ],
         "model_providers": [
@@ -487,7 +487,7 @@ def test_the_mcp_command_names_a_relative_profile_absolutely(
 def test_shared_choices_are_named_as_setup_names_them(journey):
     from scripts.dev.miner_launchpad import capabilities
     from scripts.dev.miner_launchpad.environment_setup import (
-        AUTONOMOUS,
+        GRAPHITE,
         LOCAL_CPU,
         LOCAL_GPU,
         OWN_AGENT,
@@ -503,7 +503,7 @@ def test_shared_choices_are_named_as_setup_names_them(journey):
     }
     document = capabilities.control_center(journey)
     labels = {choice["id"]: choice["label"] for choice in document["agents"]["choices"]}
-    assert labels["autonomous"] == named[("agent", AUTONOMOUS)]
+    assert labels["graphite"] == named[("agent", GRAPHITE)]
     assert labels["external_mcp"] == named[("agent", OWN_AGENT)]
     # The journey profile computes on this machine's CPU.
     assert document["compute"]["choices"][0]["label"] == named[("compute", LOCAL_CPU)]

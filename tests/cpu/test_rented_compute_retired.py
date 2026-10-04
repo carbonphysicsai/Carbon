@@ -38,7 +38,7 @@ from carbon.compute.retired import RENTED_GPU_RETIRED, RentedComputeRetired
 from carbon.development_session.profile import canonical
 from scripts.dev.miner_launchpad.controller import Rejected
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     LOCAL_CPU,
     SetupRefused,
     choices,
@@ -176,7 +176,7 @@ def test_the_next_compute_setup_deletes_a_stored_provider_key_and_says_so(tmp_pa
 def test_a_compute_step_checked_for_a_rented_gpu_is_never_written(tmp_path):
     setup, _, home, paths = gpu_setup(tmp_path)
     setup.compute({"choice": LOCAL_CPU, **paths})
-    setup.agent({"choice": AUTONOMOUS, "operator_config": str(home / "operator.json")})
+    setup.agent({"choice": GRAPHITE, "operator_config": str(home / "operator.json")})
     record = setup._record()
     record["compute"]["choice"] = "rented-gpu"
     record["compute"]["runtime"]["rented_gpu"] = [RENTED_SCOPE]

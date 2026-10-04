@@ -94,9 +94,10 @@ SETUP_OPERATIONS = {
             "agent",
             "agent",
             REGISTERED,
-            "Choose who researches: carbon-autonomous, own-agent (your own MCP "
-            "client, with its own model) or hermes (its ready-made profile). "
-            "Checks your signer and reads the network.",
+            "Choose who researches: carbon-graphite (Graphite, Carbon's "
+            "research agent, on your model), own-agent (your own MCP client, "
+            "with its own model) or hermes (its ready-made profile). Checks "
+            "your signer and reads the network.",
             {"choice"},
             {"operator_config", "signer_socket", "consent"},
         ),
@@ -199,7 +200,11 @@ NEXT_STEPS = {
     "step_not_checked": "take the step named in field first; carbon_setup_status",
     "unknown_field": "send only the fields in the step's arguments schema",
     "field_required": "send every required field in the step's arguments schema",
-    "agent_not_offered": "choose carbon-autonomous, own-agent or hermes",
+    "agent_not_offered": "choose carbon-graphite, own-agent or hermes",
+    "autonomous_agent_replaced": (
+        "choose carbon-graphite: Graphite replaced Carbon's autonomous agent "
+        "for new setups (OWNER-GRAPHITE-MINER-01)"
+    ),
     "hotkey_address_required": "send your public hotkey ss58 address",
     "key_must_be_a_file_on_this_door": (
         "put the key alone in an owner-only file and send model_key_file"

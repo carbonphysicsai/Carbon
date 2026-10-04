@@ -89,16 +89,49 @@ def journey(tmp_path, monkeypatch):
 
 
 def launch(host, key="launch-key-0000001", agent="none"):
-    return perform(
-        host,
-        "launch",
-        {
-            "challenge": FIXTURE_CHALLENGE["id"],
-            "challenge_version": FIXTURE_CHALLENGE["version"],
-            "agent": agent,
-            "idempotency_key": key,
-        },
-    )
+    request = {
+        "challenge": FIXTURE_CHALLENGE["id"],
+        "challenge_version": FIXTURE_CHALLENGE["version"],
+        "agent": agent,
+        "idempotency_key": key,
+    }
+    if agent == "autonomous":
+        return recorded_autonomous(host, request)
+    return perform(host, "launch", request)
+
+
+def recorded_autonomous(host, request):
+    """A Carbon-agent campaign as such campaigns exist now: launched under
+    `autonomous` before Graphite replaced it for new launches
+    (OWNER-GRAPHITE-MINER-01), which refuses a new one. Its row is the one
+    `launch_admitted` wrote then, and it is carried out from that record
+    (`_recorded_launch`), as a queued launch is; its agent runs `run_agent`
+    unchanged."""
+    cfg = host.configured()
+    run_id, request_digest, config_pin = host._launch_identity(cfg, request)
+    root = Path(cfg["campaigns_root"]) / run_id
+    with host.db() as db:
+        db.execute(
+            "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance,launch_request) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                run_id,
+                request["idempotency_key"],
+                request_digest,
+                cfg["profile_id"],
+                cfg["principal"],
+                config_pin,
+                "cmp-" + run_id,
+                "QUEUED",
+                time.time(),
+                str(root),
+                canonical(host.registration(cfg).record()),
+                canonical({}),
+                None,
+                canonical({k: v for k, v in request.items() if k != "idempotency_key"}),
+            ),
+        )
+    host._dispatch_run(run_id, cfg, root)
+    return host.get(run_id)
 
 
 def practice(identity, key):

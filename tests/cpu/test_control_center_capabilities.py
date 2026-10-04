@@ -31,6 +31,8 @@ TOP_KEYS = {
     "profile",
     "challenges",
     "agents",
+    # Graphite's launch choices and Library (OWNER-GRAPHITE-MINER-01).
+    "graphite",
     "model",
     "compute",
     "budget",
@@ -161,14 +163,16 @@ def test_agents_come_from_the_shared_options_operation(host):
     offered = {a["value"]: a for a in options["agents"]}
     document = capabilities.control_center(host)
     choices = {c["id"]: c for c in document["agents"]["choices"]}
-    assert set(choices) == {"autonomous", "manual", "external_mcp"}
+    # Graphite replaced the autonomous agent for new launches
+    # (OWNER-GRAPHITE-MINER-01).
+    assert set(choices) == {"graphite", "manual", "external_mcp"}
     for choice in choices.values():
         # Every choice is one the launch operation accepts, with its availability.
         source = offered[choice["launch_agent"]]
         assert choice["availability"] == source["availability"]
     # This host has no model key: Carbon's agent is unavailable with the
     # options operation's reason, and the manual path is not.
-    assert choices["autonomous"]["reason"] == "model_provider_key_not_configured"
+    assert choices["graphite"]["reason"] == "model_provider_key_not_configured"
     assert choices["manual"]["availability"] == "available"
     assert choices["external_mcp"]["door"] == "stdio"
     # The model credential is reported as not configured, not as unread.

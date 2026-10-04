@@ -629,8 +629,9 @@ NEXT_ACTIONS = {
         "or set up compute again for this one (carbon_setup_compute)."
     ),
     "invalid_agent": (
-        "Send none (you or your own agent select) or autonomous (Carbon's "
-        "agent); own-agent and carbon-autonomous are accepted too."
+        "Send graphite (Graphite, Carbon's research agent) or none (you or "
+        "your own agent select); carbon-graphite and own-agent are accepted "
+        "too."
     ),
     "invalid_idempotency_key": (
         "Send 16-80 letters, digits, - or _. On launch over MCP you may omit "
@@ -668,8 +669,11 @@ NEXT_ACTIONS = {
         "Send a model and settings within the provider's bounds "
         "(carbon_options lists them)."
     ),
+    # The code keeps its historical name; the agent that calls a model for
+    # a new launch is Graphite (OWNER-GRAPHITE-MINER-01).
     "model_selection_needs_the_autonomous_agent": (
-        "A model is only for agent=autonomous: send that, or omit the model fields."
+        "A model is only for an agent that calls one: send agent=graphite, or "
+        "omit the model fields."
     ),
     "model_provider_endpoint_not_configured": (
         "Configure this provider's endpoint under Set up your environment "
@@ -763,6 +767,126 @@ NEXT_ACTIONS = {
         "The campaign must be one of yours, unfinished and not held by "
         "another operation or session, with your hotkey registered and your "
         "signer running. Observe it (carbon_observe) to see its state."
+    ),
+    # Graphite, the miner edition (OWNER-GRAPHITE-MINER-01): its launch, its
+    # run, and the miner's library and plans.
+    "autonomous_agent_replaced": (
+        "Graphite replaced Carbon's autonomous agent for new launches. Launch "
+        "with agent=graphite (carbon-graphite in setup) and choose RESEARCH, "
+        "BUILD or FULL; campaigns launched earlier still run and replay as "
+        "they were."
+    ),
+    "graphite_edition_unknown": (
+        "This campaign names a Graphite edition this Carbon does not have, so "
+        "nothing was called. Update Carbon (re-run the installer), then "
+        "resume; or launch a new campaign."
+    ),
+    "graphite_not_offered_for_challenge": (
+        "Graphite runs only on a Challenge with a registered research "
+        "campaign. Choose such a Challenge (carbon_options lists where "
+        "Graphite is offered), or launch with agent=none."
+    ),
+    "graphite_fields_need_the_graphite_agent": (
+        "graphite_mode, research_share, plan, hunt and limits are Graphite's: "
+        "send agent=graphite, or leave them out."
+    ),
+    "graphite_mode_invalid": "Send graphite_mode as RESEARCH, BUILD or FULL, or omit it for FULL.",
+    "graphite_field_not_used_by_mode": (
+        "That field is not used by this graphite_mode: research_share is for "
+        "FULL, plan for BUILD, and a hunt runs only in RESEARCH and FULL. "
+        "Leave it out, or change the mode."
+    ),
+    "graphite_launch_invalid": (
+        "This campaign's Graphite launch fields are not the ones this Carbon "
+        "reads, so nothing was called. Update Carbon (re-run the installer) "
+        "and launch again; the campaign itself cannot be repaired."
+    ),
+    "curation_not_found": (
+        "The pins and bans this campaign was launched with are no longer in "
+        "your library, so nothing was called. Launch again: the new campaign "
+        "takes your pins and bans as they are now."
+    ),
+    "research_share_invalid": "Send research_share as a number from 0 to 1, or omit it for 0.10.",
+    "graphite_limits_invalid": (
+        "Send limits with only calls_per_epoch, trials_per_epoch and "
+        "planner_calls, each a whole number from 1 to 100000, or omit them: "
+        "your campaign ceilings still bind."
+    ),
+    "hunt_query_invalid": (
+        "Send hunt as {queries?, max_records?}: up to 8 queries of 1 to 6 "
+        "terms each (letters, digits and -, starting with a letter or digit; "
+        "not and, or or not), and max_records from 1 to 5000. Raw arXiv "
+        "query syntax is not accepted."
+    ),
+    "research_share_too_small": (
+        "Your research share cannot pay for one model call: each call reserves "
+        "its most possible cost (the model's whole output unless you cap "
+        "max_output_tokens in model_settings) before it is sent, so this "
+        "research would send nothing. Raise your provider_nanodollars or "
+        "provider_attempts ceiling, raise research_share, cap the model's "
+        "output, or launch BUILD."
+    ),
+    "too_many_pins": (
+        "You pinned more cards than one plan can consider (64), and the "
+        "Planner must consider each pin. Unpin some (carbon_library_unpin), "
+        "or launch BUILD with a plan from your library, then launch again."
+    ),
+    # The typed stop S4 proposes to S1/S3 for a session the miner's own
+    # ceiling ends (money, attempts, trials or time): Graphite's limits.
+    "miner_ceiling_reached": (
+        "The agent reached a ceiling you set - money, attempts, trials or "
+        "time - so it stopped there; nothing past it was reserved or sent. "
+        "Launch a new campaign with a larger ceiling to go further."
+    ),
+    "research_share_reached": (
+        "The research stages used the share of your budget you set, so they "
+        "stopped there and the build went on. Launch again with a larger "
+        "research_share to research longer."
+    ),
+    "plan_not_found": (
+        "No plan in your library has that digest. List your plans "
+        "(carbon_plan_list) and send one of their digests, or omit plan to "
+        "have the Planner write one."
+    ),
+    "plan_invalid": (
+        "The plan cites a card that is unknown or banned, leaves out a "
+        "pinned card, or is for another Challenge. Read it (carbon_plan_get), "
+        "correct it and save it (carbon_plan_edit), change your pins and "
+        "bans, or launch it on its own Challenge."
+    ),
+    "plan_document_required": (
+        "Send plan_document as a JSON object, as carbon_plan_get returns a plan."
+    ),
+    "literature_pack_missing": (
+        "The shared card pack this Carbon ships is missing or differs from "
+        "its pinned digest. Re-run the installer with --update, then launch "
+        "or resume."
+    ),
+    "literature_fetch_failed": (
+        "arXiv could not be reached, so the hunt ended where it was; that is "
+        "not a verdict on any paper. The Planner went on with the cards you "
+        "have. Hunt again in a later campaign."
+    ),
+    "library_unavailable": (
+        "Your Graphite library could not be opened. Finish Set up your "
+        "environment so your runner profile is written, then try again."
+    ),
+    "library_query_invalid": (
+        "Send query as 1 to 200 characters of text, and challenge as the "
+        "Challenge list gives it (carbon_challenges_v1__list)."
+    ),
+    "card_limit_out_of_bounds": "Send card_limit from 1 to 50, or omit it for 10.",
+    "card_not_found": (
+        "No card in the shared pack or your library has that id. Search for "
+        "it (carbon_library_search) and send an id it returns."
+    ),
+    "card_banned": (
+        "You banned this card, so it is not served or pinned. Lift the ban "
+        "(carbon_library_unban) first if you want it back."
+    ),
+    "import_invalid": (
+        "Send title as 1 to 300 characters and text as 1 to 20000 characters "
+        "of plain text. PDF import is not offered yet: paste the text."
     ),
 }
 FALLBACK_ACTION = (

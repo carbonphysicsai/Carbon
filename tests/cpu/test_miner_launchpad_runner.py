@@ -709,3 +709,20 @@ def _launches_name_a_challenge(monkeypatch):
     )
 
     launch_with_fixture_challenge(monkeypatch.setattr)
+    launches_name_no_agent_as_none(monkeypatch)
+
+
+def launches_name_no_agent_as_none(monkeypatch):
+    """The browser door reads a body that names no agent as `autonomous`, as
+    it always has, so a launch recorded that way still replays; a new one is
+    refused `autonomous_agent_replaced` (OWNER-GRAPHITE-MINER-01). These
+    tests are about the door and the runner, not about who selects: their
+    launch bodies name none, and here mean agent=none, the miner selecting."""
+    launch = RunnerAdapter.launch
+
+    def launch_naming_none(self, value, key):
+        if type(value) is dict and "agent" not in value:
+            value = {**value, "agent": "none"}
+        return launch(self, value, key)
+
+    monkeypatch.setattr(RunnerAdapter, "launch", launch_naming_none)

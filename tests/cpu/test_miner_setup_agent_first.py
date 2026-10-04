@@ -303,7 +303,7 @@ def test_the_order_and_the_inference_skip(tmp_path):
     state2 = made(second)
     other = EnvironmentSetup(state2, onboarding=Chain(registered=True), checks=Checks())
     other.begin({"address": HOTKEY})
-    other.agent({"choice": "carbon-autonomous"})
+    other.agent({"choice": "carbon-graphite"})
     view = status(other, door=MCP)
     assert view["next"]["step"] == "inference"
     assert view["next"]["before"]["tool"] == "carbon_setup_quote"
@@ -514,7 +514,7 @@ def test_no_key_material_in_results_or_records(tmp_path):
     target = model_key_file(tmp_path)
     outputs = [
         call(server, "carbon_setup_begin", {"address": HOTKEY}),
-        call(server, "carbon_setup_agent", {"choice": "carbon-autonomous"}),
+        call(server, "carbon_setup_agent", {"choice": "carbon-graphite"}),
     ]
     quote = call(
         server,
