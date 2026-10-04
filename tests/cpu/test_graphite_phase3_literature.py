@@ -569,6 +569,7 @@ def _forbid_widening(monkeypatch):
         raise AssertionError("a next-level proposal widened the surface")
 
     monkeypatch.setattr(CampaignController, "record_expansion", refuse)
+    monkeypatch.setattr(CampaignController, "record_development_expansion", refuse)
     monkeypatch.setattr(expansion_record, "record", refuse)
 
 

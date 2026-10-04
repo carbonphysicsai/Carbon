@@ -109,6 +109,7 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
+from carbon.challenge_readiness import conditional_evidence
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import selection_from_record
 from carbon.development_session.profile import canonical, digest
@@ -842,6 +843,9 @@ def run_session(control, provider, brief, number):
     final = provider.run(run_id) if provider.find(key) is not None else None
     phase = control.poll(key)
     findings = sync_findings(control, provider, run_id) if final else []
+    # Tagged with every finding open after this session's are recorded, its
+    # own included (conditional-evidence.v1).
+    conditional = conditional_evidence.tag(control.open_findings())
     return {
         "session": number,
         "run_id": run_id,
@@ -857,6 +861,7 @@ def run_session(control, provider, brief, number):
             p["proposal_id"]
             for p in next_level.ProposalStore(provider._dir(run_id)).proposals()
         ],
+        **conditional,
     }
 
 

@@ -10,7 +10,8 @@ copy is the versioned one. Each file is validated against the roadmap's rules
   protocol is locked, except battery, which defines it. Each later stage needs
   the sign-off of the owner the roadmap names for the gate before it.
 - **Results come from the frozen run.** Track A and B results need the frozen
-  evidence record they came from.
+  evidence record they came from, and that evidence carries no result tagged
+  with open findings (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v1`).
 - **Solve time is measured on the reference hardware.** A measured p50 needs
   the protocol's reference hardware, which the technical owner approves, and
   the timing evidence.
@@ -36,6 +37,7 @@ from pathlib import Path
 from carbon.challenge_pipeline import ladder
 from carbon.challenge_pipeline.proposals import ProposalError, load_proposals
 from carbon.challenge_pipeline.roadmap import load_families
+from carbon.challenge_readiness import conditional_evidence
 
 HERE = Path(__file__).parent
 REPOSITORY = HERE.parents[1]
@@ -202,6 +204,16 @@ def validate_record(record, protocol, families, *, root=REPOSITORY):
             raise PipelineError(
                 f"{where}: {kind} evidence {ref!r} is not in the repository"
             )
+    if evidence["frozen"] is not None:
+        try:
+            conditional_evidence.require_unconditional_path(
+                Path(root) / evidence["frozen"], site=f"{where} frozen run"
+            )
+        except conditional_evidence.ConditionalEvidenceError as error:
+            raise PipelineError(
+                f"{where}: {error}; a frozen run cites only unconditional evidence "
+                "(conditional-evidence.v1)"
+            ) from error
     if record["p50s"] is not None:
         if not protocol.get("reference_hardware"):
             raise PipelineError(f"{where}: no reference hardware is set to measure on")

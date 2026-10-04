@@ -41,7 +41,10 @@ was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
   withheld because it names protected material) is counted `not_covered`
   (`protected_withheld` for the latter), never held or covered;
 - wrongful rejection is reported as a rate, held-out apart from trained; with
-  no control that ran it is `NOT_MEASURED` (rate None), never zero.
+  no control that ran it is `NOT_MEASURED` (rate None), never zero;
+- the report carries the findings open on the campaign controller when it is
+  built (`open_findings`, from `CampaignController.open_findings()`) as
+  `conditional_on`, with the policy identity (`conditional-evidence.v1`).
 
 A report; grading stays with the technical owner, and nothing here is
 security acceptance.
@@ -52,12 +55,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from carbon.agent_campaign.attack import analysis, verify
+from carbon.challenge_readiness import conditional_evidence
 from carbon.development_session.profile import canonical, digest
 
 #: v2: digest-bound evidence on every finding; held-out wrongful rejection as
 #: a rate, NOT_MEASURED when nothing ran; attempts refused at rebuild and
 #: attempts not covered (protected-withheld, not applicable) counted apart.
-SCHEMA = "carbon.attack.family-report.v2"
+#: v3: `conditional_on` and `conditional_policy` (conditional-evidence.v1).
+SCHEMA = "carbon.attack.family-report.v3"
 FINDING, ATTEMPTED_COVERAGE, NOT_RUN = "FINDING", "ATTEMPTED_COVERAGE", "NOT_RUN"
 INCONCLUSIVE = "INCONCLUSIVE"
 #: A wrongful-rejection rate with no control that ran: never a zero rate.
@@ -434,10 +439,12 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
     }
 
 
-def family_report(runs, *, controls_held_out, seams=()):
+def family_report(runs, *, controls_held_out, seams=(), open_findings=()):
     """The per-family report (module docstring). `controls_held_out` is
     required: a report without the held-out wrongful-rejection measure is not
-    one. `seams` are the adapter's `level_families()`, each NOT_RUN."""
+    one. `seams` are the adapter's `level_families()`, each NOT_RUN.
+    `open_findings` are the controller's open findings as `{id, digest}`."""
+    conditional = conditional_evidence.tag(open_findings)
     normalized = {}
     for run in runs:
         run = normalize(run)
@@ -499,4 +506,5 @@ def family_report(runs, *, controls_held_out, seams=()):
         ),
         "zero_findings_reads_as": ATTEMPTED_COVERAGE,
         "claims": dict(CLAIMS),
+        **conditional,
     }
