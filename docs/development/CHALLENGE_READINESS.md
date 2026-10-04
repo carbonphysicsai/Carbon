@@ -38,6 +38,23 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
 | electric-motor-magnetics | PILOTED | MEASURED | 17 | 0 / 0 | startup, reconstruction, inference, finalist, cleanup | 4 / 4 | 0 of 5 | PROCEED |
 | photonic-coupler | PILOTED | MEASURED | 12 | 0 / 0 | startup, reconstruction, inference, finalist, cleanup | 5 / 5 | 0 of 5 | PROCEED |
 
+### Cooling post-record decision study
+
+The cold-plate row remains the v6 readiness record and its 20-case reference
+pilot denominator; it is not silently rewritten by later evidence. After that
+record, the separate `CHALLENGE-AI-COOLING-FOUNDATION-01` synthetic decision
+study completed 48/48 Docker/OpenFOAM cases with no retry. All four registered
+arms selected `d03`; CFD confirmed its six conditions feasible; and the
+complete eight-design finite comparator also selected `d03`, with exact
+finite-set regret 0.0 W for each arm. See
+`docs/development/evidence/ai-cooling-counted-v1/` for identities, hashes,
+costs, claim ceiling and retained-artifact status.
+
+That result does not change the readiness row's population, approvals, review
+states or qualification maturity. It is one frozen synthetic DEVELOPMENT
+decision problem, not population reliability, customer acceptance or a
+full-manifold result.
+
 **How to read it:**
 - **Cases OK and failures** are recounted by the tests from each pilot's
   retained `records.jsonl`, so they cannot drift from the evidence.
