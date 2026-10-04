@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import dataclasses
 import enum
+import functools
 import json
 import re
 import time
@@ -289,11 +290,60 @@ TASK_CORRECTIONS = {
 _CHOICE = re.compile(r"[A-Za-z0-9_.:+-]{1,96}\Z")
 
 
+@functools.cache
+def _correction_choices():
+    from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
+
+    from .gpu_code_cell import WRAPPED
+    from .julia_depot import ENVIRONMENTS
+    from .research_tasks import (
+        NOTEBOOK_KINDS,
+        READ_FILE_MAX_BYTES,
+        every_public_material_name,
+        reserved_stage_names,
+    )
+
+    return {
+        # The reconstruction backends a recipe may name, as the capability
+        # registry registers them; a practice host serves some of them.
+        "backend_not_served": frozenset(BATTERY_BACKENDS),
+        "public_material_unknown": frozenset(every_public_material_name()),
+        # The per-call read_file maximum, under each research tools rule.
+        "read_file_range": frozenset(str(n) for n in READ_FILE_MAX_BYTES.values()),
+        "notebook_kind_unknown": frozenset(NOTEBOOK_KINDS),
+        # The names the carrier stages itself, and the remote wrapper's own.
+        "run_files_invalid": reserved_stage_names("run_julia") | {WRAPPED},
+        "julia_environment_unknown": frozenset(ENVIRONMENTS),
+    }
+
+
+def correction_choices(code):
+    """The closed list of values a correction with `code` may list, or an
+    empty set where it lists none (LP-PROD-D's `choices`).
+
+    Each is a public list Carbon wrote: material names, the reconstruction
+    backends a recipe may name, the per-call read_file maximum, notebook
+    kinds, the carrier's own stage names, Julia environments. Never a value a
+    requester sent, nor one Carbon holds privately. The one rule for both
+    sides (W1): the SDK builds a correction only from these
+    (`TaskContractMismatch`), and a door that forwards one verifies it against
+    them (`correction_parts`).
+    """
+    return _correction_choices().get(code, frozenset())
+
+
+def _listable(code, choices):
+    return all(
+        type(c) is str and _CHOICE.match(c) is not None for c in choices
+    ) and set(choices) <= correction_choices(code)
+
+
 class TaskContractMismatch(ValueError):
     """Allow-listed corrective feedback, never a private exception message.
 
     Carries the correction code, the one argument field that broke it and,
-    optionally, the Carbon-written choices the correction lists.
+    optionally, the Carbon-written choices the correction lists - each drawn
+    from the code's closed list (`correction_choices`).
     """
 
     def __init__(self, code, field, choices=()):
@@ -301,7 +351,7 @@ class TaskContractMismatch(ValueError):
         if (
             code not in TASK_CORRECTIONS
             or not registered_field(field)
-            or any(type(c) is not str or not _CHOICE.match(c) for c in choices)
+            or not _listable(code, choices)
         ):
             raise TypeError("allow-listed correction and field required")
         super().__init__(code, field)
@@ -376,37 +426,64 @@ def task_correction(code, field, value, *, choices=(), tool=None):
     return text
 
 
-def registered_correction(value):
-    """Whether a REJECTED_BEFORE_DISPATCH record carries only registered
-    correction text: its code, its field and a correction that
-    `task_correction` produces for them. A door that forwards a refusal can
-    check it with this, rather than with an exact text that a named field or
-    a listed choice extends."""
+@dataclasses.dataclass(frozen=True)
+class Correction:
+    """The registered parts a correction was built from (`correction_parts`):
+    its code, the field it names (None only in the historical shape), the
+    values it lists and the tool it names."""
+
+    code: str
+    field: str | None
+    choices: tuple
+    tool: str | None
+
+
+def correction_parts(value):
+    """The registered parts of a REJECTED_BEFORE_DISPATCH record's correction,
+    or None when its text is not exactly what `task_correction` builds from
+    them: a registered code, a registered field, values drawn from that
+    code's closed list (`correction_choices`) and, if named, a registered
+    tool. So nothing else - a solver message, exception text, a private value
+    - can ride along, and a door that forwards a refusal verifies it here,
+    with the builder's own rule, rather than against an exact text that a
+    named field, tool or listed choice extends.
+
+    A record without a `field` is the historical shape: the registered text
+    alone, exactly.
+    """
     if type(value) is not dict:
-        return False
-    code, field, text = (
-        value.get("correction_code"),
-        value.get("field"),
-        value.get("correction"),
-    )
-    if code not in TASK_CORRECTIONS or not registered_field(field):
-        return False
-    if type(text) is not str or not text.startswith(TASK_CORRECTIONS[code]):
-        return False
+        return None
+    code, text = value.get("correction_code"), value.get("correction")
+    if type(code) is not str or code not in TASK_CORRECTIONS or type(text) is not str:
+        return None
+    registered = TASK_CORRECTIONS[code]
+    if "field" not in value:
+        return Correction(code, None, (), None) if text == registered else None
+    field = value["field"]
+    if not registered_field(field) or not text.startswith(registered):
+        return None
+    rest = text[len(registered) :]
     choices = ()
     listed = " Allowed here: "
-    rest = text[len(TASK_CORRECTIONS[code]) :]
     if rest.startswith(listed):
         choices = tuple(
             rest[len(listed) :].split(". The field that broke", 1)[0].split(", ")
         )
-        if not all(_CHOICE.match(c) for c in choices):
-            return False
-    tool = next((t for t in FIELDS if " The tool: " + t + "." in text), None)
-    return any(
-        text == task_correction(code, field, value, choices=choices, tool=tool)
-        for value in (None, "null")
-    )
+        if not _listable(code, choices):
+            return None
+    tool = next((t for t in FIELDS if " The tool: " + t + "." in rest), None)
+    for held in (None, "null"):
+        if text == task_correction(code, field, held, choices=choices, tool=tool):
+            return Correction(code, field, choices, tool)
+    return None
+
+
+def registered_correction(value):
+    """Whether a REJECTED_BEFORE_DISPATCH record carries only registered
+    correction text: its code, its field and a correction that
+    `task_correction` produces for them (`correction_parts`)."""
+    parts = correction_parts(value)
+    return parts is not None and parts.field is not None
 
 
 TOOLS = [

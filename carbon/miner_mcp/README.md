@@ -218,13 +218,18 @@ message; every refusal after that is one of the forms below, after the SDK's
   else keeps the conservative `dispatch_may_have_occurred=true`.
 - The operation, attach and setup tools answer closed JSON:
   `{"error": <code>, "field": <field to correct, when one is to blame>,
-  "next_step": ...}`.
+  "next_step": ...}`. An operation's or attach refusal's `next_step` is the
+  Launchpad refusal catalog's text for that code
+  (`scripts/dev/miner_launchpad/supervisor.py` `NEXT_ACTIONS`, served at
+  `GET /api/v1/refusals`), the same step the Control Center gives for it.
 
 A registered pre-dispatch correction from the research SDK (a
 `REJECTED_BEFORE_DISPATCH` result with `correction_code`, `field` and
-`correction`) reaches the client in this wire's object terms (`arguments.name`,
-not `arguments_json.name`), and only when the adapter can rebuild its exact
-text from the registered code and field.
+`correction`), for any research tool, reaches the client in this wire's object
+terms (`arguments.name`, not `arguments_json.name`), and only when the adapter
+can rebuild its exact text with the SDK's own rule
+(`research_tools.correction_parts`): a registered code, field and tool, and
+listed values drawn from that code's closed public list.
 
 **Results.** A research result over 1 MiB is cut to fit rather than refused:
 its largest strings and lists are shortened, never below 1024 characters or

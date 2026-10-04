@@ -114,10 +114,17 @@ TERMINAL = frozenset({"COMPLETED", "STOPPED"})
 
 _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
 
-#: The next step for each refusal or interruption code a supervisor records.
-#: Closed: a code not listed gets `FALLBACK_ACTION`, and the code itself is
-#: still shown, so a new code from another slice (the validator intake's, for
-#: one) reaches the miner before this table names it.
+#: The next step for each refusal or interruption code a supervisor records,
+#: and for every closed code either door answers. Closed: a code not listed
+#: gets `FALLBACK_ACTION`, and the code itself is still shown, so a new code
+#: from another slice reaches the miner before this table names it.
+#:
+#: The one source of next steps (W1): the browser's door (`controller.
+#: error_body`), the MCP door (`operations.refusal`, which adds only the field
+#: to correct), a campaign's `last_refusal` and the refusal catalog all read
+#: this table, so one code has one next step whichever way the miner meets it.
+#: Each step is fixed text; it names an MCP tool in parentheses where one
+#: helps, as the Control Center's own steps do.
 NEXT_ACTIONS = {
     # The campaign's own lock and state.
     "campaign_busy": (
@@ -207,33 +214,36 @@ NEXT_ACTIONS = {
         "it persists, restart the Control Center."
     ),
     "research_profile_unavailable": (
-        "Your runner profile cannot be read. Check it under Set up your "
-        "environment, then try again."
+        "Your runner profile is missing, disabled or cannot be read. Check it "
+        "under Set up your environment (carbon_setup_status), or check the "
+        "profile this server was started with, then try again."
     ),
     "research_dispatch_disabled": (
-        "Research dispatch is disabled in this runner profile. Enable it, "
-        "then resume."
+        "Research dispatch is disabled in this runner profile. Enable it, then resume."
     ),
     "research_runtime_interface_unavailable": (
         "This runner profile names a runtime the runner cannot assemble. "
         "Set up your environment again, then resume."
     ),
-    "challenge_retired": "This Challenge is retired. Launch a campaign on another.",
+    "challenge_retired": (
+        "This Challenge is retired. Launch a campaign on another "
+        "(carbon_challenges_v1__list lists them)."
+    ),
     # Registration and the miner's signer (operations._registered, SignerCode).
     "registration_required": (
         "Your hotkey is not registered on the subnet. Register it in your own "
-        "wallet tooling, confirm, then resume."
+        "wallet tooling (carbon_onboarding_prepare gives the unsigned call), "
+        "confirm, then try again or resume."
     ),
     "registration_unreadable": (
         "The chain could not be read. Try again shortly; nothing was started."
     ),
     "registration_wrong_network": (
         "Your profile points at another network. Set up your environment "
-        "again for Carbon's subnet, then resume."
+        "again for Carbon's subnet (carbon_setup_status), then resume."
     ),
     "signer_not_running": (
-        "Start carbon-miner-signer for your hotkey, then try again. Nothing "
-        "was signed."
+        "Start carbon-miner-signer for your hotkey, then try again. Nothing was signed."
     ),
     "signer_refused": "Your signer declined the request. Check it, then try again.",
     "signer_wrong_hotkey": (
@@ -241,10 +251,19 @@ NEXT_ACTIONS = {
         "Start it with the registered hotkey, then try again."
     ),
     "signer_timeout": "Your signer did not answer in time. Check it, then try again.",
+    "signer_invalid_signature": (
+        "Your signer's signature did not verify, so nothing it signed was "
+        "used. Restart carbon-miner-signer, then try again."
+    ),
+    "signer_protocol": (
+        "Something other than carbon-miner-signer answers on the signer "
+        "socket. Stop it and start carbon-miner-signer, then try again."
+    ),
     # The model provider key, from the runner profile.
     "model_provider_credential_not_configured": (
         "No key file is configured for this campaign's model provider. Add "
-        "it under Set up your environment, then resume."
+        "it under Set up your environment (carbon_setup_inference), then "
+        "resume."
     ),
     "model_provider_credential_unusable": (
         "The model provider key file cannot be used (owner-only regular file "
@@ -266,10 +285,11 @@ NEXT_ACTIONS = {
     "candidate_awaits_submission": (
         "A frozen candidate is waiting. Submit it before freezing another."
     ),
-    "freeze_a_candidate_first": "Freeze a practiced recipe, then submit.",
+    "freeze_a_candidate_first": (
+        "Freeze a practiced recipe (carbon_freeze_candidate), then submit."
+    ),
     "final_exams_used": (
-        "Both final exams of this campaign are used. Launch a new campaign "
-        "to continue."
+        "Both final exams of this campaign are used. Launch a new campaign to continue."
     ),
     # The validator's answer to a DEVELOPMENT submission (carbon.battery).
     "evaluation_queued": (
@@ -288,6 +308,188 @@ NEXT_ACTIONS = {
     "intake_unreachable": (
         "The validator intake could not be reached. The frozen candidate is "
         "kept; submit again later."
+    ),
+    # Every other closed code a submission through a validator intake can
+    # end with (`carbon.battery.campaign.intake_code`: the intake's and its
+    # transport's codes, `intake_client.REFUSALS`, and the trip's own). None
+    # is a verdict on the recipe, and none uses the epoch: the frozen
+    # candidate is kept, and Carbon builds and your signer signs a fresh
+    # request each time you submit (W1; LP-PROD-G's codes).
+    "intake_mismatch": (
+        "The configured intake serves another chain or Challenge, or is not a "
+        "battery intake. Nothing was sent for evaluation; the frozen candidate "
+        "is kept. Correct this Challenge's validator intake address under Set "
+        "up your environment, then submit again."
+    ),
+    "intake_signer_changed": (
+        "This epoch's candidate was submitted under another hotkey than the "
+        "signer now running, and nothing was sent. Start carbon-miner-signer "
+        "for the hotkey that submitted it, then submit again to read its "
+        "result; a candidate is never submitted under a second hotkey."
+    ),
+    "intake_changed_since_submission": (
+        "This epoch's candidate was submitted to another validator intake "
+        "than the one now configured. Configure that intake again, then submit "
+        "again to read its result; a candidate is never submitted twice."
+    ),
+    "intake_answer_unrecognised": (
+        "The validator intake answered in a way this Carbon does not "
+        "recognise, so nothing was evaluated; the frozen candidate is kept. "
+        "Check that the intake address serves this Carbon version, then "
+        "submit again."
+    ),
+    "signer_unavailable": (
+        "Your signer did not sign the submission: it is not running, or it "
+        "declined. Start carbon-miner-signer for your registered hotkey, then "
+        "submit again; the frozen candidate is kept."
+    ),
+    "rate": (
+        "The validator intake is limiting requests from your address. Wait a "
+        "minute, then submit again; the frozen candidate is kept."
+    ),
+    "capacity": (
+        "The validator intake is busy. Submit again in a few minutes; the "
+        "frozen candidate is kept."
+    ),
+    "inbox_full": (
+        "The validator's queue is full. Submit again later; the frozen "
+        "candidate is kept."
+    ),
+    "body": (
+        "The intake refused the submission as larger than it accepts (64 "
+        "KiB), so nothing was evaluated; the frozen candidate is kept. Check "
+        "that the intake address serves this Carbon version; if it does, this "
+        "recipe is too large to submit to it."
+    ),
+    "headers": (
+        "The intake refused the request's headers (one was repeated), so "
+        "nothing was evaluated; the frozen candidate is kept. Check that "
+        "nothing between you and the intake, such as a proxy, changes "
+        "requests, then submit again."
+    ),
+    "not_found": (
+        "The validator holds no submission of this candidate for your hotkey. "
+        "Submit again; the frozen candidate is kept."
+    ),
+    "tool": (
+        "The intake does not take the request this Carbon sends, so nothing "
+        "was evaluated; the frozen candidate is kept. Check that the intake "
+        "address serves this Carbon version, then submit again."
+    ),
+    "submission_fields": (
+        "The intake does not take the submission this Carbon sends, so "
+        "nothing was evaluated; the frozen candidate is kept. Check that the "
+        "intake address serves this Carbon version, then submit again."
+    ),
+    "status_fields": (
+        "The intake does not take the status request this Carbon sends; the "
+        "frozen candidate is kept. Check that the intake address serves this "
+        "Carbon version, then submit again."
+    ),
+    "snapshot_unknown": (
+        "The validator no longer holds the chain snapshot the request named. "
+        "Submit again: the request is rebuilt on a fresh snapshot. The frozen "
+        "candidate is kept."
+    ),
+    "snapshot_unavailable": (
+        "The validator cannot read the chain right now; that is on its side. "
+        "Submit again in a few minutes; the frozen candidate is kept."
+    ),
+    "hotkey_window_used": (
+        "Your hotkey already has its submission for this tempo. Submit again "
+        "once the next window opens; the frozen candidate is kept."
+    ),
+    "receipt_block_missing": (
+        "The validator could not date this submission. Submit again; the "
+        "frozen candidate is kept."
+    ),
+    "commitment_reader_unavailable": (
+        "This validator requires an on-chain commitment it cannot read yet; "
+        "that is on its side. Submit again later, or to another validator; "
+        "the frozen candidate is kept."
+    ),
+    "commitment_required": (
+        "This validator requires the recipe's hash committed on chain first. "
+        "Commit it in your own wallet tooling, then submit again; the frozen "
+        "candidate is kept."
+    ),
+    "backend_not_served": (
+        "This validator has no worker image for your recipe's backend. That "
+        "is not a verdict on the recipe, and nothing was recorded. Submit to "
+        "a validator that serves the backend, or again once this one does; "
+        "the frozen candidate is kept."
+    ),
+    "TRANSPORT_IDENTITY": (
+        "The validator does not find your hotkey (or its own) registered on "
+        "this subnet. Check your registration (carbon_onboarding_status), "
+        "then submit again; the frozen candidate is kept."
+    ),
+    "TRANSPORT_STALE": (
+        "The request was too old when the validator received it. Check this "
+        "machine's clock, then submit again; the request is rebuilt and "
+        "signed afresh, and the frozen candidate is kept."
+    ),
+    "TRANSPORT_REPLAY": (
+        "The validator had already received this exact request. Submit "
+        "again; a new request is built and signed, and the frozen candidate "
+        "is kept."
+    ),
+    "TRANSPORT_CONFLICT": (
+        "The validator holds a different request under this request id. "
+        "Submit again; a new request id is used, and the frozen candidate is "
+        "kept."
+    ),
+    "TRANSPORT_CONTEXT": (
+        "The validator serves another network, subnet or Challenge than the "
+        "request names. Check this Challenge's validator intake address under "
+        "Set up your environment, then submit again; the frozen candidate is "
+        "kept."
+    ),
+    "TRANSPORT_MALFORMED": (
+        "The validator did not read the request as a Carbon request. Check "
+        "that the intake address serves this Carbon version, then submit "
+        "again; the frozen candidate is kept."
+    ),
+    "TRANSPORT_RATE": (
+        "Too many requests reached the validator from your hotkey at once. "
+        "Wait a moment, then submit again; the frozen candidate is kept."
+    ),
+    "TRANSPORT_CAPACITY": (
+        "The validator's receipt journal is full; that is on its side. Submit "
+        "again later; the frozen candidate is kept."
+    ),
+    "TRANSPORT_STORE": (
+        "The validator could not record the request; that is on its side. "
+        "Submit again; the frozen candidate is kept."
+    ),
+    "AUTH_BAD_SIGNATURE": (
+        "The validator could not verify the signature for your hotkey. Check "
+        "that carbon-miner-signer runs for your registered hotkey, then "
+        "submit again; the frozen candidate is kept."
+    ),
+    "AUTH_WRONG_RECEIVER": (
+        "The request was signed for another validator than the one answering "
+        "at the intake address. Check the address, then submit again; the "
+        "frozen candidate is kept."
+    ),
+    "AUTH_STALE": (
+        "The signature was more than 10 seconds old when the validator "
+        "checked it. Check this machine's clock and that your signer answers "
+        "promptly, then submit again; the frozen candidate is kept."
+    ),
+    "AUTH_REPLAY": (
+        "The validator had already seen this signature. Submit again; the "
+        "request is signed afresh, and the frozen candidate is kept."
+    ),
+    "AUTH_MALFORMED": (
+        "The validator found the signature headers missing or malformed. "
+        "Check that carbon-miner-signer is the signer running and that "
+        "nothing between you and the intake changes requests, then submit "
+        "again; the frozen candidate is kept."
+    ),
+    "AUTH_UNAVAILABLE": (
+        "The validator cannot verify signatures right now; that is on its "
+        "side. Submit again later; the frozen candidate is kept."
     ),
     # Attaching to a campaign (`standard_cli.attached`): which check failed.
     "runner_profile_unusable": (
@@ -352,11 +554,191 @@ NEXT_ACTIONS = {
         "open the Control Center to check your setup."
     ),
     "carbon_mcp_interrupted": "Interrupted. Start Carbon MCP again when you are ready.",
+    # The operations table's own refusals at either door (`operations.perform`
+    # and the bodies it admits). Until W1 the MCP door read a second table and
+    # gave most codes here a generic step; `operations.REFUSAL_FIELDS` now
+    # names only the field to correct.
+    "closed_request_required": (
+        "Send exactly the operation's arguments: every required field and "
+        "only declared ones (its arguments schema lists them)."
+    ),
+    "research_profile_mismatch": (
+        "Omit profile, or send the profile_id of the runner profile this "
+        "server or Control Center was started with."
+    ),
+    "challenge_required": (
+        "Send challenge and challenge_version as the Challenge list gives "
+        "them (carbon_challenges_v1__list)."
+    ),
+    "challenge_unknown": (
+        "Choose a Challenge from the Challenge list (carbon_challenges_v1__list)."
+    ),
+    "challenge_deferred": (
+        "This Challenge is not open yet. Choose another from the Challenge "
+        "list (carbon_challenges_v1__list)."
+    ),
+    "challenge_not_implemented": (
+        "This Challenge is reserved, not implemented. Choose another from the "
+        "Challenge list (carbon_challenges_v1__list)."
+    ),
+    "challenge_version_unsupported": (
+        "Send the version the Challenge list gives for that Challenge "
+        "(carbon_challenges_v1__list)."
+    ),
+    "challenge_has_no_toolbox": (
+        "This Challenge has no toolbox to show. Choose a Challenge from the "
+        "Challenge list (carbon_challenges_v1__list)."
+    ),
+    "gpu_scope_is_for_another_challenge": (
+        "Your GPU practice was set up for another Challenge. Launch that one, "
+        "or set up compute again for this one (carbon_setup_compute)."
+    ),
+    "invalid_agent": (
+        "Send none (you or your own agent select) or autonomous (Carbon's "
+        "agent); own-agent and carbon-autonomous are accepted too."
+    ),
+    "invalid_idempotency_key": (
+        "Send 16-80 letters, digits, - or _. On launch over MCP you may omit "
+        "it and the server generates one."
+    ),
+    "research_launch_replay_conflict": (
+        "This key already launched a different request. Send that request "
+        "unchanged to replay it, or use a new key."
+    ),
+    "operation_replay_conflict": (
+        "This key already names a different request. Send that request "
+        "unchanged to replay it, or use a new key."
+    ),
+    "invalid_budget": (
+        "Send only ceilings, elapsed_seconds or final_reserve, within their "
+        "bounds (carbon_options lists them)."
+    ),
+    "research_review_changed": (
+        "Your setup changed since the review you sent. Review again "
+        "(carbon_setup_review) and send the review digest it gives."
+    ),
+    "invalid_feedback_mode": (
+        "Send one of the feedback modes carbon_options lists, or omit it for FULL."
+    ),
+    "feedback_mode_not_offered_by_challenge": (
+        "Send a feedback mode this Challenge offers (its description lists "
+        "them), or omit it for FULL."
+    ),
+    "model_provider_required": (
+        "Name the provider for this model or these settings (carbon_options "
+        "lists them)."
+    ),
+    "unknown_model_provider": "Send a provider carbon_options lists.",
+    "model_selection_refused": (
+        "Send a model and settings within the provider's bounds "
+        "(carbon_options lists them)."
+    ),
+    "model_selection_needs_the_autonomous_agent": (
+        "A model is only for agent=autonomous: send that, or omit the model fields."
+    ),
+    "model_provider_endpoint_not_configured": (
+        "Configure this provider's endpoint under Set up your environment "
+        "(carbon_setup_inference) first."
+    ),
+    "retired_grant_campaign": (
+        "This campaign takes no new work. Observe or stop it, and launch a new one."
+    ),
+    "research_run_unavailable": (
+        "Use the id your launch returned for one of your own campaigns."
+    ),
+    "campaign_journal_not_ready": (
+        "The campaign is still being prepared. Try again once observe shows it running."
+    ),
+    "strategy_json_invalid": "Send the recipe as a JSON object.",
+    "strategy_object_required": "Send the recipe as a JSON object.",
+    "design_malformed": (
+        "The recipe is not a design Carbon can check: send schema_version, "
+        "challenge_id, backbone and parameters, with parameters an object."
+    ),
+    "design_refused": (
+        "A choice in this recipe is refused for submission. Run check_design "
+        "on it to see which, and change that choice."
+    ),
+    "design_excluded": (
+        "A choice in this recipe is excluded from submission. Run "
+        "check_design on it to see which, and choose another."
+    ),
+    "design_not_yet_rebuildable": (
+        "The validator cannot rebuild a choice in this recipe yet. Run "
+        "check_design on it to see which, and choose one it rebuilds."
+    ),
+    "design_needs_owner_decision": (
+        "A choice in this recipe awaits an owner decision before it can be "
+        "submitted. Run check_design on it to see which, and choose another "
+        "for now."
+    ),
+    "bounded_hypothesis_required": (
+        "Send hypothesis (and expected_effect, if given) as 1 to 2048 "
+        "characters of text."
+    ),
+    "bounded_reason_required": "Send reason as 1 to 4096 characters of text.",
+    "used_feedback_boolean_required": "Send used_feedback as true or false.",
+    "invalid_research_control": "Send stop, pause or reconcile.",
+    "note_kind_unknown": "Send hypothesis, plan, observation or reply.",
+    "bounded_note_required": "Send 1 to 2000 characters of plain text.",
+    "note_not_retained": (
+        "The note could not be kept in the campaign's journal; nothing was "
+        "written. Observe the campaign, then try again."
+    ),
+    "reply_to_unknown_message": (
+        "Reply to a sequence the miner's messages listed (carbon_messages)."
+    ),
+    "reply_to_only_for_replies": "Send reply_to only with note_kind=reply.",
+    "cursor_out_of_bounds": (
+        "Send after as 0 or more: the last next_cursor, or 0 to read from the start."
+    ),
+    "limit_out_of_bounds": "Send 1 to 100, or omit it for 50.",
+    "unknown_experiment": (
+        "Send a practice run id from the campaign view's experiments, or omit "
+        "it for the latest."
+    ),
+    "unknown_practice_case": (
+        "Send a public PRACTICE case id from the campaign view's "
+        "per_case.case_ids, or omit it for the first."
+    ),
+    "research_task_id_required": (
+        "Send rtsk_ and 64 hex digits, from the run's start_research_task result."
+    ),
+    "run_output_unavailable": (
+        "Send a finished run of this campaign; the run may still be going "
+        "(get_research_result shows it)."
+    ),
+    "not_a_workspace_run": (
+        "run_output reads run_python and run_julia runs; the campaign view "
+        "shows practice trials (carbon_campaign_view)."
+    ),
+    # An MCP session's research attachment (`mcp_operations.Attachment`).
+    "already_attached": (
+        "This session already holds a campaign. Detach it "
+        "(carbon_detach_campaign) first."
+    ),
+    "attachment_busy": (
+        "Another attach or detach of this session is under way. Try again "
+        "when it returns."
+    ),
+    "research_calls_in_flight": (
+        "Research calls of this session are still running. Detach when they return."
+    ),
+    "attach_unavailable": (
+        "The campaign must be one of yours, unfinished and not held by "
+        "another operation or session, with your hotkey registered and your "
+        "signer running. Observe it (carbon_observe) to see its state."
+    ),
 }
 FALLBACK_ACTION = (
     "Read the code: it names what was refused. Correct what it names and try "
     "again; observe shows the campaign's state."
 )
+
+
+def next_action(code):
+    """The next step for `code`: its `NEXT_ACTIONS` entry, or the fallback."""
+    return NEXT_ACTIONS.get(code, FALLBACK_ACTION)
 
 
 def exception_code(exc):
@@ -393,7 +775,7 @@ def refusal(code, *, operation=None, kind="refused", at=None):
         code = "operation_refused" if kind == "refused" else "campaign_interrupted"
     return {
         "code": code,
-        "next_action": NEXT_ACTIONS.get(code, FALLBACK_ACTION),
+        "next_action": next_action(code),
         "at": round(time.time() if at is None else at, 3),
         "operation": operation if operation in OPERATIONS else None,
         "kind": kind if kind in ("refused", "interrupted", "paused") else "refused",
