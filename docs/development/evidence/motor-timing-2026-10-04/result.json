@@ -1,0 +1,149 @@
+{
+  "schema": "data-collection.motor-timing-calibration-result.v1",
+  "plan": "plans/motor-timing-calibration.json",
+  "evidence_class": "NON_COUNTED_TIMING",
+  "cases": [
+    {
+      "case_id": "cal-train-0004-b01",
+      "host_status": "OK",
+      "host_wall_s": 1387.9,
+      "host_allocated_core_s": 2775.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 886.2,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0004-b02",
+      "host_status": "OK",
+      "host_wall_s": 1388.6,
+      "host_allocated_core_s": 2777.2,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 898.0,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0006-b01",
+      "host_status": "OK",
+      "host_wall_s": 1363.3,
+      "host_allocated_core_s": 2726.6,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 882.7,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0006-b02",
+      "host_status": "OK",
+      "host_wall_s": 1379.0,
+      "host_allocated_core_s": 2758.0,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 897.6,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0015-b01",
+      "host_status": "OK",
+      "host_wall_s": 1475.5,
+      "host_allocated_core_s": 2951.0,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 911.3,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0015-b02",
+      "host_status": "OK",
+      "host_wall_s": 1412.0,
+      "host_allocated_core_s": 2824.0,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 894.5,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0019-b01",
+      "host_status": "OK",
+      "host_wall_s": 1486.9,
+      "host_allocated_core_s": 2973.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 916.1,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0019-b02",
+      "host_status": "OK",
+      "host_wall_s": 1505.4,
+      "host_allocated_core_s": 3010.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 923.5,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0021-b01",
+      "host_status": "OK",
+      "host_wall_s": 1495.9,
+      "host_allocated_core_s": 2991.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 918.2,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0021-b02",
+      "host_status": "OK",
+      "host_wall_s": 1456.5,
+      "host_allocated_core_s": 2913.0,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 899.2,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0023-b01",
+      "host_status": "OK",
+      "host_wall_s": 1395.9,
+      "host_allocated_core_s": 2791.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 874.2,
+      "torque_max_abs_diff_nm": 0.0
+    },
+    {
+      "case_id": "cal-train-0023-b02",
+      "host_status": "OK",
+      "host_wall_s": 1258.4,
+      "host_allocated_core_s": 2516.8,
+      "cpu5c_status": "OK",
+      "cpu5c_wall_s": 796.4,
+      "torque_max_abs_diff_nm": 0.0
+    }
+  ],
+  "summary": {
+    "operator_host": {
+      "p50_s": 1404.0,
+      "p95_s": 1500.2,
+      "max_s": 1505.4,
+      "quantile_method": "linear interpolation",
+      "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+      "backend": "DOCKER --cpus 2, OMP/OpenBLAS 1 thread",
+      "parallel": 6,
+      "batch_wall_s": 2884.6,
+      "image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+    },
+    "runpod_cpu5c_16vcpu": {
+      "p50_s": 897.8,
+      "p95_s": 920.6,
+      "max_s": 923.5,
+      "quantile_method": "linear interpolation",
+      "cpu": "AMD Ryzen Threadripper 7960X 24-Cores, 16 vCPU",
+      "backend": "NATIVE, OMP/OpenBLAS 1 thread",
+      "parallel": 6,
+      "batch_wall_s": 1821.2,
+      "code_ref": "14a15511bd475b9a41a71381d50c5cc1ce2f072e"
+    }
+  },
+  "timeout_rule": "OWNER-DATA-MOTOR-01 / Test Lead: counted timeout >= 2 x operator-host p95",
+  "timeout_outcome": {
+    "two_x_host_p95_s": 3000.4,
+    "registered_v1_timeout_s": 3600,
+    "v1_timeout_sufficient": true
+  },
+  "raw_records_sha256": {
+    "operator_host": "0ae5ef83f9986fdbb569b6e2836f5b26a1e5740a496ce1cd4c973a22f8acb88e",
+    "runpod_cpu5c": "6cfca282ab4444f8a7b812fbf6422d181b95fd13a63ff282ab389ed14eee242f"
+  }
+}

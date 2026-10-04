@@ -41,5 +41,33 @@ The same plan runs twice, once on each route:
 
 ## Results
 
-Not run yet. The operator-host run waits for a host window agreed with the
-Graphite Test executor.
+All 24 runs were OK. Per-case figures, raw-record hashes and the timeout
+outcome are in `result.json`. Quantiles use linear interpolation over the 12
+cases.
+
+| Route | CPU | Batch wall | Per case p50 / p95 / max |
+| --- | --- | --- | --- |
+| Operator host, Docker | Intel Core i7-12700H, 20 threads | 2,885 s | 1,404 / 1,500 / 1,505 s |
+| `runpod-cpu5c-16vcpu`, native | AMD Ryzen Threadripper 7960X, 16 vCPU | 1,821 s | 898 / 921 / 924 s |
+
+- **Timeout.** Two times the host p95 is 3,000 s. That is within the
+  registered 3,600 s, so the counted campaign runs study V1 as registered.
+  No new study version is needed.
+- **Pairing.** The host takes 1.54–1.63 times as long as cpu5c per case.
+  Each host case allocates 2 CPUs, so its cost is reported in core-seconds.
+- **Agreement.** All 12 torque curves are bitwise identical between the
+  container route and the native route.
+- **Earlier, slower figures.** The TRAIN pool's 3,000–3,640 s for these same
+  geometries were run 16 at a time. The motor pilot's p95 included the
+  2,880-node refinement mesh. The study uses the 1,440-node mesh at 6 at a
+  time.
+
+## Pod attempts
+
+1. The first pod failed at import, because `CPU_SHIP` lacked
+   `carbon.design_search`. This PR fixes that. The pod was terminated within
+   minutes.
+2. The second pod, at code ref `14a15511`, completed at 18:36Z. A monitoring
+   fault left it idle until it was terminated at about 21:07Z, still inside
+   the campaign cap. The lessons entry
+   `2026-10-04-motor-timing-calibration` records this.

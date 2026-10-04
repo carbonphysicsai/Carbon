@@ -51,8 +51,13 @@ authority.
   the operator host. The Dockerfile's "does not redistribute" comment is now
   out of date. The motor study V2 change corrects it. A comment does not
   change what the image contains, so the published digest stays valid.
-- Whether the GPL obligations are fully met (for example, whether to mirror
-  the source alongside the image) is a legal question for the owner. This
+- **No source mirror.** The owner decided, in the Data Collection session on
+  2026-10-04:
+
+  > no need to mirror the source
+
+  Carbon does not host copies of the source alongside the image. The
+  upstream releases and hashes above are the recorded correspondence. This
   record is not legal advice.
 
 ## 2. The counted motor campaign runs on the operator host
