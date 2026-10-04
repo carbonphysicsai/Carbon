@@ -1279,17 +1279,15 @@ def test_a_brief_for_other_or_protected_material_is_refused(tmp_path):
 
 
 def test_the_pods_receive_public_development_material_only():
-    assert all(
-        not any(f in path.lower() for f in pods.FORBIDDEN_DATA)
-        for path in pods.data_paths()
-    )
+    data = pods.data_paths()
+    assert all(not any(f in path.lower() for f in pods.FORBIDDEN_DATA) for path in data)
     from carbon.battery.challenge import OCV_TABLE_PATH, TRAIN_V1_PATH
     from carbon.battery.practice import PRACTICE_SOURCE_PATH
 
-    assert set(pods.data_paths()) == {TRAIN_V1_PATH, OCV_TABLE_PATH, PRACTICE_SOURCE_PATH}
+    assert set(data) == {TRAIN_V1_PATH, OCV_TABLE_PATH, PRACTICE_SOURCE_PATH}
     head = _head()
     shipped = pods.ship_list(head)
-    assert {p for p in shipped if p.startswith("docs/")} == set(pods.data_paths())
+    assert {p for p in shipped if p.startswith("docs/")} == set(data)
     assert not [p for p in shipped if p.startswith((".agent/", "tests/"))]
 
 

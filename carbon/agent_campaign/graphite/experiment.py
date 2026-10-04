@@ -173,6 +173,9 @@ def frozen_rule(root=REPOSITORY, scoring=None):
 
 #: The name earlier callers construct the frozen rule by.
 FrozenRule = frozen_rule
+#: What Carbon compares between what it computed and what the pod built
+#: (`rebuild_differences`); the Attacker's tamper fields are pinned to it.
+REBUILT_FIELDS = challenge_scoring.REBUILT_FIELDS
 _clean = challenge_scoring.clean
 
 
