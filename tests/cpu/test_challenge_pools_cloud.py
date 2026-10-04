@@ -234,3 +234,31 @@ def test_the_motor_timing_plan_is_public_train_geometry_only():
         assert tuple(inputs[k] for k in geometry) not in designs
         assert all(inputs[k] == train[source][k] for k in geometry)
         assert all(inputs[k] == v for k, v in conditions[condition].items())
+
+
+@pytest.mark.parametrize("kind", ["cold_plate", "motor"])
+def test_each_runner_imports_from_exactly_what_a_cpu_pod_ships(kind, tmp_path):
+    """A pod receives only CPU_SHIP and the plan; the runner must start there."""
+    import shutil
+    import subprocess
+    import sys
+
+    pod_control = _load(
+        "pod_control_ship", "scripts/dev/exam_design/runpod/pod_control.py"
+    )
+    for prefix in pod_control.CPU_SHIP:
+        source = REPOSITORY / prefix
+        files = [source] if source.is_file() else sorted(source.rglob("*.py"))
+        for path in files:
+            target = tmp_path / path.relative_to(REPOSITORY)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+    runner = tmp_path / f"scripts/dev/{kind}/reference/run_batch.py"
+    done = subprocess.run(
+        [sys.executable, "-I", "-S", str(runner), "--help"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr[-2000:]

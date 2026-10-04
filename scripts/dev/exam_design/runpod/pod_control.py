@@ -996,6 +996,9 @@ CPU_SHIP = [
     "carbon/__init__.py",
     "carbon/cold_plate",
     "carbon/motor",
+    # The motor runner's campaign ledger (carbon/motor/reference_campaign.py).
+    "carbon/design_search/__init__.py",
+    "carbon/design_search/campaign.py",
     "scripts/dev/cold_plate/reference/run_batch.py",
     "scripts/dev/motor/reference/run_batch.py",
     "scripts/dev/motor/reference/Dockerfile",
