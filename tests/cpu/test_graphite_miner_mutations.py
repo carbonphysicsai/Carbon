@@ -619,6 +619,34 @@ def test_the_published_edition_is_frozen_by_digest():
         )
 
 
+def test_the_engine_rules_a_plan_freezes_are_the_agreed_interface():
+    """The edition names the engine slice's constants by value
+    (`research_agent_policy.GRAPHITE_MINER`, `LIMITS_V2`, `COMPACTION_V1`);
+    wherever the engine defines them, they must be those values."""
+    from carbon.development_session import research_agent_policy as policy
+
+    assert (
+        editions.agent_policy()
+        == editions.AGENT_POLICY
+        == ("carbon.autoresearch.agent-policy.graphite-miner.v1")
+    )
+    if hasattr(policy, "GRAPHITE_MINER"):
+        assert policy.GRAPHITE_MINER == editions.AGENT_POLICY
+    if hasattr(policy, "COMPACTION_V1"):
+        assert policy.COMPACTION_V1 == editions.COMPACTION_V1
+    if hasattr(policy, "LIMITS_V2"):
+        assert policy.LIMITS_V2 == {
+            "schema": editions.LIMITS_SCHEMA,
+            "calls_per_epoch": None,
+            "trials_per_epoch": None,
+        }
+    assert editions.limits_rule(None, 3) == {
+        "schema": editions.LIMITS_SCHEMA,
+        "calls_per_epoch": None,
+        "trials_per_epoch": 3,
+    }
+
+
 def test_the_miner_prompts_describe_graphite_running_for_the_miner():
     for role in editions.EDITION.roles:
         for _, text in role.prompts:

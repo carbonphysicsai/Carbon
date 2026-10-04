@@ -227,6 +227,20 @@ def test_manifest_document_freezes_the_graphite_block():
         )
 
 
+def test_graphite_is_offered_only_for_a_challenge_with_a_campaign():
+    from carbon.development_session.profile import CHALLENGE as BURGERS
+
+    assert editions.offered(CHALLENGE_REF) is True
+    for challenge in (
+        {"id": BURGERS.challenge_id, "version": BURGERS.version},
+        {"id": "no-such-challenge", "version": "1"},
+        {"id": CHALLENGE_REF["id"], "version": "no-such-version"},
+        None,
+        "battery",
+    ):
+        assert editions.offered(challenge) is False, challenge
+
+
 # --- prepare_battery -------------------------------------------------------------
 
 
