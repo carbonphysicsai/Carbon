@@ -50,7 +50,6 @@ import urllib.parse
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
-from types import MappingProxyType
 from typing import Protocol
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -789,12 +788,10 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
 CHECK_KEY = "graphite-real-path-check-no-key"
 CHECK_SCHEMA = "carbon.graphite.pod-real-path-check.v1"
 _REST_PODS = "https://rest.runpod.io/v1/pods"
-_CHECK_FILES = MappingProxyType(
-    {
-        "DONE.json": b'{"exit": 0, "synthetic": true}',
-        "check.json": b'{"real_path_check": true, "synthetic": true}',
-    }
-)
+_CHECK_FILES = {
+    "DONE.json": b'{"exit": 0, "synthetic": true}',
+    "check.json": b'{"real_path_check": true, "synthetic": true}',
+}
 
 
 class InMemoryRunPod:
