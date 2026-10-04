@@ -8,4 +8,9 @@ owner delegated its material, coolant, ranges and interface assumption on
 
 Nothing here is scientifically, security or production qualified, and no
 value here is a production threshold.
+
+`customer_decision` adds a DEVELOPMENT-only customer decision experiment over
+this exact periodic-cell scope. It requires caller-supplied limits, commits a
+proposal before reference access and does not make the plate, manifold or
+customer decision qualified.
 """

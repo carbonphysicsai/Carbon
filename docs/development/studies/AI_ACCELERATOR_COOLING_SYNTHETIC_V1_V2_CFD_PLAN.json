@@ -1,0 +1,801 @@
+{
+  "attempt": 1,
+  "batch": "ai-accelerator-cooling-synthetic-v1-cfd-attempt-1",
+  "campaign": {
+    "campaign_id": "sha256:0cac6087aef35ca24418a3683dd03f286389f5f80fc9f5624b97ad550948e832",
+    "construction_identity_digest": "sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706",
+    "execution_backend": "DOCKER",
+    "initial_execution_limit": 48,
+    "ledger_relative_path": ".carbon-artifacts/ai-accelerator-cooling-synthetic-v1-campaign.sqlite3",
+    "max_retries_per_case": 1,
+    "resource_policy": {
+      "artifact_retention": "all",
+      "cpus_per_execution": 2,
+      "parallel_executions": 6,
+      "timeout_seconds_per_execution": 3600
+    },
+    "retry_eligible_statuses": [
+      "FAILED_INFRA",
+      "REFERENCE_SOLVER_FAILED",
+      "REFERENCE_TIMEOUT"
+    ],
+    "retry_execution_limit": 12,
+    "schema": "carbon.cold-plate.reference-campaign.v1",
+    "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+    "study_id": "ai-accelerator-cooling-synthetic-v1",
+    "total_execution_limit": 60
+  },
+  "cases": [
+    {
+      "case_id": "decision-d01-rep-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d01-rep-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d01-rep-03",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d01-rep-04",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d01-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d01-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-rep-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-rep-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-rep-03",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-rep-04",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d02-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-rep-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-rep-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-rep-03",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-rep-04",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d03-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-rep-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-rep-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-rep-03",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-rep-04",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d04-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-rep-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-rep-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-rep-03",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-rep-04",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d05-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-rep-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-rep-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-rep-03",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-rep-04",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d06-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-rep-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-rep-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-rep-03",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-rep-04",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d07-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-rep-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-rep-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-rep-03",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-rep-04",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-boundary-01",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    },
+    {
+      "case_id": "decision-d08-boundary-02",
+      "inputs": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75,
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      },
+      "kind": "ordinary",
+      "options": {}
+    }
+  ],
+  "construction_identity_digest": "sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706",
+  "schema": "carbon.cold-plate.decision-reference-plan.v2",
+  "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+}

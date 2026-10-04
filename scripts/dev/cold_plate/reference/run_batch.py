@@ -32,6 +32,7 @@ import os
 import platform
 import shutil
 import signal
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -43,7 +44,7 @@ ROOT = Path(__file__).resolve().parents[4]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from carbon.cold_plate import analysis, openfoam
+from carbon.cold_plate import analysis, openfoam, reference_campaign
 
 RECORD_SCHEMA = "carbon.cold-plate.reference-record.v1"
 #: docker exits with these when it could not run the container at all.
@@ -151,7 +152,16 @@ def solve(case_dir, name, cpus, timeout_s):
     return None, wall, f"exit {done.returncode}"
 
 
-def run_case(entry, out, args, batch, lock):
+def run_case(
+    entry,
+    out,
+    args,
+    batch,
+    lock,
+    campaign_ledger=None,
+    campaign_id=None,
+    attempt=None,
+):
     case_id = entry["case_id"]
     case_dir = out / "cases" / case_id
     record = {
@@ -168,14 +178,32 @@ def run_case(entry, out, args, batch, lock):
         raise
     except (OSError, ValueError, TypeError) as exc:
         record.update(status="FAILED_INFRA", reasons=[f"case not written: {exc}"])
-        return _finish(record, out, lock, None, args)
+        return _finish(
+            record,
+            out,
+            lock,
+            None,
+            args,
+            campaign_ledger,
+            campaign_id,
+            attempt,
+        )
     name = f"carbon-cold-plate-{batch}-{case_id}"[:120]
     status, wall, detail = solve(case_dir, name, args.cpus, args.timeout_s)
     record["wall_s"] = round(wall, 1)
     record["run"] = detail
     if status is not None:
         record.update(status=status, reasons=[detail])
-        return _finish(record, out, lock, case_dir, args)
+        return _finish(
+            record,
+            out,
+            lock,
+            case_dir,
+            args,
+            campaign_ledger,
+            campaign_id,
+            attempt,
+        )
     result = analysis.analyze_case(case_dir)
     (case_dir / "analysis.json").write_text(json.dumps(result, indent=2) + "\n")
     record.update(
@@ -189,10 +217,28 @@ def run_case(entry, out, args, batch, lock):
         image=openfoam.IMAGE,
         **({"execution": NATIVE} if NATIVE else {}),
     )
-    return _finish(record, out, lock, case_dir, args)
+    return _finish(
+        record,
+        out,
+        lock,
+        case_dir,
+        args,
+        campaign_ledger,
+        campaign_id,
+        attempt,
+    )
 
 
-def _finish(record, out, lock, case_dir, args):
+def _finish(
+    record,
+    out,
+    lock,
+    case_dir,
+    args,
+    campaign_ledger=None,
+    campaign_id=None,
+    attempt=None,
+):
     keep = args.keep == "all" or (args.keep == "failed" and record["status"] != "OK")
     if case_dir is not None and case_dir.exists() and not keep:
         shutil.rmtree(case_dir)
@@ -206,6 +252,10 @@ def _finish(record, out, lock, case_dir, args):
         (out / "progress.json").write_text(
             json.dumps({"done": sum(counts.values()), "counts": counts}) + "\n"
         )
+        if campaign_ledger is not None:
+            campaign_ledger.finish_execution(
+                campaign_id, record["case_id"], attempt, record["status"]
+            )
     print(
         f"{record['case_id']}: {record['status']} "
         f"{record.get('wall_s', '-')} s {'; '.join(record.get('reasons', []))}",
@@ -223,32 +273,104 @@ def main(argv=None):
     parser.add_argument("--timeout-s", type=float, default=3600.0)
     parser.add_argument("--keep", choices=("all", "failed", "none"), default="all")
     parser.add_argument(
+        "--campaign-ledger",
+        type=Path,
+        help=(
+            "durable SQLite accounting ledger; required by registered counted "
+            "campaign plans and reserved before dispatch"
+        ),
+    )
+    parser.add_argument(
         "--native",
         metavar="ENVIRONMENT",
         help="run each case directly in this environment, described for the record "
         "(a pod started from the pinned image); no container is launched",
     )
     args = parser.parse_args(argv)
-    global NATIVE
-    NATIVE = args.native
     plan = json.loads(args.plan.read_text())
     cases = plan["cases"]
     ids = [c["case_id"] for c in cases]
     if len(ids) != len(set(ids)):
         parser.error("case ids must be unique")
+    campaign = plan.get("campaign")
+    campaign_ledger = None
+    campaign_id = None
+    attempt = plan.get("attempt")
+    if campaign is not None:
+        if args.native is not None:
+            parser.error(
+                "registered campaign plans require Docker; --native is not permitted"
+            )
+        if args.campaign_ledger is None:
+            parser.error("registered campaign plan requires --campaign-ledger")
+        if (
+            campaign.get("execution_backend") != "DOCKER"
+            or plan.get("solver_image") != openfoam.IMAGE
+            or campaign.get("solver_image") != openfoam.IMAGE
+        ):
+            parser.error(
+                "registered campaign plan does not require the pinned Docker image"
+            )
+        expected_ledger = (ROOT / campaign.get("ledger_relative_path", "")).resolve()
+        if args.campaign_ledger.resolve() != expected_ledger:
+            parser.error(
+                "--campaign-ledger must equal the registered repository-relative "
+                f"path: {expected_ledger}"
+            )
+        resources = campaign.get("resource_policy", {})
+        if (
+            args.cpus != resources.get("cpus_per_execution")
+            or args.parallel != resources.get("parallel_executions")
+            or args.timeout_s != resources.get("timeout_seconds_per_execution")
+            or args.keep != resources.get("artifact_retention")
+        ):
+            parser.error("launch arguments do not match registered resource policy")
+        if args.out.exists() and any(args.out.iterdir()):
+            parser.error("output directory is not empty; refusing to overwrite")
+        try:
+            campaign_ledger = reference_campaign.CampaignLedger(args.campaign_ledger)
+            campaign_id = campaign_ledger.reserve(plan, args.out)
+        except (reference_campaign.CampaignLedgerError, sqlite3.Error) as error:
+            parser.error(f"campaign reservation failed: {error}")
+    elif args.campaign_ledger is not None:
+        parser.error("--campaign-ledger requires a registered campaign plan")
+    global NATIVE
+    NATIVE = args.native
     args.out.mkdir(parents=True, exist_ok=True)
     args.out.chmod(0o700)
     if any((args.out / "cases" / i).exists() for i in ids):
         parser.error("a case directory exists; refusing to overwrite")
     (args.out / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
     (args.out / "host.json").write_text(
-        json.dumps({**host_info(), "parallel": args.parallel, "cpus": args.cpus}) + "\n"
+        json.dumps(
+            {
+                **host_info(),
+                "parallel": args.parallel,
+                "cpus": args.cpus,
+                "timeout_s": args.timeout_s,
+                "keep": args.keep,
+                "solver_image": openfoam.IMAGE,
+            }
+        )
+        + "\n"
     )
     lock = threading.Lock()
     start = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.parallel) as pool:
         records = list(
-            pool.map(lambda c: run_case(c, args.out, args, plan["batch"], lock), cases)
+            pool.map(
+                lambda c: run_case(
+                    c,
+                    args.out,
+                    args,
+                    plan["batch"],
+                    lock,
+                    campaign_ledger,
+                    campaign_id,
+                    attempt,
+                ),
+                cases,
+            )
         )
     summary = {
         "batch": plan["batch"],
@@ -259,6 +381,11 @@ def main(argv=None):
             for s in sorted({r["status"] for r in records})
         },
     }
+    if campaign_ledger is not None:
+        campaign_ledger.finish_batch(campaign_id, attempt)
+        (args.out / "campaign-ledger.json").write_text(
+            json.dumps(campaign_ledger.snapshot(campaign_id), indent=2) + "\n"
+        )
     (args.out / "DONE.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary))
     return 0

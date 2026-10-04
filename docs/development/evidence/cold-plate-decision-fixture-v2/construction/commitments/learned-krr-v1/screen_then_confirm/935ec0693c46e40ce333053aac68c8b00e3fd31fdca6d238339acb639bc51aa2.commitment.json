@@ -1,0 +1,150 @@
+{
+ "commitment_digest": "sha256:3442cff19178e0c081ced664862d966679f0a3913162a4f8b78ff1ce6adddb48",
+ "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
+ "query_attempts": 18,
+ "query_log_digest": "sha256:fa1dd1f3a0ff16b1314cddd9f6aa839d6452705ea3945d60ddd6a7ea968a2982",
+ "query_successes": 18,
+ "request": {
+  "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
+  "challenge": "chip-cold-plate",
+  "condition_space_digest": "sha256:3e5886b5fc9f771faea2998517799282a9fb0b4909dd91e1ff68cbb102e15d7f",
+  "conditions": [
+   {
+    "heat_load_w": 800.0,
+    "hotspot_center_mm": 15.0,
+    "hotspot_ratio": 1.0,
+    "hotspot_width_mm": 2.5,
+    "inlet_c": 35.0
+   },
+   {
+    "heat_load_w": 1000.0,
+    "hotspot_center_mm": 15.0,
+    "hotspot_ratio": 1.5,
+    "hotspot_width_mm": 2.5,
+    "inlet_c": 40.0
+   },
+   {
+    "heat_load_w": 1200.0,
+    "hotspot_center_mm": 12.0,
+    "hotspot_ratio": 2.0,
+    "hotspot_width_mm": 2.5,
+    "inlet_c": 35.0
+   },
+   {
+    "heat_load_w": 1000.0,
+    "hotspot_center_mm": 12.0,
+    "hotspot_ratio": 2.0,
+    "hotspot_width_mm": 2.5,
+    "inlet_c": 40.0
+   },
+   {
+    "heat_load_w": 1200.0,
+    "hotspot_center_mm": 12.0,
+    "hotspot_ratio": 2.0,
+    "hotspot_width_mm": 2.5,
+    "inlet_c": 40.0
+   },
+   {
+    "heat_load_w": 1000.0,
+    "hotspot_center_mm": 6.0,
+    "hotspot_ratio": 2.5,
+    "hotspot_width_mm": 1.75,
+    "inlet_c": 45.0
+   }
+  ],
+  "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+  "designs": [
+   {
+    "channel_depth_mm": 1.5,
+    "channel_width_mm": 0.25,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.25
+   },
+   {
+    "channel_depth_mm": 1.5,
+    "channel_width_mm": 0.25,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.75
+   },
+   {
+    "channel_depth_mm": 2.5,
+    "channel_width_mm": 0.25,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.25
+   },
+   {
+    "channel_depth_mm": 2.5,
+    "channel_width_mm": 0.25,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.75
+   },
+   {
+    "channel_depth_mm": 1.5,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.25
+   },
+   {
+    "channel_depth_mm": 1.5,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.75
+   },
+   {
+    "channel_depth_mm": 2.5,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.25
+   },
+   {
+    "channel_depth_mm": 2.5,
+    "channel_width_mm": 0.4,
+    "fin_width_mm": 0.3,
+    "flow_lpm_per_kw": 1.75
+   }
+  ],
+  "material": "DEVELOPMENT",
+  "method": {
+   "code_digest": "sha256:9d7e4fbe32c9674ba09fb1d568f47806607db68d01df6db7b8d346642861bb94",
+   "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
+   "name": "screen_then_confirm"
+  },
+  "mode": "PB-INV",
+  "model": {
+   "member": "learned-krr-v1",
+   "recipe_digest": "sha256:e48b053989d08c9b2ade07d92f13c1efee188e9bad01d899c169c8f2e0cf92fb",
+   "seed": 0
+  },
+  "query_budget": 48,
+  "query_policy": {
+   "accounting_unit": "ATTEMPTED_MODEL_POINT",
+   "duplicate_policy": "FORBID_WITHIN_AND_ACROSS_CALLS",
+   "retry_policy": {
+    "continuation_after_failure": false,
+    "max_retries_per_point": 0,
+    "new_oracle_required": true
+   }
+  },
+  "request_digest": "sha256:935ec0693c46e40ce333053aac68c8b00e3fd31fdca6d238339acb639bc51aa2",
+  "schema": "carbon.cold-plate.design-search-request.v2",
+  "scope": "periodic-straight-channel-cell-v1",
+  "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
+  "verification_budget": 6,
+  "verification_policy": {
+   "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+   "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+   "repeated_commitment": "FORBIDDEN"
+  }
+ },
+ "schema": "carbon.cold-plate.design-search-commitment.v2",
+ "selections": [
+  {
+   "channel_depth_mm": 2.5,
+   "channel_width_mm": 0.25,
+   "fin_width_mm": 0.3,
+   "flow_lpm_per_kw": 1.25,
+   "predicted_worst_hydraulic_w": 0.1297953455389026
+  }
+ ],
+ "status": "PROPOSAL"
+}

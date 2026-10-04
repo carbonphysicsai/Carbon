@@ -40,6 +40,12 @@ python scripts/dev/cold_plate/reference/baselines.py --train DIR --practice DIR 
 - a hard wall limit, after which it kills that container by its unique
   name and touches no other.
 
+The registered AI-accelerator-cooling campaign requires this Docker path. Its
+plan pins the image plus CPU, parallelism, timeout and retention settings, and
+`run_batch.py` refuses `--native` before reserving campaign attempts or writing
+run artifacts. Native mode remains available only to the separate unregistered
+workflows that already support execution inside an owner-provisioned pod.
+
 Every case ends as one typed record, whose outcome is one of:
 - `OK`;
 - `REFERENCE_INVALID`: a check failed, or the case left the applicability;

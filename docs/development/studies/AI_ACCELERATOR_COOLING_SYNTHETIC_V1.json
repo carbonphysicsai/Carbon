@@ -1,0 +1,126 @@
+{
+  "schema": "carbon.cold-plate.decision-study-config.v2",
+  "study_id": "ai-accelerator-cooling-synthetic-v1",
+  "material": "DEVELOPMENT",
+  "scope": "periodic-straight-channel-cell-v1",
+  "scenario": {
+    "description": "Synthetic steady-state accelerator cold-plate decision study; not a customer requirement or acceptance test.",
+    "customer_requirement_ref": "synthetic:ai-accelerator-cooling-v1",
+    "die_limit_c": 100.0,
+    "hydraulic_limit_w": 0.25,
+    "control_policy": {
+      "name": "steady-state-feed-forward-flow-per-heat",
+      "equation": "total_flow_lpm = flow_lpm_per_kw * heat_load_w / 1000",
+      "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
+      "not_demonstrated": [
+        "transient response",
+        "sensor error or latency",
+        "pump and actuator dynamics",
+        "manifold flow distribution",
+        "controller safety qualification"
+      ],
+      "required_limits": [
+        "declared flow_lpm_per_kw design bounds",
+        "synthetic hydraulic-power constraint",
+        "PG25 reference property applicability",
+        "reference laminar Reynolds applicability",
+        "future owner-approved pump flow, pressure and slew limits"
+      ]
+    }
+  },
+  "designs": [
+    {"design_id": "d01", "values": {"channel_width_mm": 0.25, "fin_width_mm": 0.3, "channel_depth_mm": 1.5, "flow_lpm_per_kw": 1.25}},
+    {"design_id": "d02", "values": {"channel_width_mm": 0.25, "fin_width_mm": 0.3, "channel_depth_mm": 1.5, "flow_lpm_per_kw": 1.75}},
+    {"design_id": "d03", "values": {"channel_width_mm": 0.25, "fin_width_mm": 0.3, "channel_depth_mm": 2.5, "flow_lpm_per_kw": 1.25}},
+    {"design_id": "d04", "values": {"channel_width_mm": 0.25, "fin_width_mm": 0.3, "channel_depth_mm": 2.5, "flow_lpm_per_kw": 1.75}},
+    {"design_id": "d05", "values": {"channel_width_mm": 0.4, "fin_width_mm": 0.3, "channel_depth_mm": 1.5, "flow_lpm_per_kw": 1.25}},
+    {"design_id": "d06", "values": {"channel_width_mm": 0.4, "fin_width_mm": 0.3, "channel_depth_mm": 1.5, "flow_lpm_per_kw": 1.75}},
+    {"design_id": "d07", "values": {"channel_width_mm": 0.4, "fin_width_mm": 0.3, "channel_depth_mm": 2.5, "flow_lpm_per_kw": 1.25}},
+    {"design_id": "d08", "values": {"channel_width_mm": 0.4, "fin_width_mm": 0.3, "channel_depth_mm": 2.5, "flow_lpm_per_kw": 1.75}}
+  ],
+  "conditions": [
+    {"scenario_id": "rep-01", "group": "REPRESENTATIVE", "values": {"inlet_c": 35.0, "heat_load_w": 800.0, "hotspot_ratio": 1.0, "hotspot_center_mm": 15.0, "hotspot_width_mm": 2.5}},
+    {"scenario_id": "rep-02", "group": "REPRESENTATIVE", "values": {"inlet_c": 40.0, "heat_load_w": 1000.0, "hotspot_ratio": 1.5, "hotspot_center_mm": 15.0, "hotspot_width_mm": 2.5}},
+    {"scenario_id": "rep-03", "group": "REPRESENTATIVE", "values": {"inlet_c": 35.0, "heat_load_w": 1200.0, "hotspot_ratio": 2.0, "hotspot_center_mm": 12.0, "hotspot_width_mm": 2.5}},
+    {"scenario_id": "rep-04", "group": "REPRESENTATIVE", "values": {"inlet_c": 40.0, "heat_load_w": 1000.0, "hotspot_ratio": 2.0, "hotspot_center_mm": 12.0, "hotspot_width_mm": 2.5}},
+    {"scenario_id": "boundary-01", "group": "BOUNDARY_STRESS", "values": {"inlet_c": 40.0, "heat_load_w": 1200.0, "hotspot_ratio": 2.0, "hotspot_center_mm": 12.0, "hotspot_width_mm": 2.5}},
+    {"scenario_id": "boundary-02", "group": "BOUNDARY_STRESS", "values": {"inlet_c": 45.0, "heat_load_w": 1000.0, "hotspot_ratio": 2.5, "hotspot_center_mm": 6.0, "hotspot_width_mm": 1.75}}
+  ],
+  "models": {
+    "analytic-v1": {"kind": "ANALYTICAL_BASELINE", "seed": 0},
+    "learned-krr-v1": {
+      "kind": "LEARNED_RECONSTRUCTION",
+      "seed": 0,
+      "training_records": "docs/development/evidence/cold-plate-pools-v1/train.jsonl",
+      "training_sha256": "122e001e7ff9f6faefe4e1c558e936089cdc38b6b6dbe8728278812c9d8a6582",
+      "calibration_report": "docs/development/evidence/cold-plate-pools-v1/baselines.json",
+      "calibration_sha256": "52236abadb40913e638a8ff5c5d0ff76728b52d27a76b4d6ecadf590852e1aa6",
+      "length": 8.0,
+      "ridge": 1e-6
+    }
+  },
+  "methods": {
+    "fixed_grid": {"method": "fixed_grid", "parameters": {}},
+    "screen_then_confirm": {"method": "screen_then_confirm", "parameters": {"screen_condition": 4}}
+  },
+  "comparisons": {
+    "model_value": ["analytic-v1/fixed_grid", "learned-krr-v1/fixed_grid"],
+    "search_method_value": ["learned-krr-v1/fixed_grid", "learned-krr-v1/screen_then_confirm"],
+    "reference_comparator": "best observed reference-feasible design; exact finite-set best and regret only when every potentially competitive design is sufficiently resolved in the declared eight-design by six-condition comparison set"
+  },
+  "budgets": {
+    "model_query_points_per_arm": 48,
+    "verification_condition_evaluations_per_arm": 6,
+    "comparator_condition_evaluations": 48,
+    "reference_session_condition_evaluations": 72,
+    "initial_solver_executions": 48,
+    "retry_reserve": 12,
+    "max_retries_per_case": 1,
+    "hard_solver_execution_cap": 60,
+    "cpus_per_solver_execution": 2,
+    "solver_timeout_seconds": 3600,
+    "parallel_solver_executions": 6,
+    "estimated_core_hours_per_case": 0.4,
+    "estimated_initial_core_hours": 19.2,
+    "estimated_hard_cap_core_hours": 24.0,
+    "configured_initial_allocated_core_hour_ceiling": 96.0,
+    "configured_hard_cap_allocated_core_hour_ceiling": 120.0,
+    "retry_eligible_statuses": [
+      "FAILED_INFRA",
+      "REFERENCE_SOLVER_FAILED",
+      "REFERENCE_TIMEOUT"
+    ]
+  },
+  "compute_accounting": {
+    "estimate_basis": "Planning estimate of 0.4 core-hours per solver execution: 19.2 core-hours for 48 initial executions and 24.0 core-hours at the 60-execution hard cap.",
+    "configured_ceiling_basis": "Allocation ceiling equals executions multiplied by 2 CPUs and 3600 seconds: 96 allocated core-hours initially and 120 allocated core-hours including the retry reserve.",
+    "actual_cpu_use_limitation": "The CPU flag is an allocation limit, not a measurement of CPU time consumed; actual CPU use requires host or container accounting and is reported only when measured.",
+    "overhead_limitation": "Orchestration, container startup, storage, artifact processing and host overhead are outside the per-execution solver CPU allocation and must be reported separately when measured."
+  },
+  "analysis": {
+    "statistical_interpretation": {
+      "mode": "DESCRIPTIVE_FIXED_PILOT",
+      "population_reliability_claim": false,
+      "independent_observation_unit": null,
+      "future_uncertainty_requirement": "approved sampling design and justified unit of independent observation"
+    },
+    "group_policy": "REPORT_REPRESENTATIVE_AND_BOUNDARY_STRESS_SEPARATELY",
+    "combined_weighting": null,
+    "regret_quantity": "worst-case reference hydraulic power in W",
+    "regret_policy": {
+      "reference_feasible_selection": "exact selected-minus-comparator regret only when the complete registered set is sufficiently resolved; otherwise report a labelled difference from the best observed feasible design",
+      "reference_infeasible_selection": "numeric regret unavailable; classify INFEASIBLE_SELECTION",
+      "unresolved_reference": "numeric exact regret unavailable; classify the selected proposal or comparator as unresolved without treating missing evidence as feasibility",
+      "abstention": "numeric regret unavailable; classify ABSTAIN"
+    },
+    "pass_threshold": null
+  },
+  "claims": {
+    "synthetic_customer_requirement": true,
+    "global_optimum": false,
+    "customer_acceptance": false,
+    "scientific_qualification": false,
+    "production_qualification": false,
+    "live_authority": false
+  }
+}
