@@ -16,6 +16,8 @@ selects its adapter. A digest the registry doesn't hold is refused by name
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .interface import (
     Admitted,
     ChallengeAdapter,
@@ -34,6 +36,23 @@ SCORE_RECORD_SCHEMA = "carbon.challenge-validator.score-record.v1"
 #: Engineering limits on the identity fields a transport passes through.
 MAX_FIELD = 128
 MAX_RECEIPT_KEYS = 16
+#: Every code `Validator.screen` refuses with: a closed set, so a transport's
+#: client can explain each one.
+SCREEN_REFUSALS = (
+    "malformed_submission",
+    "contract_digest_malformed",
+    "contract_not_served",
+    "challenge_mismatch",
+    "oversized_submission",
+    "strategy_not_utf8",
+    "strategy_bom",
+    "strategy_nesting_too_deep",
+    "strategy_not_json",
+    "strategy_not_object",
+    "non_finite_value",
+    "duplicate_key",
+    "integer_out_of_range",
+)
 
 
 class Adapters:
@@ -101,6 +120,15 @@ def _result(kind, *, code=None, adapter=None, outcome=None, retry=None):
     return out
 
 
+@dataclass(frozen=True)
+class Screened:
+    """A submission that passed `Validator.screen`: the adapter its contract
+    digest selects, and the strictly parsed submission for it."""
+
+    adapter: ChallengeAdapter
+    admitted: Admitted
+
+
 def _short_text(value):
     return type(value) is str and 0 < len(value) <= MAX_FIELD and value.isprintable()
 
@@ -145,8 +173,15 @@ class Validator:
         """The contract digests this validator serves (public)."""
         return self._adapters.digests()
 
-    def evaluate(self, submission):
-        """Evaluate one authenticated submission; return a result envelope."""
+    def screen(self, submission):
+        """The checks every submission passes before any adapter sees it.
+
+        Returns a `Screened` (the adapter its digest selects and the strictly
+        parsed submission), or a `REFUSED` result envelope, already recorded in
+        the ledger. A transport that queues submissions for an adapter's own
+        worker (battery's intake) screens at its door and records acceptance
+        with `note`; `evaluate` screens and evaluates at once.
+        """
         ledger = self._ledger
 
         def refuse(code, adapter=None):
@@ -173,14 +208,33 @@ class Validator:
             return refuse(malformed.code, adapter)
         if strategy.get("challenge_id") != adapter.challenge_id:
             return refuse("challenge_mismatch", adapter)
-        admitted = Admitted(
-            hotkey=submission.hotkey,
-            receipt=dict(submission.receipt),
-            challenge_id=submission.challenge_id,
-            challenge_version=submission.challenge_version,
-            strategy=strategy,
-            contract_digest=submission.contract_digest,
+        return Screened(
+            adapter=adapter,
+            admitted=Admitted(
+                hotkey=submission.hotkey,
+                receipt=dict(submission.receipt),
+                challenge_id=submission.challenge_id,
+                challenge_version=submission.challenge_version,
+                strategy=strategy,
+                contract_digest=submission.contract_digest,
+            ),
         )
+
+    def note(self, submission, *, kind, code=None, submission_id=None, state=None):
+        """Record what became of a screened submission at a queueing transport:
+        `RECEIVED` into its queue, or refused there for a transport reason. The
+        ledger is operator-only; nothing here returns it."""
+        self._ledger.record(
+            submission, kind=kind, code=code, submission_id=submission_id, state=state
+        )
+
+    def evaluate(self, submission):
+        """Evaluate one authenticated submission; return a result envelope."""
+        ledger = self._ledger
+        screened = self.screen(submission)
+        if type(screened) is not Screened:
+            return screened
+        adapter, admitted = screened.adapter, screened.admitted
         try:
             outcome = check_outcome(adapter.evaluate(admitted), adapter)
         except Unavailable as unavailable:
@@ -302,7 +356,9 @@ class Operator:
 __all__ = [
     "RESULT_SCHEMA",
     "SCORE_RECORD_SCHEMA",
+    "SCREEN_REFUSALS",
     "Adapters",
     "Operator",
+    "Screened",
     "Validator",
 ]
