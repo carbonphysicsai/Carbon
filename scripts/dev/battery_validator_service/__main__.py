@@ -27,7 +27,14 @@ def main(argv=None):
         prog="python -m scripts.dev.battery_validator_service"
     )
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("parity", "status", "backup", "supervise"):
+    sub.add_parser(
+        "parity",
+        help=(
+            "check that miners practise on the validator's own pinned images "
+            "(the standard), under the contract it scores with"
+        ),
+    ).add_argument("--config", required=True)
+    for name in ("status", "backup", "supervise"):
         sub.add_parser(name).add_argument("--config", required=True)
     preflight = sub.add_parser("preflight")
     preflight.add_argument("--config", required=True)

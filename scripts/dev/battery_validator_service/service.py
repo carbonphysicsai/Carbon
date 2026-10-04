@@ -9,10 +9,11 @@ The service configuration is an owner-only JSON file (schema
   and logs, and the validator daemon's heartbeat and its lock;
 - `backups`: owner-only directory backups are written to;
 - `practice_images` (required for a carrier deployment): the worker image
-  manifests miners practise against, under the deployment's own keys -
-  `image_manifest` (JAX) and, when the deployment serves PyTorch,
-  `torch_image_manifest`. Parity compares them with the images the
-  validator scores with;
+  manifests published for miners to practise against, under the
+  deployment's own keys - `image_manifest` (JAX) and, when the deployment
+  serves PyTorch, `torch_image_manifest`. The validator's own pinned images
+  are the standard (OWNER-LAUNCHPAD-PROD-02, answer 10): parity requires each
+  practice manifest to be the validator's image;
 - `run_every_s` (optional, default 60): the validator daemon's period;
 - `allow_direct_backend` (optional, default false): accept a `direct`
   deployment (`DIRECT_TRUSTED_PROCESS`, recipes rebuilt in process) for
@@ -63,6 +64,18 @@ STALE_PERIODS, STALE_MARGIN_S = 2.0, 30.0
 #: often, while the only refusal is the host's passing state (Docker not
 #: answering). Engineering values; a unit's start timeout allows for them.
 HOST_WAIT_S, HOST_POLL_S = 300.0, 5.0
+#: What miners practise against (OWNER-LAUNCHPAD-PROD-02, answer 10): the
+#: validator's own pinned images, as their public build identity
+#: (`practice_standard`), and nothing of the hidden test conditions. Named in
+#: every parity report.
+PRACTICE_STANDARD = "validator_pinned_images"
+PRACTICE_WITHHELD = (
+    "private_cases",
+    "seeds",
+    "private_root",
+    "references",
+    "per_case_results",
+)
 #: A pinned worker image's identity, every field compared by parity.
 IDENTITY_FIELDS = (
     "image_id",
@@ -405,17 +418,42 @@ def check_upgraded(intake_config, repository):
     return {"bound": True, "contract_digest": serving["contract_digest"]}
 
 
-def parity(service, intake_config, deployment_config, repository):
-    """The validator scores with the images miners practise against, under the
-    contract they practise under.
+def practice_standard(deployment_config):
+    """What miners practise against: the validator's own pinned images, each
+    as its public build identity (`IDENTITY_FIELDS`) and nothing else.
 
-    Every image the deployment scores with needs the manifest miners
-    practise with under the same key (`parity_reference_unnamed`), and the
-    two must be one image: every identity field equal (`parity_image_differs`
-    names the fields). The contract the deployment is bound to must be this
-    checkout's registered battery contract, the one every miner campaign on
-    this checkout freezes (`parity_contract_differs`). A `direct` deployment
-    has no pinned image to compare; its contract is still compared.
+    Read from the image manifests alone. Nothing of the deployment's hidden
+    test conditions (`PRACTICE_WITHHELD`) - its private root, seeds, private
+    cases, references or per-case results - is read here or reaches a miner
+    through practice: the image is code, and practice scores against the
+    public PRACTICE cases only.
+    """
+    return {
+        IMAGE_KEYS[key]: {field: getattr(image, field) for field in IDENTITY_FIELDS}
+        for key, image in validator_images(deployment_config).items()
+    }
+
+
+def parity(service, intake_config, deployment_config, repository):
+    """Miners practise on the validator's own pinned images
+    (OWNER-LAUNCHPAD-PROD-02, answer 10), under the contract the validator
+    scores with.
+
+    The validator's images are the standard; the practice manifests are held
+    to it, never the other way round. Every image the deployment scores with
+    needs a practice manifest under the same key (`practice_image_unnamed`),
+    and that manifest must be the validator's image: every identity field
+    equal (`practice_image_differs` names the fields, the validator's image
+    as `standard` and the practice one as `practice`). The fix is to publish
+    the validator's image for practice; the validator's image is never
+    changed to match practice. The contract the deployment is bound to must
+    be this checkout's registered battery contract, the one every miner
+    campaign on this checkout freezes (`parity_contract_differs`). A `direct`
+    deployment has no pinned image to compare; its contract is still
+    compared.
+
+    Practice reaches the images' public build identity only: no hidden test
+    condition (`PRACTICE_WITHHELD`) is read into the report.
     """
     from carbon.battery import deployment
     from carbon.reconstruction.capability_registry import (
@@ -441,35 +479,48 @@ def parity(service, intake_config, deployment_config, repository):
                 + str(intake_config["deployment"])
             ),
         )
-    result = {"contract_digest": current, "contract_bound": scored is not None}
+    result = {
+        "contract_digest": current,
+        "contract_bound": scored is not None,
+        "practice_standard": PRACTICE_STANDARD,
+        "withheld_from_practice": list(PRACTICE_WITHHELD),
+    }
     if deployment_config["backend"] != "carrier":
         return {**result, "images": "not_applicable"}
     practice = service.config.get("practice_images", {})
+    standard = practice_standard(deployment_config)
     images = {}
-    for key, scoring in validator_images(deployment_config).items():
+    for key, name in IMAGE_KEYS.items():
+        if name not in standard:
+            continue
         if key not in practice:
             raise ServiceRefused(
-                "parity_reference_unnamed",
-                image=IMAGE_KEYS[key],
-                next_step="name the practised manifest under practice_images." + key,
+                "practice_image_unnamed",
+                image=name,
+                standard=standard[name]["image_id"],
+                next_step=(
+                    "publish the validator's pinned image for practice and name "
+                    "its manifest under practice_images." + key
+                ),
             )
-        practised = _identity(practice[key], "parity_manifest_unreadable")
+        practised = _identity(practice[key], "practice_manifest_unreadable")
         differs = [
-            f for f in IDENTITY_FIELDS if getattr(scoring, f) != getattr(practised, f)
+            f for f in IDENTITY_FIELDS if standard[name][f] != getattr(practised, f)
         ]
         if differs:
             raise ServiceRefused(
-                "parity_image_differs",
-                image=IMAGE_KEYS[key],
+                "practice_image_differs",
+                image=name,
                 fields=differs,
-                validator=scoring.image_id,
-                miners=practised.image_id,
+                standard=standard[name]["image_id"],
+                practice=practised.image_id,
                 next_step=(
-                    "score with the image miners practise against, or publish "
-                    "the validator's image for practice"
+                    "publish the validator's pinned image for practice and name "
+                    "its manifest under practice_images." + key + "; the "
+                    "validator's image is the standard and is not changed"
                 ),
             )
-        images[IMAGE_KEYS[key]] = scoring.image_id
+        images[name] = standard[name]["image_id"]
     return {**result, "images": images}
 
 

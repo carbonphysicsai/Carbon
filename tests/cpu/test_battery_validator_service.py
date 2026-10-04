@@ -353,27 +353,104 @@ def test_a_carrier_deployment_is_checked_image_by_image(tmp_path, monkeypatch):
     assert found["images"]["doctor"] == "worker.doctor.image_unavailable"
 
 
-def test_parity_names_the_reference_and_every_differing_field(tmp_path, monkeypatch):
+def test_parity_holds_practice_to_the_validators_images(tmp_path, monkeypatch):
+    """OWNER-LAUNCHPAD-PROD-02, answer 10: the validator's pinned images are
+    the standard miners practise against. A practice image that differs is
+    named against the validator's, and the fix publishes the validator's
+    image for practice; the validator's image is never the one to change."""
     made, images = carrier(tmp_path, monkeypatch, practice=False)
     found = checks(svc.parity_report(made.service, repository=REPOSITORY))
-    assert found["parity"]["refused"] == "parity_reference_unnamed"
+    assert found["parity"]["refused"] == "practice_image_unnamed"
+    assert found["parity"]["standard"] == "sha256:" + "1" * 64
+    assert "validator's pinned image" in found["parity"]["next_step"]
     other = manifest(images / "practice.json", "2", lock_digest="sha256:" + "f" * 64)
     rewrite(made.service, practice_images={"image_manifest": str(other)})
     report = svc.parity_report(made.service, repository=REPOSITORY)
     assert not report["ready"]
     differs = checks(report)["parity"]
-    assert differs["refused"] == "parity_image_differs"
+    assert differs["refused"] == "practice_image_differs"
     assert differs["fields"] == ["image_id", "config_digest", "lock_digest"]
-    assert (differs["validator"], differs["miners"]) == (
+    assert (differs["standard"], differs["practice"]) == (
         "sha256:" + "1" * 64,
         "sha256:" + "2" * 64,
     )
+    assert "is the standard and is not changed" in differs["next_step"]
     # The CLI: one JSON document, exit 2 on a refusal.
     assert main(["parity", "--config", str(made.service)]) == 2
-    # The same image under another manifest file is the same image.
+    # An unreadable practice manifest is named as practice's.
+    garbled = images / "garbled.json"
+    garbled.write_text("{")
+    rewrite(made.service, practice_images={"image_manifest": str(garbled)})
+    found = checks(svc.parity_report(made.service, repository=REPOSITORY))
+    assert found["parity"]["refused"] == "practice_manifest_unreadable"
+    # The validator's image under another manifest file is the same image.
     same = manifest(images / "copy.json", "1")
     rewrite(made.service, practice_images={"image_manifest": str(same)})
-    assert svc.parity_report(made.service, repository=REPOSITORY)["ready"]
+    report = svc.parity_report(made.service, repository=REPOSITORY)
+    assert report["ready"]
+    detail = checks(report)["parity"]["detail"]
+    assert detail["practice_standard"] == svc.PRACTICE_STANDARD
+    assert detail["images"] == {"jax": "sha256:" + "1" * 64}
+
+
+def test_practice_on_the_validators_images_reaches_no_hidden_test_condition(
+    tmp_path, monkeypatch
+):
+    """OWNER-LAUNCHPAD-PROD-02, answer 10: "practice on validator images as
+    long as NO ACCESS to hidden test conditions". What practice is held to is
+    the validator's images' public build identity alone: no private case,
+    seed, root, reference or per-case result reaches it, nor any report the
+    parity check prints. The hidden conditions here are the deployment's own:
+    its private root and the screening cases, seeds and duplicates it would
+    draw from that root."""
+    from carbon.battery import seeds
+
+    made, _images = carrier(tmp_path, monkeypatch)
+    target = deployment.validator(made.deployment, repository=REPOSITORY)
+    root_bytes = (made.validator / "root.bin").read_bytes()
+    root = seeds.PrivateRoot.load(made.validator / "root.bin")
+    pin = json.loads((made.validator / "journal.jsonl").read_text().splitlines()[0])[
+        "seed_pin"
+    ]
+    batch = seeds.make_batch(root, pin, "pscreen-b00", 12)
+    hidden = [root_bytes.hex(), batch.fingerprint]
+    for case_id, inputs in batch.cases:
+        hidden.append(case_id)
+        hidden.append(json.dumps(dict(inputs), sort_keys=True))
+    hidden += [dup for dup, _ in batch.duplicates]
+    seed = str(seeds.reconstruction_seed(root, "fixture-submission"))
+    if len(seed) >= 8:  # a short number could occur inside any digest
+        hidden.append(seed)
+    private_paths = [
+        str(made.validator / name)
+        for name in ("root.bin", "journal.jsonl", "state.sqlite3", "work")
+    ]
+
+    # The standard is the validator's image identity, field for field.
+    standard = svc.practice_standard(json.loads(made.deployment.read_text()))
+    assert set(standard) == {"jax"}
+    assert set(standard["jax"]) == set(svc.IDENTITY_FIELDS)
+    assert standard["jax"]["image_id"] == "sha256:" + "1" * 64
+
+    printed = [
+        json.dumps(standard),
+        json.dumps(svc.parity_report(made.service, repository=REPOSITORY)),
+        json.dumps(svc.preflight(made.service, repository=REPOSITORY)),
+    ]
+    detail = checks(json.loads(printed[1]))["parity"]["detail"]
+    assert detail["withheld_from_practice"] == [
+        "private_cases",
+        "seeds",
+        "private_root",
+        "references",
+        "per_case_results",
+    ]
+    for text in printed:
+        for secret in hidden + private_paths:
+            assert secret not in text, secret
+    # Specimen: the scan finds a hidden condition where one is printed.
+    assert batch.cases[0][0] in json.dumps(batch.document())
+    assert root.commitment() == target.root.commitment()
 
 
 def test_parity_and_the_upgrade_check_compare_the_bound_contract(tmp_path):

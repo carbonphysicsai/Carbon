@@ -45,7 +45,7 @@ run from the repository root:
 | Command | What it does |
 |---|---|
 | `preflight --config S [--wait-for-host SECONDS]` | Every check a start needs, all at once (§3). With `--wait-for-host`, re-checks every 5 s for up to SECONDS while the only refusal is a Docker that is not answering yet. Exit 0 ready, 2 not. |
-| `parity --config S` | The image and contract parity check alone (§3, `parity`). |
+| `parity --config S` | The image and contract parity check alone (§3, `parity`): miners practise on the validator's own pinned images, the standard. |
 | `status --config S` | The intake (its serving lock and its own public answer read over its bound address), the daemon (its lock and heartbeat), the supervisor's children if it runs, inbox and pool counts, the latest backup. Healthy only when every part is seen running. Exit 0 healthy, 3 not. |
 | `backup --config S` | Root, journal and state together, under the writer lock, with the intake's inbox and transport journal (§6). |
 | `restore --config S --from DIR` | Restore one backup into absent paths only, all or nothing (§6). |
@@ -95,14 +95,16 @@ directory, outside every checkout.
      "intake": "<intake.json>",
      "state_dir": "<service dir>",
      "backups": "<backup dir>",
-     "practice_images": {"image_manifest": "<the worker manifest miners practise with>"},
+     "practice_images": {"image_manifest": "<the validator's worker manifest, as published for practice>"},
      "run_every_s": 60
    }
    ```
    `practice_images` names the manifests of the images miners practise
    against, under the deployment's own keys: `image_manifest`, and
-   `torch_image_manifest` when the deployment serves PyTorch. On the testnet
-   host that is the Launchpad runner profile's `image_manifest`.
+   `torch_image_manifest` when the deployment serves PyTorch. Miners
+   practise on the validator's own pinned images (OWNER-LAUNCHPAD-PROD-02,
+   answer 10), so each must be the validator's image. On the testnet host
+   that is the Launchpad runner profile's `image_manifest`.
    `allow_direct_backend` exists for local development only; leave it out.
 3. **Back up** before anything else changes the deployment:
    `backup --config S` (§6). Keep the printed `root_commitment`.
@@ -117,20 +119,24 @@ directory, outside every checkout.
    | `exposure` | `intake_tls_cert_missing`, `intake_tls_key_missing`, `intake_tls_key_not_regular`, `intake_tls_key_not_owner_only`, `intake_tls_unreadable`, `intake_exposure_needs_carrier` | Only for a non-loopback bind (§5). The key must be a regular owner-only file, not a symlink (§5, TLS). |
    | `images` | `image_manifest_unreadable`, `image_not_eligible` (with the doctor's code), `torch_image_not_built_on_worker` | Load or rebuild the pinned image the manifest names; rerun the doctor. `worker.doctor.docker_unavailable` is Docker not answering: start it, or rerun with `--wait-for-host`. |
    | `upgraded` | `deployment_not_upgraded` (with the fields), `deployment_identities_not_carryable` | Run `python -m carbon.battery.operate upgrade --config $C` (OWNER-BATTERY-CARRYOVER-01), then preflight again. A changed rule, material or seed pin needs a new deployment. |
-   | `parity` | `parity_reference_unnamed`, `parity_manifest_unreadable`, `parity_image_differs` (with the fields), `parity_contract_differs` | Stop. The validator must score with the images and contract miners practise against (§3.5). |
+   | `parity` | `practice_image_unnamed`, `practice_manifest_unreadable`, `practice_image_differs` (with the fields, the validator's image as `standard`), `parity_contract_differs` | Stop. Miners practise on the validator's own pinned images and contract (§3.5). |
 
    An `upgrade` run before LP-PROD-G bound a carrier deployment to the
    read-only (in-process) backend's identity, after which every start
    refused `identities_changed`. `upgrade` from this commit binds the pinned
    images; if the preflight shows `deployment_not_upgraded` with
    `["backend"]`, that is this repair. Back up first.
-5. **Parity.** `parity --config S` compares, field by field, each image the
-   deployment scores with against the manifest miners practise with
-   (`image_id` and every build digest), and the contract the deployment is
-   bound to against this checkout's registered battery contract, which every
-   miner campaign on this checkout freezes. A difference is never resolved
-   here: either the validator scores with the published practice image, or
-   the validator's image is published for practice. Then rerun.
+5. **Parity.** The validator's pinned images are the standard miners
+   practise against (OWNER-LAUNCHPAD-PROD-02, answer 10).
+   `parity --config S` holds each practice manifest to the image the
+   deployment scores with, field by field (`image_id` and every build digest), and the contract the
+   deployment is bound to against this checkout's registered battery
+   contract, which every miner campaign on this checkout freezes. An image
+   difference is resolved by publishing the validator's image for practice;
+   the validator's image is never changed to match practice. Then rerun.
+   Practice reaches the image's public build identity only, never the hidden
+   test conditions: no private case, seed, root, reference or per-case
+   result.
 6. **Start** (§4), then **verify**:
    - `status --config S` shows `healthy: true`, `intake.serving: true` and
      `intake.answer: ok` with a fresh `snapshot_age_s` (under 60 s), and
@@ -234,6 +240,13 @@ by this runbook.
 4. **Firewall**: inbound TCP to the intake's port only, from anywhere (or
    the ranges the owner chooses); nothing else on the host reachable.
 
+*2026-10-03: decided by OWNER-LAUNCHPAD-PROD-02 (decisions 7 and 8).* A
+dedicated, always-on server operated by Carbon; a DNS-only (unproxied) name
+under the owner's domain; an ACME certificate renewed automatically, whose
+deploy hook copies the key to its owner-only file and restarts the intake;
+inbound HTTPS to the intake only and SSH by key only; automatic security
+updates. They are applied at the server bring-up, by the steps below.
+
 **Then the operator:**
 
 1. Change the intake configuration: `"host": "0.0.0.0"` (or the one
@@ -331,5 +344,9 @@ its frozen candidate instead of ending on an exception.
 - No host is exposed, no service was started against the operator's
   deployment, and no endpoint is published: those are §5's steps.
 - No security review of the service tooling; the intake's known items stay
-  on file (`BATTERY_MINER_SUBMISSION_PATHS.md`).
+  on file (`BATTERY_MINER_SUBMISSION_PATHS.md`). *2026-10-03: the owner has
+  since accepted the security review of the service tooling and the intake
+  changes (LP-PROD-G) as presented on 2026-10-03 (OWNER-LAUNCHPAD-PROD-02,
+  decision 11). Tests are not a security audit, and the acceptance is the
+  owner's.*
 - The commitment reader (OD-7(a)) and any weights (OD-4b) are out of scope.

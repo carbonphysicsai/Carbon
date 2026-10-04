@@ -25,11 +25,15 @@ code, 3 unhealthy):
   service, intake and deployment configurations are valid and owner-only;
   the pinned worker images are present by digest and doctor-eligible; the
   deployment is bound to this checkout's contract (`operate upgrade` done);
-  the validator scores with the images miners practise against (parity); and,
-  only for a non-loopback bind, the exposure record is named and recorded and
-  the TLS certificate and key exist (`service.preflight`). With
+  miners practise on the validator's own pinned images (parity); and, only
+  for a non-loopback bind, the exposure record is named and recorded and the
+  TLS certificate and key exist (`service.preflight`). With
   ``--wait-for-host SECONDS`` it re-checks while Docker is not answering yet;
-- ``parity``: the parity check alone (`service.parity`);
+- ``parity``: the parity check alone (`service.parity`). The validator's
+  pinned images are the standard miners practise against
+  (OWNER-LAUNCHPAD-PROD-02, answer 10): each practice manifest must be the
+  validator's image, and practice reaches nothing of the hidden test
+  conditions (no private case, seed, root, reference or per-case result);
 - ``status``: the intake (its lock and its own public answer over its bound
   address), the daemon (its lock and heartbeat), the supervisor's children,
   the inbox and deployment counts and the latest backup; healthy only when
