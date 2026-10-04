@@ -558,7 +558,9 @@ def _stages(value):
         rows.append(
             {
                 "stage": row["stage"],
-                "state": row.get("state") if row.get("state") in _STAGE_STATES else None,
+                "state": (
+                    row.get("state") if row.get("state") in _STAGE_STATES else None
+                ),
                 "code": code if type(code) is str and _CODE.fullmatch(code) else None,
             }
         )

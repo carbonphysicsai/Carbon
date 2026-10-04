@@ -1783,7 +1783,12 @@ class GraphiteModel:
 
     def __init__(self, *, planner=(), constructor=()):
         self.scripts = {"planner": list(planner), "constructor": list(constructor)}
-        self.requests = {"closed": [], "compaction": [], "planner": [], "constructor": []}
+        self.requests = {
+            "closed": [],
+            "compaction": [],
+            "planner": [],
+            "constructor": [],
+        }
         #: What a scripted reply raised: the provider layer settles it as an
         #: unknown outcome, so a test shows it here rather than guessing.
         self.errors = []
@@ -2115,9 +2120,7 @@ def edited(graphite):
             {**document["hypotheses"][-1], "stopping_rule": "two practices"},
         ],
     }
-    result = asyncio.run(
-        tools["carbon_plan_edit"].fn(plan_document=json.dumps(second))
-    )
+    result = asyncio.run(tools["carbon_plan_edit"].fn(plan_document=json.dumps(second)))
     assert (result.payload["parent"], result.payload["created_by"]) == (
         first,
         "miner",

@@ -184,7 +184,7 @@ class FakeLibrary:
                 "digest": address,
                 "created_by": plan.get("created_by"),
                 "parent": plan.get("parent"),
-                "created_at": "2026-10-03T12:00:%02dZ" % index,
+                "created_at": f"2026-10-03T12:00:{index:02d}Z",
             }
             for index, (address, plan) in enumerate(self.saved.items())
         ]
@@ -1169,9 +1169,7 @@ def test_during_a_hunt_its_calls_show_before_its_report(tmp_path, monkeypatch):
     assert value["hunt"]["extracted"] is None  # no report until it finished
 
 
-def test_without_the_drivers_view_only_the_frozen_block_is_shown(
-    tmp_path, monkeypatch
-):
+def test_without_the_drivers_view_only_the_frozen_block_is_shown(tmp_path, monkeypatch):
     """S3's view absent or failing: nothing is invented. The mode and the
     frozen plan digest show; the stage and the research spend are unknown."""
     from scripts.dev.miner_launchpad import projection

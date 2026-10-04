@@ -250,7 +250,9 @@ def test_plans_are_listed_newest_first(library_host):
     from scripts.dev.miner_launchpad.runner import _plan_entry
 
     # A timestamp in any other form is never shown as given.
-    assert _plan_entry({"digest": first, "created_at": "yesterday"})["created_at"] is None
+    assert (
+        _plan_entry({"digest": first, "created_at": "yesterday"})["created_at"] is None
+    )
     assert _plan_entry({"digest": first, "created_at": 1.5})["created_at"] == 1.5
 
 

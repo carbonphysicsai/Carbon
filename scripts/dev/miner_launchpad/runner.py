@@ -2535,7 +2535,10 @@ class RunnerAdapter:
         if choice["plan"] is not None:
             plan = self._plan(library, choice["plan"])
             planned_for = plan.get("challenge")
-            if type(planned_for) is not dict or planned_for.get("id") != challenge["id"]:
+            if (
+                type(planned_for) is not dict
+                or planned_for.get("id") != challenge["id"]
+            ):
                 # S3 builds BUILD on a plan of the launch's own Challenge only.
                 raise stepped(
                     "plan_invalid",
