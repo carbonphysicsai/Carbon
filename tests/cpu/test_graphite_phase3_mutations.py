@@ -21,12 +21,12 @@ from carbon.agent_campaign.graphite.provider import GraphiteLedger
 _ADMIT = ex.admit
 
 
-def _lax_admit(strategy, seed, root=ex.REPOSITORY):
+def _lax_admit(strategy, seed, root=ex.REPOSITORY, scoring=None):
     """Admission that never refuses: anything unrebuildable becomes the baseline."""
     try:
-        return _ADMIT(strategy, seed, root)
+        return _ADMIT(strategy, seed, root, scoring)
     except ex.Unrebuildable:
-        return _ADMIT(BASELINE, seed, root)
+        return _ADMIT(BASELINE, seed, root, scoring)
 
 
 def _settle_unknown_as_zero(self, pid, handle):
@@ -155,15 +155,17 @@ MUTATIONS = {
     ),
     # A phase-3 brief serves the battery development Challenge only.
     "battery_development_only": (
-        lambda m: m.setattr(phase3, "check_observation", lambda observation: None),
+        lambda m: m.setattr(
+            phase3, "check_observation", lambda observation, scoring=None: None
+        ),
         lambda tmp: t3.test_a_brief_for_other_or_protected_material_is_refused(tmp),
     ),
     # The miner path attaches to a battery development campaign only.
     "miner_path_battery_only": (
         lambda m: m.setattr(
             miner_path,
-            "check_battery_development",
-            lambda manifest: (manifest or {}).get("challenge"),
+            "check_challenge",
+            lambda manifest, scoring=None: (manifest or {}).get("challenge"),
         ),
         lambda tmp: t3.test_the_miner_path_attaches_only_to_battery_development(),
     ),

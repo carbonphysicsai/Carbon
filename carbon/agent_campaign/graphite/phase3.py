@@ -109,6 +109,7 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
+from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import selection_from_record
 from carbon.development_session.profile import canonical, digest
@@ -321,12 +322,19 @@ class Phase3Provider(GraphiteProvider):
         repository=REPOSITORY,
         randomness=os.urandom,
         adapter_id=None,
+        scoring=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
         try:
-            self.budget = ex.phase3_budget(grant)
+            # The session's Challenge (`ChallengeScoring`, VALIDATOR-01): the
+            # only registered one unless named.
+            self.scoring = challenge_scoring.resolve(scoring)
+        except challenge_scoring.ScoringUnavailable as refused:
+            raise ProviderUnavailable(refused.code) from None
+        try:
+            self.budget = ex.phase3_budget(grant, self.scoring)
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
         super().__init__(
@@ -419,7 +427,7 @@ class Phase3Provider(GraphiteProvider):
                 if brief["role"] != RoleName.CONSTRUCTOR.value:
                     raise ProviderUnavailable("phase3_runs_the_constructor_only")
                 observation = brief["initial_observation"]
-                check_observation(observation)
+                check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
         return super().start(spec, idempotency_key)
@@ -442,12 +450,13 @@ class Phase3Provider(GraphiteProvider):
             repository=self.repository,
             clock=self.clock,
             randomness=self.randomness,
+            scoring=self.scoring,
         )
 
     def _frozen_rule(self):
         """The frozen rule, loaded once per provider (its material is pinned)."""
         if getattr(self, "_rule", None) is None:
-            self._rule = ex.FrozenRule(self.repository)
+            self._rule = ex.frozen_rule(self.repository, self.scoring)
         return self._rule
 
     def _ledger(self, run_id):
@@ -630,16 +639,17 @@ class Phase3Provider(GraphiteProvider):
         return {**record, **extra}
 
 
-def check_observation(observation):
-    """A phase-3 brief serves the battery DEVELOPMENT Challenge only, with a
-    baseline Carbon can rebuild."""
-    from carbon.battery.challenge import CHALLENGE
-
-    challenge = observation.get("challenge") or {}
-    if challenge != {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}:
-        raise ProviderUnavailable("phase3_serves_battery_development_only")
+def check_observation(observation, scoring=None):
+    """A phase-3 brief serves the session's Challenge only (its
+    `ChallengeScoring`), with a baseline Carbon can rebuild."""
     try:
-        ex.admit(observation.get("baseline_strategy"), 0)
+        scoring = challenge_scoring.resolve(scoring)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ProviderUnavailable(refused.code) from None
+    if not scoring.check_challenge(observation.get("challenge") or {}):
+        raise ProviderUnavailable("phase3_challenge_not_served")
+    try:
+        ex.admit(observation.get("baseline_strategy"), 0, scoring=scoring)
     except (ex.Unrebuildable, ex.NotServed):
         raise ProviderUnavailable("baseline_not_rebuildable") from None
 
@@ -701,26 +711,22 @@ def session_brief(
     baseline=None,
     literature=None,
     repository=REPOSITORY,
+    scoring=None,
 ):
-    """The Constructor's brief: public battery development material only, and
-    the session's offered literature (the phase-1 fixture when none is given)."""
-    from carbon.battery.challenge import CHALLENGE
-    from carbon.battery.research import SCAFFOLD
-
-    baseline = SCAFFOLD if baseline is None else baseline
+    """The Constructor's brief: the session Challenge's public development
+    material only (its `ChallengeScoring`), and the session's offered
+    literature (the phase-1 fixture when none is given)."""
+    scoring = challenge_scoring.resolve(scoring)
+    baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
-    contract = ex.recorded_contract()
+    contract = ex.recorded_contract(scoring)
     manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
     observation = {
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "challenge": scoring.challenge(),
         "level": 0,
         "construction_contract": contract,
         "baseline_strategy": baseline,
-        "objective": (
-            "Propose battery TrainingStrategy recipes that beat the baseline under "
-            "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
-            "rebuilds each proposal; you see development feedback only."
-        ),
+        "objective": scoring.construction_objective,
         "proposal_tool": PROPOSE,
         "pods_per_session": budget.max_pods,
         "pods_note": "The baseline uses the first pod of the session.",

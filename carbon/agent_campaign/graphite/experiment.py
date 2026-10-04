@@ -45,9 +45,16 @@ from dataclasses import dataclass
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from pathlib import Path
 
+from carbon.challenge_validator import scoring as challenge_scoring
+from carbon.challenge_validator.scoring import (
+    NotServed,
+    Unrebuildable,
+    rebuild_differences,
+)
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
+from . import pod_outcome
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -58,23 +65,8 @@ from .roles import (
 REPOSITORY = Path(__file__).resolve().parents[3]
 PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v1"
 FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
-#: Backends this runner's pods serve: the EV4 study image's JAX (the GPU
-#: practice lane serves JAX only, `battery_gpu.BACKENDS`).
-SERVED_BACKENDS = ("jax",)
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
-
-
-class Unrebuildable(ValueError):
-    """Carbon cannot rebuild this proposal; it is refused and never scored."""
-
-    def __init__(self, code, issues=()):
-        super().__init__(code)
-        self.code, self.issues = code, tuple(issues)
-
-
-class NotServed(ValueError):
-    """Carbon rebuilds it, but this runner's pods do not serve its backend."""
 
 
 class BudgetRefused(ValueError):
@@ -133,9 +125,9 @@ class Phase3Budget:
 SESSION_POD_MINUTES = 360
 
 
-def phase3_budget(grant):
+def phase3_budget(grant, scoring=None):
     economics = podlib.prices()
-    minutes = podlib.proposal_minutes()
+    minutes = podlib.proposal_minutes(scoring)
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
         hourly_usd=economics["hourly_usd"],
@@ -149,163 +141,39 @@ def phase3_budget(grant):
 
 
 # -- the reconstruction gate ---------------------------------------------------------------
-def recorded_contract():
-    """The battery contract in force, only if its newest expansion record pins
-    it (Level 0 constructs inside the recorded contract, nothing wider)."""
-    from carbon.reconstruction import expansion_record
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        contract_digest,
-    )
-
-    history = expansion_record.records(BATTERY_CHALLENGE)
-    live = contract_digest(BATTERY_CHALLENGE)
-    if not history or history[-1]["contract_digest"] != live:
-        raise Unrebuildable("construction_contract_unrecorded")
-    return {
-        "challenge": BATTERY_CHALLENGE,
-        "contract_digest": live,
-        "record_sequence": history[-1]["sequence"],
-    }
+# The Challenge's own parts come through its `ChallengeScoring`
+# (`carbon.challenge_validator.scoring`, VALIDATOR-01). With no scoring named,
+# the only registered one serves; once several are registered, a caller must
+# name its Challenge.
+def recorded_contract(scoring=None):
+    """The construction contract in force, only if its newest expansion record
+    pins it (Level 0 constructs inside the recorded contract, nothing wider)."""
+    return challenge_scoring.resolve(scoring).recorded_contract()
 
 
-def admit(strategy, seed, root=REPOSITORY):
+def admit(strategy, seed, root=REPOSITORY, scoring=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
-    Carbon would build (`pod_phase.built_record`). Raises `Unrebuildable`
+    Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
     (never scored) or `NotServed` (Carbon rebuilds it, these pods do not)."""
-    from carbon.development_session.research_catalog import RecipeRejected
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
-    from carbon.reconstruction.challenge_contracts import SubmissionRefused
-
-    from .pod_phase import built_record
-
+    resolved = challenge_scoring.resolve(scoring)
     if type(strategy) is not dict:
         raise Unrebuildable("strategy_not_an_object")
-    if strategy.get("challenge_id") != BATTERY_CHALLENGE:
-        raise Unrebuildable("not_the_battery_development_challenge")
-    contract = recorded_contract()
-    try:
-        built, _files, _program = built_record(
-            strategy, contract["contract_digest"], seed, root
-        )
-    except SubmissionRefused as refused:
-        raise Unrebuildable(
-            "contract_refused", [(i.code, i.path) for i in refused.issues]
-        ) from None
-    except RecipeRejected as rejected:
-        raise Unrebuildable(
-            "recipe_rejected", [(i.code, i.path) for i in rejected.rejected.issues]
-        ) from None
-    backend = built["recipe"]["settings"].get("backend", "jax")
-    if backend not in SERVED_BACKENDS:
-        raise NotServed("backend_not_served:" + str(backend))
-    return {**built, "record_sequence": contract["record_sequence"]}
-
-
-#: What Carbon compares between what it computed and what the pod built.
-REBUILT_FIELDS = (
-    "challenge",
-    "contract_digest",
-    "recipe",
-    "recipe_digest",
-    "strategy_hash",
-    "plan_digest",
-    "staged",
-    "program",
-    "seed",
-)
-
-
-def rebuild_differences(expected, built):
-    """The fields on which the pod's build differs from Carbon's own."""
-    if type(built) is not dict:
-        return ["built_record_missing"]
-    return [name for name in REBUILT_FIELDS if built.get(name) != expected.get(name)]
+    if strategy.get("challenge_id") != resolved.challenge_id:
+        raise Unrebuildable(resolved.wrong_challenge_code)
+    contract = recorded_contract() if scoring is None else recorded_contract(scoring)
+    return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
 
 
 # -- the frozen rule -----------------------------------------------------------------------
-class FrozenRule:
-    """The battery exam's frozen gates, calibration, score and comparison, on
-    the public PRACTICE references (development feedback only)."""
-
-    def __init__(self, root=REPOSITORY):
-        from carbon.battery import exam
-        from carbon.battery.challenge import PublicMaterial
-        from carbon.battery.practice import PracticeSet
-
-        self.root = Path(root)
-        self.practice = PracticeSet.load(root)
-        self.material = PublicMaterial.load(root)
-        rule = exam.RULES["v2"]
-        self.comparison = exam.ComparisonRule(
-            equivalence_margin=rule["equivalence_margin_rel"], **rule["comparison"]
-        )
-        self.identity = {
-            "rule": "v2",
-            "authority": rule["authority"],
-            "status": rule["status"],
-            "equivalence_margin_rel": rule["equivalence_margin_rel"],
-            "comparison": rule["comparison"],
-            "cases": "public PRACTICE, 200, adaptively seen",
-        }
-
-    def score(self, predictions):
-        from carbon.battery.practice import score_practice
-
-        asked = {case: predictions.get(case) for case in self.practice.case_ids}
-        rows, summary = score_practice(asked, self.practice, self.material, self.root)
-        return [_row(r) for r in rows], _clean(summary)
-
-    def compare(self, baseline_rows, rows, eligible):
-        from carbon.battery import exam
-
-        def errors(source):
-            return {
-                r["case_id"]: r["error"] for r in source if r.get("error") is not None
-            }
-
-        def components(source):
-            return {
-                r["case_id"]: r["components"]
-                for r in source
-                if r.get("components") is not None
-            }
-
-        important = {r["case_id"]: bool(r.get("important")) for r in rows}
-        result = exam.final_compare(
-            errors(baseline_rows),
-            errors(rows),
-            important,
-            self.comparison,
-            chal_eligible=eligible,
-            inc_components=components(baseline_rows),
-            chal_components=components(rows),
-        )
-        return _clean(result)
+def frozen_rule(root=REPOSITORY, scoring=None):
+    """The Challenge's frozen rule on its public PRACTICE references
+    (development feedback only)."""
+    return challenge_scoring.resolve(scoring).frozen_rule(root)
 
 
-def _row(row):
-    keep = ("case_id", "state", "error", "components", "important", "gates")
-    return _clean({k: row[k] for k in keep if k in row})
-
-
-def _clean(value):
-    import math
-
-    import numpy as np
-
-    if isinstance(value, (float, np.floating)):
-        value = float(value)
-        return value if math.isfinite(value) else None
-    if isinstance(value, (bool, np.bool_)):
-        return bool(value)
-    if isinstance(value, (int, np.integer)):
-        return int(value)
-    if isinstance(value, dict):
-        return {str(k): _clean(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_clean(v) for v in value]
-    return value
+#: The name earlier callers construct the frozen rule by.
+FrozenRule = frozen_rule
+_clean = challenge_scoring.clean
 
 
 # -- the pod ledger ------------------------------------------------------------------------
@@ -454,6 +322,7 @@ class Experiment:
         repository=REPOSITORY,
         clock,
         randomness=os.urandom,
+        scoring=None,
     ):
         from .provider import RunCancelled
 
@@ -467,6 +336,7 @@ class Experiment:
         self.repository, self.clock, self.randomness = repository, clock, randomness
         self.ledger = PodLedger(self.root / "pod-ledger.jsonl", clock)
         self._cancel = RunCancelled
+        self.scoring = challenge_scoring.resolve(scoring)
 
     # -- records ---------------------------------------------------------------------------
     def _dir(self, pid):
@@ -474,7 +344,7 @@ class Experiment:
 
     def _scorer(self):
         if self.scorer is None:
-            self.scorer = FrozenRule(self.repository)
+            self.scorer = frozen_rule(self.repository, self.scoring)
         elif not hasattr(self.scorer, "score"):
             self.scorer = self.scorer()  # a factory, called once when needed
         return self.scorer
@@ -755,7 +625,7 @@ class Experiment:
         }
         seed = self._seed(pid)
         try:
-            expected = admit(strategy, seed, self.repository)
+            expected = admit(strategy, seed, self.repository, self.scoring)
         except Unrebuildable as refused:
             finding = self._finding(
                 "UNREBUILDABLE",
@@ -817,67 +687,80 @@ class Experiment:
                     "pods_left": self.pods_left(),
                 },
             )
-        self.ledger.append(
-            "pod_reserved",
-            intent_id=intent_id,
-            proposal=pid,
-            reserved_usd=str(reservation),
-            minutes=self.budget.pod_minutes,
-        )
-        job = podlib.PodJob(
-            intent_id=intent_id,
-            strategy=strategy,
-            contract_digest=expected["contract_digest"],
-            seed=seed,
-            expected={"files": expected["staged"], "program": expected["program"]},
-            minutes=self.budget.pod_minutes,
-            seconds=podlib.contract_work_seconds(),
-        )
-        outcome, files = self._pod(pid, job)
         common = {**base, "recipe_digest": expected["recipe_digest"]}
-        if outcome in ("launch_refused", "launch_unresolved", "infra"):
+        attempts = []
+        for attempt in (0, 1):
+            if attempt:
+                # One retry after a worker timeout, on a fresh pod under the
+                # same declared budget (OWNER-GRAPHITE-TEST-WAVE-02 §3). It is
+                # charged to the run like any pod.
+                try:
+                    reservation = self._admit_pod()
+                except BudgetRefused as refused:
+                    return self._close(
+                        pid,
+                        {
+                            **common,
+                            "status": "FAILED_INFRA",
+                            "reason_code": "worker_timeout_retry_refused:"
+                            + refused.code,
+                            **_attempts(attempts),
+                            "scored": False,
+                            "pods_left": self.pods_left(),
+                        },
+                    )
+            job_intent = intent_id if not attempt else retry_intent(intent_id)
+            outcome, files, timing = self._attempt(
+                pid, job_intent, reservation, strategy, expected, seed
+            )
+            if outcome in ("launch_refused", "launch_unresolved", "infra"):
+                return self._close(
+                    pid,
+                    {
+                        **common,
+                        "status": "FAILED_INFRA",
+                        "reason_code": outcome,
+                        **_attempts(attempts),
+                        "scored": False,
+                        "pods_left": self.pods_left(),
+                    },
+                )
+            built = _json(files.get("built.json"))
+            failure = _json(files.get("failure.json"))
+            differences = rebuild_differences(expected, built)
+            if (failure or {}).get("stage") == "verification" and not differences:
+                differences = ["pod_refused_pinned_digests"]
+            if differences:
+                finding = self._finding(
+                    "REBUILD_MISMATCH", pid, {"differences": differences}
+                )
+                return self._close(
+                    pid,
+                    {
+                        **common,
+                        "status": "REBUILD_MISMATCH",
+                        "differences": differences,
+                        "finding": finding,
+                        **_attempts(attempts),
+                        "scored": False,
+                        "pods_left": self.pods_left(),
+                    },
+                )
+            if outcome == "done":
+                break
+            verdict, evidence = self._type_unfinished(
+                pid, job_intent, attempt, files, failure, timing
+            )
+            attempts.append(evidence)
+            if verdict.retry:
+                continue
             return self._close(
                 pid,
                 {
                     **common,
-                    "status": "FAILED_INFRA",
-                    "reason_code": outcome,
-                    "scored": False,
-                    "pods_left": self.pods_left(),
-                },
-            )
-        built = _json(files.get("built.json"))
-        failure = _json(files.get("failure.json"))
-        differences = rebuild_differences(expected, built)
-        if (failure or {}).get("stage") == "verification" and not differences:
-            differences = ["pod_refused_pinned_digests"]
-        if differences:
-            finding = self._finding(
-                "REBUILD_MISMATCH", pid, {"differences": differences}
-            )
-            return self._close(
-                pid,
-                {
-                    **common,
-                    "status": "REBUILD_MISMATCH",
-                    "differences": differences,
-                    "finding": finding,
-                    "scored": False,
-                    "pods_left": self.pods_left(),
-                },
-            )
-        if outcome != "done":
-            stage = (failure or {}).get("stage", "pod")
-            return self._close(
-                pid,
-                {
-                    **common,
-                    "status": (
-                        "CANDIDATE_FAILED"
-                        if stage in ("program", "timeout")
-                        else "FAILED_INFRA"
-                    ),
-                    "reason_code": stage,
+                    "status": verdict.status,
+                    "reason_code": verdict.reason_code,
+                    **_attempts(attempts),
                     "scored": False,
                     "pods_left": self.pods_left(),
                 },
@@ -922,6 +805,7 @@ class Experiment:
                 if key in fit
             },
             "pods_left": self.pods_left(),
+            **_attempts(attempts),
         }
         if kind != "baseline":
             baseline_rows = self.rows("baseline")
@@ -957,6 +841,80 @@ class Experiment:
             record["stall"] = self._stall(record)
         return self._close(pid, record)
 
+    def _attempt(self, pid, intent_id, reservation, strategy, expected, seed):
+        """Reserve and run one pod for a proposal; `(outcome, files, timing)`."""
+        self.ledger.append(
+            "pod_reserved",
+            intent_id=intent_id,
+            proposal=pid,
+            reserved_usd=str(reservation),
+            minutes=self.budget.pod_minutes,
+        )
+        job = podlib.PodJob(
+            intent_id=intent_id,
+            strategy=strategy,
+            contract_digest=expected["contract_digest"],
+            seed=seed,
+            expected={"files": expected["staged"], "program": expected["program"]},
+            minutes=self.budget.pod_minutes,
+            seconds=podlib.contract_work_seconds(self.scoring),
+        )
+        return self._pod(pid, job)
+
+    def _type_unfinished(self, pid, intent_id, attempt, files, failure, timing):
+        """Type a pod run that ended without finishing
+        (`pod_outcome.classify`): host timing and lifecycle decide, the pod's
+        own files are evidence only."""
+        image = (self.pods.describe() or {}).get("image")
+        report = _json(files.get("supervisor.json"))
+        verdict = pod_outcome.classify(
+            claim=(failure or {}).get("stage"),
+            admissible=pod_outcome.admissible_stage(report, image),
+            timing=timing,
+            work_seconds=podlib.contract_work_seconds(self.scoring),
+            attempt=attempt,
+        )
+        evidence = {
+            "intent_id": intent_id,
+            "attempt": attempt,
+            "status": verdict.status,
+            "reason_code": verdict.reason_code,
+            "claimed_stage": (failure or {}).get("stage"),
+            "failure_digest": (
+                digest(files["failure.json"]) if "failure.json" in files else None
+            ),
+            "host_timing": None if timing is None else timing.record(),
+        }
+        self.ledger.append(
+            "pod_attempt_typed",
+            intent_id=intent_id,
+            proposal=pid,
+            status=verdict.status,
+            reason_code=verdict.reason_code,
+        )
+        if verdict.signal:
+            evidence["finding"] = self._finding(
+                "POD_TIMING_DISAGREEMENT",
+                pid,
+                {
+                    "intent_id": intent_id,
+                    "claimed_stage": evidence["claimed_stage"],
+                    "failure_digest": evidence["failure_digest"],
+                    "host_timing": evidence["host_timing"],
+                    "work_seconds": podlib.contract_work_seconds(self.scoring),
+                },
+            )
+        return verdict, evidence
+
+    def _timing(self, handle):
+        read = getattr(self.pods, "timing", None)
+        if read is None:
+            return None
+        try:
+            return read(handle)
+        except (podlib.PodFailure, OSError, ValueError):
+            return None
+
     def _pod(self, pid, job):
         """Launch, wait, fetch, terminate and settle one pod. Returns the
         outcome and the fetched files. A process death propagates without
@@ -982,15 +940,15 @@ class Experiment:
                     charge_usd="0",
                     basis="refused_before_any_create",
                 )
-                return "launch_refused", {}
+                return "launch_refused", {}, None
             self.ledger.append(
                 "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
             )
             handle = self._recover(pid, job.intent_id)
             if handle is None:
-                return "launch_refused", {}
+                return "launch_refused", {}, None
             if handle == "unknown":
-                return "launch_unresolved", {}
+                return "launch_unresolved", {}, None
         self.ledger.append(
             "pod_created",
             intent_id=job.intent_id,
@@ -999,7 +957,7 @@ class Experiment:
             rate_usd_per_hr=handle.rate_usd_per_hr,
             ship=self.pods.describe(),
         )
-        files, outcome, cancelled = {}, "infra", False
+        files, outcome, cancelled, timing = {}, "infra", False, None
         try:
             outcome = self.pods.wait(
                 handle,
@@ -1020,13 +978,14 @@ class Experiment:
                 outcome = "infra"
         except (podlib.PodFailure, OSError, ValueError):
             outcome = "infra"
+        timing = self._timing(handle)
         self.ledger.append(
             "pod_finished", intent_id=job.intent_id, proposal=pid, outcome=outcome
         )
         self._terminate(pid, handle)
         if cancelled:
             raise self._cancel()
-        return outcome, files
+        return outcome, files, timing
 
     def _stall(self, record):
         """Consecutive scored proposals, ending with this one, that are not an
@@ -1120,6 +1079,15 @@ class Experiment:
                 )
             ],
         }
+
+
+def retry_intent(intent_id):
+    """The retry's own pod intent: distinct, never a resend of the first."""
+    return intent_id[:117] + "-r1"
+
+
+def _attempts(attempts):
+    return {"attempts": attempts} if attempts else {}
 
 
 def _json(body):
