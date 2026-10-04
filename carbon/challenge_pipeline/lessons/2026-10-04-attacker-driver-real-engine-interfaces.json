@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-driver-real-engine-interfaces",
+ "recorded_at": "2026-10-04T21:30:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/agent_campaign/graphite/phase4.py carbon_side; tests/cpu/test_graphite_phase4.py (slice AT-E review repair)",
+  "description": "Ran the phase-4 driver's Carbon side and its scripted dry run against the real attack-engine modules (AT-A to AT-D) instead of fakes shaped like the driver."
+ },
+ "expected": "A driver whose tests passed against injected fakes would run against the engine's published modules.",
+ "observed": "It did not: the fakes copied the driver's own guesses (a verdict field named breached, positional store writers, a B2 without a baseline), so every finding read as a near miss and the integrated dry run crashed. Against the real modules the driver also froze the Constructor's stall and pod fields into every Attacker session record (inherited from Phase3Provider), and the brief's protected filter refused a seam named after the Track A check fresh_attack_confirmation.",
+ "keep": [
+  "A finding is a BREACHED verdict with its conditions, read from the published Verdict; a verdict where the two disagree is refused, never read as a pass.",
+  "Engine-path tests run against the real modules with a synthetic second Challenge (skipped until the modules are importable), and each boundary has a mutation that turns a named test red."
+ ],
+ "change": [
+  "A subclass of the phase-3 provider overrides the session record and the experiment for what the Attacker does not do (no baseline, no pod, no stall rule).",
+  "The Attacker brief lists seams by name only; a check name can trip the protected filter."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "suite_v1.track_a"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

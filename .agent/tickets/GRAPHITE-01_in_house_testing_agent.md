@@ -1044,3 +1044,66 @@ cards (`phase2 check`); a later grant can run checked-only.
 - acting on any proposal: widening a level is the owner's decision under the
   reconstruction rule, and ships with Carbon's reconstruction of the widened
   surface.
+
+## Phase 4: the Attacker, the general attack engine (build)
+
+**Owner decision:** OWNER-GRAPHITE-ATTACKER-01 (2026-10-04;
+`.agent/decisions/2026-10-04-OWNER-GRAPHITE-ATTACKER-01.md`), recorded again as
+OWNER-GRAPHITE-TEST-WAVE-01 §2 (carbonphysicsai/Carbon#556). A general,
+challenge-neutral attack engine, driven by Graphite's Attacker role, with its
+first adapter at battery Level 0, under the live grant GRAPHITE-GRANT-PHASE4.
+
+**Scope of this slice (AT-E): the session driver, the grant and the records.**
+The challenge-neutral engine (the neutral core, the per-Challenge adapters,
+analysis, verify, the knowledge store, report and benchmark) is built by the
+other slices in `carbon.agent_campaign.attack`. This slice is the phase-4
+session driver (`carbon/agent_campaign/graphite/phase4.py`) and its grant.
+
+- `AttackerProvider(Phase3Provider)` inherits the v2 session-limits rule (no
+  call cap; the grant's money cap and elapsed limit bind), compaction and the
+  parallel-call rule, and drives the Attacker role through `AttackerTools`
+  (the code-run wall allowance, from the adapter, enforced before dispatch).
+  Its brief comes from the adapter alone (refused typed when a session
+  surface member is missing; `start` refuses a brief that is not its
+  adapter's). An Attacker proposes no construction: no baseline, no pod, no
+  delivery, bundle or stall escalation, and its frozen session record says so.
+- Carbon's side runs through the engine's published interfaces:
+  `analysis.attempts` → `map_to_families` → `verify.verify` → for a BREACHED
+  verdict `verify.record` → `controller.record_finding` (stops expansion) →
+  `knowledge.AttackStore` (each verdict with its own outcome) →
+  `report.family_report` from the session's verdicts and `benchmark.b2`
+  against the adapter's deterministic runs, under the store snapshot pinned
+  before the session.
+- Carbon's verify-pod rebuild is a declared NOT_RUN seam in phase 4: no pod
+  is launched; the grant keeps the pods' share reserved.
+- `run --dry-run` produces the coverage report and B2 with a scripted model
+  and `ScriptedPods`, zero spend. The live run path requires
+  GRAPHITE-GRANT-PHASE4; it is implemented and tested with fakes but **not
+  executed** (OWNER-GRAPHITE-ATTACKER-01 §5).
+- `GRAPHITE-GRANT-PHASE4`: ceiling USD 10.50, cleanup 0.25, worst-case run cost
+  3.41 (six verify pods ≈ 1.48, the token share 1.93 ≈ 40 glm-5.2 calls),
+  three runs, one concurrency, 15,600 s runtime, expiring 2026-12-31.
+  Derivation in `docs/development/graphite/grants/README.md`.
+
+**Mutations shown load-bearing:** a reintroduced call cap (in the dry run or
+the loop arguments); a grant ceiling that no longer covers three runs and
+cleanup; a code run over the adapter's wall allowance; a brief naming
+protected material; a real Verdict read as no finding; infrastructure stored
+as a hold or a near miss; battery's identity substituted for a missing
+adapter surface; a brief not checked against its adapter; B2 recorded without
+the pinned snapshot; the Constructor's stall rule frozen into the Attacker's
+record. Expansion after a finding is refused through the controller (the
+breach test).
+
+**Not in this slice:** the engine modules, the battery Level 0 adapter, the
+synthetic second Challenge, and any live run. See
+`docs/development/graphite/PHASE4_ATTACKER.md`.
+
+**Integration round 1 (phase 4).** The coverage report now names every Track A
+check. `coverage.checks` (schema `carbon.graphite.attacker-coverage.v3`) lists
+all eight checks, each with the run families and NOT_RUN seams the adapter
+declares for it. A check covered only by seams, such as battery's
+`fresh_attack_confirmation`, is therefore still named. Rows that lost their
+check are listed, and a row whose check contradicts the adapter is refused.
+The engine report's seam rows still carry `check: None` until AT-C's report
+repair lands; the engine-path tests fail on that until then.
