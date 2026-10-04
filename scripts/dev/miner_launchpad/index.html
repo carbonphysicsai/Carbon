@@ -11,6 +11,7 @@
   <script src="/research_charts.js" defer></script>
   <script src="/research_view.js" defer></script>
   <script src="/research_tools.js" defer></script>
+  <script src="/library_view.js" defer></script>
 </head>
 <body>
   <header class="topbar">
@@ -47,13 +48,13 @@
       <ol id="wizard-steps" class="wizard-steps" aria-label="Launch steps"></ol>
       <div class="wizard-body panel">
         <section class="step" data-step="challenge" aria-labelledby="step-challenge-heading"><h2 id="step-challenge-heading">Challenge</h2><p class="hint">Every Challenge the registry knows, with its real status. There is no default Challenge: choose one.</p><div id="wizard-challenges" class="choice-grid"></div><div id="wizard-challenge-description" class="description"></div></section>
-        <section class="step" data-step="agent" aria-labelledby="step-agent-heading" hidden><h2 id="step-agent-heading">Agent</h2><p class="hint">Who selects and submits. Separate from the model: only Carbon's agent calls one.</p><fieldset id="research-selects" class="selects"><legend>Who selects and submits</legend></fieldset><div id="wizard-agent-notes"></div></section>
+        <section class="step" data-step="agent" aria-labelledby="step-agent-heading" hidden><h2 id="step-agent-heading">Agent</h2><p class="hint">Who selects and submits. Separate from the model: only Carbon's agent calls one.</p><fieldset id="research-selects" class="selects"><legend>Who selects and submits</legend></fieldset><div id="wizard-graphite" class="graphite-options" hidden></div><div id="wizard-agent-notes"></div></section>
         <section class="step" data-step="model" aria-labelledby="step-model-heading" hidden><h2 id="step-model-heading">Model provider &amp; model</h2><div id="wizard-model"></div></section>
         <section class="step" data-step="compute" aria-labelledby="step-compute-heading" hidden><h2 id="step-compute-heading">Compute</h2><div id="wizard-compute"></div></section>
         <section class="step" data-step="limits" aria-labelledby="step-limits-heading" hidden><h2 id="step-limits-heading">Tools &amp; limits</h2><div id="wizard-tools"></div>
           <h3>Your limits</h3><p class="hint">All optional. Carbon sets no bound: a blank field is no limit.</p>
           <div class="launch-paths" role="group" aria-label="Limits"><button id="path-quick" type="button" aria-pressed="true">Quick launch</button><button id="path-advanced" type="button" aria-pressed="false">Advanced limits</button></div>
-          <div id="launch-advanced" hidden><div class="two"><div><label for="budget-elapsed">Elapsed limit &middot; seconds</label><input id="budget-elapsed" type="number" min="1" step="1" placeholder="No limit"></div><div><label class="check"><input id="budget-final-reserve" type="checkbox"> Hold back a final phase so the run can finish</label></div></div><fieldset id="budget-ceilings" class="ceilings"><legend>Ceilings per resource</legend></fieldset><div id="launch-availability"></div></div>
+          <div id="launch-advanced" hidden><div class="two"><div><label for="budget-elapsed">Elapsed limit &middot; seconds</label><input id="budget-elapsed" type="number" min="1" step="1" placeholder="No limit"></div><div><label class="check"><input id="budget-final-reserve" type="checkbox"> Hold back a final phase so the run can finish</label></div></div><fieldset id="budget-ceilings" class="ceilings"><legend>Ceilings per resource</legend></fieldset><fieldset id="graphite-limits" class="ceilings graphite-limits" hidden><legend>Graphite's per-epoch limits</legend></fieldset><div id="launch-availability"></div></div>
           <div class="templates"><label for="template-name">Save these choices as a template</label><div class="inline"><input id="template-name" type="text" maxlength="60" autocomplete="off" placeholder="Template name"><button id="template-save" type="button">Save template</button></div><label for="template-pick">Your templates</label><div class="inline"><select id="template-pick"></select><button id="template-load" type="button">Load</button><button id="template-delete" type="button">Delete</button></div><p id="template-note" class="hint">Templates live in this browser only and never hold a token or key.</p></div>
         </section>
         <section class="step" data-step="review" aria-labelledby="step-review-heading" hidden><h2 id="step-review-heading">Review</h2>
@@ -68,6 +69,13 @@
         <div class="wizard-nav"><button id="wizard-back" type="button">Back</button><button id="wizard-next" type="button" class="primary">Next</button></div>
         <p id="wizard-next-reason" class="reason" aria-live="polite"></p>
       </div>
+    </section>
+
+    <section id="library" class="view" data-nav="Library" aria-labelledby="library-heading" hidden>
+      <div class="view-head"><div><p class="eyebrow section-label">Graphite · literature</p><h1 id="library-heading">Library</h1><p class="lede">The papers Graphite reads and the plans it builds from: the shared card pack that ships with Carbon, and your own private library. Every card is UNCHECKED: Carbon has not checked its claims.</p></div></div>
+      <nav id="library-tabs" class="tabs" aria-label="Library sections"></nav>
+      <p id="library-note" class="hint" role="status" aria-live="polite"></p>
+      <div id="library-body"></div>
     </section>
 
     <section id="challenges" class="view" data-nav="Challenges" aria-labelledby="challenges-heading" hidden>

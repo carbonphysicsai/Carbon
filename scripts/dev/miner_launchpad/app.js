@@ -45,6 +45,10 @@
   let composition = {agent: null, budget: {}};
   let launchPath = "quick";
   let launchShape = null;
+  // Every operation the controller lists (GET /api/v1/operations), with the
+  // fields each takes: Graphite's launch fields and the Library's requests
+  // carry only what the controller declares.
+  let operationsListed = null;
   // The wizard's own choices. Persisted in this browser (never a token or key).
   let wizard = {step: "challenge", challenge: null, agentChoice: null, provider: null, model: null};
   const STEPS = [["challenge", "Challenge"], ["agent", "Agent"], ["model", "Model"], ["compute", "Compute"], ["limits", "Tools & limits"], ["review", "Review"], ["launch", "Launch"]];
@@ -1551,7 +1555,9 @@
     capsVersion++;
     // A remembered choice is checked against what exists now.
     if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
-    if (wizard.agentChoice && !caps.agents.choices.some(choice => choice.id === wizard.agentChoice)) wizard.agentChoice = null;
+    // A choice no longer offered (the autonomous agent, once Graphite
+    // replaces it) is no longer chosen.
+    if (wizard.agentChoice && !offeredAgent(wizard.agentChoice)) { wizard.agentChoice = null; composition = {...composition, agent: null}; }
     if (wizard.agentChoice) composition = {...composition, agent: agentEntry(wizard.agentChoice).launch_agent};
     // The model chosen in setup is the launch's model unless the miner picks
     // another here (LP-PROD-F): prefilled, so the Model step passes with it.
@@ -1590,8 +1596,11 @@
         catch (_) { launchOptions = null; }
       }
       if (!launchShape) {
-        try { launchShape = (await api("/api/v1/operations")).operations.find(op => op.operation === "launch") || null; }
-        catch (_) { launchShape = null; }
+        try {
+          const listed = (await api("/api/v1/operations")).operations;
+          operationsListed = Array.isArray(listed) ? listed : null;
+          launchShape = operationsListed?.find(op => op.operation === "launch") || null;
+        } catch (_) { launchShape = null; }
       }
       connected = true;
       land();
@@ -1670,7 +1679,7 @@
   $("settings-recheck").addEventListener("click", async () => {
     if (busy || !connected) return;
     busy = true; render();
-    try { await readCapabilities(); launchOptions = null; message("Capabilities re-read from the controller."); }
+    try { await readCapabilities(); launchOptions = null; launchShape = null; message("Capabilities re-read from the controller."); }
     catch (error) { message("Capabilities not re-read: " + error.message, true); }
     finally { busy = false; await refresh(); render(); }
   });
@@ -1841,10 +1850,10 @@
     items.push(selectable.length
       ? {ok: true, text: "You can launch: " + selectable.map(entry => entry.title).join(", ") + "."}
       : {ok: false, area: "Challenges", item: caps.challenges.find(entry => entry.implemented) || caps.challenges[0]});
-    const agents = caps.agents.choices.filter(choice => choice.availability === "available");
+    const agents = agentChoices().filter(choice => choice.availability === "available");
     items.push(agents.length
       ? {ok: true, text: "Agents ready: " + agents.map(choice => choice.label).join(", ") + "."}
-      : {ok: false, area: "Agents", item: caps.agents.choices[0]});
+      : {ok: false, area: "Agents", item: agentChoices()[0]});
     const provider = caps.model.providers.find(item => item.availability === "available");
     items.push(provider
       ? {ok: true, text: "Model key set for " + provider.provider + "."}
@@ -1918,7 +1927,13 @@
   }
   // What a campaign card shows, as one key: it is redrawn only when this moves.
   function cardKey(run) {
-    return [run.id, run.state, run.challenge ?? null, run.selects ?? null, run.attempted_experiments ?? 0, run.completed_experiments ?? 0, lastRefusal(run)];
+    return [run.id, run.state, run.challenge ?? null, run.selects ?? null, run.attempted_experiments ?? 0, run.completed_experiments ?? 0, lastRefusal(run), graphiteLine(run)];
+  }
+  // A Graphite campaign's mode and stage, as its record states them.
+  function graphiteLine(run) {
+    const g = run?.graphite;
+    if (!g || typeof g !== "object") return null;
+    return "Graphite · " + graphiteMode(g.mode) + " mode · " + graphiteStage(g.stage);
   }
   // The campaign's last refusal (slice C's `last_refusal`): {code,
   // next_action, at, and, when given, the operation it was for and its kind
@@ -1951,6 +1966,12 @@
     if (/^registration_/.test(code)) return {label: "Check your registration", href: "#setup/register"};
     if (/^model_provider_|^model_selection_/.test(code)) return {label: "Set up inference", href: "#setup/inference"};
     if (/^research_profile_|^runner_profile_/.test(code)) return {label: "Continue setup", href: "#setup/review"};
+    // Graphite's own (OWNER-GRAPHITE-MINER-01): where each is put right.
+    if (code === "autonomous_agent_replaced") return {label: "Choose Graphite", href: "#launch"};
+    if (code === "graphite_not_offered_for_challenge") return {label: "Choose a Challenge", href: "#challenges"};
+    if (/^plan_(not_found|invalid)$/.test(code)) return {label: "Open your plans", href: "#library/plans"};
+    if (/^card_(not_found|banned)$|^import_invalid$/.test(code)) return {label: "Open the Library", href: "#library"};
+    if (code === "hunt_query_invalid") return {label: "Change the hunt", href: "#launch"};
     return null;
   }
   // The refusal as a person reads it: what was refused, when, and what to do.
@@ -1982,6 +2003,8 @@
     box.append(head);
     researchNote(box, challengeLabel(run));
     researchNote(box, (run.selects === "miner" ? "You select and submit" : run.selects === "agent" ? "Carbon's agent selects" : "Awaiting runtime") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0), "hint");
+    const graphite = graphiteLine(run);
+    if (graphite) researchNote(box, graphite, "status-line graphite-line");
     refusalNote(box, lastRefusal(run), true);
     parent.append(box);
   }
@@ -2071,11 +2094,22 @@
   }
   const readiness = item => item.availability === "available" ? ["Ready", "pill-done"] : ["Needs setup", "pill-need"];
   function renderAgentCatalog(target) {
-    for (const choice of caps.agents.choices) {
+    for (const choice of agentChoices()) {
       const box = card(target, choice.label, ...readiness(choice));
+      box.dataset.agent = choice.id;
       box.append(el("p", choice.summary, "hint"));
       if (choice.command && choice.availability === "available") copyRow(box, "Connect your client with:", choice.command);
+      if (choice.launch_agent === GRAPHITE) {
+        box.append(el("p", "Modes: Research, Build or Full. It reads the shared card pack and your own Library, and can hunt arXiv for more, on your model and budget.", "hint"));
+        box.append(link({label: "Open the Library", href: "#library"}));
+      }
       if (choice.availability !== "available") unavailableNote(box, choice);
+    }
+    // The autonomous agent, once Graphite replaced it: said, never offered.
+    if (caps.agents.choices.some(replacedChoice)) {
+      const box = card(target, "Carbon's autonomous research agent", "Replaced", "pill-wait");
+      box.dataset.agent = "replaced";
+      box.append(el("p", "Replaced by Graphite for new campaigns (autonomous agent replaced). Campaigns launched with it keep running, and their records replay unchanged.", "status-line"));
     }
     // Model providers in one card: a row each, the fix beside the ones that
     // need it, every credential and code behind Details.
@@ -2089,7 +2123,7 @@
         if (provider.plain?.next) entry.append(link(provider.plain.next));
       }
       details(entry, "Details", [
-        "Models: " + provider.models.map(model => model.id).join(", ") + " · used by Carbon's autonomous agent only",
+        "Models: " + provider.models.map(model => model.id).join(", ") + " · used by Carbon's own agent only",
         "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured") + " · held by " + provider.credential.held_by,
         provider.reason ? "Code: " + provider.reason : null,
         provider.next_action ? "Next: " + provider.next_action : null,
@@ -2539,6 +2573,217 @@
     parent.append(box);
   }
 
+  // ---- Graphite, Carbon's research agent (OWNER-GRAPHITE-MINER-01,
+  // GRAPHITE-MINER-S5). It replaces the autonomous agent for new launches;
+  // its mode, research share, plan, hunt and per-epoch limits are chosen
+  // here and frozen at launch. Every value is the miner's: on their model,
+  // key and budget. Carbon sets no default spend.
+  const GRAPHITE = "graphite";
+  const GRAPHITE_MODES = [
+    ["FULL", "Full", "Research first, then build. Graphite reads the literature and writes a plan within the share of your model budget you set here, then constructs, practises, selects and submits."],
+    ["RESEARCH", "Research", "Graphite reads the literature (and, if you choose, hunts arXiv for more), then writes a ranked plan you can read and edit in the Library. No practice submission: it spends model tokens, and practice trials only if it runs code."],
+    ["BUILD", "Build", "Graphite builds from a plan: one you edited, one from an earlier Research run, or none (its Planner writes one first). Then it constructs, practises, selects and submits."],
+  ];
+  const GRAPHITE_MODE_LABEL = Object.fromEntries(GRAPHITE_MODES.map(([mode, label]) => [mode, label]));
+  // The launch fields Graphite's choices travel in (S4's launch operation).
+  const GRAPHITE_FIELDS = ["graphite_mode", "research_share", "plan", "hunt", "limits"];
+  // Optional per-epoch counts: blank leaves only the campaign's own limits.
+  const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
+  // A hunt's closed query grammar (the design's): at most 8 queries of at
+  // most 6 terms, each letters, digits and hyphens. Raw arXiv syntax is
+  // never accepted; the controller checks again (hunt_query_invalid).
+  const HUNT = {records: 200, queries: 8, terms: 6, query: /^[A-Za-z0-9 -]+$/};
+  // A hunt's cost is estimated at the model's listed price for about this
+  // many tokens per paper read (the Reader's instructions, a title and an
+  // abstract in; one card out). An estimate only: the ledger meters it.
+  const HUNT_TOKENS = {input: 600, output: 150};
+  const GRAPHITE_STAGES = {hunt: "Hunting arXiv", hunting: "Hunting arXiv", read: "Reading papers", reader: "Reading papers", reading: "Reading papers", triage: "Reading papers", plan: "Writing the plan", planner: "Writing the plan", planning: "Writing the plan", research: "Researching", build: "Building", constructor: "Building", construct: "Building", building: "Building", submit: "Submitting", done: "Done", complete: "Done", completed: "Done"};
+  function graphiteMode(mode) { return GRAPHITE_MODE_LABEL[mode] || words(mode || "unknown"); }
+  function graphiteStage(stage) {
+    if (stage === undefined || stage === null || stage === "") return "Not started";
+    return GRAPHITE_STAGES[String(stage).toLowerCase()] || words(stage);
+  }
+  // Dollars from the ledger's nanodollars, with enough places to say a small
+  // amount ($0.00045), never rounded to $0.00 unless it is 0.
+  function usd(nano) {
+    if (typeof nano !== "number" || !Number.isFinite(nano)) return "unavailable";
+    const dollars = nano / 1e9;
+    if (dollars >= 1) return "$" + dollars.toFixed(2);
+    if (dollars === 0) return "$0.00";
+    if (dollars < 0.000001) return "under $0.000001";
+    return "$" + String(Number(dollars.toPrecision(2)));
+  }
+  // A share as the percentage a person types, and back, exactly: "12.5" is
+  // 0.125, at most two places.
+  function percentText(share) { return String(Math.round(share * 10000) / 100); }
+  function shareOf(text) {
+    const typed = String(text ?? "").trim();
+    if (!/^\d{1,3}(\.\d{1,2})?$/.test(typed)) return NaN;
+    const percent = Number(typed);
+    return percent <= 100 ? Math.round(percent * 100) / 10000 : NaN;
+  }
+  function wholeNumber(text) { const typed = String(text ?? "").trim(); return /^\d{1,15}$/.test(typed) ? Number(typed) : NaN; }
+  function huntQueries(text) { return String(text ?? "").split("\n").map(line => line.trim().replace(/\s+/g, " ")).filter(Boolean); }
+  function queryProblem(queries) {
+    if (queries.length > HUNT.queries) return "at most " + HUNT.queries + " queries, one per line";
+    for (const query of queries) {
+      if (!HUNT.query.test(query)) return "“" + query + "” uses characters other than letters, digits, spaces and hyphens";
+      if (query.split(" ").length > HUNT.terms) return "“" + query + "” has more than " + HUNT.terms + " terms";
+    }
+    return null;
+  }
+  // The controller's own Graphite defaults when its options state them;
+  // the design's otherwise (Full, a 10% research share, 200 papers a hunt).
+  function graphiteDefaults() {
+    const offered = launchOptions?.graphite || {};
+    const share = offered.research_share?.default ?? offered.research_share_default;
+    const records = offered.hunt?.max_records ?? offered.hunt?.max_records_default;
+    return {
+      mode: GRAPHITE_MODE_LABEL[offered.default_mode] ? offered.default_mode : "FULL",
+      share: percentText(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10),
+      plan: "", hunt: true,
+      records: String(Number.isSafeInteger(records) && records >= 1 ? records : HUNT.records),
+      queries: "", limits: {},
+    };
+  }
+  // What the miner chose, over the defaults: typed text, as typed.
+  function graphiteChoices() {
+    const kept = wizard.graphite && typeof wizard.graphite === "object" ? wizard.graphite : {};
+    return {...graphiteDefaults(), ...kept, limits: {...(kept.limits && typeof kept.limits === "object" ? kept.limits : {})}};
+  }
+  function setGraphite(patch) {
+    wizard.graphite = {...(wizard.graphite && typeof wizard.graphite === "object" ? wizard.graphite : {}), ...patch};
+    saveWizard(); render();
+  }
+  // Why the mode, share or hunt cannot launch, or null.
+  function graphiteChoiceProblem(g = graphiteChoices()) {
+    if (!GRAPHITE_MODE_LABEL[g.mode]) return "choose a mode";
+    if (g.mode === "FULL" && Number.isNaN(shareOf(g.share))) return "the research share is a percentage from 0 to 100";
+    if (g.mode !== "BUILD" && g.hunt) {
+      const records = wholeNumber(g.records);
+      if (!(Number.isSafeInteger(records) && records >= 1)) return "the papers a hunt reads is a whole number, 1 or more";
+      const problem = queryProblem(huntQueries(g.queries));
+      if (problem) return "hunt query invalid: " + problem;
+    }
+    return null;
+  }
+  function graphiteLimitsProblem(g = graphiteChoices()) {
+    for (const [key, label] of GRAPHITE_LIMITS) {
+      const text = String(g.limits[key] ?? "").trim();
+      if (text === "") continue;
+      const value = wholeNumber(text);
+      if (!(Number.isSafeInteger(value) && value >= 1)) return label.toLowerCase() + " is a whole number, 1 or more, or blank for no such limit";
+    }
+    return null;
+  }
+  // The launch fields for these choices: each only where its mode uses it.
+  function graphiteFields(g = graphiteChoices()) {
+    const fields = {graphite_mode: g.mode};
+    if (g.mode === "FULL") fields.research_share = shareOf(g.share);
+    if (g.mode === "BUILD" && g.plan) fields.plan = g.plan;
+    if (g.mode !== "BUILD" && g.hunt) {
+      const queries = huntQueries(g.queries);
+      fields.hunt = {max_records: wholeNumber(g.records), ...(queries.length ? {queries} : {})};
+    }
+    const limits = {};
+    for (const [key] of GRAPHITE_LIMITS) { const text = String(g.limits[key] ?? "").trim(); if (text !== "") limits[key] = wholeNumber(text); }
+    if (Object.keys(limits).length) fields.limits = limits;
+    return fields;
+  }
+  // Launch fields the controller's launch operation declares (all, before
+  // its listing is read): a field it does not take is never sent.
+  function launchFields(fields) {
+    const declared = launchShape ? new Set([...(launchShape.required || []), ...(launchShape.optional || [])]) : null;
+    return Object.fromEntries(Object.entries(fields).filter(([key]) => !declared || declared.has(key)));
+  }
+  // The same choices from a template's fields.
+  function graphiteFromFields(value) {
+    const defaults = graphiteDefaults();
+    const hunt = value.hunt && typeof value.hunt === "object" ? value.hunt : null;
+    return {
+      mode: GRAPHITE_MODE_LABEL[value.graphite_mode] ? value.graphite_mode : defaults.mode,
+      share: typeof value.research_share === "number" ? percentText(value.research_share) : defaults.share,
+      plan: typeof value.plan === "string" ? value.plan : "",
+      hunt: Boolean(hunt) || value.graphite_mode === "BUILD",
+      records: hunt && Number.isSafeInteger(hunt.max_records) ? String(hunt.max_records) : defaults.records,
+      queries: hunt && Array.isArray(hunt.queries) ? hunt.queries.join("\n") : "",
+      limits: Object.fromEntries(GRAPHITE_LIMITS.filter(([key]) => Number.isSafeInteger(value.limits?.[key])).map(([key]) => [key, String(value.limits[key])])),
+    };
+  }
+  // These choices in one line, as the review and the Launchpad say them.
+  function graphiteSummary(g = graphiteChoices()) {
+    const problem = graphiteChoiceProblem(g);
+    if (problem) return graphiteMode(g.mode) + " mode · " + problem;
+    const fields = graphiteFields(g);
+    const parts = [graphiteMode(g.mode) + " mode"];
+    if (g.mode === "FULL") parts.push("research share " + percentText(fields.research_share) + "%");
+    if (g.mode === "BUILD") parts.push(fields.plan ? "plan " + fields.plan.slice(0, 12) + (fields.plan.length > 12 ? "…" : "") : "no plan: its Planner writes one first");
+    else parts.push(fields.hunt ? "hunt up to " + fields.hunt.max_records + " papers" + (fields.hunt.queries ? " with " + fields.hunt.queries.length + " of your queries" : "") : "no hunt: the shared pack and your library");
+    return parts.join(" · ");
+  }
+  // Graphite replaces the autonomous agent for new launches: once a
+  // controller offers Graphite, or says the autonomous choice was replaced,
+  // that choice is not offered here. A controller that predates Graphite
+  // offers what it offers. Campaigns launched with the autonomous agent
+  // keep running, and their records replay unchanged.
+  function replacedChoice(choice) {
+    if (choice.reason === "autonomous_agent_replaced") return true;
+    return choice.launch_agent === "autonomous" && caps.agents.choices.some(other => other.launch_agent === GRAPHITE);
+  }
+  function agentChoices() { return caps ? caps.agents.choices.filter(choice => !replacedChoice(choice)) : []; }
+  function offeredAgent(id) { return agentChoices().find(choice => choice.id === id) || null; }
+  // Graphite is offered for a Challenge with a registered campaign: when the
+  // controller lists those Challenges, the choice says so before launch;
+  // otherwise the launch's own refusal (graphite_not_offered_for_challenge)
+  // does.
+  function graphiteOffered(choice, entry) {
+    if (!choice || choice.launch_agent !== GRAPHITE || !entry) return true;
+    const listed = choice.offered_challenges ?? choice.challenges;
+    if (Array.isArray(listed)) return listed.some(item => (typeof item === "string" ? item : item?.challenge_id ?? item?.id) === entry.challenge_id);
+    if (entry.graphite && typeof entry.graphite.offered === "boolean") return entry.graphite.offered;
+    return true;
+  }
+  // The selected model's listed price in nanodollars per token: from the
+  // capability document when it carries one, else setup's own listing or the
+  // price setup checked for this model. Null when none is listed here.
+  function selectedPrice() {
+    const setup = setupModel();
+    const provider = wizard.provider || setup?.provider_id;
+    const model = wizard.provider ? wizard.model : setup?.model_id;
+    if (!provider || !model) return null;
+    const read = pricing => {
+      if (!pricing || typeof pricing !== "object") return null;
+      const input = pricing.input ?? pricing.input_nano;
+      const output = pricing.output_including_reasoning ?? pricing.output ?? pricing.output_nano;
+      return typeof input === "number" && typeof output === "number" && input >= 0 && output >= 0 ? {input, output, model} : null;
+    };
+    const row = (caps?.model?.providers || []).find(item => item.id === provider)?.models?.find(item => item.id === model);
+    const offeredHere = (setupState?.choices?.inference || []).find(item => item.id === provider)?.models?.find(item => item.model_id === model);
+    const checked = setupState?.steps?.inference;
+    const same = checked && checked.provider_id === provider && checked.model_id === model ? checked : null;
+    return read(row?.pricing) || read(offeredHere?.pricing) || read(same?.published_pricing) || read(same?.declared_pricing);
+  }
+  function huntEstimate(g = graphiteChoices()) {
+    const records = wholeNumber(g.records);
+    if (!(Number.isSafeInteger(records) && records >= 1)) return "";
+    const stated = launchOptions?.graphite?.hunt?.nanodollars_per_record;
+    const price = selectedPrice();
+    let each = null, basis = "";
+    if (typeof stated === "number" && stated >= 0) { each = stated; basis = "the controller's estimate per paper"; }
+    else if (price) { each = HUNT_TOKENS.input * price.input + HUNT_TOKENS.output * price.output; basis = price.model + "'s listed price, about " + HUNT_TOKENS.input + " input and " + HUNT_TOKENS.output + " output tokens a paper"; }
+    if (each === null) return "No price is listed here for this model, so there is no estimate. Your model-spend ceiling binds the hunt.";
+    return "Hunt estimate: about " + usd(each * records) + " for up to " + records + " papers (" + usd(each) + " each, at " + basis + "). A paper already in the shared pack or your library is skipped before any model call, so a hunt usually costs less. Your ledger meters the real cost, and your model-spend ceiling binds.";
+  }
+  function shareNote(g = graphiteChoices()) {
+    const share = shareOf(g.share);
+    if (Number.isNaN(share)) return "Type a percentage from 0 to 100.";
+    const ceilings = composition.budget?.ceilings || {};
+    const parts = [];
+    if (Number.isSafeInteger(ceilings.provider_nanodollars)) parts.push(usd(Math.floor(ceilings.provider_nanodollars * share)) + " of your " + resourceValue("provider_nanodollars", ceilings.provider_nanodollars) + " model spend");
+    if (Number.isSafeInteger(ceilings.provider_attempts)) parts.push(Math.floor(ceilings.provider_attempts * share) + " of your " + ceilings.provider_attempts + " model calls");
+    return "Research may use " + percentText(share) + "% of your model budget" + (parts.length ? ": " + parts.join(" and ") : "") + ". When that is used, research stops (research share reached) and the build goes on." + (parts.length ? "" : " Set a model-spend ceiling under Tools & limits to see it in dollars.");
+  }
+
   // ---- Launch wizard. ----
   function selectChallenge(entry) {
     wizard = {...wizard, challenge: {id: entry.challenge_id, version: entry.version}};
@@ -2555,12 +2800,14 @@
   function describeComposition(value) {
     const parts = budgetParts(value.budget || {});
     const agent = agentEntry(wizard.agentChoice);
-    return "Launches with " + (value.agent ? (agent ? agent.label : value.agent) : "no choice yet") + " · budget: " + (parts.length ? parts.join(", ") : "none, no cap");
+    return "Launches with " + (value.agent ? (agent ? agent.label : value.agent) : "no choice yet") + (value.agent === GRAPHITE ? " (" + graphiteSummary() + ")" : "") + " · budget: " + (parts.length ? parts.join(", ") : "none, no cap");
   }
   // Why this composition cannot launch right now, or null. Availability is
   // the options operation's, read from the host - never assumed.
   function compositionProblem(value) {
     if (!launchOptions) return "launch options have not been read yet";
+    // Refused at launch as autonomous_agent_replaced: said here first.
+    if (value.agent === "autonomous" && caps && caps.agents.choices.some(replacedChoice)) return "Carbon's autonomous agent was replaced by Graphite for new campaigns (autonomous agent replaced): choose Graphite";
     const agent = launchOptions.agents.find(option => option.value === value.agent);
     if (!agent) return "choose who selects and submits";
     if (agent.availability !== "available") return "the " + value.agent + " agent is unavailable: " + words(agent.reason);
@@ -2587,12 +2834,18 @@
       if (!entry.selectable) return entry.title + " cannot launch: " + words(entry.reason) + ". Next: " + entry.next_action;
     }
     if (step === "agent") {
-      const agent = agentEntry(wizard.agentChoice);
+      const agent = offeredAgent(wizard.agentChoice);
       if (!agent) return "Choose who selects and submits.";
       if (agent.availability !== "available") return agent.label + " is unavailable: " + words(agent.reason) + ". Next: " + agent.next_action;
+      const entry = challengeEntry(wizard.challenge);
+      if (!graphiteOffered(agent, entry)) return agent.label + " is not offered for " + entry.title + " (graphite not offered for challenge). Next: choose a Challenge it is offered for, or another agent.";
+      if (agent.launch_agent === GRAPHITE) {
+        const problem = graphiteChoiceProblem();
+        if (problem) return "Graphite: " + problem + ".";
+      }
     }
     if (step === "model") {
-      const agent = agentEntry(wizard.agentChoice);
+      const agent = offeredAgent(wizard.agentChoice);
       if (agent?.uses_model) {
         const provider = selectedProvider();
         // With nothing chosen here, a launch runs with the model chosen in
@@ -2617,6 +2870,10 @@
     if (step === "limits") {
       const problem = budgetProblem(composition.budget);
       if (problem) return "Fix your limits: " + problem + ".";
+      if (offeredAgent(wizard.agentChoice)?.launch_agent === GRAPHITE) {
+        const limits = graphiteLimitsProblem();
+        if (limits) return "Fix Graphite's per-epoch limits: " + limits + ".";
+      }
     }
     if (step === "review") {
       for (const [name] of STEPS.slice(0, 5)) { const problem = stepProblem(name); if (problem) return problem; }
@@ -2654,6 +2911,7 @@
     setText($("wizard-next-reason"), problem && index < STEPS.length - 1 ? problem : "");
     renderWizardChallenges();
     renderWizardAgents();
+    renderWizardGraphite();
     renderWizardModel();
     renderWizardCompute();
     renderWizardTools();
@@ -2721,18 +2979,21 @@
   function renderWizardAgents() {
     const box = $("research-selects");
     const notes = $("wizard-agent-notes");
-    const choices = caps ? caps.agents.choices.map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null]) : null;
-    rebuild(box, JSON.stringify([capsVersion, choices]), node => {
+    const entry = challengeEntry(wizard.challenge);
+    const choices = caps ? agentChoices().map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null, graphiteOffered(choice, entry)]) : null;
+    rebuild(box, JSON.stringify([capsVersion, choices, entry ? entry.title : null]), node => {
       node.append(el("legend", "Who selects and submits"));
       if (!caps) return;
-      for (const choice of caps.agents.choices) {
-        const label = el("label", undefined, "choice" + (choice.availability === "available" ? "" : " unavailable"));
+      for (const choice of agentChoices()) {
+        const here = graphiteOffered(choice, entry);
+        const label = el("label", undefined, "choice" + (choice.availability === "available" && here ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "research-agent"; input.value = choice.id;
-        input.disabled = choice.availability !== "available";
+        input.disabled = choice.availability !== "available" || !here;
         input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
         const text = el("span");
         text.append(el("strong", choice.label), el("span", " " + choice.summary, "hint"));
         if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
+        else if (!here) text.append(el("span", "Not offered for " + entry.title + ": graphite not offered for challenge · Next: choose a Challenge with a registered Graphite campaign.", "reason"));
         label.append(input, text); node.append(label);
       }
     });
@@ -2743,6 +3004,128 @@
       if (wizard.agentChoice === "external_mcp" && external) researchNote(node, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
       for (const item of caps.agents.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
     });
+  }
+  // Graphite's choices, under the Agent step once Graphite is chosen: built
+  // once, then patched in place, so a field being typed into is never
+  // replaced. Each field is backed by the wizard's own state.
+  function renderWizardGraphite() {
+    const box = $("wizard-graphite");
+    const limits = $("graphite-limits");
+    const agent = caps ? offeredAgent(wizard.agentChoice) : null;
+    const on = Boolean(agent && agent.launch_agent === GRAPHITE);
+    box.hidden = !on;
+    limits.hidden = !on;
+    if (!on) return;
+    rebuild(box, "graphite:" + capsVersion, drawGraphiteOptions);
+    buildGraphiteLimits();
+    patchGraphiteOptions();
+  }
+  function graphiteInput(parent, id, labelText, type, onInput, attributes = {}) {
+    const label = el("label", labelText); label.htmlFor = id;
+    const input = el(type === "textarea" ? "textarea" : "input"); input.id = id;
+    if (type !== "textarea") input.type = type;
+    for (const [name, value] of Object.entries(attributes)) input[name] = value;
+    input.autocomplete = "off"; input.spellcheck = false;
+    // Backed by the wizard's state: restored on a rebuild, never held.
+    input.dataset.draft = "1";
+    input.addEventListener("input", () => onInput(input.value));
+    parent.append(label, input);
+    return input;
+  }
+  function drawGraphiteOptions(box) {
+    box.append(el("h3", "Graphite"));
+    box.append(el("p", "Graphite, Carbon's research agent, reads the literature, writes a plan, then builds, practises, selects and submits: on your model, with your key, within your own budget. Carbon spends nothing and caps nothing.", "hint"));
+    const modes = el("fieldset", undefined, "selects"); modes.id = "wizard-graphite-modes";
+    modes.append(el("legend", "Mode"));
+    for (const [mode, label, text] of GRAPHITE_MODES) {
+      const choice = el("label", undefined, "choice");
+      const input = el("input"); input.type = "radio"; input.name = "wizard-graphite-mode"; input.value = mode; input.id = "wizard-graphite-mode-" + mode.toLowerCase();
+      input.addEventListener("change", () => setGraphite({mode}));
+      const span = el("span"); span.append(el("strong", label + (mode === "FULL" ? " · the default" : "")), el("span", text, "hint"));
+      choice.append(input, span); modes.append(choice);
+    }
+    box.append(modes);
+    // Full: how much of the budget research may use.
+    const share = el("div", undefined, "graphite-field"); share.id = "wizard-graphite-share";
+    graphiteInput(share, "wizard-research-share", "Research share · % of your model budget", "number", value => setGraphite({share: value}), {min: "0", max: "100", step: "1"});
+    const shareLine = el("p", "", "hint"); shareLine.id = "wizard-research-share-note"; share.append(shareLine);
+    box.append(share);
+    // Build: the plan it builds from.
+    const plan = el("div", undefined, "graphite-field"); plan.id = "wizard-graphite-plan-box";
+    const planLabel = el("label", "Plan to build from"); planLabel.htmlFor = "wizard-graphite-plan";
+    const select = el("select"); select.id = "wizard-graphite-plan";
+    select.addEventListener("change", () => { setGraphite({plan: select.value}); sent(select); });
+    const planLine = el("p", "", "hint"); planLine.id = "wizard-graphite-plan-note";
+    const planActions = el("div", undefined, "controls");
+    const reread = el("button", "Re-read your plans"); reread.type = "button"; reread.id = "wizard-graphite-plans-reread";
+    reread.addEventListener("click", () => { window.CarbonLibrary?.plans(true); });
+    planActions.append(reread, link({label: "Read and edit your plans in the Library", href: "#library/plans"}));
+    plan.append(planLabel, select, planLine, planActions);
+    box.append(plan);
+    // Research and Full: the hunt.
+    const hunt = el("div", undefined, "graphite-field"); hunt.id = "wizard-graphite-hunt";
+    const toggle = el("label", undefined, "check");
+    const check = el("input"); check.type = "checkbox"; check.id = "wizard-hunt";
+    check.addEventListener("change", () => setGraphite({hunt: check.checked}));
+    toggle.append(check, " Hunt arXiv for more papers, on your model and budget");
+    hunt.append(toggle);
+    const options = el("div"); options.id = "wizard-hunt-options";
+    graphiteInput(options, "wizard-hunt-records", "Papers a hunt reads, at most", "number", value => setGraphite({records: value}), {min: "1", step: "1"});
+    graphiteInput(options, "wizard-hunt-queries", "Your own queries (optional, one per line)", "textarea", value => setGraphite({queries: value}), {rows: 3});
+    options.append(el("p", "Carbon composes queries from the Challenge's public description. Add up to " + HUNT.queries + " of your own, each up to " + HUNT.terms + " words of letters, digits and hyphens. At most one arXiv request every 3 s; cards found go to your private Library.", "hint"));
+    const estimate = el("p", "", "status-line"); estimate.id = "wizard-hunt-estimate";
+    options.append(estimate);
+    hunt.append(options);
+    box.append(hunt);
+    box.append(el("p", "Per-epoch limits are optional, under Tools & limits, Advanced: left blank, only your campaign's own limits bind, money and time.", "hint"));
+  }
+  function buildGraphiteLimits() {
+    const box = $("graphite-limits");
+    if (box.dataset.built) return;
+    box.append(el("p", "Optional. Left blank, only your campaign's own limits bind: its money, calls, trials and time. Set one only to end an epoch sooner.", "hint"));
+    for (const [key, label] of GRAPHITE_LIMITS) {
+      const wrap = el("div");
+      graphiteInput(wrap, "graphite-limit-" + key, label, "number", value => setGraphite({limits: {...graphiteChoices().limits, [key]: value}}), {min: "1", step: "1", placeholder: "No limit"});
+      box.append(wrap);
+    }
+    box.dataset.built = "1";
+  }
+  // A field shows the wizard's value unless it is the one being typed into.
+  function fill(input, value) {
+    const text = String(value ?? "");
+    if (input && document.activeElement !== input && input.value !== text) input.value = text;
+  }
+  function patchGraphiteOptions() {
+    const g = graphiteChoices();
+    for (const input of document.querySelectorAll("input[name=wizard-graphite-mode]")) input.checked = input.value === g.mode;
+    $("wizard-graphite-share").hidden = g.mode !== "FULL";
+    $("wizard-graphite-plan-box").hidden = g.mode !== "BUILD";
+    $("wizard-graphite-hunt").hidden = g.mode === "BUILD";
+    fill($("wizard-research-share"), g.share);
+    setText($("wizard-research-share-note"), shareNote(g));
+    $("wizard-hunt").checked = Boolean(g.hunt);
+    $("wizard-hunt-options").hidden = !g.hunt;
+    fill($("wizard-hunt-records"), g.records);
+    fill($("wizard-hunt-queries"), g.queries);
+    setText($("wizard-hunt-estimate"), huntEstimate(g));
+    for (const [key] of GRAPHITE_LIMITS) fill($("graphite-limit-" + key), g.limits[key]);
+    patchPlanPicker(g);
+  }
+  // The Library's plans, for Build (library_view.js reads them).
+  function patchPlanPicker(g) {
+    const select = $("wizard-graphite-plan");
+    const note = $("wizard-graphite-plan-note");
+    const read = g.mode === "BUILD" && window.CarbonLibrary ? window.CarbonLibrary.plans() : null;
+    const plans = read?.list || [];
+    const options = [["", "None: Graphite's Planner writes one first"], ...plans.map(item => [item.digest, (item.created_by === "miner" ? "Your edit" : "Graphite's plan") + " · " + item.digest.slice(0, 12) + (item.created_at && when(item.created_at) ? " · " + when(item.created_at) : "")])];
+    if (g.plan && !plans.some(item => item.digest === g.plan)) options.push([g.plan, g.plan.slice(0, 12) + " · not in your Library now"]);
+    const key = JSON.stringify(options);
+    if (select.dataset.options !== key && !held(select)) {
+      select.replaceChildren(...options.map(([value, text]) => { const option = el("option", text); option.value = value; return option; }));
+      select.dataset.options = key;
+    }
+    if (select.value !== g.plan && document.activeElement !== select) select.value = g.plan;
+    setText(note, !read ? "" : !read.offered ? "This controller does not list plans: Build starts with Graphite's Planner." : read.error ? "Your plans could not be read: " + words(read.error) + "." : !read.list ? "Reading your plans…" : !plans.length ? "No plan yet: a Research campaign writes one, or write your own in the Library." : plans.length + " plan" + (plans.length === 1 ? "" : "s") + " in your Library. The one chosen is frozen at launch by its digest.");
   }
   function renderWizardModel() {
     const target = $("wizard-model");
@@ -2870,6 +3253,13 @@
       row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Subnet registration, read at launch · see Wallet & Identity");
       row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
       row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");
+      if (agent?.launch_agent === GRAPHITE) {
+        const g = graphiteChoices();
+        row("Graphite", graphiteSummary(g));
+        if (g.mode !== "BUILD" && g.hunt && !graphiteChoiceProblem(g)) row("Hunt cost", huntEstimate(g));
+        const limits = graphiteLimitsProblem(g) ? {} : graphiteFields(g).limits || {};
+        row("Graphite's limits", GRAPHITE_LIMITS.map(([key, label]) => label + ": " + (key in limits ? limits[key] : "no limit")).join(" · ") + ". Unset, only your campaign's own limits bind.");
+      }
       row("Model", agent && !agent.uses_model ? "None: this agent calls no model"
         : provider && wizard.model ? provider.provider + " · " + wizard.model + " · credential " + (provider.credential.configured ? "configured" : "not configured") + ". " + caps.model.selection
         : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
@@ -2985,8 +3375,14 @@
   function templateProblem(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return "it is not a launch composition";
     const fields = new Set([...(launchShape?.required || []), ...(launchShape?.optional || [])]);
-    for (const key of Object.keys(value)) if (!["agent", "budget"].includes(key) || !fields.has(key)) return "it sets " + key + ", which a template cannot carry";
-    return compositionProblem({agent: value.agent, budget: value.budget || {}});
+    // Graphite's choices travel with a Graphite template, as launch fields.
+    const carried = value.agent === GRAPHITE ? ["agent", "budget", ...GRAPHITE_FIELDS] : ["agent", "budget"];
+    for (const key of Object.keys(value)) if (!carried.includes(key) || !fields.has(key)) return "it sets " + key + ", which a template cannot carry";
+    const problem = compositionProblem({agent: value.agent, budget: value.budget || {}});
+    if (problem || value.agent !== GRAPHITE) return problem;
+    const g = graphiteFromFields(value);
+    const graphite = graphiteChoiceProblem(g) || graphiteLimitsProblem(g);
+    return graphite ? "Graphite: " + graphite : null;
   }
   $("path-quick").addEventListener("click", () => { launchPath = "quick"; saveWizard(); render(); });
   $("path-advanced").addEventListener("click", () => { launchPath = "advanced"; writeAdvanced(); saveWizard(); render(); });
@@ -2995,11 +3391,12 @@
   $("template-save").addEventListener("click", () => {
     const name = $("template-name").value.trim();
     if (!name) { message("Name the template first.", true); return; }
-    const problem = compositionProblem(composition);
+    const graphite = composition.agent === GRAPHITE;
+    const problem = compositionProblem(composition) || (graphite ? graphiteChoiceProblem() || graphiteLimitsProblem() : null);
     if (problem) { message("Not saved: " + problem + ".", true); return; }
     const templates = readTemplates();
     if (templates === null) { message("Not saved: this browser refused its storage.", true); return; }
-    templates[name] = {agent: composition.agent, ...(Object.keys(composition.budget).length ? {budget: composition.budget} : {})};
+    templates[name] = {agent: composition.agent, ...(Object.keys(composition.budget).length ? {budget: composition.budget} : {}), ...(graphite ? launchFields(graphiteFields()) : {})};
     try { localStorage.setItem(templateKey, JSON.stringify(templates)); }
     catch (_) { message("Not saved: this browser refused its storage.", true); return; }
     $("template-name").value = "";
@@ -3014,8 +3411,11 @@
     const problem = templateProblem(value);
     if (problem) { message("Template “" + name + "” not loaded: " + problem + ".", true); render(); return; }
     composition = {agent: value.agent, budget: value.budget || {}};
-    // A template carries the launch agent; "none" is the manual choice.
-    wizard.agentChoice = value.agent === "autonomous" ? "autonomous" : "manual";
+    // A template carries the launch agent: the choice offered for it ("none"
+    // is the manual choice), with Graphite's own choices when it has them.
+    const offeredNow = agentChoices();
+    wizard.agentChoice = (offeredNow.find(choice => choice.launch_agent === value.agent && (value.agent !== "none" || choice.id === "manual")) || offeredNow.find(choice => choice.launch_agent === value.agent))?.id || null;
+    if (value.agent === GRAPHITE) wizard.graphite = graphiteFromFields(value);
     launchPath = Object.keys(composition.budget).length ? "advanced" : "quick";
     writeAdvanced(); saveWizard();
     message("Template “" + name + "” loaded. " + describeComposition(composition) + ".");
@@ -3127,8 +3527,11 @@
     writeHeld(all);
     render();
   }
-  async function keyedOperation(name, body, timeout = 20000) {
-    const slot = name + ":" + (body.campaign || "");
+  // `options.send` posts the keyed body another way (the Library's own
+  // routes) and `options.slot` names what the key is held for (a card, an
+  // import, a plan), when it is not a campaign.
+  async function keyedOperation(name, body, timeout = 20000, options = {}) {
+    const slot = options.slot || name + ":" + (body.campaign || "");
     let kept = heldOperations()[slot];
     if (!kept || typeof kept !== "object" || typeof kept.key !== "string") kept = null;
     // Held, but the record shows it ended: its key is spent, and this is a
@@ -3144,7 +3547,8 @@
     holdOperation(slot, {...action, unknown: true});
     inFlight.add(slot);
     try {
-      const value = await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, timeout);
+      const keyed = {...body, idempotency_key: action.key};
+      const value = options.send ? await options.send(keyed) : await api("/api/v1/operations/" + name, keyed, undefined, timeout);
       holdOperation(slot, null);
       // A retry answered: its outcome is read against the record when it was
       // first sent, which a replay of finished work already includes.
@@ -3288,6 +3692,9 @@
       pendingResearch.body.model_provider = provider.id;
       pendingResearch.body.model = wizard.model;
     }
+    // Graphite's mode, research share, plan, hunt and limits: each where its
+    // mode uses it, and only as the launch operation declares it.
+    if (composition.agent === GRAPHITE) Object.assign(pendingResearch.body, launchFields(graphiteFields()));
     if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
     // Held before it is sent: in flight, its outcome is unknown until answered.
     try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
@@ -3322,8 +3729,13 @@
   // The research surface (research_view.js) reads this page's state and
   // calls its operations through this one bridge; it holds none of its own.
   window.CarbonControlCenter = {
-    api, el, pill, details, link, message,
-    state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch}),
+    api, el, pill, details, link, message, when,
+    state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch, operations: operationsListed}),
+    // A redraw the page did not ask for (a read that finished): drawn under
+    // the live-region rules, so nothing under a person's hand is replaced.
+    redraw: () => quietly(render),
+    // Graphite's words and choices, shared with the research surface.
+    graphite: {modeLabel: graphiteMode, stageLabel: graphiteStage, summary: graphiteSummary, usd, agentChoices},
     challengeEntry, agentEntry, selectedProvider, describeComposition, journey,
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),

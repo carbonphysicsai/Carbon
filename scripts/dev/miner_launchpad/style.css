@@ -319,6 +319,52 @@ label.check input{width:auto;min-height:0}
 #composition-summary{overflow-wrap:anywhere}
 .integration-grid dl,.integration-grid dt,.integration-grid dd{margin:0}
 
+/* Graphite (GRAPHITE-MINER-S5): its choices in the launch wizard. */
+.graphite-options{margin:18px 0;padding:18px;border:1px solid var(--border);background:var(--card);box-shadow:inset 3px 0 0 var(--red)}
+.graphite-options h3{margin:0 0 6px}
+.graphite-field{margin:14px 0}
+.graphite-field label.check{margin-top:0}
+.graphite-field textarea{width:100%;max-width:100%;resize:vertical;font:13px/1.5 var(--mono)}
+#wizard-hunt-estimate{font-size:15px;overflow-wrap:anywhere}
+.graphite-limits>p{grid-column:1/-1}
+.graphite-line{font-size:14px}
+
+/* The Library: cards, labels, pins and bans, imports and plans. */
+#library-body{display:grid;gap:16px}
+.lib-panel{display:grid;gap:16px;min-width:0}
+.lib-panel>.panel{min-width:0}
+.lib-context select{max-width:100%}
+.lib-search .inline input{flex:1 1 auto}
+.lib-results{display:grid;gap:12px;min-width:0}
+.lib-card{border:1px solid var(--border);background:var(--card);padding:16px 18px;min-width:0}
+.lib-card+.lib-card{margin-top:12px}
+.lib-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.lib-card-head h3{flex:1 1 280px;overflow-wrap:anywhere}
+.lib-pills{display:flex;gap:6px;flex-wrap:wrap}
+.lib-facts{display:grid;grid-template-columns:minmax(110px,160px) minmax(0,1fr);gap:4px 14px;margin:12px 0 0;font-size:14px}
+.lib-facts dt{color:var(--muted-fg)}
+.lib-facts dd{margin:0;overflow-wrap:anywhere}
+.lib-reasons{margin:4px 0 0;padding-left:20px;font-size:14px}
+.lib-abstract{font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.lib-card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px}
+.lib-card-foot .lib-id{flex:1 1 auto;font-size:12px;color:var(--muted-fg);overflow-wrap:anywhere}
+.lib-card-foot button[aria-pressed=true]{border-color:var(--fg);box-shadow:inset 0 3px 0 var(--red);font-weight:600}
+.lib-curated,.lib-pending,.lib-cites{list-style:none;margin:6px 0;padding:0;display:grid;gap:6px}
+.lib-curated li,.lib-cites li{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:15px}
+.lib-curated li>span:first-child{flex:1 1 220px;overflow-wrap:anywhere}
+.lib-import textarea{width:100%;max-width:100%;resize:vertical;font:13px/1.5 var(--mono)}
+.lib-plans tr[aria-current]{box-shadow:inset 3px 0 0 var(--red)}
+.lib-plan{margin:8px 0;padding-left:22px;display:grid;gap:10px}
+.lib-plan p{margin:2px 0}
+.lib-plan-row{margin:14px 0;padding:14px;border:1px solid var(--border)}
+.lib-plan-row legend{font-size:14px;font-weight:600}
+.lib-plan-row textarea{width:100%;max-width:100%;resize:vertical}
+.lib-plan-row textarea.code{font:13px/1.5 var(--mono)}
+.lib-considered{margin:14px 0;border:1px solid var(--border);padding:14px}
+.lib-considered label.check{margin-top:6px}
+.rs-graphite-part .rs-graphite-stage{font-size:16px}
+.rs-graphite-plan{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+
 @media(max-width:1100px){
   .where-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .shell main{padding:32px 28px}
@@ -374,4 +420,7 @@ label.check input{width:auto;min-height:0}
   .wizard-progress{grid-template-columns:repeat(2,minmax(0,1fr))}
   .copy-line{flex-direction:column}
   .copy-line button{border-left:0;border-top:1px solid #454547;min-height:44px}
+  .lib-facts{grid-template-columns:1fr}
+  .lib-card{padding:14px}
+  .graphite-options{padding:14px}
 }
