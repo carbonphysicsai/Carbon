@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-driver-constructor-start-override",
+ "recorded_at": "2026-10-04T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/agent_campaign/graphite/phase4.py AttackerProvider (slice AT-E)",
+  "description": "Built the Attacker session driver as AttackerProvider(Phase3Provider) and launched a scripted session."
+ },
+ "expected": "Subclassing Phase3Provider gives the Attacker the v2 limits, compaction and pods, and the session opens under the Attacker role.",
+ "observed": "Phase3Provider.start refuses any brief whose role is not the Constructor (phase3_runs_the_constructor_only), so the Attacker session failed to open until start went to the base provider's start after the Attacker-only check.",
+ "keep": [
+  "The Constructor-only guard in phase 3 stays; the Attacker driver passes the Attacker-only guard and then calls GraphiteProvider.start, never Phase3Provider.start.",
+  "An Attacker proposes no construction, so the driver skips delivery, the bundle and the stall escalation."
+ ],
+ "change": [
+  "A phase-4 session inherits phase 3's limits and pods but drives the Attacker role with its own epoch and tools."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "suite_v1.track_a"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -1020,3 +1020,44 @@ cards (`phase2 check`); a later grant can run checked-only.
 - acting on any proposal: widening a level is the owner's decision under the
   reconstruction rule, and ships with Carbon's reconstruction of the widened
   surface.
+
+## Phase 4: the Attacker, the general attack engine (build)
+
+**Owner decision:** OWNER-GRAPHITE-ATTACKER-01 (2026-10-04;
+`.agent/decisions/2026-10-04-OWNER-GRAPHITE-ATTACKER-01.md`), recorded again as
+OWNER-GRAPHITE-TEST-WAVE-01 §2 (carbonphysicsai/Carbon#556). A general,
+challenge-neutral attack engine, driven by Graphite's Attacker role, with its
+first adapter at battery Level 0, under the live grant GRAPHITE-GRANT-PHASE4.
+
+**Scope of this slice (AT-E): the session driver, the grant and the records.**
+The challenge-neutral engine (the neutral core, the per-Challenge adapters,
+analysis, verify, the knowledge store, report and benchmark) is built by the
+other slices in `carbon.agent_campaign.attack`. This slice is the phase-4
+session driver (`carbon/agent_campaign/graphite/phase4.py`) and its grant.
+
+- `AttackerProvider(Phase3Provider)` inherits the v2 session-limits rule (no
+  call cap; the grant's money cap and elapsed limit bind), compaction, the
+  parallel-call rule and the pods, and drives the Attacker role through
+  `AttackerTools` (the code-run wall allowance, from the adapter, enforced
+  before dispatch). An Attacker proposes no construction, so the driver skips
+  the Constructor's delivery, bundle and stall escalation.
+- Carbon's side runs through the engine: `analysis` → `map_to_families` →
+  `verify` (rebuild on the pods) → `controller.record_finding` →
+  `knowledge.AttackStore` → `report.family_report` and `benchmark.b2`.
+- `run --dry-run` produces the coverage report and B2 with a scripted model
+  and `ScriptedPods`, zero spend. The live run path requires
+  GRAPHITE-GRANT-PHASE4; it is implemented and tested with fakes but **not
+  executed** (OWNER-GRAPHITE-ATTACKER-01 §5).
+- `GRAPHITE-GRANT-PHASE4`: ceiling USD 10.50, cleanup 0.25, worst-case run cost
+  3.41 (six verify pods ≈ 1.48, about 40 glm-5.2 calls ≈ 1.93), three runs, one
+  concurrency, 15,600 s runtime, expiring 2026-12-31. Derivation in
+  `docs/development/graphite/grants/README.md`.
+
+**Mutations shown load-bearing:** a reintroduced call cap; a grant ceiling that
+no longer covers three runs and cleanup; a code run over the adapter's wall
+allowance; a brief naming protected material; a finding outside the CONDITIONS
+vocabulary.
+
+**Not in this slice:** the engine modules, the battery Level 0 adapter, the
+synthetic second Challenge, and any live run. See
+`docs/development/graphite/PHASE4_ATTACKER.md`.

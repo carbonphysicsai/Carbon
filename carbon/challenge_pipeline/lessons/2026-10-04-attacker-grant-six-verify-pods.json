@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-grant-six-verify-pods",
+ "recorded_at": "2026-10-04T18:05:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json; phase4.attacker_budget",
+  "description": "Derived GRAPHITE-GRANT-PHASE4 and built the Attacker's per-run budget from it."
+ },
+ "expected": "The grant's run cost splits into the owner's 1.48 of pods and 1.93 of tokens.",
+ "observed": "#504's phase3_budget reserves twelve pods a session (2.96), leaving only 0.45 of tokens; the Attacker's worst case is six verify pods, so the driver rebuilds the budget at six pods to reach the owner-approved 1.48 pods and 1.93 tokens.",
+ "keep": [
+  "Money binds, not a pod count: the grant's run cost is the cap, the six-pod figure only derives the token share.",
+  "The Attacker's model-call money cap is the token share; Carbon rebuilds the constructions it scores on the verify pods on its own side."
+ ],
+ "change": [
+  "A phase-4 budget uses the Attacker's verify-pod count, not the Constructor's session-pod count."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "graphite.phase4-grant"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
