@@ -29,11 +29,31 @@ authority.
 
 - Built from `scripts/dev/motor/reference/Dockerfile` at main
   `75330721b`, on the operator's Linux host.
-- **Visibility is organisation-internal, not public.** The Dockerfile records
-  that GetDP and Gmsh are GPL and that Carbon "does not redistribute them".
-  Making the package public would redistribute those binaries. That is a
-  licensing decision for the owner under OWNER-LICENSE-01, and this record
-  does not take it. Pinning by digest works either way.
+- **Visibility is public, by the owner's licensing decision.** The image was
+  first pushed organisation-internal, because the Dockerfile records that
+  GetDP and Gmsh are GPL and that Carbon "does not redistribute them". The
+  owner then decided, in the Data Collection session on 2026-10-04:
+
+  > make the image public
+
+  The owner changed the package's visibility. An anonymous pull of the
+  digest has been verified.
+- **Corresponding source.** The public image redistributes unmodified
+  upstream binaries of GetDP 3.5.0 and Gmsh 4.15.2, both GPL-2.0-or-later.
+  The matching upstream source releases are:
+
+  | Component | Source release | SHA-256 |
+  | --- | --- | --- |
+  | GetDP 3.5.0 | `https://getdp.info/src/getdp-3.5.0-source.tgz` | `d6814dc3f81431f1db30b3d5318553efab616d7ea53b352a2c2d0640d130a328` |
+  | Gmsh 4.15.2 | `https://gmsh.info/src/gmsh-4.15.2-source.tgz` | `be3f66f225d27ba9fa014f07e83169285da8a051b0e8ab7103d88066b39bdd3e` |
+
+  Byte-identical copies are archived with the motor campaign's evidence on
+  the operator host. The Dockerfile's "does not redistribute" comment is now
+  out of date. The motor study V2 change corrects it. A comment does not
+  change what the image contains, so the published digest stays valid.
+- Whether the GPL obligations are fully met (for example, whether to mirror
+  the source alongside the image) is a legal question for the owner. This
+  record is not legal advice.
 
 ## 2. The counted motor campaign runs on the operator host
 
