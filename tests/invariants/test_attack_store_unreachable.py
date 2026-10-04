@@ -110,15 +110,24 @@ def _named_in(text):
     return sorted(name for name in ATTACK_NAMES if name in text)
 
 
+def _attack_import(module):
+    return module == ATTACK_MODULE or module.startswith(ATTACK_MODULE + ".")
+
+
 def reach(paths, root=ROOT):
     """`(file, how)` for every way the files reach the attack package: being
-    in it, or a string constant that names it or its store."""
+    in it, an import statement naming it (whether or not the name resolves
+    to a file, so an implicit namespace package is caught too), or a string
+    constant that names it or its store."""
     found = set()
     for path in paths:
         label = path.relative_to(root).as_posix()
         if label == ATTACK_PATH + ".py" or label.startswith(ATTACK_PATH + "/"):
             found.add((label, "is the attack package"))
             continue
+        for module in SCAN.imported_names(path, root):
+            if _attack_import(module):
+                found.add((label, "imports " + module))
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Constant) and type(node.value) is str:
@@ -228,11 +237,7 @@ def test_importing_every_miner_module_loads_no_attack_module():
     )
     loaded = set(json.loads(done.stdout.strip().splitlines()[-1]))
     assert set(modules) <= loaded
-    leaked = sorted(
-        name
-        for name in loaded
-        if name == ATTACK_MODULE or name.startswith(ATTACK_MODULE + ".")
-    )
+    leaked = sorted(name for name in loaded if _attack_import(name))
     assert not leaked, leaked
 
 
@@ -299,3 +304,24 @@ def test_a_planted_import_of_the_store_from_a_miner_path_fails_the_check(tmp_pat
                 assert not alone
             else:
                 assert alone, surface
+
+
+def test_a_lazy_import_of_a_namespace_attack_package_fails_the_check(tmp_path):
+    """Specimen for the import-name route: with no `attack/__init__.py` (an
+    implicit namespace package, which resolves to no file) a lazy
+    `import carbon.agent_campaign.attack` in a miner path is still reached,
+    by its import statement alone (no file, string or runtime route sees it)."""
+    root = _plant(tmp_path)
+    (root / "carbon/agent_campaign/attack/__init__.py").unlink()
+    probe = root / "carbon/agent_campaign/graphite/miner/probe.py"
+    probe.write_text(
+        "def hint():\n    import carbon.agent_campaign.attack\n", encoding="utf-8"
+    )
+    assert SCAN._module_path(ATTACK_MODULE, root) is None
+    found = reach(closure(root, MINER_SURFACES), root)
+    label = "carbon/agent_campaign/graphite/miner/probe.py"
+    assert {how for where, how in found if where == label} == {
+        "imports " + ATTACK_MODULE
+    }
+    with pytest.raises(AssertionError):
+        assert not found, sorted(found)

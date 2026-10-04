@@ -31,18 +31,20 @@ What the store learns from, and what it refuses:
 - Every record is checked with Graphite's protected-material rule
   (`graphite.tools.protected`) and the store's own sealed-material markers
   when it is written **and again when it is read**; a record that fails on
-  read is withheld, never served. The store's root may not live in a
+  read is withheld by the live store, never served, and a pinned view that
+  holds such a record refuses to serve anything (`attack_snapshot_withheld`)
+  rather than a subset. The store's root may not live in a
   sealed, confirmation, secret or canary location, and nothing here opens a
   path outside that root: it never reads sealed or confirmation material.
-- A development finding that names a protected case is not dropped: it is
-  recorded as an `OTHER_SIGNAL` finding (an exposure) with the protected
-  content withheld and only its digest kept (`exposure_finding`).
+- A development finding that names a protected, sealed or held-out case is
+  not dropped: it is recorded as an `OTHER_SIGNAL` finding (an exposure)
+  with that content withheld and only its digest kept (`exposure_finding`).
 - Findings use only the CONDITIONS vocabulary
   (`challenge_readiness.admission.CONDITIONS`).
 - Held-out controls are never stored, and the engine never reads them: the
   store refuses a held-out control on write, and `training_view(adapter)` is
-  the one way the engine reaches an adapter's controls, which refuses the
-  held-out split. Wrongful rejection on held-out controls is the report's
+  the one way the engine reaches an adapter, an allow-list that refuses the
+  held-out split and exposes nothing else that could reach it. Wrongful rejection on held-out controls is the report's
   measurement (`attack.report`), never a training signal.
 - A timeout, crash, unrebuildable construction or NOT_RUN family is never a
   hold: priors count it as inconclusive.
@@ -121,6 +123,10 @@ ORACLE_FAILURES = (
 )
 #: A regression specimen's state under a new adapter or contract version.
 REGRESSION_STATES = ("HELD", "BREACHED", "INCONCLUSIVE")
+#: An oracle verdict (`attack.adapter.OracleResult.verdict`) as a regression
+#: state. Every verdict not listed (FAILED_INFRA, TIMEOUT, CRASHED, NOT_RUN,
+#: or anything unknown) is INCONCLUSIVE.
+VERDICT_STATES = {"HELD": "HELD", "REFUSED": "HELD", "BREACHED": "BREACHED"}
 
 #: The eight shared Track A checks every adapter supplies.
 TRACK_A_CHECKS = frozenset(CHECKS[LEDGER_TRACK])
@@ -171,6 +177,7 @@ CONDITION_REFUSED = "condition_not_in_vocabulary"
 UNREBUILT_REFUSED = "unrebuilt_construction_not_scored"
 SNAPSHOT_NOT_FOUND = "attack_snapshot_not_found"
 SNAPSHOT_CORRUPT = "attack_snapshot_corrupt"
+SNAPSHOT_WITHHELD = "attack_snapshot_withheld"
 REPLAY_REFUSED = "replay_under_another_digest"
 READ_ONLY = "attack_view_read_only"
 
@@ -227,14 +234,26 @@ def _content(record):
     return {key: value for key, value in record.items() if key != "check"}
 
 
+def _material(value):
+    """True when `value` names protected, sealed or held-out material."""
+    return sealed(value) or held_out(value)
+
+
 def exposure_finding(record):
     """The `OTHER_SIGNAL` finding recorded for a development finding that
-    names protected or sealed material: the material is withheld and only its
-    digest kept; each identifying field that itself names it is dropped."""
+    names protected, sealed or held-out material: the material is withheld
+    and only its digest kept; each identifying field that itself names it is
+    dropped. The specimen is kept when neither it nor the family names the
+    material, so the exposure still has a regression specimen to re-run."""
     kept = {}
     for key in ("family", "boundary", "strategy", "attempt_id"):
         value = record.get(key)
-        kept[key] = None if value is None or sealed(value) or held_out(value) else value
+        kept[key] = None if value is None or _material(value) else value
+    specimen, control = record.get("specimen"), record.get("control")
+    if specimen is not None and (_material(specimen) or kept["family"] is None):
+        specimen = None
+    if control is not None and _material(control):
+        control = None
     return {
         "schema": RECORD_SCHEMA,
         "kind": FINDING,
@@ -248,8 +267,8 @@ def exposure_finding(record):
         "reported_condition": record["condition"],
         "protected_case_named": True,
         "withheld_digest": digest(canonical(_content(record))),
-        "specimen": None,
-        "control": None,
+        "specimen": specimen,
+        "control": control,
         "evidence": list(record["evidence"]),
     }
 
@@ -283,9 +302,12 @@ def _text(value, name, *, pattern=None, optional=False):
     return value
 
 
-def _payload(value, name):
-    if type(value) is not dict:
-        raise _invalid(name + " is a JSON object")
+def _payload(value, name, *, object_only=True):
+    """`value` as canonical JSON data. An attempt is a JSON object; a
+    specimen is any JSON value (an attack input may be a list or a scalar; a
+    tuple is stored as a list)."""
+    if value is None or (object_only and type(value) is not dict):
+        raise _invalid(name + " is a JSON object" if object_only else name + " is set")
     try:
         body = canonical(value)
     except (TypeError, ValueError):
@@ -456,23 +478,48 @@ def _count(stats, record):
         stats["findings"] += 1
 
 
-def _oracle_state(result):
-    """A regression state from an adapter's oracle result: an object or dict
-    with `state` (an outcome) or a Boolean `breached`. Anything else, and
-    every timeout, crash or unrebuildable result, is INCONCLUSIVE."""
-    state = getattr(result, "state", None)
-    if state is None and type(result) is dict:
-        state = result.get("state")
-    if state is None:
-        breached = getattr(result, "breached", None)
-        if breached is None and type(result) is dict:
-            breached = result.get("breached")
-        if type(breached) is bool:
-            return "BREACHED" if breached else "HELD"
+class SpecimenAttempt:
+    """A regression specimen as an adapter's oracle takes an attempt: the
+    shape of `attack.adapter.AttackInput` (`name`, `value`). `name` is the
+    finding's attempt identity; `value` is the stored specimen (JSON data),
+    which the adapter's family boundary receives as the attempt's input."""
+
+    __slots__ = ("name", "value")
+
+    def __init__(self, name, value):
+        self.name, self.value = name, value
+
+    def __eq__(self, other):
+        return type(other) is SpecimenAttempt and (self.name, self.value) == (
+            other.name,
+            other.value,
+        )
+
+    __hash__ = None
+
+    def __repr__(self):
+        return f"SpecimenAttempt(name={self.name!r}, value={self.value!r})"
+
+
+def _field(result, name):
+    if type(result) is dict:
+        return result.get(name)
+    return getattr(result, name, None)
+
+
+def _oracle_state(result, family):
+    """A regression state from an adapter's oracle result
+    (`attack.adapter.OracleResult`, or a dict of the same fields): its
+    `verdict` through `VERDICT_STATES`. Every other verdict (FAILED_INFRA,
+    TIMEOUT, CRASHED, NOT_RUN), a missing verdict, or a result for another
+    family is INCONCLUSIVE: never a hold."""
+    answered = _field(result, "family")
+    if answered is not None and answered != family:
         return "INCONCLUSIVE"
-    if state in HOLDS:
-        return "HELD"
-    return "BREACHED" if state == "BREACHED" else "INCONCLUSIVE"
+    verdict = _field(result, "verdict")
+    if type(verdict) is not str:
+        return "INCONCLUSIVE"
+    return VERDICT_STATES.get(verdict, "INCONCLUSIVE")
 
 
 class _Reader:
@@ -554,6 +601,7 @@ class _Reader:
                 "family": record["family"],
                 "boundary": record["boundary"],
                 "strategy": record["strategy"],
+                "attempt_id": record["attempt_id"],
                 "condition": record["condition"],
                 "specimen": record["specimen"],
             }
@@ -642,7 +690,14 @@ class _Reader:
 
 
 class ReadOnlyView(_Reader):
-    """The records one snapshot froze: what a frozen admission run used."""
+    """The records one snapshot froze: what a frozen admission run used.
+
+    It serves all of them or none: if any frozen record is no longer
+    admissible on read (the protected, sealed or held-out rules grew since
+    the freeze), every read, the pin itself and `replay` are refused
+    `attack_snapshot_withheld`. A frozen run is never silently served a
+    subset of what it used (invariant 10). The live store keeps withholding.
+    """
 
     def __init__(self, root, value):
         super().__init__(root)
@@ -663,17 +718,31 @@ class ReadOnlyView(_Reader):
         for kind, record in self._frozen:
             if self._object(record)["kind"] != kind:
                 raise KnowledgeError(SNAPSHOT_CORRUPT, "snapshot kind mismatch")
+        # And every frozen record must still be admissible: all or nothing.
+        self._served()
 
     def _entries(self):
         return self._frozen
 
+    def _served(self):
+        served, withheld = super()._served()
+        if withheld:
+            raise KnowledgeError(
+                SNAPSHOT_WITHHELD,
+                f"{len(withheld)} frozen record(s) of {self.digest} are no longer"
+                " admissible; a frozen run is never served a subset",
+            )
+        return served, withheld
+
     def replay(self, value):
         """This view, for a replay under `value`; refused unless `value` is
-        the digest the run pinned (invariant 10: no silent re-reading)."""
+        the digest the run pinned (invariant 10: no silent re-reading), and
+        refused if any frozen record is no longer admissible."""
         if value != self.digest:
             raise KnowledgeError(
                 REPLAY_REFUSED, f"pinned {self.digest}, asked {str(value)[:80]}"
             )
+        self._served()
         return self
 
     def suite_pin(self):
@@ -831,8 +900,9 @@ class AttackStore(_Reader):
         """Record a verified finding and its regression specimen; its record
         digest. A finding is an oracle row on a construction Carbon rebuilt
         (`rebuilt` is True), in the CONDITIONS vocabulary. One that names
-        protected or sealed material is recorded as an OTHER_SIGNAL exposure
-        with that material withheld (`exposure_finding`)."""
+        protected, sealed or held-out material is recorded as an OTHER_SIGNAL
+        exposure with that material withheld (`exposure_finding`); a held-out
+        `control` field is still refused, as on every record."""
         control = _control(control)
         record = _common(
             FINDING,
@@ -865,14 +935,15 @@ class AttackStore(_Reader):
             raise _invalid("evidence is a list of sha256 digests")
         record.update(
             condition=condition,
-            specimen=_payload(specimen, "specimen"),
+            specimen=_payload(specimen, "specimen", object_only=False),
             control=control,
             evidence=sorted(set(evidence)),
         )
-        if held_out(_content(record)):
-            raise KnowledgeError(HELD_OUT_REFUSED, FINDING)
-        if sealed(_content(record)):
+        if _material(_content(record)):
+            # An exposure, never dropped; refused typed only if what it must
+            # keep (its Challenge) still names the material.
             record = exposure_finding(record)
+            _refuse_material(record)
         return self._put(record)
 
     def add_regression(self, *, finding, contract_digest, state, detail=None):
@@ -909,18 +980,27 @@ class AttackStore(_Reader):
 
     def replay_specimens(self, adapter):
         """Re-run every due specimen for the adapter's Challenge and level
-        through its oracle (`adapter.oracle(family, specimen)`), recording
-        each result. An oracle that raises is INCONCLUSIVE (a crash is never
-        a hold). Returns `[{finding, state}]`."""
+        through its oracle (`adapter.oracle(family, SpecimenAttempt(name,
+        value))`, the `AttackInput` shape), recording each result from the
+        oracle's `verdict`. An oracle that raises is INCONCLUSIVE (a crash is
+        never a hold). Returns `[{finding, state}]`."""
         view = training_view(adapter)
         rows = []
         for specimen in self.regression_due(
             view.challenge_id, view.level, view.contract_digest
         ):
             detail = None
+            family = specimen["family"]
             try:
                 state = _oracle_state(
-                    view.oracle(specimen["family"], specimen["specimen"])
+                    view.oracle(
+                        family,
+                        SpecimenAttempt(
+                            specimen["attempt_id"] or specimen["finding"],
+                            specimen["specimen"],
+                        ),
+                    ),
+                    family,
                 )
             except ORACLE_FAILURES as error:  # a crash is never a hold
                 state = "INCONCLUSIVE"
@@ -936,13 +1016,15 @@ class AttackStore(_Reader):
 
     # -- snapshots -------------------------------------------------------------------
     def snapshot(self):
-        """Freeze the journal; the store's digest. The same records give the
-        same digest."""
+        """Freeze the records the store serves now, in journal order; the
+        store's digest. The same records give the same digest. A record the
+        protected, sealed or held-out rules withhold is not frozen."""
         with self._lock():
             document = {
                 "schema": SNAPSHOT_SCHEMA,
                 "records": [
-                    {"kind": kind, "digest": value} for kind, value in self._entries()
+                    {"kind": record["kind"], "digest": record["record_digest"]}
+                    for record in self._served()[0]
                 ],
             }
             body = canonical(document)
@@ -955,31 +1037,77 @@ class AttackStore(_Reader):
         return ReadOnlyView(self.root, value)
 
 
+#: What the engine may read of an adapter: these values ...
+TRAINING_VALUES = ("challenge_id", "level", "contract_digest")
+#: ... these calls, forwarded ...
+TRAINING_CALLS = ("families", "oracle", "rebuild", "level_families")
+#: ... and `controls(TRAINING_SPLIT)`. Nothing else is reachable.
+
+
+def _split(control):
+    return (
+        control.get("split")
+        if type(control) is dict
+        else getattr(control, "split", None)
+    )
+
+
 class _TrainingAdapter:
-    """An adapter as the engine may see it: every attribute but the held-out
-    controls."""
+    """An adapter as the engine may see it: an allow-list. Only
+    `TRAINING_VALUES`, `TRAINING_CALLS` and `controls(TRAINING_SPLIT)` exist;
+    there is no instance dictionary and no attribute that holds the adapter,
+    so neither the held-out split nor a control collection (such as a
+    declared adapter's `control_set`) can be reached by attribute access.
+    This guards Carbon's own engine against reading held-out controls by
+    mistake; it is not a sandbox for hostile code."""
 
-    def __init__(self, adapter):
-        object.__setattr__(self, "_adapter", adapter)
-
-    def __getattr__(self, name):
-        return getattr(self._adapter, name)
+    __slots__ = (*TRAINING_VALUES, *TRAINING_CALLS, "controls")
 
     def __setattr__(self, name, value):
         raise AttributeError("a training view is read only")
 
-    def controls(self, split):
+    def __delattr__(self, name):
+        raise AttributeError("a training view is read only")
+
+
+def _forward(call):
+    def forwarded(*args, **kwargs):
+        return call(*args, **kwargs)
+
+    return forwarded
+
+
+def _trained_only(adapter):
+    def controls(split):
         if split != TRAINING_SPLIT:
             raise KnowledgeError(
                 HELD_OUT_REFUSED, "the engine never reads held-out controls"
             )
-        return self._adapter.controls(split)
+        found = tuple(adapter.controls(split))
+        if any(_split(control) not in (None, TRAINED) for control in found):
+            raise KnowledgeError(
+                HELD_OUT_REFUSED, "the adapter answered with another split"
+            )
+        return found
+
+    return controls
 
 
 def training_view(adapter):
-    """The adapter as the engine may read it: `controls('held_out')` is
-    refused. The held-out split is read only by the report."""
-    return adapter if type(adapter) is _TrainingAdapter else _TrainingAdapter(adapter)
+    """The adapter as the engine may read it (an allow-list):
+    `controls('held_out')` is refused and nothing else that could reach the
+    held-out split exists. The held-out split is read only by the report."""
+    if type(adapter) is _TrainingAdapter:
+        return adapter
+    view = object.__new__(_TrainingAdapter)
+    for name in TRAINING_VALUES:
+        object.__setattr__(view, name, getattr(adapter, name))
+    for name in TRAINING_CALLS:
+        call = getattr(adapter, name, None)
+        if call is not None:
+            object.__setattr__(view, name, _forward(call))
+    object.__setattr__(view, "controls", _trained_only(adapter))
+    return view
 
 
 def trained_controls(adapter):

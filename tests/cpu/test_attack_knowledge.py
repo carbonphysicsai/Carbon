@@ -24,6 +24,7 @@ import os
 import stat
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,7 @@ from carbon.agent_campaign.attack.knowledge import (
     AttackStore,
     KnowledgeError,
     ReadOnlyView,
+    SpecimenAttempt,
     training_view,
 )
 from carbon.agent_campaign.graphite import tools
@@ -107,8 +109,27 @@ def refused(code, call, /, **kwargs):
     return caught.value
 
 
+@dataclass(frozen=True)
+class Verdict:
+    """`attack.adapter.OracleResult`'s shape (AT-A): the oracle's verdict on
+    one attempt. Verdicts there: HELD, BREACHED, FAILED_INFRA, TIMEOUT,
+    CRASHED, NOT_RUN."""
+
+    verdict: str
+    family: str = "mandatory_failure"
+    attempt: str = "epoch-1-attack-tool-002"
+    evidence_digest: str = EVIDENCE[0]
+    condition: str | None = None
+
+
+BREACH = Verdict("BREACHED", condition="FAILING_TRIGGER")
+
+
 class Spy:
-    """An adapter as `attack.adapter` defines it, recording what is read."""
+    """An adapter as `attack.adapter` defines it (AT-A's `DeclaredAdapter`
+    shape, including its public `control_set` of both splits), recording what
+    is read. Its oracle takes an attempt with a `name` and a `value`, as
+    `attack.adapter.family_oracle` does, and raises TypeError otherwise."""
 
     def __init__(self, *, challenge_id=BATTERY_CHALLENGE, level=0, contract=CONTRACT):
         self.challenge_id, self.level, self.contract_digest = (
@@ -117,13 +138,28 @@ class Spy:
             contract,
         )
         self.splits, self.oracle_calls = [], []
-        self.result = {"breached": True}
+        self.result = BREACH
+        self.control_set = (
+            {"control_id": "trained-1", "split": "trained"},
+            {"control_id": "kept-back-1", "split": "held_out"},
+        )
+
+    def families(self):
+        return ("mandatory_failure",)
+
+    def level_families(self):
+        return ()
+
+    def rebuild(self, construction):
+        return {"rebuilt": construction}
 
     def controls(self, split):
         self.splits.append(split)
-        return ({"control_id": split + "-1"},)
+        return tuple(c for c in self.control_set if c["split"] == split)
 
     def oracle(self, family, attempt):
+        if not (hasattr(attempt, "name") and hasattr(attempt, "value")):
+            raise TypeError("an attempt has a name and a value")
         self.oracle_calls.append((family, attempt))
         if isinstance(self.result, BaseException):
             raise self.result
@@ -299,17 +335,31 @@ def test_one_specimen_per_verified_finding_by_challenge_and_level(store):
     assert store.specimens(SYNTHETIC, 1) == []
 
 
-def test_specimens_re_run_on_every_new_contract_version(store):
+def regression_detects_a_reintroduced_breach(store):
+    """The regression boundary, as one check: under a new contract version
+    the specimen goes to the adapter's oracle as an attempt (`name`,
+    `value`), and the oracle's BREACHED verdict is recorded BREACHED."""
     found = store.add_finding(**finding())
-    assert store.regression_due(BATTERY_CHALLENGE, 0, CONTRACT) == []
     adapter = Spy(contract=NEXT_CONTRACT)
-    assert store.replay_specimens(adapter) == [{"finding": found, "state": "BREACHED"}]
-    assert adapter.oracle_calls == [("mandatory_failure", finding()["specimen"])]
+    rows = store.replay_specimens(adapter)
+    assert rows == [{"finding": found, "state": "BREACHED"}], rows
+    return found, adapter
+
+
+def test_specimens_re_run_on_every_new_contract_version(store):
+    assert store.regression_due(BATTERY_CHALLENGE, 0, CONTRACT) == []
+    found, adapter = regression_detects_a_reintroduced_breach(store)
+    assert adapter.oracle_calls == [
+        (
+            "mandatory_failure",
+            SpecimenAttempt("epoch-1-attack-tool-002", finding()["specimen"]),
+        )
+    ]
     assert store.regression_due(BATTERY_CHALLENGE, 0, NEXT_CONTRACT) == []
     assert store.replay_specimens(adapter) == []
     # A later version makes it due again; the fix now holds.
     later = Spy(contract=LATER_CONTRACT)
-    later.result = {"state": "REFUSED"}
+    later.result = Verdict("HELD")
     assert store.replay_specimens(later) == [{"finding": found, "state": "HELD"}]
     states = [(r["contract_digest"], r["state"]) for r in store.regressions()]
     assert states == [(NEXT_CONTRACT, "BREACHED"), (LATER_CONTRACT, "HELD")]
@@ -317,13 +367,71 @@ def test_specimens_re_run_on_every_new_contract_version(store):
     assert adapter.splits == [] and later.splits == []
 
 
+def test_a_specimen_is_any_finite_json_value(store):
+    """An attack input may be a list or a scalar (a tuple is stored as a
+    list); a missing or nonfinite specimen is refused."""
+    value = store.add_finding(**finding(specimen=("recipe", 3)))
+    assert store.specimens(BATTERY_CHALLENGE, 0)[0]["specimen"] == ["recipe", 3]
+    adapter = Spy(contract=NEXT_CONTRACT)
+    store.replay_specimens(adapter)
+    assert adapter.oracle_calls == [
+        ("mandatory_failure", SpecimenAttempt("epoch-1-attack-tool-002", ["recipe", 3]))
+    ]
+    store.add_finding(**finding(attempt_id="f-2", specimen="width=513"))
+    for specimen in (None, [float("nan")], {"x": float("inf")}):
+        refused(
+            knowledge.RECORD_INVALID,
+            store.add_finding,
+            **finding(attempt_id="f-3", specimen=specimen),
+        )
+    assert len(store.findings()) == 2 and store.findings()[0]["record_digest"] == value
+
+
+def test_a_dict_verdict_and_a_refused_verdict_are_read(store):
+    store.add_finding(**finding())
+    adapter = Spy(contract=NEXT_CONTRACT)
+    adapter.result = {"verdict": "REFUSED", "family": "mandatory_failure"}
+    assert [row["state"] for row in store.replay_specimens(adapter)] == ["HELD"]
+
+
+def test_mutation_a_raw_specimen_attempt_turns_the_regression_check_red(
+    tmp_path, monkeypatch
+):
+    """Mutant: the store hands the oracle the raw specimen dict, which a real
+    family oracle refuses (TypeError), so every re-run is INCONCLUSIVE and a
+    re-introduced breach goes unseen."""
+    monkeypatch.setattr(knowledge, "SpecimenAttempt", lambda name, value: value)
+    with pytest.raises(AssertionError):
+        regression_detects_a_reintroduced_breach(AttackStore(tmp_path / "store"))
+
+
+def test_mutation_reading_a_state_not_the_verdict_turns_the_check_red(
+    tmp_path, monkeypatch
+):
+    """Mutant: the store reads `state` (not the OracleResult's `verdict`)."""
+    monkeypatch.setattr(
+        knowledge,
+        "_oracle_state",
+        lambda result, family: (
+            "BREACHED" if getattr(result, "state", None) == "BREACHED" else "HELD"
+        ),
+    )
+    with pytest.raises(AssertionError):
+        regression_detects_a_reintroduced_breach(AttackStore(tmp_path / "store"))
+
+
 @pytest.mark.parametrize(
     "result",
     [
-        {"state": "TIMEOUT"},
-        {"state": "CRASH"},
-        {"state": "UNREBUILDABLE"},
-        {"state": "NOT_RUN"},
+        Verdict("TIMEOUT"),
+        Verdict("CRASHED"),
+        Verdict("FAILED_INFRA"),
+        Verdict("NOT_RUN"),
+        Verdict("UNKNOWN"),
+        Verdict("BREACHED", family="another_family", condition="FAILING_TRIGGER"),
+        {"state": "BREACHED"},
+        {"breached": False},
+        {"verdict": ["HELD"]},
         {},
         None,
         TimeoutError("wall time"),
@@ -522,13 +630,59 @@ def test_the_protected_rule_applies_again_on_every_read(store, monkeypatch):
         ]
         == 1
     )
-    assert store.pin(frozen).withheld() == withheld
+    # A frozen run is never served a subset: its pin is refused outright.
+    refused(knowledge.SNAPSHOT_WITHHELD, store.pin, value=frozen)
+    # A snapshot taken now freezes only what is served, and pins whole.
+    now = store.snapshot()
+    assert now != frozen
+    assert {r["record_digest"] for r in store.pin(now).records()} == served
     # The finding's specimen is withheld once the rule names it, too.
     monkeypatch.setattr(
         tools, "PROTECTED_MARKERS", (*tools.PROTECTED_MARKERS, "nonfinite")
     )
     assert store.specimens(BATTERY_CHALLENGE, 0) == []
     assert store.regression_due(BATTERY_CHALLENGE, 0, NEXT_CONTRACT) == []
+
+
+def frozen_view_is_all_or_nothing(store, monkeypatch):
+    """The frozen-read boundary, as one check: a view pinned before the
+    protected rule grew refuses every read and its own replay once a frozen
+    record is no longer admissible; it never serves a subset."""
+    store.add_finding(**finding())
+    store.add_attempt(**attempt())
+    frozen = store.snapshot()
+    view = store.pin(frozen)
+    assert len(view.specimens(BATTERY_CHALLENGE, 0)) == 1
+    monkeypatch.setattr(
+        tools, "PROTECTED_MARKERS", (*tools.PROTECTED_MARKERS, "nonfinite")
+    )
+    for call in (
+        lambda: view.specimens(BATTERY_CHALLENGE, 0),
+        view.records,
+        view.priors,
+        view.withheld,
+        lambda: view.replay(frozen),
+        lambda: store.pin(frozen),
+    ):
+        try:
+            served = call()
+        except KnowledgeError as error:
+            assert error.code == knowledge.SNAPSHOT_WITHHELD, error
+        else:
+            raise AssertionError(f"a frozen run was served a subset: {served!r}")
+
+
+def test_a_pinned_view_serves_all_frozen_records_or_none(store, monkeypatch):
+    frozen_view_is_all_or_nothing(store, monkeypatch)
+
+
+def test_mutation_a_view_that_withholds_turns_the_frozen_check_red(
+    tmp_path, monkeypatch
+):
+    """Mutant: the pinned view withholds like the live store (a subset)."""
+    monkeypatch.setattr(ReadOnlyView, "_served", knowledge._Reader._served)
+    with pytest.raises(AssertionError):
+        frozen_view_is_all_or_nothing(AttackStore(tmp_path / "store"), monkeypatch)
 
 
 def test_a_finding_that_names_a_protected_case_is_an_other_signal(store):
@@ -564,6 +718,48 @@ def test_a_finding_that_names_a_protected_case_is_an_other_signal(store):
     )
     assert store.pin(store.snapshot()).findings()[1]["record_digest"] == sealed
     assert store.findings()[1]["condition"] == "OTHER_SIGNAL"
+
+
+def test_a_finding_that_exposes_kept_back_controls_is_an_other_signal(store):
+    """A verified finding whose content names held-out control material is an
+    exposure, never refused (refusing it would lose the finding)."""
+    value = store.add_finding(
+        **finding(specimen={"probe": "attacker read the held-out control"})
+    )
+    [record] = store.findings()
+    assert record["record_digest"] == value
+    assert record["condition"] == "OTHER_SIGNAL"
+    assert record["reported_condition"] == "FAILING_TRIGGER"
+    assert record["protected_case_named"] is True and record["specimen"] is None
+    assert not knowledge.held_out(record) and store.withheld() == []
+
+
+def test_an_exposure_keeps_a_specimen_that_names_nothing(store):
+    """Only the boundary names protected material: the exposure keeps its
+    specimen, which is served and re-run like any other."""
+    value = store.add_finding(**finding(boundary="official_seed reuse"))
+    [record] = store.findings()
+    assert record["condition"] == "OTHER_SIGNAL" and record["boundary"] is None
+    assert record["specimen"] == finding()["specimen"]
+    assert [s["finding"] for s in store.specimens(BATTERY_CHALLENGE, 0)] == [value]
+    rows = store.replay_specimens(Spy(contract=NEXT_CONTRACT))
+    assert rows == [{"finding": value, "state": "BREACHED"}]
+    # A family that names the material is dropped, and so is the specimen
+    # (it could not be re-run without its family).
+    store.add_finding(**finding(family="ev5_probe", attempt_id="f-3"))
+    assert store.findings()[1]["family"] is None
+    assert store.findings()[1]["specimen"] is None
+
+
+def test_an_exposure_that_still_names_material_is_refused_typed(store):
+    """The exposure keeps its Challenge; if that names protected material the
+    exposure is refused typed, never stored to be withheld on read."""
+    refused(
+        knowledge.PROTECTED_REFUSED,
+        store.add_finding,
+        **finding(challenge_id="ev5-batch"),
+    )
+    assert not store.journal.exists() and store.withheld() == []
 
 
 def test_the_fresh_attack_confirmation_check_is_vocabulary_not_material(store):
@@ -771,8 +967,8 @@ def test_only_trained_controls_are_stored(store):
         )
     refused(
         knowledge.HELD_OUT_REFUSED,
-        store.add_finding,
-        **finding(specimen={"control": "held out set"}),
+        store.add_near_miss,
+        **near_miss(attempt={"control": "held out set"}),
     )
     assert [r["control"] for r in store.records()] == [
         {"split": "trained", "control_id": "c-1"}
@@ -785,7 +981,9 @@ def engine_reads_only_trained_controls(store):
     store's own replay reads no control at all."""
     spy = Spy(contract=NEXT_CONTRACT)
     store.add_finding(**finding())
-    assert knowledge.trained_controls(spy) == ({"control_id": "trained-1"},)
+    assert knowledge.trained_controls(spy) == (
+        {"control_id": "trained-1", "split": "trained"},
+    )
     store.replay_specimens(spy)
     view = knowledge.training_view(spy)
     try:
@@ -797,23 +995,90 @@ def engine_reads_only_trained_controls(store):
     assert spy.splits == ["trained"], spy.splits
 
 
+def view_exposes_only_the_allow_list(adapter):
+    """The training view is an allow-list: no route by attribute access
+    reaches the held-out split, whatever else the adapter carries."""
+    view = knowledge.training_view(adapter)
+    for name in ("control_set", "_adapter", "adapter", "__dict__"):
+        assert not hasattr(view, name), name
+    for name in knowledge.TRAINING_CALLS:
+        assert not hasattr(getattr(view, name), "__self__"), name
+    assert not hasattr(view.controls, "__self__")
+    reachable = {name for name in dir(view) if not name.startswith("__")}
+    assert reachable == {
+        *knowledge.TRAINING_VALUES,
+        *knowledge.TRAINING_CALLS,
+        "controls",
+    }, reachable
+
+
 def test_the_engine_never_reads_held_out_controls(store):
     engine_reads_only_trained_controls(store)
     spy = Spy()
     view = training_view(spy)
     assert training_view(view) is view
     assert view.challenge_id == BATTERY_CHALLENGE and view.level == 0
+    assert view.contract_digest == CONTRACT
+    assert view.families() == ("mandatory_failure",) and view.level_families() == ()
+    assert view.rebuild("x") == {"rebuilt": "x"}
     with pytest.raises(AttributeError):
         view.controls_split = "held_out"
+    with pytest.raises(AttributeError):
+        view.controls = spy.controls
+    view_exposes_only_the_allow_list(spy)
+    with pytest.raises(AttributeError):
+        view.control_set  # noqa: B018 - the access itself is refused
+    with pytest.raises(AttributeError):
+        view._adapter  # noqa: B018
+
+
+def test_a_trained_answer_carrying_another_split_is_refused():
+    """An adapter that answers `controls('trained')` with a held-out control
+    is refused, not passed through."""
+    spy = Spy()
+    spy.controls = lambda split: spy.control_set
+    refused(knowledge.HELD_OUT_REFUSED, knowledge.trained_controls, adapter=spy)
+
+
+class DenyListView:
+    """The earlier training view: it refused `controls('held_out')` and
+    forwarded every other attribute to the adapter."""
+
+    def __init__(self, adapter):
+        object.__setattr__(self, "_adapter", adapter)
+
+    def __getattr__(self, name):
+        return getattr(self._adapter, name)
+
+    def controls(self, split):
+        if split != knowledge.TRAINING_SPLIT:
+            raise KnowledgeError(knowledge.HELD_OUT_REFUSED, "refused")
+        return self._adapter.controls(split)
+
+
+def test_mutation_a_deny_list_view_turns_the_allow_list_check_red(monkeypatch):
+    """Mutant: the deny-list proxy; `control_set` and `_adapter` reach the
+    held-out split."""
+    monkeypatch.setattr(knowledge, "training_view", DenyListView)
+    with pytest.raises(AssertionError):
+        view_exposes_only_the_allow_list(Spy())
 
 
 def test_mutation_the_engine_reading_held_out_controls_turns_the_check_red(
     tmp_path, monkeypatch
 ):
-    """Mutant: the engine's training split is the held-out one."""
+    """Mutant: the engine's training split is the held-out one. The check goes
+    red either way: the controls returned are the held-out ones, or the
+    view's second guard refuses an answer carrying the held-out split."""
     monkeypatch.setattr(knowledge, "TRAINING_SPLIT", knowledge.HELD_OUT)
-    with pytest.raises(AssertionError):
+    with pytest.raises((AssertionError, KnowledgeError)) as caught:
         engine_reads_only_trained_controls(AttackStore(tmp_path / "store"))
+    if isinstance(caught.value, KnowledgeError):
+        assert caught.value.code == knowledge.HELD_OUT_REFUSED
+    # Without the second guard the check itself fails on the controls read.
+    monkeypatch.setattr(knowledge, "_split", lambda control: None)
+    with pytest.raises(AssertionError):
+        engine_reads_only_trained_controls(AttackStore(tmp_path / "again"))
 
 
 def test_mutation_an_unguarded_adapter_turns_the_check_red(tmp_path, monkeypatch):
