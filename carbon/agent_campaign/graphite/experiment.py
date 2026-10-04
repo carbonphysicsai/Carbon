@@ -773,6 +773,7 @@ class Experiment:
                     **common,
                     "status": "FAILED_INFRA",
                     "reason_code": "predictions_missing",
+                    **_attempts(attempts),
                     "scored": False,
                     "pods_left": self.pods_left(),
                 },
