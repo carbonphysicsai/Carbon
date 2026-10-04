@@ -169,7 +169,12 @@ def test_every_number_a_miner_role_is_told_is_the_enforced_one():
         f"would pass {percent}% of that ceiling",
         f"holds more than {kept} turns",
         f"the last {kept} turns unchanged",
-        f"at most {COMPACTION_SUMMARY_CHARACTERS} characters in all",
+        (
+            "in at most the characters Carbon's request states, never more than "
+            f"{COMPACTION_SUMMARY_CHARACTERS} in all"
+        ),
+        "is accepted only if the conversation then fits under the ceiling",
+        "When the last turns leave no room for a summary Carbon does not ask",
         f"after {COMPACTION_ATTEMPTS} requests",
         f"at most {MAX_TOOL_ARGUMENT_BYTES} bytes of JSON",
         f"arguments_json at most {MAX_WORKSPACE_ARGUMENT_BYTES} bytes",

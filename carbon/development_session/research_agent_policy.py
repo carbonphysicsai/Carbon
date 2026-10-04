@@ -132,11 +132,14 @@ def check_limits(limits):
 #: the admission ceiling (the model's max_input_tokens minus
 #: `CONTEXT_RESERVE_TOKENS`) while the conversation holds more than
 #: `keep_last_turns` turns, the loop makes one journalled model call asking
-#: for a summary in a closed schema (`COMPACTION_TOOL`), then continues with
-#: the initial observation, that summary - labelled as the model's own
-#: summary - and the last `keep_last_turns` turns. The compaction call is
-#: metered and replayed like any model call, its record names what left the
-#: context, and nothing is dropped silently.
+#: for a summary in a closed schema (`COMPACTION_TOOL`), sized to the context
+#: actually left, then continues with the initial observation, that summary -
+#: labelled as the model's own summary - and the last `keep_last_turns`
+#: turns. The compaction call is metered and replayed like any model call,
+#: its record names what left the context, and nothing is dropped silently.
+#: When those turns leave no room for a summary of
+#: `COMPACTION_MIN_SUMMARY_CHARACTERS`, no compaction is asked for and the
+#: session goes on as it would without the rule.
 COMPACTION_V1 = {
     "schema": "carbon.autoresearch.compaction.v1",
     "trigger_fraction": 0.85,
@@ -152,9 +155,26 @@ COMPACTION_FIELDS = (
     "constraints",
     "next_steps",
 )
-#: The most a summary holds, in characters over all fields: a summary has to
-#: fit the context headroom the trigger leaves.
+#: The most a summary ever holds, in characters over all fields. Each
+#: request states the characters that fit the context actually left
+#: (`COMPACTION_BYTES_PER_CHARACTER`), never more than this, and a summary is
+#: accepted only when the compacted conversation is admitted under the
+#: ceiling with `COMPACTION_HEADROOM_TOKENS` to spare.
 COMPACTION_SUMMARY_CHARACTERS = 12000
+#: Below this many characters a summary is not worth its model call: a due
+#: compaction is not asked for, and the session goes on as it would without
+#: the rule, stopping at the ceiling if it reaches it.
+COMPACTION_MIN_SUMMARY_CHARACTERS = 1000
+#: The request bytes a summary character is planned at when Carbon states how
+#: many fit. A summary is JSON-encoded twice in the request: a plain letter
+#: costs one byte, a quote or backslash four, and non-ASCII text up to
+#: fourteen; a summary that does not fit is asked for again at the size its
+#: own text shows will.
+COMPACTION_BYTES_PER_CHARACTER = 2
+#: Context, in tokens, the compacted conversation leaves free for the next
+#: turn's status note, beyond the miner's messages for that turn, which are
+#: counted exactly.
+COMPACTION_HEADROOM_TOKENS = 1024
 #: Compaction calls per compaction: the request, and one firmer request when
 #: the first reply recorded no valid summary. Then the session stops typed.
 COMPACTION_ATTEMPTS = 2
@@ -166,9 +186,10 @@ COMPACTION_TOOL = {
         "Only when Carbon asks you to compact the context: record your own "
         "summary of the conversation so far - findings, open hypotheses, best "
         "recipes (exact JSON where you have them), constraints and next steps - "
-        f"at most {COMPACTION_SUMMARY_CHARACTERS} characters in all. Carbon then "
-        "continues with the initial observation, this summary and your last "
-        "turns. At any other time it is refused and nothing happens."
+        "in at most the characters Carbon's request states, never more than "
+        f"{COMPACTION_SUMMARY_CHARACTERS} in all. Carbon then continues with the "
+        "initial observation, this summary and your last turns. At any other "
+        "time it is refused and nothing happens."
     ),
     "parameters": _schema({field: {"type": "string"} for field in COMPACTION_FIELDS}),
 }
@@ -326,15 +347,19 @@ def compaction_rule(compaction, unit="session"):
         f"plus what was added since. When a request would pass {percent}% of that "
         f"ceiling while the conversation holds more than {kept} turns, Carbon asks "
         f"you to compact: call {COMPACT}, and only it, with your summary "
-        "of findings, open hypotheses, best recipes, constraints and next steps, at "
-        f"most {COMPACTION_SUMMARY_CHARACTERS} characters in all. That call is one "
-        "model call. Carbon then continues with the initial observation, your "
-        f"summary, labelled as your summary, and the last {kept} turns unchanged; "
-        "the earlier turns leave your context but stay in Carbon's record. Call "
-        f"{COMPACT} only when asked; at any other time it is refused and nothing "
-        f"happens. If no valid summary is recorded after {COMPACTION_ATTEMPTS} "
-        f"requests, or a request cannot fit under the ceiling, the {unit} stops; "
-        "history is never silently dropped."
+        "of findings, open hypotheses, best recipes, constraints and next steps, in "
+        "at most the characters Carbon's request states, never more than "
+        f"{COMPACTION_SUMMARY_CHARACTERS} in all. That call is one model call. "
+        "Carbon then continues with the initial observation, your summary, "
+        f"labelled as your summary, and the last {kept} turns unchanged; the "
+        "earlier turns leave your context but stay in Carbon's record. A summary "
+        "is accepted only if the conversation then fits under the ceiling; one "
+        f"that does not is asked for again, shorter. Call {COMPACT} only when "
+        "asked; at any other time it is refused and nothing happens. When the "
+        "last turns leave no room for a summary Carbon does not ask, and the "
+        f"{unit} goes on to the ceiling. If no valid summary is recorded after "
+        f"{COMPACTION_ATTEMPTS} requests, or a request cannot fit under the "
+        f"ceiling, the {unit} stops; history is never silently dropped."
     )
 
 

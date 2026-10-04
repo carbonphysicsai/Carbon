@@ -182,14 +182,13 @@ def _replays(meter):
 
 
 def test_the_stage_namespace_mutation_is_caught(tmp_path, monkeypatch):
-    """Specimen: without the stage in its identities, the second session of
-    an epoch collides with the first and cannot run."""
+    """Specimen: with the stage dropped from its identities, the test above
+    fails - the second session of an epoch collides with the first."""
     monkeypatch.setattr(
         research_loop, "session_prefix", lambda epoch, stage=None: f"epoch-{epoch}"
     )
-    meter = ledger(tmp_path, ceilings=ROOMY)
     with pytest.raises(ValueError, match="conflict"):
-        _two_stages(meter)
+        test_two_stages_share_one_epoch_under_their_own_identities(tmp_path)
 
 
 def test_an_unstaged_epoch_reads_only_its_own_turns(tmp_path):
@@ -329,15 +328,70 @@ def test_a_finish_is_checked_before_anything_runs(tmp_path):
         )
 
 
-def test_a_finish_validator_must_answer_in_shape(tmp_path):
-    finish = {"tool": RECORD_TOOL, "validate": lambda a: True, "status": "PLANNED"}
-    transport, _ = scripted([[record_plan("x", PLAN)]])
-    with pytest.raises(ValueError, match="returns \\(ok, refusal\\)"):
-        role(ledger(tmp_path / "a"), transport, tools=(INFO_TOOL,), finish=finish)
-    finish["validate"] = lambda a: (False, {"status": "PLANNED"})
-    transport, _ = scripted([[record_plan("x", PLAN)]])
-    with pytest.raises(ValueError, match="REJECTED_BEFORE_DISPATCH"):
-        role(ledger(tmp_path / "b"), transport, tools=(INFO_TOOL,), finish=finish)
+def test_a_finish_validator_that_raises_is_answered_and_the_session_goes_on(
+    tmp_path,
+):
+    """Review regression: the Planner's validator reads model-written
+    arguments after the reply is journalled. Malformed plan_json makes it
+    raise; that is answered `finish_invalid` naming the exception, never
+    raised, so the session goes on and every resume replays it."""
+    meter = ledger(tmp_path, ceilings=ROOMY)
+    seen = []
+    bad = call("bad", RECORD, {"plan_json": "{bad"})
+    transport, requests = scripted([[bad], [record_plan("ok", PLAN)]])
+    report = role(meter, transport, tools=(INFO_TOOL,), finish=planner_finish(seen))
+    refused = outputs(requests[1])["bad"]
+    assert refused["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert refused["code"] == FINISH_INVALID
+    assert refused["reason"] == (
+        f"{RECORD} could not read these arguments (JSONDecodeError)"
+    )
+    assert report["status"] == "PLANNED" and len(seen) == 2
+    # A resume reads the journal; nothing is raised again or re-asked.
+    (folder(meter) / "outcome.json").unlink()
+    again = role(meter, never, tools=(INFO_TOOL,), finish=planner_finish(seen))
+    assert again == report and len(seen) == 2
+
+
+@pytest.mark.parametrize(
+    "verdict",
+    [
+        True,
+        (1, None),
+        (False, {"status": "PLANNED"}),
+        (False, {"status": "REJECTED_BEFORE_DISPATCH", "x": float("nan")}),
+    ],
+)
+def test_a_finish_validator_out_of_contract_is_answered_not_raised(tmp_path, verdict):
+    """A verdict outside `(ok, refusal)`, or a refusal that is not a JSON
+    REJECTED_BEFORE_DISPATCH record, is the caller's fault: the model is
+    told so (`checked: false`) and the session goes on."""
+    finish = {"tool": RECORD_TOOL, "validate": lambda a: verdict, "status": "PLANNED"}
+    transport, requests = scripted([[record_plan("x", PLAN)], [text()], [text()]])
+    report = role(ledger(tmp_path), transport, tools=(INFO_TOOL,), finish=finish)
+    refused = outputs(requests[1])["x"]
+    assert refused["code"] == FINISH_INVALID and refused["checked"] is False
+    assert "not a fault in your arguments" in refused["reason"]
+    assert report["status"] == "STOPPED"
+
+
+def test_only_the_finish_tool_ends_the_session_with_its_status(tmp_path):
+    """Review: a result of another tool that happens to carry the finish
+    status does not end the session; only the finish tool's own does."""
+
+    class Planned(SDK):
+        async def call(self, name, arguments, identity):
+            await super().call(name, arguments, identity)
+            return {"status": "PLANNED", "authority_granted": False}
+
+    meter = ledger(tmp_path, ceilings=ROOMY)
+    transport, requests = scripted([[call("a", INFO)], [record_plan("ok", PLAN)]])
+    report = role(
+        meter, transport, Planned(meter), tools=(INFO_TOOL,), finish=planner_finish()
+    )
+    assert outputs(requests[1])["a"]["status"] == "PLANNED"
+    assert len(requests) == 2
+    assert report["status"] == "PLANNED" and report["tool"] == RECORD
 
 
 # -- the Graphite miner policy ------------------------------------------------------
@@ -405,18 +459,34 @@ def test_a_miner_selection_needs_a_practiced_recipe(tmp_path):
         [[select("s1")], [call("p", START, practice)], [select("s2")]]
     )
     report = miner(meter, transport, Practising(meter))
+    assert len(requests) == 3, "an unpracticed selection ended the session"
     refused = outputs(requests[1])["s1"]
     assert refused["code"] == SELECTION_NOT_PRACTICED
     assert report["status"] == "SELECTED" and report["strategy"] == STRATEGY
 
 
 def test_the_practice_check_mutation_is_caught(tmp_path, monkeypatch):
-    """Specimen: without the practice check a miner role selects a recipe it
-    never practised, which the test above forbids."""
+    """Specimen: with the practice check made a no-op, the test above
+    fails - a miner role selects a recipe it never practised."""
     monkeypatch.setattr(research_loop, "practice_check", lambda ledger, owner: None)
+    with pytest.raises(AssertionError, match="unpracticed selection ended"):
+        test_a_miner_selection_needs_a_practiced_recipe(tmp_path)
+
+
+def test_a_miner_role_states_its_call_cap_in_limits(tmp_path):
+    """Review regression: a miner role's prompt states its call cap from the
+    limits rule, so a cap passed any other way is refused before anything is
+    written - the prompt can never state 48 while the loop enforces 150."""
     meter = ledger(tmp_path, ceilings=ROOMY)
-    report = miner(meter, scripted([[select("s1")]])[0])
-    assert report["status"] == "SELECTED"
+    with pytest.raises(ValueError, match="sets its call cap in limits"):
+        miner(meter, never, limits=None, max_provider_calls=150)
+    assert not folder(meter).exists()
+    transport, requests = scripted([[stop()]])
+    miner(meter, transport, limits=limits_v2(calls_per_epoch=150))
+    plan = json.loads((folder(meter) / "plan.json").read_bytes())
+    assert plan["max_provider_calls"] == 150
+    assert "This session also allows at most 150 model calls" in plan["prompt"]
+    assert "150 of 150 model calls left" in requests[0]["input"][-1]["content"]
 
 
 def test_a_miner_role_is_reminded_once_per_tool_call(tmp_path):

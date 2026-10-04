@@ -574,9 +574,12 @@ def test_without_the_rule_a_ledger_refusal_still_propagates(tmp_path):
 
 
 def test_the_finite_ledger_mutation_is_caught(tmp_path, monkeypatch):
-    """Specimen: were the loop to drop its finite-ledger requirement, an
-    unbounded session would start, which the refusal test above forbids."""
+    """Specimen: with the finite-ledger requirement dropped, the refusal
+    test above fails - an unbounded session is not refused."""
     monkeypatch.setattr(research_loop, "finite_provider_bound", lambda *a: True)
-    meter = ledger(tmp_path, ceilings=None)
-    report = role(meter, scripted([[text()]])[0], limits=LIMITS_V2)
-    assert report["status"] == "STOPPED"
+    # The refusal the test expects is missing: the session starts instead.
+    with pytest.raises(
+        (AssertionError, pytest.fail.Exception),
+        match="finite provider_attempts|DID NOT RAISE",
+    ):
+        test_a_session_without_a_call_cap_needs_a_ledger_that_bounds_it(tmp_path)

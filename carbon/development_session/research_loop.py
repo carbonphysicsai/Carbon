@@ -65,7 +65,10 @@ from .research_agent_policy import (
     AUTONOMOUS,
     COMPACT,
     COMPACTION_ATTEMPTS,
+    COMPACTION_BYTES_PER_CHARACTER,
     COMPACTION_FIELDS,
+    COMPACTION_HEADROOM_TOKENS,
+    COMPACTION_MIN_SUMMARY_CHARACTERS,
     COMPACTION_SUMMARY_CHARACTERS,
     COMPACTION_TOOL,
     FINISH_NOTICE_CALLS,
@@ -251,7 +254,14 @@ class CeilingReached(ValueError):
     so no earlier session reads differently.
 
     `code` is a closed snake_case code (`research_share_reached`); `dimension`
-    names the ledger dimension that bound, when one did."""
+    names the ledger dimension that bound, when one did.
+
+    It is raised only from the reservation of a model call, one that reserves
+    provider_attempts or provider_nanodollars. The loop turns it into a typed
+    stop around its own model calls; a tool's own reservation (a research
+    trial) is the tool's to refuse, and this raised from inside a tool
+    dispatch, after the call's intent is journalled, would leave that
+    dispatch for reconciliation like any other exception there."""
 
     def __init__(self, code, *, dimension=None):
         if type(code) is not str or not re.fullmatch(r"[a-z][a-z0-9_]{2,63}", code):
@@ -820,14 +830,44 @@ def check_finish(finish):
     return json.loads(canonical(tool)), finish["validate"], status
 
 
+def _finish_unchecked(name):
+    """The answer when a finish validator answered outside its contract: the
+    caller's fault, not the model's, so said plainly; the session goes on."""
+    return rejected_call(
+        FINISH_INVALID,
+        "arguments",
+        f"Carbon could not check this {name} call: its checker answered outside "
+        "its contract. This is not a fault in your arguments.",
+        "continue your work, or end the session another way you are offered",
+        checked=False,
+    )
+
+
 def finish_result(validate, status, name, arguments):
     """The finish tool's result, computed before anything is journalled: the
     terminal record with the accepted arguments, or a refusal - the
     validator's own, which must be REJECTED_BEFORE_DISPATCH, or
-    `finish_invalid`."""
-    verdict = validate(arguments)
+    `finish_invalid`.
+
+    The model's arguments reach the caller's validator, and the reply that
+    carried them is already journalled: anything raised here would be raised
+    again on every resume. So a validator that raises is answered
+    `finish_invalid` naming the exception's type, and one that answers
+    outside its contract (not `(ok, refusal)`, or a refusal that is not a
+    REJECTED_BEFORE_DISPATCH record) is answered `finish_invalid` saying so,
+    with `checked: false`; the session goes on either way."""
+    try:
+        verdict = validate(arguments)
+    except Exception as error:  # noqa: BLE001 - model-written input, answered
+        return rejected_call(
+            FINISH_INVALID,
+            "arguments",
+            f"{name} could not read these arguments ({type(error).__name__})",
+            f"check that every field holds what {name} expects, for example "
+            "valid JSON in a field ending in _json, and send it again",
+        )
     if type(verdict) is not tuple or len(verdict) != 2 or type(verdict[0]) is not bool:
-        raise ValueError("a finish validator returns (ok, refusal)")
+        return _finish_unchecked(name)
     ok, refusal = verdict
     if ok:
         return {
@@ -845,8 +885,11 @@ def finish_result(validate, status, name, arguments):
             f"correct the {name} call and send it again",
         )
     if type(refusal) is not dict or refusal.get("status") != "REJECTED_BEFORE_DISPATCH":
-        raise ValueError("a finish refusal is REJECTED_BEFORE_DISPATCH")
-    return json.loads(canonical(refusal))
+        return _finish_unchecked(name)
+    try:
+        return json.loads(canonical(refusal))
+    except (TypeError, ValueError):
+        return _finish_unchecked(name)
 
 
 def session_tools(tools, *, finish_tool=None, miner_guidance=None, compaction=None):
@@ -973,66 +1016,129 @@ def parallel_call_counts(root):
 
 COMPACTION_RECORD = "carbon.autoresearch.context-compaction.v1"
 COMPACTION_LABEL = "SUMMARY"
-#: The answer to every call of a compaction reply that recorded no valid
-#: summary, so the next compaction request is a well-formed append.
-COMPACTION_NOT_RUN = {
-    "status": "REFUSED_NOT_RUN",
-    "reason": (
-        f"During a compaction only a valid {COMPACT} call is recorded; nothing "
-        "else ran."
-    ),
-    "authority_granted": False,
-}
 
 
-def compaction_note(compaction, unit, retry=None):
-    """The user note that asks for a compaction; `retry` says why the first
-    reply recorded none."""
+def compaction_note(
+    compaction,
+    unit,
+    retry=None,
+    *,
+    characters=COMPACTION_SUMMARY_CHARACTERS,
+    miner_messages=False,
+):
+    """The user note that asks for a compaction, the last item of a request
+    that is otherwise the conversation so far. `retry` says why the reply to
+    the first request recorded none: the second request is the conversation
+    and this note again, not that reply, so it is admitted whenever the first
+    was. `characters` is the summary size that fits the context left
+    (`compaction_budget`); `miner_messages` asks the model to keep the
+    miner's messages, which leave the context with their turns."""
     kept = compaction["keep_last_turns"]
-    if retry is None:
-        text = (
-            "Carbon context compaction: this conversation is nearing your model's "
-            f"context ceiling. Call {COMPACT} now, and only it, with your own "
-            "summary of everything you need to continue: findings, open "
-            "hypotheses, best recipes (exact JSON where you have them), "
-            "constraints and next steps, at most "
-            f"{COMPACTION_SUMMARY_CHARACTERS} characters in all. Carbon then "
-            "continues with the initial observation, your summary, labelled as "
-            f"your summary, and the last {kept} turns unchanged; the earlier turns "
-            "leave your context but stay in Carbon's record. This call starts "
-            f"nothing and does not end the {unit}."
+    text = (
+        "Carbon context compaction: this conversation is nearing your model's "
+        "context ceiling. "
+        + (
+            ""
+            if retry is None
+            else (
+                "Carbon asked for this once already and the reply recorded no "
+                f"valid compaction ({retry}); this is the last request. "
+            )
         )
-    else:
-        text = (
-            f"Carbon: no valid compaction was recorded ({retry}). Call {COMPACT} "
-            "once, alone, with " + ", ".join(COMPACTION_FIELDS) + " as text, at "
-            f"most {COMPACTION_SUMMARY_CHARACTERS} characters in all. If this reply "
-            f"records none either, the {unit} stops."
+        + f"Call {COMPACT} now, and only it, with your own summary of everything "
+        "you need to continue: " + ", ".join(COMPACTION_FIELDS) + " as text - "
+        "findings, open hypotheses, best recipes (exact JSON where you have "
+        f"them), constraints and next steps - at most {characters} characters in "
+        "all; plain text costs the least room. Carbon then continues with the "
+        "initial observation, your summary, labelled as your summary, and the "
+        f"last {kept} turns unchanged; the earlier turns leave your context but "
+        "stay in Carbon's record."
+        + (
+            " The miner's messages and your replies in those earlier turns leave "
+            "with them: keep in constraints every message of the miner's that "
+            "still applies, and what you answered."
+            if miner_messages
+            else ""
         )
+        + (
+            f" This call starts nothing and does not end the {unit}."
+            if retry is None
+            else f" If this reply records none either, the {unit} stops."
+        )
+    )
     return {"role": "user", "content": text}
+
+
+#: A summary with every field empty: the compacted conversation's size
+#: without its summary, from which the room left for one is computed.
+EMPTY_SUMMARY = {field: "" for field in COMPACTION_FIELDS}
+
+
+def compaction_budget(room):
+    """The characters a summary is asked for, given the request bytes `room`
+    it may add (`COMPACTION_BYTES_PER_CHARACTER` a character), never more
+    than `COMPACTION_SUMMARY_CHARACTERS`; below
+    `COMPACTION_MIN_SUMMARY_CHARACTERS` none is worth asking for (None)."""
+    characters = min(
+        COMPACTION_SUMMARY_CHARACTERS, room // COMPACTION_BYTES_PER_CHARACTER
+    )
+    return characters if characters >= COMPACTION_MIN_SUMMARY_CHARACTERS else None
+
+
+def _compaction_call(output):
+    """A compaction reply's first call to the compaction tool, or None."""
+    return next(
+        (
+            item
+            for item in output
+            if type(item) is dict
+            and item.get("type") == "function_call"
+            and item.get("name") == COMPACT
+        ),
+        None,
+    )
+
+
+def compaction_text(output):
+    """What a compaction reply's call wrote, whatever its validity, to size
+    the next request by: (its summary fields that are text, their characters,
+    the bytes of its arguments), or None when there is no text to measure.
+    Read only to measure; `compaction_summary` alone accepts a summary."""
+    call = _compaction_call(output)
+    raw = None if call is None else call.get("arguments")
+    if type(raw) is not str:
+        return None
+    try:
+        parsed = json.loads(raw)
+        size = len(raw.encode())
+    except (ValueError, RecursionError, UnicodeError):
+        return None
+    if type(parsed) is not dict:
+        return None
+    fields = {
+        field: parsed[field]
+        for field in COMPACTION_FIELDS
+        if type(parsed.get(field)) is str
+    }
+    characters = sum(len(text) for text in fields.values())
+    return (fields, characters, size) if characters else None
 
 
 def compaction_summary(output, cut=()):
     """(summary, None) from a compaction reply's first call to the compaction
-    tool, or (None, why) - the closed schema, every field text, at most
+    tool, or (None, why) - one bounded JSON object (`research_tools._json`),
+    the closed schema, every field text, at most
     `COMPACTION_SUMMARY_CHARACTERS` in all and nonempty findings. `cut` are
     the call ids the provider ended before they were complete."""
-    found = [
-        item
-        for item in output
-        if type(item) is dict
-        and item.get("type") == "function_call"
-        and item.get("name") == COMPACT
-    ]
-    if not found:
+    call = _compaction_call(output)
+    if call is None:
         return None, f"the reply did not call {COMPACT}"
-    call = found[0]
     if call.get("call_id") in cut:
         return None, "the call was cut off before it was complete"
     try:
         arguments = _json(call.get("arguments"))
     except (ValueError, RecursionError):
-        return None, "its arguments are not one JSON object"
+        return None, argument_problem(call.get("arguments"))[0]
     if set(arguments) != set(COMPACTION_FIELDS):
         return None, "it must carry exactly " + ", ".join(COMPACTION_FIELDS)
     if any(type(arguments[field]) is not str for field in COMPACTION_FIELDS):
@@ -1423,10 +1529,17 @@ async def run_epoch(
 
     `compaction` is `COMPACTION_V1`: when a turn's request nears the context
     admission ceiling the loop makes an explicit compaction call, journalled
-    and metered like any model call, and continues with the initial
-    observation, the model's labelled summary and the last turns; see
-    `research_agent_policy.COMPACTION_V1`. Without it the session stops at the
-    ceiling as before.
+    and metered like any model call, for a summary sized to the context the
+    kept turns leave, and continues with the initial observation, the
+    model's labelled summary and the last turns; see
+    `research_agent_policy.COMPACTION_V1`. A summary is accepted only when
+    the compacted conversation is admitted with room to spare, and when no
+    summary has room no compaction is asked for. Without the rule the session
+    stops at the ceiling as before.
+
+    A Graphite miner role states its call cap in `limits`, never
+    `max_provider_calls`, so the cap its prompt states is the cap it runs
+    under.
 
     A ledger that refuses a model call with `CeilingReached` ends the session
     STOPPED with that code.
@@ -1456,6 +1569,13 @@ async def run_epoch(
         raise ValueError("the Graphite miner policy runs a role's instructions")
     if miner and not every_call:
         raise ValueError("the Graphite miner policy runs under PARALLEL_CALLS_V2")
+    if miner and max_provider_calls is not None:
+        # Its prompt states the cap from the limits rule, so the cap it is
+        # told is always the cap it runs under.
+        raise ValueError(
+            "a Graphite miner role sets its call cap in limits (limits_v2), not "
+            "max_provider_calls"
+        )
     if max_provider_calls is not None:
         if instructions is None:
             raise ValueError("only a role's instructions carry their own call cap")
@@ -1616,18 +1736,22 @@ async def run_epoch(
     anchor = None
     # The miner's messages read so far, chained from this frozen plan.
     guidance_chain = digest(canonical(plan)) if miner_guidance is not None else None
+    # The finish status ends the session only as the finish tool's own result.
     terminal = {"SELECTED", "STOPPED"} if stops else {"SELECTED"}
-    if finish_status is not None:
-        terminal = terminal | {finish_status}
     # The current turn's trial ceiling; `dispatch` reads it when it runs.
     # None under a limits rule with no trial cap: the ledger's own binds.
     trial_limit = MAX_RESEARCH_TRIALS if limits is None else limits["trials_per_epoch"]
     # Compaction state (COMPACTION_V1), recomputed identically on a replay:
-    # model calls the compactions made, compactions done, and each turn still
-    # in the context with the history index it starts at.
+    # model calls the compactions made, compactions done, due compactions not
+    # asked for because no summary had room, each turn still in the context
+    # with the history index it starts at, and the least input tokens any
+    # turn of this session reported (every request starts with the same
+    # instructions, tools and initial observation, so it bounds their tokens).
     extra_calls = 0
     compactions = 0
+    deferred = 0
     live_turns = []
+    base_tokens = None
     ceiling = provider.settings.max_input_tokens - CONTEXT_RESERVE_TOKENS
 
     def request_for(items):
@@ -1741,34 +1865,142 @@ async def run_epoch(
         write_once(result_file, canonical(result))
         return result
 
-    async def compact(index, turn_id, phase):
+    def compacted_anchor(items, message, compaction_tokens):
+        """The least of three valid bounds on a compacted request's input
+        tokens, and the anchor that gives it: its bytes (no anchor); the
+        compaction request's tokens plus the summary message's bytes, since
+        the compacted request is a subsequence of that request plus the
+        message; and the least input tokens a turn of this session reported
+        plus the bytes after the initial observation, since every request
+        starts with the same instructions, tools and initial observation.
+        Each later request appends to the compacted one, so the least stays
+        the least until a turn reports its own tokens."""
+        size = len(canonical(request_for(items)))
+        candidates = [None]
+        if compaction_tokens is not None:
+            candidates.append((compaction_tokens + len(canonical(message)), size))
+        if base_tokens is not None:
+            candidates.append((base_tokens, len(canonical(request_for(items[:1])))))
+        best = min(candidates, key=lambda candidate: input_token_bound(size, candidate))
+        return input_token_bound(size, best), best
+
+    async def compact(index, turn_id, phase, pending):
         """The compaction before turn `index` (COMPACTION_V1), when one is
-        due: an explicit model call asking for the closed summary, at most
-        `COMPACTION_ATTEMPTS` of them, journalled and metered like any model
-        call. On success the history becomes the initial observation, the
-        labelled summary and the last turns, and the record names what left
-        the context. Returns an outcome that ends the session, or None."""
-        nonlocal history, anchor, extra_calls, compactions, live_turns
+        due and a summary has room: an explicit model call asking for the
+        closed summary, at most `COMPACTION_ATTEMPTS` of them, journalled and
+        metered like any model call. `pending` is the miner's message this
+        turn appends after the compaction, counted in the room it must leave.
+
+        The summary is asked for at the size the context left holds
+        (`compaction_budget`) and accepted only when the compacted
+        conversation is admitted under the ceiling with
+        `COMPACTION_HEADROOM_TOKENS` and `pending` to spare
+        (`compacted_anchor`); one too long is asked for again at the size its
+        own text shows will fit. When no summary of
+        `COMPACTION_MIN_SUMMARY_CHARACTERS` has room, or no model call would
+        be left for the turn after it, none is asked for and the session goes
+        on as it would without the rule. On success the history becomes the
+        initial observation, the labelled summary and the last turns, and the
+        record names what left the context. Returns an outcome that ends the
+        session, or None."""
+        nonlocal history, anchor, extra_calls, compactions, deferred, live_turns
         record_path = root / (compaction_identity(epoch, index, 0, stage) + ".json")
         threshold = int(ceiling * compaction["trigger_fraction"])
         kept_count = compaction["keep_last_turns"]
         bound = input_token_bound(len(canonical(request_for(history))), anchor)
-        if bound <= threshold or len(live_turns) <= kept_count:
+        due = bound > threshold and len(live_turns) > kept_count
+        if due:
+            keep_from = live_turns[-kept_count][1]
+            summarized = [turn for turn, _ in live_turns[:-kept_count]]
+            kept = history[keep_from:]
+            count = compactions + 1
+            spare = COMPACTION_HEADROOM_TOKENS + (
+                0 if pending is None else len(canonical(pending)) + 1
+            )
+            empty = compaction_message(
+                EMPTY_SUMMARY, count=count, summarized=summarized, kept=kept_count
+            )
+
+            def room(compaction_tokens):
+                """Request bytes a summary may add to the compacted
+                conversation and still leave `spare` under the ceiling."""
+                used, _ = compacted_anchor(
+                    [history[0], empty, *kept], empty, compaction_tokens
+                )
+                return ceiling - spare - used
+
+            def note(retry=None, characters=COMPACTION_SUMMARY_CHARACTERS):
+                return compaction_note(
+                    compaction,
+                    unit,
+                    retry,
+                    characters=characters,
+                    miner_messages=miner_guidance is not None,
+                )
+
+            def resize(output, compaction_tokens, characters):
+                """The characters the last request asks for. When the
+                refused reply wrote summary text, its own bytes a character
+                say what fits both the context left and the tool-argument
+                bound, with a tenth to spare; otherwise the planned size."""
+                have = max(0, room(compaction_tokens))
+                measured = compaction_text(output)
+                if measured is None:
+                    return compaction_budget(have) or characters
+                fields, length, size = measured
+                cost = len(
+                    canonical(
+                        compaction_message(
+                            {**EMPTY_SUMMARY, **fields},
+                            count=count,
+                            summarized=summarized,
+                            kept=kept_count,
+                        )
+                    )
+                ) - len(canonical(empty))
+                keys = len(canonical(EMPTY_SUMMARY))
+                return max(
+                    1,
+                    min(
+                        COMPACTION_SUMMARY_CHARACTERS,
+                        have * length * 9 // (max(1, cost) * 10),
+                        (MAX_TOOL_ARGUMENT_BYTES - keys)
+                        * length
+                        * 9
+                        // (max(1, size - keys) * 10),
+                    ),
+                )
+
+            # The note at the largest size bounds the request carrying any
+            # smaller one, so the room it leaves is never overstated.
+            widest = input_token_bound(
+                len(canonical(request_for([*history, note()]))), anchor
+            )
+            characters = compaction_budget(room(widest))
+            calls_left = (
+                None if call_limit is None else call_limit - index - extra_calls
+            )
+            if characters is None or (calls_left is not None and calls_left < 2):
+                due = False
+                deferred += 1
+        if not due:
             if record_path.exists():
                 raise ValueError("context compaction replay conflict")
             return None
-        keep_from = live_turns[-kept_count][1]
-        summarized = [turn for turn, _ in live_turns[:-kept_count]]
-        items = [*history, compaction_note(compaction, unit)]
-        attempt_anchor = anchor
-        sent, summary, why, success = [], None, None, None
+        items = [*history, note(characters=characters)]
+        # The least valid bound on the compaction requests' input tokens.
+        compaction_tokens = None
+        sent, asked, why, success = [], [characters], None, None
         for attempt in range(COMPACTION_ATTEMPTS):
             if call_limit is not None and index + extra_calls >= call_limit:
                 return {"status": "STOPPED", "reason": "epoch provider-call ceiling"}
             identity = compaction_identity(epoch, index, attempt, stage)
+            # Each request appends a note to the conversation the last turn's
+            # anchor measures, so that anchor bounds it.
             request = request_for(items)
             request_bytes = len(canonical(request))
-            if input_token_bound(request_bytes, attempt_anchor) > ceiling:
+            admitted = input_token_bound(request_bytes, anchor)
+            if admitted > ceiling:
                 return {
                     "status": "STOPPED",
                     "code": CONTEXT_CEILING,
@@ -1794,7 +2026,7 @@ async def run_epoch(
                     phase=admission_phase(identity, phase),
                     transport=transport,
                     provider=provider,
-                    anchor=attempt_anchor,
+                    anchor=anchor,
                     accept_incomplete=True,
                 )
             except CeilingReached as reached:
@@ -1807,6 +2039,14 @@ async def run_epoch(
                 if t["turn"] == identity
             )
             write_once(root / (identity + "-turn.json"), canonical(turn))
+            tokens = turn["input_tokens"]
+            if type(tokens) is int and tokens >= 0:
+                admitted = min(admitted, tokens)
+            compaction_tokens = (
+                admitted
+                if compaction_tokens is None
+                else min(compaction_tokens, admitted)
+            )
             output = response.get("output")
             if type(output) is not list:
                 raise ValueError("provider output malformed; retained and stopped")
@@ -1822,29 +2062,30 @@ async def run_epoch(
                 else []
             )
             summary, why = compaction_summary(output, cut)
-            tokens = turn["input_tokens"]
             if summary is not None:
-                success = (tokens, response)
-                break
-            # Every call of the reply is answered, so the next request is a
-            # well-formed append to this one.
-            items = [
-                *items,
-                *output,
-                *(
-                    {
-                        "type": "function_call_output",
-                        "call_id": item["call_id"],
-                        "output": canonical(COMPACTION_NOT_RUN).decode(),
-                    }
-                    for item in calls
-                    if type(item.get("call_id")) is str
-                ),
-                compaction_note(compaction, unit, retry=why),
-            ]
-            attempt_anchor = (
-                (tokens, request_bytes) if type(tokens) is int and tokens >= 0 else None
-            )
+                message = compaction_message(
+                    summary, count=count, summarized=summarized, kept=kept_count
+                )
+                compacted = [history[0], message, *kept]
+                admitted_bound, new_anchor = compacted_anchor(
+                    compacted, message, compaction_tokens
+                )
+                if admitted_bound + spare <= ceiling:
+                    success = (response, message, compacted, admitted_bound, new_anchor)
+                    break
+                # Valid, but too long for the context left.
+                why = (
+                    f"it needs {len(canonical(message)) - len(canonical(empty))} "
+                    f"bytes of context and {max(0, room(compaction_tokens))} are "
+                    f"left beside the last {kept_count} turns"
+                )
+            if attempt + 1 < COMPACTION_ATTEMPTS:
+                characters = resize(output, compaction_tokens, characters)
+                asked.append(characters)
+                # The last request is the conversation and the note again,
+                # saying why; the refused reply stays in the journal, not in
+                # the context, so the request fits whenever the first did.
+                items = [*history, note(retry=why, characters=characters)]
         if success is None:
             return {
                 "status": "STOPPED",
@@ -1855,21 +2096,9 @@ async def run_epoch(
                 ),
                 "compaction_calls": sent,
             }
-        tokens, response = success
+        response, message, compacted, admitted_bound, new_anchor = success
         compactions += 1
-        dropped, kept = history[1:keep_from], history[keep_from:]
-        message = compaction_message(
-            summary, count=compactions, summarized=summarized, kept=kept_count
-        )
-        compacted = [history[0], message, *kept]
-        # The compacted request is a subsequence of the compaction request
-        # plus the summary, so its tokens are bounded by the tokens the
-        # provider reported for that request plus the summary's bytes.
-        new_anchor = (
-            (tokens + len(canonical(message)), len(canonical(request_for(compacted))))
-            if type(tokens) is int and tokens >= 0
-            else None
-        )
+        dropped = history[1:keep_from]
         write_once(
             record_path,
             canonical(
@@ -1886,6 +2115,7 @@ async def run_epoch(
                         "threshold": threshold,
                         "ceiling": ceiling,
                     },
+                    "summary_characters_asked": asked,
                     "turns_summarized": summarized,
                     "turns_kept": [turn for turn, _ in live_turns[-kept_count:]],
                     "dropped_items": len(dropped),
@@ -1893,7 +2123,11 @@ async def run_epoch(
                     "kept_items": len(kept),
                     "summary": summary,
                     "message": message,
-                    "anchor": None if new_anchor is None else list(new_anchor),
+                    "admission": {
+                        "input_token_bound": admitted_bound,
+                        "spare": spare,
+                        "anchor": None if new_anchor is None else list(new_anchor),
+                    },
                 }
             ),
         )
@@ -1924,16 +2158,12 @@ async def run_epoch(
         phase = (
             "research" if trial_limit is None or trials < trial_limit else "selection"
         )
-        if compaction is not None:
-            outcome = await compact(index, call_id, phase)
-            if outcome is not None:
-                break
-            if call_limit is not None and index + extra_calls >= call_limit:
-                break
-            live_turns.append((call_id, len(history)))
+        pending = None
         if miner_guidance is not None:
             # The step boundary: read once from the journal, recorded before
             # the request; a replay reads the record, so the turn is the same.
+            # Read before a compaction, which leaves room for it and which it
+            # follows, so a new message is never summarised away unread.
             record = guidance_step(
                 ledger,
                 owner=owner,
@@ -1944,9 +2174,16 @@ async def run_epoch(
                 stage=stage,
             )
             guidance_chain = record["chain"]
-            message = guidance.for_model(record)
-            if message is not None:
-                history.append(message)
+            pending = guidance.for_model(record)
+        if compaction is not None:
+            outcome = await compact(index, call_id, phase, pending)
+            if outcome is not None:
+                break
+            if call_limit is not None and index + extra_calls >= call_limit:
+                break
+            live_turns.append((call_id, len(history)))
+        if pending is not None:
+            history.append(pending)
         if every_call and limits is None:
             history.append(
                 turn_status(
@@ -2026,6 +2263,10 @@ async def run_epoch(
         write_once(root / (call_id + "-turn.json"), canonical(turn))
         if type(turn["input_tokens"]) is int and turn["input_tokens"] >= 0:
             anchor = (turn["input_tokens"], request_bytes)
+            base_tokens = min(
+                turn["input_tokens"],
+                turn["input_tokens"] if base_tokens is None else base_tokens,
+            )
         caching = caching_status(session_turns(turns, epoch, stage))
         print(
             f"{label}: turn {index + 1} charge "
@@ -2194,7 +2435,9 @@ async def run_epoch(
                     "reason": "tool dispatch unresolved",
                     "tool": identity,
                 }
-            elif result.get("status") in terminal:
+            elif result.get("status") in terminal or (
+                call["name"] == finish_name and result.get("status") == finish_status
+            ):
                 outcome = result
             if outcome is not None:
                 rest = running[position + 1 :]
@@ -2266,6 +2509,7 @@ async def run_epoch(
         report["stage"] = stage
     if compaction is not None:
         report["compactions"] = compactions
+        report["compactions_deferred"] = deferred
     if miner_guidance is not None:
         # The messages this epoch read, bound into its recorded input.
         report["miner_guidance"] = {
