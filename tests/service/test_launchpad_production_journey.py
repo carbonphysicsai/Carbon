@@ -2218,6 +2218,25 @@ def intake_graphite(tmp_path, monkeypatch):
     launchpad.close()
 
 
+class AdvancingChain:
+    """DEVELOPMENT FIXTURE: the intake refresher's chain reader for a stage
+    that outlives a refresh period (`intake.REFRESH_S`). Each read is a fresh
+    snapshot of the next finalized block, as a live chain gives. The intake's
+    journal refuses two different snapshots of one block
+    (`TRANSPORT_CONTEXT`), so one block stamped afresh on every read would
+    refuse a submission's poll signed after a refresh, which is a fixture
+    race, not the miner's mistake."""
+
+    def __init__(self):
+        self.reads = 0
+
+    async def capture(self, context):
+        from test_battery_intake import snapshot
+
+        self.reads += 1
+        return snapshot(100 + self.reads)
+
+
 def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
     intake_graphite, tmp_path, refs
 ):
@@ -2243,7 +2262,10 @@ def test_8c_a_build_constructs_from_the_edited_plan_and_submits(
     graphite.arxiv = FakeArxiv([])
     made = made_here(tmp_path / "validator-service")
     open_pool(made, refs)
-    with serving(made) as live:
+    # The build runs before it submits, past a refresh of the intake's
+    # snapshot: the chain advances a block on each read, as a live one does.
+    chain = AdvancingChain()
+    with serving(made, chain=chain) as live:
         graphite.cfg = {**graphite.cfg, "intakes": {BATTERY: live.url}}
         # One committed final epoch: the build selects once and completes.
         campaign = graphite.launch_graphite(
