@@ -34,75 +34,24 @@ reachable from here. Every refusal is journalled as an event.
 
 from __future__ import annotations
 
-import json
-
 from carbon.development_session.profile import canonical, digest
 
-from .. import boundaries
 from . import literature
 
-#: The next-level proposal tool (`roles.NEXT_LEVEL`; roles imports
-#: this module's checks through the literature index, so the name is repeated
-#: here and `roles` asserts the two agree).
+# The protected-material check lives in a leaf module, because `literature`
+# runs it when it builds its fixture index at import and this module imports
+# `literature` (an import cycle when this module is imported first). Both
+# names stay importable from here (`tools.protected`, `tools.PROTECTED_MARKERS`).
+from .protected_material import PROTECTED_MARKERS, protected  # noqa: F401
+
+#: The next-level proposal tool (`roles.NEXT_LEVEL`; the name is repeated
+#: here rather than imported, and `roles` asserts the two agree).
 NEXT_LEVEL = "graphite_propose_next_level"
 
-#: Graphite's markers beyond the checkout deny rules. Lower-case substrings.
-PROTECTED_MARKERS = (
-    "official_seed",
-    "official-seed",
-    "official seed",
-    "derived_seed",
-    "derived-seed",
-    "draw_id",
-    "draw-id",
-    "protected_exam",
-    "protected-exam",
-    "protected exam",
-    "hidden_case",
-    "hidden-case",
-    "verification_reference",
-    "verification-reference",
-    "verification reference",
-    "validator_private",
-    "private_validator",
-    "private validator",
-    boundaries.CANARY_PREFIX.lower(),
-)
 REFUSED_MANIFEST = "REFUSED_NOT_IN_MANIFEST"
 REFUSED_PROTECTED = "REFUSED_PROTECTED_MATERIAL"
 REFUSED_RESULT = "REFUSED_PROTECTED_MATERIAL_IN_RESULT"
 UNAVAILABLE = "UNAVAILABLE"
-
-
-def _strings(value):
-    """Every string in a JSON value, including JSON encoded inside strings."""
-    if type(value) is str:
-        yield value
-        try:
-            inner = json.loads(value)
-        except (ValueError, RecursionError):
-            return
-        if type(inner) in (dict, list):
-            yield from _strings(inner)
-    elif type(value) is dict:
-        for key, item in value.items():
-            yield str(key)
-            yield from _strings(item)
-    elif type(value) in (list, tuple):
-        for item in value:
-            yield from _strings(item)
-
-
-def _protected_text(text):
-    lowered = text.lower()
-    return boundaries._denied(lowered) or any(
-        marker in lowered for marker in PROTECTED_MARKERS
-    )
-
-
-def protected(value):
-    """True when any string in `value` names protected material."""
-    return any(_protected_text(text) for text in _strings(value))
 
 
 def refusal(status, code, **extra):
