@@ -40,9 +40,9 @@ from . import literature
 
 # The protected-material check lives in a leaf module, because `literature`
 # runs it when it builds its fixture index at import and this module imports
-# `literature` (an import cycle when this module is imported first).
-from .protected_material import PROTECTED_MARKERS as PROTECTED_MARKERS
-from .protected_material import protected
+# `literature` (an import cycle when this module is imported first). Both
+# names stay importable from here (`tools.protected`, `tools.PROTECTED_MARKERS`).
+from .protected_material import PROTECTED_MARKERS, protected  # noqa: F401
 
 #: The next-level proposal tool (`roles.NEXT_LEVEL`; the name is repeated
 #: here rather than imported, and `roles` asserts the two agree).
