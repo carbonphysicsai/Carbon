@@ -198,7 +198,9 @@ def _reconciled(host, monkeypatch):
     host.control(identity, "reconcile")
     settled = published()
     (call,) = settled["view"]["reconciliation"]["settled"]
-    assert call["caveat"] and not settled["view"]["reconciliation"]["awaiting_settlement"]
+    assert (
+        call["caveat"] and not settled["view"]["reconciliation"]["awaiting_settlement"]
+    )
     return {"awaiting": awaiting, "settled": settled}
 
 
