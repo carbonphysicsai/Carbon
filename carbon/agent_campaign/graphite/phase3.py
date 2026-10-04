@@ -65,7 +65,11 @@ the agent.
 `--dry-run` runs the whole session with a scripted model, a scripted pod
 account and a recording miner tool, under a synthetic grant, writing only
 under `DIR/dry-run`. Carbon's admission, frozen-rule scoring, comparison,
-bundle and clean rebuild are real; the predictions are SYNTHETIC. Its first
+bundle and clean rebuild are real; the predictions are SYNTHETIC. Beside the
+session it runs `pods.real_path_check`: the live pod backend (the operator
+compute store, service and adapter) built on the main thread and driven
+through `asyncio.to_thread`, concurrently, with RunPod in memory, and the dry
+run fails unless that check is OK (POD-STORE-THREADS-01). Its first
 turn returns three tool calls at once, as live session 1's model did, so the
 parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 (LP-PROD-A) all three run, and the dry run reports how many calls of
@@ -1267,7 +1271,7 @@ def dry_run(root, literature=None):
     from carbon.battery.research import SCAFFOLD
 
     from .model import ScriptedModel
-    from .pods import ScriptedPods, Step, synthetic_outputs
+    from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
     root = root / "dry-run"
     if root.exists():
@@ -1317,9 +1321,17 @@ def dry_run(root, literature=None):
         # The Constructor's selection, as the session record froze it
         # (GRAPHITE-D34): window, admission ceiling, timeout and reservation.
         "constructor_model": model_window(provider, result["run_id"]),
+        # The scripted pods above never reach the operator layer; this drives
+        # the live backend's own path, threads included, with RunPod in memory
+        # (POD-STORE-THREADS-01).
+        "real_pod_path": real_path_check(root / "real-pod-path"),
     }
     print(json.dumps(result, indent=1, default=str))
-    return 0 if result["provider_state"] == "succeeded" else 4
+    ok = (
+        result["provider_state"] == "succeeded"
+        and result["dry_run"]["real_pod_path"]["status"] == "OK"
+    )
+    return 0 if ok else 4
 
 
 def main(argv=None):

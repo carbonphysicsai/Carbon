@@ -1,0 +1,30 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attack-invariant-without-numpy",
+ "recorded_at": "2026-10-04T20:56:20Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/invariants/test_attack_store_unreachable.py on main 992d046b in a venv synced with the contract-authority lane's groups (dev, chain, archive); fixed on claude/fix-attack-invariant-no-numpy",
+  "description": "Ran the attack-store unreachability invariant (merged in #563) the way the Contract and authority acceptance lane runs tests/invariants, with no numerical stack installed, then imported each miner module alone to find what needed numpy."
+ },
+ "expected": "The invariant passes in every lane that runs tests/invariants: the canonical shards and the contract-authority lane that decision-only and docs-only pull requests get.",
+ "observed": "Two tests failed with ModuleNotFoundError for numpy: the store-name check imported the store (knowledge.py imports development_session.data, which imports numpy), and the runtime import check imported the miner modules, 26 of 32 of which import numpy on load through development_session.data or measurement_runtime.model. The pull request that added the test changed runtime code, so only the canonical shards, which install numpy, ran it; every later decision-only or docs-only pull request failed the contract lane.",
+ "keep": [
+  "A test under tests/invariants runs in two lanes with different installs: the canonical shards (every group) and the contract-authority lane (dev, chain, archive only). Run a new invariant in a venv synced with the contract lane's groups before merging it.",
+  "Keep the runtime import check alongside the static import walk: a store import by a name built at run time is invisible to the walk and only the runtime check catches it."
+ ],
+ "change": [
+  "The store-name check reads STORE_DIRNAME and SCHEMA_PREFIX from knowledge.py's source and requires each to be bound once, to a string literal, so the value read is the value the module holds.",
+  "The runtime import check's fresh interpreter supplies an inert stand-in for numpy only when numpy is not installed (its finder sits last on sys.meta_path); any other missing module still fails, and where numpy is installed the test asserts nothing was stubbed.",
+  "New specimens: a store import by a run-time name fails the import check with and without numpy, and a renamed, computed or rebound store name fails the name check."
+ ],
+ "protocol_elements": [
+  "test.lanes",
+  "attack.unreachability",
+  "test.specimen"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

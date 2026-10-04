@@ -19,9 +19,17 @@ counts as reaching it too, and the shipped data files are searched for the
 same names. A fresh interpreter that imports every importable module of those
 surfaces is shown to hold no attack module afterwards.
 
+Every check runs in every lane that runs this file, including the
+contract-authority lane, which installs no numerical stack: the store's names
+are read from its source, and the fresh interpreter imports numpy as an inert
+stand-in only when it is not installed (the canonical shards import the real
+one).
+
 Every check carries a specimen: a planted import of the store from a miner
 path, two lazy imports deep behind a Launchpad entry, and a string import, are
-each found and fail the same assertion the real check makes.
+each found and fail the same assertion the real check makes; a store import by
+a name built at run time fails the import check; a renamed or computed store
+name fails the name check.
 """
 
 import ast
@@ -164,14 +172,71 @@ def test_the_walk_reaches_every_miner_surface():
     assert (ROOT / ATTACK_PATH / "knowledge.py").is_file()
 
 
+#: The store's module and the names in it that ATTACK_NAMES must hold.
+STORE_FILE = ATTACK_PATH + "/knowledge.py"
+STORE_NAMES = ("STORE_DIRNAME", "SCHEMA_PREFIX")
+
+
+def store_constants(path):
+    """The value each STORE_NAMES name is bound to in the file, read from its
+    source without importing it (the store imports the numerical stack, which
+    the contract lane does not install). Each name must be bound exactly once,
+    anywhere in the file, to a string literal at module level: any other form
+    fails here, so the value read is the value the module holds."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    bound = {name: [] for name in STORE_NAMES}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and node.id in bound:
+            if not isinstance(node.ctx, ast.Load):
+                bound[node.id].append(node)
+        elif isinstance(node, ast.alias) and (node.asname or node.name) in bound:
+            bound[node.asname or node.name].append(node)
+    values = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if (
+                isinstance(target, ast.Name)
+                and target.id in bound
+                and isinstance(node.value, ast.Constant)
+                and type(node.value.value) is str
+            ):
+                values[target.id] = node.value.value
+    for name, nodes in bound.items():
+        once = len(nodes) == 1 and name in values
+        assert once, f"{name} must be bound once, to a string literal, at module level"
+    return values
+
+
 def test_the_names_searched_for_are_the_stores_own():
     """The literal names above are the store's: its schema prefix and its
     directory name. A rename there fails here before it can empty the check."""
-    from carbon.agent_campaign.attack import knowledge
+    path = ROOT / STORE_FILE
+    values = store_constants(path)
+    assert values["STORE_DIRNAME"] in ATTACK_NAMES
+    assert values["SCHEMA_PREFIX"] in ATTACK_NAMES
+    assert SCAN._module_name(path, ROOT).startswith(ATTACK_MODULE + ".")
 
-    assert knowledge.STORE_DIRNAME in ATTACK_NAMES
-    assert knowledge.SCHEMA_PREFIX in ATTACK_NAMES
-    assert knowledge.__name__.startswith(ATTACK_MODULE + ".")
+
+def test_a_renamed_or_computed_store_name_fails_the_check(tmp_path):
+    """Specimen for the store-name check: a renamed directory, a schema prefix
+    built at run time, and a second binding are each refused."""
+    cases = {
+        "renamed": 'STORE_DIRNAME = "renamed"\nSCHEMA_PREFIX = "carbon.graphite.attack-knowledge"\n',
+        "computed": 'STORE_DIRNAME = "graphite-attack-knowledge"\nSCHEMA_PREFIX = "carbon." + "x"\n',
+        "rebound": (
+            'STORE_DIRNAME = "graphite-attack-knowledge"\n'
+            'SCHEMA_PREFIX = "carbon.graphite.attack-knowledge"\n'
+            "if True:\n    STORE_DIRNAME = 'elsewhere'\n"
+        ),
+    }
+    for case, text in cases.items():
+        path = tmp_path / (case + ".py")
+        path.write_text(text, encoding="utf-8")
+        with pytest.raises(AssertionError):
+            values = store_constants(path)
+            assert values["STORE_DIRNAME"] in ATTACK_NAMES
+            assert values["SCHEMA_PREFIX"] in ATTACK_NAMES
 
 
 def _shipped_files():
@@ -210,35 +275,154 @@ def _importable_modules():
     return sorted(set(names))
 
 
-def test_importing_every_miner_module_loads_no_attack_module():
-    """A fresh interpreter imports every importable module of the miner
-    surfaces; afterwards it holds no attack module."""
-    modules = _importable_modules()
-    assert "carbon.agent_campaign.graphite.miner.library" in modules
-    assert "carbon.miner_mcp.service" in modules
+#: Third-party packages a lane may lack that the miner modules import. The
+#: contract-authority lane installs no numerical stack, and nearly every miner
+#: module imports numpy on load. Only these, and only when the interpreter
+#: cannot find them, are replaced by an inert stand-in; any other missing
+#: module still fails the import, and so the test.
+STUBBABLE = ("numpy",)
+
+#: Run in a fresh interpreter: import the named modules and print every module
+#: it then holds, and every name the inert stand-in had to supply. The
+#: stand-in's finder sits last on `sys.meta_path`, so a lane that installs the
+#: package (the canonical shards) imports the real one and stubs nothing.
+_IMPORT_ALL = textwrap.dedent("""
+    import importlib, importlib.abc, importlib.machinery, json, sys, types
+
+    STUBBABLE = set(json.loads(sys.argv[2]))
+    stubbed = []
+
+    class Inert:
+        # Any value read from an absent package: inert, never a real result.
+        def __getattr__(self, name):
+            if name.startswith("__") and name.endswith("__"):
+                raise AttributeError(name)
+            return INERT
+
+        def __call__(self, *args, **kwargs):
+            return INERT
+
+        def __getitem__(self, key):
+            return INERT
+
+        def __iter__(self):
+            return iter(())
+
+        def __mro_entries__(self, bases):
+            return (object,)
+
+    for op in ("add", "sub", "mul", "truediv", "floordiv", "pow", "mod",
+               "matmul", "neg", "pos", "abs", "or", "and", "xor"):
+        setattr(Inert, "__%s__" % op, lambda self, *other: INERT)
+        setattr(Inert, "__r%s__" % op, lambda self, *other: INERT)
+    INERT = Inert()
+
+    class InertModule(types.ModuleType):
+        def __getattr__(self, name):
+            if name.startswith("__") and name.endswith("__"):
+                raise AttributeError(name)
+            return INERT
+
+    class AbsentPackage(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+        def find_spec(self, name, path=None, target=None):
+            top, _, rest = name.partition(".")
+            if top not in STUBBABLE:
+                return None
+            if rest and not isinstance(sys.modules.get(top), InertModule):
+                return None  # a real package's missing submodule stays missing
+            stubbed.append(name)
+            return importlib.machinery.ModuleSpec(name, self, is_package=True)
+
+        def create_module(self, spec):
+            module = InertModule(spec.name)
+            module.__path__ = []
+            return module
+
+        def exec_module(self, module):
+            pass
+
+    sys.meta_path.append(AbsentPackage())
+    for name in json.loads(sys.argv[1]):
+        importlib.import_module(name)
+    print(json.dumps({"loaded": sorted(sys.modules), "stubbed": sorted(stubbed)}))
+    """)
+
+
+def import_all(modules, root=ROOT):
+    """`(loaded, stubbed)` after a fresh interpreter in `root` imports
+    `modules`: every module it then holds, and every module the inert
+    stand-in supplied because the package was not installed."""
     done = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            textwrap.dedent("""
-                import importlib, json, sys
-                for name in json.loads(sys.argv[1]):
-                    importlib.import_module(name)
-                print(json.dumps(sorted(sys.modules)))
-                """),
-            json.dumps(modules),
-        ],
+        [sys.executable, "-c", _IMPORT_ALL, json.dumps(modules), json.dumps(STUBBABLE)],
         capture_output=True,
         text=True,
-        check=True,
-        cwd=ROOT,
+        check=False,  # the return code is asserted below, with the stderr
+        cwd=root,
         env={**os.environ, "JAX_PLATFORMS": "cpu"},
         timeout=600,
     )
-    loaded = set(json.loads(done.stdout.strip().splitlines()[-1]))
+    assert done.returncode == 0, done.stderr[-4000:]
+    report = json.loads(done.stdout.strip().splitlines()[-1])
+    stubbed = set(report["stubbed"])
+    assert all(name.split(".")[0] in STUBBABLE for name in stubbed), stubbed
+    for package in STUBBABLE:
+        if importlib.util.find_spec(package) is not None:
+            # Where the package is installed the real one is imported.
+            assert not any(n.split(".")[0] == package for n in stubbed), stubbed
+    return set(report["loaded"]), stubbed
+
+
+def test_importing_every_miner_module_loads_no_attack_module():
+    """A fresh interpreter imports every importable module of the miner
+    surfaces; afterwards it holds no attack module. In a lane without the
+    numerical stack, numpy is an inert stand-in (STUBBABLE); in the canonical
+    shards the real package is imported."""
+    modules = _importable_modules()
+    assert "carbon.agent_campaign.graphite.miner.library" in modules
+    assert "carbon.miner_mcp.service" in modules
+    loaded, _stubbed = import_all(modules)
     assert set(modules) <= loaded
     leaked = sorted(name for name in loaded if _attack_import(name))
     assert not leaked, leaked
+
+
+def test_a_runtime_import_of_the_store_fails_the_import_check(tmp_path):
+    """Specimen for the import check: a miner module that reaches the store by
+    a name built at run time (which no import statement or string constant
+    shows, so the static walk cannot see it), where the store imports numpy,
+    leaves the attack module loaded and fails the same assertion the real
+    check makes, with or without numpy installed."""
+    files = {
+        "carbon/__init__.py": "",
+        "carbon/agent_campaign/__init__.py": "",
+        "carbon/agent_campaign/attack/__init__.py": "",
+        "carbon/agent_campaign/attack/knowledge.py": (
+            "import numpy as np\nFLOOR = np.float64(0.5) * 2\n"
+        ),
+        "carbon/agent_campaign/graphite/__init__.py": "",
+        "carbon/agent_campaign/graphite/miner/__init__.py": "",
+        "carbon/agent_campaign/graphite/miner/planted.py": (
+            "import importlib\n"
+            "_PARTS = ('carbon', 'agent_campaign', 'attack', 'knowledge')\n"
+            "importlib.import_module('.'.join(_PARTS))\n"
+        ),
+    }
+    for name, text in files.items():
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    planted = "carbon.agent_campaign.graphite.miner.planted"
+    assert not reach(
+        closure(tmp_path, ("carbon/agent_campaign/graphite/miner",)), tmp_path
+    )
+    loaded, stubbed = import_all([planted], tmp_path)
+    # The store's numpy import took the stand-in exactly where numpy is absent.
+    assert ("numpy" in stubbed) == (importlib.util.find_spec("numpy") is None)
+    assert planted in loaded
+    leaked = sorted(name for name in loaded if _attack_import(name))
+    assert ATTACK_MODULE + ".knowledge" in leaked
+    with pytest.raises(AssertionError):
+        assert not leaked, leaked
 
 
 def _plant(tmp_path):
