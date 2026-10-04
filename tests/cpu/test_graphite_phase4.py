@@ -439,6 +439,59 @@ def test_cancel_asks_a_running_session_to_stop(tmp_path, capsys):
     ) == ("unknown_session")
 
 
+# -- the per-check view ---------------------------------------------------------------------
+def _rows(names, *, check=None):
+    return {name: {"check": check, "status": "NOT_RUN"} for name in names}
+
+
+def test_the_check_view_names_every_track_a_check_from_the_adapter():
+    """A seam's check comes from the adapter's declaration, so a report row
+    that lost it neither hides the check nor passes it; the lost check is
+    listed. A check nothing declares is `undeclared`, never covered."""
+    adapter = StandIn()
+    names = ["recipe_fields", "mandatory_cases", "participant_code"]
+    report = {"families": _rows(names)}
+    view = phase4.check_view(adapter, report, {"families": _rows(names)})
+    assert tuple(view["checks"]) == phase4.TRACK_A_CHECKS
+    assert len(phase4.TRACK_A_CHECKS) == 8
+    assert view["checks"]["fresh_attack_confirmation"] == {
+        "participant_code": {"kind": "seam", "status": "NOT_RUN"}
+    }
+    assert set(view["checks"]["artifact_and_dependency_attacks"]) == {
+        "recipe_fields",
+        "mandatory_cases",
+    }
+    assert sorted(view["undeclared"]) == sorted(
+        set(phase4.TRACK_A_CHECKS)
+        - {"fresh_attack_confirmation", "artifact_and_dependency_attacks"}
+    )
+    assert {(r["report"], r["family"]) for r in view["report_rows_without_check"]} == {
+        (source, name) for source in ("families", "benchmark_b2") for name in names
+    }
+    seam_row = next(
+        r
+        for r in view["report_rows_without_check"]
+        if r["family"] == "participant_code"
+    )
+    assert seam_row["declared"] == "fresh_attack_confirmation"
+
+
+def test_the_check_view_refuses_a_report_check_that_disagrees(capsys):
+    adapter = StandIn()
+    report = {
+        "families": _rows(
+            ["participant_code"], check="score_exploitation_and_tail_failures"
+        )
+    }
+    code = _refusal(
+        capsys, lambda: phase4.check_view(adapter, report, {"families": {}})
+    )
+    assert code == "report_check_disagrees_with_adapter: families:participant_code"
+    rows = {"families": _rows(["participant_code"], check="fresh_attack_confirmation")}
+    view = phase4.check_view(adapter, rows, rows)
+    assert view["report_rows_without_check"] == []
+
+
 # == Carbon's side through the real engine ==================================================
 SYNTHETIC = "synthetic-heat-sink-v1"
 ALLOWED = frozenset({"model_family", "width"})
@@ -564,6 +617,24 @@ def _attack(tmp_path, adapter, script, miner):
     return control, kstore, entry, coverage, brief
 
 
+def _assert_every_check_named(coverage):
+    """All eight Track A checks appear in the coverage report, each declared
+    by a run family or a seam, and no report or B2 row lost its check."""
+    view = coverage["checks"]
+    assert set(view["checks"]) == set(phase4.TRACK_A_CHECKS)
+    assert view["undeclared"] == []
+    assert view["report_rows_without_check"] == []
+    named = {
+        line["check"]
+        for rows in (
+            coverage["families"]["families"],
+            coverage["benchmark_b2"]["families"],
+        )
+        for line in rows.values()
+    }
+    assert named == set(phase4.TRACK_A_CHECKS)
+
+
 def _validate_script(construction):
     return [
         tool(PREFIX + "dry_validate", {"strategy_json": json.dumps(construction)}),
@@ -644,6 +715,7 @@ def test_a_held_boundary_is_attempted_coverage_under_the_pinned_snapshot(tmp_pat
         # Every other check is a declared seam: NOT_RUN, never a pass.
         assert len(coverage["families"]["not_run"]) == 7
         assert coverage["seams"] == [phase4.POD_REBUILD_SEAM]
+        _assert_every_check_named(coverage)
         assert [a["outcome"] for a in kstore.attempts(SYNTHETIC, 0)] == ["HELD"]
         assert kstore.findings(SYNTHETIC, 0) == []
         # Neutral: the brief is the synthetic Challenge's, never battery's.
@@ -693,6 +765,13 @@ def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(tmp_path):
     assert all(v["refused_by"] == "graphite" for v in coverage["verdicts"])
     # Battery's higher-level families are declared seams, reported NOT_RUN.
     assert coverage["families"]["not_run"]
+    # Every Track A check is accounted for, fresh_attack_confirmation included
+    # (it is covered only by seams), and every report and B2 row names it.
+    _assert_every_check_named(coverage)
+    assert any(
+        line["kind"] == "seam"
+        for line in coverage["checks"]["checks"]["fresh_attack_confirmation"].values()
+    )
     root = tmp_path / "root"
     assert (root / "attacker-dry-run" / "iteration-log.jsonl").is_file()
     assert not (root / "attacker").exists()

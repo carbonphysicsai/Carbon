@@ -91,6 +91,16 @@ From the session's journal, never the model's prose:
    for battery, the families `track_a` runs) at an equal attempt budget, and
    is recorded under the store snapshot the session was pinned to before it
    opened.
+6. The per-check view (`coverage.checks`, schema
+   `carbon.graphite.attacker-coverage.v3`) lists all eight Track A checks.
+   Under each one it names the run families and NOT_RUN seams the adapter
+   declares for that check, with each family's report status. The check comes
+   from the adapter's own `FamilyDef.check` / `SeamFamily.check`, never from a
+   report row, so a check covered only by seams (battery's
+   `fresh_attack_confirmation`) is still named. A check nothing declares is
+   listed as `undeclared`, a report or B2 row that lost its check is listed
+   under `report_rows_without_check`, and a row whose check disagrees with
+   the adapter's declaration is refused.
 
 Zero findings is reported as attempted coverage, never an exploit-free bound.
 The coverage report claims neither security acceptance nor a grade.

@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-coverage-names-every-check",
+ "recorded_at": "2026-10-04T23:30:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "carbon/agent_campaign/graphite/phase4.py check_view; tests/cpu/test_graphite_phase4.py (slice AT-E, integration round 1)",
+  "description": "Ran the integrated phase-4 dry run on battery Level 0 and checked that every Track A check is named in the coverage report and in B2."
+ },
+ "expected": "Each of the eight Track A checks would appear in the coverage report, either through a run family or through a declared NOT_RUN seam.",
+ "observed": "Every seam row carried check None, because the engine report kept only a seam's name and reason. fresh_attack_confirmation is covered only by seams on battery Level 0, so no row named it and the per-check view showed seven of the eight checks. The tests passed because none of them asserted which checks the report named.",
+ "keep": [
+  "A coverage report accounts for every Track A check, taking each family's check from the adapter's declarations rather than from report rows.",
+  "A check nothing declares is listed as undeclared and never counted as covered."
+ ],
+ "change": [
+  "Seam rows in the engine report and B2 carry their SeamFamily.check (AT-C report repair).",
+  "Engine-path tests assert that all eight checks appear and that no row has lost its check."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "suite_v1.track_a"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -1074,3 +1074,12 @@ breach test).
 **Not in this slice:** the engine modules, the battery Level 0 adapter, the
 synthetic second Challenge, and any live run. See
 `docs/development/graphite/PHASE4_ATTACKER.md`.
+
+**Integration round 1 (phase 4).** The coverage report now names every Track A
+check. `coverage.checks` (schema `carbon.graphite.attacker-coverage.v3`) lists
+all eight checks, each with the run families and NOT_RUN seams the adapter
+declares for it. A check covered only by seams, such as battery's
+`fresh_attack_confirmation`, is therefore still named. Rows that lost their
+check are listed, and a row whose check contradicts the adapter is refused.
+The engine report's seam rows still carry `check: None` until AT-C's report
+repair lands; the engine-path tests fail on that until then.

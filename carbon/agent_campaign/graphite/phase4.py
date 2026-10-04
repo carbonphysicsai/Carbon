@@ -80,6 +80,7 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
+from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_loop import run_epoch
@@ -129,7 +130,12 @@ ATTACK_BUDGET = 8
 #: `graphite-attacker:<operation>` ("which strategy found what").
 STRATEGY = "graphite-attacker"
 LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v2"
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v2"
+#: v3 adds the per-check view (`check_view`): every Track A check, the run
+#: families and NOT_RUN seams the adapter declares for it, and any report row
+#: that lost its check.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v3"
+#: The eight Track A checks every coverage report accounts for.
+TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
 #: What a session needs from its adapter besides the core protocol (the
 #: adapter's session surface, `attack.adapter.SessionSurface`).
@@ -752,6 +758,59 @@ def held_out_rows(adapter, atk):
     ]
 
 
+def check_view(adapter, family_report, b2):
+    """Every Track A check, with the families the adapter declares for it.
+
+    The check a family belongs to comes from the adapter's own declarations
+    (`FamilyDef.check` for a run family, `SeamFamily.check` for a NOT_RUN
+    seam), never from a report row, so a report that drops a seam's check
+    cannot hide that check. A check no family or seam names is listed as
+    `undeclared` (never a pass). A report or B2 row whose check is missing
+    is listed under `report_rows_without_check`; one whose check disagrees
+    with the adapter's declaration is refused."""
+    declared = {}
+    for kind, entries in (
+        ("run", adapter.families()),
+        ("seam", adapter.level_families()),
+    ):
+        for entry in entries:
+            if entry.name in declared:
+                raise RunnerRefused("adapter_family_declared_twice: " + entry.name)
+            if entry.check not in TRACK_A_CHECKS:
+                raise RunnerRefused("adapter_family_check_unknown: " + entry.name)
+            declared[entry.name] = (kind, entry.check)
+    unnamed = []
+    for source, rows in (
+        ("families", family_report["families"]),
+        ("benchmark_b2", b2["families"]),
+    ):
+        for name, line in rows.items():
+            want = declared.get(name, (None, None))[1]
+            got = line.get("check")
+            if got is None:
+                unnamed.append({"report": source, "family": name, "declared": want})
+            elif want is not None and got != want:
+                raise RunnerRefused(
+                    "report_check_disagrees_with_adapter: " + source + ":" + name
+                )
+    rows = family_report["families"]
+    checks = {}
+    for check in TRACK_A_CHECKS:
+        checks[check] = {
+            name: {
+                "kind": kind,
+                "status": rows[name]["status"] if name in rows else "NOT_REPORTED",
+            }
+            for name, (kind, named) in sorted(declared.items())
+            if named == check
+        }
+    return {
+        "checks": checks,
+        "undeclared": [check for check, names in checks.items() if not names],
+        "report_rows_without_check": unnamed,
+    }
+
+
 def carbon_side(
     store, control, provider, run_id, adapter, atk, *, budget, kstore, view
 ):
@@ -804,6 +863,7 @@ def carbon_side(
         "attempts": len(found),
         "verdicts": [verdict.record() for verdict in verdicts],
         "families": family_report,
+        "checks": check_view(adapter, family_report, b2),
         "findings": findings,
         "benchmark_b2": b2,
         "attack_knowledge": {"pinned": view.digest, "after": after, **rows},

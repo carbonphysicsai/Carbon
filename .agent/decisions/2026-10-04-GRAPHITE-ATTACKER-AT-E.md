@@ -120,6 +120,23 @@ the other slices; this driver calls their published interfaces.
     live path is implemented and tested with fakes; it runs only after the
     engine merges and the scripted dry run passes.
 
+15. **Every Track A check is named in the coverage report** (integration
+    round 1). The integrated dry run showed every NOT_RUN seam row with
+    `check: None`, because the engine's report keeps only a seam's name and
+    reason. Battery's `fresh_attack_confirmation` is covered only by seams, so
+    no row named it. The report fix belongs to AT-C (`report.seam_names` /
+    `summarize` must carry `SeamFamily.check`). The driver's own coverage
+    output (schema bumped to `carbon.graphite.attacker-coverage.v3`) adds a
+    per-check view, `checks`. It takes each family's check from the adapter's
+    declarations and never from a report row. It lists all eight checks,
+    names checks nothing declares (`undeclared`), and lists rows that lost
+    their check (`report_rows_without_check`). It refuses a row whose check
+    disagrees with the adapter (`report_check_disagrees_with_adapter`). The
+    engine-path tests assert that all eight checks appear, that every report
+    and B2 row names its check, and that nothing is undeclared. They fail at
+    the integration head until AT-C's fix lands, and pass once it does
+    (checked with a simulated fix in a probe).
+
 **Tests.** The session-side tests use a stand-in adapter and stub Carbon's
 side. The engine-path tests use the real modules with a synthetic second
 Challenge and battery's Level 0 adapter, and skip until the modules are
@@ -128,7 +145,8 @@ test red: a call cap in the dry run or in the loop arguments; a lifted
 `code_run_seconds`; a real Verdict read as no finding; infrastructure stored as
 a hold; a near miss for every non-finding; battery's identity substituted for a
 missing surface; an unchecked brief; B2 without the pinned snapshot; the
-Constructor's stall rule frozen into the record. Allowing expansion after a
+Constructor's stall rule frozen into the record; a per-check view that ignores
+the adapter's seams. Allowing expansion after a
 finding turns the breach test red through the controller.
 
 **Unchanged.** The phase-3 Constructor path and its grant, every role but the
