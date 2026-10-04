@@ -22,7 +22,10 @@ What it is not. In-process checks prove the boundary they call, nothing more
 isolation is evidence from the pinned C-03 worker service lane, reused here
 only through the applicability analysis in `COVERAGE`. No value is chosen
 here: the owner's values (OWNER-TRACK-A-L0-02) are frozen in `STUDY_SHEET`,
-and no family state is an acceptance. GRAPHITE-01 phase 4 (the attacker
+and no family state is an acceptance. The family logic (run, findings,
+state) is Carbon's Challenge-neutral attack engine
+(`carbon.agent_campaign.attack.engine`, OWNER-GRAPHITE-ATTACKER-01); the
+records and the coverage report are unchanged byte for byte. GRAPHITE-01 phase 4 (the attacker
 agent) drives agent-generated attempts through these same detectors. Under
 OWNER-ADMISSION-COMBINED-01 this harness is the attack side of the one
 combined admission test.
@@ -38,26 +41,26 @@ import hashlib
 import json
 import math
 import sys
-from dataclasses import dataclass
 from pathlib import Path
+
+from carbon.agent_campaign.attack import engine
 
 PROFILE = "level-0"
 ATTEMPT_SCHEMA = "carbon.battery.track-a.attempt.v1"
 REPORT_SCHEMA = "carbon.battery.track-a.coverage.v1"
 CHALLENGE_ID = "battery-fastcharge-ageing-development-v1"
 STUDY_SHEET = "docs/development/evidence/track-a-battery-l0-2026-10-02/study-sheet.json"
+#: What every attempt record names: this harness's own schema, unchanged.
+CONTEXT = engine.RunContext(
+    challenge=CHALLENGE_ID, profile=PROFILE, schema=ATTEMPT_SCHEMA
+)
 
-HELD, BREACHED = "HELD", "BREACHED"
-FIRED, SILENT = "FIRED", "SILENT"
-PASSED, REFUSED = "PASSED", "WRONGLY_REFUSED"
+HELD, BREACHED = engine.HELD, engine.BREACHED
+FIRED, SILENT = engine.FIRED, engine.SILENT
+PASSED, REFUSED = engine.PASSED, engine.REFUSED
 
-
-def _canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), default=repr)
-
-
-def _digest(value):
-    return "sha256:" + hashlib.sha256(_canonical(value).encode()).hexdigest()
+_canonical = engine.canonical
+_digest = engine.digest
 
 
 def _strategy(backbone="mlp", **parameters):
@@ -459,144 +462,88 @@ def staging_control():
 
 
 # --- The families ------------------------------------------------------------
+#     Run by Carbon's attack engine (`carbon.agent_campaign.attack.engine`,
+#     OWNER-GRAPHITE-ATTACKER-01); this harness's records and report are
+#     unchanged byte for byte.
 
-
-@dataclass(frozen=True)
-class Family:
-    family_id: str
-    check: str
-    protocol_family: str
-    attacks: object  # callable() -> ((name, input), ...)
-    boundary: object
-    specimen: object
-    breached: object
-    control: object  # callable() -> bool, True when the control passes
-
-
-def _control_passes(boundary, value_fn, breached):
-    def run():
-        result = boundary(value_fn())
-        return result.get("accepted", not breached(result))
-
-    return run
+Family = engine.Family
+_control_passes = engine.control_from
 
 
 FAMILIES = (
     Family(
-        "recipe_surface",
-        "artifact_and_dependency_attacks",
-        "hidden assets, embedded weights/tables, undeclared dependencies, "
+        name="recipe_surface",
+        check="artifact_and_dependency_attacks",
+        description="hidden assets, embedded weights/tables, undeclared dependencies, "
         "model loaders, malformed values, parser abuse",
-        lambda: RECIPE_ATTACKS,
-        compile_boundary,
-        unchecked_compiler,
-        recipe_breached,
-        _control_passes(compile_boundary, lambda: RECIPE_CONTROL, recipe_breached),
+        attacks=lambda: RECIPE_ATTACKS,
+        boundary=compile_boundary,
+        specimen=unchecked_compiler,
+        breached=recipe_breached,
+        control=_control_passes(
+            compile_boundary, lambda: RECIPE_CONTROL, recipe_breached
+        ),
     ),
     Family(
-        "recipe_forgery",
-        "artifact_and_dependency_attacks",
-        "invalid artifacts",
-        _forged_recipe_inputs,
-        forge_boundary,
-        unsealed_recipe,
-        lambda result: result["accepted"],
-        lambda: forge_control()["accepted"],
+        name="recipe_forgery",
+        check="artifact_and_dependency_attacks",
+        description="invalid artifacts",
+        attacks=_forged_recipe_inputs,
+        boundary=forge_boundary,
+        specimen=unsealed_recipe,
+        breached=lambda result: result["accepted"],
+        control=lambda: forge_control()["accepted"],
     ),
     Family(
-        "mandatory_failure",
-        "score_exploitation_and_tail_failures",
-        "score averaging/denominator exploitation, malformed outputs, "
+        name="mandatory_failure",
+        check="score_exploitation_and_tail_failures",
+        description="score averaging/denominator exploitation, malformed outputs, "
         "nonfinite values, rare catastrophic errors",
-        mandatory_inputs,
-        scoring_boundary,
-        averaging_scorer,
-        mandatory_breached,
-        lambda: scoring_boundary(mandatory_control())["eligible"],
+        attacks=mandatory_inputs,
+        boundary=scoring_boundary,
+        specimen=averaging_scorer,
+        breached=mandatory_breached,
+        control=lambda: scoring_boundary(mandatory_control())["eligible"],
     ),
     Family(
-        "rebuild_identity",
-        "reconstruction_and_recipient_rebuild",
-        "a field Carbon does not rebuild, accepted silently",
-        lambda: tuple((name, (a, b)) for name, a, b in REBUILD_PAIRS),
-        rebuild_boundary,
-        field_dropping_digest,
-        rebuild_breached,
-        lambda: rebuild_control()["accepted"],
+        name="rebuild_identity",
+        check="reconstruction_and_recipient_rebuild",
+        description="a field Carbon does not rebuild, accepted silently",
+        attacks=lambda: tuple((name, (a, b)) for name, a, b in REBUILD_PAIRS),
+        boundary=rebuild_boundary,
+        specimen=field_dropping_digest,
+        breached=rebuild_breached,
+        control=lambda: rebuild_control()["accepted"],
     ),
     Family(
-        "staged_bytes",
-        "construction_evaluation_isolation",
-        "answer-key/log/artifact exfiltration, construction-to-evaluator access",
-        lambda: (("stage_with_private_state_present", None),),
-        lambda _: staged_canaries(_stage_all(real_stager)),
-        lambda _: staged_canaries(_stage_all(leaky_stager)),
-        lambda result: bool(result["found"]),
-        staging_control,
+        name="staged_bytes",
+        check="construction_evaluation_isolation",
+        description="answer-key/log/artifact exfiltration, "
+        "construction-to-evaluator access",
+        attacks=lambda: (("stage_with_private_state_present", None),),
+        boundary=lambda _: staged_canaries(_stage_all(real_stager)),
+        specimen=lambda _: staged_canaries(_stage_all(leaky_stager)),
+        breached=lambda result: bool(result["found"]),
+        control=staging_control,
     ),
 )
 
 
-def run_family(family):
+def run_family(family, *, budget=None):
     """Attempt records for one family: attacks, specimen and control."""
-    records = []
-
-    def record(role, name, verdict, result):
-        records.append(
-            {
-                "schema": ATTEMPT_SCHEMA,
-                "challenge": CHALLENGE_ID,
-                "profile": PROFILE,
-                "family": family.family_id,
-                "check": family.check,
-                "role": role,
-                "attempt": name,
-                "verdict": verdict,
-                "result_digest": _digest(result),
-            }
-        )
-
-    attacks = family.attacks()
-    fired = 0
-    for name, value in attacks:
-        result = family.boundary(value)
-        record("attack", name, BREACHED if family.breached(result) else HELD, result)
-        weak = family.specimen(value)
-        hit = family.breached(weak)
-        fired += hit
-        record("specimen", name, FIRED if hit else SILENT, weak)
-    passed = family.control()
-    record("control", "valid_control", PASSED if passed else REFUSED, passed)
-    return records
+    return list(engine.run_family(family, budget=budget, context=CONTEXT).records)
 
 
 def findings(records):
     """Every condition the records raise. None is suppressed."""
-    out = []
-    for r in records:
-        if (r["role"], r["verdict"]) in (("attack", BREACHED), ("control", REFUSED)):
-            out.append(
-                {
-                    "condition": "FAILING_TRIGGER",
-                    "family": r["family"],
-                    "attempt": r["attempt"],
-                    "role": r["role"],
-                    "evidence_digest": r["result_digest"],
-                }
-            )
-    return out
+    return [finding.as_dict() for finding in engine.findings(records)]
 
 
 def family_state(records, family_id):
     """IN_PROGRESS when every attack held, the specimen fired on every attack
     and the control passed; otherwise the blocking reason. Never ACCEPTED:
     acceptance is a reviewed LOCK (§3.3), not a test result."""
-    rows = [r for r in records if r["family"] == family_id]
-    if any(r["verdict"] in (BREACHED, REFUSED) for r in rows):
-        return "FINDING"
-    if any(r["role"] == "specimen" and r["verdict"] == SILENT for r in rows):
-        return "INCONCLUSIVE"  # the detector could not fire: no evidence
-    return "IN_PROGRESS"
+    return engine.family_state(records, family_id)
 
 
 def divergence_findings(root="."):

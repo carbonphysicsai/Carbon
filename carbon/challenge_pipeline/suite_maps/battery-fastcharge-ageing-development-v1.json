@@ -1,0 +1,150 @@
+{
+ "schema": "carbon.challenge-pipeline.suite-map.v1",
+ "suite_version": "suite-v1-draft",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "family": "f05",
+ "environment_groups": [
+  "chain",
+  "archive",
+  "science-jax",
+  "science-torch",
+  "mcp"
+ ],
+ "track_a": {
+  "A1": {
+   "checks": [
+    "tests/cpu/test_battery_construction_contract.py::test_submissions_stay_declarative",
+    "tests/cpu/test_battery_construction_contract.py::test_unknown_and_unrebuildable_items_are_refused_by_name",
+    "tests/cpu/test_battery_construction_contract.py::test_a_burgers_family_under_battery_is_refused_by_name_and_the_reverse",
+    "tests/cpu/test_battery_construction_contract.py::test_the_contract_digest_is_checked_by_name",
+    "tests/cpu/test_battery_validator_daemon.py::test_contract_artifact_and_cross_challenge_mismatches_are_refused",
+    "tests/cpu/test_battery_torch_validator.py::test_a_validator_without_pytorch_does_not_admit_a_pytorch_recipe"
+   ],
+   "sandbox": [],
+   "gaps": []
+  },
+  "A2": {
+   "checks": [
+    "tests/cpu/test_battery_validator_deployment.py::test_a_shared_work_directory_is_refused"
+   ],
+   "sandbox": [
+    "tests/service/test_battery_validator_containers.py::test_isolated_programs_match_the_in_process_backend"
+   ],
+   "gaps": [
+    "The hostile probes run against the C-03 image only; no filesystem, process or credential probe runs in the battery image.",
+    "The battery container tests are skipped unless CARBON_BATTERY_TEST_IMAGE is set, which no CI job does."
+   ]
+  },
+  "A3": {
+   "checks": [
+    "tests/cpu/test_battery_seed_service.py::test_commit_before_use_and_reveal_only_after_retirement",
+    "tests/cpu/test_battery_seed_service.py::test_a_root_is_accepted_only_from_an_owner_only_file",
+    "tests/cpu/test_battery_rule_v2.py::test_a_scored_v2_outcome_shows_a_miner_nothing_from_the_hidden_batch",
+    "tests/cpu/test_battery_rule_v2.py::test_a_root_committed_for_one_rule_never_runs_another",
+    "tests/cpu/test_battery_validator_daemon.py::test_outcomes_disclose_no_private_case_label_or_seed",
+    "tests/cpu/test_battery_validator_daemon.py::test_published_campaign_cases_cannot_be_hidden_cases",
+    "tests/cpu/test_battery_validator_deployment.py::test_operator_commands_disclose_no_case_seed_or_key",
+    "tests/cpu/test_battery_check_design_channel.py::test_check_design_answers_without_loading_exam_state",
+    "tests/cpu/test_battery_practice_material.py::test_the_worker_gets_inputs_and_exact_code_never_labels",
+    "tests/cpu/test_battery_research_images.py::test_battery_evaluation_never_reads_a_research_image"
+   ],
+   "sandbox": [],
+   "gaps": []
+  },
+  "A4": {
+   "checks": [
+    "tests/cpu/test_battery_validator_daemon.py::test_infrastructure_failure_is_retried_never_scored",
+    "tests/cpu/test_battery_validator_daemon.py::test_infrastructure_retries_are_capped_and_never_scored"
+   ],
+   "sandbox": [
+    "tests/service/test_battery_validator_containers.py::test_a_run_killed_at_its_wall_clock_bound_is_infrastructure",
+    "tests/service/test_battery_validator_containers.py::test_partial_output_is_infrastructure_never_a_candidate_failure"
+   ],
+   "gaps": [
+    "No memory or storage overrun test in the battery image.",
+    "The battery worker's output_bounds refusal has no test of its own."
+   ]
+  },
+  "A5": {
+   "checks": [
+    "tests/cpu/test_battery_construction_contract.py::test_the_same_seed_gives_the_same_weights",
+    "tests/cpu/test_battery_construction_contract.py::test_promoted_recipes_match_the_campaign_recipes_bit_for_bit",
+    "tests/cpu/test_battery_torch_backend.py::test_the_same_seed_rebuilds_the_same_weights",
+    "tests/cpu/test_battery_torch_validator.py::test_the_torch_image_export_pins_exactly_the_contract_pins",
+    "tests/cpu/test_admission_divergence.py::test_noise_bands_are_derived_from_retained_seed_repeats"
+   ],
+   "sandbox": [],
+   "gaps": [
+    "No repeat-seed rebuild of battery on a fresh worker."
+   ]
+  },
+  "A6": {
+   "checks": [
+    "tests/cpu/test_battery_validator_daemon.py::test_changed_identities_are_refused_on_restart",
+    "tests/cpu/test_battery_validator_daemon.py::test_duplicate_admission_and_replay_count_once",
+    "tests/cpu/test_battery_intake.py::test_a_resend_is_a_replay_and_the_same_recipe_is_the_same_submission",
+    "tests/cpu/test_battery_carry_over.py::test_an_unrecorded_digest_is_still_a_mismatch",
+    "tests/cpu/test_battery_practice_material.py::test_a_changed_source_is_refused",
+    "tests/cpu/test_battery_truth_environment.py::test_a_wheel_with_the_wrong_hash_is_refused"
+   ],
+   "sandbox": [],
+   "gaps": [
+    "No battery stale-cache test.",
+    "Report hashes are not shown to be bound for battery."
+   ]
+  },
+  "A7": {
+   "checks": [
+    "tests/cpu/test_admission_divergence.py::test_ev2_boundary_optimist_is_the_worked_example",
+    "tests/cpu/test_admission_divergence.py::test_ineligible_members_emit_a_gate_anomaly",
+    "tests/cpu/test_battery_exam_replay.py::test_the_frozen_rule_reproduces_every_verification_decision",
+    "tests/cpu/test_battery_exam_replay.py::test_tolerances_and_scales_are_recomputed_from_references",
+    "tests/cpu/test_engineering_value_audit.py::test_nonfinite_and_invalid_loss_cannot_disappear_into_an_average"
+   ],
+   "sandbox": [],
+   "gaps": [
+    "No quarantine of unresolved battery grades.",
+    "No check of disagreement between battery workers."
+   ]
+  },
+  "A8": {
+   "checks": [
+    "tests/cpu/test_battery_rule_v2.py::test_one_submission_per_hotkey_per_tempo",
+    "tests/cpu/test_battery_rule_v2.py::test_rotation_follows_blocks_not_submission_counts",
+    "tests/cpu/test_battery_feedback_modes.py::test_each_rung_adds_only_its_channel_over_the_rung_below",
+    "tests/cpu/test_battery_validator_daemon.py::test_finalist_comparison_is_frozen_fresh_and_honest",
+    "tests/cpu/test_battery_seed_service.py::test_every_private_batch_hides_duplicates"
+   ],
+   "sandbox": [],
+   "gaps": [
+    "No battery disclosure budget: exposure across many hotkeys is unbounded and recorded as unresolved in carbon/battery/exam.py."
+   ]
+  }
+ },
+ "track_b": {
+  "B1": {
+   "state": "complete",
+   "evidence": "docs/development/evidence/ev1-2026-09-25"
+  },
+  "B2": {
+   "state": "complete",
+   "evidence": "docs/development/evidence/ev2-2026-10-01"
+  },
+  "B3": {
+   "state": "partial",
+   "evidence": "docs/development/evidence/ev4-2026-10-01",
+   "note": "EV4 Problem C ran the optimizer for selected members; EV3 as defined here (every model on the same optimizer) has not run."
+  },
+  "B4": {
+   "state": "not_registered",
+   "evidence": null
+  }
+ },
+ "exam": {
+  "rotation": "rule v1: screening batches of 100, 3 active, rotated after 3 admitted; rule v2 (held): rotation every 1,080 blocks",
+  "selection_rule": "HUMAN_INPUT",
+  "disclosure_budget": "HUMAN_INPUT",
+  "anchor_set": "HUMAN_INPUT",
+  "sealed_pool": "HUMAN_INPUT (size); the private pool under an operator-held root exists but is not registered as a sealed pool"
+ }
+}

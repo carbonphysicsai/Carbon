@@ -1,0 +1,434 @@
+{
+ "schema": "carbon.challenge-pipeline.suite-run.v1",
+ "suite_version": "suite-v1-draft",
+ "suite_digest": "sha256:cf46fd394dd12ca301c0ad3ae2faf949f236e54114b643d692d155198e3155a0",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "map_digest": "sha256:222a5391d450aca110c9982fef7e4597a78c978870356035079a1985f2d02429",
+ "construction_level": 0,
+ "sandbox": false,
+ "commit": "e880a4f9680e2d0d61c0037c2112cfd6f0620cb9",
+ "pytest_exit": 1,
+ "pytest_summary": "259 passed, 552 deselected, 2 warnings in 114.89s (0:01:54)",
+ "uncited_failures": [],
+ "environment": {
+  "canonical": "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64",
+  "groups": [
+   "chain",
+   "archive",
+   "science-jax",
+   "science-torch",
+   "mcp"
+  ],
+  "missing_groups": []
+ },
+ "vectors": [
+  {
+   "id": "A1",
+   "name": "Admission",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_strategy_schema.py::test_forbidden_capability_keys_are_rejected_recursively",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_strategy_schema.py::test_forbidden_key_matching_cannot_be_bypassed_by_spelling_variants",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_strategy_schema.py::test_dangerous_looking_strings_are_inert_under_neutral_keys",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_strategy_schema.py::test_non_finite_numbers_are_rejected",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_b02b_strategy_compiler.py::test_catalog_cannot_smuggle_forbidden_authority_into_a_plan",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_submissions_stay_declarative",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_unknown_and_unrebuildable_items_are_refused_by_name",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_a_burgers_family_under_battery_is_refused_by_name_and_the_reverse",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_the_contract_digest_is_checked_by_name",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_contract_artifact_and_cross_challenge_mismatches_are_refused",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_torch_validator.py::test_a_validator_without_pytorch_does_not_admit_a_pytorch_recipe",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": {
+    "what": "Rejecting and containing disguised or executable participant content",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
+   "gaps": [
+    "No byte-level detection of disguised executable content (ELF, pickle and similar magic); strings are only kept inert.",
+    "Executable submissions do not exist at Level 0, so their rejection is not a containment test."
+   ],
+   "open_parameters": []
+  },
+  {
+   "id": "A2",
+   "name": "Execution isolation",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_c03_worker_contract.py::test_docker_argv_has_fixed_security_and_no_caller_command",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_c03_worker_contract.py::test_stage_rejects_cross_attempt_and_policy_mismatch",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_c03_worker_contract.py::test_worker_entry_path_has_no_scoring_archive_reward_or_network_authority",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_controller.py::test_workspaces_and_credentials_are_never_shared",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_controller.py::test_a_task_cannot_reach_another_sessions_workspace",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_boundaries.py::test_denied_and_escaping_paths_are_refused",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_deployment.py::test_a_shared_work_directory_is_refused",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": {
+    "what": "Isolating hostile participant code at run time (filesystem, network, process, credential and cross-job access)",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
+   "gaps": [
+    "The hostile probes run against the C-03 image only; no filesystem, process or credential probe runs in the battery image.",
+    "The battery container tests are skipped unless CARBON_BATTERY_TEST_IMAGE is set, which no CI job does."
+   ],
+   "open_parameters": []
+  },
+  {
+   "id": "A3",
+   "name": "Protected-data separation",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/invariants/test_a12_invariants.py::test_a12_r01_no_seed_leakage_across_public_surfaces",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/invariants/test_a12_invariants.py::test_a12_r04_miner_disclosure_uses_positive_allow_lists",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_graphite_boundaries.py::test_requests_for_protected_material_are_refused_typed",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_graphite_boundaries.py::test_a_requested_canary_reaches_the_controller_as_a_finding",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_controller.py::test_canary_exposure_is_a_finding_and_halts_dispatch",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_seed_service.py::test_commit_before_use_and_reveal_only_after_retirement",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_seed_service.py::test_a_root_is_accepted_only_from_an_owner_only_file",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_rule_v2.py::test_a_scored_v2_outcome_shows_a_miner_nothing_from_the_hidden_batch",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_rule_v2.py::test_a_root_committed_for_one_rule_never_runs_another",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_outcomes_disclose_no_private_case_label_or_seed",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_published_campaign_cases_cannot_be_hidden_cases",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_deployment.py::test_operator_commands_disclose_no_case_seed_or_key",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_check_design_channel.py::test_check_design_answers_without_loading_exam_state",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_practice_material.py::test_the_worker_gets_inputs_and_exact_code_never_labels",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_research_images.py::test_battery_evaluation_never_reads_a_research_image",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": null,
+   "gaps": [
+    "The sealed pool is not a registered artifact yet.",
+    "Influence on the evaluation service is tested only by refusing a seed field."
+   ],
+   "open_parameters": [
+    "sealed-pool registration (Phase 1 step 3 registers the fields; the size is HUMAN_INPUT)"
+   ]
+  },
+  {
+   "id": "A4",
+   "name": "Resource enforcement",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_c03_worker_contract.py::test_output_snapshot_caps_members_and_seals_late_writes",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_c03_worker_contract.py::test_controller_capture_enforces_cap_during_receipt_and_reaps_writer",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/invariants/test_a12_invariants.py::test_a12_r07_infrastructure_cannot_be_scored_as_science",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_controller.py::test_runtime_limit_cancels_and_verifies",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_infrastructure_failure_is_retried_never_scored",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_infrastructure_retries_are_capped_and_never_scored",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": {
+    "what": "Enforcing resource limits on participant-controlled code",
+    "from_level": 4,
+    "status": "NOT_RUN"
+   },
+   "gaps": [
+    "No memory or storage overrun test in the battery image.",
+    "The battery worker's output_bounds refusal has no test of its own."
+   ],
+   "open_parameters": []
+  },
+  {
+   "id": "A5",
+   "name": "Clean reconstruction",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_c10_independent_reexecution.py::test_fresh_execution_agrees_without_scientific_or_economic_authority",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_the_same_seed_gives_the_same_weights",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_construction_contract.py::test_promoted_recipes_match_the_campaign_recipes_bit_for_bit",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_torch_backend.py::test_the_same_seed_rebuilds_the_same_weights",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_torch_validator.py::test_the_torch_image_export_pins_exactly_the_contract_pins",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_admission_divergence.py::test_noise_bands_are_derived_from_retained_seed_repeats",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": null,
+   "gaps": [
+    "The recipient-rebuild and undeclared-dependency specimens are NOT_RUN.",
+    "No repeat-seed rebuild of battery on a fresh worker."
+   ],
+   "open_parameters": [
+    "reconstruction tolerance (HUMAN_INPUT, study sheet)"
+   ]
+  },
+  {
+   "id": "A6",
+   "name": "Artifact integrity",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_cpes_reference_reuse_gauntlet.py::test_cache_binding_rejects_every_scientific_identity_mismatch",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_changed_identities_are_refused_on_restart",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_duplicate_admission_and_replay_count_once",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_intake.py::test_a_resend_is_a_replay_and_the_same_recipe_is_the_same_submission",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_carry_over.py::test_an_unrecorded_digest_is_still_a_mismatch",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_practice_material.py::test_a_changed_source_is_refused",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_truth_environment.py::test_a_wheel_with_the_wrong_hash_is_refused",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": null,
+   "gaps": [
+    "The model-state and output-change refusals have no tests of their own.",
+    "No battery stale-cache test.",
+    "Report hashes are not shown to be bound for battery."
+   ],
+   "open_parameters": []
+  },
+  {
+   "id": "A7",
+   "name": "Evidence integrity",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_construction_expansion_record.py::test_an_unrecorded_widening_is_refused",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_construction_expansion_record.py::test_a_tampered_or_reordered_record_is_found",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_challenge_admission.py::test_evidence_tampering_is_detected_even_with_unchanged_success_fields",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_challenge_admission.py::test_a_finding_after_the_lock_voids_it",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_c10_independent_reexecution.py::test_changed_bytes_remain_unresolved_and_quarantine_without_tolerance",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_c10_independent_reexecution.py::test_missing_or_revoked_receipt_evidence_quarantines",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_agent_campaign_controller.py::test_ledger_tampering_is_detected",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_admission_divergence.py::test_ev2_boundary_optimist_is_the_worked_example",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_admission_divergence.py::test_ineligible_members_emit_a_gate_anomaly",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_exam_replay.py::test_the_frozen_rule_reproduces_every_verification_decision",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_exam_replay.py::test_tolerances_and_scales_are_recomputed_from_references",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_engineering_value_audit.py::test_nonfinite_and_invalid_loss_cannot_disappear_into_an_average",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": null,
+   "gaps": [
+    "No quarantine of unresolved battery grades.",
+    "No check of disagreement between battery workers."
+   ],
+   "open_parameters": []
+  },
+  {
+   "id": "A8",
+   "name": "Adaptive exposure",
+   "status": "PASS",
+   "checks": [
+    {
+     "node": "tests/cpu/test_design_search_commitment.py::test_oracle_enforces_budget_and_declared_points",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_rule_v2.py::test_one_submission_per_hotkey_per_tempo",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_rule_v2.py::test_rotation_follows_blocks_not_submission_counts",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_feedback_modes.py::test_each_rung_adds_only_its_channel_over_the_rung_below",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_validator_daemon.py::test_finalist_comparison_is_frozen_fresh_and_honest",
+     "status": "PASS"
+    },
+    {
+     "node": "tests/cpu/test_battery_seed_service.py::test_every_private_batch_hides_duplicates",
+     "status": "PASS"
+    }
+   ],
+   "participant_code": null,
+   "gaps": [
+    "No cross-case leakage test.",
+    "No battery disclosure budget: exposure across many hotkeys is unbounded and recorded as unresolved in carbon/battery/exam.py."
+   ],
+   "open_parameters": [
+    "disclosure budget (HUMAN_INPUT)",
+    "rotation cadence and selection rule (HUMAN_INPUT beyond a challenge's registered rule)"
+   ]
+  }
+ ],
+ "claims": {
+  "security_acceptance": false,
+  "graded": false
+ }
+}
