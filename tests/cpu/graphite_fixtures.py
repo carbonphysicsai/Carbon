@@ -12,12 +12,8 @@ from pathlib import Path
 from carbon.agent_campaign import boundaries
 from carbon.agent_campaign import controller as ctl
 from carbon.agent_campaign.grant import SpendingGrant
-from carbon.agent_campaign.graphite import (
-    GraphiteProvider,
-    ScriptedModel,
-    SessionBrief,
-)
-from carbon.agent_campaign.graphite.model import text, tool
+from carbon.agent_campaign.graphite.model import ScriptedModel, text, tool
+from carbon.agent_campaign.graphite.provider import GraphiteProvider, SessionBrief
 from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import TaskSpec
 

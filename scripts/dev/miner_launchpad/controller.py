@@ -33,6 +33,42 @@ CHOICES = {
 }
 #: The largest tool-call body the page sends (RSURF-D15).
 TOOL_BODY_MAX = 40960
+#: The largest library import or plan edit (S4): 20000 characters of text,
+#: or an edited plan, each escaped as JSON may escape it.
+LIBRARY_BODY_MAX = 131072
+#: The Graphite library and plan routes (OWNER-GRAPHITE-MINER-01, S4): each
+#: is the shared operation of the same name, as `/api/v1/operations/<name>`
+#: is, so the routes hold no operation or gate of their own.
+LIBRARY_ROUTES = {
+    **{
+        "/api/v1/library/" + action: "library_" + action
+        for action in (
+            "search",
+            "card",
+            "list",
+            "pin",
+            "unpin",
+            "ban",
+            "unban",
+            "import",
+        )
+    },
+    **{
+        "/api/v1/plans/" + action: "plan_" + action
+        for action in ("list", "get", "edit")
+    },
+}
+#: The two reads a page asks for with no arguments.
+LIBRARY_READ_ROUTES = {"/api/v1/library": "library_list", "/api/v1/plans": "plan_list"}
+#: The routes whose body may be a library import or a plan edit.
+LIBRARY_BODY_ROUTES = frozenset(
+    {
+        "/api/v1/library/import",
+        "/api/v1/plans/edit",
+        "/api/v1/operations/library_import",
+        "/api/v1/operations/plan_edit",
+    }
+)
 STATIC = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/app.js": ("app.js", "text/javascript; charset=utf-8"),
@@ -43,6 +79,8 @@ STATIC = {
     "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
     # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).
     "/research_tools.js": ("research_tools.js", "text/javascript; charset=utf-8"),
+    # The Library tab (OWNER-GRAPHITE-MINER-01; the page is slice S5's).
+    "/library_view.js": ("library_view.js", "text/javascript; charset=utf-8"),
     # Carbon's wordmark and the website's Montreal font, served from this
     # controller so the page loads nothing from the internet. The font files
     # are the website's own (their digests are the website baseline
@@ -767,7 +805,11 @@ class Handler(BaseHTTPRequestHandler):
             self.check()
             if self.path in STATIC:
                 name, content_type = STATIC[self.path]
-                self.reply(200, (self.server.assets / name).read_bytes(), content_type)
+                asset = self.server.assets / name
+                if not asset.is_file():
+                    # A page file this checkout does not ship: not served.
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
+                self.reply(200, asset.read_bytes(), content_type)
                 return
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
@@ -783,6 +825,15 @@ class Handler(BaseHTTPRequestHandler):
                 from scripts.dev.miner_launchpad.operations import describe
 
                 self.reply(200, {"operations": describe()})
+            elif self.path in LIBRARY_READ_ROUTES:
+                # The miner's Graphite library and plans, read through the
+                # shared operations (S4).
+                from scripts.dev.miner_launchpad.operations import perform
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                self.reply(200, perform(runner, LIBRARY_READ_ROUTES[self.path], {}))
             elif self.path == "/api/v1/refusals":
                 # The next action for every refusal code a door can answer or
                 # a campaign can record, from the one closed table (LP-PROD-C
@@ -918,9 +969,15 @@ class Handler(BaseHTTPRequestHandler):
             ):
                 raise Rejected("invalid_content_length")
             # A tool call carries the research tools' own arguments, up to
-            # their 32 KiB bound plus its envelope (RSURF-D15); every other
-            # request stays at 4 KiB.
-            limit = TOOL_BODY_MAX if self.path.startswith("/api/v1/tools/") else 4096
+            # their 32 KiB bound plus its envelope (RSURF-D15); a library
+            # import or plan edit its text (S4); every other request stays at
+            # 4 KiB.
+            if self.path.startswith("/api/v1/tools/"):
+                limit = TOOL_BODY_MAX
+            elif self.path in LIBRARY_BODY_ROUTES:
+                limit = LIBRARY_BODY_MAX
+            else:
+                limit = 4096
             if len(lengths[0]) > len(str(limit)):
                 raise Rejected("body_size_limit", 413)
             length = int(lengths[0])
@@ -973,6 +1030,18 @@ class Handler(BaseHTTPRequestHandler):
                 result = perform(
                     runner, self.path.removeprefix("/api/v1/operations/"), value
                 )
+            elif self.path.startswith(("/api/v1/library/", "/api/v1/plans/")):
+                # The miner's Graphite library and plans (S4): each route is
+                # the shared operation of the same name.
+                from scripts.dev.miner_launchpad.operations import perform
+
+                name = LIBRARY_ROUTES.get(self.path)
+                if name is None:
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                result = perform(runner, name, value)
             elif self.path.startswith("/api/v1/tools/"):
                 # The page's tool session: open, close, call, start, observe,
                 # cancel. The tools are the agent's own (RSURF-D15).

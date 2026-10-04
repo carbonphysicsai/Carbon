@@ -17,9 +17,29 @@ reported charge, replay without resending, typed failures.
 
 **Caps.** Each run's ledger is frozen with the grant's `worst_case_run_cost`
 as its money ceiling (in nanodollars), the controller's reservation for the
-run, so a run can never spend more than the controller reserved. An optional
-operator cap on model calls narrows it further. No numerical work, final
-replica or reference call is admitted in phase 1 (each is capped at zero).
+run, so a run can never spend more than the controller reserved, and with
+the task's `max_runtime_s` as its elapsed limit. An optional operator cap on
+model calls narrows it further. No numerical work, final replica or reference
+call is admitted in phase 1 (each is capped at zero).
+
+**Session limits** (OWNER-GRAPHITE-MINER-01 §6, 2026-10-03). A session opened
+from that date runs under `SESSION_LIMITS_V2`: no session-turn cap and no
+per-role call cap. The money cap and the elapsed limit above are its binding
+bounds; the loop runs with the engine's count-free limits
+(`research_agent_policy.LIMITS_V2`, both counts None) and its recorded
+context compaction (`COMPACTION_V1`). The model is then offered the role's
+closed manifest plus the engine's compaction tool (`ENGINE_TOOLS_V2`), which
+the loop answers itself and which reaches no role tool. The session record
+freezes the rule, with the money cap and the elapsed limit it binds and the
+engine tools it offers, under `session_limits`, and a resume under a
+different rule, or whose rule no longer matches the epoch plan it wrote, is
+refused. A session whose record has no `session_limits` block, every one
+opened before, runs under the historical rule (`SESSION_LIMITS_V1`) on
+resume: the loop's shared call cap, or the provider's historical session cap
+(`HISTORICAL_SESSION_TURNS`), and its manifest alone, so its plan replays
+byte-identically. A record altered before its epoch began writes no plan and
+cannot be told from a historical one; for a harness role its caps are the
+same under either rule.
 
 **Cancellation.** `cancel` records the request; the worker stops at the
 loop's next ledger checkpoint, which precedes every reservation, so no new
@@ -54,6 +74,11 @@ from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import select, selection_from_record
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent import ProviderCallFailed
+from carbon.development_session.research_agent_policy import (
+    COMPACT,
+    COMPACTION_V1,
+    LIMITS_V2,
+)
 from carbon.development_session.research_ledger import VERSION, CampaignLedger
 from carbon.development_session.research_loop import run_epoch
 
@@ -98,6 +123,27 @@ _LIMIT_MESSAGES = {
     "provider timeout cannot fit remaining campaign time": "elapsed_seconds",
     "campaign elapsed-time exhausted or clock regressed": "elapsed_seconds",
 }
+#: The historical session-limits rule: a session record with no
+#: `session_limits` block. The loop's call cap applies: its shared
+#: `MAX_PROVIDER_CALLS`, or the provider's `HISTORICAL_SESSION_TURNS`.
+SESSION_LIMITS_V1 = "carbon.graphite.session-limits.v1"
+#: The rule a new session opens under from 2026-10-03 (OWNER-GRAPHITE-MINER-01
+#: §6: "I don't like that internal graphite has limits like that"): no
+#: session-turn cap, no per-role call cap; the run's money cap and elapsed
+#: limit bind; count-free loop limits and recorded compaction.
+SESSION_LIMITS_V2 = "carbon.graphite.session-limits.v2"
+SESSION_LIMITS = (SESSION_LIMITS_V1, SESSION_LIMITS_V2)
+#: The engine's limits for a v2 session: no call count, no trial count, so
+#: only the ledger's ceilings bind (the run's money and elapsed time).
+LOOP_LIMITS = {**LIMITS_V2, "calls_per_epoch": None, "trials_per_epoch": None}
+#: The tools the engine adds, by name and after the role's closed manifest, to
+#: what a v2 session's model is offered every turn: the compaction tool
+#: (`COMPACTION_V1`). The loop answers it itself, with a recorded summary when
+#: it asked for one and a typed refusal otherwise; it never reaches the role's
+#: toolbox, the miner path or a pod, so it widens no role's authority. The
+#: session record names them (`engine_tools`). A v1 session is offered its
+#: manifest alone.
+ENGINE_TOOLS_V2 = (COMPACT,)
 
 
 class RunCancelled(Exception):
@@ -114,6 +160,16 @@ class RunCapReached(ValueError):
 
 class SessionMismatch(ValueError):
     """A session record no longer matches the code or inputs that resume it."""
+
+
+def limit_dimension(error):
+    """The run limit an exception from the loop reports, or None: a run cap
+    refusing a reservation, or the research layer's elapsed-time refusal."""
+    if type(error) is RunCapReached:
+        return error.dimension
+    if type(error) is ValueError and str(error) in _LIMIT_MESSAGES:
+        return _LIMIT_MESSAGES[str(error)]
+    return None
 
 
 @dataclass(frozen=True)
@@ -188,7 +244,8 @@ class GraphiteLedger(CampaignLedger):
 def _verify(opened, role, selection_record, literature, brief_digest, limits):
     """The session record still describes what would resume it: the role's
     prompt and manifest, the model selection, the literature snapshot, the
-    brief, and the grant and caps the run is held to."""
+    brief, the grant and caps the run is held to, and its session-limits
+    rule (`limits["session_limits"]`: the v2 record, or None for v1)."""
     recorded = opened["role"]
     if (
         recorded["prompt_digest"] != role.prompt_digest
@@ -203,8 +260,13 @@ def _verify(opened, role, selection_record, literature, brief_digest, limits):
         raise SessionMismatch("literature_snapshot_changed")
     if opened["brief"]["digest"] != brief_digest:
         raise SessionMismatch("brief_changed")
-    if {"grant": opened["grant"], "caps": opened["caps"]} != limits:
+    if {"grant": opened["grant"], "caps": opened["caps"]} != {
+        "grant": limits["grant"],
+        "caps": limits["caps"],
+    }:
         raise SessionMismatch("grant_or_caps_changed")
+    if opened.get("session_limits") != limits["session_limits"]:
+        raise SessionMismatch("session_limits_changed")
 
 
 def _literature_changed(recorded, current):
@@ -231,6 +293,11 @@ def _replace(path, payload):
 
 
 class GraphiteProvider:
+    #: The call cap a v1 session passes to the loop as `max_provider_calls`,
+    #: and its ledger's `provider_attempts` when no operator cap is set. None
+    #: here: a v1 harness session kept the loop's shared `MAX_PROVIDER_CALLS`.
+    HISTORICAL_SESSION_TURNS = None
+
     def __init__(
         self,
         *,
@@ -244,6 +311,7 @@ class GraphiteProvider:
         clock=time.time,
         crash_at=None,
         crash_at_checkpoint=None,
+        session_limits=SESSION_LIMITS_V2,
     ):
         root = Path(root)
         if not root.is_absolute() or root.is_symlink():
@@ -270,6 +338,8 @@ class GraphiteProvider:
             raise ValueError("max_calls_per_run is a positive integer or None")
         if crash_at is not None and crash_at not in CRASH_POINTS:
             raise ValueError("unknown crash point")
+        if session_limits not in SESSION_LIMITS:
+            raise ValueError("unknown session-limits rule")
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         root.chmod(0o700)
         for name in ("briefs", "runs"):
@@ -279,6 +349,9 @@ class GraphiteProvider:
         self.miner_tools = miner_tools
         self.adapter_id = adapter_id
         self.max_calls_per_run = max_calls_per_run
+        # The rule a session this provider opens is recorded under; a resume
+        # always follows the rule its record carries.
+        self.session_limits = session_limits
         self.clock = clock
         self.crash_at = crash_at
         self.crash_at_checkpoint = crash_at_checkpoint
@@ -316,10 +389,18 @@ class GraphiteProvider:
             )
         )
 
-    def caps(self):
+    def caps(self, rule=None):
+        """The run ledger's ceilings under `rule` (default: the rule this
+        provider opens sessions under). Under v2 only an operator's own call
+        cap limits model calls; under v1 the historical session cap does when
+        no operator cap is set, as it did."""
+        rule = self.session_limits if rule is None else rule
+        attempts = self.max_calls_per_run
+        if rule == SESSION_LIMITS_V1 and attempts is None:
+            attempts = self.HISTORICAL_SESSION_TURNS
         return {
             "epochs": 1,
-            "provider_attempts": self.max_calls_per_run,
+            "provider_attempts": attempts,
             "provider_nanodollars": self.per_run_ceiling_nano(),
             "research_trials": 0,
             "final_replicas": 0,
@@ -335,6 +416,99 @@ class GraphiteProvider:
             "currency": self.grant.currency,
             "per_run_ceiling_nanodollars": self.per_run_ceiling_nano(),
         }
+
+    # -- session limits ------------------------------------------------------------------
+    def session_limits_record(self, task):
+        """The v2 rule as a session record freezes it, for a session whose
+        task is `task` (a `TaskSpec` as a dict). The money cap and the elapsed
+        limit are stated as the bounds they are; no count bounds the run but
+        an operator's own call cap, when one is set."""
+        caps = self.caps(SESSION_LIMITS_V2)
+        return {
+            "schema": SESSION_LIMITS_V2,
+            "authority": "OWNER-GRAPHITE-MINER-01",
+            "session_turns": None,
+            "role_call_cap": None,
+            "operator_call_cap": caps["provider_attempts"],
+            "money_cap_nanodollars": self.per_run_ceiling_nano(),
+            "model_spend_cap_nanodollars": caps["provider_nanodollars"],
+            "elapsed_seconds": task["max_runtime_s"],
+            "binding": ["money_cap", "elapsed_seconds"],
+            "loop_limits": dict(LOOP_LIMITS),
+            "compaction": dict(COMPACTION_V1),
+            "engine_tools": list(ENGINE_TOOLS_V2),
+        }
+
+    @staticmethod
+    def rule_of(opened):
+        """The session-limits rule a session record carries."""
+        block = opened.get("session_limits")
+        if block is None:
+            return SESSION_LIMITS_V1
+        if type(block) is not dict or block.get("schema") != SESSION_LIMITS_V2:
+            raise SessionMismatch("session_limits_unknown")
+        return SESSION_LIMITS_V2
+
+    @classmethod
+    def offered_tools(cls, opened):
+        """The tool names a session's model is offered every turn, in order:
+        the role's closed manifest, then, under v2, the engine's tools the
+        record names (`engine_tools`)."""
+        manifest = list(opened["role"]["tool_manifest"])
+        if cls.rule_of(opened) == SESSION_LIMITS_V2:
+            return manifest + list(opened["session_limits"]["engine_tools"])
+        return manifest
+
+    def _check_started_plan(self, run_id, opened):
+        """A session whose epoch began wrote its plan under its rule: under v2
+        the plan carries the recorded loop limits and compaction; under v1 it
+        carries neither; either way it offers exactly `offered_tools`. A
+        record whose rule no longer matches the plan it wrote (a v2 block
+        dropped or added after the epoch began) resumes nothing."""
+        path = self._dir(run_id) / "ledger" / f"epoch-{EPOCH}" / "plan.json"
+        if not path.is_file():
+            return
+        try:
+            plan = json.loads(path.read_bytes())
+        except ValueError:
+            raise SessionMismatch("epoch_plan_unreadable") from None
+        expected = {}
+        if self.rule_of(opened) == SESSION_LIMITS_V2:
+            block = opened["session_limits"]
+            expected = {
+                "limits": block["loop_limits"],
+                "compaction": block["compaction"],
+            }
+        found = {key: plan[key] for key in ("limits", "compaction") if key in plan}
+        offered = [tool.get("name") for tool in plan.get("tools") or ()]
+        if found != expected or offered != self.offered_tools(opened):
+            raise SessionMismatch("session_limits_changed")
+
+    def _expected_limits(self, opened):
+        """What the session record's limits must be for this provider to
+        resume it: its grant, its caps under its own rule, and the v2 record
+        (None for a v1 session)."""
+        rule = self.rule_of(opened)
+        return {
+            "grant": self._grant_record(),
+            "caps": self.caps(rule),
+            "session_limits": (
+                self.session_limits_record(opened["task"])
+                if rule == SESSION_LIMITS_V2
+                else None
+            ),
+        }
+
+    def _loop_limits(self, opened):
+        """The loop arguments a session's rule passes to `run_epoch`: v2's
+        recorded count-free limits and compaction; v1's historical call cap
+        exactly as it was passed (none for a harness session)."""
+        if self.rule_of(opened) == SESSION_LIMITS_V2:
+            block = opened["session_limits"]
+            return {"limits": block["loop_limits"], "compaction": block["compaction"]}
+        if self.HISTORICAL_SESSION_TURNS is None:
+            return {}
+        return {"max_provider_calls": self.HISTORICAL_SESSION_TURNS}
 
     def register_brief(self, brief):
         if type(brief) is not SessionBrief:
@@ -496,7 +670,7 @@ class GraphiteProvider:
             "literature": self._literature_record(),
             "checkout": brief["checkout"],
             "grant": self._grant_record(),
-            "caps": self.caps(),
+            "caps": self.caps(self.session_limits),
             "live_inference": bool(self.model.live),
             "authority": {
                 "evaluator": False,
@@ -505,6 +679,9 @@ class GraphiteProvider:
                 "reward": False,
             },
         }
+        if self.session_limits == SESSION_LIMITS_V2:
+            # A v1 record has no block at all, exactly as before the rule.
+            opened["session_limits"] = self.session_limits_record(opened["task"])
         directory.mkdir(mode=0o700, exist_ok=True)
         write_once(directory / "session-open.json", canonical(opened))
         if not (directory / "state.json").exists():
@@ -638,8 +815,9 @@ class GraphiteProvider:
                 selection.record(),
                 self._literature_record(),
                 digest(canonical(brief)),
-                {"grant": self._grant_record(), "caps": self.caps()},
+                self._expected_limits(opened),
             )
+            self._check_started_plan(run_id, opened)
         except (SessionMismatch, ValueError) as error:
             code = (
                 error.args[0]
@@ -722,10 +900,11 @@ class GraphiteProvider:
 
     async def _epoch(self, run_id, ledger, role, brief, selection):
         """One research epoch of the session: the role's toolbox as the loop's
-        `sdk`, the role's prompt and closed tools, and the role's rule for a
-        turn with several tool calls (`roles.PARALLEL_RULES`: every call runs
-        in order, LP-PROD-A). A later phase overrides this to attach what its
-        role acts through (GRAPHITE-D18)."""
+        `sdk`, the role's prompt and closed tools, the role's rule for a turn
+        with several tool calls (`roles.PARALLEL_RULES`: every call runs in
+        order, LP-PROD-A) and the session's recorded limits (`_loop_limits`).
+        A later phase overrides this to attach what its role acts through
+        (GRAPHITE-D18)."""
         sdk = toolbox.GraphiteToolbox(
             role=role,
             literature_index=self.literature,
@@ -745,6 +924,7 @@ class GraphiteProvider:
             instructions=role.prompt,
             tools=role.tool_schemas(),
             parallel_calls=PARALLEL_RULES.get(role.name),
+            **self._loop_limits(self._opened(run_id)),
         )
 
     def _unresolved(self, run_id):

@@ -56,7 +56,7 @@ from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from scripts.dev.miner_launchpad import runner
 from scripts.dev.miner_launchpad.controller import Rejected
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     REMOTE,
     EnvironmentSetup,
     LiveChecks,
@@ -198,7 +198,7 @@ def test_an_ssh_docker_machine_is_checked_sent_its_worker_and_profiled(tmp_path)
     check = state["steps"]["compute"]["check"]
     assert check["remote"]["worker_image"] == "present" and check["worker"] == "sent"
     assert "next_step" not in check
-    setup.agent({"choice": AUTONOMOUS, "operator_config": str(home / "operator.json")})
+    setup.agent({"choice": GRAPHITE, "operator_config": str(home / "operator.json")})
     setup.review({"confirm": True})
     cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
     assert cfg["remote_machine"] == MACHINE

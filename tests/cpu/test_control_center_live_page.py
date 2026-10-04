@@ -28,7 +28,14 @@ page to that, through its own scripts, without a browser:
 - the Tools tab reads a file under either research tools rule; the session
   link connects once and leaves its token nowhere; setup shows a stale or
   set-aside compute check, where each Challenge's candidates are evaluated,
-  and Review's warnings (wiring after slices A to G were integrated).
+  and Review's warnings (wiring after slices A to G were integrated);
+- Graphite (GRAPHITE-MINER-S5): offered in place of the autonomous agent,
+  each mode launching with exactly its own fields, the hunt's estimate and
+  closed query grammar, optional per-epoch limits and templates; a Graphite
+  campaign's stage, plan, spend split and hunt; the Library's labelled and
+  ranked cards, pin and ban under a key, import, the plan editor's checks and
+  new versions, its fallback route, a controller without it, and its session
+  link (documents from control_center_graphite_fixture.py).
 
 The page scenarios run in Node (tests/cpu/control_center_page_check.cjs over
 the small DOM in control_center_dom.cjs) when Node is installed. The
@@ -46,6 +53,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from control_center_graphite_fixture import graphite_documents
 
 ROOT = Path(__file__).resolve().parents[2]
 LAUNCHPAD = ROOT / "scripts/dev/miner_launchpad"
@@ -63,7 +71,7 @@ def _open_options():
 
     return {
         "agents": [
-            {"value": "autonomous", "availability": "available"},
+            {"value": "graphite", "availability": "available"},
             {"value": "none", "availability": "available"},
         ],
         "model_providers": [
@@ -347,6 +355,8 @@ def documents(tmp_path, journey, monkeypatch):
         "setup_send": _setup_document(tmp_path),
         "setups": _setups(tmp_path, monkeypatch),
     }
+    # Graphite's documents, from these (GRAPHITE-MINER-S5).
+    value["graphite"] = graphite_documents(_plain(value))
     path = tmp_path / "control-center-documents.json"
     path.write_text(json.dumps(_plain(value)))
     return path
@@ -379,7 +389,7 @@ def test_the_page_behaves_under_a_live_controller(documents):
 
 
 def test_the_page_scripts_set_text_and_never_parse_html():
-    for name in ("app.js", "research_view.js", "research_tools.js"):
+    for name in ("app.js", "research_view.js", "research_tools.js", "library_view.js"):
         source = (LAUNCHPAD / name).read_text()
         for pattern in ("innerHTML", "outerHTML", "insertAdjacentHTML", "DOMParser"):
             assert pattern not in source, (name, pattern)
@@ -487,7 +497,7 @@ def test_the_mcp_command_names_a_relative_profile_absolutely(
 def test_shared_choices_are_named_as_setup_names_them(journey):
     from scripts.dev.miner_launchpad import capabilities
     from scripts.dev.miner_launchpad.environment_setup import (
-        AUTONOMOUS,
+        GRAPHITE,
         LOCAL_CPU,
         LOCAL_GPU,
         OWN_AGENT,
@@ -503,7 +513,7 @@ def test_shared_choices_are_named_as_setup_names_them(journey):
     }
     document = capabilities.control_center(journey)
     labels = {choice["id"]: choice["label"] for choice in document["agents"]["choices"]}
-    assert labels["autonomous"] == named[("agent", AUTONOMOUS)]
+    assert labels["graphite"] == named[("agent", GRAPHITE)]
     assert labels["external_mcp"] == named[("agent", OWN_AGENT)]
     # The journey profile computes on this machine's CPU.
     assert document["compute"]["choices"][0]["label"] == named[("compute", LOCAL_CPU)]

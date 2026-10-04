@@ -9,9 +9,9 @@ from __future__ import annotations
 import pytest
 from graphite_fixtures import provider, reader_script, spec, started
 
-from carbon.agent_campaign.graphite import Ladder, LadderError, ScriptedModel
 from carbon.agent_campaign.graphite import ladder as gl
-from carbon.agent_campaign.graphite.model import fail
+from carbon.agent_campaign.graphite.ladder import Ladder, LadderError
+from carbon.agent_campaign.graphite.model import ScriptedModel, fail
 from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
     ROLES,

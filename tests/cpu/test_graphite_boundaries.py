@@ -24,22 +24,21 @@ from graphite_fixtures import (
 
 from carbon.agent_campaign import boundaries
 from carbon.agent_campaign.grant import GrantError, SpendingGrant, template
-from carbon.agent_campaign.graphite import (
-    FIXTURE_INDEX,
-    LiteratureIndex,
-    LiveModel,
-    ScriptedModel,
-    SessionBrief,
-)
 from carbon.agent_campaign.graphite import tools as gt
-from carbon.agent_campaign.graphite.literature import LiteratureError
+from carbon.agent_campaign.graphite.literature import (
+    FIXTURE_INDEX,
+    LiteratureError,
+    LiteratureIndex,
+)
 from carbon.agent_campaign.graphite.model import (
+    LiveModel,
     ModelAccessRefused,
+    ScriptedModel,
     text,
     tool,
     tools,
 )
-from carbon.agent_campaign.graphite.provider import GraphiteProvider
+from carbon.agent_campaign.graphite.provider import GraphiteProvider, SessionBrief
 from carbon.agent_campaign.graphite.roles import (
     ROLES,
     TOOL_REGISTRY,
@@ -49,6 +48,7 @@ from carbon.agent_campaign.graphite.roles import (
 from carbon.agent_campaign.provider import ProviderUnavailable
 from carbon.development_session.model_provider import ENGY_LADDER, select
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent_policy import COMPACT
 from carbon.development_session.research_loop import SELECT
 from carbon.development_session.research_tools import PREFIX
 
@@ -126,10 +126,17 @@ def test_instructions_inside_tool_output_never_change_role_tools_or_budget(tmp_p
     opened = graphite.session_record(run_id)
     assert graphite.run(run_id) == "succeeded"
     reader = ROLES[RoleName.READER]
-    # The role, prompt, tool manifest and model never changed, turn after turn.
+    # The role, prompt, offered tools and model never changed, turn after
+    # turn. A session opened under the v2 limits rule (OWNER-GRAPHITE-MINER-01
+    # §6) is offered its closed manifest, then the engine's compaction tool,
+    # which the loop answers itself and which reaches no role tool; its
+    # record names that tool.
+    offered = [*reader.tools, COMPACT]
+    assert opened["session_limits"]["engine_tools"] == [COMPACT]
+    assert graphite.offered_tools(opened) == offered
     for request in model.requests:
         assert request["instructions"] == reader.prompt
-        assert [t["name"] for t in request["tools"]] == list(reader.tools)
+        assert [t["name"] for t in request["tools"]] == offered
         assert request["model"] == reader.start_model
     # The injected text reached the model only as a tool result's data.
     second = model.requests[1]["input"]
@@ -181,8 +188,11 @@ def test_instructions_in_a_miner_tool_result_are_data(tmp_path):
     )
     assert graphite.run(run_id) == "succeeded"
     constructor = ROLES[RoleName.CONSTRUCTOR]
+    # The closed manifest, then the engine's compaction tool (v2 rule).
+    offered = [*constructor.tools, COMPACT]
+    assert graphite.offered_tools(graphite.session_record(run_id)) == offered
     for request in model.requests:
-        assert [t["name"] for t in request["tools"]] == list(constructor.tools)
+        assert [t["name"] for t in request["tools"]] == offered
         assert request["instructions"] == constructor.prompt
     assert [c[0] for c in miner.calls] == [PREFIX + "get_challenge_info"]
     # lit_search is not the Constructor's: refused although the note said so.

@@ -19,7 +19,7 @@ import pytest
 from carbon.development_session import model_provider as mp
 from scripts.dev.miner_launchpad import runner
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     LOCAL_CPU,
     EnvironmentSetup,
     LiveChecks,
@@ -255,7 +255,7 @@ def setup_with(tmp_path, inference):
             "analysis_image_manifest": str(home / "analysis.json"),
         }
     )
-    setup.agent({"choice": AUTONOMOUS, "operator_config": str(home / "operator.json")})
+    setup.agent({"choice": GRAPHITE, "operator_config": str(home / "operator.json")})
     setup.review({"confirm": True})
     return setup, checks, quote
 

@@ -16,7 +16,8 @@ import pytest
 from graphite_fixtures import grant_document
 from graphite_phase2_fixtures import GRANT_FILE, REPOSITORY, entry, replies, seed
 
-from carbon.agent_campaign.graphite import ScriptedModel, phase2
+from carbon.agent_campaign.graphite import phase2
+from carbon.agent_campaign.graphite.model import ScriptedModel
 
 KEY = "fixture-key-0123456789-not-a-real-key"
 

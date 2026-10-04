@@ -365,6 +365,80 @@
     parent.append(list);
   }
 
+  // ---- Graphite (OWNER-GRAPHITE-MINER-01, GRAPHITE-MINER-S5). The campaign
+  // view's `graphite` block: the mode frozen at launch, the stage now, the
+  // plan it builds from (read from the Library by its digest), research
+  // against build spend, and the hunt's progress. All text, from the record.
+  function graphiteKey(doc) {
+    const g = doc.graphite || null;
+    const plan = g && typeof g.plan_digest === "string" && g.plan_digest && window.CarbonLibrary ? window.CarbonLibrary.planKey(g.plan_digest) : null;
+    return JSON.stringify([g, doc.tiles.spend || null, doc.campaign?.state ?? null, plan]);
+  }
+  const STAGE_NOUNS = {hunt: "Hunt", plan: "Plan", build: "Build"};
+  const STAGE_STATES = {DONE: "done", RUNNING: "running", PENDING: "waiting", STOPPED: "stopped"};
+  function nano(value, name = "provider_nanodollars") {
+    if (typeof value === "number") return value;
+    return value && typeof value === "object" && typeof value[name] === "number" ? value[name] : null;
+  }
+  function drawGraphite(box, doc) {
+    const g = doc.graphite;
+    const G = CC.graphite;
+    head(box, "Graphite · " + G.modeLabel(g.mode) + " mode", "Carbon's agent");
+    para(box, "Now: " + G.now(g.stage, doc.campaign?.state), "status-line rs-graphite-stage");
+    const grid = el("dl", undefined, "review-grid rs-graphite");
+    const row = (label, value) => { const dd = el("dd"); if (typeof value === "string") dd.textContent = value; else dd.append(...value); grid.append(el("dt", label), dd); return dd; };
+    const digest = typeof g.plan_digest === "string" && g.plan_digest ? g.plan_digest : null;
+    row("Plan", digest ? [el("code", digest.slice(0, 12) + "…"), " ", anchor("Open the plan", "#library/plans/" + encodeURIComponent(digest))] : g.mode === "RESEARCH" ? "Not written yet: this campaign's Planner writes it" : "None yet: Graphite's Planner writes one first");
+    // Each stage the campaign runs, in order, with its state and the code it
+    // ended on (a research stage stopped at its share says so).
+    const stages = Array.isArray(g.stages) ? g.stages.filter(item => item && typeof item.stage === "string") : [];
+    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + ")" : "")).join(" · "));
+    // Research spend against its share; build spend is the rest of the
+    // campaign's model spend. The share narrows only the model ceilings the
+    // miner set: with none, it does not bind, and that is said.
+    const used = doc.tiles.spend ? doc.tiles.spend.used_nanodollars : null;
+    const ceiling = doc.tiles.spend ? doc.tiles.spend.ceiling_nanodollars : null;
+    const research = nano(g.research_spent);
+    const share = typeof g.research_share === "number" ? g.research_share : null;
+    // The cap the share sets, as the campaign states it (research_cap: only
+    // the dimensions the miner capped); from the spend ceiling otherwise.
+    const stated = g.research_cap && typeof g.research_cap === "object" ? g.research_cap : null;
+    const caps = stated ? [nano(stated) !== null ? "up to " + G.usd(nano(stated)) + (typeof ceiling === "number" ? " of your " + G.usd(ceiling) : "") : null, nano(stated, "provider_attempts") !== null ? "up to " + nano(stated, "provider_attempts") + " model calls" : null].filter(Boolean)
+      : share !== null && typeof ceiling === "number" && ceiling > 0 ? [G.usd(Math.floor(ceiling * share)) + " of your " + G.usd(ceiling)] : [];
+    const shareText = share === null ? "" : " · its share " + Math.round(share * 10000) / 100 + "%" + (caps.length ? " (" + caps.join(" and ") + ")" : " (it narrows only a model-spend or model-call ceiling you set; with neither, it does not bind)");
+    row("Research spend", (research === null ? "unavailable" : G.usd(research)) + shareText);
+    if (g.mode !== "RESEARCH") row("Build spend", typeof used === "number" && research !== null && used >= research ? G.usd(used - research) : "unavailable");
+    const attempts = nano(g.research_spent, "provider_attempts");
+    if (attempts !== null) row("Research model calls", String(attempts));
+    const hunt = g.hunt && typeof g.hunt === "object" ? g.hunt : null;
+    if (hunt) {
+      const parts = [];
+      if (typeof hunt.fetched === "number") parts.push(hunt.fetched + " found on arXiv");
+      if (typeof hunt.deduped === "number") parts.push(hunt.deduped + " already known, not paid for again");
+      if (typeof hunt.triaged_out === "number") parts.push(hunt.triaged_out + " set aside at first reading");
+      if (typeof hunt.extracted === "number") parts.push(hunt.extracted + " read into your Library");
+      if (typeof hunt.reader_calls === "number") parts.push(hunt.reader_calls + " Reader call" + (hunt.reader_calls === 1 ? "" : "s"));
+      parts.push("cost " + (typeof hunt.cost_nanodollars === "number" ? G.usd(hunt.cost_nanodollars) : "unavailable"));
+      row("Hunt", parts.join(" · "));
+      // arXiv unreachable (FAILED_INFRA: the hunt report's boolean, or a
+      // count): an infrastructure failure, never a verdict on any paper.
+      if (hunt.failed_infra === true || (typeof hunt.failed_infra === "number" && hunt.failed_infra > 0)) {
+        const failed = row("arXiv", "Could not be reached, so the hunt ended where it was (literature fetch failed). That is not a verdict on any paper; the Planner went on with the cards you have. Next: hunt again in a later campaign.");
+        failed.className = "reason"; failed.dataset.code = "literature_fetch_failed";
+      }
+    } else row("Hunt", "No hunt in this campaign: it reads the shared pack and your Library.");
+    box.append(grid);
+    if (digest && window.CarbonLibrary) {
+      const read = window.CarbonLibrary.plan(digest);
+      const plan = el("div", undefined, "rs-graphite-plan");
+      plan.append(el("p", "The plan's first hypotheses", "eyebrow"));
+      if (read.doc) window.CarbonLibrary.drawPlan(plan, read.doc, 3);
+      else para(plan, read.error ? "The plan could not be read: " + words(read.error) + "." : "Reading the plan…", read.error ? "reason" : "hint");
+      box.append(plan);
+    }
+    para(box, "Graphite runs on your model and key, within your own budget. Its cards are UNCHECKED; its plan is guidance, never evaluation.", "hint");
+  }
+
   // ---- What Reconcile settles (LP-PROD-W2). The campaign view's
   // `reconciliation`: each model call whose outcome is unknown and what
   // Reconcile would book for it, while the campaign awaits reconciliation;
@@ -962,6 +1036,9 @@
     part(container, "tiles", tilesKey(doc), box => tiles(box, doc), "rs-tiles-part", "div");
     updateClock(container, doc);
     part(container, "stages", JSON.stringify(doc.stages), box => stages(box, doc), "rs-stages-part", "div");
+    // Always in the frame, hidden for a campaign without Graphite, so no
+    // other part moves when it appears.
+    part(container, "graphite", graphiteKey(doc), box => { if (doc.graphite) drawGraphite(box, doc); }, "rs-panel rs-graphite-part", "section").hidden = !doc.graphite;
     part(container, "nav", JSON.stringify([run.id, r.tab]), box => {
       for (const [name, label] of TABS) {
         const link = anchor(label, CC.campaignHref(run.id, name), "");
@@ -1024,7 +1101,7 @@
     const skipsInference = Boolean(j?.skipped?.inference) || Boolean(agent && !agent.uses_model);
     const cards = [
       {id: "challenge", title: "Challenge", value: entry ? entry.title + " · v" + entry.version : "Not chosen", note: entry ? (entry.selectable ? "Ready to launch" : "Set up first") : "Choose what to mine", go: () => CC.goWizard("challenge")},
-      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
+      {id: "agent", title: "Agent", value: steps.agent?.checked ? choiceName("agent", steps.agent.choice) : agent ? agent.label : "Not chosen", note: agent ? (agent.launch_agent === "graphite" ? "Graphite · " + CC.graphite.summary() : agent.uses_model ? "Carbon's agent calls your model" : "Calls no model") : j?.skipped?.inference ? "Your own agent, with its own model" : "Who researches and submits", href: "#setup/agent"},
     ];
     if (!skipsInference) cards.push({id: "inference", title: "Inference", value: steps.inference?.checked ? choiceName("inference", steps.inference.provider_id) + " · " + steps.inference.model_id : "Not checked", note: "Only Carbon's own agent calls a model, with your key", href: "#setup/inference"});
     cards.push(

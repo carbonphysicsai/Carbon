@@ -910,6 +910,38 @@ async def submit_candidate(prepared, epoch, strategy):
     return await prepared.campaign.evaluate(prepared, epoch, strategy)
 
 
+async def submit_or_retain(prepared, epoch, strategy):
+    """An agent's selection through `submit_candidate`, keeping a candidate
+    the validator did not evaluate. Shared by Carbon's autonomous agent
+    (`run_agent`) and Graphite's miner edition.
+
+    Returns `(feedback, None)` - feedback None when the practice rule left
+    nothing to dispatch - or, when the submit was refused before any
+    evaluation (no deployment, infrastructure, queued) and the Challenge keeps
+    the frozen candidate for a later submit, `(None, code)` with the
+    refusal's closed code, after noting the decision. A Challenge that does
+    not keep it lets the refusal propagate."""
+    ledger, owner = prepared.ledger, prepared.owner
+    try:
+        return await submit_candidate(prepared, epoch, strategy), None
+    except OperationRefused as refused:
+        if not prepared.campaign.refusal_retains_candidate:
+            raise
+        # Nothing was evaluated (no deployment, infrastructure, queued):
+        # never a result. The frozen candidate stays for a later submit.
+        ledger.note(
+            owner=owner,
+            kind="decision",
+            body={
+                "epoch": epoch,
+                "stop": "submission not evaluated: " + refused.code,
+                "candidate_retained": True,
+            },
+        )
+        report(ledger, owner=owner)
+        return None, refused.code
+
+
 async def evaluate_burgers(prepared, epoch, strategy):
     """The historical Burgers final epoch for a frozen candidate."""
     ledger, owner = prepared.ledger, prepared.owner
@@ -1028,28 +1060,29 @@ async def run_agent(prepared, *, transport=None):
         report(ledger, owner=owner)
         if result["status"] != "SELECTED":
             break
-        try:
-            feedback = await submit_candidate(prepared, epoch, result["strategy"])
-        except OperationRefused as refused:
-            if not prepared.campaign.refusal_retains_candidate:
-                raise
-            # Nothing was evaluated (no deployment, infrastructure, queued):
-            # never a result. The frozen candidate stays for a later submit.
-            ledger.note(
-                owner=owner,
-                kind="decision",
-                body={
-                    "epoch": epoch,
-                    "stop": "submission not evaluated: " + refused.code,
-                    "candidate_retained": True,
-                },
-            )
-            report(ledger, owner=owner)
-            return refused.code
+        feedback, retained = await submit_or_retain(prepared, epoch, result["strategy"])
+        if retained is not None:
+            return retained
         if feedback is None:
             break
     _complete(prepared)
     return None
+
+
+async def run_graphite(prepared, *, transport=None, arxiv_opener=None, clock=None):
+    """Graphite's miner edition (OWNER-GRAPHITE-MINER-01): its RESEARCH,
+    BUILD or FULL stages on the miner's own model, budget and ledger, its
+    selection through the same submit (`carbon.agent_campaign.graphite.miner.
+    driver.run`). `transport`, `arxiv_opener` and `clock` are for
+    deterministic acceptance only; every campaign door passes none.
+
+    Returns what `run_agent` returns: None, or a retained candidate's
+    refusal code."""
+    from carbon.agent_campaign.graphite.miner import driver
+
+    return await driver.run(
+        prepared, transport=transport, arxiv_opener=arxiv_opener, clock=clock
+    )
 
 
 def _open_epoch(prepared):
@@ -1307,9 +1340,11 @@ def reconcile_command(root):
 async def execute(args, *, ledger=None):
     """Prepare a campaign, then let whoever selects in it work.
 
-    With the autonomous agent, Carbon's agent runs the epochs. With no agent,
-    the campaign is left prepared: the miner practices through the research
-    tools and freezes and submits through the same operations.
+    With the autonomous agent, Carbon's agent runs the epochs. With Graphite
+    (`graphite`), Graphite's miner edition runs its frozen stages
+    (`run_graphite`). With no agent, the campaign is left prepared: the miner
+    practices through the research tools and freezes and submits through the
+    same operations.
 
     Returns what `run_agent` returns (a retained candidate's refusal code),
     otherwise None.
@@ -1318,6 +1353,8 @@ async def execute(args, *, ledger=None):
     if prepared is None:
         return None
     try:
+        if prepared.agent == "graphite":
+            return await run_graphite(prepared)
         if prepared.agent != "none":
             return await run_agent(prepared)
         return None

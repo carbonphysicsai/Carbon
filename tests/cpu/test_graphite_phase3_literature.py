@@ -58,6 +58,7 @@ from carbon.agent_campaign.graphite.roles import (
 )
 from carbon.agent_campaign.provider import ProviderUnavailable
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent_policy import COMPACT
 from carbon.reconstruction import expansion_record
 from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
@@ -534,11 +535,13 @@ def test_a_planner_proposal_is_validated_written_and_listed(tmp_path, capsys):
     assert sorted(p["proposal_id"] for p in listed["proposals"]) == sorted(
         p["proposal_id"] for p in stored
     )
-    # Every refusal and answer is journalled; the role's tools never changed.
+    # Every refusal and answer is journalled; the role's tools never changed:
+    # the closed manifest, then the engine's compaction tool (v2 rule).
     for request in model.requests:
-        assert [t["name"] for t in request["tools"]] == list(
-            ROLES[RoleName.PLANNER].tools
-        )
+        assert [t["name"] for t in request["tools"]] == [
+            *ROLES[RoleName.PLANNER].tools,
+            COMPACT,
+        ]
 
 
 def test_only_the_planner_and_constructor_hold_the_next_level_tool():
@@ -696,7 +699,7 @@ def test_injected_card_text_triggers_no_proposal_and_no_tool_change(tmp_path):
     planner = ROLES[RoleName.PLANNER]
     for request in model.requests:
         assert request["instructions"] == planner.prompt
-        assert [t["name"] for t in request["tools"]] == list(planner.tools)
+        assert [t["name"] for t in request["tools"]] == [*planner.tools, COMPACT]
     assert _unchanged_surface() == before
 
 

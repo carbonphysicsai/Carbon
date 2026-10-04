@@ -571,6 +571,12 @@ def stages(own):
             else ""
         ),
     }
+    graphite = graphite_section(own)
+    if graphite is not None and graphite["stage"] is not None:
+        # Where Graphite is (S4): its mode and current stage.
+        details["research"] += (
+            " · Graphite " + (graphite["mode"] or "") + ": " + graphite["stage"]
+        )
     labels = {
         "research": "Research",
         "practice": "Practice runs",
@@ -608,6 +614,96 @@ def stages(own):
             }
         out.append(stage)
     return out
+
+
+#: Graphite's modes and what its section of the view carries (S4).
+GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
+_GRAPHITE_STAGE = re.compile(r"[a-z][a-z0-9_]{0,31}")
+_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+_SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
+_HUNT_COUNTS = (
+    "fetched",
+    "deduped",
+    "triaged_out",
+    "extracted",
+    "failed_infra",
+    "reader_calls",
+    "cost_nanodollars",
+)
+
+
+def graphite_section(own):
+    """A Graphite campaign's mode, current stage, frozen plan digest, the
+    research share and what research spent, and the hunt's progress, copied
+    by name from the projection (`projection.graphite_progress`); None for
+    any other campaign. Closed shapes only."""
+    value = own.get("graphite")
+    if type(value) is not dict:
+        return None
+
+    def count(item):
+        return item if type(item) is int and item >= 0 else None
+
+    share = value.get("research_share")
+    spent = (
+        value.get("research_spent") if type(value.get("research_spent")) is dict else {}
+    )
+    hunt = value.get("hunt") if type(value.get("hunt")) is dict else None
+    stage = value.get("stage")
+    cap = value.get("research_cap") if type(value.get("research_cap")) is dict else None
+
+    def spend(vector):
+        return {key: count(vector.get(key)) for key in _SPEND_KEYS}
+
+    return {
+        "edition": _str(value.get("edition")),
+        "mode": value.get("mode") if value.get("mode") in GRAPHITE_MODES else None,
+        "stage": (
+            stage if type(stage) is str and _GRAPHITE_STAGE.fullmatch(stage) else None
+        ),
+        # Each stage the campaign runs, in order, with its state and the
+        # closed code it ended on (`research_share_reached`, ...).
+        "stages": [
+            {
+                "stage": row["stage"],
+                "state": (
+                    row.get("state") if row.get("state") in _STAGE_STATES else None
+                ),
+                "code": (
+                    row["code"]
+                    if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
+                    else None
+                ),
+            }
+            for row in (
+                value.get("stages") if type(value.get("stages")) is list else []
+            )[:16]
+            if type(row) is dict
+            and type(row.get("stage")) is str
+            and _GRAPHITE_STAGE.fullmatch(row["stage"])
+        ],
+        "plan_digest": _str(value.get("plan_digest")),
+        "research_share": (
+            share if type(share) in (int, float) and finite(share) is not None else None
+        ),
+        "research_spent": spend(spent),
+        # What the share lets research spend, per capped dimension (FULL).
+        "research_cap": None if cap is None else spend(cap),
+        "hunt": (
+            None
+            if hunt is None
+            else {
+                key: (
+                    int(hunt[key])
+                    if key == "failed_infra" and type(hunt.get(key)) is bool
+                    else count(hunt.get(key))
+                )
+                for key in _HUNT_COUNTS
+            }
+        ),
+        "cards": "UNCHECKED: the agent's literature is never checked by Carbon",
+    }
 
 
 #: The stage each operation's refusal belongs to.
@@ -1315,6 +1411,9 @@ def build(
         },
         "fixture": bool(fixture),
         "stages": stages(own),
+        # Graphite's own progress (S4): mode, stage, plan, research spend
+        # against its share, and the hunt; null for any other campaign.
+        "graphite": graphite_section(own),
         "controls": controls(own, fixture=fixture),
         # Why the last attempt no caller saw was refused or interrupted, and
         # what to do; the work admitted and not yet done; and what gets the

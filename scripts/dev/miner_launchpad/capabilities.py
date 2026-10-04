@@ -230,7 +230,13 @@ def _setup_offers(entry):
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.challenge_registry.registry import GPU_RESEARCH, IMPLEMENTED
 
-    none = {"gpu": False, "remote_gpu": False, "intake": False, "feedback_modes": []}
+    none = {
+        "gpu": False,
+        "remote_gpu": False,
+        "intake": False,
+        "feedback_modes": [],
+        "graphite": False,
+    }
     if entry["status"] != IMPLEMENTED:
         return none
     try:
@@ -250,6 +256,9 @@ def _setup_offers(entry):
         "remote_gpu": gpu and campaign.remote_worker is not None,
         "intake": campaign.intake_check is not None,
         "feedback_modes": list(campaign.feedback_modes),
+        # Graphite runs on a Challenge with a registered research campaign
+        # (OWNER-GRAPHITE-MINER-01; `runner.graphite_offered`).
+        "graphite": True,
     }
 
 
@@ -339,8 +348,9 @@ def _challenges(profile_state, host):
 
 #: Choices this document shares with setup are named as setup names them
 #: (`environment_setup.choices`), so one choice reads the same on every page
-#: (LP-PROD-F). Held to setup's names by test.
-AUTONOMOUS_LABEL = "Carbon's autonomous research agent"
+#: (LP-PROD-F). Held to setup's names by test. Graphite replaced the
+#: autonomous agent for new launches (OWNER-GRAPHITE-MINER-01).
+GRAPHITE_LABEL = "Graphite, Carbon's research agent"
 OWN_AGENT_LABEL = "Your own agent, over MCP"
 LOCAL_CPU_LABEL = "This machine (CPU)"
 LOCAL_GPU_LABEL = "This machine (your GPU)"
@@ -394,15 +404,32 @@ def _agents(options, refusal, profile_path=None):
         }.get(agent.get("reason"), "Choose another agent.")
         return _unavailable(agent.get("reason"), next_action)
 
+    graphite = (options or {}).get("graphite") or {}
     return {
         "choices": [
             {
-                "id": "autonomous",
-                "label": AUTONOMOUS_LABEL,
-                "summary": "Carbon's agent researches, freezes and submits within your budget.",
-                "launch_agent": "autonomous",
+                "id": "graphite",
+                "label": GRAPHITE_LABEL,
+                "summary": (
+                    "Graphite hunts and reads literature, writes a ranked "
+                    "plan, then constructs, practises, selects and submits, "
+                    "on your model within your budget. Choose Research, Build "
+                    "or Full."
+                ),
+                "launch_agent": "graphite",
                 "uses_model": True,
-                **state("autonomous"),
+                # The launch form's Graphite choices, from the shared
+                # `options` operation (S4): modes, research share, hunt and
+                # its planning estimate, limits.
+                "modes": graphite.get("modes", []),
+                "launch_fields": [
+                    "graphite_mode",
+                    "research_share",
+                    "plan",
+                    "hunt",
+                    "limits",
+                ],
+                **state("graphite"),
             },
             {
                 "id": "manual",
@@ -484,10 +511,8 @@ def _model(options, refusal, cfg=None):
         credential = {"configured": None, "basis": "NOT_READ: " + refusal["reason"]}
         state = _unavailable(refusal["reason"], refusal["next_action"])
     else:
-        autonomous = next(
-            (a for a in options["agents"] if a["value"] == "autonomous"), None
-        )
-        ready = bool(autonomous and autonomous["availability"] == "available")
+        agent = next((a for a in options["agents"] if a["value"] == "graphite"), None)
+        ready = bool(agent and agent["availability"] == "available")
         credential = {"configured": ready, "basis": "read from your runner profile"}
         state = (
             {"availability": "available"}
@@ -512,7 +537,7 @@ def _model(options, refusal, cfg=None):
         *_registered_providers(options, refusal),
     ]
     return {
-        "used_by": ["autonomous"],
+        "used_by": ["graphite"],
         "chosen_by": "miner",
         "providers": [_with_setup_model(row, setup) for row in rows],
         "setup_choice": setup,
@@ -733,8 +758,40 @@ def _launch():
             "review_digest",
             "model_provider",
             "model",
+            # Graphite's own, with agent=graphite only (S4).
+            "graphite_mode",
+            "research_share",
+            "plan",
+            "hunt",
+            "limits",
         ],
         "challenge_default": None,
+    }
+
+
+def _graphite(options, refusal):
+    """Graphite's launch choices and library for the page (S4): the shared
+    `options` operation's `graphite` block, and the operations its Library
+    tab calls - each the shared operation of that name, at either door."""
+    from scripts.dev.miner_launchpad.operations import LIBRARY_READS, LIBRARY_WRITES
+
+    value = (options or {}).get("graphite")
+    return {
+        **(
+            value
+            if value is not None
+            else _unavailable(refusal["reason"], refusal["next_action"])
+        ),
+        "library": {
+            "reads": list(LIBRARY_READS),
+            "writes": list(LIBRARY_WRITES),
+            "http": {
+                "library": "/api/v1/library/<search|card|list|pin|unpin|ban|unban|import>",
+                "plans": "/api/v1/plans/<list|get|edit>",
+            },
+            "check_status": "UNCHECKED",
+            "origins": ["shared", "miner_hunt", "miner_import"],
+        },
     }
 
 
@@ -753,6 +810,7 @@ def control_center(runner=None):
         "profile": profile_state,
         "challenges": _challenges(profile_state, host),
         "agents": _agents(options, refusal, profile_path),
+        "graphite": _graphite(options, refusal),
         "model": _model(options, refusal, cfg),
         "compute": _compute(cfg, options, refusal, host),
         "budget": _budget(),

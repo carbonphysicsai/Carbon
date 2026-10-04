@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from carbon.development_session.profile import digest
@@ -195,7 +196,9 @@ def project(row, root):
         bounds.append(status["started_unix"] + manifest["elapsed_seconds"])
     value.update(
         # A campaign with no agent calls no model: say so, never a default.
-        agent="manual" if manifest.get("agent") == "none" else "carbon-autoresearch",
+        # Graphite is named as setup names it (OWNER-GRAPHITE-MINER-01); an
+        # autonomous campaign keeps its historical label.
+        agent=AGENT_LABELS.get(manifest.get("agent"), "carbon-autoresearch"),
         reasoning=manifest["provider"].get("model"),
         # Where its practice runs, from its frozen runtime (RSURF-D19):
         # until 2026-10-03 this said CPU for every campaign.
@@ -347,6 +350,11 @@ def project(row, root):
                         }
                     )
     value["completed_experiments"] = len(value["experiments"])
+    if manifest.get("agent") == "graphite":
+        # Graphite's mode, stage, plan, research spend and hunt (S4), read
+        # from the frozen plan, S3's view of its own records and the ledger;
+        # observe shows the stage.
+        value["graphite"] = graphite_progress(manifest, status, root)
     value["candidate_freezes"] = []
     # Where a miner's own journey stands, from the campaign's files: which
     # committed final epochs are submitted, and whether a frozen candidate is
@@ -474,6 +482,163 @@ def project(row, root):
                     }
                 )
     return value
+
+
+#: Who researches, as the projection labels it.
+AGENT_LABELS = {"none": "manual", "graphite": "carbon-graphite"}
+
+#: Graphite's own records, as S3's driver keeps them: write-once stage records
+#: under `<campaign>/graphite/stages/` (the hunt's carries its report's
+#: counts), and the hunt's Reader calls metered as `graphite-reader-<digest>`
+#: (`miner.budget.READER_PREFIX`).
+GRAPHITE_STAGES = ("graphite", "stages")
+READER_PREFIX = "graphite-reader-"
+SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
+_HUNT_FIELDS = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra")
+_STAGE_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}")
+_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+
+
+def _graphite_view(root, operations):
+    """S3's own view of a Graphite campaign (`miner.driver.view`): its stages,
+    the current one, the plan its Planner wrote or the miner chose, what its
+    research stages spent against the research share, and the hunt's cost.
+    A test replaces it."""
+    from carbon.agent_campaign.graphite.miner.driver import view
+
+    return view(root, operations=operations)
+
+
+def _hunt_report(root):
+    """The counts of the hunt's report, from its stage record (S3), or None
+    before the hunt finished."""
+    path = Path(root).joinpath(*GRAPHITE_STAGES, "hunt.json")
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1 << 20:
+            return None
+        record = json.loads(path.read_bytes())
+    except (OSError, ValueError):
+        return None
+    report = record.get("report") if type(record) is dict else None
+    if type(report) is not dict:
+        return None
+    counts = {}
+    for name in _HUNT_FIELDS:
+        item = report.get(name)
+        if type(item) is bool:
+            # S2 says whether arXiv failed; the view counts it (0 or 1).
+            counts[name] = int(item)
+        elif type(item) is int and item >= 0:
+            counts[name] = item
+        elif type(item) is list:
+            counts[name] = len(item)
+        else:
+            counts[name] = None
+    return counts
+
+
+def _count(value):
+    return value if type(value) is int and value >= 0 else None
+
+
+def _spend(value):
+    value = value if type(value) is dict else {}
+    return {key: _count(value.get(key)) for key in SPEND_KEYS}
+
+
+def _stages(value):
+    rows = []
+    for row in value if type(value) is list else []:
+        if type(row) is not dict or type(row.get("stage")) is not str:
+            continue
+        if not _STAGE_NAME.fullmatch(row["stage"]):
+            continue
+        code = row.get("code")
+        rows.append(
+            {
+                "stage": row["stage"],
+                "state": (
+                    row.get("state") if row.get("state") in _STAGE_STATES else None
+                ),
+                "code": code if type(code) is str and _CODE.fullmatch(code) else None,
+            }
+        )
+    return rows[:16]
+
+
+def graphite_progress(manifest, status, root):
+    """A Graphite campaign's progress: {edition, mode, stage, stages,
+    plan_digest, research_share, research_spent, research_cap, hunt}.
+
+    The frozen plan's `provider.graphite` block gives the edition and mode.
+    Everything else is S3's driver's own view of its records
+    (`miner.driver.view`): the stages and the current one (None before any,
+    `complete` once done), the plan digest - the one the miner chose, or the
+    one the campaign's Planner wrote - the research share (FULL only), what
+    the research stages (the hunt's Reader and the Planner) spent and the cap
+    the share sets. `hunt` is None without a hunt; otherwise the counts of
+    its report (None until it finished), how many Reader calls it made and
+    what they cost, all of them read live from the ledger. Without the
+    driver's view (an unreadable record), only the frozen block's values
+    are shown, and nothing is invented."""
+    provider = (
+        manifest.get("provider") if type(manifest.get("provider")) is dict else {}
+    )
+    block = provider.get("graphite") if type(provider.get("graphite")) is dict else {}
+    operations = status["operations"]
+    try:
+        seen = _graphite_view(root, operations)
+    except Exception:  # noqa: BLE001 - shown as unknown, never as a failure
+        seen = None
+    seen = seen if type(seen) is dict else {}
+    mode = block.get("mode") if block.get("mode") in GRAPHITE_MODES else None
+    share = block.get("research_share")
+    plan_digest = seen.get("plan_digest", block.get("plan_digest"))
+    stage = seen.get("stage")
+    hunt = None
+    if block.get("hunt") is not None:
+        calls, cost = 0, 0
+        for op in operations:
+            if not str(op.get("id", "")).startswith(READER_PREFIX):
+                continue
+            # As the driver's view and the ledger count use: settled where
+            # settled, reserved otherwise.
+            charge = op.get("actual")
+            charge = charge if charge is not None else op.get("reservation")
+            amount = (charge if type(charge) is dict else {}).get(
+                "provider_nanodollars"
+            )
+            calls += 1
+            cost += amount if type(amount) is int else 0
+        hunt = {
+            **(_hunt_report(root) or dict.fromkeys(_HUNT_FIELDS)),
+            "reader_calls": calls,
+            "cost_nanodollars": cost,
+        }
+    return {
+        "edition": block.get("edition") if type(block.get("edition")) is str else None,
+        "mode": mode,
+        "stage": stage if type(stage) is str and _STAGE_NAME.fullmatch(stage) else None,
+        "stages": _stages(seen.get("stages")),
+        "plan_digest": plan_digest if type(plan_digest) is str else None,
+        # Of the miner's provider_nanodollars and provider_attempts ceilings;
+        # only FULL applies it, and its research stages stop at it
+        # (`research_share_reached`).
+        "research_share": (
+            share if mode == "FULL" and type(share) in (int, float) else None
+        ),
+        "research_spent": _spend(seen.get("research_spent")),
+        "research_cap": (
+            _spend(seen["research_cap"])
+            if type(seen.get("research_cap")) is dict
+            else None
+        ),
+        "hunt": hunt,
+    }
+
+
+GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 
 
 def _compute(runtime):

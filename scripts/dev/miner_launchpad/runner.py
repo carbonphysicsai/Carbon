@@ -28,6 +28,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import math
 import os
 import re
 import secrets
@@ -35,7 +36,7 @@ import sqlite3
 import threading
 import time
 from contextlib import ExitStack, contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -723,8 +724,9 @@ def frozen_provider(root):
 class LaunchChoice:
     """What a launch chose beyond the product admission: the validated model
     selection (built only by `model_provider.select`, with the profile's key
-    file for that provider) and the Challenge's feedback mode. Applied when the
-    campaign is first created, never on resume: the manifest is frozen then."""
+    file for that provider), the Challenge's feedback mode, and Graphite's
+    launch choice. Applied when the campaign is first created, never on
+    resume: the manifest is frozen then."""
 
     selection: object = None
     feedback_mode: str | None = None
@@ -733,6 +735,10 @@ class LaunchChoice:
     #: own builder chooses the defaults, a new plan's output cap being the
     #: model's own maximum (OWNER-LAUNCHPAD-PROD-02).
     settings: dict | None = None
+    #: Graphite's launch choice (`graphite_launch`, with the curation digest
+    #: captured at admission), or None for any other agent: then the args
+    #: carry no `graphite`, exactly as before Graphite existed.
+    graphite: dict | None = None
 
     def apply(self, args):
         if self.selection is not None:
@@ -746,6 +752,508 @@ class LaunchChoice:
             args.api_key_file = Path(self.selection.credential.reference)
         if self.feedback_mode is not None:
             args.feedback_mode = self.feedback_mode
+        if self.graphite is not None:
+            # Exactly the launch fields S3's `edition.launch_fields` reads
+            # (`driver.freeze_launch` validates them again and freezes the
+            # provider plan's graphite block from them), and, beside them,
+            # the curation digest admission captured, for the campaign to
+            # freeze that curation rather than the library's current one.
+            args.graphite = {key: self.graphite[key] for key in GRAPHITE_LAUNCH_KEYS}
+            args.graphite_curation_digest = self.graphite["curation_digest"]
+
+
+# ---- Graphite, the miner edition (OWNER-GRAPHITE-MINER-01, S4).
+
+#: The launch agent that runs Graphite's miner edition. It replaced
+#: `autonomous` for new launches: a new launch naming `autonomous` is refused
+#: `autonomous_agent_replaced` after the replay gate, so a launch recorded
+#: under it still replays, a queued one is still carried out, and a frozen
+#: autonomous campaign still runs `run_agent` unchanged.
+GRAPHITE = "graphite"
+RETIRED_AGENT = "autonomous"
+#: The agents whose campaign calls a model, and so takes a model selection.
+MODEL_AGENTS = (RETIRED_AGENT, GRAPHITE)
+#: The miner edition a new Graphite launch names. What it means - its role
+#: prompts and tool manifests by digest - is the edition registry's
+#: (`agent_campaign.graphite.miner.edition.MINER_EDITIONS`), which refuses an
+#: unknown one (`graphite_edition_unknown`) before any model call.
+GRAPHITE_EDITION = "carbon.graphite.miner-edition.v1"
+GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
+DEFAULT_GRAPHITE_MODE = "FULL"
+#: The research share a FULL launch that names none is frozen with (the
+#: design's default, tunable by the miner from 0 to 1).
+DEFAULT_RESEARCH_SHARE = 0.10
+#: The launch fields only Graphite reads.
+GRAPHITE_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
+#: What a Graphite campaign receives as `args.graphite`: exactly the names S3's
+#: `edition.launch_fields` reads (`LAUNCH_FIELDS`), which refuses any other
+#: (`graphite_launch_invalid`). The edition is the campaign's to name.
+GRAPHITE_LAUNCH_KEYS = ("mode", "research_share", "plan", "hunt", "limits")
+#: A hunt's shape: at most 8 queries of at most 6 terms, each starting with
+#: a letter or digit and holding only letters, digits and -, never an arXiv
+#: operator word; and a record count (default 200, at most the arXiv client's
+#: 5,000). Raw arXiv query syntax is never accepted; Carbon composes the
+#: query. These are S2's own bounds (`focus.parse_miner_queries`,
+#: `hunt.MAX_RECORDS`), checked here first so a launch S2's hunt would refuse
+#: is refused before its campaign exists; a test pins them equal.
+HUNT_MAX_QUERIES, HUNT_MAX_TERMS, HUNT_QUERY_CHARS = 8, 6, 128
+HUNT_DEFAULT_RECORDS, HUNT_MAX_RECORDS = 200, 5000
+_HUNT_TERM = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,39}")
+HUNT_OPERATORS = frozenset({"and", "or", "not", "andnot"})
+#: Optional per-epoch and per-stage caps (owner: "generous and tunable
+#: limits"); unset, only the campaign's own ceilings bind. At most the
+#: engine's own tunable bound (S1's `MAX_TUNABLE_CAP`, as S3's launch fields
+#: read it); a test pins them equal.
+LIMIT_KEYS = ("calls_per_epoch", "trials_per_epoch", "planner_calls")
+LIMIT_MAX = 100_000
+#: The most pinned cards one plan can consider (S3's `plan.MAX_PINS`): a
+#: launch whose Planner runs first must name every pin in its plan.
+MAX_PINS = 64
+#: A plan's digest, as the library and S3's launch fields name it.
+_PLAN_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+#: Where the miner's private Graphite library lives: beside their runner
+#: profile, in the setup root (`<setup root>/graphite-library`).
+LIBRARY_DIRECTORY = "graphite-library"
+#: The key a launch record keeps what admission captured for Graphite under.
+#: Never a request field (the closed-request gate refuses it), so it never
+#: joins the launch's identity.
+GRAPHITE_ADMISSION = "graphite_admission"
+
+
+def _number(value):
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def hunt_value(value):
+    """A launch's `hunt`, validated: {queries (list or None), max_records}."""
+    if type(value) is not dict or not set(value) <= {"queries", "max_records"}:
+        raise Rejected("hunt_query_invalid")
+    queries = value.get("queries")
+    if queries is not None:
+        if type(queries) is not list or not 1 <= len(queries) <= HUNT_MAX_QUERIES:
+            raise Rejected("hunt_query_invalid")
+        for query in queries:
+            terms = query.split(" ") if type(query) is str else None
+            if (
+                terms is None
+                or len(query) > HUNT_QUERY_CHARS
+                or not 1 <= len(terms) <= HUNT_MAX_TERMS
+                or not all(_HUNT_TERM.fullmatch(term) for term in terms)
+                or any(term.lower() in HUNT_OPERATORS for term in terms)
+            ):
+                raise Rejected("hunt_query_invalid")
+        queries = list(queries)
+    records = value.get("max_records", HUNT_DEFAULT_RECORDS)
+    if type(records) is not int or not 1 <= records <= HUNT_MAX_RECORDS:
+        raise Rejected("hunt_query_invalid")
+    return {"queries": queries, "max_records": records}
+
+
+def limits_value(value):
+    """A launch's `limits`, validated: only the keys set, each 1..LIMIT_MAX."""
+    if type(value) is not dict or not set(value) <= set(LIMIT_KEYS):
+        raise Rejected("graphite_limits_invalid")
+    for item in value.values():
+        if type(item) is not int or not 1 <= item <= LIMIT_MAX:
+            raise Rejected("graphite_limits_invalid")
+    return {key: value[key] for key in LIMIT_KEYS if key in value}
+
+
+def graphite_launch(request):
+    """The launch's Graphite choice, validated, with its defaults resolved, or
+    None for any other agent.
+
+    {mode, research_share, plan, hunt, limits} - the names S3's launch fields
+    take: `mode` FULL by default; `research_share` 0.10 for FULL and None
+    otherwise; `plan` (a plan digest) only for BUILD; `hunt` None unless
+    asked for, and only where a hunt runs (RESEARCH and FULL: S3 runs no hunt
+    in BUILD); `limits` the caps set, possibly none. A Graphite field with
+    another agent, or with a mode that does not read it, is refused by name:
+    nothing is accepted that nothing uses. A field sent as null is absent
+    (the request gate drops it before anything is digested). Pure: the
+    library is not read here.
+    """
+    sent = [field for field in GRAPHITE_FIELDS if request.get(field) is not None]
+    if request.get("agent") != GRAPHITE:
+        if sent:
+            raise Rejected("graphite_fields_need_the_graphite_agent", 409)
+        return None
+    mode = request.get("graphite_mode")
+    if mode is None:
+        mode = DEFAULT_GRAPHITE_MODE
+    if type(mode) is not str or mode not in GRAPHITE_MODES:
+        raise Rejected("graphite_mode_invalid")
+    share = request.get("research_share")
+    if share is not None:
+        if mode != "FULL":
+            raise Rejected("graphite_field_not_used_by_mode", 409)
+        if not _number(share) or not 0 <= share <= 1:
+            raise Rejected("research_share_invalid")
+    elif mode == "FULL":
+        share = DEFAULT_RESEARCH_SHARE
+    plan = request.get("plan")
+    if plan is not None:
+        if mode != "BUILD":
+            raise Rejected("graphite_field_not_used_by_mode", 409)
+        if type(plan) is not str or not _PLAN_DIGEST.fullmatch(plan):
+            raise Rejected("plan_not_found", 404)
+    hunt = None
+    if request.get("hunt") is not None:
+        if mode == "BUILD":
+            # BUILD runs no hunt (S3's stages and `launch_fields`): with a
+            # plan the Planner never runs, and without one it plans from the
+            # pack and the library as they stand. A hunt sent with BUILD is
+            # refused here, before anything is created, not by the campaign
+            # after it was.
+            raise Rejected("graphite_field_not_used_by_mode", 409)
+        hunt = hunt_value(request["hunt"])
+    limits = request.get("limits")
+    return {
+        "mode": mode,
+        "research_share": share,
+        "plan": plan,
+        "hunt": hunt,
+        "limits": limits_value({} if limits is None else limits),
+    }
+
+
+#: A hunt's planning figures, per abstract Graphite's Reader reads: an
+#: estimate shown before launch from the selection's price, never a cap or a
+#: charge. On a cheap model it is about USD 0.0001 an abstract; what a hunt
+#: costs is what the miner's provider reports, metered against their budget.
+READER_TOKENS_PER_ABSTRACT = {"input": 1000, "output": 250}
+
+GRAPHITE_MODE_SUMMARIES = {
+    "RESEARCH": (
+        "Hunt (when asked) and read, then write a ranked plan into your "
+        "library. Nothing is practised, selected or submitted."
+    ),
+    "BUILD": (
+        "Take a plan - one you edited, one from an earlier Research run, or "
+        "none, and the Planner writes one first - then construct, practise, "
+        "select and submit."
+    ),
+    "FULL": (
+        "Research within the research share of your budget, then build. The " "default."
+    ),
+}
+
+
+def hunt_estimate(cfg):
+    """A hunt's cost per abstract for the model a launch naming none runs
+    with (setup's choice, or the pinned default), from its price; None when
+    that model has no price."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        ModelSelectionRefused,
+    )
+
+    try:
+        selection = (
+            setup_selection(cfg) if "model_selection" in cfg else DEFAULT_SELECTION
+        )
+    except (ModelSelectionRefused, KeyError, TypeError, ValueError):
+        selection = None
+    pricing = getattr(selection, "pricing", None)
+    per = (
+        None
+        if pricing is None
+        else READER_TOKENS_PER_ABSTRACT["input"] * pricing.input_nano
+        + READER_TOKENS_PER_ABSTRACT["output"] * pricing.output_nano
+    )
+    return {
+        "reader_tokens_per_abstract": dict(READER_TOKENS_PER_ABSTRACT),
+        "model": (
+            None
+            if selection is None
+            else selection.provider_id + ":" + selection.model_id
+        ),
+        "nanodollars_per_abstract": per,
+        "basis": (
+            "an estimate from the model's price for planning only; a hunt "
+            "spends what your provider reports, within your budget, and a "
+            "paper already in the pack or your library is never read twice"
+        ),
+    }
+
+
+def graphite_options(cfg):
+    """What a Graphite launch may choose, for the launch form and an agent:
+    the modes, the research share, a hunt's shape and planning cost, the
+    optional limits, and the Challenges Graphite runs on."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
+
+    return {
+        "agent": GRAPHITE,
+        "edition": GRAPHITE_EDITION,
+        "modes": [
+            {
+                "id": mode,
+                "summary": GRAPHITE_MODE_SUMMARIES[mode],
+                "default": mode == DEFAULT_GRAPHITE_MODE,
+            }
+            for mode in GRAPHITE_MODES
+        ],
+        "research_share": {
+            "default": DEFAULT_RESEARCH_SHARE,
+            "minimum": 0,
+            "maximum": 1,
+            "mode": "FULL",
+            "of": ["provider_nanodollars", "provider_attempts"],
+        },
+        "plan": {
+            "mode": "BUILD",
+            "from": "your library (plan_list)",
+            "omitted": "the Planner writes one first",
+        },
+        "hunt": {
+            # S3 runs a hunt only before RESEARCH's and FULL's Planner.
+            "modes": ["RESEARCH", "FULL"],
+            "max_queries": HUNT_MAX_QUERIES,
+            "max_terms": HUNT_MAX_TERMS,
+            "terms": "letters, digits and -",
+            "default_records": HUNT_DEFAULT_RECORDS,
+            "max_records": HUNT_MAX_RECORDS,
+            "seconds_between_requests": 3,
+            "omitted": (
+                "no hunt; the shared pack and your library still serve, and "
+                "queued imports wait for a launch that hunts"
+            ),
+            "estimate": hunt_estimate(cfg),
+        },
+        "limits": {
+            "keys": list(LIMIT_KEYS),
+            "minimum": 1,
+            "maximum": LIMIT_MAX,
+            "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
+        },
+        "offered_for": [
+            {"id": entry.challenge_id, "version": entry.version}
+            for entry, _campaign in implemented_campaigns()
+        ],
+    }
+
+
+def graphite_offered(challenge):
+    """Whether Graphite runs on `challenge` ({id, version}): only on a
+    Challenge with a registered research campaign (`campaign_for`)."""
+    from carbon.challenge_registry import ResolutionError
+    from carbon.challenge_registry.campaigns import campaign_for
+
+    try:
+        campaign_for(challenge)
+    except (ResolutionError, TypeError, ValueError, LookupError):
+        return False
+    return True
+
+
+def _open_library(root):
+    """The miner's library (S2's `MinerLibrary`) at `root`."""
+    from carbon.agent_campaign.graphite.miner.library import MinerLibrary
+
+    return MinerLibrary(Path(root))
+
+
+def _shared_pack():
+    """The shared card pack Carbon ships (S2's `pack.load_shared_pack`),
+    checked against its pinned digest by the loader."""
+    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
+
+    return load_shared_pack()
+
+
+def _validate_plan(plan, library, curation):
+    """S3's plan rule: (ok, refusal)."""
+    from carbon.agent_campaign.graphite.miner.plan import validate_plan
+
+    return validate_plan(plan, library=library, curation=curation)
+
+
+#: The plan schema the miner edits (S3's `plan.PLAN_SCHEMA`).
+PLAN_SCHEMA = "carbon.graphite.miner-plan.v1"
+#: What the library and plan operations answer, by schema.
+LIBRARY_SEARCH_SCHEMA = "carbon.launchpad.library-search.v1"
+LIBRARY_CARD_SCHEMA = "carbon.launchpad.library-card.v1"
+LIBRARY_LIST_SCHEMA = "carbon.launchpad.library.v1"
+LIBRARY_CURATION_SCHEMA = "carbon.launchpad.library-curation.v1"
+LIBRARY_IMPORT_SCHEMA = "carbon.launchpad.library-import.v1"
+PLAN_LIST_SCHEMA = "carbon.launchpad.plans.v1"
+PLAN_GET_SCHEMA = "carbon.launchpad.plan.v1"
+PLAN_EDIT_SCHEMA = "carbon.launchpad.plan-edit.v1"
+#: Every served card's status: Carbon checks no card (OWNER-GRAPHITE-MINER-01).
+UNCHECKED = "UNCHECKED"
+#: Where a card came from: the pack Carbon ships, the miner's hunt, or text
+#: the miner imported. A card with any other origin is never served.
+CARD_ORIGINS = ("shared", "miner_hunt", "miner_import")
+#: A card's own fields, as the pack and the library hold them; nothing else
+#: of a card reaches either door.
+CARD_FIELDS = (
+    "card_id",
+    "title",
+    "abstract",
+    "technique",
+    "claimed_effect",
+    "data_regime",
+    "cost",
+    "code_available",
+    "applicability",
+    "provenance",
+)
+#: What every card answer says about its text.
+CARD_NOTICE = {
+    "check_status": UNCHECKED,
+    "untrusted": True,
+    "rights": (
+        "arXiv titles and abstracts are CC0 descriptive metadata; the other "
+        "fields are Carbon's extraction, not a claim Carbon makes"
+    ),
+    "shown_as": "untrusted text",
+}
+#: S2's typed library refusals (`library.LibraryError.code`) a door answers
+#: by name, with its status; every other library failure is
+#: `library_unavailable`. S2's `search_invalid` is the door's own
+#: `library_query_invalid`.
+LIBRARY_REFUSALS = {
+    "card_not_found": ("card_not_found", 404),
+    "card_banned": ("card_banned", 409),
+    "plan_not_found": ("plan_not_found", 404),
+    "plan_invalid": ("plan_invalid", 409),
+    "import_invalid": ("import_invalid", 400),
+    "search_invalid": ("library_query_invalid", 400),
+}
+#: A search result's buildability under the Challenge's contract (S2's focus
+#: ranking): a plan input, or a capability request candidate instead.
+BUILDABILITY_FLAGS = ("plan_input", "capability_request_candidate")
+_CARD_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
+LIBRARY_QUERY_MAX = 200
+CARD_LIMIT_DEFAULT, CARD_LIMIT_MAX = 10, 50
+IMPORT_TITLE_MAX, IMPORT_TEXT_MAX = 300, 20000
+#: When a queued import is read: S2's hunt reads the queue before it fetches,
+#: and S3 runs a hunt only in a RESEARCH or FULL launch that asks for one.
+IMPORT_READ_AT = (
+    "the next Graphite launch that hunts (RESEARCH or FULL with hunt set): "
+    "its Reader extracts a card from it on your model and budget"
+)
+LIBRARY_LIST_MAX = 200
+
+
+def _unsafe(text):
+    """Whether `text` holds a control character (newline, tab and carriage
+    return aside) or a bidirectional override: the campaign view's own
+    rule for journal text (`campaign_view._UNSAFE`)."""
+    from scripts.dev.miner_launchpad.campaign_view import _UNSAFE
+
+    return _UNSAFE.search(text.replace("\r", "")) is not None
+
+
+def _bounded(value, depth=0):
+    """A JSON value copied with every string, list and object bounded."""
+    if type(value) is str:
+        return value[:20000]
+    if value is None or type(value) in (bool, int):
+        return value
+    if type(value) is float:
+        return value if math.isfinite(value) else None
+    if depth >= 3:
+        return None
+    if type(value) in (list, tuple):
+        return [_bounded(item, depth + 1) for item in value[:32]]
+    if type(value) is dict:
+        return {
+            str(key)[:64]: _bounded(item, depth + 1)
+            for key, item in list(value.items())[:32]
+        }
+    return None
+
+
+def _protected_card(card):
+    """Whether a card names protected material (Graphite's own filter,
+    `agent_campaign.graphite.tools.protected`), checked again at this door:
+    the library filters at write and serve; a door that serves cards does not
+    rely on that alone."""
+    from carbon.agent_campaign.graphite.tools import protected
+
+    return card.get("withheld_protected") is True or protected(
+        {k: card.get(k) for k in CARD_FIELDS if k in card}
+    )
+
+
+def served_card(card, curation, *, ranked=False):
+    """A card as a door serves it, or None for one it never serves: the
+    card's own fields, its origin and UNCHECKED status, whether the miner
+    pinned it, and - from a search - its rank for the Challenge with the
+    reasons and whether it is buildable under the Challenge's contract
+    (`plan_input`) or a capability request candidate instead (S2's focus
+    ranking). A banned card, a card of an unknown origin and a card naming
+    protected material are never served."""
+    if type(card) is not dict or type(card.get("card_id")) is not str:
+        return None
+    if card["card_id"] in curation["bans"] or card.get("origin") not in CARD_ORIGINS:
+        return None
+    if _protected_card(card):
+        return None
+    served = {k: _bounded(card[k]) for k in CARD_FIELDS if k in card}
+    served["origin"] = card["origin"]
+    served["check_status"] = UNCHECKED
+    served["pinned"] = card["card_id"] in curation["pins"]
+    if ranked:
+        score = card.get("score")
+        served["score"] = score if _number(score) else None
+        reasons = card.get("reasons")
+        served["reasons"] = [
+            r[:300]
+            for r in (reasons if type(reasons) is list else [])
+            if type(r) is str
+        ][:8]
+        for flag in BUILDABILITY_FLAGS:
+            served[flag] = card.get(flag) if type(card.get(flag)) is bool else None
+    return served
+
+
+def _pending_import(item):
+    """An import waiting for the Reader, as the library lists it: its id,
+    title and size, never its text."""
+    if type(item) is not dict:
+        return None
+    identity = item.get("import_id", item.get("id"))
+    text = item.get("text")
+    # S2 lists an import's size as `chars`; its text is never listed.
+    characters = (
+        len(text) if type(text) is str else item.get("chars", item.get("characters"))
+    )
+    return {
+        "import_id": str(identity)[:128] if identity is not None else None,
+        "title": (
+            item["title"][:IMPORT_TITLE_MAX] if type(item.get("title")) is str else None
+        ),
+        "characters": characters if type(characters) is int else None,
+        "origin": "miner_import",
+    }
+
+
+#: When a plan was saved, as S2's library records it (UTC, to the second).
+_SAVED_AT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z")
+
+
+def _saved_at(value):
+    """A plan's `created_at`: the library's UTC timestamp text, or a number
+    of seconds; anything else is None."""
+    if type(value) is str and _SAVED_AT.fullmatch(value):
+        return value
+    return value if _number(value) else None
+
+
+def _plan_entry(item):
+    """A plan as the list shows it: {digest, created_by, parent, created_at}."""
+    if type(item) is not dict or type(item.get("digest")) is not str:
+        return None
+    created_by = item.get("created_by")
+    return {
+        "digest": item["digest"][:128],
+        "created_by": created_by if created_by in ("planner", "miner") else None,
+        "parent": item["parent"][:128] if type(item.get("parent")) is str else None,
+        "created_at": _saved_at(item.get("created_at")),
+    }
 
 
 def install_research_images(cfg, root):
@@ -794,11 +1302,13 @@ def _operation_digest(operation, request):
     not part of it; a strategy counts by value, whether a door sent it as an
     object or as JSON text, so the browser and MCP retry the same request."""
     fields = {k: v for k, v in request.items() if k != "idempotency_key"}
-    if type(fields.get("strategy")) is str:
-        try:
-            fields["strategy"] = json.loads(fields["strategy"])
-        except ValueError:
-            pass
+    # A plan edit's document counts by value too (S4).
+    for name in ("strategy", "plan_document"):
+        if type(fields.get(name)) is str:
+            try:
+                fields[name] = json.loads(fields[name])
+            except ValueError:
+                pass
     return digest(canonical([operation, fields]))
 
 
@@ -841,6 +1351,11 @@ class RunnerAdapter:
     #: answering `campaign_busy`: long enough to outlast a door's instant
     #: probe (`_probe_lock`), short enough that a real holder is reported.
     LOCK_WAIT_SECONDS = 1.0
+    #: Graphite's literature (S4 over S2 and S3): the miner's library at a
+    #: root, the shared card pack, and the plan rule. A test replaces them.
+    open_library = staticmethod(_open_library)
+    shared_pack = staticmethod(_shared_pack)
+    validate_plan = staticmethod(_validate_plan)
 
     def __init__(
         self,
@@ -863,6 +1378,17 @@ class RunnerAdapter:
             private_json(configuration)["principal"]
             if configuration is not None
             else principal
+        )
+        #: The miner's private Graphite library: in the setup root, beside
+        #: the runner profile, owner-only. Always an absolute path, as S2's
+        #: library requires, even for a profile named relatively
+        #: (`--profile ./runner-profile.json`); made absolute, not resolved,
+        #: as the capability document names the profile. A host with no
+        #: profile file (a fixture) has none until a test names one.
+        self.library_root = (
+            Path(os.path.abspath(configuration)).parent / LIBRARY_DIRECTORY
+            if configuration is not None
+            else None
         )
         # Injectable so a test reads a device-free stub chain; the default is
         # the real read against the operator's configured context.
@@ -918,6 +1444,15 @@ class RunnerAdapter:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS launchpad_operation_keys (principal TEXT NOT NULL, request_key TEXT NOT NULL, operation TEXT NOT NULL, campaign TEXT NOT NULL, request_digest TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(principal, request_key))"
             )
+            # A library write's answer (S4), kept with its key so a retry
+            # replays it exactly; added in place to an older database. A
+            # campaign operation's row leaves it NULL, as before.
+            if "result" not in {
+                r[1] for r in db.execute("PRAGMA table_info(launchpad_operation_keys)")
+            }:
+                db.execute(
+                    "ALTER TABLE launchpad_operation_keys ADD COLUMN result BLOB"
+                )
             if "research_guidance" not in {
                 r[1] for r in db.execute("PRAGMA table_info(research_runs)")
             }:
@@ -1223,7 +1758,9 @@ class RunnerAdapter:
                 # The miner chooses the Challenge at launch, from the catalog
                 # (C-MLP-04); a profile binds none.
                 "challenge": "CHOSEN_AT_LAUNCH_FROM_THE_CATALOG",
-                "agent": "carbon-autoresearch",
+                # Carbon's agent for a new launch: Graphite, which replaced
+                # the autonomous agent (OWNER-GRAPHITE-MINER-01).
+                "agent": "carbon-graphite",
                 # The miner's own setup choice, or the pinned default for a
                 # profile written before setup chose one.
                 "reasoning": (
@@ -1307,12 +1844,17 @@ class RunnerAdapter:
         return review(cfg)
 
     def launch(self, value, key):
-        """The browser's launch: a caller of the shared `launch` operation."""
+        """The browser's launch: a caller of the shared `launch` operation.
+
+        A body naming no agent still means `autonomous`, as it always has, so
+        a launch the browser recorded before Graphite replays under its key;
+        a new one is refused `autonomous_agent_replaced`, and the page names
+        its agent (OWNER-GRAPHITE-MINER-01)."""
         from scripts.dev.miner_launchpad.operations import perform
 
         if type(value) is not dict or "profile" not in value:
             raise Rejected("closed_research_launch_required")
-        request = {"agent": "autonomous", **value, "idempotency_key": key}
+        request = {"agent": RETIRED_AGENT, **value, "idempotency_key": key}
         return perform(self, "launch", request)
 
     # -- The campaign host: what the operations table's gates and bodies ask of
@@ -1731,6 +2273,10 @@ class RunnerAdapter:
             miner_budget(request.get("budget"))
         except ValueError:
             raise Rejected("invalid_budget") from None
+        # Graphite's fields, by shape, before anything is digested: a value
+        # no request may carry (a NaN share) is refused by name, never
+        # failed on (S4). Deterministic, so a recorded request passes again.
+        graphite_launch(request)
         if cfg["principal"] != self.principal:
             raise Rejected("research_profile_mismatch", 409)
         task = guidance.configured(cfg)
@@ -1745,10 +2291,17 @@ class RunnerAdapter:
                 (key, run_id),
             ).fetchall()
         if not previous:
+            # After the replay lookup, so a launch recorded under the retired
+            # agent still replays; a new one is refused before the chain is
+            # read (OWNER-GRAPHITE-MINER-01).
+            if request["agent"] == RETIRED_AGENT:
+                raise Rejected("autonomous_agent_replaced", 409)
             # Refused here, before the registration read, as well as in the
             # body: a choice that cannot run never reaches the chain.
             self._current(cfg)
-            self._launch_choice(cfg, request, self._challenge(request, cfg["runtime"]))
+            challenge = self._challenge(request, cfg["runtime"])
+            self._launch_choice(cfg, request, challenge)
+            self._graphite_choice(request, challenge)
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -1767,33 +2320,56 @@ class RunnerAdapter:
 
     def _operation_replayed(self, cfg, request, operation):
         """A keyed practice, freeze or submit already accepted under this key:
-        the campaign it was started on, as it stands now. The same key with a
-        different request is a conflict, never a second dispatch."""
+        the campaign it was started on, as it stands now. A keyed library
+        write: its own answer, as it was given. The same key with a different
+        request is a conflict, never a second dispatch or write."""
+        from scripts.dev.miner_launchpad.operations import LIBRARY_WRITES
+
         if "idempotency_key" not in request:
             return None
         key = _valid_key(request["idempotency_key"])
         if cfg["principal"] != self.principal:
             raise Rejected("research_profile_mismatch", 409)
         with self.db() as db:
-            recorded = self._recorded_operation(db, key, operation, request)
-        return None if recorded is None else self.get(recorded)
+            row = self._recorded_row(db, key, operation, request)
+        if row is None:
+            return None
+        if operation in LIBRARY_WRITES:
+            return self._recorded_answer(row)
+        return self.get(row["campaign"])
 
     def _recorded_operation(self, db, key, operation, request):
         """The campaign a matching earlier acceptance of `key` started work
         on, or None when the key is unused. Raises the conflict otherwise."""
+        row = self._recorded_row(db, key, operation, request)
+        return None if row is None else row["campaign"]
+
+    def _recorded_row(self, db, key, operation, request):
+        """The matching earlier acceptance of `key`, or None when the key is
+        unused; raises the conflict otherwise. A library write names no
+        campaign, and is recorded under the empty one."""
         row = db.execute(
-            "SELECT operation,campaign,request_digest FROM launchpad_operation_keys WHERE principal=? AND request_key=?",
+            "SELECT operation,campaign,request_digest,result FROM launchpad_operation_keys WHERE principal=? AND request_key=?",
             (self.principal, key),
         ).fetchone()
         if row is None:
             return None
         if (row["operation"], row["campaign"], row["request_digest"]) != (
             operation,
-            request.get("campaign"),
+            request.get("campaign", ""),
             _operation_digest(operation, request),
         ):
             raise Rejected("operation_replay_conflict", 409)
-        return row["campaign"]
+        return row
+
+    @staticmethod
+    def _recorded_answer(row):
+        """A library write's recorded answer. One claimed by a write that has
+        not finished (another process, this instant) is not answered as
+        done: `operation_not_completed`, and the retry replays it later."""
+        if row["result"] is None:
+            raise Rejected("operation_not_completed", 409)
+        return json.loads(row["result"])
 
     def _current(self, cfg):
         """Refuse new work, by name, on a checkout or worker image the profile
@@ -1874,7 +2450,7 @@ class RunnerAdapter:
             provider is None
             and model is None
             and settings is None
-            and request.get("agent") == "autonomous"
+            and request.get("agent") in MODEL_AGENTS
             and "model_selection" in cfg
         ):
             # The miner chose a model in setup; a launch that names none runs
@@ -1896,8 +2472,9 @@ class RunnerAdapter:
                 raise Rejected("unknown_model_provider")
             if model is not None and type(model) is not str:
                 raise Rejected("model_selection_refused")
-            if request["agent"] != "autonomous":
+            if request["agent"] not in MODEL_AGENTS:
                 # No agent calls a model; a choice nothing uses is refused.
+                # The code keeps its historical name.
                 raise Rejected("model_selection_needs_the_autonomous_agent", 409)
             chosen = cfg.get("model_selection") or {}
             same_as_setup = from_setup or (
@@ -1941,6 +2518,68 @@ class RunnerAdapter:
             settings=None if settings is None else dict(settings),
         )
 
+    def _graphite_choice(self, request, challenge, *, admitted=None):
+        """Graphite's launch choice (`graphite_launch`), checked against what
+        it needs to run, or None for any other agent. Refused by name before
+        anything is created: a Challenge without a registered campaign
+        (`graphite_not_offered_for_challenge`), a missing or changed shared
+        card pack (`literature_pack_missing`), a plan not in the miner's
+        library (`plan_not_found`), a plan for another Challenge or one the
+        plan rule refuses (`plan_invalid`) - what S3's preparation would
+        otherwise refuse only after the campaign was created.
+
+        `admitted` is what a launch record kept (`GRAPHITE_ADMISSION`), for a
+        launch carried out where it was not received: the curation digest it
+        captured is kept, never read again, and its plan's validity is not
+        re-judged against pins and bans changed since. Otherwise the miner's
+        current curation digest is captured now, at admission (S4)."""
+        choice = graphite_launch(request)
+        if choice is None:
+            return None
+        if not graphite_offered(challenge):
+            raise Rejected("graphite_not_offered_for_challenge", 409)
+        try:
+            self.shared_pack()
+        except Rejected:
+            raise
+        except Exception:  # noqa: BLE001 - absent, unreadable or changed
+            raise Rejected("literature_pack_missing", 409) from None
+        library = self._library()
+        if admitted is None:
+            curation = self._library_call(library.curation)
+            digest_value = curation.get("digest") if type(curation) is dict else None
+            if type(digest_value) is not str:
+                raise Rejected("library_unavailable", 409)
+        else:
+            curation, digest_value = None, admitted.get("curation_digest")
+            if type(digest_value) is not str:
+                raise Rejected("launch_record_differs", 409)
+        if (
+            curation is not None
+            and choice["plan"] is None
+            and len(curation.get("pins") or ()) > MAX_PINS
+        ):
+            # A Planner that runs first must name every pin in its plan, and
+            # a plan names at most MAX_PINS: S3 refuses this launch before it
+            # freezes, so admission refuses it before it is created.
+            raise Rejected("too_many_pins", 409)
+        if choice["plan"] is not None:
+            plan = self._plan(library, choice["plan"])
+            planned_for = plan.get("challenge")
+            if (
+                type(planned_for) is not dict
+                or planned_for.get("id") != challenge["id"]
+            ):
+                # S3 builds BUILD on a plan of the launch's own Challenge only.
+                raise stepped(
+                    "plan_invalid",
+                    supervision.NEXT_ACTIONS["plan_invalid"]
+                    + " Reason: plan_for_another_challenge.",
+                )
+            if curation is not None:
+                self._check_plan(plan, library, curation)
+        return {**choice, "curation_digest": digest_value}
+
     def launch_admitted(self, admitted, request):
         """Record and dispatch an admitted launch."""
         from carbon.development_session.product_campaign import (
@@ -1948,11 +2587,17 @@ class RunnerAdapter:
             miner_budget,
         )
 
+        if request["agent"] == RETIRED_AGENT:
+            # The replay gate refuses it first; never admitted here either.
+            raise Rejected("autonomous_agent_replaced", 409)
         cfg, miner = admitted.profile, admitted.miner
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
         challenge = self._challenge(request, cfg["runtime"])
         choice = self._launch_choice(cfg, request, challenge)
+        graphite = self._graphite_choice(request, challenge)
+        if graphite is not None:
+            choice = replace(choice or LaunchChoice(), graphite=graphite)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -1986,8 +2631,28 @@ class RunnerAdapter:
                         # What this launch chose, exactly as admitted, so a
                         # supervisor elsewhere or after a restart carries it
                         # out with these choices and no others (LP-PROD-C).
+                        # A Graphite launch keeps what admission captured
+                        # beside it (its curation digest), under a key that is
+                        # never a request field (S4).
                         canonical(
-                            {k: v for k, v in request.items() if k != "idempotency_key"}
+                            {
+                                **{
+                                    k: v
+                                    for k, v in request.items()
+                                    if k != "idempotency_key"
+                                },
+                                **(
+                                    {
+                                        GRAPHITE_ADMISSION: {
+                                            "curation_digest": graphite[
+                                                "curation_digest"
+                                            ]
+                                        }
+                                    }
+                                    if graphite is not None
+                                    else {}
+                                ),
+                            }
                         ),
                     ),
                 )
@@ -2042,9 +2707,13 @@ class RunnerAdapter:
         if stored is None:
             raise Rejected("launch_choices_unrecorded", 409)
         try:
-            request = {**json.loads(stored), "idempotency_key": row["request_key"]}
+            recorded = json.loads(stored)
+            # What admission captured is beside the request, never part of
+            # its identity (S4).
+            captured = recorded.pop(GRAPHITE_ADMISSION, None)
+            request = {**recorded, "idempotency_key": row["request_key"]}
             run_id, request_digest, config_pin = self._launch_identity(cfg, request)
-        except (ValueError, TypeError, KeyError):
+        except (ValueError, TypeError, KeyError, AttributeError):
             raise Rejected("launch_record_differs", 409) from None
         if (run_id, request_digest) != (row["id"], row["request_digest"]):
             raise Rejected("launch_record_differs", 409)
@@ -2054,6 +2723,13 @@ class RunnerAdapter:
             raise Rejected("profile_changed_since_launch", 409)
         challenge = self._challenge(request, cfg["runtime"])
         choice = self._launch_choice(cfg, request, challenge)
+        if request.get("agent") == GRAPHITE:
+            if type(captured) is not dict:
+                raise Rejected("launch_record_differs", 409)
+            graphite = self._graphite_choice(request, challenge, admitted=captured)
+            choice = replace(choice or LaunchChoice(), graphite=graphite)
+        elif captured is not None:
+            raise Rejected("launch_record_differs", 409)
         miner = _registered(self, cfg)
         _signer_reachable(self, cfg)
         product = ProductLaunch(
@@ -2118,10 +2794,13 @@ class RunnerAdapter:
 
         return {
             "schema": "carbon.launchpad.launch-options.v1",
+            # Graphite replaced the autonomous agent for new launches
+            # (OWNER-GRAPHITE-MINER-01): it is not offered, and a launch
+            # naming it is refused `autonomous_agent_replaced`.
             "agents": [
                 {"value": "none", "availability": "available"},
                 {
-                    "value": "autonomous",
+                    "value": GRAPHITE,
                     **(
                         {"availability": "available"}
                         if agent_ready
@@ -2132,6 +2811,7 @@ class RunnerAdapter:
                     ),
                 },
             ],
+            "graphite": graphite_options(cfg),
             "model_providers": self._model_providers(cfg),
             "families": [
                 {
@@ -2264,6 +2944,397 @@ class RunnerAdapter:
         task = check_task(request["task"])
         ledger, owner, _ = _journal(admitted)
         return for_campaign(ledger.root, owner, task)
+
+    # -- Graphite's library and plans (OWNER-GRAPHITE-MINER-01, S4): the
+    # -- shared pack under the miner's private library, read and curated
+    # -- through the operations table. Nothing here starts work.
+
+    def _graphite_args(self, args, root, product=None):
+        """Where a Graphite campaign's driver finds the miner's library, on
+        every run, resume and operation: `args.graphite_library`. Never
+        frozen (a path is private and may move); only a Graphite campaign's
+        args carry it, so every other campaign's args are as they were."""
+        agent = (
+            getattr(product, "agent", None)
+            if product is not None
+            else product_agent(root)
+        )
+        if agent == GRAPHITE:
+            args.graphite_library = self.library_root
+
+    def _library(self):
+        """The miner's library, or `library_unavailable` (no setup root)."""
+        if self.library_root is None:
+            raise Rejected("library_unavailable", 409)
+        try:
+            return self.open_library(Path(self.library_root))
+        except Rejected:
+            raise
+        except Exception:  # noqa: BLE001 - a closed code, never a path
+            raise Rejected("library_unavailable", 409) from None
+
+    @staticmethod
+    def _library_call(function, *args, **kwargs):
+        """One library call. S2's typed refusal (`LibraryError`, a ValueError
+        carrying a closed `.code`) is answered by its own code, for the codes
+        a door names (`LIBRARY_REFUSALS`); any other failure is
+        `library_unavailable`, never its text. A KeyError or LookupError is
+        left for the caller to name."""
+        try:
+            return function(*args, **kwargs)
+        except (Rejected, KeyError, LookupError):
+            raise
+        except Exception as failure:  # noqa: BLE001 - a closed code, never a path
+            refusal = LIBRARY_REFUSALS.get(getattr(failure, "code", None))
+            if isinstance(failure, ValueError) and refusal is not None:
+                raise Rejected(*refusal) from None
+            raise Rejected("library_unavailable", 409) from None
+
+    def _plan(self, library, plan_digest):
+        """The plan at `plan_digest` in the miner's library, or
+        `plan_not_found`."""
+        if type(plan_digest) is not str or not _PLAN_DIGEST.fullmatch(plan_digest):
+            raise Rejected("plan_not_found", 404)
+        try:
+            plan = self._library_call(library.plan, plan_digest)
+        except (KeyError, LookupError):
+            raise Rejected("plan_not_found", 404) from None
+        if type(plan) is not dict:
+            raise Rejected("plan_not_found", 404)
+        return plan
+
+    def _check_plan(self, plan, library, curation):
+        """S3's plan rule, or `plan_invalid` with the rule's own closed reason
+        in its next step when it gives one."""
+        try:
+            ok, refused = self.validate_plan(plan, library, curation)
+        except Rejected:
+            raise
+        except Exception:  # noqa: BLE001 - an unreadable plan is not valid
+            ok, refused = False, None
+        if ok is True:
+            return
+        reason = (refused or {}).get("code") if type(refused) is dict else None
+        if type(reason) is str and supervision._CODE.fullmatch(reason):
+            raise stepped(
+                "plan_invalid",
+                supervision.NEXT_ACTIONS["plan_invalid"] + " Reason: " + reason + ".",
+            )
+        raise Rejected("plan_invalid", 409)
+
+    @staticmethod
+    def _card_id(value):
+        if type(value) is not str or not _CARD_ID.fullmatch(value):
+            raise Rejected("card_not_found", 404)
+        return value
+
+    def _curation(self, library):
+        value = self._library_call(library.curation)
+        if (
+            type(value) is not dict
+            or type(value.get("digest")) is not str
+            or type(value.get("pins")) not in (list, tuple)
+            or type(value.get("bans")) not in (list, tuple)
+        ):
+            raise Rejected("library_unavailable", 409)
+        return {
+            "pins": [p for p in value["pins"] if type(p) is str],
+            "bans": [b for b in value["bans"] if type(b) is str],
+            "digest": value["digest"],
+        }
+
+    def _library_challenge(self, request):
+        """The Challenge a search ranks for, resolved exactly: its id, and
+        the version sent or the registry's registered one."""
+        from carbon.challenge_registry import ResolutionError, resolve
+        from carbon.challenge_registry.campaigns import challenge_ref
+
+        identity = request["challenge"]
+        if type(identity) is not str:
+            raise Rejected("challenge_unknown", 409)
+        version = request.get("challenge_version")
+        if version is None:
+            version = challenge_ref(identity)["version"]
+        try:
+            resolve(identity, version, "cpu_research")
+        except ResolutionError as refused:
+            raise Rejected(refused.code, 409) from None
+        return {"id": identity, "version": version}
+
+    def library_search_admitted(self, admitted, request):
+        query = request["query"]
+        if (
+            type(query) is not str
+            or not 1 <= len(query.strip()) <= LIBRARY_QUERY_MAX
+            or len(query) > LIBRARY_QUERY_MAX
+            or _unsafe(query)
+        ):
+            raise Rejected("library_query_invalid")
+        limit = request.get("card_limit", CARD_LIMIT_DEFAULT)
+        if type(limit) is not int or not 1 <= limit <= CARD_LIMIT_MAX:
+            raise Rejected("card_limit_out_of_bounds")
+        challenge = self._library_challenge(request)
+        library = self._library()
+        curation = self._curation(library)
+        found = self._library_call(
+            library.search,
+            query.strip(),
+            challenge=challenge,
+            limit=limit,
+            bans=tuple(curation["bans"]),
+            pins=tuple(curation["pins"]),
+        )
+        cards = [
+            served
+            for served in (
+                served_card(card, curation, ranked=True)
+                for card in (found if type(found) is list else [])
+            )
+            if served is not None
+        ][:limit]
+        return {
+            "schema": LIBRARY_SEARCH_SCHEMA,
+            "query": query.strip(),
+            "challenge": challenge,
+            "cards": cards,
+            "curation_digest": curation["digest"],
+            **CARD_NOTICE,
+        }
+
+    def library_card_admitted(self, admitted, request):
+        card_id = self._card_id(request["card_id"])
+        library = self._library()
+        curation = self._curation(library)
+        if card_id in curation["bans"]:
+            raise Rejected("card_banned", 409)
+        try:
+            card = self._library_call(library.card, card_id)
+        except (KeyError, LookupError):
+            raise Rejected("card_not_found", 404) from None
+        served = served_card(card, curation)
+        if served is None or served["card_id"] != card_id:
+            # Not a card the miner may be served (protected material, an
+            # unknown origin): as if it did not exist.
+            raise Rejected("card_not_found", 404)
+        return {"schema": LIBRARY_CARD_SCHEMA, "card": served, **CARD_NOTICE}
+
+    def library_list_admitted(self, admitted, request):
+        library = self._library()
+        curation = self._curation(library)
+        try:
+            pack = self.shared_pack()
+            shared = {
+                "available": True,
+                "digest": str(pack.digest)[:128],
+                "cards": len(pack.cards),
+                "check_status": UNCHECKED,
+            }
+        except Exception:  # noqa: BLE001 - said by its closed code
+            shared = {"available": False, "code": "literature_pack_missing"}
+        pending = self._library_call(library.pending_imports)
+        return {
+            "schema": LIBRARY_LIST_SCHEMA,
+            "shared_pack": shared,
+            "private_snapshot": str(self._library_call(library.snapshot))[:128],
+            "curation": curation,
+            "pending_imports": [
+                entry
+                for entry in (
+                    _pending_import(item)
+                    for item in (pending if type(pending) is list else [])
+                )
+                if entry is not None
+            ][:LIBRARY_LIST_MAX],
+            "plans": self._plans(library),
+            "where": "your own machine, owner-only; nothing is uploaded",
+            **CARD_NOTICE,
+        }
+
+    def _plans(self, library):
+        """The miner's plans, newest first (S2's library lists them oldest
+        first, in the order it saved them)."""
+        found = self._library_call(library.plans)
+        return [
+            entry
+            for entry in (
+                _plan_entry(item)
+                for item in reversed(found if type(found) is list else [])
+            )
+            if entry is not None
+        ][:LIBRARY_LIST_MAX]
+
+    def plan_list_admitted(self, admitted, request):
+        return {"schema": PLAN_LIST_SCHEMA, "plans": self._plans(self._library())}
+
+    def plan_get_admitted(self, admitted, request):
+        library = self._library()
+        plan = self._plan(library, request["plan"])
+        return {
+            "schema": PLAN_GET_SCHEMA,
+            "digest": request["plan"],
+            "plan": json.loads(json.dumps(plan, allow_nan=False)),
+            "untrusted": True,
+            "shown_as": "untrusted text",
+        }
+
+    def _library_write(self, operation, request, write):
+        """One library write, under the replay gate: a keyed write claims
+        its key before it writes and keeps its answer with it, so a retry
+        replays that answer and a different request under the key is a
+        conflict. An unkeyed write is simply never a replay. Starts no work.
+
+        The host's lock is held only while the key is claimed and while its
+        answer is kept, never across the write itself: S2's library
+        serialises its own writes under its file lock, and a write may read
+        the whole card pack, which must not hold up launches."""
+        key = request.get("idempotency_key")
+        if key is None:
+            return write()
+        key = _valid_key(key)
+        with self.lock, self.db() as db:
+            row = self._recorded_row(db, key, operation, request)
+            if row is not None:
+                return self._recorded_answer(row)
+            try:
+                db.execute(
+                    "INSERT INTO launchpad_operation_keys (principal,request_key,operation,campaign,request_digest,created,result) VALUES(?,?,?,?,?,?,NULL)",
+                    (
+                        self.principal,
+                        key,
+                        operation,
+                        "",
+                        _operation_digest(operation, request),
+                        time.time(),
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                raise Rejected("operation_not_completed", 409) from None
+        try:
+            result = write()
+        except BaseException:
+            with self.lock, self.db() as db:
+                db.execute(
+                    "DELETE FROM launchpad_operation_keys WHERE principal=? AND request_key=? AND result IS NULL",
+                    (self.principal, key),
+                )
+            raise
+        with self.lock, self.db() as db:
+            db.execute(
+                "UPDATE launchpad_operation_keys SET result=? WHERE principal=? AND request_key=?",
+                (canonical(result), self.principal, key),
+            )
+        return result
+
+    def _curate(self, operation, request):
+        card_id = self._card_id(request["card_id"])
+
+        def write():
+            library = self._library()
+            curation = self._curation(library)
+            if operation in ("library_pin", "library_ban"):
+                # Only a card the library holds can be pinned or banned.
+                if operation == "library_pin" and card_id in curation["bans"]:
+                    raise Rejected("card_banned", 409)
+                if card_id not in curation["bans"]:
+                    try:
+                        self._library_call(library.card, card_id)
+                    except (KeyError, LookupError):
+                        raise Rejected("card_not_found", 404) from None
+            action = getattr(library, operation.removeprefix("library_"))
+            try:
+                changed = self._library_call(action, card_id)
+            except (KeyError, LookupError):
+                raise Rejected("card_not_found", 404) from None
+            after = self._curation(library)
+            return {
+                "schema": LIBRARY_CURATION_SCHEMA,
+                "operation": operation,
+                "card_id": card_id,
+                "curation_digest": (
+                    changed if type(changed) is str else after["digest"]
+                ),
+                "curation": after,
+                "applies_to": (
+                    "Graphite launches from now on; a campaign keeps the "
+                    "curation frozen at its launch"
+                ),
+            }
+
+        return self._library_write(operation, request, write)
+
+    def library_pin_admitted(self, admitted, request):
+        return self._curate("library_pin", request)
+
+    def library_unpin_admitted(self, admitted, request):
+        return self._curate("library_unpin", request)
+
+    def library_ban_admitted(self, admitted, request):
+        return self._curate("library_ban", request)
+
+    def library_unban_admitted(self, admitted, request):
+        return self._curate("library_unban", request)
+
+    def library_import_admitted(self, admitted, request):
+        title, text = request["title"], request["text"]
+        if (
+            type(title) is not str
+            or not 1 <= len(title.strip()) <= IMPORT_TITLE_MAX
+            or len(title) > IMPORT_TITLE_MAX
+            or _unsafe(title)
+            or type(text) is not str
+            or not 1 <= len(text.strip())
+            or len(text) > IMPORT_TEXT_MAX
+            or _unsafe(text)
+        ):
+            raise Rejected("import_invalid")
+
+        def write():
+            library = self._library()
+            # S2 refuses a text it will not queue `import_invalid`
+            # (`LibraryError`), which `_library_call` answers by name.
+            identity = self._library_call(library.import_text, title.strip(), text)
+            return {
+                "schema": LIBRARY_IMPORT_SCHEMA,
+                "import_id": str(identity)[:128],
+                "queued": True,
+                "origin": "miner_import",
+                "check_status": UNCHECKED,
+                "read_at": IMPORT_READ_AT,
+            }
+
+        return self._library_write("library_import", request, write)
+
+    def plan_edit_admitted(self, admitted, request):
+        from scripts.dev.miner_launchpad.operations import plan_document_value
+
+        document = plan_document_value(request)
+        if document.get("schema") != PLAN_SCHEMA:
+            raise Rejected("plan_invalid", 409)
+
+        def write():
+            library = self._library()
+            parent = document.get("parent")
+            if parent is not None:
+                # An edit names the plan it edits, which must be the miner's.
+                self._plan(library, parent)
+            plan = {**document, "created_by": "miner"}
+            self._check_plan(plan, library, self._curation(library))
+            saved = self._library_call(library.save_plan, plan)
+            if type(saved) is not str:
+                raise Rejected("library_unavailable", 409)
+            return {
+                "schema": PLAN_EDIT_SCHEMA,
+                "digest": saved,
+                "parent": parent,
+                "created_by": "miner",
+                "launch_with": {
+                    "agent": GRAPHITE,
+                    "graphite_mode": "BUILD",
+                    "plan": saved,
+                },
+            }
+
+        return self._library_write("plan_edit", request, write)
 
     def tools_busy_hint(self, identity):
         """Who can hold a campaign's lock, as far as this host knows: its own
@@ -2664,6 +3735,7 @@ class RunnerAdapter:
                 raise
             if credential is not None:
                 args.api_key_file = credential
+            self._graphite_args(args, root)
 
             async def run():
                 prepared = await prepare(args, ledger=ledger)
@@ -2845,6 +3917,7 @@ class RunnerAdapter:
                     # A resume keeps the frozen choice; only its key file is
                     # read again, from the profile, for the frozen provider.
                     args.api_key_file = credential
+                self._graphite_args(args, root, product)
                 outcome = None
                 try:
                     outcome = asyncio.run(execute(args, ledger=ledger))
