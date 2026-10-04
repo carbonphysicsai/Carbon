@@ -1,0 +1,605 @@
+{
+  "arms": [
+    {
+      "arm_id": "analytic-v1:fixed_grid",
+      "commitment": {
+        "commitment_digest": "sha256:b557a20db58480e764231582bea24e2082300b6c105e1a5defac5cdbca2315f1",
+        "file_sha256": "sha256:6af7a999314d239d7dc852eefbbbbdd5da6cfbb424eeac6505aa6d4c78440dde",
+        "relative_path": "commitments/analytic-v1/fixed_grid/45c484ceb8bafd5e2d3d4eb714b5917e73a8f2ab45e5beb6afa1f1fe644f9422.commitment.json",
+        "status": "PROPOSAL"
+      },
+      "declared_query_budget": 48,
+      "method": "fixed_grid",
+      "model": "analytic-v1",
+      "model_wall_s": 0.001041425988660194,
+      "predicted_conditions": [
+        {
+          "case_id": "motor-decision:3d976ea59a8844530b7c",
+          "condition_id": "r01",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 6.373984158763663,
+            "mean_torque_margin_nm": 2.3739841587636628,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:32fc94d34563c509237b",
+          "condition_id": "r02",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 7.967480198454579,
+            "mean_torque_margin_nm": 3.967480198454579,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:9304ca0c82b6a8933aea",
+          "condition_id": "r03",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 9.560976238145495,
+            "mean_torque_margin_nm": 5.560976238145495,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:74c6bea113e41b619273",
+          "condition_id": "r04",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 7.69599489413403,
+            "mean_torque_margin_nm": 3.6959948941340297,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:32111da51fee9936c484",
+          "condition_id": "b01",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 11.951220297681868,
+            "mean_torque_margin_nm": 7.951220297681868,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:09d80cda368824e7f892",
+          "condition_id": "b02",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 8.280048307213375,
+            "mean_torque_margin_nm": 4.2800483072133755,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        }
+      ],
+      "queries_attempted": 48,
+      "queries_successful": 48,
+      "search_wall_s": 0.002768491001916118,
+      "selection": {
+        "airgap_mm": 0.4,
+        "embrace": 0.85,
+        "magnet_mm": 3.5,
+        "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
+        "predicted_worst_ripple_fraction": 0.0,
+        "slot_bottom_mm": 38.16,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5
+      },
+      "selections": [
+        {
+          "airgap_mm": 0.4,
+          "embrace": 0.85,
+          "magnet_mm": 3.5,
+          "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
+          "predicted_worst_ripple_fraction": 0.0,
+          "slot_bottom_mm": 38.16,
+          "slot_open_deg": 3.7,
+          "tooth_mm": 3.5
+        }
+      ]
+    },
+    {
+      "arm_id": "analytic-v1:screen_then_confirm",
+      "commitment": {
+        "commitment_digest": "sha256:839d39be845c6918c767bbd654348fd4ff631a1583b43d4aa364299ef9a03a33",
+        "file_sha256": "sha256:f093bd8cc8e977e9f8dfceb5cece3e33687a22506117c23ceadffef2c96822c5",
+        "relative_path": "commitments/analytic-v1/screen_then_confirm/b47d28a70a3e40655ca3891740b619cb4df8708e2a23b6e3a1c4378b452f63d9.commitment.json",
+        "status": "PROPOSAL"
+      },
+      "declared_query_budget": 48,
+      "method": "screen_then_confirm",
+      "model": "analytic-v1",
+      "model_wall_s": 0.001161128020612523,
+      "predicted_conditions": [
+        {
+          "case_id": "motor-decision:3d976ea59a8844530b7c",
+          "condition_id": "r01",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 6.373984158763663,
+            "mean_torque_margin_nm": 2.3739841587636628,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:32fc94d34563c509237b",
+          "condition_id": "r02",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 7.967480198454579,
+            "mean_torque_margin_nm": 3.967480198454579,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:9304ca0c82b6a8933aea",
+          "condition_id": "r03",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 9.560976238145495,
+            "mean_torque_margin_nm": 5.560976238145495,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:74c6bea113e41b619273",
+          "condition_id": "r04",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 7.69599489413403,
+            "mean_torque_margin_nm": 3.6959948941340297,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:32111da51fee9936c484",
+          "condition_id": "b01",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 11.951220297681868,
+            "mean_torque_margin_nm": 7.951220297681868,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        },
+        {
+          "case_id": "motor-decision:09d80cda368824e7f892",
+          "condition_id": "b02",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 8.280048307213375,
+            "mean_torque_margin_nm": 4.2800483072133755,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.0,
+            "ripple_fraction_margin": 0.3,
+            "ripple_pk_pk_nm": 0.0
+          }
+        }
+      ],
+      "queries_attempted": 48,
+      "queries_successful": 48,
+      "search_wall_s": 0.003159207000862807,
+      "selection": {
+        "airgap_mm": 0.4,
+        "embrace": 0.85,
+        "magnet_mm": 3.5,
+        "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
+        "predicted_worst_ripple_fraction": 0.0,
+        "slot_bottom_mm": 38.16,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5
+      },
+      "selections": [
+        {
+          "airgap_mm": 0.4,
+          "embrace": 0.85,
+          "magnet_mm": 3.5,
+          "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
+          "predicted_worst_ripple_fraction": 0.0,
+          "slot_bottom_mm": 38.16,
+          "slot_open_deg": 3.7,
+          "tooth_mm": 3.5
+        }
+      ]
+    },
+    {
+      "arm_id": "learned-krr-v1:fixed_grid",
+      "commitment": {
+        "commitment_digest": "sha256:a6cd6d63d8885a4c92b738c4ab59ed9794df2ac054e27444452cb01b738f4550",
+        "file_sha256": "sha256:2fadb05cc31c3f92df96f6b048ed6db58d82858420ece067f6ad6fa8293cd6f7",
+        "relative_path": "commitments/learned-krr-v1/fixed_grid/59f2aa3b417fec3d419daf276ce09f44f4ce02a657034721a5ed343d862b2f0a.commitment.json",
+        "status": "PROPOSAL"
+      },
+      "declared_query_budget": 48,
+      "method": "fixed_grid",
+      "model": "learned-krr-v1",
+      "model_wall_s": 0.011939496995182708,
+      "predicted_conditions": [
+        {
+          "case_id": "motor-decision:278fa508bda40e05ec80",
+          "condition_id": "r01",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
+          }
+        },
+        {
+          "case_id": "motor-decision:0f933f74db48ada2c321",
+          "condition_id": "r02",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
+          }
+        },
+        {
+          "case_id": "motor-decision:72df9c0d936e0fe5d69d",
+          "condition_id": "r03",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
+          }
+        },
+        {
+          "case_id": "motor-decision:3d3423b7846f8c1fd827",
+          "condition_id": "r04",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
+          }
+        },
+        {
+          "case_id": "motor-decision:a4b193f2cd63d3230a8a",
+          "condition_id": "b01",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
+          }
+        },
+        {
+          "case_id": "motor-decision:f88f7fc9d51040146292",
+          "condition_id": "b02",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
+          }
+        }
+      ],
+      "queries_attempted": 48,
+      "queries_successful": 48,
+      "search_wall_s": 0.013658684998517856,
+      "selection": {
+        "airgap_mm": 0.8,
+        "embrace": 0.65,
+        "magnet_mm": 3.5,
+        "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+        "predicted_worst_ripple_fraction": 0.23466704613405165,
+        "slot_bottom_mm": 38.16,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5
+      },
+      "selections": [
+        {
+          "airgap_mm": 0.8,
+          "embrace": 0.65,
+          "magnet_mm": 3.5,
+          "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+          "predicted_worst_ripple_fraction": 0.23466704613405165,
+          "slot_bottom_mm": 38.16,
+          "slot_open_deg": 3.7,
+          "tooth_mm": 3.5
+        }
+      ]
+    },
+    {
+      "arm_id": "learned-krr-v1:screen_then_confirm",
+      "commitment": {
+        "commitment_digest": "sha256:f497a936ef973143545981f3d219e4bf5791f41268daf4253673c8c357c273e2",
+        "file_sha256": "sha256:628255fc12996d4024d90b1a0d7ec0b727c6de419c4f60c17b608ed36ba64162",
+        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/af3b8823ebac6f70868744198e366be7ff447a61cc8dba5d564be5ab19b7c53b.commitment.json",
+        "status": "PROPOSAL"
+      },
+      "declared_query_budget": 48,
+      "method": "screen_then_confirm",
+      "model": "learned-krr-v1",
+      "model_wall_s": 0.012558566973893903,
+      "predicted_conditions": [
+        {
+          "case_id": "motor-decision:278fa508bda40e05ec80",
+          "condition_id": "r01",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
+          }
+        },
+        {
+          "case_id": "motor-decision:0f933f74db48ada2c321",
+          "condition_id": "r02",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
+          }
+        },
+        {
+          "case_id": "motor-decision:72df9c0d936e0fe5d69d",
+          "condition_id": "r03",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
+          }
+        },
+        {
+          "case_id": "motor-decision:3d3423b7846f8c1fd827",
+          "condition_id": "r04",
+          "group": "REPRESENTATIVE",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
+          }
+        },
+        {
+          "case_id": "motor-decision:a4b193f2cd63d3230a8a",
+          "condition_id": "b01",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
+          }
+        },
+        {
+          "case_id": "motor-decision:f88f7fc9d51040146292",
+          "condition_id": "b02",
+          "group": "BOUNDARY_STRESS",
+          "predicted": {
+            "feasible": true,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
+            "prediction_validity_gates": {
+              "motoring_mean_nonnegative": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "schema_finite": "PASS"
+            },
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
+          }
+        }
+      ],
+      "queries_attempted": 43,
+      "queries_successful": 43,
+      "search_wall_s": 0.014708273010910489,
+      "selection": {
+        "airgap_mm": 0.8,
+        "embrace": 0.65,
+        "magnet_mm": 3.5,
+        "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+        "predicted_worst_ripple_fraction": 0.23466704613405165,
+        "slot_bottom_mm": 38.16,
+        "slot_open_deg": 3.7,
+        "tooth_mm": 3.5
+      },
+      "selections": [
+        {
+          "airgap_mm": 0.8,
+          "embrace": 0.65,
+          "magnet_mm": 3.5,
+          "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+          "predicted_worst_ripple_fraction": 0.23466704613405165,
+          "slot_bottom_mm": 38.16,
+          "slot_open_deg": 3.7,
+          "tooth_mm": 3.5
+        }
+      ]
+    }
+  ],
+  "construction_digest": "sha256:055b797a63ef2377580bee3c3b61552d56e68208c056d2f2b11839a4f6f0b75f",
+  "construction_identity_digest": "sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
+  "construction_wall_s": 0.495204451988684,
+  "freeze_digest": "sha256:b54016b315e34ad273bad3a6006fae5ff6457d5ba2562074bc2fb2bd6125b511",
+  "next_stage": "pin the built Docker image, generate the exact campaign plan, and obtain compute/spend approval before solver dispatch",
+  "reconstruction_file_sha256": "sha256:e80eb0460618d37bf466aff7aefbcc67a473527fa2644ee31acb84ca0a76bd68",
+  "schema": "carbon.motor.decision-study-construction.v1",
+  "state": "ALL_PROPOSALS_COMMITTED_NO_REFERENCE_ACCESSED",
+  "study_id": "motor-synthetic-decision-v1"
+}

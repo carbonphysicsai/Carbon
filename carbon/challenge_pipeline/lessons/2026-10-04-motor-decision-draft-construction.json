@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-decision-draft-construction",
+  "recorded_at": "2026-10-04T16:20:00+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "temporary construction run from codex/motor-decision-foundation before OWNER-GRAPHITE-TEST-WAVE-01 was reconciled",
+    "description": "Reconstructed the registered analytical and kernel-ridge baselines and persisted four proposal commitments for a draft eight-design by six-condition synthetic study without reference access."
+  },
+  "expected": "All four arms commit before reference access and expose whether registered screening can reduce model queries without changing a model's selected design.",
+  "observed": "All four arms committed. The analytical arms selected d01 and used 48 queries. The learned arms selected d08; screen-then-confirm used 28 queries instead of 48. The live owner record then showed that the draft 0.35 ripple limit and two condition angles were stale, so the draft construction was discarded before any reference solve and the config was corrected to section 6.",
+  "keep": [
+    "Persist every arm commitment before exposing any reference interface.",
+    "Treat model disagreement as a construction result only until the complete finite set is independently evaluated."
+  ],
+  "change": [
+    "Reconcile the live owner decision record immediately before freezing a study configuration.",
+    "Label equal query count as diagnostic because OWNER-GRAPHITE-TEST-WAVE-01 makes equal measured compute cost the deciding view."
+  ],
+  "protocol_elements": [
+    "construction-before-reference custody",
+    "live-authority reconciliation before freeze",
+    "equal-cost, equal-query and amortised budget views"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

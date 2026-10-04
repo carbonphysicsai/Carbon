@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-decision-campaign-fixture",
+  "recorded_at": "2026-10-04T16:43:23Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "motor-decision-construction-fixture-v1 construction identity sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
+    "description": "Reconstructed and committed all four section 6 proposals without reference access, then exercised the finite-comparator and report path with explicitly non-counted analytical fixture evidence. No GetDP process was launched."
+  },
+  "expected": "The registered campaign must remain unavailable until every commitment is present and a digest-pinned Docker image is supplied; fixture evaluation must remain descriptive and report zero solver executions.",
+  "observed": "Construction selected d07 for both analytical arms and d06 for both learned arms; query counts were 48, 48, 48 and 43. The analytical fixture classified all four proposals feasible and produced a complete fixture comparator with zero fixture regret. The 24 arm-condition uses represented 12 unique selected design-condition cases and 12 evidence reuses. The report records zero solver executions and makes no learned-model advantage or population reliability claim.",
+  "keep": [
+    "Validate all four commitment byte/digests before plan generation or evaluation.",
+    "Require the exact digest-pinned Docker image and durable pre-dispatch ledger for counted evidence.",
+    "Report representative and boundary-stress groups, unique evidence and evidence reuse separately."
+  ],
+  "change": [
+    "Build and publish the registered worker image, generate the exact image-bound plan, and obtain compute/spend approval before the 48-case GetDP campaign."
+  ],
+  "protocol_elements": [
+    "construction-before-reference custody",
+    "digest-pinned Docker campaign",
+    "durable attempted-execution ledger",
+    "finite-set regret",
+    "fixture/non-counted evidence separation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
