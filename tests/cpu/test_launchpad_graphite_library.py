@@ -519,6 +519,37 @@ def test_a_plan_edit_is_a_new_miner_plan_checked_by_the_plan_rule(library_host):
     assert refused.value.code == "plan_not_found"
 
 
+def test_plan_edit_runs_s3s_own_plan_rule(library_host):
+    """At integration: the door with S3's own plan rule, as a host runs it,
+    over this library: a left-out pin and a cite under another origin are
+    refused with the rule's reason; the corrected plan is saved."""
+    pytest.importorskip("carbon.agent_campaign.graphite.miner.plan")
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    host, library, _opened = library_host
+    host.validate_plan = RunnerAdapter.validate_plan
+    assert run(host, "plan_edit", {"plan_document": plan_document()})["digest"]
+    library.pins.append("own-1")
+    with pytest.raises(Rejected) as refused:
+        run(host, "plan_edit", {"plan_document": plan_document()})
+    assert refused.value.code == "plan_invalid"
+    considered = {
+        **plan_document(),
+        "pins_considered": [{"card_id": "own-1", "consideration": "not for this"}],
+    }
+    assert run(host, "plan_edit", {"plan_document": considered})["digest"]
+    wrong_origin = {**considered}
+    wrong_origin["hypotheses"] = [
+        {
+            **considered["hypotheses"][0],
+            "cites": [{"card_id": "own-1", "origin": "shared"}],
+        }
+    ]
+    with pytest.raises(Rejected) as refused:
+        run(host, "plan_edit", {"plan_document": wrong_origin})
+    assert refused.value.code == "plan_invalid"
+
+
 # --- the doors -----------------------------------------------------------------
 
 
@@ -563,6 +594,23 @@ def test_the_browser_routes_are_the_shared_operations(browser, library_host):
     assert (code, refused["error"]) == (404, "route_not_found")
     code, refused = post(browser, "/api/v1/library/pin", {"card_id": "own-1", "x": 1})
     assert refused["error"] == "closed_request_required"
+
+
+def test_the_library_page_script_is_served_when_it_ships(browser):
+    """S5's Library tab is a page script the controller serves (S5 handoff);
+    a checkout without it answers route_not_found, never a server error."""
+    from pathlib import Path
+
+    from scripts.dev.miner_launchpad import controller
+
+    assert controller.STATIC["/library_view.js"][0] == "library_view.js"
+    shipped = Path(controller.__file__).parent / "library_view.js"
+    code, headers, body = request(browser, "/library_view.js")
+    if shipped.is_file():
+        assert code == 200 and body == shipped.read_bytes()
+        assert headers["Content-Type"].startswith("text/javascript")
+    else:
+        assert (code, json.loads(body)["error"]) == (404, "route_not_found")
 
 
 def test_an_import_of_twenty_thousand_characters_fits_its_routes(browser, library_host):

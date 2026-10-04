@@ -202,11 +202,13 @@ def fixture_challenge():
 def plan_document(
     cites=("arxiv-2101.00001v1",), parent=None, created_by="planner", challenge=None
 ):
+    """A plan in S3's stored shape (`plan.check_shape`)."""
     return {
         "schema": "carbon.graphite.miner-plan.v1",
         "challenge": challenge if challenge is not None else fixture_challenge(),
         "hypotheses": [
             {
+                "rank": 1,
                 "hypothesis": "neighbours interpolate",
                 "expected_effect": "lower error",
                 "stopping_rule": "stop after two practices",
@@ -970,7 +972,14 @@ def test_every_new_code_has_its_own_next_step():
         next_action,
     )
 
-    for code in (*DESIGN_CODES, *REFUSAL_FIELDS):
+    # And the codes S3's preparation and the engine's ceiling may end a
+    # Graphite campaign with.
+    campaign_codes = (
+        "graphite_launch_invalid",
+        "curation_not_found",
+        "miner_ceiling_reached",
+    )
+    for code in (*DESIGN_CODES, *REFUSAL_FIELDS, *campaign_codes):
         assert next_action(code) != FALLBACK_ACTION, code
     # None of the steps reads as if the autonomous agent were still offered.
     assert "agent=autonomous" not in json.dumps(NEXT_ACTIONS)

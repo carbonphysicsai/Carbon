@@ -817,6 +817,13 @@ NEXT_ACTIONS = {
         "terms each (letters, digits and -), and max_records from 1 to "
         "10000. Raw arXiv query syntax is not accepted."
     ),
+    # The typed stop S4 proposes to S1/S3 for a session the miner's own
+    # ceiling ends (money, attempts, trials or time): Graphite's limits.
+    "miner_ceiling_reached": (
+        "The agent reached a ceiling you set - money, attempts, trials or "
+        "time - so it stopped there; nothing past it was reserved or sent. "
+        "Launch a new campaign with a larger ceiling to go further."
+    ),
     "research_share_reached": (
         "The research stages used the share of your budget you set, so they "
         "stopped there and the build went on. Launch again with a larger "

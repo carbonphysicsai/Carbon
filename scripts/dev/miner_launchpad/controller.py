@@ -79,6 +79,8 @@ STATIC = {
     "/research_view.js": ("research_view.js", "text/javascript; charset=utf-8"),
     # The working toolbox (OWNER-MINER-RESEARCH-SURFACE-03).
     "/research_tools.js": ("research_tools.js", "text/javascript; charset=utf-8"),
+    # The Library tab (OWNER-GRAPHITE-MINER-01; the page is slice S5's).
+    "/library_view.js": ("library_view.js", "text/javascript; charset=utf-8"),
     # Carbon's wordmark and the website's Montreal font, served from this
     # controller so the page loads nothing from the internet. The font files
     # are the website's own (their digests are the website baseline
@@ -803,7 +805,11 @@ class Handler(BaseHTTPRequestHandler):
             self.check()
             if self.path in STATIC:
                 name, content_type = STATIC[self.path]
-                self.reply(200, (self.server.assets / name).read_bytes(), content_type)
+                asset = self.server.assets / name
+                if not asset.is_file():
+                    # A page file this checkout does not ship: not served.
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
+                self.reply(200, asset.read_bytes(), content_type)
                 return
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
