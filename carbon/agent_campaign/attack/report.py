@@ -32,7 +32,16 @@ was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
   check covered only by a seam is still visible;
 - findings use only the admission `CONDITIONS` vocabulary: a breached attempt
   carries its condition, and a valid control the boundary wrongly refused is a
-  `FAILING_TRIGGER`. Any other condition is refused.
+  `FAILING_TRIGGER`. Any other condition is refused. Every finding carries an
+  `evidence_digest`; a control's binds its registered identity, its input
+  digest and its outcome;
+- an attempt Carbon could not rebuild that is not a breach is counted
+  `refused_at_rebuild`, never in the family's `held`: its attack never ran;
+- an attempt the oracle judged nothing on (`NOT_APPLICABLE`, including one
+  withheld because it names protected material) is counted `not_covered`
+  (`protected_withheld` for the latter), never held or covered;
+- wrongful rejection is reported as a rate, held-out apart from trained; with
+  no control that ran it is `NOT_MEASURED` (rate None), never zero.
 
 A report; grading stays with the technical owner, and nothing here is
 security acceptance.
@@ -43,10 +52,16 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from carbon.agent_campaign.attack import analysis, verify
+from carbon.development_session.profile import canonical, digest
 
-SCHEMA = "carbon.attack.family-report.v1"
+#: v2: digest-bound evidence on every finding; held-out wrongful rejection as
+#: a rate, NOT_MEASURED when nothing ran; attempts refused at rebuild and
+#: attempts not covered (protected-withheld, not applicable) counted apart.
+SCHEMA = "carbon.attack.family-report.v2"
 FINDING, ATTEMPTED_COVERAGE, NOT_RUN = "FINDING", "ATTEMPTED_COVERAGE", "NOT_RUN"
 INCONCLUSIVE = "INCONCLUSIVE"
+#: A wrongful-rejection rate with no control that ran: never a zero rate.
+NOT_MEASURED, MEASURED = "NOT_MEASURED", "MEASURED"
 HELD, BREACHED, INFRA = verify.HELD, verify.BREACHED, verify.INFRA
 #: Outcomes that did not complete an attempt: never a pass.
 NOT_COMPLETED = frozenset({INFRA})
@@ -92,6 +107,11 @@ def attacker_runs(verdicts, *, families=()):
                 "near_miss": v.near_miss,
                 "refused_by": v.refused_by,
                 "evidence": v.evidence.get("result"),
+                # Kept so an attempt refused at rebuild is never counted
+                # held, and a protected-withheld one never covered.
+                "scored": v.scored,
+                "rebuild": v.rebuild,
+                "reason": v.reason,
             }
         )
     return list(runs.values())
@@ -172,6 +192,9 @@ def normalize(run):
                         "control": r["attempt"],
                         "split": "trained",
                         "outcome": _control_outcome(r["verdict"]),
+                        "identity": r.get("control_identity"),
+                        "input_digest": r.get("input_digest"),
+                        "result_digest": r.get("result_digest"),
                     }
                 )
         out["engine_state"] = engine_state(records)
@@ -204,16 +227,20 @@ def _control_outcome(value):
         return _CONTROL_REFUSED
     if value == INFRA or value in ENGINE_NO_ANSWER:
         return INFRA  # did not answer: neither passed nor refused
+    if value == NOT_MEASURED:
+        return NOT_MEASURED  # its family runs nothing here: never a pass
     raise ValueError("control_outcome_unknown: " + str(value))
 
 
 def held_out_controls(controls):
-    """Held-out control results as `{family: [{"control", "outcome"}]}`.
+    """Held-out control results as `{family: [{"control", "outcome", ...}]}`.
     Each is a mapping with `family`, `control` and `passed` (bool) or
-    `outcome` (PASSED / WRONGLY_REFUSED / INFRA), or a `(family, control,
-    passed)` triple."""
+    `outcome` (PASSED / WRONGLY_REFUSED / INFRA / NOT_MEASURED), and
+    optionally the control's registered `identity` and `input_digest`; or a
+    `(family, control, passed)` triple."""
     out = {}
     for item in controls:
+        identity = input_digest = None
         if isinstance(item, tuple):
             family, control, passed = item
             outcome = _control_outcome(passed)
@@ -222,8 +249,15 @@ def held_out_controls(controls):
             outcome = _control_outcome(
                 item["passed"] if "passed" in item else item["outcome"]
             )
+            identity, input_digest = item.get("identity"), item.get("input_digest")
         out.setdefault(analysis.family_name(family), []).append(
-            {"control": control, "split": "held_out", "outcome": outcome}
+            {
+                "control": control,
+                "split": "held_out",
+                "outcome": outcome,
+                "identity": identity,
+                "input_digest": input_digest,
+            }
         )
     return out
 
@@ -257,34 +291,92 @@ def checks_view(families):
 
 # -- the report -------------------------------------------------------------------------------
 def _rejection(controls):
-    done = [c for c in controls if c["outcome"] != INFRA]
+    """Wrongful rejection over controls: the count and the RATE over the
+    controls that answered. A control that did not answer, or could not run
+    here, is in neither the numerator nor the denominator. With none that
+    answered it is `NOT_MEASURED`, rate None: never a zero rate."""
+    done = [c for c in controls if c["outcome"] in (_CONTROL_PASSED, _CONTROL_REFUSED)]
+    refused = sum(c["outcome"] == _CONTROL_REFUSED for c in done)
     return {
+        "status": MEASURED if done else NOT_MEASURED,
         "controls": len(controls),
         "completed": len(done),
-        "wrongly_refused": sum(c["outcome"] == _CONTROL_REFUSED for c in done),
+        "wrongly_refused": refused,
+        "rate": (refused / len(done)) if done else None,
     }
 
 
-def summarize(run, held_out=(), not_run=None, check=None):
+def _evidence(value):
+    return digest(canonical(value))
+
+
+def refused_at_rebuild(attempt):
+    """An attempt Carbon could not rebuild and that is not a breach: never
+    scored, so never a hold for its family (its attack never ran)."""
+    return attempt.get("rebuild") == verify.UNREBUILDABLE and attempt["outcome"] != (
+        BREACHED
+    )
+
+
+def not_covered(attempt):
+    """An attempt the oracle judged nothing on (NOT_APPLICABLE: a protected-
+    withheld attempt, a family with no gate or no input). Never covered."""
+    return attempt["outcome"] == verify.NOT_APPLICABLE
+
+
+def _control_finding(family, control):
+    identity = control.get("identity") or _evidence(
+        {"family": family, "control": control["control"]}
+    )
+    return {
+        "attempt": control["control"],
+        "condition": verify.FAILING_TRIGGER,
+        "role": control["split"] + "_control",
+        "control_identity": identity,
+        "input_digest": control.get("input_digest"),
+        "outcome": control["outcome"],
+        "evidence_digest": _evidence(
+            {
+                "family": family,
+                "control": control["control"],
+                "split": control["split"],
+                "control_identity": identity,
+                "input_digest": control.get("input_digest"),
+                "outcome": control["outcome"],
+                "result_digest": control.get("result_digest"),
+            }
+        ),
+    }
+
+
+def summarize(run, held_out=(), not_run=None, check=None, family=None):
     """One family's line of the report, from a normalized run. `check` is
-    the Track A check to name when the run does not carry one (a seam's)."""
+    the Track A check to name when the run does not carry one (a seam's);
+    `family` the family's name when there is no run."""
     attempts = run["attempts"] if run is not None else []
     trained = run["controls"] if run is not None else []
+    family = (run or {}).get("family") or family
     findings = [
-        {"attempt": a["attempt"], "condition": c, "role": "attack"}
+        {
+            "attempt": a["attempt"],
+            "condition": c,
+            "role": "attack",
+            "evidence_digest": _evidence(
+                {
+                    "family": family,
+                    "attempt": a["attempt"],
+                    "condition": c,
+                    "evidence": a.get("evidence"),
+                }
+            ),
+        }
         for a in attempts
         if a["outcome"] == BREACHED
         for c in a["conditions"]
     ]
     for control in [*trained, *held_out]:
         if control["outcome"] == _CONTROL_REFUSED:
-            findings.append(
-                {
-                    "attempt": control["control"],
-                    "condition": verify.FAILING_TRIGGER,
-                    "role": control["split"] + "_control",
-                }
-            )
+            findings.append(_control_finding(family, control))
     verify.check_conditions(f["condition"] for f in findings)
     graphite = [a for a in attempts if a.get("refused_by") == "graphite"]
     completed = [
@@ -292,7 +384,12 @@ def summarize(run, held_out=(), not_run=None, check=None):
         for a in attempts
         if a["outcome"] not in NOT_COMPLETED and a.get("refused_by") != "graphite"
     ]
-    held = sum(a["outcome"] == HELD for a in completed)
+    at_rebuild = [a for a in completed if refused_at_rebuild(a)]
+    uncovered = [a for a in completed if not_covered(a)]
+    withheld = [
+        a for a in uncovered if a.get("reason") == verify.PROTECTED_WITHHELD_REASON
+    ]
+    held = sum(a["outcome"] == HELD and not refused_at_rebuild(a) for a in completed)
     not_run = not_run or (run or {}).get("not_run")
     if not_run is None and not attempts:
         not_run = "no_attempts_recorded"
@@ -304,6 +401,10 @@ def summarize(run, held_out=(), not_run=None, check=None):
         status = NOT_RUN
     elif state == INCONCLUSIVE:
         status, inconclusive = INCONCLUSIVE, "engine_state_inconclusive"
+    elif held == 0 and withheld:
+        status, inconclusive = INCONCLUSIVE, "not_covered_protected_withheld"
+    elif held == 0 and at_rebuild:
+        status, inconclusive = INCONCLUSIVE, "refused_at_rebuild_only"
     elif held == 0:
         status, inconclusive = INCONCLUSIVE, "no_attempt_judged"
     else:
@@ -315,6 +416,9 @@ def summarize(run, held_out=(), not_run=None, check=None):
         "budget_used": (run or {}).get("budget_used", 0),
         "completed": len(completed),
         "held": held,
+        "refused_at_rebuild": len(at_rebuild),
+        "not_covered": len(uncovered),
+        "protected_withheld": len(withheld),
         "undetermined": sum(a["outcome"] == verify.UNDETERMINED for a in completed),
         "refused_by_graphite": len(graphite),
         "verified": sum(a["outcome"] == BREACHED for a in attempts),
@@ -351,6 +455,7 @@ def family_report(runs, *, controls_held_out, seams=()):
             held_out.get(name, ()),
             seam.get(name),
             seam_check.get(name),
+            name,
         )
         for name in names
     }
@@ -359,6 +464,8 @@ def family_report(runs, *, controls_held_out, seams=()):
         for name, line in families.items()
         for f in line["findings"]
     ]
+    trained_controls = [c for run in normalized.values() for c in run["controls"]]
+    held_out_all = [c for rows in held_out.values() for c in rows]
     return {
         "schema": SCHEMA,
         "families": families,
@@ -372,8 +479,18 @@ def family_report(runs, *, controls_held_out, seams=()):
                 "verified",
                 "near_misses",
                 "timeouts_crashes",
+                "refused_at_rebuild",
+                "not_covered",
+                "protected_withheld",
             )
         },
+        # Held-out apart from trained: the held-out rate is the measurement
+        # of wrongful rejection; trained controls are what the engine ran.
+        "wrongful_rejection": {
+            "held_out": _rejection(held_out_all),
+            "trained": _rejection(trained_controls),
+        },
+        "not_covered": sorted(n for n, line in families.items() if line["not_covered"]),
         "not_run": sorted(
             n for n, line in families.items() if line["status"] == NOT_RUN
         ),

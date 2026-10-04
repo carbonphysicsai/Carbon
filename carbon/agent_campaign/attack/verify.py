@@ -85,6 +85,14 @@ ORACLE_NOT_RUN = "NOT_RUN"
 #: A hold the oracle's detector cannot vouch for (its specimen did not fire),
 #: or a path answer that is not plain: no evidence, UNDETERMINED.
 ORACLE_INCONCLUSIVE = "INCONCLUSIVE"
+#: An adapter's reading for an attempt it withheld because it names protected
+#: material (battery's PROTECTED_WITHHELD, core NOT_RUN): NOT_APPLICABLE with
+#: its own reason, so the report shows it NOT COVERED, never held.
+ORACLE_PROTECTED_WITHHELD = "PROTECTED_WITHHELD"
+PROTECTED_WITHHELD_REASON = "oracle_protected_withheld"
+#: A path that refused a construction Carbon cannot rebuild: never scored,
+#: and never a hold for its family (the family's attack never ran).
+REFUSED_AT_REBUILD_REASON = "path_refused"
 
 
 def check_conditions(conditions):
@@ -337,7 +345,14 @@ def _oracle(adapter, family, attempt):
     elif outcome in ORACLE_NO_ANSWER:
         outcome, condition, reason = INFRA, None, "oracle_no_answer:" + outcome
     elif outcome == ORACLE_NOT_RUN:
-        outcome, condition, reason = NOT_APPLICABLE, None, "oracle_not_run"
+        reading = get("reading")
+        reading = getattr(reading, "value", reading)
+        reason = (
+            PROTECTED_WITHHELD_REASON
+            if reading == ORACLE_PROTECTED_WITHHELD
+            else "oracle_not_run"
+        )
+        outcome, condition = NOT_APPLICABLE, None
     elif outcome == ORACLE_INCONCLUSIVE:
         outcome, condition, reason = UNDETERMINED, None, "oracle_inconclusive"
     if outcome not in (HELD, BREACHED, UNDETERMINED, NOT_APPLICABLE, INFRA):
@@ -476,7 +491,9 @@ def _unrebuildable(verdict, attempt, code, issues, evidence):
             **common,
         )
     if accepted is False:
-        return verdict(HELD, UNREBUILDABLE, reason="path_refused", **common)
+        # The path and Carbon both refused it, but the family's attack never
+        # ran: the report counts it refused at rebuild, never as held.
+        return verdict(HELD, UNREBUILDABLE, reason=REFUSED_AT_REBUILD_REASON, **common)
     return verdict(UNDETERMINED, UNREBUILDABLE, reason="path_answer_unclear", **common)
 
 
@@ -485,9 +502,14 @@ def _specimen(adapter, attempt, family, construction, record, directory):
     """Bundle a breached attempt's construction and re-check it from the
     bundle alone. `REBUILD_MISMATCH` is a finding; a bundle Carbon could not
     write or check is reported, never a pass."""
+    from carbon.agent_campaign.attack import knowledge
+
     key = digest((family + "/" + attempt.identity).encode())[7:23]
     folder = Path(directory) / ("specimen-" + key)
-    if toolbox.protected(construction):
+    # The store's material rule (registered sealed identities and protected
+    # markers), not the checkout deny list: a breach that names an attack
+    # target such as a `.env` path keeps its specimen, bundled operator-side.
+    if knowledge.sealed(construction) or knowledge.held_out(construction):
         return {"status": "NOT_BUNDLED", "reason": "protected_material", "folder": None}
     try:
         bundle = getattr(adapter, "bundle_specimen", None)
@@ -596,6 +618,73 @@ def record(verdict, controller):
         controller.record_finding(finding_id, condition, body)
         ids.append(finding_id)
     return tuple(ids)
+
+
+def _record_body(controller, condition, body, tag):
+    check_conditions((condition,))
+    if toolbox.protected(body):
+        body = {
+            "schema": FINDING_SCHEMA,
+            "condition": condition,
+            "redacted": "protected_material",
+            "body_digest": _digest_of(body),
+        }
+    payload = canonical(body)
+    finding_id = "attack-{}-{}-{}".format(
+        condition.lower().replace("_", "-"), digest(payload)[7:23], tag
+    )
+    controller.record_finding(finding_id, condition, payload)
+    return finding_id
+
+
+def record_control(
+    controller, *, family, control, split, identity, input_digest, outcome, source
+):
+    """Record a valid control the boundary wrongly refused as a
+    `FAILING_TRIGGER` finding on the campaign controller, bound to the
+    control's registered identity, its input digest and its outcome; returns
+    the finding id. Held-out and trained controls, from the report or a
+    deterministic run, go through this one path, so each stops expansion
+    (`admission_expansion_after_finding`)."""
+    if outcome != "WRONGLY_REFUSED":
+        raise ValueError("only_a_wrongly_refused_control_is_a_finding")
+    for value in (identity, input_digest):
+        if value is not None and not (
+            type(value) is str and value.startswith("sha256:")
+        ):
+            raise ValueError("control_evidence_is_digest_bound")
+    if identity is None:
+        raise ValueError("control_evidence_is_digest_bound")
+    body = {
+        "schema": FINDING_SCHEMA,
+        "condition": FAILING_TRIGGER,
+        "source": source,
+        "role": split + "_control",
+        "family": family,
+        "control": control,
+        "control_identity": identity,
+        "input_digest": input_digest,
+        "outcome": outcome,
+    }
+    return _record_body(controller, FAILING_TRIGGER, body, "c")
+
+
+def record_engine_findings(runs, controller, *, source="deterministic_baseline"):
+    """Record every finding a deterministic engine run raises (a breached
+    attack or a wrongly refused trained control, `engine.findings`) on the
+    campaign controller, each bound to its digest evidence; returns the ids."""
+    from carbon.agent_campaign.attack import engine
+
+    ids = []
+    for found in engine.findings(runs):
+        body = {
+            "schema": FINDING_SCHEMA,
+            "condition": found.condition,
+            "source": source,
+            **found.as_dict(),
+        }
+        ids.append(_record_body(controller, found.condition, body, "e"))
+    return ids
 
 
 def verify_all(found, adapter, *, pods=None, specimen_dir=None):

@@ -44,6 +44,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,12 @@ RECORDS = Path(__file__).with_name("records")
 REPOSITORY = Path(__file__).resolve().parents[2]
 GROUPS = ("generic", "sandbox")
 VECTORS = tuple(f"A{i}" for i in range(1, 9))
+#: The schema of the attack-knowledge pin a frozen run records
+#: (`attack.knowledge.ReadOnlyView.suite_pin`).
+ATTACK_KNOWLEDGE_PIN_SCHEMA = "carbon.graphite.attack-knowledge.suite-pin.v1"
+#: v2 records the attack-knowledge store snapshot the run was frozen under.
+RUN_SCHEMA = "carbon.challenge-pipeline.suite-run.v2"
+_STORE_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 MAP_KEYS = {
     "schema",
     "suite_version",
@@ -190,6 +197,22 @@ def _status(outcomes):
     return "FINDING_CANDIDATE" if "failed" in outcomes else "PASS"
 
 
+def attack_knowledge_digest(pin):
+    """The store digest an attack-knowledge pin names (`ReadOnlyView.
+    suite_pin()`), or None for no pin. A malformed pin is refused."""
+    if pin is None:
+        return None
+    if (
+        type(pin) is not dict
+        or set(pin) != {"schema", "attack_knowledge_digest"}
+        or pin["schema"] != ATTACK_KNOWLEDGE_PIN_SCHEMA
+        or type(pin["attack_knowledge_digest"]) is not str
+        or not _STORE_DIGEST.match(pin["attack_knowledge_digest"])
+    ):
+        raise ValueError("attack_knowledge_pin_malformed")
+    return pin["attack_knowledge_digest"]
+
+
 def run(
     challenge,
     *,
@@ -199,8 +222,16 @@ def run(
     records=RECORDS,
     repository=REPOSITORY,
     python=None,
+    attack_knowledge=None,
 ):
-    """Run one challenge's Track A checks; return the coverage report."""
+    """Run one challenge's Track A checks; return the coverage report.
+
+    `attack_knowledge` is the attack-knowledge store pin the frozen run uses
+    (`ReadOnlyView.suite_pin()`); its digest is recorded in the run's suite
+    record, so a replay under any other store snapshot is refused
+    (`ReadOnlyView.replay_recorded`, invariant 10). Without one the record
+    says None: the run used no attack knowledge."""
+    store_digest = attack_knowledge_digest(attack_knowledge)
     suite = load_suite(suite_path)
     suite_map = load_map(challenge, maps, suite)
     level = construction_level(challenge, records)
@@ -284,9 +315,10 @@ def run(
     needed = suite_map["environment_groups"]
     installed = os.environ.get("CARBON_UV_GROUPS", "").split()
     return {
-        "schema": "carbon.challenge-pipeline.suite-run.v1",
+        "schema": RUN_SCHEMA,
         "suite_version": suite["suite_version"],
         "suite_digest": digest(suite_path),
+        "attack_knowledge_digest": store_digest,
         "challenge": challenge,
         "map_digest": _pin(suite_map),
         "construction_level": level,

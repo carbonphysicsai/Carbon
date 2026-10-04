@@ -661,7 +661,14 @@ def _engine_adapter(*, weak=False, slow=False, lax_rebuild=False):
             ),
             control_set=(
                 adapters.Control("good", "weights_field", "trained", "v1", GOOD),
-                adapters.Control("good_too", "weights_field", "held_out", "v1", GOOD),
+                # Held-out controls are canonically distinct from trained ones.
+                adapters.Control(
+                    "good_too",
+                    "weights_field",
+                    "held_out",
+                    "v1",
+                    {**GOOD, "variant": "held-out"},
+                ),
             ),
             seams=tuple(
                 adapters.SeamFamily(check, check, 0, "declared for this test")

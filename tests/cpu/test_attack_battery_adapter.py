@@ -169,6 +169,24 @@ def test_controls_are_split_disjoint_and_versioned():
         A.controls("tuning")
 
 
+def test_held_out_and_trained_controls_are_canonically_distinct():
+    """No held-out control is a key-reordered or round-tripped copy of a
+    trained one: canonically (sorted keys, JSON) every held-out value
+    differs from every trained value of its family, and every registered
+    identity differs. Each held-out control still passes the real boundary."""
+    for name in SPECS:
+        trained = [c for c in A.control_specs("trained") if c.family == name]
+        held = [c for c in A.control_specs("held_out") if c.family == name]
+        seen = {b._canonical(c.value()) for c in trained}
+        for control in held:
+            assert b._canonical(control.value()) not in seen, control.name
+    identities = {c.identity for c in A.controls("trained")}
+    assert identities.isdisjoint({c.identity for c in A.controls("held_out")})
+    for name in ("practice_disclosure", "mandatory_failure"):
+        for control in [c for c in A.control_specs("held_out") if c.family == name]:
+            assert A.control_passes(control), control.name
+
+
 def test_nothing_the_adapter_names_is_protected_material():
     named = []
     for spec in A.family_specs():

@@ -53,6 +53,7 @@ import functools
 import hashlib
 import json
 import math
+import struct
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import SimpleNamespace
@@ -63,7 +64,10 @@ CHALLENGE_ID = "battery-fastcharge-ageing-development-v1"
 LEVEL = 0
 PROFILE = "level-0"
 ADAPTER_VERSION = "carbon.attack.adapter.battery-l0.v1"
-CONTROLS_VERSION = "carbon.attack.controls.battery-l0.v1"
+#: v2: the practice_disclosure and mandatory_failure held-out controls are
+#: genuinely different valid inputs (v1's were key-reordered or JSON
+#: round-tripped copies of the trained values, canonically identical).
+CONTROLS_VERSION = "carbon.attack.controls.battery-l0.v2"
 ORACLE_SCHEMA = "carbon.attack.oracle-result.battery-l0.v1"
 TRACK = "construction_integrity"
 SPLITS = ("trained", "held_out")
@@ -261,6 +265,7 @@ class _Shim:
         version: str
         value: object = None
         check: object = None
+        input_digest: str | None = None
 
     @dataclass(frozen=True)
     class FamilyDef:
@@ -294,6 +299,7 @@ class _Shim:
         condition: str | None = None
         specimen: str | None = None
         specimen_digest: str | None = None
+        reading: str | None = None
 
         def __post_init__(self):
             if self.condition is not None and self.condition not in CONDITIONS:
@@ -550,6 +556,28 @@ def _frozen_rule():
 
 def _oracle_predictions():
     return _track_a().mandatory_control()
+
+
+def _floats(value, convert):
+    """`value` with every float passed through `convert` (dicts and lists
+    walked; everything else kept)."""
+    if isinstance(value, float):
+        return convert(value)
+    if isinstance(value, Mapping):
+        return {key: _floats(item, convert) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_floats(item, convert) for item in value]
+    return value
+
+
+def _single_precision(value):
+    """Every float as a single-precision (float32) model would emit it."""
+    return _floats(value, lambda x: struct.unpack("<f", struct.pack("<f", x))[0])
+
+
+def _rounded(value, places=6):
+    """Every float rounded to `places` decimals."""
+    return _floats(value, lambda x: round(x, places))
 
 
 # -- the real boundaries this adapter adds -----------------------------------------------------
@@ -1427,30 +1455,35 @@ def _controls():
         "sealed_rule_v2",
         lambda: {"kind": "disclosure", "rule": "v2"},
     )
+    # Held-out controls are genuinely different valid inputs, canonically
+    # distinct from every trained one (a key-reordered or JSON round-tripped
+    # copy canonicalises to the trained value and measures nothing new):
+    # the public PRACTICE references as a single-precision model emits them,
+    # rounded to six decimals, and two different probes in one session.
     add(
         "practice_disclosure",
         "held_out",
-        "reversed_order_probe",
-        lambda: {"probes": [dict(reversed(list(oracle().items())))]},
+        "float32_probe",
+        lambda: {"probes": [_single_precision(oracle())]},
     )
     add(
         "practice_disclosure",
         "held_out",
-        "json_round_trip_probe",
-        lambda: {"probes": [json.loads(json.dumps(oracle()))]},
+        "two_distinct_probes",
+        lambda: {"probes": [oracle(), _rounded(oracle())]},
     )
     add("mandatory_failure", "trained", "oracle_predictions", oracle)
     add(
         "mandatory_failure",
         "held_out",
-        "reversed_order_predictions",
-        lambda: dict(reversed(list(oracle().items()))),
+        "float32_predictions",
+        lambda: _single_precision(oracle()),
     )
     add(
         "mandatory_failure",
         "held_out",
-        "json_round_trip_predictions",
-        lambda: json.loads(json.dumps(oracle())),
+        "rounded_six_decimals_predictions",
+        lambda: _rounded(oracle()),
     )
     add(
         "resource_accounting",
@@ -1907,6 +1940,7 @@ class BatteryLevel0Adapter:
                 condition=condition,
                 specimen=specimen,
                 specimen_digest=None if specimen is None else _digest(weak),
+                reading=reading,
             )
             return Assessment(
                 spec.name, name, reading, basis, observed is not _MISSING, oracle
@@ -2127,7 +2161,20 @@ class BatteryLevel0Adapter:
             split=spec.split,
             version=spec.version,
             check=lambda: bool(check(spec.value())),
+            # The control's registered identity is its content.
+            input_digest=_control_input_digest(spec),
         )
+
+
+_INPUT_DIGESTS = {}
+
+
+def _control_input_digest(spec):
+    """The digest of what a control submits, computed once per control."""
+    found = _INPUT_DIGESTS.get((spec.version, spec.name))
+    if found is None:
+        found = _INPUT_DIGESTS[(spec.version, spec.name)] = _digest(spec.value())
+    return found
 
 
 ADAPTER = BatteryLevel0Adapter()

@@ -29,7 +29,15 @@ it attempted and what it left. Zero attempts is no evidence: INCONCLUSIVE.
 
 The engine reads only trained controls. A held-out control passed to
 `run_family` is refused (`HeldOutControlRefused`): held-out controls measure
-wrongful rejection and are never tuned against.
+wrongful rejection and are never tuned against. The refusal is by the
+control's registered identity (`control_identity`: its family and the digest
+of its input, never its name, version or split label), so a held-out control
+relabelled `trained` is still refused once its identity is registered
+(`register_held_out`, which an adapter's validation and run do).
+
+Each control record binds its evidence: the control's registered identity, its
+input digest and its outcome. A wrongly refused control's finding therefore
+names which control it was, never a digest of a bare boolean.
 
 No family state is an acceptance. A clean family is IN_PROGRESS: acceptance is
 a reviewed LOCK (Challenge Admission §3.3), not a test result. The engine
@@ -182,6 +190,47 @@ class Finding:
         }
 
 
+#: The registered identities of every held-out control an adapter declared
+#: (`register_held_out`). A control whose identity is here is refused by
+#: `run_family` whatever its split label says. It only grows.
+_HELD_OUT_IDENTITIES = set()
+
+
+def control_input_digest(control):
+    """The digest of what a control submits: its declared `input_digest`,
+    else the digest of its `value`, else None (a check-only control that
+    declares no input)."""
+    declared = getattr(control, "input_digest", None)
+    if declared is not None:
+        return declared
+    value = getattr(control, "value", None)
+    return None if value is None else digest(value)
+
+
+def control_identity(control, family=None):
+    """A control's registered identity: its family and the digest of its
+    input. Name, version and split are left out, so relabelling, renaming or
+    re-versioning a control cannot move it between splits. A check-only
+    control that declares no input is identified by its family and name."""
+    family = getattr(control, "family", None) or family
+    input_digest = control_input_digest(control)
+    if input_digest is None:
+        return digest({"family": family, "control": getattr(control, "name", None)})
+    return digest({"family": family, "input_digest": input_digest})
+
+
+def register_held_out(controls, family=None):
+    """Register held-out controls' identities; returns them. From then on
+    `run_family` refuses any control with one of these identities."""
+    identities = {control_identity(control, family) for control in controls}
+    _HELD_OUT_IDENTITIES.update(identities)
+    return frozenset(identities)
+
+
+def is_registered_held_out(control, family=None):
+    return control_identity(control, family) in _HELD_OUT_IDENTITIES
+
+
 def control_from(boundary, value_fn, breached):
     """A control that passes when the real boundary accepts `value_fn()`, or,
     for a boundary that does not say, when the result is not a breach."""
@@ -239,11 +288,13 @@ def run_family(family, *, budget=None, context=None, controls=None):
     if controls is not None:
         controls = tuple(controls)
         for control in controls:
-            if getattr(control, "split", None) != "trained":
+            if getattr(control, "split", None) != "trained" or is_registered_held_out(
+                control, family.name
+            ):
                 raise HeldOutControlRefused(str(getattr(control, "name", control)))
     records = []
 
-    def record(role, name, verdict, result):
+    def record(role, name, verdict, result, **bound):
         records.append(
             {
                 "schema": context.schema,
@@ -255,6 +306,7 @@ def run_family(family, *, budget=None, context=None, controls=None):
                 "attempt": name,
                 "verdict": verdict,
                 "result_digest": digest(result),
+                **bound,
             }
         )
 
@@ -284,7 +336,13 @@ def run_family(family, *, budget=None, context=None, controls=None):
         for control in controls:
             passed, failed = answer(evaluate_control, family, control)
             verdict = failed or (PASSED if passed else REFUSED)
-            record("control", control.name, verdict, passed)
+            bound = {
+                "control_identity": control_identity(control, family.name),
+                "input_digest": control_input_digest(control),
+            }
+            record(
+                "control", control.name, verdict, {**bound, "outcome": verdict}, **bound
+            )
     return FamilyRun(
         family=family.name,
         check=family.check,
@@ -303,9 +361,30 @@ def _rows(runs):
             yield item
 
 
+def control_evidence(record):
+    """The evidence a control finding binds: the control's registered
+    identity (or, for a family's own `valid_control`, its family and name),
+    its input digest, its outcome and its record's result digest. Distinct per
+    control, never a digest of a bare boolean."""
+    identity = record.get("control_identity") or digest(
+        {"family": record["family"], "control": record["attempt"]}
+    )
+    return digest(
+        {
+            "family": record["family"],
+            "control": record["attempt"],
+            "control_identity": identity,
+            "input_digest": record.get("input_digest"),
+            "outcome": record["verdict"],
+            "result_digest": record["result_digest"],
+        }
+    )
+
+
 def findings(runs: Iterable):
     """Every condition the runs raise, as Findings. Takes FamilyRuns or
-    attempt records. None is suppressed."""
+    attempt records. None is suppressed. A breached attack binds its result's
+    digest; a wrongly refused control binds `control_evidence`."""
     out = []
     for r in _rows(runs):
         if (r["role"], r["verdict"]) in (("attack", BREACHED), ("control", REFUSED)):
@@ -315,7 +394,11 @@ def findings(runs: Iterable):
                     family=r["family"],
                     attempt=r["attempt"],
                     role=r["role"],
-                    evidence_digest=r["result_digest"],
+                    evidence_digest=(
+                        r["result_digest"]
+                        if r["role"] == "attack"
+                        else control_evidence(r)
+                    ),
                 )
             )
     return out

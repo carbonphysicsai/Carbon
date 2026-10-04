@@ -58,8 +58,8 @@ def _within(run, budget):
     return out
 
 
-def _side(run, budget, held_out, not_run, check=None):
-    line = report.summarize(_within(run, budget), held_out, not_run, check)
+def _side(run, budget, held_out, not_run, check=None, family=None):
+    line = report.summarize(_within(run, budget), held_out, not_run, check, family)
     line["budget"] = budget
     return line
 
@@ -94,8 +94,8 @@ def b2(
         n = _budget_for(budget, name)
         controls = held_out.get(name, ())
         check = seam_check.get(name)
-        mine = _side(attacker.get(name), n, controls, seam.get(name), check)
-        theirs = _side(baseline.get(name), n, controls, seam.get(name), check)
+        mine = _side(attacker.get(name), n, controls, seam.get(name), check, name)
+        theirs = _side(baseline.get(name), n, controls, seam.get(name), check, name)
         families[name] = {
             "check": mine["check"] or theirs["check"],
             "budget": n,

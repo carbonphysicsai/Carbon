@@ -498,9 +498,11 @@ ALLOWED = frozenset({"model_family", "width"})
 ATTACK = {"model_family": "mlp", "width": 8, "extra": 1}
 
 
-def _synthetic_adapter(*, weak):
+def _synthetic_adapter(*, weak, narrow=False):
     """A second Challenge, with no battery code: one family run here
-    (undeclared recipe fields), every other Track A check a declared seam."""
+    (undeclared recipe fields), every other Track A check a declared seam.
+    `narrow` makes the real boundary refuse widths over 16, which wrongly
+    refuses the held-out control (width 32) while the trained one passes."""
     from carbon.agent_campaign.attack import adapter as core
     from carbon.agent_campaign.attack import engine
 
@@ -512,6 +514,8 @@ def _synthetic_adapter(*, weak):
         return {"accepted": ok, "unknown": unknown}
 
     def boundary(doc):
+        if narrow and type(doc) is dict and doc.get("width", 0) > 16:
+            return {"accepted": False, "unknown": False}
         return compile_doc(doc, checked=not weak)
 
     family = engine.Family(
@@ -735,7 +739,14 @@ def test_an_infrastructure_failure_is_never_a_pass_or_a_near_miss(tmp_path):
     )
     try:
         [verdict] = [v for v in coverage["verdicts"] if v["family"] == "recipe_fields"]
-        assert verdict["outcome"] == "INFRA" and entry["findings"] == []
+        # The session's infrastructure failure is no finding; the weak
+        # boundary's deterministic baseline breach is one, recorded apart.
+        assert verdict["outcome"] == "INFRA"
+        assert coverage["findings_by_source"]["attacker"] == []
+        assert (
+            entry["findings"]
+            == coverage["findings_by_source"]["deterministic_baseline"]
+        )
         line = coverage["families"]["families"]["recipe_fields"]
         assert line["timeouts_crashes"] == 1
         assert line["completed"] == 0 and line["held"] == 0
@@ -744,6 +755,161 @@ def test_an_infrastructure_failure_is_never_a_pass_or_a_near_miss(tmp_path):
         assert kstore.near_misses(SYNTHETIC, 0) == []
     finally:
         control.close()
+
+
+@needs_engine
+def test_a_wrongly_refused_held_out_control_blocks_the_next_expansion(tmp_path):
+    """A held-out control the real boundary wrongly refuses is a finding that
+    reaches the controller through the same record path as an Attacker
+    finding, bound to the control's identity, input digest and outcome, and
+    every later expansion is refused."""
+    from carbon.agent_campaign.attack import engine
+
+    adapter = _synthetic_adapter(weak=False, narrow=True)
+    (held,) = adapter.controls("held_out")
+    miner = RecordingMiner({"status": "REFUSED", "accepted": False})
+    control, _kstore, entry, coverage, _brief = _attack(
+        tmp_path, adapter, _validate_script(ATTACK), miner
+    )
+    try:
+        by_source = coverage["findings_by_source"]
+        assert by_source["attacker"] == []
+        assert by_source["deterministic_baseline"] == []
+        (finding_id,) = by_source["held_out_controls"]
+        assert entry["findings"] == [finding_id] == coverage["findings"]
+        assert _blocked(control)
+        (line,) = coverage["families"]["findings"]
+        assert line["role"] == "held_out_control"
+        assert line["control_identity"] == held.identity
+        (ledger,) = control.admission_ledgers()["findings"]
+        body = json.loads((control.root / ledger["evidence"]["path"]).read_bytes())
+        assert body["control_identity"] == held.identity
+        assert body["input_digest"] == engine.digest(held.value)
+        assert body["outcome"] == "WRONGLY_REFUSED"
+        rate = coverage["wrongful_rejection_held_out"]["recipe_fields"]
+        assert (rate["status"], rate["rate"]) == ("MEASURED", 1.0)
+    finally:
+        control.close()
+
+
+@needs_engine
+def test_a_deterministic_baseline_breach_reaches_the_controller(tmp_path):
+    """A breach in the adapter's deterministic baseline run (B2's other side)
+    is recorded and stops expansion too, even when the session found none."""
+    adapter = _synthetic_adapter(weak=True)
+    control, _kstore, _entry, coverage, _brief = _attack(
+        tmp_path, adapter, [text("done")], RecordingMiner()
+    )
+    try:
+        by_source = coverage["findings_by_source"]
+        assert by_source["attacker"] == [] and by_source["held_out_controls"] == []
+        assert len(by_source["deterministic_baseline"]) == 1
+        assert _blocked(control)
+    finally:
+        control.close()
+
+
+def test_a_resume_refuses_a_missing_or_malformed_pin(tmp_path, capsys):
+    """A resume reuses its recorded pin and never re-snapshots: a deleted
+    pin, or one with the wrong schema, session or digest, is refused."""
+    store = tmp_path / "store"
+    store.mkdir()
+    kstore = FakeStore(store)
+    view = phase4.pin_session(store, 1, kstore)
+    assert phase4.read_pin(store, 1)["attack_knowledge_digest"] == view.digest
+    assert phase4.pin_session(store, 1, kstore, resume=True).digest == view.digest
+    path = phase4.pin_path(store, 1)
+    good = json.loads(path.read_bytes())
+    path.unlink()
+    code = _refusal(capsys, lambda: phase4.pin_session(store, 1, kstore, resume=True))
+    assert code == "session_pin_missing"
+    for bad in (
+        {**good, "session": 2},
+        {**good, "schema": "carbon.graphite.attacker-store-pin.v0"},
+        {**good, "attack_knowledge_digest": "sha256:short"},
+        {**good, "extra": True},
+    ):
+        path.write_text(json.dumps(bad))
+        for resume in (True, False):
+            code = _refusal(
+                capsys,
+                lambda resume=resume: phase4.pin_session(
+                    store, 1, kstore, resume=resume
+                ),
+            )
+            assert code == "session_pin_malformed"
+        path.unlink()
+    path.write_text("{not json")
+    code = _refusal(capsys, lambda: phase4.read_pin(store, 1))
+    assert code == "session_pin_malformed"
+
+
+@needs_engine
+def test_a_view_under_another_digest_than_the_recorded_pin_is_refused(tmp_path, capsys):
+    """The replay guard compares the view with the session's recorded pin,
+    never with itself."""
+    atk = phase4.attack_modules()
+    store = tmp_path / "attacker"
+    store.mkdir()
+    kstore = phase4.open_store(store, atk)
+    view = phase4.pin_session(store, 1, kstore)
+    assert phase4.replay_guard(store, 1, view, atk) is view
+    kstore.add_attempt(
+        challenge_id=SYNTHETIC,
+        level=0,
+        contract_digest="sha256:" + "c" * 64,
+        check="artifact_and_dependency_attacks",
+        family="recipe_fields",
+        boundary="the recipe field allow-list",
+        strategy="graphite-attacker:dry_validate",
+        attempt_id="epoch-1-attack-tool-001",
+        attempt={"recipe": {"width": 8}},
+        outcome="HELD",
+    )
+    other = kstore.pin(kstore.snapshot())
+    assert other.digest != view.digest
+    code = _refusal(capsys, lambda: phase4.replay_guard(store, 1, other, atk))
+    assert code == "attack_knowledge_replay_under_another_digest"
+    phase4.pin_path(store, 1).unlink()
+    code = _refusal(capsys, lambda: phase4.replay_guard(store, 1, view, atk))
+    assert code == "session_pin_missing"
+
+
+def test_a_tampered_copy_of_the_committed_grant_is_refused(
+    capsys, tmp_path, monkeypatch
+):
+    """A live run's grant must equal the committed GRAPHITE-GRANT-PHASE4 by
+    canonical digest: a local copy with its ceiling raised to 100 is refused
+    before the credential is even looked at."""
+    modules = stand_in_modules(StandIn())
+    monkeypatch.setattr(phase4, "attack_modules", lambda: modules)
+    committed = json.loads(GRANT_FILE.read_bytes())
+    assert phase4.check_committed_grant(GRANT_FILE) == phase4.grant_digest(committed)
+    credential = tmp_path / "engy"
+    credential.write_text("x")
+    credential.chmod(0o600)
+    for change in (
+        {"monetary_ceiling": "100"},
+        {"cleanup_allowance": "0.10"},
+        {"account": "another-account"},
+    ):
+        tampered = tmp_path / "grant.json"
+        tampered.write_text(json.dumps({**committed, **change}))
+        argv = [
+            "run",
+            "--root",
+            str(tmp_path / "r"),
+            "--grant",
+            str(tampered),
+            "--credential-file",
+            str(credential),
+            "--miner-profile",
+            "p.json",
+            "--miner-campaign",
+            "c",
+        ]
+        code = _refusal(capsys, lambda argv=argv: phase4.main(argv))
+        assert code == "grant_differs_from_the_committed_phase4_grant", change
 
 
 @needs_engine

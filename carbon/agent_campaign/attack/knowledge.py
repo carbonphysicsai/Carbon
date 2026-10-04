@@ -28,8 +28,12 @@ What the store learns from, and what it refuses:
 - Only Carbon's own attack-oracle rows (`ORACLE`) and public material
   (`PUBLIC`). A finding is only ever an oracle row on a construction Carbon
   rebuilt; anything else is refused typed.
-- Every record is checked with Graphite's protected-material rule
-  (`graphite.tools.protected`) and the store's own sealed-material markers
+- Every record is checked with the store's protected rule (`protected`:
+  Graphite's protected markers and the deny fragments that name sealed or
+  confirmation material), its registered sealed identities
+  (`SEALED_IDENTITIES`: public fingerprints, commitments, role names and
+  condition ids, matched after Unicode, case and separator normalisation)
+  and its own sealed-material markers
   when it is written **and again when it is read**; a record that fails on
   read is withheld by the live store, never served, and a pinned view that
   holds such a record refuses to serve anything (`attack_snapshot_withheld`)
@@ -62,12 +66,14 @@ import json
 import math
 import os
 import re
+import unicodedata
 from pathlib import Path
 
 # `literature` first: `tools` imports it, and it calls back into `tools` while
 # it loads, so importing `tools` first fails on the half-built module.
 from carbon.agent_campaign.graphite import literature  # noqa: F401
-from carbon.agent_campaign.graphite.tools import protected
+from carbon.agent_campaign.graphite import tools as _tools
+from carbon.challenge_pipeline import suite as _suite
 from carbon.challenge_readiness.admission import CHECKS, CONDITIONS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -135,9 +141,77 @@ TRAINED, HELD_OUT = "trained", "held_out"
 #: The only control split the engine may read (`training_view`).
 TRAINING_SPLIT = TRAINED
 
+#: Sealed material, by its registered PUBLIC identity: only identities
+#: already committed in the repository (commitments, fingerprints, role names
+#: and condition ids), never sealed contents, which nothing here reads. Each
+#: entry names the public record it is copied from. Matched after Unicode
+#: (NFKC), case (casefold) and separator normalisation: a digest by its hex
+#: (whole, or a prefix of at least `DIGEST_PREFIX_MIN` hex characters as its
+#: own token), a phrase as a whole-token sequence.
+SEALED_IDENTITIES = (
+    {
+        "id": "ev5-confirmation-fingerprint",
+        "kind": "digest",
+        "value": "sha256:0add08ed7a3c6568a0779b0becb123578eedee6ca8e4f9f014588ed4ba934f3e",
+        "source": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+    },
+    {
+        "id": "ev5-confirmation-journal-sequence",
+        "kind": "phrase",
+        "value": ("journal sequence 14", "journal seq 14"),
+        "source": ".agent/decisions/2026-10-03-OWNER-EV5-FREEZE-01.md",
+    },
+    {
+        "id": "ev5-confirmation-role",
+        "kind": "phrase",
+        "value": ("ev5-confirmation",),
+        "source": "carbon/challenge_validator/interface.py RESERVED_SEED_ROLES",
+    },
+    {
+        "id": "motor-private-pool-commitment",
+        "kind": "digest",
+        "value": "sha256:5ec0222502eb608c52d1162f4be6c7347deed7b6d4f03777ec4ea31b6d619559",
+        "source": "docs/development/evidence/motor-pools-v1/pools.json",
+    },
+    {
+        "id": "graphite-confirmation-role",
+        "kind": "phrase",
+        "value": ("graphite-confirmation-v1",),
+        "source": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-01.md item 7",
+    },
+    {
+        "id": "cooling-final-condition-ids",
+        "kind": "phrase",
+        "value": (
+            "rep-01",
+            "rep-02",
+            "rep-03",
+            "rep-04",
+            "boundary-01",
+            "boundary-02",
+        ),
+        "source": "docs/development/evidence/cold-plate-decision-fixture-v2/"
+        "construction/freeze.json case_roles.final_decision_evaluation",
+    },
+)
+#: The shortest hex prefix of a registered digest that counts as naming it
+#: (git's short form).
+DIGEST_PREFIX_MIN = 7
+#: The checkout deny rule's fragments (`boundaries.DENY_FRAGMENTS`) that name
+#: sealed or confirmation material. `ev4`/`ev5` match at a token start, so
+#: `dev5` does not; the rest as substrings of the normalised text. The other
+#: deny fragments (`.env`, `secret`, `credential`) and prefixes (`tests/`,
+#: `carbon/agent_campaign/`, `.agent/`, `docs/development/evidence/`) name
+#: attack *targets*, not material: the store holds attack inputs and
+#: digests, never results, so a real breach that names one keeps its own
+#: condition and its regression specimen, stored operator-side.
+PROTECTED_TOKEN_STARTS = ("ev4", "ev5")
+PROTECTED_FRAGMENTS = ("confirmation", "canary")
+
 #: Sealed and confirmation material beyond the protected rule's markers
 #: (EV5's sealed batch, a private pool, a Challenge's final conditions).
-#: Lower-case substrings; the store may over-refuse, never under-refuse.
+#: Matched after normalisation; the store may over-refuse, never
+#: under-refuse.
 SEALED_MARKERS = (
     "sealed",
     "private_pool",
@@ -201,8 +275,15 @@ class KnowledgeError(ValueError):
 
 
 def _strings(value):
+    """Every string in a JSON value, including JSON carried inside strings."""
     if type(value) is str:
         yield value
+        if value[:1] in ("{", "["):
+            try:
+                inner = json.loads(value)
+            except (ValueError, RecursionError):
+                return
+            yield from _strings(inner)
     elif type(value) is dict:
         for key, item in value.items():
             yield str(key)
@@ -212,14 +293,101 @@ def _strings(value):
             yield from _strings(item)
 
 
+_TOKEN = re.compile(r"[^\W_]+")
+
+
+def normalise(text):
+    """`text` for matching: NFKC, invisible format characters dropped,
+    casefolded, every run of separators one space. Returns `(spaced,
+    compact)`: the tokens joined by single spaces, and joined by nothing."""
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
+    tokens = _TOKEN.findall(text.casefold())
+    return " ".join(tokens), "".join(tokens)
+
+
+def _marker_hit(marker, spaced, compact):
+    """A marker names the text: as a substring of its spaced form, or, for a
+    marker of several tokens, of its compact form too (`privatepool`)."""
+    m_spaced, m_compact = normalise(marker)
+    if not m_spaced:
+        return False
+    if m_spaced in spaced:
+        return True
+    return " " in m_spaced and m_compact in compact
+
+
 def _named(value, markers):
-    return any(marker in text.lower() for text in _strings(value) for marker in markers)
+    for text in _strings(value):
+        spaced, compact = normalise(text)
+        if any(_marker_hit(marker, spaced, compact) for marker in markers):
+            return True
+    return False
+
+
+_HEX = re.compile(r"[0-9a-f]+\Z")
+
+
+def _identity_hit(spaced, compact):
+    """The registered sealed identity the text names, or None."""
+    padded = " " + spaced + " "
+    tokens = spaced.split()
+    for entry in SEALED_IDENTITIES:
+        if entry["kind"] == "digest":
+            hexed = entry["value"].removeprefix("sha256:")
+            if hexed in compact or any(
+                len(token) >= DIGEST_PREFIX_MIN
+                and _HEX.match(token)
+                and hexed.startswith(token)
+                for token in tokens
+            ):
+                return entry["id"]
+        else:
+            for phrase in entry["value"]:
+                if " " + normalise(phrase)[0] + " " in padded:
+                    return entry["id"]
+    return None
+
+
+def sealed_identity(value):
+    """The id of the registered sealed identity any string in `value` names
+    (`SEALED_IDENTITIES`), or None."""
+    for text in _strings(value):
+        found = _identity_hit(*normalise(text))
+        if found is not None:
+            return found
+    return None
+
+
+def protected(value):
+    """The store's protected rule: Graphite's protected markers
+    (`graphite.tools.PROTECTED_MARKERS`, read at call time), and the
+    checkout deny fragments that name sealed or confirmation material
+    (`PROTECTED_TOKEN_STARTS`, `PROTECTED_FRAGMENTS`), after normalisation.
+    Narrower than `graphite.tools.protected`, which also refuses the attack
+    targets `.env`, `secret`, `credential` and repository paths: those are
+    a request filter for a live session, not material the store may lose a
+    finding over."""
+    markers = (*_tools.PROTECTED_MARKERS, *PROTECTED_FRAGMENTS)
+    for text in _strings(value):
+        spaced, compact = normalise(text)
+        if any(_marker_hit(marker, spaced, compact) for marker in markers):
+            return True
+        padded = " " + spaced
+        if any(" " + start in padded for start in PROTECTED_TOKEN_STARTS):
+            return True
+    return False
 
 
 def sealed(value):
-    """True when any string in `value` names sealed or confirmation material
-    (the protected rule's markers, or the store's own)."""
-    return protected(value) or _named(value, SEALED_MARKERS)
+    """True when any string in `value` names sealed or confirmation material:
+    a registered sealed identity, the store's protected rule, or the store's
+    own sealed markers."""
+    return (
+        protected(value)
+        or sealed_identity(value) is not None
+        or _named(value, SEALED_MARKERS)
+    )
 
 
 def held_out(value):
@@ -745,6 +913,16 @@ class ReadOnlyView(_Reader):
         self._served()
         return self
 
+    def replay_recorded(self, record):
+        """This view, for a replay under the digest an independent record
+        pinned: a frozen run's suite record (`challenge_pipeline.suite.run`
+        `attack_knowledge_digest`) or a session's pin file. Refused when the
+        record names no digest, or another one than this view's."""
+        value = record.get("attack_knowledge_digest") if type(record) is dict else None
+        if type(value) is not str:
+            raise KnowledgeError(REPLAY_REFUSED, "the record pins no store digest")
+        return self.replay(value)
+
     def suite_pin(self):
         """What a frozen admission run records in its suite version."""
         return {"schema": SUITE_PIN_SCHEMA, "attack_knowledge_digest": self.digest}
@@ -754,6 +932,10 @@ class ReadOnlyView(_Reader):
 
     add_attempt = add_near_miss = add_finding = add_regression = _read_only
     replay_specimens = snapshot = _read_only
+
+
+if SUITE_PIN_SCHEMA != _suite.ATTACK_KNOWLEDGE_PIN_SCHEMA:  # pragma: no cover
+    raise ImportError("the suite and the store disagree on the pin schema")
 
 
 class AttackStore(_Reader):

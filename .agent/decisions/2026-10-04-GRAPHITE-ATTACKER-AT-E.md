@@ -152,3 +152,127 @@ finding turns the breach test red through the controller.
 **Unchanged.** The phase-3 Constructor path and its grant, every role but the
 Attacker's prompt, the miner edition's digests, EV5 and sealed material, and
 every existing plan, digest and replay.
+
+### 2026-10-04 — Repairs after Test Lead review (#563)
+
+The Test Lead's review of the integrated head 47baa0db5 found five defects
+that must be fixed and one item needed before the first live run. Each repair
+below is an engineering choice within the slices' delegated authority. None
+changes a scientific value, threshold or gate, EV5 or sealed material, the
+live construction contract or the expansion records, and battery's
+`track_a` output stays byte-identical (its digest test still pins it).
+
+1. **M1: every finding reaches the controller.** Before, only the Attacker's
+   verdicts were recorded (`verify.record`). Now a held-out control the
+   boundary wrongly refused (from the family report) goes through
+   `verify.record_control`, and a breach or refused trained control in the
+   deterministic baseline run (B2's other side) goes through
+   `verify.record_engine_findings`. Both use the same
+   `controller.record_finding` path, so any of them stops expansion. The
+   coverage report lists findings by source (`findings_by_source`; coverage
+   schema v4). Every finding is bound to digest evidence. Report findings
+   now carry an `evidence_digest`, and a control finding names the control's
+   registered identity, its input digest and its outcome (report schema
+   v2). An engine control record on the adapter path binds the same three
+   fields. `engine.findings` binds a control finding with
+   `control_evidence`, never `digest(passed)`. The `valid_control` record of
+   battery's own harness keeps its bytes, so the track_a pin holds.
+2. **M2: the suite version pins the store.** `challenge_pipeline.suite.run`
+   takes the store pin (`ReadOnlyView.suite_pin()`) and records
+   `attack_knowledge_digest` in the run's record (suite-run schema v2). A
+   malformed pin is refused. The driver's replay guard
+   (`phase4.replay_guard`) checks the pinned view against the session's
+   independently recorded pin file through `ReadOnlyView.replay_recorded`,
+   never against itself. A resume refuses a missing pin
+   (`session_pin_missing`). A pin whose schema, session number, digest or
+   keys are wrong is refused (`session_pin_malformed`). Nothing re-snapshots
+   silently.
+3. **M3: grant amounts are pinned at runtime.** `check_committed_grant`
+   refuses a live run unless the grant file's canonical digest equals the
+   committed `GRAPHITE-GRANT-PHASE4.json`'s
+   (`grant_differs_from_the_committed_phase4_grant`). The check covers every
+   field, so a raised ceiling is refused before the credential is read.
+4. **M4: a refusal at the rebuild step is not held coverage.** An attempt
+   Carbon could not rebuild that is not a breach is counted
+   `refused_at_rebuild` and excluded from its family's `held`. Alone, it
+   leaves the family INCONCLUSIVE (`refused_at_rebuild_only`).
+5. **M5: held-out controls are real and reported.**
+   - Wrongful rejection is a rate (`rate`, `status`), with held-out reported
+     apart from trained, per family and in total.
+   - An empty held-out set is `NOT_MEASURED` with rate None. So is a family
+     that only cites evidence; it is never skipped.
+   - The driver's coverage report carries `adapter.wrongful_rejection` per
+     family.
+   - Battery's held-out controls for `practice_disclosure` and
+     `mandatory_failure` were canonically identical copies of the trained
+     values. They are replaced with genuinely different valid inputs: the
+     public PRACTICE references at single precision, rounded to six
+     decimals, and two different probes in one session. Each passes the
+     real boundary. `CONTROLS_VERSION` moves to v2.
+   - `adapter.validate` refuses any held-out control that is canonically a
+     trained one.
+   - The engine refuses held-out controls by registered identity (the
+     family and the input digest; not the name, version or split). A
+     relabelled held-out control is therefore still refused. Identities are
+     registered when an adapter is validated or measured; the engine's run
+     still never reads the held-out split.
+6. **F1: protected detection by registered identity.**
+   - `knowledge.SEALED_IDENTITIES` lists only public identities already
+     committed, each with its source record:
+     - the EV5 confirmation fingerprint, journal sequence 14 and the
+       `ev5-confirmation` role;
+     - the motor private-pool commitment `sha256:5ec0222…`;
+     - the `graphite-confirmation-v1` role;
+     - cooling's final decision-evaluation condition ids (`rep-01` to
+       `rep-04`, `boundary-01`, `boundary-02`).
+   - Nothing sealed is read.
+   - Matching runs after NFKC, invisible-character removal, casefolding and
+     separator normalisation. A digest matches by its hex, whole or by a
+     prefix of seven or more characters as its own token.
+   - The store's protected rule (`knowledge.protected`) keeps Graphite's
+     markers and the deny fragments that name sealed or confirmation
+     material (`ev4`/`ev5` at a token start, `confirmation`, `canary`).
+   - It no longer uses `.env`, `secret`, `credential`, `tests/`,
+     `carbon/agent_campaign/`, `.agent/` or `docs/development/evidence/`.
+     Those name attack targets, not material, and the store holds attack
+     inputs and digests, never results.
+   - A real sandbox-escape breach therefore keeps its FAILING_TRIGGER
+     condition and its regression specimen in the operator-side store.
+     `verify`'s specimen bundling uses the same rule.
+   - Graphite's live request filter (`graphite.tools.protected`) is
+     unchanged.
+7. **Owner addition (OWNER-GRAPHITE-TEST-WAVE-02).** AT-B-D5 is accepted as
+   designed. An attempt withheld because it names protected material
+   (battery's `PROTECTED_WITHHELD`) now carries that reading through the
+   oracle (`OracleResult.reading`) into the verdict
+   (`oracle_protected_withheld`). The report counts it under `not_covered`
+   and `protected_withheld`, never as held or covered, and lists the family
+   under `not_covered`.
+
+**Tests.** Each repair has its own tests, and each boundary has a mutation:
+- a wrongly refused held-out control blocks the next expansion;
+- a baseline breach is recorded;
+- a deleted pin refuses the resume;
+- a mismatched digest refuses the replay;
+- a tampered grant copy is refused;
+- a refused-at-rebuild attempt is never held;
+- a protected-withheld attempt is not covered;
+- an empty held-out set is NOT_MEASURED;
+- a relabelled held-out control is refused;
+- held-out and trained battery controls are canonically distinct;
+- sealed identities match after case, separator and Unicode variants;
+- a real breach keeps its condition and specimen;
+- the over-broad fragments no longer misclassify.
+
+**Follow-up (separate PR).** The review's follow-up list is not done here.
+Seen during this repair and left for the same follow-up PR:
+- `attack.analysis` and `verify.finding_body` still use Graphite's full
+  request filter. A session result that names an attack target is still
+  read as an exposure (`OTHER_SIGNAL`) at the analysis step.
+- The held-out identity registry is process-wide and only grows.
+- Unicode confusables beyond NFKC (for example Cyrillic look-alikes) are not
+  folded.
+- A check-only control that declares no input is identified by its family
+  and name.
+- `SUITE_V1_BATTERY_COVERAGE.json` is a suite-run v1 record with no store
+  digest. It should be regenerated canonically.

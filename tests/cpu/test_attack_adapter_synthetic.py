@@ -713,11 +713,107 @@ def test_held_out_controls_measure_wrongful_rejection():
     assert engine.family_state(run) == "IN_PROGRESS"
     rates = adapters.wrongful_rejection(adapters.held_out_outcomes(adapter))
     assert rates["width_surface"] == {
+        "status": "MEASURED",
         "refused": 1,
         "total": 1,
         "no_answer": 0,
+        "not_measured": 0,
         "rate": 1.0,
     }
+
+
+def test_a_relabelled_held_out_control_is_refused_by_its_registered_identity():
+    """The engine refuses a held-out control by its registered identity (its
+    family and input digest), not by its split label: relabelling it
+    `trained` (or renaming or re-versioning it) does not get it run."""
+    adapter = adapters.validate(synthetic_adapter(0))
+    (held,) = [c for c in adapter.controls("held_out") if c.family == "width_surface"]
+    family = FAMILIES["width_surface"]
+    for disguise in (
+        dataclasses.replace(held, split="trained"),
+        dataclasses.replace(held, split="trained", name="fresh_name", version="v9"),
+    ):
+        assert disguise.identity == held.identity
+        with pytest.raises(engine.HeldOutControlRefused):
+            engine.run_family(family, controls=(disguise,))
+    # A genuinely trained control still runs.
+    (trained,) = [c for c in adapter.controls("trained") if c.family == "width_surface"]
+    assert engine.run_family(family, controls=(trained,)).records
+
+
+def test_mutation_a_label_only_check_lets_a_relabelled_held_out_control_run(
+    monkeypatch,
+):
+    test_a_relabelled_held_out_control_is_refused_by_its_registered_identity()
+    monkeypatch.setattr(engine, "is_registered_held_out", lambda *a, **k: False)
+    with pytest.raises((AssertionError, pytest.fail.Exception)):
+        test_a_relabelled_held_out_control_is_refused_by_its_registered_identity()
+
+
+def test_a_held_out_control_identical_to_a_trained_one_is_refused():
+    """Held-out and trained controls must be canonically distinct: a
+    key-reordered copy of a trained value measures nothing new."""
+    trained = adapters.Control(
+        "menu", "width_surface", "trained", VERSION, recipe(width=8, learning_rate=1e-3)
+    )
+    reordered = dict(reversed(list(recipe(width=8, learning_rate=1e-3).items())))
+    copy = adapters.Control("copy", "width_surface", "held_out", VERSION, reordered)
+    assert trained.identity == copy.identity
+    controls = tuple(c for c in _controls() if c.family != "width_surface") + (
+        trained,
+        copy,
+    )
+    with pytest.raises(adapters.AdapterError) as refused:
+        adapters.validate(synthetic_adapter(0, controls=controls))
+    assert refused.value.code == "held_out_control_is_canonically_a_trained_one"
+
+
+def test_an_empty_or_evidence_only_held_out_set_is_not_measured():
+    """A family with no held-out control that ran reports NOT_MEASURED with
+    no rate, never {0, 0, 0}; a family that only cites evidence is listed,
+    never silently skipped."""
+    adapter = synthetic_adapter(0)
+    evidence_only = adapters.Control(
+        "panel_member", "permission_ablation", "held_out", VERSION, {"panel": "x"}
+    )
+    outcomes = adapters.held_out_outcomes(
+        dataclasses.replace(adapter, control_set=(*adapter.control_set, evidence_only))
+    )
+    assert outcomes["permission_ablation"][0]["outcome"] == adapters.NOT_MEASURED
+    rates = adapters.wrongful_rejection(outcomes, adapter.families())
+    assert rates["permission_ablation"]["status"] == adapters.NOT_MEASURED
+    assert rates["permission_ablation"]["rate"] is None
+    assert rates["permission_ablation"]["not_measured"] == 1
+    bare = adapters.wrongful_rejection({}, adapter.families())
+    assert {r["status"] for r in bare.values()} == {adapters.NOT_MEASURED}
+    assert {r["rate"] for r in bare.values()} == {None}
+    measured = adapters.wrongful_rejection(adapters.held_out_outcomes(adapter))
+    assert measured["width_surface"]["status"] == adapters.MEASURED
+
+
+def test_a_refused_control_finding_binds_the_controls_identity():
+    """A wrongly refused control's finding binds its registered identity,
+    its input digest and its outcome: two refused controls never share one
+    evidence digest (it was a digest of the bare boolean)."""
+
+    def refuse_all(doc):
+        return {"accepted": False, "codes": ["closed"]}
+
+    family = dataclasses.replace(FAMILIES["width_surface"], boundary=refuse_all)
+    controls = (
+        adapters.Control("one", "width_surface", "trained", VERSION, recipe(width=8)),
+        adapters.Control("two", "width_surface", "trained", VERSION, recipe(width=16)),
+    )
+    run = engine.run_family(family, controls=controls)
+    found = [f for f in engine.findings([run]) if f.role == "control"]
+    assert [f.attempt for f in found] == ["one", "two"]
+    assert len({f.evidence_digest for f in found}) == 2
+    rows = [r for r in run.records if r["role"] == "control"]
+    assert [r["control_identity"] for r in rows] == [c.identity for c in controls]
+    assert [r["input_digest"] for r in rows] == [
+        engine.digest(c.value) for c in controls
+    ]
+    assert rows[0]["result_digest"] != engine.digest(False)
 
 
 def test_the_ablation_familys_held_out_control_is_held_out_from_the_engine():

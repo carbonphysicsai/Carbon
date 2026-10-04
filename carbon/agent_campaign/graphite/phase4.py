@@ -41,7 +41,11 @@ Carbon rebuilds each construction it scores with the adapter's `rebuild`
 adapter's oracle and bundles a breach's specimen for a clean rebuild. A
 `BREACHED` verdict carries its conditions in the CONDITIONS vocabulary and is
 recorded on the #475 controller through `verify.record` ->
-`controller.record_finding`, where it stops any later expansion. Every verdict
+`controller.record_finding`, where it stops any later expansion. So is every
+other finding: a held-out control the boundary wrongly refused and a breach or
+refused control in the adapter's deterministic baseline run, each bound to
+digest evidence. Before any of it, the pinned store view is checked against
+the session's independently recorded pin (`replay_guard`). Every verdict
 is written to the durable attack-knowledge store with its own outcome
 (near-misses only when the oracle says so; a timeout or crash is never a near
 miss). The per-family report is built from the session's verdicts, and
@@ -61,7 +65,8 @@ path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
 **Grant.** A live run reads `GRAPHITE-GRANT-PHASE4`
-(OWNER-GRAPHITE-ATTACKER-01 §5). Nothing here grades a finding, submits, opens
+(OWNER-GRAPHITE-ATTACKER-01 §5), and only a copy whose canonical digest equals
+the committed file's (`check_committed_grant`). Nothing here grades a finding, submits, opens
 a pull request, writes weights or touches chain state. Not security
 acceptance. A live run is NOT executed in this work.
 """
@@ -132,8 +137,11 @@ STRATEGY = "graphite-attacker"
 LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v2"
 #: v3 adds the per-check view (`check_view`): every Track A check, the run
 #: families and NOT_RUN seams the adapter declares for it, and any report row
-#: that lost its check.
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v3"
+#: that lost its check. v4 adds `findings_by_source` (every finding, from the
+#: Attacker, held-out controls and the deterministic baseline, reaches the
+#: controller), the held-out wrongful-rejection rate per family and the
+#: store's suite pin.
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v4"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -612,13 +620,48 @@ def open_store(store, atk):
     return knowledge.AttackStore(Path(store).resolve() / name)
 
 
-def pin_session(store, number, kstore):
+def pin_path(store, number):
+    return Path(store) / "pins" / f"session-{number}.json"
+
+
+def read_pin(store, number):
+    """Session `number`'s recorded store pin, checked: exactly its schema,
+    its session number and a sha256 store digest. Refused typed when the
+    file is missing (`session_pin_missing`) or anything else is wrong
+    (`session_pin_malformed`); never re-snapshotted silently."""
+    path = pin_path(store, number)
+    if not path.is_file() or path.is_symlink():
+        raise RunnerRefused("session_pin_missing")
+    try:
+        record = json.loads(path.read_bytes())
+    except (OSError, ValueError):
+        raise RunnerRefused("session_pin_malformed") from None
+    if (
+        type(record) is not dict
+        or set(record) != {"schema", "session", "attack_knowledge_digest"}
+        or record["schema"] != PIN_SCHEMA
+        or type(record["session"]) is not int
+        or record["session"] != number
+        or type(record["attack_knowledge_digest"]) is not str
+        or not _DIGEST.fullmatch(record["attack_knowledge_digest"])
+    ):
+        raise RunnerRefused("session_pin_malformed")
+    return record
+
+
+def pin_session(store, number, kstore, *, resume=False):
     """The store snapshot session `number` runs under, frozen once before the
-    session opens (a resume reuses it), as a read-only view. B2 is recorded
-    under its digest; specimens added later belong to the next snapshot."""
-    path = Path(store) / "pins" / f"session-{number}.json"
-    if path.is_file():
-        value = json.loads(path.read_bytes())["attack_knowledge_digest"]
+    session opens, as a read-only view. B2 is recorded under its digest;
+    specimens added later belong to the next snapshot.
+
+    A new session snapshots the store and writes the pin. A resume (the
+    session was already launched) reuses its recorded pin and refuses when
+    the pin is missing or malformed: it never re-snapshots, which would run
+    the rest of the session under a store it was not briefed on. A pin left
+    by a session that never launched is checked and reused."""
+    path = pin_path(store, number)
+    if resume or path.exists():
+        value = read_pin(store, number)["attack_knowledge_digest"]
     else:
         value = kstore.snapshot()
         path.parent.mkdir(mode=0o700, exist_ok=True)
@@ -633,6 +676,18 @@ def pin_session(store, number, kstore):
             ),
         )
     return kstore.pin(value)
+
+
+def replay_guard(store, number, view, atk):
+    """The pinned view, checked against the session's independently recorded
+    pin (`read_pin`), never against itself: a view under any other store
+    digest is refused (invariant 10)."""
+    knowledge = atk["knowledge"]
+    recorded = read_pin(store, number)
+    try:
+        return view.replay_recorded(recorded)
+    except knowledge.KnowledgeError as refused:
+        raise RunnerRefused("attack_knowledge_" + refused.code) from None
 
 
 def is_finding(verdict, verify):
@@ -747,13 +802,21 @@ def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
             )
 
 
-def held_out_rows(adapter, atk):
+def held_out_rows(adapter, atk, outcomes=None):
     """Each held-out control against its family's real boundary, as the
-    report's `{family, control, outcome}` rows: the wrongful-rejection
-    measurement only, never fed to a run or the store."""
+    report's `{family, control, outcome, identity, input_digest}` rows: the
+    wrongful-rejection measurement only, never fed to a run or the store."""
+    if outcomes is None:
+        outcomes = atk["adapter"].held_out_outcomes(adapter)
     return [
-        {"family": family, "control": row["control"], "outcome": row["outcome"]}
-        for family, rows in atk["adapter"].held_out_outcomes(adapter).items()
+        {
+            "family": family,
+            "control": row["control"],
+            "outcome": row["outcome"],
+            "identity": row.get("identity"),
+            "input_digest": row.get("input_digest"),
+        }
+        for family, rows in outcomes.items()
         for row in rows
     ]
 
@@ -811,14 +874,56 @@ def check_view(adapter, family_report, b2):
     }
 
 
+def record_report_findings(family_report, control, verify):
+    """Every control finding the report raises (a held-out control the real
+    boundary wrongly refused), through `verify.record_control`, the same
+    controller path an Attacker finding takes; returns the finding ids.
+    Attack findings in the report are the Attacker's verdicts, already
+    recorded through `verify.record`."""
+    ids = []
+    for finding in family_report["findings"]:
+        if finding["role"] == "attack":
+            continue
+        ids.append(
+            verify.record_control(
+                control,
+                family=finding["family"],
+                control=finding["attempt"],
+                split=finding["role"].removesuffix("_control"),
+                identity=finding["control_identity"],
+                input_digest=finding.get("input_digest"),
+                outcome=finding["outcome"],
+                source="family_report",
+            )
+        )
+    return ids
+
+
 def carbon_side(
-    store, control, provider, run_id, adapter, atk, *, budget, kstore, view
+    store,
+    control,
+    provider,
+    run_id,
+    adapter,
+    atk,
+    *,
+    budget,
+    kstore,
+    view,
+    session=1,
 ):
     """Carbon's own side of a finished session, through the engine (module
-    docstring). Returns (coverage report, B2, finding ids, store digest)."""
+    docstring). Returns (coverage report, B2, finding ids, store digest).
+
+    Every finding reaches the controller through one record path, whatever
+    raised it: the Attacker's verdicts (`verify.record`), held-out controls
+    the boundary wrongly refused (`record_report_findings`) and the
+    deterministic baseline run's breaches and refused trained controls
+    (`verify.record_engine_findings`). Any of them stops expansion."""
     analysis, verify = atk["analysis"], atk["verify"]
     report, benchmark = atk["report"], atk["benchmark"]
-    view.replay(view.digest)  # the snapshot the brief named is served whole
+    # The snapshot the brief named, checked against the recorded pin.
+    replay_guard(store, session, view, atk)
 
     found = analysis.attempts(provider._dir(run_id))
     mapped = analysis.map_to_families(found, adapter)
@@ -840,12 +945,21 @@ def carbon_side(
                 kstore, atk, adapter, definitions.get(family), attempt, verdict, rows
             )
 
-    held_out = held_out_rows(adapter, atk)
+    outcomes = atk["adapter"].held_out_outcomes(adapter)
+    held_out = held_out_rows(adapter, atk, outcomes)
     attacker = report.attacker_runs(verdicts, families=families)
     baseline = atk["adapter"].run_adapter(adapter, budget=budget)
     family_report = report.family_report(
         attacker, controls_held_out=held_out, seams=seams
     )
+    by_source = {
+        "attacker": list(findings),
+        "held_out_controls": record_report_findings(family_report, control, verify),
+        "deterministic_baseline": verify.record_engine_findings(baseline, control),
+    }
+    findings = [*by_source["attacker"]]
+    for source in ("held_out_controls", "deterministic_baseline"):
+        findings.extend(i for i in by_source[source] if i not in findings)
     b2 = benchmark.b2(
         attacker,
         baseline,
@@ -865,8 +979,17 @@ def carbon_side(
         "families": family_report,
         "checks": check_view(adapter, family_report, b2),
         "findings": findings,
+        "findings_by_source": by_source,
+        "wrongful_rejection_held_out": atk["adapter"].wrongful_rejection(
+            outcomes, families
+        ),
         "benchmark_b2": b2,
-        "attack_knowledge": {"pinned": view.digest, "after": after, **rows},
+        "attack_knowledge": {
+            "pinned": view.digest,
+            "suite_pin": view.suite_pin(),
+            "after": after,
+            **rows,
+        },
         "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
     }
@@ -927,6 +1050,7 @@ def run_session(
             budget=budget,
             kstore=kstore,
             view=view,
+            session=number,
         )
     entry = {
         "schema": LOG_SCHEMA,
@@ -969,6 +1093,27 @@ def owner_only_file(path):
     if info.st_size == 0:
         raise RunnerRefused("credential_file_empty")
     return str(candidate)
+
+
+def grant_digest(document):
+    """The canonical digest of a grant document (every field)."""
+    return digest(canonical(document))
+
+
+def check_committed_grant(path, repository=REPOSITORY):
+    """A live run's grant must be the committed GRAPHITE-GRANT-PHASE4, field
+    for field: its canonical digest must equal the committed file's. A local
+    copy with any amount, run count, runtime or identity changed is refused
+    (`grant_differs_from_the_committed_phase4_grant`), so the money a run may
+    spend is the owner-approved amount, never an edited copy's."""
+    try:
+        given = json.loads(Path(path).read_bytes())
+        committed = json.loads((Path(repository) / GRANT_FILE).read_bytes())
+    except (OSError, ValueError):
+        raise RunnerRefused("phase4_grant_file_unreadable") from None
+    if grant_digest(given) != grant_digest(committed):
+        raise RunnerRefused("grant_differs_from_the_committed_phase4_grant")
+    return grant_digest(committed)
 
 
 def _head(repository=REPOSITORY):
@@ -1017,6 +1162,7 @@ def command_run(args):
         raise RunnerRefused("grant_is_not_the_phase4_grant")
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
+    check_committed_grant(args.grant)
     engy = owner_only_file(args.credential_file)
     # The brief records the checkout Carbon's side runs from: this HEAD,
     # pushed and clean (#504's rule), so the run's code is identified.
@@ -1047,7 +1193,8 @@ def command_run(args):
     control = controller_for(store, provider, grant)
     try:
         kstore = open_store(store, atk)
-        view = pin_session(store, args.session, kstore)
+        resume = provider.find(session_key(args.session)) is not None
+        view = pin_session(store, args.session, kstore, resume=resume)
         brief = session_brief(
             adapter, checkout_commit=head, knowledge=knowledge_brief(view, adapter)
         )

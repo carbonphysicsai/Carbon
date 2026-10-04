@@ -114,14 +114,20 @@ def test_every_family_reports_the_registered_fields():
         "not_run": None,
     }
     assert line["wrongful_rejection_held_out"] == {
+        "status": "MEASURED",
         "controls": 2,
         "completed": 2,
         "wrongly_refused": 1,
+        "rate": 0.5,
     }
-    assert line["findings"] == [
+    assert [
+        {k: f[k] for k in ("attempt", "condition", "role")} for f in line["findings"]
+    ] == [
         {"attempt": "t-1", "condition": "FAILING_TRIGGER", "role": "attack"},
         {"attempt": "c-b", "condition": "FAILING_TRIGGER", "role": "held_out_control"},
     ]
+    # Every finding carries digest-bound evidence.
+    assert all(f["evidence_digest"].startswith("sha256:") for f in line["findings"])
     assert out["totals"]["verified"] == 1
     assert [f["family"] for f in out["findings"]] == ["recipe_surface"] * 2
 
@@ -137,9 +143,11 @@ def test_a_timeout_is_never_a_pass():
     quiet = full_report()["families"]["quiet_family"]
     # An infrastructure-failed held-out control is neither passed nor refused.
     assert quiet["wrongful_rejection_held_out"] == {
+        "status": "MEASURED",
         "controls": 2,
         "completed": 1,
         "wrongly_refused": 0,
+        "rate": 0.0,
     }
 
 
@@ -258,7 +266,9 @@ def test_engine_records_keep_the_engines_own_state():
     silent = out["families"]["silent"]
     assert silent["engine_state"] == "FINDING"
     assert silent["wrongful_rejection_trained"]["wrongly_refused"] == 1
-    assert silent["findings"] == [
+    assert [
+        {k: f[k] for k in ("attempt", "condition", "role")} for f in silent["findings"]
+    ] == [
         {
             "attempt": "valid_control",
             "condition": "FAILING_TRIGGER",
@@ -303,7 +313,13 @@ def test_an_engine_boundary_that_did_not_answer_is_never_a_pass(verdict):
     assert line["attempts"] == 2 and line["timeouts_crashes"] == 1
     assert line["completed"] == 1 and line["held"] == 1
     assert line["engine_state"] == "INCONCLUSIVE" and line["status"] == "INCONCLUSIVE"
-    unanswered = {"controls": 1, "completed": 0, "wrongly_refused": 0}
+    unanswered = {
+        "status": "NOT_MEASURED",
+        "controls": 1,
+        "completed": 0,
+        "wrongly_refused": 0,
+        "rate": None,
+    }
     assert line["wrongful_rejection_trained"] == unanswered
     assert line["wrongful_rejection_held_out"] == unanswered
     assert line["findings"] == [] and out["findings"] == []
@@ -385,8 +401,114 @@ def test_the_battery_harness_reports_per_family_like_track_a():
     assert len(out["findings"]) == len(coverage["findings"])
 
 
+def _refused_at_rebuild(attempt):
+    """The path refused a construction Carbon cannot rebuild (verify's
+    `path_refused`): HELD on the verdict, never scored."""
+    return verify.Verdict(
+        attempt,
+        "recipe_surface",
+        verify.UNREBUILDABLE,
+        verify.HELD,
+        unrebuildable="refused_by_contract",
+        reason=verify.REFUSED_AT_REBUILD_REASON,
+        evidence={"result": "sha256:" + "1" * 64},
+    )
+
+
+def test_an_attempt_refused_at_rebuild_is_never_held_coverage():
+    """Its family's attack never ran: it is counted refused_at_rebuild,
+    excluded from the family's held total, and alone it is no coverage."""
+    alone = report.family_report(
+        report.attacker_runs([_refused_at_rebuild("t-r")]), controls_held_out=()
+    )
+    line = alone["families"]["recipe_surface"]
+    assert line["refused_at_rebuild"] == 1 and line["held"] == 0
+    assert line["status"] == "INCONCLUSIVE"
+    assert line["inconclusive"] == "refused_at_rebuild_only"
+    assert alone["totals"]["refused_at_rebuild"] == 1
+    mixed = report.family_report(
+        report.attacker_runs(
+            [_refused_at_rebuild("t-r"), v("t-0", "recipe_surface", "HELD")]
+        ),
+        controls_held_out=(),
+    )["families"]["recipe_surface"]
+    assert (mixed["held"], mixed["refused_at_rebuild"]) == (1, 1)
+    assert mixed["status"] == "ATTEMPTED_COVERAGE"
+
+
+def test_a_protected_withheld_attempt_is_not_covered():
+    """An attempt the oracle withheld because it names protected material
+    (battery's PROTECTED_WITHHELD) is NOT COVERED: never held, never
+    coverage, and listed as such in the report."""
+    withheld = verify.Verdict(
+        "t-p",
+        "recipe_surface",
+        verify.NO_CONSTRUCTION,
+        verify.NOT_APPLICABLE,
+        reason=verify.PROTECTED_WITHHELD_REASON,
+    )
+    out = report.family_report(report.attacker_runs([withheld]), controls_held_out=())
+    line = out["families"]["recipe_surface"]
+    assert line["held"] == 0 and line["status"] == "INCONCLUSIVE"
+    assert line["status"] != report.ATTEMPTED_COVERAGE
+    assert (line["not_covered"], line["protected_withheld"]) == (1, 1)
+    assert line["inconclusive"] == "not_covered_protected_withheld"
+    assert out["not_covered"] == ["recipe_surface"]
+    assert out["totals"]["protected_withheld"] == 1
+
+
+def test_verify_keeps_the_oracles_protected_withheld_reading():
+    """The oracle's PROTECTED_WITHHELD reading survives into the verdict, so
+    the report can show it NOT COVERED; battery's oracle gives that reading
+    for a refused attempt that names protected material."""
+    core = pytest.importorskip("carbon.agent_campaign.attack.adapter")
+
+    class Withholding:
+        def oracle(self, family, attempt):
+            return core.OracleResult(
+                family=family,
+                attempt="t-p",
+                verdict=core.NOT_RUN,
+                evidence_digest="sha256:" + "0" * 64,
+                reading="PROTECTED_WITHHELD",
+            )
+
+    outcome, _condition, _near, _evidence, why = verify._oracle(
+        Withholding(), "recipe_surface", None
+    )
+    assert (outcome, why) == (verify.NOT_APPLICABLE, verify.PROTECTED_WITHHELD_REASON)
+    battery = pytest.importorskip("carbon.agent_campaign.attack.adapters.battery")
+    result = battery.ADAPTER.oracle(
+        "recipe_surface",
+        {"name": "t-p", "value": {"probe": "official_seed 7"}, "path_accepted": False},
+    )
+    assert (result.verdict, result.reading) == ("NOT_RUN", "PROTECTED_WITHHELD")
+
+
+def test_an_empty_held_out_set_is_not_measured_never_zero():
+    out = report.family_report(
+        report.attacker_runs([v("t-0", "recipe_surface", "HELD")]),
+        controls_held_out=(),
+    )
+    line = out["families"]["recipe_surface"]["wrongful_rejection_held_out"]
+    assert line["status"] == "NOT_MEASURED" and line["rate"] is None
+    assert out["wrongful_rejection"]["held_out"]["status"] == "NOT_MEASURED"
+    measured = full_report()["wrongful_rejection"]
+    # Held-out apart from trained: the held-out rate over the three answered.
+    assert measured["held_out"]["rate"] == pytest.approx(1 / 3)
+    assert measured["trained"]["status"] == "NOT_MEASURED"
+
+
 # -- mutations --------------------------------------------------------------------------------
 MUTATIONS = {
+    "refused_at_rebuild_is_never_held": (
+        lambda m: m.setattr(report, "refused_at_rebuild", lambda attempt: False),
+        test_an_attempt_refused_at_rebuild_is_never_held_coverage,
+    ),
+    "protected_withheld_is_not_covered": (
+        lambda m: m.setattr(report, "not_covered", lambda attempt: False),
+        test_a_protected_withheld_attempt_is_not_covered,
+    ),
     "timeouts_never_complete": (
         lambda m: m.setattr(report, "NOT_COMPLETED", frozenset()),
         test_a_timeout_is_never_a_pass,

@@ -210,6 +210,34 @@ def test_the_runner_reports_pass_finding_candidate_and_not_run(tmp_path):
     assert {v["id"]: v["status"] for v in with_sandbox["vectors"]}["A5"] == "PASS"
 
 
+def test_a_frozen_run_records_the_attack_knowledge_store_it_used(tmp_path):
+    """The suite version pins the attack-knowledge store: the run's record
+    carries the store digest from the pin it was given (`ReadOnlyView.
+    suite_pin()`), None without one, and a malformed pin is refused."""
+    paths = _synthetic(tmp_path, level=0)
+    store = "sha256:" + "ab" * 32
+    pin = {
+        "schema": suite.ATTACK_KNOWLEDGE_PIN_SCHEMA,
+        "attack_knowledge_digest": store,
+    }
+    report = suite.run(
+        "synthetic-heat-v1", repository=tmp_path, attack_knowledge=pin, **paths
+    )
+    assert report["schema"] == suite.RUN_SCHEMA
+    assert report["attack_knowledge_digest"] == store
+    assert (
+        suite.run("synthetic-heat-v1", repository=tmp_path, **paths)[
+            "attack_knowledge_digest"
+        ]
+        is None
+    )
+    for bad in ({**pin, "schema": "x"}, {**pin, "attack_knowledge_digest": "x"}, {}):
+        with pytest.raises(ValueError, match="attack_knowledge_pin_malformed"):
+            suite.run(
+                "synthetic-heat-v1", repository=tmp_path, attack_knowledge=bad, **paths
+            )
+
+
 def test_participant_code_is_not_run_below_its_level(tmp_path):
     at_zero = suite.run(
         "synthetic-heat-v1", repository=tmp_path, **_synthetic(tmp_path, level=0)

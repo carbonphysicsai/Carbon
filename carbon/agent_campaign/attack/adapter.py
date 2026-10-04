@@ -118,7 +118,13 @@ def level_profile(level):
 @dataclass(frozen=True)
 class Control:
     """One valid control. `split` is `trained` or `held_out`. A control
-    carries a `value` for the family's boundary, or its own `check()`."""
+    carries a `value` for the family's boundary, or its own `check()`; a
+    check-only control declares the digest of the input it submits
+    (`input_digest`), so its registered identity is its content.
+
+    `identity` (`engine.control_identity`) is the family and the input's
+    digest: never the name, version or split, so a held-out control
+    relabelled `trained` keeps its identity and is still refused."""
 
     name: str
     family: str
@@ -126,6 +132,7 @@ class Control:
     version: str
     value: object = None
     check: Callable | None = None
+    input_digest: str | None = None
 
     def __post_init__(self):
         if not (isinstance(self.name, str) and _NAME.match(self.name)):
@@ -136,6 +143,19 @@ class Control:
             raise AdapterError("control_is_versioned", self.name)
         if self.check is not None and not callable(self.check):
             raise AdapterError("control_check_is_callable", self.name)
+        if self.input_digest is not None and not (
+            isinstance(self.input_digest, str) and _DIGEST.match(self.input_digest)
+        ):
+            raise AdapterError("control_input_digest_is_sha256", self.name)
+
+    @property
+    def identity(self):
+        return engine.control_identity(self)
+
+    @property
+    def submitted_digest(self):
+        """The digest of what this control submits, or None."""
+        return engine.control_input_digest(self)
 
 
 @dataclass(frozen=True)
@@ -218,6 +238,10 @@ class OracleResult:
     #: no-answer verdict); None for a seam, which runs nothing.
     specimen: str | None = None
     specimen_digest: str | None = None
+    #: The adapter's own reading behind the verdict, when it has one (for
+    #: example battery's PROTECTED_WITHHELD behind a NOT_RUN): reported, so a
+    #: withheld attempt is shown as not covered, never as held.
+    reading: str | None = None
 
     def __post_init__(self):
         if self.verdict not in ORACLE_VERDICTS:
@@ -390,7 +414,26 @@ def validate(adapter, *, held_out=True):
         for name in sorted(run):
             if not any(c.family == name for c in controls):
                 raise AdapterError(f"family_has_a_{split}_control", name)
+    if held_out:
+        # A held-out control canonically identical to a trained one measures
+        # nothing the trained run did not already see, and its identity
+        # would refuse the trained control too.
+        trained = {c.identity: c.name for c in splits["trained"]}
+        for control in splits["held_out"]:
+            if control.identity in trained:
+                raise AdapterError(
+                    "held_out_control_is_canonically_a_trained_one",
+                    f"{control.name} = {trained[control.identity]}",
+                )
+        engine.register_held_out(splits["held_out"])
     return adapter
+
+
+def register_held_out_identities(adapter):
+    """Register the adapter's held-out controls by identity with the engine,
+    so `run_family` refuses any of them whatever split label it carries. Only
+    identities are computed; no held-out control is run here."""
+    return engine.register_held_out(_controls(adapter, "held_out"))
 
 
 def coverage(adapter):
@@ -415,6 +458,8 @@ def run_adapter(adapter, *, budget=None):
     context = engine.RunContext(
         challenge=adapter.challenge_id, profile=level_profile(adapter.level)
     )
+    # Held-out identities are registered when the adapter is validated
+    # (`register`) or measured (`held_out_outcomes`), never read here.
     trained = _controls(adapter, "trained")
     runs = []
     for definition in adapter.families():
@@ -431,37 +476,63 @@ def run_adapter(adapter, *, budget=None):
     return tuple(runs)
 
 
+#: A wrongful-rejection rate with nothing to measure: no held-out control, or
+#: none that ran (its family only cites evidence elsewhere). Never a zero rate.
+NOT_MEASURED = "NOT_MEASURED"
+MEASURED = "MEASURED"
+
+
 def held_out_outcomes(adapter):
     """Each held-out control against its family's real boundary, for the
-    wrongful-rejection rate. A measurement only: nothing here feeds a run."""
-    families = {f.name: f.family for f in adapter.families() if f.family}
+    wrongful-rejection rate. A measurement only: nothing here feeds a run.
+    Each row binds the control's registered identity and input digest. A
+    control whose family only cites evidence elsewhere (no engine family
+    here) is `NOT_MEASURED`, never skipped."""
+    families = {f.name: f.family for f in adapter.families()}
+    engine.register_held_out(_controls(adapter, "held_out"))
     out = {}
     for control in _controls(adapter, "held_out"):
         family = families.get(control.family)
         if family is None:
-            continue
-        passed, failed = engine.answer(engine.evaluate_control, family, control)
+            outcome = NOT_MEASURED
+        else:
+            passed, failed = engine.answer(engine.evaluate_control, family, control)
+            outcome = failed or (engine.PASSED if passed else engine.REFUSED)
         out.setdefault(control.family, []).append(
             {
                 "control": control.name,
                 "version": control.version,
-                "outcome": failed or (engine.PASSED if passed else engine.REFUSED),
+                "identity": control.identity,
+                "input_digest": control.submitted_digest,
+                "outcome": outcome,
             }
         )
     return out
 
 
-def wrongful_rejection(outcomes):
-    """{family: {refused, total, rate}} from `held_out_outcomes`. A control
-    that did not answer counts in neither: it is reported, never a pass."""
+def wrongful_rejection(outcomes, families=()):
+    """`{family: {status, refused, total, no_answer, not_measured, rate}}`
+    from `held_out_outcomes`, for every family in `outcomes` and every name
+    in `families` (an adapter's `families()`). A control that did not answer,
+    or that could not be run, counts in neither the numerator nor the
+    denominator. A family with no held-out control that ran is
+    `NOT_MEASURED` with rate None: never a zero rate."""
+    names = list(outcomes)
+    for family in families:
+        name = getattr(family, "name", family)
+        if name not in names:
+            names.append(name)
     out = {}
-    for family, rows in outcomes.items():
+    for family in names:
+        rows = outcomes.get(family, ())
         answered = [r for r in rows if r["outcome"] in (engine.PASSED, engine.REFUSED)]
         refused = sum(r["outcome"] == engine.REFUSED for r in answered)
         out[family] = {
+            "status": MEASURED if answered else NOT_MEASURED,
             "refused": refused,
             "total": len(answered),
-            "no_answer": len(rows) - len(answered),
+            "no_answer": sum(r["outcome"] in engine.NO_ANSWER for r in rows),
+            "not_measured": sum(r["outcome"] == NOT_MEASURED for r in rows),
             "rate": (refused / len(answered)) if answered else None,
         }
     return out
