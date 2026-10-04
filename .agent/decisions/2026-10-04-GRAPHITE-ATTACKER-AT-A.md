@@ -99,6 +99,51 @@ caps) and are not carried over.
   grant names an id and that id's file. Battery's record names
   GRAPHITE-GRANT-PHASE4 (the file is slice AT-E's).
 
+### Decisions after independent review
+
+- **AT-A-D13. The per-attempt oracle runs the specimen too.**
+  `adapter.family_oracle` applies the engine's rule to one attempt: the
+  attempt runs against the real boundary and against the family's vulnerable
+  specimen. BREACHED (FAILING_TRIGGER) when the boundary let it through; HELD
+  only when the boundary held and the detector fired on the specimen;
+  otherwise a new `INCONCLUSIVE` oracle verdict (no condition). A boundary
+  that does not answer keeps its own verdict. `OracleResult` carries the
+  specimen's verdict and digest, and refuses a HELD whose specimen did not
+  fire. Before this, a detector blind to an attempt returned HELD from the
+  oracle while the engine's run of the same family said INCONCLUSIVE.
+- **AT-A-D14. A broken built-in adapter package is never hidden.** The
+  registry marks its built-ins loaded only after the import succeeds. A
+  failed import rolls back what it registered and raises AdapterError
+  `builtin_adapters_failed_to_import`, chained to the cause, on every read
+  until an import succeeds; `graphite.challenge.get` reports it as
+  `attack_adapter_unavailable: builtin_adapters_failed_to_import`, not as
+  `attack_adapter_not_registered`.
+- **AT-A-D15. Held-out ablation controls come from outside the climb plan.**
+  Every climb panel member is an ablation attack input and part of the
+  family's default control, so it is a trained control at most. A held-out
+  control for `permission_ablation` is a construction outside `plan.panel` and
+  `plan.attacks`; `ablation_family` now routes any item that is not one of
+  the plan's attacks through `runners.construct`. The synthetic Level 1
+  adapter's held-out control is such an item.
+- **AT-A-D16. Timeouts.** `subprocess.TimeoutExpired` (a pod or subprocess
+  boundary) is recorded TIMEOUT, as `TimeoutError` already was
+  (`concurrent.futures.TimeoutError` is `TimeoutError` on Python 3.11).
+  Battery's report is unchanged (byte pin).
+- **AT-A-D17. Only brief fields reach a model.** A Graphite record's
+  `challenge`, `label` and `attack_goals` (`challenge.brief()`) are the only
+  fields an Attacker brief may carry; `check_record` refuses a record whose
+  brief fields trip `graphite.tools.protected`. The `attacker_campaign` block
+  (its `credential_ref` key trips the protected-material check) is driver
+  configuration and never goes to a model or through the toolbox.
+- **AT-A-D18. `SUITE_V1_BATTERY_COVERAGE.json` stays, flagged for the lead.**
+  It is outside AT-A's listed files and is branch evidence (e880a4f96), but
+  the design's KEEP list names it, `test_challenge_suite.py` pins it, and
+  battery's record names it as its suite report. It is not moved or renamed
+  here (any new path is equally outside the slice's files). The lead accepts
+  it as a non-owned file with branch provenance, or directs a historical
+  name; a canonical re-run on main replaces it before any slice cites it as
+  current evidence.
+
 ### Not done here
 
 - The reuse branch's `graphite/stage.py` (stage profile) is not landed: it is
