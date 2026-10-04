@@ -361,7 +361,9 @@ label.check input{width:auto;min-height:0}
 .lib-plan-row textarea{width:100%;max-width:100%;resize:vertical}
 .lib-plan-row textarea.code{font:13px/1.5 var(--mono)}
 .lib-considered{margin:14px 0;border:1px solid var(--border);padding:14px}
-.lib-considered label.check{margin-top:6px}
+.lib-considered label{display:block;margin-top:10px;font-weight:600}
+.lib-considered textarea{width:100%;max-width:100%;resize:vertical}
+.lib-editor-part select{max-width:100%}
 .rs-graphite-part .rs-graphite-stage{font-size:16px}
 .rs-graphite-plan{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
 
