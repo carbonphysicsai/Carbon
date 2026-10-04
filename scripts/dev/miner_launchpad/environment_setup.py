@@ -273,6 +273,13 @@ REINSTALL_STEP = "run scripts/install_miner.sh --update"
 #: Where `after_install` moves a runner profile whose compute check it set
 #: aside, so no restarted Control Center attaches it (LP-PROD-E).
 STALE_PROFILE = "runner-profile.stale.json"
+#: What clears a runner profile that no longer describes this install while
+#: this checkout is still the one the installer installed: a compute check
+#: made now, then Review writes the profile again (LP-PROD-W2).
+PROFILE_RECHECK_STEP = RECHECK_STEP + ", then review to write your profile again"
+#: Where a runner profile names each image it pins by image ID
+#: (`runtime.images`), as `runner.checkout_refusal` reads them.
+PROFILE_IMAGE_POSITIONS = {"image_manifest": 0, "analysis_image_manifest": 1}
 #: Why an update leaves the miner's own remote setup to them.
 REMOTE_RECHECK = (
     "your remote setup needs the new GPU worker: check Compute again in "
@@ -1485,6 +1492,21 @@ def _revision_of(compute):
     return (runtime.get("implementation") or {}).get("revision")
 
 
+def profile_staleness(profile, cfg) -> tuple[list[str], str | None]:
+    """`EnvironmentSetup.profile_staleness` for the runner profile at
+    `profile`, whose content is `cfg`: judged against the installer's record
+    where setup keeps it, in the profile's own directory (`<state
+    dir>/environment`, where Review writes `runner-profile.json`). A profile
+    kept anywhere else - an operator's own - has no installer's record to be
+    judged by: ([], None), and `runner.checkout_refusal` still guards each
+    launch (LP-PROD-W2)."""
+    profile = Path(profile)
+    setup = EnvironmentSetup(profile.parent.parent, onboarding=None)
+    if setup.root != profile.parent:
+        return [], None
+    return setup.profile_staleness(cfg)
+
+
 def service_unit(state_dir, port, repo=REPO) -> str:
     """The systemd user unit that runs this checkout's Control Center
     (LP-PROD-E): `carbon-control-center` on loopback, restarted on failure.
@@ -1629,7 +1651,7 @@ class EnvironmentSetup:
         """
         pinned = compute.get("manifests")
         manifests = _manifest_paths(compute)
-        reasons, reinstall = [], False
+        reasons = []
         if type(pinned) is not dict:
             reasons.append(STALE_UNPINNED)
         else:
@@ -1639,45 +1661,108 @@ class EnvironmentSetup:
                     reasons.append(IMAGE_LABELS[field] + " is gone since the check")
                 elif found["digest"] != pinned.get(field):
                     reasons.append(IMAGE_LABELS[field] + " was rebuilt since the check")
-        try:
-            stamp = self.installation()
-        except SetupRefused:
-            stamp = None
-            reasons.append("the installer's record here is unreadable")
-            reinstall = True
-        if stamp is not None:
-            checked = _revision_of(compute)
-            if stamp["revision"] != checked:
-                reasons.append(
-                    "Carbon was installed at "
-                    + stamp["revision"][:12]
-                    + " and the check was made at "
-                    + str(checked)[:12]
-                )
-            head = checkout_revision()
-            if head != stamp["revision"]:
-                reasons.append(
-                    "this checkout is at "
-                    + str(head)[:12]
-                    + ", not the "
-                    + stamp["revision"][:12]
-                    + " Carbon was installed at"
-                )
-                reinstall = True
-            for field, entry in stamp["images"].items():
-                if (
-                    field in manifests
-                    and type(entry) is dict
-                    and entry.get("path") != manifests[field]
-                ):
-                    reasons.append(
-                        "setup checked another "
-                        + IMAGE_LABELS[field].removeprefix("the ")
-                        + " than the one the installer built"
-                    )
+        drift, reinstall = self._install_drift(
+            _revision_of(compute),
+            manifests,
+            made="the check was made at",
+            other="setup checked another",
+        )
+        reasons += drift
         if not reasons:
             return [], None
         return reasons, REINSTALL_STEP if reinstall else RECHECK_STEP
+
+    def _install_drift(self, revision, manifests, *, made, other):
+        """Why `revision` and the image manifests at `manifests` ({field:
+        path}) are not what the installer last installed here, and whether
+        only the installer clears that: ([], False) when they are, or when it
+        never ran here. One comparison for a compute check (`_staleness`) and
+        for a runner profile (`profile_staleness`); `made` and `other` word
+        each reason for the one judged."""
+        try:
+            stamp = self.installation()
+        except SetupRefused:
+            return ["the installer's record here is unreadable"], True
+        reasons, reinstall = [], False
+        if stamp is None:
+            return reasons, reinstall
+        if stamp["revision"] != revision:
+            reasons.append(
+                "Carbon was installed at "
+                + stamp["revision"][:12]
+                + " and "
+                + made
+                + " "
+                + str(revision)[:12]
+            )
+        head = checkout_revision()
+        if head != stamp["revision"]:
+            reasons.append(
+                "this checkout is at "
+                + str(head)[:12]
+                + ", not the "
+                + stamp["revision"][:12]
+                + " Carbon was installed at"
+            )
+            reinstall = True
+        for field, entry in stamp["images"].items():
+            if (
+                field in manifests
+                and type(entry) is dict
+                and entry.get("path") != manifests[field]
+            ):
+                reasons.append(
+                    other
+                    + " "
+                    + IMAGE_LABELS[field].removeprefix("the ")
+                    + " than the one the installer built"
+                )
+        return reasons, reinstall
+
+    def profile_staleness(self, cfg) -> tuple[list[str], str | None]:
+        """Why a runner profile no longer describes what the installer
+        installed here, and the one step that clears every reason: ([], None)
+        when it still does, or when the installer never ran here.
+
+        The controller attached `runner-profile.json` on every start, and an
+        MCP door attached any profile it was given, whatever the installer
+        had installed since; only `after_install` moved a stale one aside
+        (LP-PROD-W2). This is the compute check's own comparison
+        (`_install_drift`) applied to the profile's accepted revision and
+        image manifests. A profile pins its worker and analysis images by
+        image ID (`runtime.images`), not by manifest digest, so a manifest
+        that is gone or names another image makes it stale too.
+
+        Only the installer clears it when this checkout moved since the
+        install or the installer's record is unusable; otherwise a compute
+        check made now and Review write the profile again."""
+        if not os.path.lexists(self.installation_path):
+            return [], None
+        manifests = _manifest_paths(cfg)
+        reasons, reinstall = self._install_drift(
+            cfg.get("accepted_revision"),
+            manifests,
+            made="this profile accepts",
+            other="this profile names another",
+        )
+        runtime = cfg.get("runtime") if type(cfg.get("runtime")) is dict else {}
+        images = runtime.get("images") if type(runtime.get("images")) is list else []
+        for field, path in manifests.items():
+            found = _manifest(path)
+            position = PROFILE_IMAGE_POSITIONS.get(field)
+            if found is None:
+                reasons.append(
+                    IMAGE_LABELS[field] + " is gone since this profile was written"
+                )
+            elif position is not None and images[position : position + 1] != [
+                found["image_id"]
+            ]:
+                reasons.append(
+                    IMAGE_LABELS[field] + " was rebuilt since this profile was written"
+                )
+        if not reasons:
+            return [], None
+        return reasons, REINSTALL_STEP if reinstall else PROFILE_RECHECK_STEP
 
     # -- the steps
 

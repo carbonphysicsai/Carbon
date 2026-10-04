@@ -2,6 +2,8 @@
 
 run creates one new campaign; resume reuses its exact immutable inputs. Unknown
 side effects stop, and completed source handoffs are resolved without rerunning.
+reconcile settles a model call whose outcome is unknown at its full
+reservation, so a later resume sends it again under a fresh identity.
 """
 
 from __future__ import annotations
@@ -1158,6 +1160,131 @@ async def submit_frozen(prepared):
     return {"epoch": epoch, "feedback": feedback}
 
 
+#: What a reconcile reports about the model calls whose outcome was unknown
+#: (LP-PROD-A's settlement, reached from the reconcile action: LP-PROD-W2).
+MODEL_CALL_RECONCILIATION = "carbon.autoresearch.model-call-reconciliation.v1"
+
+
+def settled_call(settlement):
+    """One settled model call as its miner sees it: which call, why its
+    outcome was unknown, the charge booked for it - its full reservation, in
+    integer nanodollars, or None where the selection was unpriced and money
+    is not metered - and any caveat (`research_agent.MODEL_CAVEAT`). Read
+    from the settlement `settle_uncertain_call` journals and books, so a
+    reconcile's answer and the campaign's later readback are one record."""
+    booked = settlement.get("booked") if type(settlement) is dict else None
+    booked = booked if type(booked) is dict else {}
+    charge = booked.get("provider_nanodollars")
+    return {
+        "identity": settlement.get("identity"),
+        "reason": settlement.get("reason"),
+        "booked_nanodollars": charge if type(charge) is int else None,
+        "caveat": settlement.get("caveat"),
+    }
+
+
+def unknown_outcome_calls(operations, *, awaiting=True):
+    """A campaign's model calls whose outcome was unknown, from its ledger
+    operations (`CampaignLedger.status`) alone - no lease, no change: those a
+    reconcile settled (`settled`, each as `settled_call`), and with
+    `awaiting` those still unresolved (`awaiting_settlement`: each call and
+    what settling it would book), with the accounting rule when there are
+    any. A caller passes `awaiting=False` while the campaign runs: a call in
+    flight is unresolved too, and awaits nothing."""
+    from .research_agent import SETTLEMENT_ACCOUNTING
+
+    settled, pending = [], []
+    for op in operations:
+        result = op.get("result")
+        reservation = op.get("reservation") or {}
+        if type(result) is dict and type(result.get("provider_settlement")) is dict:
+            settled.append(settled_call(result["provider_settlement"]))
+        elif (
+            awaiting
+            and op.get("state") == "RESERVED"
+            # What `research_agent.settle_uncertain_calls` settles: a model
+            # call is its one provider attempt.
+            and reservation.get("provider_attempts") == 1
+        ):
+            charge = reservation.get("provider_nanodollars")
+            pending.append(
+                {
+                    "identity": op.get("id"),
+                    "booked_on_settlement_nanodollars": (
+                        charge if type(charge) is int else None
+                    ),
+                }
+            )
+    return {
+        "settled": settled,
+        "awaiting_settlement": pending,
+        "accounting": SETTLEMENT_ACCOUNTING if settled or pending else None,
+    }
+
+
+def reconcile_model_calls(ledger, *, owner):
+    """Settle every model call of `owner` whose outcome is unknown, as the
+    campaign's reconcile action (`research_agent.settle_uncertain_calls`):
+    each is booked at its full reservation and journalled beside it, and the
+    next resume sends the same request under a fresh identity. Nothing is
+    resent here, and nothing settles a call automatically.
+
+    A controlled campaign's caller holds the campaign's owner lock and has
+    just taken a control generation (`CampaignControl.acquire`), as the
+    Launchpad's reconcile does; A's fences refuse anything else
+    (`control_fenced`), and any call in flight (`call_in_flight`).
+
+    Returns what was settled - each call, the charge booked and any caveat,
+    and their total - and each call refused, with its closed code and next
+    step (`SETTLEMENT_REFUSALS`); a refused call stays unresolved."""
+    from .research_agent import (
+        SETTLEMENT_ACCOUNTING,
+        SETTLEMENT_REFUSALS,
+        SETTLEMENT_RESEND,
+        settle_uncertain_calls,
+    )
+
+    outcome = settle_uncertain_calls(ledger, owner=owner)
+    settled = [settled_call(settlement) for settlement in outcome["settled"]]
+    return {
+        "schema": MODEL_CALL_RECONCILIATION,
+        "settled": settled,
+        "booked_nanodollars": sum(call["booked_nanodollars"] or 0 for call in settled),
+        "refused": [
+            {
+                "identity": refused["identity"],
+                "code": refused["code"],
+                "next_step": SETTLEMENT_REFUSALS.get(refused["code"]),
+            }
+            for refused in outcome["refused"]
+        ],
+        "accounting": SETTLEMENT_ACCOUNTING if settled else None,
+        "resend": SETTLEMENT_RESEND if settled else None,
+    }
+
+
+def reconcile_command(root):
+    """The development CLI's `reconcile`: settle the model calls of the
+    campaign at `root` whose outcome is unknown (`reconcile_model_calls`).
+    Returns (report, ok).
+
+    Only the CLI's own campaign (no control surface) is reconciled here. A
+    controlled campaign - a Launchpad product campaign, or one launched under
+    a development grant - is reconciled only by its own reconcile action,
+    under its owner lock and control generation, which this process does not
+    hold: refused `control_fenced`, nothing settled."""
+    from .research_agent import SETTLEMENT_REFUSALS
+
+    manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+    if CampaignLedger.controlled(manifest):
+        return {
+            "error": "control_fenced",
+            "next_step": SETTLEMENT_REFUSALS["control_fenced"],
+        }, False
+    report = reconcile_model_calls(CampaignLedger(root), owner=manifest["owner"])
+    return report, not report["refused"]
+
+
 async def execute(args, *, ledger=None):
     """Prepare a campaign, then let whoever selects in it work.
 
@@ -1181,7 +1308,9 @@ async def execute(args, *, ledger=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run", "resume", "status", "report"))
+    parser.add_argument(
+        "command", choices=("run", "resume", "status", "report", "reconcile")
+    )
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--accepted-revision")
     parser.add_argument("--agent-policy", choices=(LEGACY, AUTONOMOUS), default=LEGACY)
@@ -1215,6 +1344,15 @@ def main():
                 report(CampaignLedger(args.root), owner=manifest["owner"]), indent=2
             )
         )
+        return
+    if args.command == "reconcile":
+        # Settles model calls whose outcome is unknown at their full
+        # reservation; a later resume sends each again under a fresh
+        # identity. Never automatic: only this command does it here.
+        outcome, ok = reconcile_command(args.root)
+        print(json.dumps(outcome, indent=2))
+        if not ok:
+            raise SystemExit(1)
         return
     if any(
         getattr(args, n) is None
