@@ -181,8 +181,8 @@ def test_a_failed_pods_logs_are_kept_bounded_with_the_truncation_recorded(
     first, rest = body.split(b"\n", 1)
     assert first.startswith(b"[carbon pod log] program.log: %d bytes" % len(LONG_LOG))
     assert b"%d bytes truncated" % program["truncated_bytes"] in first
-    marker = (
-        b"\n[carbon pod log: %d bytes truncated here]\n" % (program["truncated_bytes"])
+    marker = b"\n[carbon pod log: %d bytes truncated here]\n" % (
+        program["truncated_bytes"]
     )
     assert rest == LONG_LOG[:head] + marker + LONG_LOG[-tail:]
     assert len(body) < head + tail + 1024  # the header and marker are small
