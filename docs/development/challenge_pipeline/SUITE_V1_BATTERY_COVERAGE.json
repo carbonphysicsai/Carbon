@@ -1,14 +1,15 @@
 {
- "schema": "carbon.challenge-pipeline.suite-run.v1",
+ "schema": "carbon.challenge-pipeline.suite-run.v2",
  "suite_version": "suite-v1-draft",
  "suite_digest": "sha256:cf46fd394dd12ca301c0ad3ae2faf949f236e54114b643d692d155198e3155a0",
+ "attack_knowledge_digest": null,
  "challenge": "battery-fastcharge-ageing-development-v1",
  "map_digest": "sha256:222a5391d450aca110c9982fef7e4597a78c978870356035079a1985f2d02429",
  "construction_level": 0,
  "sandbox": false,
- "commit": "e880a4f9680e2d0d61c0037c2112cfd6f0620cb9",
+ "commit": "f49ac6d9f713d78c1c2a7fdf6c9fd26f2ec03c6d",
  "pytest_exit": 1,
- "pytest_summary": "259 passed, 552 deselected, 2 warnings in 114.89s (0:01:54)",
+ "pytest_summary": "259 passed, 567 deselected, 2 warnings in 156.14s (0:02:36)",
  "uncited_failures": [],
  "environment": {
   "canonical": "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64",

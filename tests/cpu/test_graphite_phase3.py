@@ -1814,6 +1814,12 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert result["provider_state"] == "succeeded"
     assert result["delivery"]["clean_rebuild"]["status"] == "REBUILT"
     assert result["dry_run"]["pods_alive"] == []
+    # Beside the scripted pods, the live backend's own path ran across threads
+    # with RunPod in memory (POD-STORE-THREADS-01).
+    real = result["dry_run"]["real_pod_path"]
+    assert real["status"] == "OK" and real["failures"] == []
+    assert real["off_caller_thread"] and real["creates"] == real["launches"] == 2
+    assert real["network"] is False and real["pods_alive"] == []
     # Its first turn returns three calls: under v2 all three run (LP-PROD-A).
     assert result["dry_run"]["parallel_calls_run"] == 3
     assert result["dry_run"]["parallel_calls_not_run"] == 0
