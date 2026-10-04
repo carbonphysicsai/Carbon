@@ -1617,6 +1617,16 @@ scenario("Graphite and the Library: a refresh with nothing new changes nothing; 
   clean(page);
 });
 
+scenario("Library: opened before connecting, it says to connect", async () => {
+  const state = graphiteWorld();
+  const page = await openPage(ROOT, state.server, {hash: "#library"});
+  await page.advance(0);
+  assert.equal(page.$("library").hidden, false);
+  assert.equal(page.text("library-body"), "Connect this browser to read your library.");
+  assert.equal(page.requests.length, 0, "nothing is asked before connecting");
+  clean(page);
+});
+
 scenario("Library: a controller without it says so, and nothing is asked of it", async () => {
   const state = graphiteWorld({operations: copy(G().operations_without_library)});
   const page = await open(state);

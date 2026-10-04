@@ -829,4 +829,7 @@
     drawPlan, short,
   };
   CC.onRender(() => { try { render(); } catch (error) { console.error(error); } });
+  // The page drew once before this script ran: a Library address opened
+  // before connecting says so now, not at the next redraw.
+  try { render(); } catch (error) { console.error(error); }
 })();
