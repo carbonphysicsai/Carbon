@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-suite-coverage-canonical-on-main",
+ "recorded_at": "2026-10-04T19:35:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "protocol",
+ "execution": {
+  "kind": "coverage_run",
+  "ref": "docs/development/challenge_pipeline/SUITE_V1_BATTERY_COVERAGE.json, regenerated on main f49ac6d9f through ./scripts/dev/canonical.sh (OWNER-GRAPHITE-TEST-WAVE-02 item 4)",
+  "description": "Re-ran suite v1's cited battery checks with suite.run on main in the pinned canonical image, with battery's five dependency groups, replacing the branch-commit report."
+ },
+ "expected": "The same 70 cited checks pass on main as on the branch commit, and the record moves to suite-run v2 with the store digest it was frozen under.",
+ "observed": "All eight vectors and all 70 checks PASS, unchanged. Only provenance moved: schema v2, attack_knowledge_digest null (the run used no attack-knowledge store), commit f49ac6d9f, and the deselected count (552 to 567, from tests added since).",
+ "keep": [
+  "A committed coverage report is produced on main through the canonical runner, with its JSON printed from the isolated copy and committed as printed.",
+  "No store pin is invented for a run that used none: attack_knowledge_digest stays null."
+ ],
+ "change": [
+  "A report produced on a branch commit is replaced by a canonical run on main before any slice cites it as current evidence."
+ ],
+ "protocol_elements": [
+  "suite_v1.environments",
+  "coverage_run"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

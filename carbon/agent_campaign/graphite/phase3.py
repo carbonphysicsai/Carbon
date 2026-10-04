@@ -65,7 +65,11 @@ the agent.
 `--dry-run` runs the whole session with a scripted model, a scripted pod
 account and a recording miner tool, under a synthetic grant, writing only
 under `DIR/dry-run`. Carbon's admission, frozen-rule scoring, comparison,
-bundle and clean rebuild are real; the predictions are SYNTHETIC. Its first
+bundle and clean rebuild are real; the predictions are SYNTHETIC. Beside the
+session it runs `pods.real_path_check`: the live pod backend (the operator
+compute store, service and adapter) built on the main thread and driven
+through `asyncio.to_thread`, concurrently, with RunPod in memory, and the dry
+run fails unless that check is OK (POD-STORE-THREADS-01). Its first
 turn returns three tool calls at once, as live session 1's model did, so the
 parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 (LP-PROD-A) all three run, and the dry run reports how many calls of
@@ -110,6 +114,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from carbon.challenge_readiness import conditional_evidence
+from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import selection_from_record
 from carbon.development_session.profile import canonical, digest
@@ -322,12 +327,19 @@ class Phase3Provider(GraphiteProvider):
         repository=REPOSITORY,
         randomness=os.urandom,
         adapter_id=None,
+        scoring=None,
         **kwargs,
     ):
         if type(grant) is not SpendingGrant:
             raise ProviderUnavailable("spending_grant_required")
         try:
-            self.budget = ex.phase3_budget(grant)
+            # The session's Challenge (`ChallengeScoring`, VALIDATOR-01): the
+            # only registered one unless named.
+            self.scoring = challenge_scoring.resolve(scoring)
+        except challenge_scoring.ScoringUnavailable as refused:
+            raise ProviderUnavailable(refused.code) from None
+        try:
+            self.budget = ex.phase3_budget(grant, self.scoring)
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
         super().__init__(
@@ -420,7 +432,7 @@ class Phase3Provider(GraphiteProvider):
                 if brief["role"] != RoleName.CONSTRUCTOR.value:
                     raise ProviderUnavailable("phase3_runs_the_constructor_only")
                 observation = brief["initial_observation"]
-                check_observation(observation)
+                check_observation(observation, self.scoring)
                 if observation.get("literature") != literature_brief(self.literature):
                     raise ProviderUnavailable("brief_literature_is_not_the_sessions")
         return super().start(spec, idempotency_key)
@@ -443,12 +455,14 @@ class Phase3Provider(GraphiteProvider):
             repository=self.repository,
             clock=self.clock,
             randomness=self.randomness,
+            scoring=self.scoring,
+            construction_level=recorded_level(opened),
         )
 
     def _frozen_rule(self):
         """The frozen rule, loaded once per provider (its material is pinned)."""
         if getattr(self, "_rule", None) is None:
-            self._rule = ex.FrozenRule(self.repository)
+            self._rule = ex.frozen_rule(self.repository, self.scoring)
         return self._rule
 
     def _ledger(self, run_id):
@@ -631,16 +645,17 @@ class Phase3Provider(GraphiteProvider):
         return {**record, **extra}
 
 
-def check_observation(observation):
-    """A phase-3 brief serves the battery DEVELOPMENT Challenge only, with a
-    baseline Carbon can rebuild."""
-    from carbon.battery.challenge import CHALLENGE
-
-    challenge = observation.get("challenge") or {}
-    if challenge != {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}:
-        raise ProviderUnavailable("phase3_serves_battery_development_only")
+def check_observation(observation, scoring=None):
+    """A phase-3 brief serves the session's Challenge only (its
+    `ChallengeScoring`), with a baseline Carbon can rebuild."""
     try:
-        ex.admit(observation.get("baseline_strategy"), 0)
+        scoring = challenge_scoring.resolve(scoring)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ProviderUnavailable(refused.code) from None
+    if not scoring.check_challenge(observation.get("challenge") or {}):
+        raise ProviderUnavailable("phase3_challenge_not_served")
+    try:
+        ex.admit(observation.get("baseline_strategy"), 0, scoring=scoring)
     except (ex.Unrebuildable, ex.NotServed):
         raise ProviderUnavailable("baseline_not_rebuildable") from None
 
@@ -702,26 +717,22 @@ def session_brief(
     baseline=None,
     literature=None,
     repository=REPOSITORY,
+    scoring=None,
 ):
-    """The Constructor's brief: public battery development material only, and
-    the session's offered literature (the phase-1 fixture when none is given)."""
-    from carbon.battery.challenge import CHALLENGE
-    from carbon.battery.research import SCAFFOLD
-
-    baseline = SCAFFOLD if baseline is None else baseline
+    """The Constructor's brief: the session Challenge's public development
+    material only (its `ChallengeScoring`), and the session's offered
+    literature (the phase-1 fixture when none is given)."""
+    scoring = challenge_scoring.resolve(scoring)
+    baseline = scoring.baseline_strategy() if baseline is None else baseline
     literature = lit.FIXTURE_INDEX if literature is None else literature
-    contract = ex.recorded_contract()
+    contract = ex.recorded_contract(scoring)
     manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
     observation = {
-        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
+        "challenge": scoring.challenge(),
         "level": 0,
         "construction_contract": contract,
         "baseline_strategy": baseline,
-        "objective": (
-            "Propose battery TrainingStrategy recipes that beat the baseline under "
-            "Carbon's frozen rule on public PRACTICE. Carbon runs, scores and "
-            "rebuilds each proposal; you see development feedback only."
-        ),
+        "objective": scoring.construction_objective,
         "proposal_tool": PROPOSE,
         "pods_per_session": budget.max_pods,
         "pods_note": "The baseline uses the first pod of the session.",
@@ -754,6 +765,16 @@ def permission_profile():
         "widens": [],
     }
     return document, digest(canonical(document))
+
+
+def recorded_level(opened):
+    """The construction level of an opened run, from the permission profile
+    its task recorded: the profile's level only when the run's recorded
+    profile digest is this profile's, else None (unknown). Never read from a
+    submission (`pod_outcome`)."""
+    document, profile = permission_profile()
+    task = (opened or {}).get("task") or {}
+    return document["level"] if task.get("profile_digest") == profile else None
 
 
 def controller_for(root, provider, grant, clock=None):
@@ -1272,7 +1293,7 @@ def dry_run(root, literature=None):
     from carbon.battery.research import SCAFFOLD
 
     from .model import ScriptedModel
-    from .pods import ScriptedPods, Step, synthetic_outputs
+    from .pods import ScriptedPods, Step, real_path_check, synthetic_outputs
 
     root = root / "dry-run"
     if root.exists():
@@ -1322,9 +1343,17 @@ def dry_run(root, literature=None):
         # The Constructor's selection, as the session record froze it
         # (GRAPHITE-D34): window, admission ceiling, timeout and reservation.
         "constructor_model": model_window(provider, result["run_id"]),
+        # The scripted pods above never reach the operator layer; this drives
+        # the live backend's own path, threads included, with RunPod in memory
+        # (POD-STORE-THREADS-01).
+        "real_pod_path": real_path_check(root / "real-pod-path"),
     }
     print(json.dumps(result, indent=1, default=str))
-    return 0 if result["provider_state"] == "succeeded" else 4
+    ok = (
+        result["provider_state"] == "succeeded"
+        and result["dry_run"]["real_pod_path"]["status"] == "OK"
+    )
+    return 0 if ok else 4
 
 
 def main(argv=None):

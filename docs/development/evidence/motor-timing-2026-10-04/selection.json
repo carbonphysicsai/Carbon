@@ -1,0 +1,73 @@
+{
+  "schema": "data-collection.motor-timeout-calibration-selection.v1",
+  "rule": "The 6 OK, default-mesh public TRAIN records (motor-pools-v1/train.jsonl) with the largest recorded wall_s (ties by case_id), excluding any geometry equal to a study design; each geometry is run at study conditions b01 (15 A/mm2, 0 deg) and b02 (12 A/mm2, 30 deg). Chosen before any calibration solve; conservative toward the slow tail. NON-COUNTED: timing only, never decision evidence.",
+  "source_train_sha256": "d027f71133f2fdc0c74d2b62bdfc2fbeff445062f638dd2888f4f54c17389d4e",
+  "chosen": [
+    {
+      "case_id": "train-0019",
+      "train_wall_s": 3639.7,
+      "train_current": [
+        6.680065669820782,
+        30.090197671052344
+      ]
+    },
+    {
+      "case_id": "train-0021",
+      "train_wall_s": 3348.9,
+      "train_current": [
+        3.006555010082991,
+        19.948267820206546
+      ]
+    },
+    {
+      "case_id": "train-0023",
+      "train_wall_s": 3245.0,
+      "train_current": [
+        12.281656938955468,
+        24.515259267553496
+      ]
+    },
+    {
+      "case_id": "train-0015",
+      "train_wall_s": 3192.1,
+      "train_current": [
+        11.930162827042182,
+        31.943961580217916
+      ]
+    },
+    {
+      "case_id": "train-0004",
+      "train_wall_s": 3038.7,
+      "train_current": [
+        11.086166697280744,
+        58.945280190773474
+      ]
+    },
+    {
+      "case_id": "train-0006",
+      "train_wall_s": 2982.1,
+      "train_current": [
+        6.792268374004448,
+        55.10632620160321
+      ]
+    }
+  ],
+  "launch": {
+    "operator_host": {
+      "backend": "DOCKER",
+      "image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+      "parallel": 6,
+      "cpus": 2.0,
+      "timeout_s": 14400,
+      "keep": "all"
+    },
+    "runpod_cpu5c": {
+      "backend": "NATIVE",
+      "route": "runpod-cpu5c-16vcpu",
+      "parallel": 6,
+      "timeout_s": 14400,
+      "keep": "none"
+    }
+  },
+  "plan": "plans/motor-timing-calibration.json"
+}

@@ -8,23 +8,27 @@ file against its sha256 before anything was imported), as
 with its configuration in `PHASE_CONFIG` (`pods.PodJob.config`). It does what
 a miner's practice trial does, with Carbon's own code:
 
-1. compiles the strategy against the recorded battery construction contract
-   (`compile_submission`, refused by name if Carbon cannot rebuild it);
-2. builds the exact staged files of a practice trial
-   (`carbon.battery.practice.staged_files`: Carbon's recipe modules, public
-   TRAIN v1, the OCV table, the public PRACTICE inputs and the compiled
-   recipe with Carbon's practice randomness);
-3. **refuses to run** unless the staged files and the program are exactly the
+1. compiles the strategy against its Challenge's recorded construction
+   contract and builds the exact staged files of a practice trial, through
+   that Challenge's `ChallengeScoring.built_record` (for battery: Carbon's
+   recipe modules, public TRAIN v1, the OCV table, the public PRACTICE inputs
+   and the compiled recipe with Carbon's practice randomness);
+2. **refuses to run** unless the staged files and the program are exactly the
    ones Carbon pinned before launch (`expected`);
-4. runs the fixed GPU practice program
-   (`carbon.development_session.battery_gpu.GPU_PROGRAM`) in a fresh
+3. runs the Challenge's fixed practice program (for battery,
+   `carbon.development_session.battery_gpu.GPU_PROGRAM`) in a fresh
    directory, bounded by the contract's worker deadline;
-5. writes `built.json` (what was built: the recipe document and every digest),
+4. writes `built.json` (what was built: the recipe document and every digest),
    the program's `predictions.json`, `fit.json` and `runtime.json`, and
    `DONE.json`.
 
 No label reaches the program, nothing is scored here, and the pod holds no
 key. Carbon scores on its own host after fetching the files.
+
+`failure.json` names the stage that failed. The program runs under this
+process's own user and can reach this directory, so Carbon's host treats the
+file as evidence only and types the outcome from its own observations
+(`pod_outcome`, OWNER-GRAPHITE-TEST-WAVE-02 §3).
 """
 
 from __future__ import annotations
@@ -36,7 +40,6 @@ import sys
 import tempfile
 from pathlib import Path
 
-BUILT_SCHEMA = "carbon.graphite.pod-built.v1"
 OUTPUTS = ("predictions.json", "fit.json", "runtime.json")
 
 
@@ -44,32 +47,18 @@ def _write(path, value):
     Path(path).write_text(json.dumps(value, sort_keys=True))
 
 
-def built_record(strategy, contract_digest, seed, root="."):
+def built_record(strategy, contract_digest, seed, root=".", scoring=None):
     """What Carbon builds for `strategy`: the compiled recipe, the staged
-    files' digests and the program's digest. Used on the pod and, for the
-    independent rebuild, on Carbon's host."""
-    from carbon.battery.practice import PracticeSet, staged_files
-    from carbon.development_session.battery_gpu import GPU_PROGRAM
-    from carbon.development_session.profile import digest
-    from carbon.reconstruction.challenge_contracts import compile_submission
+    files' digests and the program's digest, from the Challenge's own
+    `ChallengeScoring.built_record`. Used on the pod and, for the independent
+    rebuild, on Carbon's host. With no scoring named, the strategy's own
+    Challenge serves."""
+    from carbon.challenge_validator import scoring as challenge_scoring
 
-    admitted = compile_submission(strategy, contract_digest=contract_digest)
-    recipe = admitted.construction
-    plan = admitted.compiled.construction_plan
-    files = staged_files(root, PracticeSet.load(root), recipe, seed)
-    record = {
-        "schema": BUILT_SCHEMA,
-        "challenge": recipe.document()["challenge"],
-        "contract_digest": admitted.contract_digest,
-        "recipe": recipe.document(),
-        "recipe_digest": recipe.recipe_digest,
-        "strategy_hash": plan.strategy_hash.value,
-        "plan_digest": plan.to_ref().content_digest,
-        "staged": {name: digest(body) for name, body in sorted(files.items())},
-        "program": digest(GPU_PROGRAM.encode()),
-        "seed": seed,
-    }
-    return record, files, GPU_PROGRAM
+    if scoring is None:
+        named = strategy.get("challenge_id") if type(strategy) is dict else None
+        scoring = challenge_scoring.scoring_for(named)
+    return scoring.built_record(strategy, contract_digest, seed, root)
 
 
 def pinned(record, expected):

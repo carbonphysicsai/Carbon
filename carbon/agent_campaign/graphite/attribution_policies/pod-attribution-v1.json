@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.graphite.pod-attribution-policy.v1",
+  "version": "pod-attribution-v1",
+  "authority": "OWNER-GRAPHITE-TEST-WAVE-02 §3 (#564); the Test Lead's VAL-D13 ruling, 2026-10-04, registered as a versioned policy at the owner's direction",
+  "status": "DEVELOPMENT_WORKING_POLICY",
+  "trusted_writer_levels": [0, 1, 2, 3],
+  "timeout": {
+    "retries": 1,
+    "confirm": "host_phase_min_at_least_work_seconds",
+    "contradict": "host_phase_max_below_work_seconds",
+    "repeated_confirmed": ["CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated"],
+    "retried": ["FAILED_INFRA", "worker_timeout_retried"],
+    "unconfirmed": ["FAILED_INFRA", "worker_timeout_unconfirmed"],
+    "contradicted": ["FAILED_INFRA", "timeout_claim_contradicts_host_timing"]
+  },
+  "admissible": {
+    "program": ["CANDIDATE_FAILED", "program"],
+    "compile": ["FAILED_INFRA", "compile"]
+  },
+  "evidence_only": {
+    "program": ["FAILED_INFRA", "candidate_failure_unattributed"],
+    "compile": ["FAILED_INFRA", "candidate_failure_unattributed"]
+  },
+  "no_claim": ["FAILED_INFRA", "pod"],
+  "notes": [
+    "Levels 0-3: only Carbon's own trainer writes the pod's claim, so it is admissible; a program failure stays the candidate's so a recipe that crashes the trainer cannot buy infrastructure semantics (Track A selective crash/retry).",
+    "Levels 4-5 or an unknown level: a claim on an image without a SEPARATED_IMAGES record is evidence only.",
+    "Timeouts follow the retry rule at every level; only a host-confirmed repeat is the candidate's, never scored.",
+    "Whether this policy is exploitable is for the Attacker's resource and accounting families to test; a change is a new registered version."
+  ]
+}

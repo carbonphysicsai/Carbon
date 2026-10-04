@@ -27,7 +27,10 @@ reports one.
 
 `ScriptedPods` is the deterministic stand-in for tests and `--dry-run`: a
 scripted pod lifecycle with rates, charges, failures and process deaths. It
-creates nothing and spends nothing.
+creates nothing and spends nothing. It never touches the operator layer, so
+`real_path_check` drives the live backend itself, with only RunPod in memory
+(`InMemoryRunPod`), across the threads a live session uses: a dry run that
+only scripts pods could not see a defect in that layer (POD-STORE-THREADS-01).
 
 **Prices are not invented here.** The hourly rate ceiling and the disk price
 are pod_control's (EV4's ledger records `costPerHr` 0.49 on every pod it
@@ -41,6 +44,7 @@ import json
 import os
 import secrets
 import subprocess
+import threading
 import time
 import urllib.parse
 from dataclasses import dataclass, field
@@ -48,44 +52,42 @@ from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
 from typing import Protocol
 
+from carbon.challenge_validator import scoring as challenge_scoring
+
+# `FORBIDDEN_DATA`: never shipped to a pod, whatever a path list says
+# (lower-case fragments). It now lives with the neutral scoring port.
+from carbon.challenge_validator.scoring import FORBIDDEN_DATA
+
 REPOSITORY = Path(__file__).resolve().parents[3]
 PHASE = "graphite_practice"
-#: The data files the pod's phase reads, beside the `carbon` package and the
-#: pod tooling. Public development material only: TRAIN v1, the OCV table and
-#: the public PRACTICE records. Each is pinned again by its own digest when the
-#: phase loads it (`carbon.battery.challenge`, `carbon.battery.practice`).
-DATA_PATHS = (
-    "docs/development/evidence/exam-design-2026-09-24/datasets/train-v1.jsonl.gz",
-    "docs/development/evidence/exam-design-2026-09-24/ocv_table.json",
-    "docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl",
-)
-#: Never shipped to a pod, whatever a path list says (lower-case fragments).
-FORBIDDEN_DATA = ("ev4", "confirmation", "private", "secret", "credential", "canary")
 SHIP_TREES = ("carbon", "scripts/dev/exam_design")
 #: Engineering allowances per proposal, each taken from an existing record
 #: (GRAPHITE-D20): the pod's start-up allowance is the rented runner's
 #: (`RentedCompute.startup_seconds`, 900 s); the job's own allowance is the
-#: battery contract's worker deadline (`envelope.worker_deadline_seconds`,
-#: 600 s); the export window is pod_control's default (`--export-minutes 5`).
+#: Challenge contract's worker deadline (`envelope.worker_deadline_seconds`;
+#: battery's is 600 s); the export window is pod_control's default
+#: (`--export-minutes 5`).
 STARTUP_MINUTES = 15
 EXPORT_MINUTES = 5
 POLL_SECONDS = 15.0
 
 
-def contract_work_seconds():
-    """The battery contract's worker deadline: the job's own allowance."""
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE, contract
-
-    envelope = dict(contract(BATTERY_CHALLENGE).envelope)
-    seconds = envelope["worker_deadline_seconds"]
-    if type(seconds) is not int or seconds <= 0:
-        raise ValueError("the battery contract states no worker deadline")
-    return seconds
+def data_paths(scoring=None):
+    """The data files the pod's phase reads, beside the `carbon` package and
+    the pod tooling: the Challenge's public development material only (for
+    battery, TRAIN v1, the OCV table and the public PRACTICE records), each
+    pinned again by its own digest when the phase loads it."""
+    return challenge_scoring.resolve(scoring).ship_check()
 
 
-def proposal_minutes():
+def contract_work_seconds(scoring=None):
+    """The Challenge contract's worker deadline: the job's own allowance."""
+    return challenge_scoring.resolve(scoring).work_seconds()
+
+
+def proposal_minutes(scoring=None):
     """A pod's full lifetime for one proposal: start-up, the job, export."""
-    return STARTUP_MINUTES + -(-contract_work_seconds() // 60) + EXPORT_MINUTES
+    return STARTUP_MINUTES + -(-contract_work_seconds(scoring) // 60) + EXPORT_MINUTES
 
 
 def prices():
@@ -229,6 +231,11 @@ class PodBackend(Protocol):
         """The pod an uncertain create made; None only when none exists."""
         ...
 
+    # Optional: `timing(handle) -> pod_outcome.HostTiming | None`, the host's
+    # own clock readings of the pod's phase, taken during `wait`. A backend
+    # without it gives the experiment no host timing, so a timeout it cannot
+    # confirm is never blamed on the candidate.
+
 
 # -- the hash-pinned code ship -------------------------------------------------------------
 def tracked(ref, prefixes, repository=REPOSITORY):
@@ -271,11 +278,15 @@ def code_manifest(ref, paths, repository=REPOSITORY):
     return manifest
 
 
-def ship_list(ref, repository=REPOSITORY):
-    for path in DATA_PATHS:
+def ship_list(ref, repository=REPOSITORY, scoring=None):
+    try:
+        shipped = data_paths(scoring)
+    except ValueError as refused:
+        raise PodFailure("ship", str(refused), executed=False) from None
+    for path in shipped:
         if any(fragment in path.lower() for fragment in FORBIDDEN_DATA):
             raise PodFailure("ship", "forbidden data path " + path, executed=False)
-    paths = tracked(ref, SHIP_TREES, repository) + list(DATA_PATHS)
+    paths = tracked(ref, SHIP_TREES, repository) + list(shipped)
     return list(dict.fromkeys(paths))
 
 
@@ -326,6 +337,7 @@ class RunPodPods:
         self.clock, self.sleep = clock, sleep
         self.balance_floor = balance_floor
         self.http = http or _https_get
+        self._record_lock = threading.Lock()
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.store = ComputeStore(root / "compute", clock=clock)
@@ -364,7 +376,7 @@ class RunPodPods:
         env = {
             "PROBE_TOKEN": record["token"],
             "PROBE_DEADLINE": str(int(record["deadline_at"] + 60)),
-            "PROBE_CA_GZ_B64": pod_control.ca_bundle_gz_b64(),
+            "PROBE_CA_GZ_B64": _ca_bundle(),
             "CODE_REF": self.code_ref,
             **pod_control.manifest_env(self.manifest),
             "PHASE": PHASE,
@@ -387,19 +399,22 @@ class RunPodPods:
         from carbon.development_session.data import write_once
 
         path = Path(private) / "pod-job.json"
-        if not path.exists():
-            write_once(
-                path,
-                json.dumps(
-                    {
-                        "intent_id": job.intent_id,
-                        "token": secrets.token_urlsafe(24),
-                        "deadline_at": int(self.clock() + job.minutes * 60),
-                    },
-                    sort_keys=True,
-                ).encode(),
-            )
-        record = json.loads(path.read_bytes())
+        # One writer at a time: a second thread launching the same job reads
+        # the first one's record, never a half-written or rival one.
+        with self._record_lock:
+            if not path.exists():
+                write_once(
+                    path,
+                    json.dumps(
+                        {
+                            "intent_id": job.intent_id,
+                            "token": secrets.token_urlsafe(24),
+                            "deadline_at": int(self.clock() + job.minutes * 60),
+                        },
+                        sort_keys=True,
+                    ).encode(),
+                )
+            record = json.loads(path.read_bytes())
         if record["intent_id"] != job.intent_id:
             raise PodFailure("launch", "pod job record conflict", executed=False)
         return record
@@ -512,22 +527,39 @@ class RunPodPods:
         )
 
     def wait(self, handle, *, deadline, cancelled):
+        # The host's own clock readings of the phase (`pod_outcome.HostTiming`):
+        # when each poll saw it, never a time the pod reports.
+        seen = self.__dict__.setdefault("_timings", {})[handle.intent_id] = {}
         while True:
             if cancelled():
                 return "cancelled"
             if self.clock() >= deadline:
                 return "timeout"
             code, body = self._get(handle, "/status")
+            at = self.clock()
             if code == 200:
                 try:
                     stage = json.loads(body).get("stage")
                 except ValueError:
                     stage = None
+                if stage == "running_phase":
+                    seen.setdefault("first_running", at)
+                    seen["last_running"] = at
+                elif "first_running" not in seen and stage is not None:
+                    seen["before_running"] = at
                 if stage == "done":
+                    seen.setdefault("ended", at)
                     return "done"
                 if stage in ("phase_failed", "bootstrap_failed"):
+                    seen.setdefault("ended", at)
                     return "failed"
             self.sleep(POLL_SECONDS)
+
+    def timing(self, handle):
+        from .pod_outcome import HostTiming
+
+        seen = self.__dict__.get("_timings", {}).get(handle.intent_id)
+        return None if seen is None else HostTiming(**seen)
 
     def fetch(self, handle):
         from scripts.dev.exam_design.runpod import pod_control
@@ -576,6 +608,20 @@ def _rate(rate):
     return None if rate is None else str(Decimal(str(rate)))
 
 
+def _ca_bundle():
+    """pod_control's CA bundle, gzipped with no timestamp: the same bundle
+    gives the same bytes, so a replayed launch of one job makes the same
+    create request (its digest) in any second, and is never refused as a
+    different request."""
+    import base64
+    import gzip
+
+    from scripts.dev.exam_design.runpod import pod_control
+
+    pem = gzip.decompress(base64.b64decode(pod_control.ca_bundle_gz_b64()))
+    return base64.b64encode(gzip.compress(pem, 9, mtime=0)).decode()
+
+
 def _https_get(url, token, timeout):
     import urllib.error
     import urllib.request
@@ -606,7 +652,9 @@ class Step:
       was lost; no pod exists);
     - `terminate_failures`: deletes that do not take before one does;
     - `hook`: a callable run while the job runs (for example to cancel);
-    - `crash`: "wait" or "fetch" to die there, leaving the pod alive.
+    - `crash`: "wait" or "fetch" to die there, leaving the pod alive;
+    - `timing`: the host's readings of the phase (`pod_outcome.HostTiming`
+      fields), or None when the host observed none.
     """
 
     outcome: str = "done"
@@ -617,6 +665,7 @@ class Step:
     terminate_failures: int = 0
     hook: object = None
     crash: str | None = None
+    timing: dict | None = None
 
 
 @dataclass
@@ -705,6 +754,12 @@ class ScriptedPods:
         step = self._step(handle.intent_id)
         return None if step.charge is None else Decimal(step.charge)
 
+    def timing(self, handle):
+        from .pod_outcome import HostTiming
+
+        step = self._step(handle.intent_id)
+        return None if step.timing is None else HostTiming(**step.timing)
+
 
 #: Synthetic builds already computed (tests and dry runs only).
 _SYNTHETIC_BUILDS = {}
@@ -758,6 +813,273 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
         }
 
     return outputs
+
+
+# -- the real-path check -------------------------------------------------------------------
+#: The synthetic key `real_path_check` writes for its in-memory account. It is
+#: no credential: nothing it is sent to leaves the process.
+CHECK_KEY = "graphite-real-path-check-no-key"
+CHECK_SCHEMA = "carbon.graphite.pod-real-path-check.v1"
+_CHECK_FILES = {
+    "DONE.json": b'{"exit": 0, "synthetic": true}',
+    "check.json": b'{"real_path_check": true, "synthetic": true}',
+}
+
+
+class InMemoryRunPod:
+    """RunPod's REST and GraphQL, and each pod's bootstrap server, in memory,
+    for `real_path_check`: the `transport` `RunPodAdapter` sends through and
+    the `http` `RunPodPods` reads pods with. No network, no account, no spend.
+    Safe to call from several threads at once, as the check does."""
+
+    def __init__(self, *, balance=100.0, rate=0.44, charge=0.07):
+        self.balance, self.rate, self.charge = balance, rate, charge
+        self.pods, self.creates, self.threads = {}, [], set()
+        self._lock = threading.Lock()
+
+    def transport(self, method, url, *, body, headers, timeout):
+        if headers.get("Authorization") != "Bearer " + CHECK_KEY:
+            raise AssertionError("in-memory RunPod: not the check's synthetic key")
+        with self._lock:
+            self.threads.add(threading.get_ident())
+            status, payload = self._answer(method, url, body)
+        return status, json.dumps(payload).encode()
+
+    def _view(self, pod):
+        return {key: pod[key] for key in ("id", "name", "desiredStatus", "costPerHr")}
+
+    def _answer(self, method, url, body):
+        # The endpoints as the operator adapter names them, so this answers
+        # exactly what `RunPodAdapter` sends, and nothing under `carbon/`
+        # names a provider host (`test_rented_compute_retired`).
+        from scripts.dev.exam_design.runpod.operator_compute import runpod
+
+        rest_pods, billing = runpod.REST + "/pods", runpod.REST + "/billing/pods?"
+        if url == runpod.GRAPHQL:
+            if "clientBalance" in json.loads(body)["query"]:
+                return 200, {"data": {"myself": {"clientBalance": self.balance}}}
+            price = {"uninterruptablePrice": self.rate, "stockStatus": "High"}
+            return 200, {"data": {"gpuTypes": [{"lowestPrice": price}]}}
+        if url == rest_pods and method == "POST":
+            request = json.loads(body)
+            pod_id = f"inmemory{len(self.creates):04d}"
+            self.creates.append(pod_id)
+            self.pods[pod_id] = {
+                "id": pod_id,
+                "name": request["name"],
+                "desiredStatus": "RUNNING",
+                "costPerHr": self.rate,
+                "env": request["env"],
+            }
+            return 200, self._view(self.pods[pod_id])
+        if url == rest_pods and method == "GET":
+            return 200, [self._view(pod) for pod in self.pods.values()]
+        if url.startswith(rest_pods + "/"):
+            pod = self.pods.get(url[len(rest_pods) + 1 :])
+            if pod is None:
+                return 404, {"error": "not found"}
+            if method == "GET":
+                return 200, self._view(pod)
+            if method == "DELETE":
+                del self.pods[pod["id"]]
+                return 200, {}
+        if url.startswith(billing):
+            query = urllib.parse.parse_qs(url.split("?", 1)[1])
+            return 200, [{"podId": query["podId"][0], "amount": self.charge}]
+        return 404, {"error": "not modelled"}
+
+    #: What every in-memory pod exports: a stated synthetic marker, nothing else.
+    FILES = _CHECK_FILES
+
+    def http(self, url, token, timeout):
+        pod_id = url.split("//", 1)[1].split("-8000.", 1)[0]
+        with self._lock:
+            pod = self.pods.get(pod_id)
+            if pod is None:
+                return 0, b""
+            if token != pod["env"]["PROBE_TOKEN"]:
+                return 403, b""
+        path = url.split(".proxy.runpod.net", 1)[1]
+        if path == "/status":
+            return 200, b'{"stage": "done"}'
+        if path == "/files":
+            listing = [
+                {"path": n, "size": len(b), "sha256": hashlib.sha256(b).hexdigest()}
+                for n, b in self.FILES.items()
+            ]
+            return 200, json.dumps(listing).encode()
+        name = urllib.parse.unquote(path.removeprefix("/file/"))
+        return (200, self.FILES[name]) if name in self.FILES else (404, b"")
+
+
+def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
+    """Drive the live pod backend's real code path with no network and no
+    spend, the way a live phase-3 session drives it (POD-STORE-THREADS-01).
+
+    `RunPodPods` (the operator `ComputeStore`, `ComputeService` and
+    `RunPodAdapter`) is built on the calling thread, as the phase-3 runner
+    builds it on its main thread. Then `launches` pod lifecycles (launch, wait,
+    fetch) run at once, each step through `asyncio.to_thread`, as
+    `Phase3Tools.call` runs a proposal; the same intents are launched again
+    (an idempotent replay sends no second create); every pod is recovered and
+    terminated back on the calling thread, as `Experiment.reconcile` and
+    cancellation do; charges are read off the thread; and the independent
+    reconciler runs on a fresh store. Only RunPod itself is in memory
+    (`InMemoryRunPod`).
+
+    `root` must be a new or empty directory. Call it from synchronous code.
+    Returns a report with `status` OK or FAILED; it never raises for a failed
+    check. The phase-3 dry run runs it, and a pre-live gate can.
+    """
+    import asyncio
+
+    from scripts.dev.exam_design.runpod.operator_compute import (
+        ComputeStore,
+        FileCredentialProvider,
+        IntentState,
+        RunPodAdapter,
+        reconcile,
+    )
+
+    root = Path(root)
+    report = {
+        "schema": CHECK_SCHEMA,
+        "synthetic": True,
+        "network": False,
+        "spend_usd": "0",
+        "launches": launches,
+    }
+    try:
+        if root.exists() and any(root.iterdir()):
+            raise ValueError("the check's root must be new or empty")
+        root = private_dir(root)
+        if code_ref is None:
+            code_ref = subprocess.run(
+                ["git", "-C", str(repository), "rev-parse", "HEAD"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+        key = root / "runpod-key"
+        key.write_text(CHECK_KEY + "\n")
+        key.chmod(0o600)
+        account = InMemoryRunPod()
+        caller = threading.get_ident()
+        backend = RunPodPods(
+            root=root / "pods",
+            key_file=key,
+            code_ref=code_ref,
+            repository=repository,
+            transport=account.transport,
+            http=account.http,
+            sleep=lambda _seconds: None,
+            balance_floor=lambda: Decimal(0),  # synthetic: the account is in memory
+        )
+        jobs = [
+            PodJob(
+                intent_id=f"real-path-check-{index}",
+                strategy={"real_path_check": index},
+                contract_digest="sha256:" + "0" * 64,
+                seed=index,
+                expected={"files": {}},
+                minutes=30,
+                seconds=600,
+            )
+            for index in range(launches)
+        ]
+        privates = {
+            job.intent_id: private_dir(root / "private" / job.intent_id) for job in jobs
+        }
+
+        async def lifecycle(job):
+            private = privates[job.intent_id]
+            handle = await asyncio.to_thread(backend.launch, job, private)
+            outcome = await asyncio.to_thread(
+                backend.wait, handle, deadline=float("inf"), cancelled=lambda: False
+            )
+            files = await asyncio.to_thread(backend.fetch, handle)
+            return handle, outcome, sorted(files)
+
+        async def replay(job):
+            return await asyncio.to_thread(backend.launch, job, privates[job.intent_id])
+
+        async def run_all(step, items):
+            return await asyncio.gather(*(step(item) for item in items))
+
+        ran = asyncio.run(run_all(lifecycle, jobs))
+        replayed = asyncio.run(run_all(replay, jobs))
+        failures = []
+        handles = [handle for handle, _outcome, _files in ran]
+        if [h.pod_id for h in replayed] != [h.pod_id for h in handles]:
+            failures.append("replay_returned_another_pod")
+        if len(account.creates) != launches:
+            failures.append("creates_not_one_per_intent")
+        if any(outcome != "done" for _h, outcome, _f in ran):
+            failures.append("a_pod_did_not_finish")
+        if any(files != sorted(InMemoryRunPod.FILES) for _h, _o, files in ran):
+            failures.append("a_pod_export_differs")
+        if not account.threads - {caller}:
+            failures.append("no_provider_call_ran_off_the_calling_thread")
+        # Recover and terminate on the calling thread, as reconcile does.
+        for job, handle in zip(jobs, handles, strict=True):
+            found = backend.recover(job.intent_id, privates[job.intent_id])
+            if found is None or found.pod_id != handle.pod_id:
+                failures.append("recover_lost_a_pod")
+            if not backend.terminate(handle):
+                failures.append("termination_unverified")
+        charges = asyncio.run(
+            run_all(lambda handle: asyncio.to_thread(backend.charge, handle), handles)
+        )
+        if any(charge is None for charge in charges):
+            failures.append("a_charge_unresolved")
+        store = backend.store
+        for job in jobs:
+            intent = store.intent(backend.CAMPAIGN, job.intent_id)
+            resources = store.resources(backend.CAMPAIGN, job.intent_id)
+            if intent is None or intent.state is not IntentState.BOUND:
+                failures.append("an_intent_not_bound")
+            if [record.role for record in resources] != ["primary"]:
+                failures.append("an_intent_without_exactly_one_pod")
+        # The independent reconciler, on its own store, as its process runs.
+        independent = reconcile(
+            ComputeStore(root / "pods" / "compute"),
+            RunPodAdapter(
+                FileCredentialProvider(key),
+                account.transport,
+                sleep=lambda _seconds: None,
+            ),
+        )
+        if (
+            independent.adopted
+            or independent.orphans
+            or independent.unresolved_dispatches
+            or independent.failures
+            or independent.terminated
+        ):
+            failures.append("the_independent_reconciler_found_work")
+        if account.pods:
+            failures.append("a_pod_left_alive")
+        report.update(
+            {
+                "status": "FAILED" if failures else "OK",
+                "failures": sorted(set(failures)),
+                "creates": len(account.creates),
+                "provider_threads": len(account.threads),
+                "off_caller_thread": bool(account.threads - {caller}),
+                "pods_alive": sorted(account.pods),
+                "backend": "runpod-real-path/in-memory-account",
+            }
+        )
+    except Exception as error:  # noqa: BLE001 -- the check reports, typed
+        report.update(
+            {
+                "status": "FAILED",
+                "failures": ["exception"],
+                "error_type": f"{type(error).__module__}.{type(error).__name__}",
+                "error": str(error)[:500],
+            }
+        )
+    return report
 
 
 def private_dir(path):

@@ -56,7 +56,7 @@ def test_a_constructor_session_reaches_battery_through_the_miner_path(
     path, ledger, owner, connection, manifest = battery_campaign(
         tmp_path / "miner", monkeypatch
     )
-    miner_path.check_battery_development(manifest)
+    miner_path.check_challenge(manifest)
     composition, _wrapper, adapter = adapter_for(path, ledger, owner, connection)
     better = variant(width=128)
     script = [

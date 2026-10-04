@@ -316,9 +316,23 @@ def test_sealed_private_jobs_round_trip_and_hide_plaintext(tmp_path, monkeypatch
             }
         }
     ]
-    cipher, _meta = private_cases.seal(jobs, "unit")
-    assert b"c1" not in cipher and b"pscreen" not in cipher
+    import hashlib
+    import json
+
+    cipher, meta = private_cases.seal(jobs, "unit")
+    plain = json.dumps(jobs, sort_keys=True, separators=(",", ":")).encode()
+    assert meta["plaintext_sha256"] == hashlib.sha256(plain).hexdigest()
+    assert len(cipher) == len(plain) == meta["bytes"]
+    # No 16-byte run of the plaintext survives in the ciphertext. Random bytes
+    # hold a given 16-byte run with probability about len * 2**-128, so this
+    # cannot fail by chance; a 2-byte probe such as b"c1" fails about 1 run in
+    # 750 on an 88-byte ciphertext.
+    windows = {plain[i : i + 16] for i in range(len(plain) - 15)}
+    assert b"pscreen-B00-0000" in windows
+    assert not any(w in cipher for w in windows)
     assert private_cases.unseal(cipher, private_cases.key_hex("unit")) == jobs
+    with pytest.raises(ValueError):
+        private_cases.unseal(cipher, "00" * 32)
     assert (tmp_path / "keys" / "unit.key").stat().st_mode & 0o077 == 0
 
 
