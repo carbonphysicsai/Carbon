@@ -120,8 +120,13 @@ Constructor session opened from 2026-10-03 has no session-turn cap and no
 per-role call cap. The run's money cap and its runtime bind. No grant value
 changes. See "Since 2026-10-03" below.
 
-**State.** Complete: the grant validates and the runner accepts it. No live
-session has run.
+**Amendment (2026-10-04): the Constructor's whole context.** GRAPHITE-D34.
+The owner: "max it out". A session opened from 2026-10-04 has a larger input
+window, a 600 s timeout and runs on `engy-chat`. No grant value changes. See
+"Since 2026-10-04" below.
+
+**State.** Complete: the grant validates and the runner accepts it. Live
+sessions 1 and 2 have run (GRAPHITE-D33, GRAPHITE-D34).
 
 One grant covers both kinds of spend. Each run is reserved at
 `worst_case_run_cost` by the campaign controller, and inside the run every
@@ -206,7 +211,8 @@ the research loop as its `max_provider_calls`; the shared
 `research_agent_policy.MAX_PROVIDER_CALLS` of 48 is unchanged for every other
 epoch). A session opened from 2026-10-03 has no call cap; see "Since
 2026-10-03" below. At `DEFAULT_SETTINGS` (65,536 input and 2,048 output
-tokens) one call reserves:
+tokens), the settings of every session opened before 2026-10-04, one call
+reserves (for later sessions see "Since 2026-10-04" below):
 
 - `deepseek-v4-flash-0731` (the Constructor's start): 65,536 × 45 + 2,048 × 90
   = 3,133,440 nanodollars, so 150 calls reserve
@@ -261,7 +267,8 @@ The engineering choices are recorded in GRAPHITE-MINER-S6
   counted from the run ledger's first reservation. Its value was derived from
   150 calls and 12 pods. It is now a time bound, not a call count, and it
   bounds pods as well as model calls:
-  - a model call is admitted only when its 120 s timeout fits the time left;
+  - a model call is admitted only when its 120 s timeout fits the time left
+    (600 s for a session opened from 2026-10-04);
   - a pod is admitted only when its full 1,800 s lifetime fits the time left.
     A proposal also counts the baseline's pod when the baseline has not run,
     and is otherwise refused before anything starts
@@ -274,11 +281,13 @@ The engineering choices are recorded in GRAPHITE-MINER-S6
   keeps the run inside 39,600 s. The controller cancels a run past the limit
   only after the runner returns, so it is not relied on.
 
-**How many calls fit.** Money, not a count, decides. At the Constructor's
-starting rung, settled at its full reservation, the token share holds
+**How many calls fit.** Money, not a count, decides. For a session opened
+before 2026-10-04 (65,536 input tokens), at the Constructor's starting rung,
+settled at its full reservation, the token share holds
 ⌊1.95 / 0.00313344⌋ = 622 calls. At reported charges far below the
 reservation, the token share holds more, and the runtime binds first. On
-`glm-5.2` the token share still stops a run after 40 calls.
+`glm-5.2` the token share still stops a run after 40 calls. A session opened
+from 2026-10-04 reserves more per call; see below.
 
 **How a capped session ends.** A session the agent does not end stops when its
 next model call would pass the money cap or cannot finish within the runtime.
@@ -289,6 +298,73 @@ way. Under the v2 rule the session's work is still closed:
   admitted against the same run cap and the time left, so on a runtime stop
   the bundle records every ablation as `NOT_RUN_NO_TIME` and no pod starts;
 - on any stop, the stall rule's escalation applies.
+
+### Since 2026-10-04: the Constructor's whole context, a 600 s timeout, `engy-chat`
+
+**Authority.** GRAPHITE-D34 (`.agent/decisions/2026-10-04-GRAPHITE-D34.md`).
+The owner, 2026-10-04: "yeah we need to allow for as much context as
+possible. whatever that value is, max it out". Of the executor's
+recommendation on the timeout and the reported charge: "perfect. I approve
+what comes back".
+
+**Why.**
+- Live session 2 stopped after 2 model calls at the context admission
+  ceiling of `DEFAULT_SETTINGS`: 65,536 − 4,096 = 61,440 tokens.
+- Every call of live sessions 1 and 2 kept its full reservation. They ran on
+  `engy-anthropic`, and Engy's Messages endpoint returns no
+  `x_engy.charged_micro`.
+
+**What changed, for a session opened from 2026-10-04.**
+- The Constructor's `max_input_tokens` is its model's whole context, as
+  Engy's public list gives it, up to 1,048,576 (the most `select` accepts).
+  Output stays 2,048 tokens and reasoning `low`.
+- Its provider timeout is 600 s, up from 120 s.
+- Phase 3 opens its sessions on `engy-chat`, which reports each call's
+  charge, so each call settles at that charge.
+- A session opened before keeps its recorded selection when it resumes
+  (`engy-anthropic`, 65,536 tokens, 120 s).
+
+**What did not change.** No grant value. The ceiling, `worst_case_run_cost`,
+the 1.95 token share, the pod budget and `max_runtime_s` are as above, and
+3 × 4.91 + 0.25 = 14.98 ≤ 15.00 still holds.
+
+**One call's reservation.** This is engineering arithmetic from the listed
+prices (Engy, observed 2026-09-26), not a new price. A call reserves
+`max_input_tokens` × the input price plus 2,048 × the output price. The last
+two columns count the calls the 1.95 token share holds when every call
+settles at its full reservation, as on `engy-anthropic`:
+
+| Rung | Model | `max_input_tokens` | Reservation (nanodollars) | Calls at full reservation | Before (65,536 input) |
+|---|---|---|---|---|---|
+| 0 | `deepseek-v4-flash-0731` | 1,048,576 | 1,048,576 × 45 + 2,048 × 90 = 47,370,240 | ⌊1.95 / 0.04737024⌋ = 41 | 622 |
+| 1 | `qwen3.8-27b` | 1,001,536 | 1,001,536 × 45 + 2,048 × 320 = 45,724,480 | ⌊1.95 / 0.04572448⌋ = 42 | 540 |
+| 2 | `glm-5.3-flash` | 262,144 | 262,144 × 135 + 2,048 × 450 = 36,311,040 | ⌊1.95 / 0.03631104⌋ = 53 | 199 |
+| 3 | `glm-5.2` | 262,144 | 262,144 × 680 + 2,048 × 1,500 = 181,329,920 | ⌊1.95 / 0.18132992⌋ = 10 | 40 |
+| 4 | `kimi-k3` | 1,048,576 | 1,048,576 × 1,950 + 2,048 × 9,750 = 2,064,691,200 | none: one call, USD 2.0647, exceeds 1.95 | 13 |
+
+**The trade-off, plainly.**
+- At full reservation far fewer calls fit: 41 instead of 622 on the first
+  rung, 10 instead of 40 on `glm-5.2`.
+- On `kimi-k3` no call can be admitted at all, so a session on that rung
+  stops, typed (`run_cap_reached`, `provider_nanodollars`), before its first
+  call. The Constructor moves one rung per stalled session, so this grant's
+  3 runs reach at most the third rung (`glm-5.3-flash`).
+- On `engy-chat` a call settles at Engy's reported charge, so the token share
+  holds as many calls as those charges allow. A call is still admitted only
+  while the spend so far plus its full reservation stays within 1.95.
+- Raising the token share would be a grant change, and that is the owner's.
+
+**Time.**
+- `max_runtime_s` stays 39,600, counted from the run ledger's first
+  reservation.
+- A model call is admitted only when its 600 s timeout fits the time left
+  (120 s before), so no call starts in the run's last ten minutes.
+- A call that hangs is abandoned at its 610 s hard deadline with an unknown
+  outcome, which stops the session `RECONCILIATION_REQUIRED`.
+- Time limits the number of calls only when calls are slow. If every call ran
+  its full 600 s beside 12 full pods (21,600 s), the remaining 18,000 s would
+  hold 30 calls, where 120 s calls would hold 150.
+- Pods are admitted exactly as before.
 
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 

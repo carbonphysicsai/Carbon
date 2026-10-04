@@ -321,12 +321,17 @@ def test_an_unknown_rule_is_refused_before_anything_opens(tmp_path):
 
 # -- old records replay byte-identically ---------------------------------------------------
 def test_a_v1_plan_is_byte_identical_to_the_one_written_before_the_change(tmp_path):
-    result, graphite, _ = session(
-        tmp_path / "p3",
-        [PROBE, PROBE, text("done")],
-        ScriptedPods(),
-        session_limits=gp.SESSION_LIMITS_V1,
-    )
+    # Every v1 session was opened before 2026-10-03, so on engy-anthropic at
+    # DEFAULT_SETTINGS, the selection the code before GRAPHITE-D34 opened.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(gp, "MODEL_SETTINGS", {})
+        result, graphite, _ = session(
+            tmp_path / "p3",
+            [PROBE, PROBE, text("done")],
+            ScriptedPods(),
+            session_limits=gp.SESSION_LIMITS_V1,
+            adapter_id="engy-anthropic",
+        )
     assert result["provider_state"] == "succeeded"
     assert digest(_plan_bytes(graphite._dir(run_id()))) == V1_CONSTRUCTOR_PLAN
     opened = _opened(graphite)
@@ -489,16 +494,21 @@ def test_a_v2_constructor_record_cannot_be_turned_into_a_v1_one(tmp_path):
 
 
 # -- end to end: money and time bind, not counts ---------------------------------------------
-def _money_capped(tmp_path, script, pods, *, run_cost):
+def _money_capped(tmp_path, script, pods, *, run_cost, charged_micro=None):
     """A Constructor session whose token share is `run_cost` less the 2.96 of
-    pods, and whose every call settles at all but 440 nanodollars of its
+    pods. Each call reserves its model's whole context (GRAPHITE-D34) and
+    settles at `charged_micro`, by default all but 240 nanodollars of that
     reservation, so the token share binds after a known number of calls
     (returned with the result)."""
     graphite = provider(
         tmp_path, script, pods, grant_changes={"worst_case_run_cost": run_cost}
     )
-    reservation = graphite._selection(ENGY_LADDER[0]).reservation_nano
-    graphite.model.charged_micro = reservation // 1000
+    reservation = graphite._selection(
+        ENGY_LADDER[0], RoleName.CONSTRUCTOR
+    ).reservation_nano
+    graphite.model.charged_micro = (
+        reservation // 1000 if charged_micro is None else charged_micro
+    )
     settled = graphite.model.charged_micro * 1000
     share = ex.usd_to_nano(graphite.budget.token_allowance_usd)
     calls = 0
@@ -513,13 +523,15 @@ def _money_capped(tmp_path, script, pods, *, run_cost):
 
 
 def test_a_v2_constructor_session_runs_past_150_until_its_money_cap(tmp_path):
-    """A token share of 0.54 USD (a 3.50 run less 2.96 of pods) holds 172
-    calls at this charge: past the old 150, and the money cap stops it."""
+    """A token share of 0.54 USD (a 3.50 run less 2.96 of pods) holds 158
+    calls that each settle at a reported 3,133 microdollars, far below their
+    47,370,240-nanodollar reservation, each admitted only with its full
+    reservation free: past the old 150, and the money cap stops it."""
     script = [PROBE] * 200
     result, graphite, expected = _money_capped(
-        tmp_path, script, ScriptedPods(), run_cost="3.50"
+        tmp_path, script, ScriptedPods(), run_cost="3.50", charged_micro=3133
     )
-    assert expected == 172 > CONSTRUCTOR_SESSION_TURNS
+    assert expected == 158 > CONSTRUCTOR_SESSION_TURNS
     assert len(graphite.model.requests) == expected
     assert graphite.model.remaining == 200 - expected
     assert result["provider_state"] == "failed"
@@ -531,14 +543,15 @@ def test_a_v2_constructor_session_runs_past_150_until_its_money_cap(tmp_path):
 
 
 def test_a_money_stop_still_bundles_the_best_improvement(tmp_path):
-    """A 3.00 run leaves 0.04 USD of tokens: the money cap stops the agent
-    after a dozen calls, and the session still bundles its improvement."""
+    """A 3.50 run leaves 0.54 USD of tokens: the money cap stops the agent
+    after 11 calls at the whole context's reservation, and the session still
+    bundles its improvement."""
     script = [propose(variant(width=128))] + [PROBE] * 20
     account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
     result, graphite, expected = _money_capped(
-        tmp_path, script, account, run_cost="3.00"
+        tmp_path, script, account, run_cost="3.50"
     )
-    assert len(graphite.model.requests) == expected == 12
+    assert len(graphite.model.requests) == expected == 11
     assert _state(graphite)["failure"] == CAPPED_ON_MONEY
     outcome = result["delivery"] or {}
     assert outcome.get("status") == "BUNDLED"
@@ -548,16 +561,16 @@ def test_a_money_stop_still_bundles_the_best_improvement(tmp_path):
     spend = graphite._tokens_usd(run_id()) + sum(
         graphite.experiment(run_id()).ledger.committed()
     )
-    assert spend <= Decimal("3.00")
+    assert spend <= Decimal("3.50")
 
 
 def test_a_stall_then_a_money_stop_escalates_one_rung(tmp_path):
     attempts = [propose(variant(width=w)) for w in (32, 40, 48, 56, 72)]
     account = ScriptedPods(steps=steps(1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
     result, graphite, expected = _money_capped(
-        tmp_path, [*attempts, *[PROBE] * 20], account, run_cost="3.00"
+        tmp_path, [*attempts, *[PROBE] * 20], account, run_cost="3.50"
     )
-    assert len(graphite.model.requests) == expected == 12
+    assert len(graphite.model.requests) == expected == 11
     assert _state(graphite)["failure"] == CAPPED_ON_MONEY
     assert graphite.experiment(run_id()).stall_observation()["attempts"] == 5
     history = graphite.ladder.history()
@@ -570,7 +583,8 @@ def test_a_stall_then_a_money_stop_escalates_one_rung(tmp_path):
 class JumpClock:
     """The run ledger's clock (the run starts at `LEDGER_NOW`); `jump` moves
     it to `left` seconds before the run's elapsed limit. With the default
-    minute left the next model call cannot fit its 120 s timeout."""
+    minute left the next model call cannot fit its timeout (the
+    Constructor's 600 s, GRAPHITE-D34; 120 s before)."""
 
     def __init__(self, limit):
         self.now, self.limit = LEDGER_NOW, limit

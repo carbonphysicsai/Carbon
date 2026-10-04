@@ -15,6 +15,7 @@ from graphite_phase3_fixtures import BASELINE, UNREBUILDABLE
 
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import miner_path, phase3, pod_phase
+from carbon.agent_campaign.graphite import provider as gp
 from carbon.agent_campaign.graphite.provider import GraphiteLedger
 
 _ADMIT = ex.admit
@@ -126,6 +127,22 @@ MUTATIONS = {
     "constructor_parallel_rule": (
         lambda m: m.setattr(phase3, "PARALLEL_RULES", {}),
         lambda tmp: t3.test_a_turn_with_several_tool_calls_runs_every_call_in_order(
+            tmp
+        ),
+    ),
+    # The Constructor's whole context admits live session 2's turns
+    # (GRAPHITE-D34); at DEFAULT_SETTINGS the session stops context_ceiling.
+    "constructor_context_window": (
+        lambda m: m.setattr(gp, "MODEL_SETTINGS", {}),
+        lambda tmp: t3.test_live_session_2s_turns_are_admitted_under_the_constructors_window(
+            tmp
+        ),
+    ),
+    # Phase 3 runs on engy-chat, whose replies carry the charge that settles
+    # each call (GRAPHITE-D34); engy-anthropic's carry none.
+    "phase3_reported_charge": (
+        lambda m: m.setattr(phase3, "ADAPTER", "engy-anthropic"),
+        lambda tmp: t3.test_on_engy_chat_calls_run_in_order_and_settle_from_the_reported_charge(
             tmp
         ),
     ),

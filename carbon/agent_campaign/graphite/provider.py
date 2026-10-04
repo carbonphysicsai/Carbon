@@ -41,6 +41,12 @@ byte-identically. A record altered before its epoch began writes no plan and
 cannot be told from a historical one; for a harness role its caps are the
 same under either rule.
 
+**Model settings** (GRAPHITE-D34, 2026-10-04). A session opens with its
+role's settings for its rung's model (`roles.MODEL_SETTINGS`): the
+Constructor gets the model's whole published context and a 600 s timeout;
+every other role keeps `DEFAULT_SETTINGS`. The session record freezes the
+selection, so a session resumes with the settings it opened with.
+
 **Cancellation.** `cancel` records the request; the worker stops at the
 loop's next ledger checkpoint, which precedes every reservation, so no new
 call is reserved or sent after it. A call already in flight finishes and is
@@ -107,7 +113,7 @@ from .literature import (
     literature_record,
 )
 from .model import ENGY_ADAPTERS
-from .roles import PARALLEL_RULES, ROLES, RoleName
+from .roles import MODEL_SETTINGS, PARALLEL_RULES, ROLES, RoleName
 
 PROVIDER = "graphite"
 SESSION_SCHEMA = "carbon.graphite.session-record.v1"
@@ -619,11 +625,23 @@ class GraphiteProvider:
 
         return write
 
-    def _selection(self, model_id):
+    def _selection(self, model_id, role=None):
+        """The selection a new session of `role` opens with on `model_id`. A
+        role in `roles.MODEL_SETTINGS` gets its settings for that model
+        (GRAPHITE-D34), and a model they do not list is refused before
+        anything opens; any other role keeps `DEFAULT_SETTINGS`. A resume
+        never calls this: it rebuilds the selection its record froze
+        (`selection_from_record`)."""
+        settings = None
+        if role in MODEL_SETTINGS:
+            settings = MODEL_SETTINGS[role].get(model_id)
+            if settings is None:
+                raise ProviderUnavailable("model_context_not_recorded")
         return select(
             provider_id=self.adapter_id,
             model_id=model_id,
             credential={"kind": "file", "reference": self.model.credential_reference},
+            settings=None if settings is None else dict(settings),
         )
 
     # -- the provider operations -----------------------------------------------------------
@@ -651,7 +669,7 @@ class GraphiteProvider:
             raise ProviderUnavailable("brief_role_changed")
         rung = self.ladder.rung(role.name)
         model_id = self.ladder.model(role.name)
-        selection = self._selection(model_id)
+        selection = self._selection(model_id, role.name)
         self.model.transport_for(selection)  # refuses before anything is opened
         opened = {
             "schema": SESSION_SCHEMA,

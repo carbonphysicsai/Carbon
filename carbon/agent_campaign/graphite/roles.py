@@ -27,7 +27,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 
-from carbon.development_session.model_provider import ENGY_LADDER
+from carbon.development_session.model_provider import ENGY_LADDER, ENGY_MODELS_URL
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
@@ -206,6 +206,60 @@ class FailureKind(str, enum.Enum):
 #: or an unresolved dispatch ends the session and the turn's later calls are
 #: journalled as not run. Each role's prompt states the rule (`_COMMON`).
 PARALLEL_RULES = {name: PARALLEL_CALLS_V2 for name in RoleName}
+
+
+#: Engy's published context window of each model on the owner's ladder, in
+#: tokens: `context_length`, equal to `max_model_len`, in Engy's public model
+#: list, read without a key on `ENGY_CONTEXT_OBSERVED`. Provider facts,
+#: recorded like a price and never guessed (GRAPHITE-D34). A model not listed
+#: here has no recorded context.
+ENGY_CONTEXT_TOKENS = {
+    "deepseek-v4-flash-0731": 1048576,
+    "qwen3.8-27b": 1001536,
+    "glm-5.3-flash": 262144,
+    "glm-5.2": 262144,
+    "kimi-k3": 1113088,
+}
+ENGY_CONTEXT_SOURCE = ENGY_MODELS_URL
+ENGY_CONTEXT_OBSERVED = "2026-10-04"
+#: The most input tokens `model_provider.select` accepts.
+SELECT_MAX_INPUT_TOKENS = 1048576
+#: The Constructor's provider timeout: `select`'s maximum, the level
+#: planner's value. A request near a million tokens may take minutes to
+#: prefill, and a call that times out has an unknown outcome, which stops the
+#: session for reconciliation (GRAPHITE-D34).
+CONSTRUCTOR_TIMEOUT_SECONDS = 600
+
+
+def _whole_context(model_id):
+    """The Constructor's settings on `model_id`: the model's whole published
+    context, up to what `select` accepts, and the Constructor's timeout.
+    Output (2,048 tokens) and reasoning effort stay `DEFAULT_SETTINGS`'.
+
+    The loop admits a request only under `max_input_tokens` minus
+    `CONTEXT_RESERVE_TOKENS` (4,096), by a bound that never undercounts
+    (`research_agent.input_token_bound`). With `max_input_tokens` at most the
+    model's context, a request's input plus the 2,048 output tokens therefore
+    stays at least 2,048 tokens inside its `max_model_len`."""
+    return {
+        "max_input_tokens": min(ENGY_CONTEXT_TOKENS[model_id], SELECT_MAX_INPUT_TOKENS),
+        "timeout_seconds": CONSTRUCTOR_TIMEOUT_SECONDS,
+    }
+
+
+#: The model settings a role's new session opens with, by model: what
+#: `GraphiteProvider._selection` passes to `select` (GRAPHITE-D34; owner,
+#: 2026-10-04: "yeah we need to allow for as much context as possible.
+#: whatever that value is, max it out"). The Constructor, the one role with
+#: live sessions, gets its model's whole context on every rung; a model with
+#: no recorded context is refused before a session opens. A role not named
+#: keeps `DEFAULT_SETTINGS`. A recorded session resumes with the selection its
+#: record froze, whatever this says now.
+MODEL_SETTINGS = {
+    RoleName.CONSTRUCTOR: {
+        model: _whole_context(model) for model in ENGY_CONTEXT_TOKENS
+    }
+}
 
 
 _COMMON = (
