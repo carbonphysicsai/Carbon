@@ -306,7 +306,11 @@ class Experiment:
     `pods` is a `pods.PodBackend`; `token_committed()` returns the run's model
     spend in USD (settled plus still reserved); `cancelled()` is the run's
     cancellation; `ladder` is the provider's escalation ladder; `emit` journals
-    an event for the controller.
+    an event for the controller. `construction_level` is the session's
+    recorded construction level (its permission profile), never the
+    submission's; it decides whose claims a pod's files carry
+    (`pod_outcome`). None means unknown, and then no pod claim blames the
+    candidate.
     """
 
     def __init__(
@@ -326,6 +330,7 @@ class Experiment:
         clock,
         randomness=os.urandom,
         scoring=None,
+        construction_level=None,
     ):
         from .provider import RunCancelled
 
@@ -340,6 +345,7 @@ class Experiment:
         self.ledger = PodLedger(self.root / "pod-ledger.jsonl", clock)
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
+        self.construction_level = construction_level
 
     # -- records ---------------------------------------------------------------------------
     def _dir(self, pid):
@@ -867,8 +873,8 @@ class Experiment:
 
     def _type_unfinished(self, pid, intent_id, attempt, files, failure, timing):
         """Type a pod run that ended without finishing
-        (`pod_outcome.classify`): host timing and lifecycle decide, the pod's
-        own files are evidence only."""
+        (`pod_outcome.classify`): host timing and lifecycle decide, and the
+        construction level decides whose claims the pod's files carry."""
         image = (self.pods.describe() or {}).get("image")
         report = _json(files.get("supervisor.json"))
         verdict = pod_outcome.classify(
@@ -877,10 +883,12 @@ class Experiment:
             timing=timing,
             work_seconds=podlib.contract_work_seconds(self.scoring),
             attempt=attempt,
+            level=self.construction_level,
         )
         evidence = {
             "intent_id": intent_id,
             "attempt": attempt,
+            "construction_level": self.construction_level,
             "status": verdict.status,
             "reason_code": verdict.reason_code,
             "claimed_stage": (failure or {}).get("stage"),

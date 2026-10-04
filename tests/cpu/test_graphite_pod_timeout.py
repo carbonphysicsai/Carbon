@@ -1,5 +1,11 @@
 """The pod worker-timeout rule (OWNER-GRAPHITE-TEST-WAVE-02 §3, VALIDATOR-01 slice 2).
 
+Attribution depends on the session's recorded construction level (the Test
+Lead's VAL-D13 refinement). At Levels 0-3 only Carbon's own trainer writes the
+pod's claims, so a program failure stays the candidate's. At Levels 4-5 on an
+image without a separation record, the claim is evidence only. Timeouts follow
+the retry rule at every level.
+
 A worker timeout is never a scientific failure. A first one is FAILED_INFRA,
 retried once on a fresh pod under the same declared budget. Only a second
 timeout that host timing confirms is the candidate exceeding its budget, and
@@ -25,6 +31,9 @@ from carbon.agent_campaign.graphite.pod_outcome import HostTiming
 from carbon.agent_campaign.graphite.pods import ScriptedPods, Step, synthetic_outputs
 
 REPOSITORY = Path(__file__).resolve().parents[2]
+#: Level 0: Carbon's own trainer on a declarative recipe. Level 4: participant
+#: code in the pod (the strict case these tests default to).
+L0, L4 = 0, pod_outcome.PARTICIPANT_CODE_LEVEL
 WORK = pods.contract_work_seconds()  # battery's declared 600 s
 #: Host readings confirming a timeout: the phase was seen running for more
 #: than the declared worker seconds.
@@ -56,7 +65,7 @@ class Ladder:
         return "failure-1"
 
 
-def experiment(tmp_path, steps, *, max_pods=None, backend=None):
+def experiment(tmp_path, steps, *, max_pods=None, backend=None, level=L4):
     budget = ex.phase3_budget(grant())
     if max_pods is not None:
         budget = ex.Phase3Budget(
@@ -80,6 +89,7 @@ def experiment(tmp_path, steps, *, max_pods=None, backend=None):
         repository=REPOSITORY,
         clock=lambda: 1000.0,
         randomness=lambda n: b"\x02" * n,
+        construction_level=level,
     )
     return run, backend
 
@@ -123,8 +133,9 @@ def intents(run):
     return [r["intent_id"] for r in run.ledger.rows() if r["event"] == "pod_reserved"]
 
 
-def test_a_timeout_then_success_is_failed_infra_then_scored_once(tmp_path):
-    run, backend = experiment(tmp_path, [timed_out(), scored()])
+@pytest.mark.parametrize("level", [L0, L4, None])
+def test_a_timeout_then_success_is_failed_infra_then_scored_once(tmp_path, level):
+    run, backend = experiment(tmp_path, [timed_out(), scored()], level=level)
     record = run_baseline(run)
     assert (record["status"], record["scored"]) == ("SCORED", True)
     [first] = record["attempts"]
@@ -145,10 +156,11 @@ def test_a_timeout_then_success_is_failed_infra_then_scored_once(tmp_path):
     assert run.findings() == []
 
 
+@pytest.mark.parametrize("level", [L0, L4])
 def test_two_confirmed_timeouts_are_a_candidate_resource_outcome_never_scored(
-    tmp_path,
+    tmp_path, level
 ):
-    run, backend = experiment(tmp_path, [timed_out(), timed_out()])
+    run, backend = experiment(tmp_path, [timed_out(), timed_out()], level=level)
     record = run_baseline(run)
     assert record["status"] == pod_outcome.CANDIDATE_RESOURCE_EXCEEDED
     assert record["reason_code"] == "worker_timeout_repeated"
@@ -172,11 +184,14 @@ def test_a_second_timeout_host_timing_cannot_confirm_is_never_blamed(tmp_path, t
     assert record["scored"] is False
 
 
-def test_a_forged_timeout_claim_cannot_type_its_own_outcome(tmp_path):
+@pytest.mark.parametrize("level", [L0, L4])
+def test_a_forged_timeout_claim_cannot_type_its_own_outcome(tmp_path, level):
     """The candidate writes failure.json saying "timeout" after a short run.
     Host timing makes that impossible: FAILED_INFRA, no retry, and an
     OTHER_SIGNAL finding bound to the claim's digest and the host readings."""
-    run, backend = experiment(tmp_path, [timed_out(timing=IMPOSSIBLE), scored()])
+    run, backend = experiment(
+        tmp_path, [timed_out(timing=IMPOSSIBLE), scored()], level=level
+    )
     record = run_baseline(run)
     assert (record["status"], record["reason_code"]) == (
         "FAILED_INFRA",
@@ -193,12 +208,19 @@ def test_a_forged_timeout_claim_cannot_type_its_own_outcome(tmp_path):
     assert record["attempts"][0]["finding"] == finding["id"]
 
 
-@pytest.mark.parametrize("claim", ["program", "compile"])
-def test_a_program_failure_claim_is_never_the_candidates_on_evidence_alone(
-    tmp_path, claim
+@pytest.mark.parametrize(
+    ("level", "claim"),
+    [(L4, "program"), (L4, "compile"), (5, "program"), (None, "program")],
+)
+def test_a_shared_uid_claim_where_participant_code_runs_is_evidence_only(
+    tmp_path, level, claim
 ):
+    """Levels 4-5 on an image without a separation record, or an unknown
+    level: the pod's claim never blames the candidate."""
     run, backend = experiment(
-        tmp_path, [Step(outcome="failed", outputs=ended(claim), timing=CONFIRMED)]
+        tmp_path,
+        [Step(outcome="failed", outputs=ended(claim), timing=CONFIRMED)],
+        level=level,
     )
     record = run_baseline(run)
     assert (record["status"], record["reason_code"]) == (
@@ -206,7 +228,36 @@ def test_a_program_failure_claim_is_never_the_candidates_on_evidence_alone(
         "candidate_failure_unattributed",
     )
     assert record["attempts"][0]["claimed_stage"] == claim
+    assert record["attempts"][0]["construction_level"] == level
     assert len(backend.launched) == 1
+
+
+@pytest.mark.parametrize("level", [L0, 3])
+def test_at_levels_0_to_3_a_program_failure_stays_the_candidates(tmp_path, level):
+    """Only Carbon's own trainer writes the claim, so a recipe that crashes it
+    is charged to the candidate, never given infrastructure semantics (no
+    retry, no refund: Track A selective crash and retry)."""
+    run, backend = experiment(
+        tmp_path,
+        [Step(outcome="failed", outputs=ended("program"), timing=CONFIRMED), scored()],
+        level=level,
+    )
+    record = run_baseline(run)
+    assert (record["status"], record["reason_code"]) == ("CANDIDATE_FAILED", "program")
+    assert record["scored"] is False
+    assert len(backend.launched) == 1  # never retried
+
+
+def test_at_level_0_a_pod_compile_failure_stays_infrastructure(tmp_path):
+    """As before this rule: the pod's compile ran after Carbon's host compiled
+    the same recipe, so its failure points at the pod's environment."""
+    run, _ = experiment(
+        tmp_path,
+        [Step(outcome="failed", outputs=ended("compile"), timing=CONFIRMED)],
+        level=L0,
+    )
+    record = run_baseline(run)
+    assert (record["status"], record["reason_code"]) == ("FAILED_INFRA", "compile")
 
 
 def test_a_supervisor_report_from_an_unseparated_image_is_evidence_only(tmp_path):
@@ -304,13 +355,14 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
 
 
 @pytest.mark.parametrize(
-    ("claim", "admissible", "timing", "attempt", "expected"),
+    ("claim", "admissible", "timing", "attempt", "level", "expected"),
     [
         (
             "timeout",
             None,
             CONFIRMED,
             0,
+            L4,
             ("FAILED_INFRA", "worker_timeout_retried", True, False),
         ),
         (
@@ -318,6 +370,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             None,
             0,
+            L4,
             ("FAILED_INFRA", "worker_timeout_retried", True, False),
         ),
         (
@@ -325,6 +378,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             CONFIRMED,
             1,
+            L4,
             ("CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated", False, False),
         ),
         (
@@ -332,6 +386,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             UNCERTAIN,
             1,
+            L4,
             ("FAILED_INFRA", "worker_timeout_unconfirmed", False, False),
         ),
         (
@@ -339,6 +394,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             IMPOSSIBLE,
             0,
+            L4,
             ("FAILED_INFRA", "timeout_claim_contradicts_host_timing", False, True),
         ),
         (
@@ -346,6 +402,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             IMPOSSIBLE,
             1,
+            L4,
             ("FAILED_INFRA", "timeout_claim_contradicts_host_timing", False, True),
         ),
         (
@@ -353,6 +410,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             None,
             CONFIRMED,
             0,
+            L4,
             ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
         ),
         (
@@ -360,6 +418,7 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             "program",
             CONFIRMED,
             0,
+            L4,
             ("CANDIDATE_FAILED", "program", False, False),
         ),
         (
@@ -367,19 +426,97 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             "program",
             CONFIRMED,
             0,
+            L4,
             ("CANDIDATE_FAILED", "program", False, False),
         ),
-        (None, None, None, 0, ("FAILED_INFRA", "pod", False, False)),
-        ("verification", None, CONFIRMED, 0, ("FAILED_INFRA", "pod", False, False)),
+        (None, None, None, 0, L4, ("FAILED_INFRA", "pod", False, False)),
+        ("verification", None, CONFIRMED, 0, L4, ("FAILED_INFRA", "pod", False, False)),
+        # Levels 0-3: Carbon's own trainer writes the claim.
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            L0,
+            ("CANDIDATE_FAILED", "program", False, False),
+        ),
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            3,
+            ("CANDIDATE_FAILED", "program", False, False),
+        ),
+        ("compile", None, CONFIRMED, 0, L0, ("FAILED_INFRA", "compile", False, False)),
+        (
+            "timeout",
+            None,
+            CONFIRMED,
+            0,
+            L0,
+            ("FAILED_INFRA", "worker_timeout_retried", True, False),
+        ),
+        (
+            "timeout",
+            None,
+            CONFIRMED,
+            1,
+            L0,
+            ("CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated", False, False),
+        ),
+        (
+            "timeout",
+            None,
+            IMPOSSIBLE,
+            0,
+            L0,
+            ("FAILED_INFRA", "timeout_claim_contradicts_host_timing", False, True),
+        ),
+        (None, None, None, 0, L0, ("FAILED_INFRA", "pod", False, False)),
+        # An unknown or malformed level is never trusted.
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            None,
+            ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
+        ),
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            "0",
+            ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
+        ),
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            -1,
+            ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
+        ),
+        (
+            "program",
+            None,
+            CONFIRMED,
+            0,
+            True,
+            ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
+        ),
     ],
 )
-def test_the_order_of_authority(claim, admissible, timing, attempt, expected):
+def test_the_order_of_authority(claim, admissible, timing, attempt, level, expected):
     verdict = pod_outcome.classify(
         claim=claim,
         admissible=admissible,
         timing=None if timing is None else HostTiming(**timing),
         work_seconds=WORK,
         attempt=attempt,
+        level=level,
     )
     assert (verdict.status, verdict.reason_code, verdict.retry, verdict.signal) == (
         expected
@@ -437,3 +574,17 @@ def test_the_runpod_backend_takes_its_timing_from_its_own_clock():
         ended=4 * step,
     )
     assert backend.timing(pods.PodHandle("other", "pod-2", None)) is None
+
+
+def test_the_level_comes_from_the_runs_recorded_permission_profile():
+    """Phase 3 reads the level from the profile its run recorded, never from a
+    submission: the profile's level only when the digests match."""
+    from carbon.agent_campaign.graphite import phase3
+
+    document, profile = phase3.permission_profile()
+    assert document["level"] == 0
+    assert phase3.recorded_level({"task": {"profile_digest": profile}}) == 0
+    other = "sha256:" + "f" * 64
+    assert phase3.recorded_level({"task": {"profile_digest": other}}) is None
+    assert phase3.recorded_level({"task": {}}) is None
+    assert phase3.recorded_level({}) is None

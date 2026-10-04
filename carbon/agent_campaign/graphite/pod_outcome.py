@@ -1,43 +1,61 @@
 """How a pod run that did not finish is typed (OWNER-GRAPHITE-TEST-WAVE-02 §3).
 
-A pod is a black box running Carbon's supervisor (`pod_phase`) and the
-candidate's program under one user and one filesystem. The pinned study image
-gives the supervisor no separate uid. So the candidate could write the
-supervisor's `failure.json`, serve a forged `/status` or kill the supervisor.
-This module types the outcome by an order of authority:
+A pod runs Carbon's supervisor (`pod_phase`) and a program under one user and
+one filesystem. The pinned study image gives the supervisor no separate uid.
+What runs as that program depends on the construction level, which comes from
+the session's recorded permission profile and never from the submission:
+- **Levels 0-3:** the program is Carbon's own trainer, rebuilt from a
+  declarative recipe. No participant code runs in the pod.
+- **Levels 4-5:** participant code runs in the pod. That code could write
+  `failure.json`, serve a forged `/status` or kill the supervisor.
+
+The outcome is typed by an order of authority:
 
 1. **Authority: what Carbon's host observes.** The pod lifecycle (launch,
    the pod's own deadline, loss, cancellation) and the host's own clock
    readings of the pod's phase (`HostTiming`).
-2. **Admissible evidence: a supervisor report from a separate uid or an
-   unwritable path.** It is admissible only when a host-side record says the
-   pinned image separates them (`SEPARATED_IMAGES`); the pod's own claim
-   never makes it so. No image has such a record yet.
-3. **Evidence only: anything in the shared uid or filesystem.** That is
-   `failure.json`, `/status` stages and exit codes. It is recorded and it may
-   ask for a retry, but it never blames the candidate.
+2. **Admissible evidence.** Two sources qualify:
+   - the pod's stage claim at Levels 0-3, which only Carbon's own code
+     writes;
+   - at any level, a supervisor report from an image that a host-side record
+     (`SEPARATED_IMAGES`) says runs the supervisor apart from the program.
+     The pod's own claim never makes it so, and no image has such a record
+     yet.
+3. **Evidence only.** At Levels 4-5 without a separation record, or at an
+   unknown level, anything in the shared uid or filesystem (`failure.json`,
+   `/status` stages, exit codes) is recorded but never blames the candidate.
 
 The rules:
-- A worker timeout is never a scientific failure. A first one is
-  `FAILED_INFRA` and the proposal is retried once, on a fresh pod, under the
-  same declared budget.
-- Only a second timeout that the host's timing confirms counts as the
-  candidate exceeding its declared budget: `CANDIDATE_RESOURCE_EXCEEDED`,
-  never scored and never a physics failure.
-- The host confirms a timeout when its own readings show the phase ran at
-  least the declared worker seconds. That span includes Carbon's own compile
-  and pin check, which run before the candidate starts.
-- Disagreement or missing evidence gives `FAILED_INFRA`. When the host's
-  timing makes a claimed timeout impossible, an `OTHER_SIGNAL` finding is
-  raised too, because it could be tampering.
-- A program failure is the candidate's only on admissible evidence
-  (`CANDIDATE_FAILED`). Otherwise it is `FAILED_INFRA`
-  (`candidate_failure_unattributed`), with the pod's claim kept as evidence.
+- **Timeouts, at every level** (host contention can cause one whoever wrote
+  the claim):
+  - A worker timeout is never a scientific failure. A first one is
+    `FAILED_INFRA` and the proposal is retried once, on a fresh pod, under
+    the same declared budget.
+  - Only a second timeout that the host's timing confirms counts as the
+    candidate exceeding its declared budget: `CANDIDATE_RESOURCE_EXCEEDED`,
+    never scored and never a physics failure. The host confirms a timeout
+    when its own readings show the phase ran at least the declared worker
+    seconds. That span includes Carbon's own compile and pin check, which run
+    before the program starts.
+  - When the host's timing makes a claimed timeout impossible, the result is
+    `FAILED_INFRA` plus an `OTHER_SIGNAL` finding, because it could be
+    tampering. Any other unconfirmed second timeout is `FAILED_INFRA`.
+- **Program failures:**
+  - On admissible evidence, a program failure is the candidate's:
+    `CANDIDATE_FAILED`, `program`. That is the typing before this rule, kept
+    so a recipe that crashes Carbon's trainer cannot buy infrastructure
+    semantics (Track A, selective crash and retry).
+  - Otherwise it is `FAILED_INFRA`, `candidate_failure_unattributed`, with
+    the claim kept as evidence.
+- **Compile failures** stay `FAILED_INFRA` (`compile`), as before. The pod's
+  compile ran after Carbon's host compiled the same recipe, so a failure there
+  points at the pod's environment.
 - The pod's own lifetime deadline, a launch failure and a lost pod stay
   `FAILED_INFRA`, as before.
 
-This mirrors `research_carrier._observed_miner_failure`: a failure is the
-candidate's only on observed evidence, and never on an ambiguous one.
+At Levels 4-5 this mirrors `research_carrier._observed_miner_failure`: a
+failure is the candidate's only on observed evidence, and never on an
+ambiguous one.
 """
 
 from __future__ import annotations
@@ -48,6 +66,9 @@ from dataclasses import dataclass
 #: or unwritable report path), each by a verification record. None yet: the
 #: EV4 study image runs the supervisor and the program as one non-root user.
 SEPARATED_IMAGES = {}
+#: The first construction level at which participant code runs in the pod
+#: (Challenge_Admission's construction ladder: Levels 4-5 are code).
+PARTICIPANT_CODE_LEVEL = 4
 
 FAILED_INFRA = "FAILED_INFRA"
 CANDIDATE_FAILED = "CANDIDATE_FAILED"
@@ -118,13 +139,22 @@ def timeout_check(timing, work_seconds):
     return "unconfirmed"
 
 
-def classify(*, claim, admissible, timing, work_seconds, attempt):
+def trusted_writer(level):
+    """Whether only Carbon's own code writes the pod's claims at `level`:
+    Levels 0-3. An unknown level is not trusted."""
+    return type(level) is int and 0 <= level < PARTICIPANT_CODE_LEVEL
+
+
+def classify(*, claim, admissible, timing, work_seconds, attempt, level):
     """Type one ended-but-not-done pod run.
 
-    `claim` is the failure stage the pod reported (evidence); `admissible` is
-    a stage from a separated supervisor report, or None; `attempt` is 0 for
-    the first pod and 1 for the retry.
+    `claim` is the failure stage the pod reported; `admissible` is a stage
+    from a separated supervisor report, or None; `attempt` is 0 for the first
+    pod and 1 for the retry; `level` is the session's recorded construction
+    level, or None when it is unknown.
     """
+    if admissible is None and trusted_writer(level):
+        admissible = claim if claim in ("timeout", "program", "compile") else None
     stage = admissible if admissible is not None else claim
     if stage == "timeout":
         check = timeout_check(timing, work_seconds)
@@ -139,6 +169,8 @@ def classify(*, claim, admissible, timing, work_seconds, attempt):
         return Verdict(FAILED_INFRA, "worker_timeout_unconfirmed")
     if stage == "program" and admissible == "program":
         return Verdict(CANDIDATE_FAILED, "program")
+    if stage == "compile" and admissible == "compile":
+        return Verdict(FAILED_INFRA, "compile")
     if stage in ("program", "compile"):
         return Verdict(FAILED_INFRA, "candidate_failure_unattributed")
     return Verdict(FAILED_INFRA, "pod")
@@ -157,10 +189,12 @@ __all__ = [
     "CANDIDATE_FAILED",
     "CANDIDATE_RESOURCE_EXCEEDED",
     "FAILED_INFRA",
+    "PARTICIPANT_CODE_LEVEL",
     "SEPARATED_IMAGES",
     "HostTiming",
     "Verdict",
     "admissible_stage",
     "classify",
     "timeout_check",
+    "trusted_writer",
 ]

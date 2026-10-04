@@ -451,6 +451,7 @@ class Phase3Provider(GraphiteProvider):
             clock=self.clock,
             randomness=self.randomness,
             scoring=self.scoring,
+            construction_level=recorded_level(opened),
         )
 
     def _frozen_rule(self):
@@ -759,6 +760,16 @@ def permission_profile():
         "widens": [],
     }
     return document, digest(canonical(document))
+
+
+def recorded_level(opened):
+    """The construction level of an opened run, from the permission profile
+    its task recorded: the profile's level only when the run's recorded
+    profile digest is this profile's, else None (unknown). Never read from a
+    submission (`pod_outcome`)."""
+    document, profile = permission_profile()
+    task = (opened or {}).get("task") or {}
+    return document["level"] if task.get("profile_digest") == profile else None
 
 
 def controller_for(root, provider, grant, clock=None):

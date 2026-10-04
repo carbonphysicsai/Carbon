@@ -244,12 +244,28 @@ as sealed outside the pool is refused.
     the claim's digest and the host readings.
   - **Unconfirmed:** anything else. On a first attempt it still earns the
     retry, because the retry blames no one. On the second it is FAILED_INFRA.
-- **VAL-D13 — program failures follow the same rule.** The decision says the
-  stage is never taken from a file the candidate can write. So a pod-claimed
-  program or compile failure is `FAILED_INFRA` /
-  `candidate_failure_unattributed`, with the claim kept as evidence. It is
-  `CANDIDATE_FAILED` only on an admissible report. This changes the Level 0
-  feedback a failing recipe gets, which was `CANDIDATE_FAILED` / `program`.
+- **VAL-D13 — program-failure attribution depends on the construction level**
+  (the Test Lead's ruling, 2026-10-04, refining a first draft that made every
+  pod program claim unattributed).
+  - **The level's source.** It comes from the run's recorded permission
+    profile: `phase3.recorded_level`, which uses the profile's level only when
+    the run's recorded profile digest matches. It is never taken from the
+    submission. Unknown or malformed means untrusted.
+  - **Levels 0-3.** No participant code runs in the pod, and only Carbon's own
+    trainer writes the claim. So it is admissible.
+    - A program failure stays `CANDIDATE_FAILED` / `program`, as before.
+      Otherwise a recipe that crashes the trainer would get infrastructure
+      semantics (no penalty, retry or refund), which is the Track A selective
+      crash/retry family.
+    - A pod compile failure stays `FAILED_INFRA` / `compile`, also as before.
+      The pod compiled after Carbon's host compiled the same recipe, so the
+      failure points at the pod's environment.
+  - **Levels 4-5, or an unknown level.** Participant code may run, and the
+    claim is evidence only unless the image is in `SEPARATED_IMAGES`. A
+    program or compile claim is `FAILED_INFRA` /
+    `candidate_failure_unattributed`.
+  - **Timeouts** follow the retry rule at every level, because host
+    contention can cause one whoever wrote the claim.
 - **VAL-D14 — the retry is an ordinary pod.** It gets its own intent
   (`<intent>-r1`), is admitted against the run's pod count and money cap
   before launch, and has its reservation, launch, terminate and settlement
@@ -394,9 +410,10 @@ reward.
 
 ## Human input required
 
-- **VAL-D13**, for the owner or the Test Lead to confirm or supersede: under
-  the evidence rule a pod-claimed program failure is `FAILED_INFRA`
-  (`candidate_failure_unattributed`), where it was `CANDIDATE_FAILED`. This
-  holds until an image with verified separation is recorded.
+- Before any Level 4-5 pod work, two security-review items:
+  - a verified `SEPARATED_IMAGES` record, or an image that separates the
+    supervisor from participant code;
+  - resolving the bootstrap's `RUNPOD_API_KEY`, which sits under the
+    program's uid. The Test Lead raised this with the owner on 2026-10-04.
 - Deploying the service on the dedicated server waits on the owner ordering
   it (work list item 7), outside this ticket.
