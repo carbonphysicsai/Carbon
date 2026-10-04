@@ -324,23 +324,79 @@ as sealed outside the pool is refused.
   validator daemon, deployment, intake, validator service, rule v2, carry-over,
   remote submission and intake end-to-end suites): 276 passed, pytest exit 0.
 
+### Slice 2
+
+- `tests/cpu/test_challenge_validator_scoring.py` (8 tests):
+  - the registry, and refusal of unnamed calls once a second scoring registers;
+  - battery unchanged through the port: data paths, worker deadline, recorded
+    contract, the build by every route, refusal codes, the frozen rule and
+    the brief;
+  - protected data paths refused before any ship;
+  - the challenge checks in `phase3` and `miner_path`.
+- `tests/cpu/test_graphite_pod_timeout.py` (28 tests). They cover:
+  - timeout then success: FAILED_INFRA, then scored once;
+  - two confirmed timeouts: CANDIDATE_RESOURCE_EXCEEDED, never scored;
+  - unconfirmed or missing host timing: never blamed;
+  - a forged failure.json contradicted by host timing: FAILED_INFRA, no retry,
+    and an OTHER_SIGNAL finding;
+  - program and compile claims: unattributed;
+  - an unseparated supervisor report stays evidence; a separated image's report
+    is admissible;
+  - the pod's own deadline, a launch failure, a retry refused by budget, and a
+    restart;
+  - the order-of-authority table;
+  - the host-timing bounds;
+  - `RunPodPods.wait` taking its readings from its own clock.
+- Existing tests updated only where they pinned a renamed seam:
+  - the two neutral refusal codes;
+  - `pods.data_paths()`;
+  - `check_challenge`;
+  - the mutation tests that patch `check_observation`, `check_challenge`,
+    `admit`, and the scoring port's `REBUILT_FIELDS`.
+- `scripts/check_quality.py --base origin/main`: passed.
+- Canonical, slice 2 at `d55563f43` (same groups). The run covers both new
+  suites, slice 1's validator suites, the lessons log, every Graphite and
+  Attacker suite and the Graphite miner-path service suite. **873 passed, 1
+  failed.** The failure,
+  `test_attack_battery_adapter.py::test_each_disabled_boundary_turns_its_guard_red[protected_marker_removed]`,
+  fails identically on main `f49ac6d9f` (checked on a detached main checkout)
+  and is fixed by #569.
+
 ## Invariants exercised
 
 1 (no seed leakage), 3 (pinned evaluation), 4 (disclosure allow-list),
 7 (infrastructure ≠ science), 8 (deterministic replay), 10 (no silent
 rescore: battery's records are untouched), 21 (a score is bound to its
 contract digest and is never compared across Challenges) and 24 (miners
-submit declarative strategies; the validator holds the grade).
+submit declarative strategies; the validator holds the grade). Slice 2 adds
+these:
+- 7 for pod runs: a worker timeout is never a scientific failure, and a
+  candidate is never blamed on ambiguous evidence;
+- 6: the evidence rule is designed to hold where participant code runs;
+- 2 and 1: protected data never ships to a pod.
 
 ## Maturity
 
 SPECIFIED, IMPLEMENTED, TESTED (DEVELOPMENT). Not SECURITY_QUALIFIED. **This
 work needs a dedicated security review before any production or public
-exposure** (AGENTS.md §13): the strict parser, the ledger's custody, the
-operator/miner surface split and the adapter registration. The tests are not
-an audit. Not NETWORK_QUALIFIED. No LIVE, weights or reward.
+exposure** (AGENTS.md §13). For slice 1 that covers the strict parser, the
+ledger's custody, the operator/miner surface split and the adapter
+registration. For slice 2 it covers:
+- the pod evidence-authority rule;
+- the host-timing bounds;
+- the `SEPARATED_IMAGES` record;
+- the forbidden-data guard;
+- the bootstrap holding `RUNPOD_API_KEY` under the program's own uid. That
+  is outside this ticket, but it matters at Levels 4-5.
+
+The tests are not an audit. Not NETWORK_QUALIFIED. No LIVE, weights or
+reward.
 
 ## Human input required
 
-None for slice 1. Deploying the service on the dedicated server waits on the
-owner ordering it (work list item 7), outside this ticket.
+- **VAL-D13**, for the owner or the Test Lead to confirm or supersede: under
+  the evidence rule a pod-claimed program failure is `FAILED_INFRA`
+  (`candidate_failure_unattributed`), where it was `CANDIDATE_FAILED`. This
+  holds until an image with verified separation is recorded.
+- Deploying the service on the dedicated server waits on the owner ordering
+  it (work list item 7), outside this ticket.

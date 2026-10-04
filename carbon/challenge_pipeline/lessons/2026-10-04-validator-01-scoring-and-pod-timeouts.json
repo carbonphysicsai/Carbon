@@ -1,0 +1,33 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-validator-01-scoring-and-pod-timeouts",
+  "recorded_at": "2026-10-04T20:35:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-01 slice 2, branch claude/validator-scoring at d55563f43, from main f49ac6d9f. Canonical (groups chain archive science-jax science-torch mcp): 873 passed, 1 failed, pytest exit 1. The run covers both new suites, slice 1's validator suites, the lessons log, every Graphite suite, every Attacker suite and the Graphite miner-path service suite. The one failure, test_each_disabled_boundary_turns_its_guard_red[protected_marker_removed], fails identically on main f49ac6d9f (checked on a detached main checkout) and is fixed by #569. scripts/check_quality.py --base origin/main passed.",
+    "description": "Graphite's battery-only pod scoring moved behind a challenge-neutral ChallengeScoring port with battery as its first scoring. OWNER-GRAPHITE-TEST-WAVE-02 §3's pod worker-timeout rule is implemented: host-observed timing and lifecycle decide, pod files are evidence only, one retry, and repeated host-confirmed timeouts are an unscored candidate resource outcome."
+  },
+  "expected": "Battery's bytes stay unchanged through the port and the Attacker keeps working. The timeout rule can be enforced from evidence the candidate cannot write.",
+  "observed": "Battery moved without a byte changing. Defaulting to the only registered scoring, and refusing unnamed calls once a second registers, kept every Attacker call and monkeypatch working with no battery literal in Graphite. The evidence rule had a sharper consequence than the brief. The pinned EV4 study image runs the bootstrap, the supervisor and the program as one non-root user, so the supervisor's failure.json, its exit code and the /status server are all reachable by the program. No pod-side signal can be authority, and that holds for program failures as much as timeouts. A pod-claimed program failure became FAILED_INFRA (candidate_failure_unattributed) rather than CANDIDATE_FAILED. Host timing had to be built from the host's own poll times: a lower bound (last running poll minus first) confirms a timeout, and an upper bound (end poll minus the last pre-running poll) exposes an impossible claim. The span includes Carbon's own compile and pin check, so it can over-credit by that pre-run time and never under-credit. Three regressions surfaced only in tests: mutation tests that patched a renamed seam or an old signature, a test pinned to a module constant this PR made unused and removed, and a Black/ruff format disagreement on one assertion. The first canonical run caught the removed constant after the native run had passed; the native run predated the removal.",
+  "keep": [
+    "Move a Challenge's code behind a port by delegation, keeping every old call form, and pin byte-identity with tests on the moved values.",
+    "Make a no-name default refuse once it becomes ambiguous, instead of choosing a Challenge in shared code.",
+    "Decide what a pod's image actually separates before deciding which evidence can classify, and keep the admissible path behind a host-side record, never the pod's claim.",
+    "Confirm a failure that a teammate reports as 'already on main' on a detached main checkout before excluding it from a result."
+  ],
+  "change": [
+    "Grep tests for a module attribute before removing an import that looks unused; tests and other agents' adapters pin public names.",
+    "Rerun the canonical suite on the exact head being pushed after any edit, however small.",
+    "Write assertions so Black and ruff format agree: bind a long right-hand side to a local first."
+  ],
+  "protocol_elements": [
+    "construction scoring on Carbon's pods is one ChallengeScoring per Challenge, with no silent default",
+    "a pod run is typed by host-observed timing and lifecycle; pod-side files are evidence only",
+    "a worker timeout is retried once before any candidate outcome, and the retry is charged to the run",
+    "a pod image's supervisor/program separation is a host-side record, verified before any report is admissible"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
