@@ -43,8 +43,12 @@ def miner_budget(value: object) -> dict:
     return budget
 
 
-#: Who selects in a campaign. "none" is a person driving the whole journey.
-AGENTS = ("none", "autonomous")
+#: Who selects in a campaign. "none" is a person driving the whole journey;
+#: "graphite" is Graphite's miner edition (OWNER-GRAPHITE-MINER-01), which
+#: replaces "autonomous" for new launches at the launch doors. "autonomous"
+#: stays here so a recorded launch, a queued one and a frozen campaign still
+#: build and run unchanged.
+AGENTS = ("none", "autonomous", "graphite")
 
 
 @dataclass(frozen=True)

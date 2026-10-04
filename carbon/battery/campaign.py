@@ -30,6 +30,10 @@ Who selects:
   evaluator access. It is a paid campaign, so it needs the model-provider
   credential and a finite provider budget in the frozen manifest; its run plan
   (model, calls and trials per epoch, epochs) is recorded there too.
+- ``graphite``: Graphite's miner edition (OWNER-GRAPHITE-MINER-01), on the
+  same terms - the miner's capabilities, freeze and signed submission, no
+  evaluator access, a finite provider budget - with its frozen `graphite`
+  block (`graphite_plan`) and the miner's library read once at launch.
 """
 
 from __future__ import annotations
@@ -55,13 +59,21 @@ REPLICAS = {
 AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 
 
-def provider_plan(agent, budget, selection=None):
+def provider_plan(agent, budget, selection=None, graphite=None):
     """The finite run plan a battery campaign freezes in its manifest.
 
     `selection` is the miner's model selection; the pinned default records the
-    plan exactly as before selection existed, any other adds its record."""
+    plan exactly as before selection existed, any other adds its record.
+
+    `graphite` is the frozen block of a Graphite miner-edition campaign
+    (`carbon.agent_campaign.graphite.miner.driver.freeze_launch`), given only
+    with `agent="graphite"` (`graphite_plan`)."""
     if agent == "none":
         return {"agent": "none", "model_calls": 0}
+    if agent == "graphite":
+        return graphite_plan(budget, selection, graphite)
+    if graphite is not None:
+        raise ValueError("only a Graphite campaign freezes a Graphite block")
     from carbon.development_session import miner_guidance
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
@@ -111,6 +123,83 @@ def provider_plan(agent, budget, selection=None):
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
     return plan
+
+
+def graphite_plan(budget, selection, graphite):
+    """The run plan a Graphite miner-edition battery campaign freezes
+    (OWNER-GRAPHITE-MINER-01).
+
+    Everything an autonomous plan freezes - finite provider ceilings, the
+    model selection, `PARALLEL_CALLS_V2`, the miner-guidance rule and the
+    research tools rule, no evaluator access - with the miner edition's
+    policy and its `graphite` block (edition and its digest, mode, research
+    share, plan, hunt, curation and literature digests, the miner's limits,
+    no escalation), and the engine's limits (`LIMITS_V2`) for the Planner
+    and the Constructor and its compaction rule (`COMPACTION_V1`). There is
+    no per-epoch call or trial count unless the miner set one: the miner's
+    own ceilings bind."""
+    from carbon.agent_campaign.graphite.miner import edition
+    from carbon.development_session import miner_guidance
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        check_budget,
+    )
+    from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
+    from carbon.development_session.research_campaign import FINAL_EPOCHS
+    from carbon.development_session.research_tools import TOOLS_RULE
+
+    ceilings = (budget or {}).get("ceilings") or {}
+    if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
+        raise ValueError(
+            "a Graphite battery campaign needs finite provider_attempts and "
+            "provider_nanodollars ceilings"
+        )
+    if graphite is None:
+        raise ValueError("a Graphite plan freezes its launch block")
+    block = edition.check_block(graphite)
+    edition.resolve(block["edition"], block["edition_digest"])
+    selection = DEFAULT_SELECTION if selection is None else selection
+    check_budget(selection, ceilings)
+    limits = block["limits"]
+    plan = {
+        "agent": "graphite",
+        "policy": edition.agent_policy(),
+        "model": selection.model_id,
+        "epochs": len(FINAL_EPOCHS),
+        "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
+        "evaluator_access": False,
+        "parallel_calls": PARALLEL_CALLS_V2,
+        "miner_guidance": miner_guidance.RULE,
+        "research_tools": TOOLS_RULE,
+        "limits": {
+            "plan": edition.limits_rule(
+                limits.get("planner_calls"), limits.get("trials_per_epoch")
+            ),
+            "build": edition.limits_rule(
+                limits.get("calls_per_epoch"), limits.get("trials_per_epoch")
+            ),
+        },
+        "compaction": edition.compaction_rule(),
+        "graphite": block,
+    }
+    if not selection.is_historical_default:
+        plan["model_selection"] = selection.record()
+    return plan
+
+
+def _agent_policies(agent):
+    """The loop policies a battery agent campaign is prepared under. Every
+    Launchpad agent campaign is prepared under the autonomous policy; a
+    Graphite campaign's roles run under the miner edition's own policy
+    (`edition.AGENT_POLICY`), which its frozen plan records, so a door may
+    name either."""
+    from carbon.development_session.research_agent_policy import AUTONOMOUS
+
+    if agent == "graphite":
+        from carbon.agent_campaign.graphite.miner.edition import AGENT_POLICY
+
+        return (AUTONOMOUS, AGENT_POLICY)
+    return (AUTONOMOUS,)
 
 
 def plan_selection(args, plan):
@@ -238,6 +327,7 @@ def manifest_document(
     images,
     selection=None,
     feedback=FEEDBACK_FULL,
+    graphite=None,
 ):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
@@ -257,7 +347,12 @@ def manifest_document(
         "control": SCAFFOLD,
         "selection": SELECTION,
         "replica_policy": REPLICAS,
-        "provider": provider_plan(product.agent, product.budget, selection),
+        "provider": provider_plan(
+            product.agent,
+            product.budget,
+            selection,
+            **({} if graphite is None else {"graphite": graphite}),
+        ),
         "images": images,
         "new_network_transactions": 0,
         "feedback_mode": feedback_mode(feedback),
@@ -307,21 +402,41 @@ async def prepare_battery(args, *, ledger=None, campaign):
         raise ValueError("a battery campaign never consumes a development grant")
     agent = frozen["agent"] if frozen is not None else product.agent
     selection = None
+    graphite = None
     if agent != "none":
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
-        from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import supplied_selection
 
-        if getattr(args, "agent_policy", None) != AUTONOMOUS:
+        if getattr(args, "agent_policy", None) not in _agent_policies(agent):
             raise ValueError("a battery agent runs only under the autonomous policy")
         if frozen is None:
             selection = supplied_selection(args)
-            plan = provider_plan(agent, product.budget, selection)
+            if agent == "graphite":
+                # The miner's launch fields and library, read once and frozen
+                # with the plan (OWNER-GRAPHITE-MINER-01).
+                from carbon.agent_campaign.graphite.miner.driver import (
+                    freeze_launch,
+                )
+
+                graphite = freeze_launch(
+                    args,
+                    root,
+                    challenge={
+                        "id": CHALLENGE.challenge_id,
+                        "version": CHALLENGE.version,
+                    },
+                )
+            plan = provider_plan(
+                agent,
+                product.budget,
+                selection,
+                **({} if graphite is None else {"graphite": graphite}),
+            )
         else:
             plan = frozen["provider"]
             selection = plan_selection(args, plan)
-        if plan.get("agent") != "autonomous" or plan.get("evaluator_access"):
+        if plan.get("agent") != agent or plan.get("evaluator_access"):
             raise ValueError("the frozen battery agent plan is not runnable")
         private_file(args.api_key_file)
         if selection.is_historical_default:
@@ -390,6 +505,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             images=runtime["images"],
             selection=selection,
             feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
+            graphite=graphite,
         )
         write_once(manifest_path, canonical(manifest))
     else:
