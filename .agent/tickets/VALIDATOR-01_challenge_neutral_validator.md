@@ -1,7 +1,8 @@
 # VALIDATOR-01 — One challenge-neutral validator, battery as the first adapter
 
-**Status:** slice 1 merged in bounded DEVELOPMENT scope (#559, `de4bf912`).
-Slice 2 implemented in bounded DEVELOPMENT scope, awaiting review.
+**Status:** slices 1 and 2 merged in bounded DEVELOPMENT scope (#559,
+`de4bf912`; #573, `feb40756`). Slice 3 (VAL-D3) implemented in bounded
+DEVELOPMENT scope, awaiting review.
 **Authority:**
 - OWNER-GRAPHITE-TEST-WAVE-01 §3: "validator build needs to start soon and
   shouldn't be hard";
@@ -14,6 +15,8 @@ Slice 2 implemented in bounded DEVELOPMENT scope, awaiting review.
 - Slice 1: branch `claude/validator-core`, from main `5d963845`.
 - Slice 2: branch `claude/validator-scoring`, from main `f49ac6d9f` (after
   the Attacker, #563).
+- Slice 3: branch `claude/validator-intake`, from main `feb40756` (after
+  #573). The Test Lead approved it on 2026-10-04 and the owner said start it.
 
 ## Outcome
 
@@ -291,6 +294,49 @@ as sealed outside the pool is refused.
   the proposal record (`attempts`). A restart after any attempt closes the
   proposal `interrupted_not_rerun`, as before.
 
+### Slice 3 (VAL-D3)
+
+- **VAL-D15 — the neutral door is battery intake's front door.** Every
+  authenticated `battery_submit` passes `Validator.screen` before the inbox
+  sees it. `screen` is new on the dispatcher side. It runs `evaluate`'s
+  pre-dispatch checks and returns the adapter and the strictly parsed
+  submission, or a recorded `REFUSED` envelope. `note` records what a
+  queueing transport did with a screened submission.
+  - `ChallengeAdapter` interface v1 is unchanged, so the cooling and motor
+    adapters are unaffected. The miner surface gains `screen` and `note`,
+    which check and record and read no operator record.
+- **VAL-D16 — battery's worker and daemon are unchanged.** The intake queues
+  asynchronously, and its worker admits and advances through
+  `BatteryValidator` as before. Only the door moved. A submission that passes
+  the door is admitted, rebuilt and scored exactly as before, under the same
+  submission id, because strict parsing returns what `json.loads` did.
+- **VAL-D17 — the door's refusals change one behaviour on purpose.** A stale
+  or unknown contract digest, a non-object strategy or a cross-Challenge
+  strategy was admitted and recorded `INVALID_CONSTRUCTION`. It is now refused
+  at once with its closed code (400): `contract_not_served`,
+  `strategy_not_object`, `challenge_mismatch`. It is never queued, evaluated
+  or counted against the window. The closed set is `SCREEN_REFUSALS`.
+  - Every code has a miner-client explanation (`intake_client.REFUSALS`) and a
+    Launchpad next step (`miner_launchpad.supervisor.NEXT_ACTIONS`). The
+    campaign path classifies each as `REFUSED`: the miner acts.
+- **VAL-D18 — the attempt ledger records every attempt at the door.**
+  - **What it records:** each attempt as `REFUSED` (the door's codes, or the
+    v2 window), `UNAVAILABLE` (`inbox_full`) or `RECEIVED`, the last with its
+    submission id. That id joins the inbox and the daemon, so refusals no
+    longer vanish and the follow-up changed only where they are recorded.
+  - **Where it lives:** `<inbox>.attempts.sqlite3`, or the intake
+    configuration's new optional `attempt_ledger`. A ledger in a directory
+    that isn't owner-only refuses the start (exit 2). The service creates its
+    state directory owner-only.
+  - **Operations:** `status` reports counts by kind, and `backup` copies it as
+    `attempts.sqlite3`.
+  - **Required:** the door is a required `BatteryIntake` argument, so there is
+    no path past it.
+- **VAL-D19 — the in-process campaign path is untouched.**
+  `campaign.evaluate_candidate` without an intake still calls
+  `deployment.evaluate` directly. It is Carbon's own trusted path, and moving
+  it is a separate change if wanted.
+
 ## Slices
 
 1. **The neutral validator and the battery adapter** (this PR):
@@ -314,8 +360,22 @@ as sealed outside the pool is refused.
      into `Experiment.run` with one retry.
    - Tests: `tests/cpu/test_challenge_validator_scoring.py` and
      `tests/cpu/test_graphite_pod_timeout.py`.
-3. **Follow-up:** battery's intake, worker and validator service onto the
-   neutral `Validator` (VAL-D3).
+3. **Battery's intake onto the neutral `Validator` (VAL-D3)**, from main
+   `feb40756`.
+   - `carbon/challenge_validator/dispatch.py`: `Validator.screen` and `note`,
+     `Screened`, `SCREEN_REFUSALS`.
+   - `ledger.py`: the `RECEIVED` kind and `totals`.
+   - `carbon/battery/intake.py`: the door (`neutral_door`, `_screen`), the
+     attempt ledger (`attempt_ledger`, `attempt_ledger_path`, optional
+     `attempt_ledger` configuration) and the module docstring.
+   - `carbon/battery/intake_client.py` and
+     `scripts/dev/miner_launchpad/supervisor.py`: an explanation and a next
+     step for each door code.
+   - `scripts/dev/battery_validator_service/{service,backup}.py`: ledger
+     counts in `status`, and the ledger in `backup`.
+   - `docs/development/BATTERY_VALIDATOR_SERVICE_RUNBOOK.md` §7.
+   - Tests: `tests/cpu/test_battery_intake.py` (the door) and
+     `tests/cpu/test_challenge_validator_contract.py` (`screen` and `note`).
 
 ## Validation
 
