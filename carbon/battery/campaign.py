@@ -131,7 +131,8 @@ def graphite_plan(budget, selection, graphite):
 
     Everything an autonomous plan freezes - finite provider ceilings, the
     model selection, `PARALLEL_CALLS_V2`, the miner-guidance rule and the
-    research tools rule, no evaluator access - with the miner edition's
+    research tools rule, no evaluator access - with the argument
+    normalisation rule (LP-PROD-FIX-01), the miner edition's
     policy and its `graphite` block (edition and its digest, mode, research
     share, plan, hunt, curation and literature digests, the miner's limits,
     no escalation), and the engine's limits (`LIMITS_V2`) for the Planner
@@ -150,7 +151,10 @@ def graphite_plan(budget, selection, graphite):
     )
     from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
     from carbon.development_session.research_campaign import FINAL_EPOCHS
-    from carbon.development_session.research_tools import TOOLS_RULE
+    from carbon.development_session.research_tools import (
+        ARGUMENT_NORMALISATION,
+        TOOLS_RULE,
+    )
 
     ceilings = (budget or {}).get("ceilings") or {}
     if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
@@ -176,6 +180,11 @@ def graphite_plan(budget, selection, graphite):
         "parallel_calls": PARALLEL_CALLS_V2,
         "miner_guidance": miner_guidance.RULE,
         "research_tools": TOOLS_RULE,
+        # Frozen with a new Graphite plan (LP-PROD-FIX-01): a workspace
+        # call's strategy_json "null" reads as JSON null. A plan frozen
+        # earlier names no rule, refuses it as before and replays unchanged;
+        # the autonomous plan, which no new launch freezes, is left as it was.
+        "argument_normalisation": ARGUMENT_NORMALISATION,
         "limits": {
             "plan": edition.limits_rule(
                 limits.get("planner_calls"), limits.get("trials_per_epoch")

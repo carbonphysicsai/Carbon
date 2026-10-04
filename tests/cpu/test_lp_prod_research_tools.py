@@ -47,12 +47,16 @@ from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_ledger import VERSION, CampaignLedger
 from carbon.development_session.research_service import make_research_service
 from carbon.development_session.research_tools import (
+    ARGUMENT_NORMALISATION,
     PREFIX,
     TOOLS,
     TOOLS_RULE,
     TOOLS_V2,
     ResearchMinerTools,
+    campaign_argument_normalisation,
+    frozen_argument_normalisation,
     registered_correction,
+    task_correction,
     tools_for_sdk,
 )
 from carbon.miner_mcp.standard import AdapterFailure
@@ -1563,6 +1567,140 @@ def test_the_battery_discovery_says_what_the_tools_take():
     # Every example is a design check_design takes as is.
     for example in described["examples"]:
         assert check_design(example)["verdict"] == "submittable"
+
+
+# ---- 8. Argument normalisation, frozen with a new plan (LP-PROD-FIX-01).
+#
+# Smoke run 382c4276: Graphite's Planner sent strategy_json as the string
+# "null" on kind=workspace, was told three ways to send JSON null, and never
+# did. A campaign that freezes `ARGUMENT_NORMALISATION` reads that one value
+# as JSON null; a campaign frozen before it refuses it exactly as before.
+
+#: A Graphite plan as a new launch freezes it, and one frozen before the rule.
+NORMALISING = {
+    "agent": "graphite",
+    "research_tools": TOOLS_RULE,
+    "argument_normalisation": ARGUMENT_NORMALISATION,
+}
+FROZEN_BEFORE = {"agent": "graphite", "research_tools": TOOLS_RULE}
+
+
+def null_strategy(action, arguments):
+    """A workspace request whose strategy_json is the string "null"."""
+    return {**workspace(action, arguments), "strategy_json": "null"}
+
+
+def test_a_workspace_null_string_runs_under_the_frozen_rule(tmp_path):
+    sdk, meter, composition = sdk_for(tmp_path, provider=NORMALISING)
+    try:
+        sent = null_strategy("inventory", {})
+        identity = "lp-prod-fix-null-0001"
+        request = sdk._request("start_research_task", sent, identity)
+        # The request JSON null builds, byte for byte; what was sent is kept.
+        assert research.canonical_bytes(request) == research.canonical_bytes(
+            sdk._request("start_research_task", workspace("inventory", {}), identity)
+        )
+        assert sent["strategy_json"] == "null"
+        task = composition.tasks.start_research_task(request).task
+        done = composition.tasks.run_queued_task(task.task_id)
+        assert done.state is research.ResearchTaskState.SUCCEEDED
+    finally:
+        composition.tasks.close()
+
+
+@pytest.mark.parametrize("provider", [None, "test-only", FROZEN_BEFORE])
+def test_a_campaign_frozen_before_the_rule_refuses_null_as_before(
+    tmp_path, provider
+):
+    """No plan, a plan that is not an object, and a v2 plan frozen before
+    the rule: each refuses as the historical code did, the same record."""
+    sdk, meter, composition = sdk_for(tmp_path, provider=provider)
+    try:
+        assert campaign_argument_normalisation(meter) is None
+        sent = null_strategy("inventory", {})
+        result = refused(sdk, meter, sent)
+        assert (result["correction_code"], result["field"]) == (
+            "workspace_recipe_forbidden",
+            "strategy_json",
+        )
+        assert result["correction"] == task_correction(
+            "workspace_recipe_forbidden",
+            "strategy_json",
+            "null",
+            tool="start_research_task",
+        )
+        # A resend under the same operation id is answered the same.
+        assert refused(sdk, meter, sent) == result
+    finally:
+        composition.tasks.close()
+
+
+@pytest.mark.parametrize(
+    ("args", "code", "field"),
+    [
+        # kind=practice needs a recipe: "null" is still refused.
+        (
+            {
+                "kind": "practice",
+                "strategy_json": "null",
+                "action": None,
+                "arguments_json": None,
+            },
+            "practice_recipe_required",
+            "strategy_json",
+        ),
+        (
+            {
+                "kind": "practice",
+                "strategy_json": json.dumps({"backbone": "knn"}),
+                "action": None,
+                "arguments_json": "null",
+            },
+            "practice_recipe_required",
+            "arguments_json",
+        ),
+        # A workspace arguments_json is required: null is never its value,
+        # so "null" is not read as one.
+        (
+            {
+                "kind": "workspace",
+                "strategy_json": "null",
+                "action": "inventory",
+                "arguments_json": "null",
+            },
+            "json_object_required",
+            "arguments_json",
+        ),
+    ],
+)
+def test_the_rule_normalises_nothing_else(tmp_path, args, code, field):
+    sdk, meter, composition = sdk_for(tmp_path, provider=NORMALISING)
+    try:
+        sent = {
+            **args,
+            "hypothesis": "inspect the public inputs",
+            "expected_effect": "a corrected request",
+        }
+        result = refused(sdk, meter, sent)
+        assert (result["correction_code"], result["field"]) == (code, field)
+    finally:
+        composition.tasks.close()
+
+
+def test_the_rule_is_read_from_the_frozen_plan_and_changes_no_tool(tmp_path):
+    assert frozen_argument_normalisation({"provider": NORMALISING}) == (
+        ARGUMENT_NORMALISATION
+    )
+    for manifest in ({}, {"provider": "test-only"}, {"provider": FROZEN_BEFORE}):
+        assert frozen_argument_normalisation(manifest) is None
+    with pytest.raises(ValueError, match="unknown argument normalisation rule"):
+        frozen_argument_normalisation({"provider": {"argument_normalisation": "v9"}})
+    # The tools a campaign is offered are the ones it froze, byte for byte,
+    # with or without the rule: the rule changes no description or schema.
+    for name, provider in (("new", NORMALISING), ("before", FROZEN_BEFORE)):
+        sdk = SimpleNamespace(ledger=ledger(tmp_path / name, provider=provider))
+        assert tools_for_sdk(sdk) is TOOLS_V2
+    assert digest(canonical(TOOLS)) == HISTORICAL_TOOLS_DIGEST
 
 
 #: canonical(TOOLS) as origin/main had it before LP-PROD-D; pinned so a
