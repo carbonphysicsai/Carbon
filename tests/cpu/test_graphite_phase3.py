@@ -1254,7 +1254,7 @@ def test_a_brief_for_other_or_protected_material_is_refused(tmp_path):
     brief = phase3.session_brief(checkout_commit="1" * 40, budget=graphite.budget)
     other = json.loads(json.dumps(brief.initial_observation))
     other["challenge"] = {"id": "burgers-dynamics-v1", "version": "1.0"}
-    with pytest.raises(ProviderUnavailable, match="battery_development_only"):
+    with pytest.raises(ProviderUnavailable, match="phase3_challenge_not_served"):
         phase3.check_observation(other)
     unrebuildable = {**brief.initial_observation, "baseline_strategy": UNREBUILDABLE}
     with pytest.raises(ProviderUnavailable, match="baseline_not_rebuildable"):
@@ -1279,17 +1279,15 @@ def test_a_brief_for_other_or_protected_material_is_refused(tmp_path):
 
 
 def test_the_pods_receive_public_development_material_only():
-    assert all(
-        not any(f in path.lower() for f in pods.FORBIDDEN_DATA)
-        for path in pods.DATA_PATHS
-    )
+    data = pods.data_paths()
+    assert all(not any(f in path.lower() for f in pods.FORBIDDEN_DATA) for path in data)
     from carbon.battery.challenge import OCV_TABLE_PATH, TRAIN_V1_PATH
     from carbon.battery.practice import PRACTICE_SOURCE_PATH
 
-    assert set(pods.DATA_PATHS) == {TRAIN_V1_PATH, OCV_TABLE_PATH, PRACTICE_SOURCE_PATH}
+    assert set(data) == {TRAIN_V1_PATH, OCV_TABLE_PATH, PRACTICE_SOURCE_PATH}
     head = _head()
     shipped = pods.ship_list(head)
-    assert {p for p in shipped if p.startswith("docs/")} == set(pods.DATA_PATHS)
+    assert {p for p in shipped if p.startswith("docs/")} == set(data)
     assert not [p for p in shipped if p.startswith((".agent/", "tests/"))]
 
 
@@ -1389,7 +1387,7 @@ def test_the_code_ship_is_pod_controls_manifest():
     paths = [
         "carbon/battery/practice.py",
         "scripts/dev/exam_design/runpod/bootstrap.py",
-        pods.DATA_PATHS[1],
+        pods.data_paths()[1],
     ]
     assert pods.code_manifest(head, paths) == pod_control.code_manifest(head, paths)
 
@@ -1654,14 +1652,14 @@ def test_the_miner_path_attaches_only_to_battery_development():
     from carbon.battery.challenge import CHALLENGE
 
     good = {"challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}}
-    assert miner_path.check_battery_development(good) == good["challenge"]
+    assert miner_path.check_challenge(good) == good["challenge"]
     for manifest in (
         {"challenge": {"id": "burgers-dynamics-v1", "version": "1.0"}},
         {"challenge": {"id": CHALLENGE.challenge_id, "version": "9.9"}},
         {},
     ):
         with pytest.raises(miner_path.MinerPathRefused):
-            miner_path.check_battery_development(manifest)
+            miner_path.check_challenge(manifest)
 
 
 # -- the runner ------------------------------------------------------------------------------

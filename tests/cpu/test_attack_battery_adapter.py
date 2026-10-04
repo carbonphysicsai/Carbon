@@ -759,12 +759,14 @@ def _leaky_stager(m):
 
 
 def _rebuilt_field_dropped(m):
-    from carbon.agent_campaign.graphite import experiment
+    # The rebuild check's field list lives with the neutral scoring port
+    # (VALIDATOR-01 slice 2), which `experiment.rebuild_differences` is.
+    from carbon.challenge_validator import scoring
 
     m.setattr(
-        experiment,
+        scoring,
         "REBUILT_FIELDS",
-        tuple(f for f in experiment.REBUILT_FIELDS if f != "program"),
+        tuple(f for f in scoring.REBUILT_FIELDS if f != "program"),
     )
 
 

@@ -73,8 +73,8 @@ _ACCEPT_KEYS = ("ok", "accepted", "valid")
 #: Statuses that refuse a request, besides any `REFUSED*` or `REJECTED*`.
 _REFUSALS = frozenset({"INVALID", "UNAVAILABLE", "MINER_PATH_REFUSED", "ERROR"})
 #: Phase-3 proposal feedback statuses saying the construction ran on a pod:
-#: the path accepted it (`graphite.experiment`).
-POD_RAN = frozenset({"SCORED", "CANDIDATE_FAILED"})
+#: the path accepted it (`graphite.experiment`, `graphite.pod_outcome`).
+POD_RAN = frozenset({"SCORED", "CANDIDATE_FAILED", "CANDIDATE_RESOURCE_EXCEEDED"})
 #: The research loop's own refusal before dispatch (`research_loop.rejected_call`).
 LOOP_REJECTED = "REJECTED_BEFORE_DISPATCH"
 
