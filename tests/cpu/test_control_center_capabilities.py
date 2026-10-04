@@ -329,6 +329,8 @@ def test_primary_navigation_is_the_control_center_and_rehearsal_is_development()
     assert primary == [
         "Launchpad",
         "My Campaigns",
+        # Graphite's literature and plans (OWNER-GRAPHITE-MINER-01).
+        "Library",
         "Challenges",
         "Agents",
         "Compute",

@@ -156,6 +156,19 @@ class ReadbackFixture:
 
 
 LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
+#: Graphite's choices as the wizard starts them (GRAPHITE-MINER-S5): Full,
+#: a 10% research share, and no hunt (it spends the miner's money, so it is
+#: off until they turn it on).
+GRAPHITE_DEFAULTS = {
+    "graphite_mode": "FULL",
+    "research_share": 0.1,
+}
+#: The Carbon agent a launch picks: Graphite where the controller offers it,
+#: the autonomous agent on a controller that predates it.
+CARBON_AGENT = (
+    "document.querySelector('input[name=research-agent][value=graphite]')"
+    " ? 'graphite' : 'autonomous'"
+)
 
 
 def _challenges():
@@ -264,9 +277,13 @@ class ResearchFixture:
 
         return {
             "schema": "carbon.launchpad.launch-options.v1",
+            # Graphite replaces the autonomous agent for new launches
+            # (OWNER-GRAPHITE-MINER-01): a controller that offers it reads it
+            # here; one that predates it reads the autonomous agent.
             "agents": [
                 {"value": "none", "availability": "available"},
                 {"value": "autonomous", "availability": "available"},
+                {"value": "graphite", "availability": "available"},
             ],
             "families": [],
             "research_lanes": {
@@ -289,7 +306,10 @@ class ResearchFixture:
         # And the Challenge the person chose, exactly: there is no default.
         # And the model provider and model the person chose for the agent,
         # named on the launch; the credential stays in the runner profile.
-        assert value == {
+        # Graphite's launch also carries its default choices (Full, a 10%
+        # research share; no hunt), each only as the launch operation
+        # declares it.
+        expected = {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
             "agent": "autonomous",
@@ -298,7 +318,11 @@ class ResearchFixture:
             "challenge_version": BATTERY_CONTRACT.version,
             "model_provider": "openai-responses",
             "model": "gpt-5-mini-2025-08-07",
-        }, value
+        }
+        if value.get("agent") == "graphite":
+            expected["agent"] = "graphite"
+            expected.update({k: v for k, v in GRAPHITE_DEFAULTS.items() if k in value})
+        assert value == expected, value
         self.keys.add(key)
         if self.record is None:
             self.record = {
@@ -771,7 +795,14 @@ def run():
                         "document.getElementById('wizard-challenges').textContent"
                     )
                     assert "challenge not implemented" in reserved, reserved[:400]
-                    choose(session, "research-agent", "autonomous")
+                    agent = session.evaluate(CARBON_AGENT)
+                    if agent == "graphite":
+                        # Never both: Graphite replaces the autonomous agent.
+                        assert not session.evaluate(
+                            "Boolean(document.querySelector("
+                            "'input[name=research-agent][value=autonomous]'))"
+                        )
+                    choose(session, "research-agent", agent)
                     choose(
                         session,
                         "wizard-model",
@@ -1071,6 +1102,7 @@ def run():
                         assert [entry[1] for entry in json.loads(listed)] == [
                             "Launchpad",
                             "My Campaigns",
+                            "Library",
                             "Challenges",
                             "Agents",
                             "Compute",
@@ -1102,6 +1134,23 @@ def run():
                             time.sleep(0.05)
                         assert session.evaluate("location.hash") == "#campaigns", width
                         wait(session, "!document.getElementById('campaigns').hidden")
+                        # Graphite's Library (GRAPHITE-MINER-S5): its script is
+                        # served and runs, and its view says what this
+                        # controller offers, in reach at every width.
+                        assert session.evaluate(
+                            "typeof window.CarbonLibrary === 'object'"
+                        ), "library_view.js did not run: the controller must serve it"
+                        goto(session, "#library/plans")
+                        wait(
+                            session,
+                            "document.getElementById('library-body').textContent.trim().length > 0"
+                            " && document.querySelector('#library-tabs a[aria-current]')"
+                            ".textContent === 'Plans'",
+                        )
+                        assert session.evaluate(
+                            "document.querySelector('#library-tabs a[aria-current]')"
+                            ".getBoundingClientRect().height >= 44"
+                        ), width
                         # A campaign's deep link opens that campaign.
                         goto(session, campaign_hash)
                         wait(
@@ -1202,7 +1251,12 @@ def journey():
                     # would fail later.
                     wait(
                         session,
-                        "document.querySelector('input[name=research-agent][value=autonomous]').disabled",
+                        "Boolean(document.querySelector('input[name=research-agent]'))",
+                    )
+                    agent = session.evaluate(CARBON_AGENT)
+                    wait(
+                        session,
+                        f"document.querySelector('input[name=research-agent][value={agent}]').disabled",
                     )
                     assert "provider key not configured" in session.evaluate(
                         "document.getElementById('research-selects').textContent"
@@ -1212,7 +1266,7 @@ def journey():
                     # with the reason, and the composition is left unchanged.
                     session.evaluate(
                         "localStorage.setItem('carbon.launchpad.launch-templates.v1',"
-                        " JSON.stringify({'with agent': {agent: 'autonomous'}}))"
+                        f" JSON.stringify({{'with agent': {{agent: '{agent}'}}}}))"
                     )
                     session.evaluate(
                         "document.getElementById('template-pick').dataset.names = ''"
@@ -1225,10 +1279,10 @@ def journey():
                     wait(
                         session,
                         "document.getElementById('message').textContent.includes("
-                        "'not loaded: the autonomous agent is unavailable: model provider key not configured')",
+                        f"'not loaded: the {agent} agent is unavailable: model provider key not configured')",
                     )
                     assert not session.evaluate(
-                        "document.querySelector('input[name=research-agent][value=autonomous]').checked"
+                        f"document.querySelector('input[name=research-agent][value={agent}]').checked"
                     )
                     # The fixture host registers the DEVELOPMENT-FIXTURE
                     # reference Challenge (journey_fixture); Burgers itself is
@@ -1609,9 +1663,13 @@ def setup_journey():
                     " && [...document.querySelectorAll('#setup-agent-connect button')]"
                     ".every(b => b.type === 'button')"
                 )
+                # Setup's Carbon agent: Graphite where setup offers it
+                # (carbon-graphite), the autonomous agent before.
                 session.evaluate(
-                    "document.getElementById('setup-agent-choice').value = 'carbon-autonomous';"
-                    "document.getElementById('setup-agent-choice').dispatchEvent(new Event('change'));"
+                    "(() => { const choice = document.getElementById('setup-agent-choice');"
+                    " choice.value = [...choice.options].some(o => o.value === 'carbon-graphite')"
+                    " ? 'carbon-graphite' : 'carbon-autonomous';"
+                    " choice.dispatchEvent(new Event('change')); })()"
                 )
                 # External signing: the Agent step asks for no hotkey file
                 # and no password; it only asks the miner's signer.
