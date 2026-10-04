@@ -1,0 +1,4284 @@
+{
+  "analysis_policy": {
+    "combined_weighting": null,
+    "confidence_interval": "Wilson 95% binomial interval",
+    "group_policy": "REPORT_REPRESENTATIVE_AND_BOUNDARY_STRESS_SEPARATELY",
+    "pass_threshold": null,
+    "regret_policy": {
+      "abstention": "numeric regret unavailable; classify ABSTAIN",
+      "reference_feasible_selection": "selected minus finite-set comparator; lower is better",
+      "reference_infeasible_selection": "numeric regret unavailable; classify INFEASIBLE_SELECTION",
+      "unresolved_reference": "numeric regret unavailable; classify REFERENCE_UNRESOLVED"
+    },
+    "regret_quantity": "worst-case reference hydraulic power in W"
+  },
+  "arms": [
+    {
+      "arm_id": "analytic-v1/fixed_grid",
+      "baseline_comparison": {
+        "baseline_arm": "analytic-v1/fixed_grid",
+        "selected_geometry_same": true
+      },
+      "declared_query_budget": 48,
+      "end_to_end_wall_s": 0.20335279599385103,
+      "method": "fixed_grid",
+      "model": "analytic-v1",
+      "model_inference_wall_s": 0.19475553099618992,
+      "model_query_attempts": 48,
+      "model_query_successes": 48,
+      "regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "scenarios": [
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 800.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.05845282259778636,
+            "quantity": "hydraulic_power",
+            "reference": 0.05845282259778636,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.0
+          },
+          "prediction": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.5,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08058797072481673,
+            "quantity": "hydraulic_power",
+            "reference": 0.08058797072481673,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.12466262629494432,
+            "quantity": "hydraulic_power",
+            "reference": 0.12466262629494432,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-03",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08015312736793802,
+            "quantity": "hydraulic_power",
+            "reference": 0.08015312736793802,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-04",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.11317585048988456,
+            "quantity": "hydraulic_power",
+            "reference": 0.11317585048988456,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 6.0,
+            "hotspot_ratio": 2.5,
+            "hotspot_width_mm": 1.75,
+            "inlet_c": 45.0
+          },
+          "engineering_cost": {
+            "predicted": 0.07244799906913946,
+            "quantity": "hydraulic_power",
+            "reference": 0.07244799906913946,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        }
+      ],
+      "search_wall_s": 0.19744237199483905,
+      "selection": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "predicted_worst_hydraulic_w": 0.12466262629494432
+      },
+      "status": "PROPOSAL",
+      "verification": {
+        "challenge": "chip-cold-plate",
+        "claims": {
+          "best_design_is_global_optimum": false,
+          "customer_acceptance": false,
+          "production_qualification": false,
+          "scientific_qualification": false,
+          "unavailable_counted_as_feasible_or_infeasible": false
+        },
+        "commitment_digest": "sha256:17668cf879997783cd6507b997dde06303eb16e033d32f7da981d6ea3af50daf",
+        "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+        "counted_cfd_evidence": false,
+        "false_feasible": false,
+        "material": "DEVELOPMENT",
+        "reference_evidence_class": "ANALYTICAL_FIXTURE",
+        "reference_jobs": 6,
+        "reference_session_metrics": {
+          "cached_cases": 48,
+          "campaign_wall_s": 0.0,
+          "condition_budget": 72,
+          "condition_evaluations": 54,
+          "evidence_class": "ANALYTICAL_FIXTURE",
+          "retries": 0,
+          "solver_executions": 0,
+          "solver_wall_s": 0.0,
+          "source_calls": 1
+        },
+        "request_digest": "sha256:13e9ead9ff1905c3a80bab0957f301738a7aae3140e2ff3855af83b3af7c0a64",
+        "rows": [
+          {
+            "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
+            "reference": {
+              "die_margin_c": 32.08869612860748,
+              "die_peak_c": 67.91130387139252,
+              "feasible": true,
+              "hydraulic_margin_w": 0.19154717740221364,
+              "hydraulic_w": 0.05845282259778636,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
+            "reference": {
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
+              "feasible": true,
+              "hydraulic_margin_w": 0.16941202927518328,
+              "hydraulic_w": 0.08058797072481673,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
+            "reference": {
+              "die_margin_c": 13.942647115314514,
+              "die_peak_c": 86.05735288468549,
+              "feasible": true,
+              "hydraulic_margin_w": 0.12533737370505568,
+              "hydraulic_w": 0.12466262629494432,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
+            "reference": {
+              "die_margin_c": 16.296471430399507,
+              "die_peak_c": 83.7035285696005,
+              "feasible": true,
+              "hydraulic_margin_w": 0.169846872632062,
+              "hydraulic_w": 0.08015312736793802,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
+            "reference": {
+              "die_margin_c": 9.082133450361027,
+              "die_peak_c": 90.91786654963897,
+              "feasible": true,
+              "hydraulic_margin_w": 0.13682414951011546,
+              "hydraulic_w": 0.11317585048988456,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
+            "reference": {
+              "die_margin_c": 10.104857523595257,
+              "die_peak_c": 89.89514247640474,
+              "feasible": true,
+              "hydraulic_margin_w": 0.17755200093086054,
+              "hydraulic_w": 0.07244799906913946,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          }
+        ],
+        "schema": "carbon.cold-plate.design-search-result.v2",
+        "scope": "periodic-straight-channel-cell-v1",
+        "status": "PROPOSAL",
+        "verdicts": {
+          "FEASIBLE": 6,
+          "INFEASIBLE": 0,
+          "REFERENCE_UNAVAILABLE": 0
+        },
+        "verification_accounting": {
+          "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+          "cache_hits": 6,
+          "cache_misses": 0,
+          "condition_evaluations": 6
+        }
+      }
+    },
+    {
+      "arm_id": "analytic-v1/screen_then_confirm",
+      "baseline_comparison": {
+        "baseline_arm": "analytic-v1/fixed_grid",
+        "selected_geometry_same": true
+      },
+      "declared_query_budget": 48,
+      "end_to_end_wall_s": 0.05892699999822071,
+      "method": "screen_then_confirm",
+      "model": "analytic-v1",
+      "model_inference_wall_s": 0.05593560400302522,
+      "model_query_attempts": 13,
+      "model_query_successes": 13,
+      "regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "scenarios": [
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 800.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.05845282259778636,
+            "quantity": "hydraulic_power",
+            "reference": 0.05845282259778636,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.0
+          },
+          "prediction": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.5,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08058797072481673,
+            "quantity": "hydraulic_power",
+            "reference": 0.08058797072481673,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.12466262629494432,
+            "quantity": "hydraulic_power",
+            "reference": 0.12466262629494432,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-03",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08015312736793802,
+            "quantity": "hydraulic_power",
+            "reference": 0.08015312736793802,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-04",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.11317585048988456,
+            "quantity": "hydraulic_power",
+            "reference": 0.11317585048988456,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.0,
+            "predicted_hydraulic_margin_delta_w": 0.0,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 6.0,
+            "hotspot_ratio": 2.5,
+            "hotspot_width_mm": 1.75,
+            "inlet_c": 45.0
+          },
+          "engineering_cost": {
+            "predicted": 0.07244799906913946,
+            "quantity": "hydraulic_power",
+            "reference": 0.07244799906913946,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        }
+      ],
+      "search_wall_s": 0.057023699999263044,
+      "selection": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "predicted_worst_hydraulic_w": 0.12466262629494432
+      },
+      "status": "PROPOSAL",
+      "verification": {
+        "challenge": "chip-cold-plate",
+        "claims": {
+          "best_design_is_global_optimum": false,
+          "customer_acceptance": false,
+          "production_qualification": false,
+          "scientific_qualification": false,
+          "unavailable_counted_as_feasible_or_infeasible": false
+        },
+        "commitment_digest": "sha256:20fdec80d3340d0e1e19beb1c90d9d0a7a9bee6266c3687eef5f858904a56fcc",
+        "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+        "counted_cfd_evidence": false,
+        "false_feasible": false,
+        "material": "DEVELOPMENT",
+        "reference_evidence_class": "ANALYTICAL_FIXTURE",
+        "reference_jobs": 6,
+        "reference_session_metrics": {
+          "cached_cases": 48,
+          "campaign_wall_s": 0.0,
+          "condition_budget": 72,
+          "condition_evaluations": 60,
+          "evidence_class": "ANALYTICAL_FIXTURE",
+          "retries": 0,
+          "solver_executions": 0,
+          "solver_wall_s": 0.0,
+          "source_calls": 1
+        },
+        "request_digest": "sha256:fdf54a8a2b57e6785a8df3964882466c66246f2714ca6301d52fa55f6a665155",
+        "rows": [
+          {
+            "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
+            "reference": {
+              "die_margin_c": 32.08869612860748,
+              "die_peak_c": 67.91130387139252,
+              "feasible": true,
+              "hydraulic_margin_w": 0.19154717740221364,
+              "hydraulic_w": 0.05845282259778636,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
+            "reference": {
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
+              "feasible": true,
+              "hydraulic_margin_w": 0.16941202927518328,
+              "hydraulic_w": 0.08058797072481673,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
+            "reference": {
+              "die_margin_c": 13.942647115314514,
+              "die_peak_c": 86.05735288468549,
+              "feasible": true,
+              "hydraulic_margin_w": 0.12533737370505568,
+              "hydraulic_w": 0.12466262629494432,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
+            "reference": {
+              "die_margin_c": 16.296471430399507,
+              "die_peak_c": 83.7035285696005,
+              "feasible": true,
+              "hydraulic_margin_w": 0.169846872632062,
+              "hydraulic_w": 0.08015312736793802,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
+            "reference": {
+              "die_margin_c": 9.082133450361027,
+              "die_peak_c": 90.91786654963897,
+              "feasible": true,
+              "hydraulic_margin_w": 0.13682414951011546,
+              "hydraulic_w": 0.11317585048988456,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
+            "reference": {
+              "die_margin_c": 10.104857523595257,
+              "die_peak_c": 89.89514247640474,
+              "feasible": true,
+              "hydraulic_margin_w": 0.17755200093086054,
+              "hydraulic_w": 0.07244799906913946,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          }
+        ],
+        "schema": "carbon.cold-plate.design-search-result.v2",
+        "scope": "periodic-straight-channel-cell-v1",
+        "status": "PROPOSAL",
+        "verdicts": {
+          "FEASIBLE": 6,
+          "INFEASIBLE": 0,
+          "REFERENCE_UNAVAILABLE": 0
+        },
+        "verification_accounting": {
+          "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+          "cache_hits": 6,
+          "cache_misses": 0,
+          "condition_evaluations": 6
+        }
+      }
+    },
+    {
+      "arm_id": "learned-krr-v1/fixed_grid",
+      "baseline_comparison": {
+        "baseline_arm": "analytic-v1/fixed_grid",
+        "selected_geometry_same": true
+      },
+      "declared_query_budget": 48,
+      "end_to_end_wall_s": 0.007189671996457037,
+      "method": "fixed_grid",
+      "model": "learned-krr-v1",
+      "model_inference_wall_s": 0.002330294002604205,
+      "model_query_attempts": 48,
+      "model_query_successes": 48,
+      "regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "scenarios": [
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.6663739467586112,
+            "predicted_hydraulic_margin_delta_w": -0.001348023637609469,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 800.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.05980084623539583,
+            "quantity": "hydraulic_power",
+            "reference": 0.05845282259778636,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.0
+          },
+          "prediction": {
+            "die_margin_c": 32.75507007536609,
+            "die_peak_c": 67.24492992463391,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19019915376460417,
+            "hydraulic_w": 0.05980084623539583,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": -1.4756789749816193,
+            "predicted_hydraulic_margin_delta_w": -0.0033568275225267508,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.5,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08394479824734348,
+            "quantity": "hydraulic_power",
+            "reference": 0.08058797072481673,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 20.193019254634535,
+            "die_peak_c": 79.80698074536546,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16605520175265653,
+            "hydraulic_w": 0.08394479824734348,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 1.672789201993794,
+            "predicted_hydraulic_margin_delta_w": -0.005132719234871824,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.12979534552981614,
+            "quantity": "hydraulic_power",
+            "reference": 0.12466262629494432,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 15.615436317308308,
+            "die_peak_c": 84.38456368269169,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12020465447018386,
+            "hydraulic_w": 0.12979534552981614,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-03",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 2.070939075689566,
+            "predicted_hydraulic_margin_delta_w": -0.0027020617644081257,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08285518913234612,
+            "quantity": "hydraulic_power",
+            "reference": 0.08015312736793802,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 18.367410506089072,
+            "die_peak_c": 81.63258949391093,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16714481086765387,
+            "hydraulic_w": 0.08285518913234612,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-04",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 2.4942641167922233,
+            "predicted_hydraulic_margin_delta_w": -0.004445013968016831,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.11762086445790138,
+            "quantity": "hydraulic_power",
+            "reference": 0.11317585048988456,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 11.57639756715325,
+            "die_peak_c": 88.42360243284675,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13237913554209862,
+            "hydraulic_w": 0.11762086445790138,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": -3.4621798064811884,
+            "predicted_hydraulic_margin_delta_w": -0.0008447047868780921,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 6.0,
+            "hotspot_ratio": 2.5,
+            "hotspot_width_mm": 1.75,
+            "inlet_c": 45.0
+          },
+          "engineering_cost": {
+            "predicted": 0.07329270385601754,
+            "quantity": "hydraulic_power",
+            "reference": 0.07244799906913946,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 6.6426777171140685,
+            "die_peak_c": 93.35732228288593,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17670729614398245,
+            "hydraulic_w": 0.07329270385601754,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        }
+      ],
+      "search_wall_s": 0.0048171609960263595,
+      "selection": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "predicted_worst_hydraulic_w": 0.12979534552981614
+      },
+      "status": "PROPOSAL",
+      "verification": {
+        "challenge": "chip-cold-plate",
+        "claims": {
+          "best_design_is_global_optimum": false,
+          "customer_acceptance": false,
+          "production_qualification": false,
+          "scientific_qualification": false,
+          "unavailable_counted_as_feasible_or_infeasible": false
+        },
+        "commitment_digest": "sha256:a5ed3cb509a3f5bf3babfc3fc8e54d96c2fb4cd502c2eddb6257a0a18f760e19",
+        "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+        "counted_cfd_evidence": false,
+        "false_feasible": false,
+        "material": "DEVELOPMENT",
+        "reference_evidence_class": "ANALYTICAL_FIXTURE",
+        "reference_jobs": 6,
+        "reference_session_metrics": {
+          "cached_cases": 48,
+          "campaign_wall_s": 0.0,
+          "condition_budget": 72,
+          "condition_evaluations": 66,
+          "evidence_class": "ANALYTICAL_FIXTURE",
+          "retries": 0,
+          "solver_executions": 0,
+          "solver_wall_s": 0.0,
+          "source_calls": 1
+        },
+        "request_digest": "sha256:c20ee15dc2a6663c5eafcb6a16479fd20920a4e96e1dfe3654e62a6080868840",
+        "rows": [
+          {
+            "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
+            "reference": {
+              "die_margin_c": 32.08869612860748,
+              "die_peak_c": 67.91130387139252,
+              "feasible": true,
+              "hydraulic_margin_w": 0.19154717740221364,
+              "hydraulic_w": 0.05845282259778636,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
+            "reference": {
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
+              "feasible": true,
+              "hydraulic_margin_w": 0.16941202927518328,
+              "hydraulic_w": 0.08058797072481673,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
+            "reference": {
+              "die_margin_c": 13.942647115314514,
+              "die_peak_c": 86.05735288468549,
+              "feasible": true,
+              "hydraulic_margin_w": 0.12533737370505568,
+              "hydraulic_w": 0.12466262629494432,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
+            "reference": {
+              "die_margin_c": 16.296471430399507,
+              "die_peak_c": 83.7035285696005,
+              "feasible": true,
+              "hydraulic_margin_w": 0.169846872632062,
+              "hydraulic_w": 0.08015312736793802,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
+            "reference": {
+              "die_margin_c": 9.082133450361027,
+              "die_peak_c": 90.91786654963897,
+              "feasible": true,
+              "hydraulic_margin_w": 0.13682414951011546,
+              "hydraulic_w": 0.11317585048988456,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
+            "reference": {
+              "die_margin_c": 10.104857523595257,
+              "die_peak_c": 89.89514247640474,
+              "feasible": true,
+              "hydraulic_margin_w": 0.17755200093086054,
+              "hydraulic_w": 0.07244799906913946,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          }
+        ],
+        "schema": "carbon.cold-plate.design-search-result.v2",
+        "scope": "periodic-straight-channel-cell-v1",
+        "status": "PROPOSAL",
+        "verdicts": {
+          "FEASIBLE": 6,
+          "INFEASIBLE": 0,
+          "REFERENCE_UNAVAILABLE": 0
+        },
+        "verification_accounting": {
+          "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+          "cache_hits": 6,
+          "cache_misses": 0,
+          "condition_evaluations": 6
+        }
+      }
+    },
+    {
+      "arm_id": "learned-krr-v1/screen_then_confirm",
+      "baseline_comparison": {
+        "baseline_arm": "analytic-v1/fixed_grid",
+        "selected_geometry_same": true
+      },
+      "declared_query_budget": 48,
+      "end_to_end_wall_s": 0.003788393994909711,
+      "method": "screen_then_confirm",
+      "model": "learned-krr-v1",
+      "model_inference_wall_s": 0.0008917539962567389,
+      "model_query_attempts": 18,
+      "model_query_successes": 18,
+      "regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "scenarios": [
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 0.6663739467586112,
+            "predicted_hydraulic_margin_delta_w": -0.001348023637609469,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 800.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.05980084623539583,
+            "quantity": "hydraulic_power",
+            "reference": 0.05845282259778636,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.0
+          },
+          "prediction": {
+            "die_margin_c": 32.75507007536609,
+            "die_peak_c": 67.24492992463391,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19019915376460417,
+            "hydraulic_w": 0.05980084623539583,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 32.08869612860748,
+            "die_peak_c": 67.91130387139252,
+            "feasible": true,
+            "hydraulic_margin_w": 0.19154717740221364,
+            "hydraulic_w": 0.05845282259778636,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": -1.4756789749816193,
+            "predicted_hydraulic_margin_delta_w": -0.0033568275225267508,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 15.0,
+            "hotspot_ratio": 1.5,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08394479824734348,
+            "quantity": "hydraulic_power",
+            "reference": 0.08058797072481673,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 20.193019254634535,
+            "die_peak_c": 79.80698074536546,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16605520175265653,
+            "hydraulic_w": 0.08394479824734348,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16941202927518328,
+            "hydraulic_w": 0.08058797072481673,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 1.672789201993794,
+            "predicted_hydraulic_margin_delta_w": -0.005132719234871824,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 35.0
+          },
+          "engineering_cost": {
+            "predicted": 0.12979534552981614,
+            "quantity": "hydraulic_power",
+            "reference": 0.12466262629494432,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 15.615436317308308,
+            "die_peak_c": 84.38456368269169,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12020465447018386,
+            "hydraulic_w": 0.12979534552981614,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 13.942647115314514,
+            "die_peak_c": 86.05735288468549,
+            "feasible": true,
+            "hydraulic_margin_w": 0.12533737370505568,
+            "hydraulic_w": 0.12466262629494432,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-03",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 2.070939075689566,
+            "predicted_hydraulic_margin_delta_w": -0.0027020617644081257,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.08285518913234612,
+            "quantity": "hydraulic_power",
+            "reference": 0.08015312736793802,
+            "unit": "W"
+          },
+          "group": "REPRESENTATIVE",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 18.367410506089072,
+            "die_peak_c": 81.63258949391093,
+            "feasible": true,
+            "hydraulic_margin_w": 0.16714481086765387,
+            "hydraulic_w": 0.08285518913234612,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 16.296471430399507,
+            "die_peak_c": 83.7035285696005,
+            "feasible": true,
+            "hydraulic_margin_w": 0.169846872632062,
+            "hydraulic_w": 0.08015312736793802,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "rep-04",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": 2.4942641167922233,
+            "predicted_hydraulic_margin_delta_w": -0.004445013968016831,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1200.0,
+            "hotspot_center_mm": 12.0,
+            "hotspot_ratio": 2.0,
+            "hotspot_width_mm": 2.5,
+            "inlet_c": 40.0
+          },
+          "engineering_cost": {
+            "predicted": 0.11762086445790138,
+            "quantity": "hydraulic_power",
+            "reference": 0.11317585048988456,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.5
+          },
+          "prediction": {
+            "die_margin_c": 11.57639756715325,
+            "die_peak_c": 88.42360243284675,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13237913554209862,
+            "hydraulic_w": 0.11762086445790138,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 9.082133450361027,
+            "die_peak_c": 90.91786654963897,
+            "feasible": true,
+            "hydraulic_margin_w": 0.13682414951011546,
+            "hydraulic_w": 0.11317585048988456,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-01",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        },
+        {
+          "baseline_comparison": {
+            "baseline_arm": "analytic-v1/fixed_grid",
+            "predicted_die_margin_delta_c": -3.4621798064811884,
+            "predicted_hydraulic_margin_delta_w": -0.0008447047868780921,
+            "selected_geometry_same": true
+          },
+          "condition": {
+            "heat_load_w": 1000.0,
+            "hotspot_center_mm": 6.0,
+            "hotspot_ratio": 2.5,
+            "hotspot_width_mm": 1.75,
+            "inlet_c": 45.0
+          },
+          "engineering_cost": {
+            "predicted": 0.07329270385601754,
+            "quantity": "hydraulic_power",
+            "reference": 0.07244799906913946,
+            "unit": "W"
+          },
+          "group": "BOUNDARY_STRESS",
+          "operating_control": {
+            "policy": "steady-state-feed-forward-flow-per-heat",
+            "total_flow_lpm": 1.25
+          },
+          "prediction": {
+            "die_margin_c": 6.6426777171140685,
+            "die_peak_c": 93.35732228288593,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17670729614398245,
+            "hydraulic_w": 0.07329270385601754,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference": {
+            "die_margin_c": 10.104857523595257,
+            "die_peak_c": 89.89514247640474,
+            "feasible": true,
+            "hydraulic_margin_w": 0.17755200093086054,
+            "hydraulic_w": 0.07244799906913946,
+            "prediction_validity_gates": {
+              "face_above_inlet": "PASS",
+              "paired_repeat": "NOT_APPLICABLE",
+              "peak_bounds_profile": "PASS",
+              "pressure_drop_positive": "PASS",
+              "schema_finite": "PASS"
+            }
+          },
+          "reference_status": "OK",
+          "reference_verdict": "FEASIBLE",
+          "scenario_id": "boundary-02",
+          "selected_geometry": {
+            "channel_depth_mm": 2.5,
+            "channel_width_mm": 0.25,
+            "fin_width_mm": 0.3,
+            "flow_lpm_per_kw": 1.25
+          }
+        }
+      ],
+      "search_wall_s": 0.0019507139950292185,
+      "selection": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25,
+        "predicted_worst_hydraulic_w": 0.12979534552981614
+      },
+      "status": "PROPOSAL",
+      "verification": {
+        "challenge": "chip-cold-plate",
+        "claims": {
+          "best_design_is_global_optimum": false,
+          "customer_acceptance": false,
+          "production_qualification": false,
+          "scientific_qualification": false,
+          "unavailable_counted_as_feasible_or_infeasible": false
+        },
+        "commitment_digest": "sha256:7293b87b6b30db7039c3c84c8c7d515f312c6a2c0e0040e99745b11a1f83b1fa",
+        "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+        "counted_cfd_evidence": false,
+        "false_feasible": false,
+        "material": "DEVELOPMENT",
+        "reference_evidence_class": "ANALYTICAL_FIXTURE",
+        "reference_jobs": 6,
+        "reference_session_metrics": {
+          "cached_cases": 48,
+          "campaign_wall_s": 0.0,
+          "condition_budget": 72,
+          "condition_evaluations": 72,
+          "evidence_class": "ANALYTICAL_FIXTURE",
+          "retries": 0,
+          "solver_executions": 0,
+          "solver_wall_s": 0.0,
+          "source_calls": 1
+        },
+        "request_digest": "sha256:5ebe4181c47a98eb3224cd35f21756109f8aac0497c9f1c482073fdfb9ec2bf8",
+        "rows": [
+          {
+            "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
+            "reference": {
+              "die_margin_c": 32.08869612860748,
+              "die_peak_c": 67.91130387139252,
+              "feasible": true,
+              "hydraulic_margin_w": 0.19154717740221364,
+              "hydraulic_w": 0.05845282259778636,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
+            "reference": {
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
+              "feasible": true,
+              "hydraulic_margin_w": 0.16941202927518328,
+              "hydraulic_w": 0.08058797072481673,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
+            "reference": {
+              "die_margin_c": 13.942647115314514,
+              "die_peak_c": 86.05735288468549,
+              "feasible": true,
+              "hydraulic_margin_w": 0.12533737370505568,
+              "hydraulic_w": 0.12466262629494432,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
+            "reference": {
+              "die_margin_c": 16.296471430399507,
+              "die_peak_c": 83.7035285696005,
+              "feasible": true,
+              "hydraulic_margin_w": 0.169846872632062,
+              "hydraulic_w": 0.08015312736793802,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
+            "reference": {
+              "die_margin_c": 9.082133450361027,
+              "die_peak_c": 90.91786654963897,
+              "feasible": true,
+              "hydraulic_margin_w": 0.13682414951011546,
+              "hydraulic_w": 0.11317585048988456,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          },
+          {
+            "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
+            "reference": {
+              "die_margin_c": 10.104857523595257,
+              "die_peak_c": 89.89514247640474,
+              "feasible": true,
+              "hydraulic_margin_w": 0.17755200093086054,
+              "hydraulic_w": 0.07244799906913946,
+              "prediction_validity_gates": {
+                "face_above_inlet": "PASS",
+                "paired_repeat": "NOT_APPLICABLE",
+                "peak_bounds_profile": "PASS",
+                "pressure_drop_positive": "PASS",
+                "schema_finite": "PASS"
+              }
+            },
+            "reference_provenance": {
+              "counted_cfd": false,
+              "evidence_class": "ANALYTICAL_FIXTURE",
+              "session_id": "ai-accelerator-cooling-synthetic-v1-analytical-fixture"
+            },
+            "reference_status": "OK",
+            "verdict": "FEASIBLE"
+          }
+        ],
+        "schema": "carbon.cold-plate.design-search-result.v2",
+        "scope": "periodic-straight-channel-cell-v1",
+        "status": "PROPOSAL",
+        "verdicts": {
+          "FEASIBLE": 6,
+          "INFEASIBLE": 0,
+          "REFERENCE_UNAVAILABLE": 0
+        },
+        "verification_accounting": {
+          "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+          "cache_hits": 6,
+          "cache_misses": 0,
+          "condition_evaluations": 6
+        }
+      }
+    }
+  ],
+  "claims": {
+    "customer_acceptance": false,
+    "global_optimum": false,
+    "live_authority": false,
+    "production_qualification": false,
+    "scientific_qualification": false,
+    "synthetic_customer_requirement": true
+  },
+  "comparator": {
+    "accounting": {
+      "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+      "cache_hits": 0,
+      "cache_misses": 48,
+      "condition_evaluations": 48
+    },
+    "best": {
+      "design_id": "d03",
+      "geometry": {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25
+      },
+      "reference_feasible_all_conditions": true,
+      "resolved_all_conditions": true,
+      "worst_reference_hydraulic_w": 0.12466262629494432
+    },
+    "coverage": {
+      "condition_evidence": 48,
+      "conditions_per_design": 6,
+      "designs": 8,
+      "fully_resolved_designs": 8,
+      "resolved_condition_evidence": 48
+    },
+    "definition": "best reference-feasible design in the declared eight-design by six-condition comparison set",
+    "designs": [
+      {
+        "design_id": "d01",
+        "geometry": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25
+        },
+        "reference_feasible_all_conditions": true,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": 0.21519235576239318
+      },
+      {
+        "design_id": "d02",
+        "geometry": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      },
+      {
+        "design_id": "d03",
+        "geometry": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25
+        },
+        "reference_feasible_all_conditions": true,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": 0.12466262629494432
+      },
+      {
+        "design_id": "d04",
+        "geometry": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      },
+      {
+        "design_id": "d05",
+        "geometry": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      },
+      {
+        "design_id": "d06",
+        "geometry": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      },
+      {
+        "design_id": "d07",
+        "geometry": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      },
+      {
+        "design_id": "d08",
+        "geometry": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75
+        },
+        "reference_feasible_all_conditions": false,
+        "resolved_all_conditions": true,
+        "worst_reference_hydraulic_w": null
+      }
+    ],
+    "limitations": "Best-known only within the declared finite eight-design, six-condition set and periodic-cell scope; it is not a global optimum.",
+    "rows": [
+      {
+        "case_id": "cold-plate-decision:b9d56409f51fba81bcda109660ae55561ad3243f0d631100fbb3b3db6bcd4d95",
+        "design_id": "d01",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 26.994252128263284,
+          "die_peak_c": 73.00574787173672,
+          "feasible": true,
+          "hydraulic_margin_w": 0.14991140518575471,
+          "hydraulic_w": 0.10008859481424529,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:3600201f86618149dca16770a3b75b75fff76449b124ae20fd2084718cd7bec5",
+        "design_id": "d01",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 15.9360134640865,
+          "die_peak_c": 84.0639865359135,
+          "feasible": true,
+          "hydraulic_margin_w": 0.11076284755324386,
+          "hydraulic_w": 0.13923715244675614,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:e330d00236c36d46f2dbff064b69020c96c8418546dcb310b13bab8025c6e1b3",
+        "design_id": "d01",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 6.975421296828188,
+          "die_peak_c": 93.02457870317181,
+          "feasible": true,
+          "hydraulic_margin_w": 0.03480764423760682,
+          "hydraulic_w": 0.21519235576239318,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:c120262290ff520974b2679558d4b92c1ed0bb7861c4545747bf230fab8d8f04",
+        "design_id": "d01",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 10.138714426173763,
+          "die_peak_c": 89.86128557382624,
+          "feasible": true,
+          "hydraulic_margin_w": 0.11139754381620906,
+          "hydraulic_w": 0.13860245618379094,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:d58e731c002b89779a48d1d4cf3a58dd75049a232f6b5e06b2f3a47efd3991de",
+        "design_id": "d01",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 2.161489006360398,
+          "die_peak_c": 97.8385109936396,
+          "feasible": true,
+          "hydraulic_margin_w": 0.05333787508695892,
+          "hydraulic_w": 0.19666212491304108,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:fa05d1fd93926667abcea88d4996ff1da4a1f40126eb083ea55020787c80dd8f",
+        "design_id": "d01",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": 5.221101080760349,
+          "die_peak_c": 94.77889891923965,
+          "feasible": true,
+          "hydraulic_margin_w": 0.12372300674049627,
+          "hydraulic_w": 0.12627699325950373,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:b7f7d9faa6b78a34e3ef6e3dc18b47d9267192ff5c7c18ef75681e76326cadd7",
+        "design_id": "d02",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 30.99107967725452,
+          "die_peak_c": 69.00892032274548,
+          "feasible": true,
+          "hydraulic_margin_w": 0.041384531008422515,
+          "hydraulic_w": 0.20861546899157749,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:ab457e75e56241f475031cc5a2745ddd8971bd580fdb1ebf15537eef0858865a",
+        "design_id": "d02",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 18.864779695397715,
+          "die_peak_c": 81.13522030460229,
+          "feasible": false,
+          "hydraulic_margin_w": -0.041862844993958315,
+          "hydraulic_w": 0.2918628449939583,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:68a26217c769045dfcd3a92b28b68e93b1dc0859a803ab250f1bd93b6850d2b8",
+        "design_id": "d02",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 10.233928480309771,
+          "die_peak_c": 89.76607151969023,
+          "feasible": false,
+          "hydraulic_margin_w": -0.2050627298491277,
+          "hydraulic_w": 0.4550627298491277,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:99662694e324724838fc67ad01c37f4ba0c280b0c1ed6dfb66454e4bc36b3687",
+        "design_id": "d02",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 13.05510877943938,
+          "die_peak_c": 86.94489122056062,
+          "feasible": false,
+          "hydraulic_margin_w": -0.04105247133587758,
+          "hydraulic_w": 0.2910524713358776,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:fe9e60f55255d0950464f3c3283239b7bf8e8bead434e1303941c5f54e65d75a",
+        "design_id": "d02",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 5.404475482370287,
+          "die_peak_c": 94.59552451762971,
+          "feasible": false,
+          "hydraulic_margin_w": -0.16580349756101354,
+          "hydraulic_w": 0.41580349756101354,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:d3e57dc83dcde81ce39ede65f4105a751f31e8f90376af7620cbc0201c979e4f",
+        "design_id": "d02",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": 7.816904146934547,
+          "die_peak_c": 92.18309585306545,
+          "feasible": false,
+          "hydraulic_margin_w": -0.016025376843694483,
+          "hydraulic_w": 0.2660253768436945,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
+        "design_id": "d03",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 32.08869612860748,
+          "die_peak_c": 67.91130387139252,
+          "feasible": true,
+          "hydraulic_margin_w": 0.19154717740221364,
+          "hydraulic_w": 0.05845282259778636,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
+        "design_id": "d03",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 21.668698229616155,
+          "die_peak_c": 78.33130177038385,
+          "feasible": true,
+          "hydraulic_margin_w": 0.16941202927518328,
+          "hydraulic_w": 0.08058797072481673,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
+        "design_id": "d03",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 13.942647115314514,
+          "die_peak_c": 86.05735288468549,
+          "feasible": true,
+          "hydraulic_margin_w": 0.12533737370505568,
+          "hydraulic_w": 0.12466262629494432,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
+        "design_id": "d03",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 16.296471430399507,
+          "die_peak_c": 83.7035285696005,
+          "feasible": true,
+          "hydraulic_margin_w": 0.169846872632062,
+          "hydraulic_w": 0.08015312736793802,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
+        "design_id": "d03",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 9.082133450361027,
+          "die_peak_c": 90.91786654963897,
+          "feasible": true,
+          "hydraulic_margin_w": 0.13682414951011546,
+          "hydraulic_w": 0.11317585048988456,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
+        "design_id": "d03",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": 10.104857523595257,
+          "die_peak_c": 89.89514247640474,
+          "feasible": true,
+          "hydraulic_margin_w": 0.17755200093086054,
+          "hydraulic_w": 0.07244799906913946,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:117d69690aa155281b2c4d7f8796b197caa845a2be5230062cf0401686203d3f",
+        "design_id": "d04",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 35.67946746398236,
+          "die_peak_c": 64.32053253601764,
+          "feasible": true,
+          "hydraulic_margin_w": 0.12959907663688752,
+          "hydraulic_w": 0.12040092336311249,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:fe32f59cd5919efea8fc95db173c071570e7242fd4b196ead88e842302629db6",
+        "design_id": "d04",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 24.03494732810674,
+          "die_peak_c": 75.96505267189326,
+          "feasible": true,
+          "hydraulic_margin_w": 0.08368638433984574,
+          "hydraulic_w": 0.16631361566015426,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:c1de830983a304cb8c143e33b240c6972c37332322a0069ca555be4356a9bd31",
+        "design_id": "d04",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 16.35073879997725,
+          "die_peak_c": 83.64926120002275,
+          "feasible": false,
+          "hydraulic_margin_w": -0.009064508968725182,
+          "hydraulic_w": 0.2590645089687252,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:01ea31dc9a3ad43798e61c14cb587e3f7bd90f9a117622a906e8c01964677dda",
+        "design_id": "d04",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 18.505790933537426,
+          "die_peak_c": 81.49420906646257,
+          "feasible": true,
+          "hydraulic_margin_w": 0.08428145221556427,
+          "hydraulic_w": 0.16571854778443573,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:e6559e4f09ac1adc2b2c3a9f971deb54398d4f4094a04e567481a1c5ccf9f7e2",
+        "design_id": "d04",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 11.480594200621795,
+          "die_peak_c": 88.5194057993782,
+          "feasible": true,
+          "hydraulic_margin_w": 0.015083100733042643,
+          "hydraulic_w": 0.23491689926695736,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:bcbaf7889113e3c935124d5e03827a10172721d901a7b46fdb86e3d5706a0660",
+        "design_id": "d04",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.25,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": 12.015669792313673,
+          "die_peak_c": 87.98433020768633,
+          "feasible": true,
+          "hydraulic_margin_w": 0.0998263072348115,
+          "hydraulic_w": 0.1501736927651885,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:2cb95c309419d26240811e8c002e76357c314ecf3fa955548c94aa96fb8308b0",
+        "design_id": "d05",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 14.26852479421099,
+          "die_peak_c": 85.73147520578901,
+          "feasible": true,
+          "hydraulic_margin_w": 0.21713523602772078,
+          "hydraulic_w": 0.03286476397227921,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:faf907ad8a20987dcad2f9d3633a0179e8a51e863c37b32da7801b9773ad3b81",
+        "design_id": "d05",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 2.3827257549602336,
+          "die_peak_c": 97.61727424503977,
+          "feasible": true,
+          "hydraulic_margin_w": 0.2031423719926593,
+          "hydraulic_w": 0.0468576280073407,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:fcee61bf6228f047441922aea855ed7dfa3a04dba32b070fe570dc6e06482f70",
+        "design_id": "d05",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": -8.4728424682217,
+          "die_peak_c": 108.4728424682217,
+          "feasible": false,
+          "hydraulic_margin_w": 0.17750857545492382,
+          "hydraulic_w": 0.07249142454507616,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:8cbf451f46d7fe7fb98c07925a3db45b8d3ab63fc9b896ecb22418b96761e9a7",
+        "design_id": "d05",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": -3.4631755161279187,
+          "die_peak_c": 103.46317551612792,
+          "feasible": false,
+          "hydraulic_margin_w": 0.20327520250496317,
+          "hydraulic_w": 0.046724797495036816,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:95b0b5952293db759c5a31ad67c76746d77ddbf71e691c63eff2f5f5b206ae18",
+        "design_id": "d05",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": -13.215854617171203,
+          "die_peak_c": 113.2158546171712,
+          "feasible": false,
+          "hydraulic_margin_w": 0.182787610150361,
+          "hydraulic_w": 0.06721238984963901,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:5e009e5bf2bc2ddc7b2a58bd845a4e8ee3cae9fa245f41d1a0fc8c57d5304913",
+        "design_id": "d05",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": -6.363219958383269,
+          "die_peak_c": 106.36321995838327,
+          "feasible": false,
+          "hydraulic_margin_w": 0.206705940759814,
+          "hydraulic_w": 0.043294059240186,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:7e9c0c44a79b4e700711ee64c6b9cae005cfd50484218b9341d1d5d7ec53e3ee",
+        "design_id": "d06",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 19.451979517007217,
+          "die_peak_c": 80.54802048299278,
+          "feasible": true,
+          "hydraulic_margin_w": 0.17945359813711603,
+          "hydraulic_w": 0.07054640186288398,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:38bfddaf11b2ee13ceb6db466473aa9a4f1a3f4fc0e09f60da63ad05939ac2b1",
+        "design_id": "d06",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 6.755460891797554,
+          "die_peak_c": 93.24453910820245,
+          "feasible": true,
+          "hydraulic_margin_w": 0.1479875447103808,
+          "hydraulic_w": 0.10201245528961919,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:2d2fc9058271d585fb5efa4d45108c60f6a11cc6cdb3d781020f73c284869282",
+        "design_id": "d06",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": -3.6192885754588247,
+          "die_peak_c": 103.61928857545882,
+          "feasible": false,
+          "hydraulic_margin_w": 0.0903028198636851,
+          "hydraulic_w": 0.1596971801363149,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:79dee2143b574d9cdd7fa854a317491d5ba62847c2b6bf802f202b7eaff526e9",
+        "design_id": "d06",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 0.8521068434581167,
+          "die_peak_c": 99.14789315654188,
+          "feasible": true,
+          "hydraulic_margin_w": 0.1481315156779215,
+          "hydraulic_w": 0.10186848432207851,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:d8e723bf456cf566d467242c643c525f4cb29649f3a13e9a0ecaab45a53eb00e",
+        "design_id": "d06",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": -8.385637434628222,
+          "die_peak_c": 108.38563743462822,
+          "feasible": false,
+          "hydraulic_margin_w": 0.10157480424414447,
+          "hydraulic_w": 0.14842519575585553,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:759a41243337b3014462de68129c294e0a165e3d8d5193cf6038ac0306388e83",
+        "design_id": "d06",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 1.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": -2.5535244295926134,
+          "die_peak_c": 102.55352442959261,
+          "feasible": false,
+          "hydraulic_margin_w": 0.155198268695661,
+          "hydraulic_w": 0.094801731304339,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:73e5319e101af3ca4606c6a7306d14095d38e6f1e856beb6f622bbd23f6e66c3",
+        "design_id": "d07",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 21.782536092959916,
+          "die_peak_c": 78.21746390704008,
+          "feasible": true,
+          "hydraulic_margin_w": 0.2318953512764747,
+          "hydraulic_w": 0.018104648723525286,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:ac6789b0a285942faa97d097d22acc1d5a4455b14986bbc3433915c3de9d2331",
+        "design_id": "d07",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 9.948119932574969,
+          "die_peak_c": 90.05188006742503,
+          "feasible": true,
+          "hydraulic_margin_w": 0.22476394656056423,
+          "hydraulic_w": 0.02523605343943578,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:1e3422584afd0c240d3ac4233c229b9654fde1ad3ef7eda160ab41f9c0b9e91a",
+        "design_id": "d07",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 0.016217629755487906,
+          "die_peak_c": 99.98378237024451,
+          "feasible": true,
+          "hydraulic_margin_w": 0.2112325897928206,
+          "hydraulic_w": 0.03876741020717937,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:b9513a0042bc6f7ef3c52f6e36e3b8c09f2881ae9501fdb51ff9510afca8feab",
+        "design_id": "d07",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 4.198212350858128,
+          "die_peak_c": 95.80178764914187,
+          "feasible": true,
+          "hydraulic_margin_w": 0.22486413173114783,
+          "hydraulic_w": 0.02513586826885216,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:8cd2fba6d6c1fd89e73abada434545a29f8df3faf35ca0d523a5d6348c2fb157",
+        "design_id": "d07",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": -4.777255681075076,
+          "die_peak_c": 104.77725568107508,
+          "feasible": false,
+          "hydraulic_margin_w": 0.21438934245549673,
+          "hydraulic_w": 0.03561065754450327,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:2abdb9655a374828bc06d81fd006fb8165d197e0bac5a30c029f54a255bcdd8c",
+        "design_id": "d07",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.25,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": -0.6064878172475971,
+          "die_peak_c": 100.6064878172476,
+          "feasible": false,
+          "hydraulic_margin_w": 0.22696444381043834,
+          "hydraulic_w": 0.023035556189561646,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:01213fc65708dfb9bb00c50cba22638890575a1c6097b01a85927e9cde13c650",
+        "design_id": "d08",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 800.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 25.988969145683782,
+          "die_peak_c": 74.01103085431622,
+          "feasible": true,
+          "hydraulic_margin_w": 0.2120523048267339,
+          "hydraulic_w": 0.0379476951732661,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-01",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:0afa4a31053d28e4b7f2a88f9acacef8880d906cb4b92a3f3e54b2b6c922f135",
+        "design_id": "d08",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 15.0,
+          "hotspot_ratio": 1.5,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 13.183139515828373,
+          "die_peak_c": 86.81686048417163,
+          "feasible": true,
+          "hydraulic_margin_w": 0.19668520684125657,
+          "hydraulic_w": 0.05331479315874344,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-02",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:d3573929f138ffd42285a2735d8cb61a89da07fc3936e426100db626c272c453",
+        "design_id": "d08",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 35.0
+        },
+        "reference": {
+          "die_margin_c": 3.6113234214777776,
+          "die_peak_c": 96.38867657852222,
+          "feasible": true,
+          "hydraulic_margin_w": 0.16730779477673766,
+          "hydraulic_w": 0.08269220522326234,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-03",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:68b96a3c4a340544fb9847d674e3de080e91ff16b3e7da2c187a0fb254e87bba",
+        "design_id": "d08",
+        "group": "REPRESENTATIVE",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": 7.398544740962578,
+          "die_peak_c": 92.60145525903742,
+          "feasible": true,
+          "hydraulic_margin_w": 0.19680791527377334,
+          "hydraulic_w": 0.053192084726226656,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "rep-04",
+        "verdict": "FEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:8cd39bf3887a6db4f99598e0ebe4118ea8796523e6f7c1a3faa1d3406d2f440c",
+        "design_id": "d08",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1200.0,
+          "hotspot_center_mm": 12.0,
+          "hotspot_ratio": 2.0,
+          "hotspot_width_mm": 2.5,
+          "inlet_c": 40.0
+        },
+        "reference": {
+          "die_margin_c": -1.199872623027204,
+          "die_peak_c": 101.1998726230272,
+          "feasible": false,
+          "hydraulic_margin_w": 0.17399575294383915,
+          "hydraulic_w": 0.07600424705616085,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-01",
+        "verdict": "INFEASIBLE"
+      },
+      {
+        "case_id": "cold-plate-decision:cfe64dfe95584dd7712561bb1c2117dcf7c7255b1acaaed7fb79dc0342e0abc2",
+        "design_id": "d08",
+        "group": "BOUNDARY_STRESS",
+        "inputs": {
+          "channel_depth_mm": 2.5,
+          "channel_width_mm": 0.4,
+          "fin_width_mm": 0.3,
+          "flow_lpm_per_kw": 1.75,
+          "heat_load_w": 1000.0,
+          "hotspot_center_mm": 6.0,
+          "hotspot_ratio": 2.5,
+          "hotspot_width_mm": 1.75,
+          "inlet_c": 45.0
+        },
+        "reference": {
+          "die_margin_c": 2.276687493015089,
+          "die_peak_c": 97.72331250698491,
+          "feasible": true,
+          "hydraulic_margin_w": 0.20108388831472,
+          "hydraulic_w": 0.048916111685280005,
+          "prediction_validity_gates": {
+            "face_above_inlet": "PASS",
+            "paired_repeat": "NOT_APPLICABLE",
+            "peak_bounds_profile": "PASS",
+            "pressure_drop_positive": "PASS",
+            "schema_finite": "PASS"
+          }
+        },
+        "reference_status": "OK",
+        "scenario_id": "boundary-02",
+        "verdict": "FEASIBLE"
+      }
+    ]
+  },
+  "comparisons": {
+    "model_value": {
+      "left": "analytic-v1/fixed_grid",
+      "left_regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "query_attempt_difference_right_minus_left": 0,
+      "right": "learned-krr-v1/fixed_grid",
+      "right_regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "same_declared_query_budget": true,
+      "selected_geometry_same": true
+    },
+    "search_method_value": {
+      "left": "learned-krr-v1/fixed_grid",
+      "left_regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "query_attempt_difference_right_minus_left": -30,
+      "right": "learned-krr-v1/screen_then_confirm",
+      "right_regret": {
+        "comparator_worst_reference_hydraulic_w": 0.12466262629494432,
+        "selected_worst_reference_hydraulic_w": 0.12466262629494432,
+        "status": "DEFINED_FINITE_SET",
+        "value_w": 0.0
+      },
+      "same_declared_query_budget": true,
+      "selected_geometry_same": true
+    }
+  },
+  "conclusion": {
+    "does_not_establish": "Customer acceptance, global optimality, full cold-plate behavior, transient/controller performance, scientific qualification, or LIVE readiness.",
+    "establishes": "Only the observed DEVELOPMENT results for the frozen finite set, models, methods, budgets, and evidence class.",
+    "next_expansion": "Run the capped counted-CFD plan after owner compute authorization; expand physical scope only after reviewing finite-set failure modes."
+  },
+  "control_policy": {
+    "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
+    "equation": "total_flow_lpm = flow_lpm_per_kw * heat_load_w / 1000",
+    "name": "steady-state-feed-forward-flow-per-heat",
+    "not_demonstrated": [
+      "transient response",
+      "sensor error or latency",
+      "pump and actuator dynamics",
+      "manifold flow distribution",
+      "controller safety qualification"
+    ],
+    "required_limits": [
+      "declared flow_lpm_per_kw design bounds",
+      "synthetic hydraulic-power constraint",
+      "PG25 reference property applicability",
+      "reference laminar Reynolds applicability",
+      "future owner-approved pump flow, pressure and slew limits"
+    ]
+  },
+  "cost": {
+    "model_inference_wall_s": 0.2539131829980761,
+    "model_query_attempts": 127,
+    "monetary_cost_status": "NO_OWNER_APPROVED_RESOURCE_RATE",
+    "monetary_cost_usd": null,
+    "per_decision_wall_s_by_arm": {
+      "analytic-v1/fixed_grid": 0.20335279599385103,
+      "analytic-v1/screen_then_confirm": 0.05892699999822071,
+      "learned-krr-v1/fixed_grid": 0.007189671996457037,
+      "learned-krr-v1/screen_then_confirm": 0.003788393994909711
+    },
+    "reference_campaign_wall_s": 0.0,
+    "reference_condition_evaluations": 72,
+    "reference_cpu_limit_per_execution": 2,
+    "reference_executions": 0,
+    "reference_retries": 0,
+    "reference_solver_wall_s": 0.0,
+    "study_end_to_end_wall_s": 2.981603759995778,
+    "training_and_reconstruction": {
+      "analytic-v1": {
+        "kind": "ANALYTICAL_BASELINE"
+      },
+      "learned-krr-v1": {
+        "cpu_s": 41.630316543,
+        "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
+        "historical_training_and_tuning_cost": null,
+        "kind": "LEARNED_RECONSTRUCTION",
+        "training_records": 400,
+        "wall_s": 2.1773103730010916
+      }
+    }
+  },
+  "evidence_class": "ANALYTICAL_FIXTURE",
+  "evidence_label": "ANALYTICAL_FIXTURE_SMOKE_TEST_NOT_CFD",
+  "freeze_digest": "sha256:aa97930f055fc5c7d7e942fb5c1597edfdb93f9c95e3898244d03e21206943c4",
+  "material": "DEVELOPMENT",
+  "metrics": {
+    "abstention_rate": 0.0,
+    "abstentions": 0,
+    "arms": 4,
+    "decision_coverage": 1.0,
+    "false_feasible_condition_decisions": 0,
+    "false_feasible_condition_denominator": 24,
+    "false_feasible_condition_wilson_95": {
+      "high": 0.13797620467498017,
+      "low": 0.0
+    },
+    "false_feasible_proposal_denominator": 4,
+    "false_feasible_proposal_wilson_95": {
+      "high": 0.4898908364545973,
+      "low": 0.0
+    },
+    "false_feasible_proposals": 0,
+    "groups": {
+      "BOUNDARY_STRESS": {
+        "false_feasible": 0,
+        "false_feasible_denominator": 8,
+        "false_feasible_wilson_95": {
+          "high": 0.32440756488388023,
+          "low": 0.0
+        },
+        "proposed_condition_decisions": 8,
+        "reference_available": 8,
+        "reference_confirmed_feasible": 8
+      },
+      "REPRESENTATIVE": {
+        "false_feasible": 0,
+        "false_feasible_denominator": 16,
+        "false_feasible_wilson_95": {
+          "high": 0.1936076805344365,
+          "low": 0.0
+        },
+        "proposed_condition_decisions": 16,
+        "reference_available": 16,
+        "reference_confirmed_feasible": 16
+      }
+    },
+    "resolved_proposals": 4,
+    "unavailable_or_invalid_reference_evidence": 0,
+    "unavailable_reference_statuses": {},
+    "worst_case_reference_hydraulic_w_for_feasible_proposals": {
+      "analytic-v1/fixed_grid": 0.12466262629494432,
+      "analytic-v1/screen_then_confirm": 0.12466262629494432,
+      "learned-krr-v1/fixed_grid": 0.12466262629494432,
+      "learned-krr-v1/screen_then_confirm": 0.12466262629494432
+    }
+  },
+  "schema": "carbon.cold-plate.decision-study-result.v1",
+  "scope": "periodic-straight-channel-cell-v1",
+  "study_id": "ai-accelerator-cooling-synthetic-v1"
+}

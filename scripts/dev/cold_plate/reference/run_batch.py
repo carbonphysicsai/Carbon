@@ -242,7 +242,17 @@ def main(argv=None):
         parser.error("a case directory exists; refusing to overwrite")
     (args.out / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
     (args.out / "host.json").write_text(
-        json.dumps({**host_info(), "parallel": args.parallel, "cpus": args.cpus}) + "\n"
+        json.dumps(
+            {
+                **host_info(),
+                "parallel": args.parallel,
+                "cpus": args.cpus,
+                "timeout_s": args.timeout_s,
+                "keep": args.keep,
+                "solver_image": openfoam.IMAGE,
+            }
+        )
+        + "\n"
     )
     lock = threading.Lock()
     start = time.monotonic()

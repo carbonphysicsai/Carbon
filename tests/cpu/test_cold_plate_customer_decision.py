@@ -58,15 +58,17 @@ def decision_contract(**changes):
     return cd.contract(**{**fields, **changes})
 
 
-def neutral(adapter, *, designs=DESIGNS, conditions=CONDITIONS, budget=None):
+def neutral(
+    adapter, *, designs=DESIGNS, conditions=CONDITIONS, budget=None, model=MODEL
+):
     return ex.neutral_request(
         adapter,
         mode=cd.MODE,
-        model=MODEL,
+        model=model,
         designs=designs,
         conditions=conditions,
         query_budget=budget or len(designs) * len(conditions),
-        verification_budget=1,
+        verification_budget=len(conditions),
         method=METHOD,
         seed_policy="deterministic analytic fixture",
     )
@@ -102,6 +104,14 @@ def sound_reference(jobs):
         }
         for job in jobs
     }
+
+
+def fixture_reference(source=sound_reference, *, budget=100):
+    return cd.analytical_fixture_reference(
+        source,
+        condition_budget=budget,
+        session_id="analytic-test-fixture",
+    )
 
 
 def test_customer_limits_have_no_defaults_and_are_bound_by_digest():
@@ -178,6 +188,64 @@ def test_oracle_is_budgeted_declared_and_fails_closed_on_bad_predictions():
     malformed = adapter.oracle(req, space, lambda inputs: {key: {} for key in inputs})
     with pytest.raises(cd.DecisionError, match="prediction_outputs_are_exact"):
         malformed.query([(*space[0], *condition)])
+    assert malformed.used == 1
+    assert malformed.successful == 0
+    with pytest.raises(cd.DecisionError, match="oracle_sealed"):
+        malformed.query([(*space[1], *condition)])
+
+    def invalid_physics(inputs):
+        values = infer(inputs)
+        for output in values.values():
+            output["pressure_drop_pa"] = -1.0
+        return values
+
+    physically_invalid = adapter.oracle(req, space, invalid_physics)
+    with pytest.raises(cd.DecisionError, match="prediction_failed_physical_gate"):
+        physically_invalid.query([(*space[0], *condition)])
+    assert physically_invalid.used == 1
+    assert physically_invalid.log[0]["status"] == "FAILED_PHYSICS"
+    with pytest.raises(cd.DecisionError, match="oracle_sealed"):
+        physically_invalid.query([(*space[1], *condition)])
+
+
+def test_oracle_forbids_duplicates_within_a_batch_and_across_calls():
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    req, space = adapter.request(neutral(adapter))
+    condition = tuple(CONDITIONS[0][name] for name in cd.CONDITION_VARIABLES)
+    point = (*space[0], *condition)
+
+    within = adapter.oracle(req, space, infer)
+    with pytest.raises(cd.DecisionError, match="duplicate_query_within_batch"):
+        within.query([point, point])
+    assert within.used == 0
+    with pytest.raises(cd.DecisionError, match="oracle_sealed"):
+        within.query([(*space[1], *condition)])
+
+    across = adapter.oracle(req, space, infer)
+    across.query([point])
+    with pytest.raises(cd.DecisionError, match="duplicate_query_across_calls"):
+        across.query([point])
+    assert across.used == 1
+
+
+def test_failed_inference_is_charged_typed_and_seals_the_oracle(tmp_path):
+    contract = decision_contract()
+    adapter = cd.adapter(contract)
+    req, space = adapter.request(neutral(adapter))
+    condition = tuple(CONDITIONS[0][name] for name in cd.CONDITION_VARIABLES)
+
+    def unavailable(_inputs):
+        raise TimeoutError("fixture service timeout")
+
+    oracle = adapter.oracle(req, space, unavailable)
+    with pytest.raises(cd.ModelInfrastructureFailure) as failure:
+        oracle.query([(*space[0], *condition), (*space[1], *condition)])
+    assert failure.value.retryable is True
+    assert oracle.used == 2
+    assert {row["status"] for row in oracle.log} == {"FAILED_INFRA"}
+    with pytest.raises(cd.DecisionError, match="oracle_sealed"):
+        adapter.commit(req, [], oracle, tmp_path)
 
 
 def test_fixed_grid_selects_the_least_pumping_design_feasible_everywhere(tmp_path):
@@ -207,7 +275,8 @@ def test_commitment_exists_before_reference_access_and_cannot_be_rewritten(tmp_p
         seen.extend(jobs)
         return sound_reference(jobs)
 
-    result = adapter.verify(commitment, watching)
+    reference = fixture_reference(watching)
+    result = adapter.verify(commitment, reference)
     assert len(seen) == len(CONDITIONS)
     assert result["verdicts"]["FEASIBLE"] == len(CONDITIONS)
     assert result["false_feasible"] is False
@@ -215,12 +284,12 @@ def test_commitment_exists_before_reference_access_and_cannot_be_rewritten(tmp_p
     with pytest.raises(FileExistsError):
         adapter.commit(req, selections, oracle, tmp_path)
     with pytest.raises(cd.DecisionError, match="commitment_only_from_commit"):
-        cd.verify(contract, commitment.document, sound_reference)
+        cd.verify(contract, commitment.document, fixture_reference())
     edited = json.loads(commitment.path.read_text())
     edited["status"] = "ABSTAIN"
     commitment.path.write_text(json.dumps(edited))
     with pytest.raises(cd.DecisionError, match="commitment_changed_after_commit"):
-        adapter.verify(commitment, sound_reference)
+        adapter.verify(commitment, fixture_reference())
 
 
 def test_an_oracle_cannot_be_relabelled_as_another_request(tmp_path):
@@ -250,7 +319,7 @@ def test_reference_failure_is_not_a_design_failure_and_false_feasible_is_visible
         second["outputs"]["pressure_drop_pa"] = 10.0 / flow
         return records
 
-    result = adapter.verify(commitment, mixed)
+    result = adapter.verify(commitment, fixture_reference(mixed))
     assert result["verdicts"] == {
         "FEASIBLE": 0,
         "INFEASIBLE": 1,
@@ -262,6 +331,46 @@ def test_reference_failure_is_not_a_design_failure_and_false_feasible_is_visible
     assert result["rows"][1]["reference_status"] == "OK"
 
 
+def test_reference_is_classified_budgeted_cached_and_not_replayed(tmp_path):
+    _contract, adapter, _req, _space, _oracle, _selections, commitment = run(tmp_path)
+    with pytest.raises(cd.DecisionError, match="classified_reference_session"):
+        adapter.verify(commitment, sound_reference)
+
+    reference = fixture_reference(budget=len(CONDITIONS))
+    result = adapter.verify(commitment, reference)
+    assert result["reference_evidence_class"] == "ANALYTICAL_FIXTURE"
+    assert result["counted_cfd_evidence"] is False
+    assert result["verification_accounting"] == {
+        "accounting_unit": cd.VERIFICATION_ACCOUNTING_UNIT,
+        "condition_evaluations": len(CONDITIONS),
+        "cache_hits": 0,
+        "cache_misses": len(CONDITIONS),
+    }
+    with pytest.raises(cd.DecisionError, match="commitment_already_verified"):
+        adapter.verify(commitment, reference)
+
+
+def test_reference_cache_avoids_duplicate_source_work_but_still_counts_evaluation(
+    tmp_path,
+):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    _contract, adapter, _req, _space, _oracle, _selections, commitment = run(first)
+    other_model = {**MODEL, "member": "analytic-v1-repeat"}
+    other_req, other_space = adapter.request(neutral(adapter, model=other_model))
+    other_oracle = adapter.oracle(other_req, other_space, infer)
+    other_selections = adapter.baseline(other_oracle, other_req, other_space)
+    other_commitment = adapter.commit(other_req, other_selections, other_oracle, second)
+    reference = fixture_reference(budget=2 * len(CONDITIONS))
+
+    initial = adapter.verify(commitment, reference)
+    repeated_cases = adapter.verify(other_commitment, reference)
+    assert initial["verification_accounting"]["cache_misses"] == len(CONDITIONS)
+    assert repeated_cases["verification_accounting"]["cache_hits"] == len(CONDITIONS)
+    assert reference.metrics()["source_calls"] == 1
+    assert reference.metrics()["condition_evaluations"] == 2 * len(CONDITIONS)
+
+
 def test_no_predicted_feasible_design_is_an_abstention_not_a_safe_claim(tmp_path):
     contract, _adapter, _req, _space, _oracle, selections, commitment = run(
         tmp_path, decision_contract(die_limit_c=0.0, hydraulic_limit_w=0.0)
@@ -271,7 +380,7 @@ def test_no_predicted_feasible_design_is_an_abstention_not_a_safe_claim(tmp_path
     def reference_must_not_run(_jobs):
         raise AssertionError("an abstention has no proposal to verify")
 
-    result = cd.verify(contract, commitment, reference_must_not_run)
+    result = cd.verify(contract, commitment, fixture_reference(reference_must_not_run))
     assert result["status"] == "ABSTAIN"
     assert result["reference_jobs"] == 0
     assert result["false_feasible"] is False
@@ -294,7 +403,7 @@ def test_generic_search_can_screen_then_confirm_the_cold_plate(tmp_path):
     assert proposed == baseline
     assert proposed_oracle.used <= baseline_oracle.used
     commitment = adapter.commit(req, proposed, proposed_oracle, tmp_path)
-    assert adapter.verify(commitment, sound_reference)["status"] == "PROPOSAL"
+    assert adapter.verify(commitment, fixture_reference())["status"] == "PROPOSAL"
 
 
 def test_design_packet_keeps_all_ten_sections_and_open_owner_values_explicit():
@@ -316,4 +425,4 @@ def test_design_packet_keeps_all_ten_sections_and_open_owner_values_explicit():
         text.index(heading) for heading in headings
     )
     assert "HUMAN_INPUT" in text
-    assert "does not enter" in text and "challenge\npipeline" in text
+    assert "does not enter the challenge pipeline" in " ".join(text.split())

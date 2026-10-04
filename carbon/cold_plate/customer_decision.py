@@ -36,10 +36,10 @@ SCOPE = "periodic-straight-channel-cell-v1"
 MATERIAL = "DEVELOPMENT"
 MODE = "PB-INV"
 
-CONTRACT_SCHEMA = "carbon.cold-plate.customer-decision-contract.v1"
-REQUEST_SCHEMA = "carbon.cold-plate.design-search-request.v1"
-COMMITMENT_SCHEMA = "carbon.cold-plate.design-search-commitment.v1"
-RESULT_SCHEMA = "carbon.cold-plate.design-search-result.v1"
+CONTRACT_SCHEMA = "carbon.cold-plate.customer-decision-contract.v2"
+REQUEST_SCHEMA = "carbon.cold-plate.design-search-request.v2"
+COMMITMENT_SCHEMA = "carbon.cold-plate.design-search-commitment.v2"
+RESULT_SCHEMA = "carbon.cold-plate.design-search-result.v2"
 
 DESIGN_VARIABLES = (
     "channel_width_mm",
@@ -56,10 +56,27 @@ CONDITION_VARIABLES = (
 )
 MODES = (MODE,)
 VERDICTS = ("FEASIBLE", "INFEASIBLE", "REFERENCE_UNAVAILABLE")
+REFERENCE_CLASSES = ("ANALYTICAL_FIXTURE", "COUNTED_CFD")
+DUPLICATE_QUERY_POLICY = "FORBID_WITHIN_AND_ACROSS_CALLS"
+QUERY_ACCOUNTING_UNIT = "ATTEMPTED_MODEL_POINT"
+VERIFICATION_ACCOUNTING_UNIT = "CONDITION_EVIDENCE_EVALUATION"
+MODEL_RETRY_POLICY = {
+    "max_retries_per_point": 0,
+    "continuation_after_failure": False,
+    "new_oracle_required": True,
+}
 CODE_PATHS = (
     "carbon/cold_plate/customer_decision.py",
+    "carbon/cold_plate/decision_study.py",
     "carbon/cold_plate/domain.py",
     "carbon/cold_plate/exam.py",
+    "carbon/cold_plate/analytic.py",
+    "carbon/cold_plate/analysis.py",
+    "carbon/cold_plate/openfoam.py",
+    "carbon/cold_plate/population.py",
+    "carbon/learned_baseline.py",
+    "scripts/dev/cold_plate/decision_study.py",
+    "scripts/dev/cold_plate/reference/run_batch.py",
 )
 TIE_POLICY = (
     "lowest worst-case predicted hydraulic power among designs predicted to "
@@ -81,6 +98,8 @@ REFERENCE = {
     "solver_image": openfoam.IMAGE,
     "physical_scope": SCOPE,
     "credibility": "NUMERICAL_VERIFICATION_ONLY",
+    "counted_evidence_class": "COUNTED_CFD",
+    "fixture_evidence_class": "ANALYTICAL_FIXTURE",
 }
 CLAIMS = {
     "customer_acceptance": False,
@@ -92,6 +111,7 @@ CLAIMS = {
 _TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@+-]{0,199}$")
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _COMMITMENT_TOKEN = object()
+_REFERENCE_SESSION_TOKEN = object()
 
 
 class DecisionError(ValueError):
@@ -100,6 +120,20 @@ class DecisionError(ValueError):
     def __init__(self, code: str, detail: str = ""):
         super().__init__(f"{code}: {detail}" if detail else code)
         self.code = code
+
+
+class ModelInfrastructureFailure(DecisionError):
+    """Typed model-service failure; it is never a physics result.
+
+    The current study policy permits no in-oracle retry.  ``retryable`` is
+    evidence for a future, separately identified study attempt; it does not
+    let a caller continue this oracle after catching the exception.
+    """
+
+    def __init__(self, cause: str = "MODEL_SERVICE_UNAVAILABLE", *, retryable=True):
+        super().__init__("model_infrastructure_failure", cause)
+        self.cause = _token(cause, "infrastructure cause")
+        self.retryable = bool(retryable)
 
 
 def _number(value: object, name: str) -> float:
@@ -161,6 +195,16 @@ def contract(
         },
         "tie_policy": TIE_POLICY,
         "reference": dict(REFERENCE),
+        "query_policy": {
+            "accounting_unit": QUERY_ACCOUNTING_UNIT,
+            "duplicate_policy": DUPLICATE_QUERY_POLICY,
+            "retry_policy": dict(MODEL_RETRY_POLICY),
+        },
+        "verification_policy": {
+            "accounting_unit": VERIFICATION_ACCOUNTING_UNIT,
+            "repeated_commitment": "FORBIDDEN",
+            "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+        },
         "claims": dict(CLAIMS),
     }
     return {**body, "contract_digest": digest(body)}
@@ -181,6 +225,8 @@ def validate_contract(document: object) -> dict[str, object]:
         "constraints",
         "tie_policy",
         "reference",
+        "query_policy",
+        "verification_policy",
         "claims",
         "contract_digest",
     }
@@ -215,6 +261,18 @@ def validate_contract(document: object) -> dict[str, object]:
         raise DecisionError("contract_decision")
     if document["reference"] != REFERENCE:
         raise DecisionError("contract_reference")
+    if document["query_policy"] != {
+        "accounting_unit": QUERY_ACCOUNTING_UNIT,
+        "duplicate_policy": DUPLICATE_QUERY_POLICY,
+        "retry_policy": MODEL_RETRY_POLICY,
+    }:
+        raise DecisionError("contract_query_policy")
+    if document["verification_policy"] != {
+        "accounting_unit": VERIFICATION_ACCOUNTING_UNIT,
+        "repeated_commitment": "FORBIDDEN",
+        "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+    }:
+        raise DecisionError("contract_verification_policy")
     if document["claims"] != CLAIMS:
         raise DecisionError("contract_claims")
     return document
@@ -300,6 +358,8 @@ def request(
     ]
     space = _grid(normalized_designs, DESIGN_VARIABLES)
     condition_space = _conditions(normalized_conditions)
+    if neutral["verification_budget"] < len(condition_space):
+        raise DecisionError("verification_budget_below_condition_count")
     for design in space:
         for condition in condition_space:
             domain.check_inputs(
@@ -324,6 +384,16 @@ def request(
         "condition_space_digest": digest(normalized_conditions),
         "query_budget": neutral["query_budget"],
         "verification_budget": neutral["verification_budget"],
+        "query_policy": {
+            "accounting_unit": QUERY_ACCOUNTING_UNIT,
+            "duplicate_policy": DUPLICATE_QUERY_POLICY,
+            "retry_policy": dict(MODEL_RETRY_POLICY),
+        },
+        "verification_policy": {
+            "accounting_unit": VERIFICATION_ACCOUNTING_UNIT,
+            "repeated_commitment": "FORBIDDEN",
+            "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+        },
         "method": dict(method),
         "seed_policy": seed_policy,
     }
@@ -351,6 +421,8 @@ def _validate_request(req, contract_digest=None):
         "condition_space_digest",
         "query_budget",
         "verification_budget",
+        "query_policy",
+        "verification_policy",
         "method",
         "seed_policy",
         "request_digest",
@@ -374,6 +446,23 @@ def _validate_request(req, contract_digest=None):
         raise DecisionError("candidate_space_digest_mismatch")
     if digest(req["conditions"]) != req["condition_space_digest"]:
         raise DecisionError("condition_space_digest_mismatch")
+    if req["query_policy"] != {
+        "accounting_unit": QUERY_ACCOUNTING_UNIT,
+        "duplicate_policy": DUPLICATE_QUERY_POLICY,
+        "retry_policy": MODEL_RETRY_POLICY,
+    }:
+        raise DecisionError("request_query_policy")
+    if req["verification_policy"] != {
+        "accounting_unit": VERIFICATION_ACCOUNTING_UNIT,
+        "repeated_commitment": "FORBIDDEN",
+        "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+    }:
+        raise DecisionError("request_verification_policy")
+    for name in ("query_budget", "verification_budget"):
+        if type(req[name]) is not int or req[name] <= 0:
+            raise DecisionError("positive_integer_required", name)
+    if req["verification_budget"] < len(req["conditions"]):
+        raise DecisionError("verification_budget_below_condition_count")
     return req
 
 
@@ -397,13 +486,21 @@ def quantities(
     )
     return {
         **row,
+        "prediction_validity_gates": dict(verdicts),
         "die_margin_c": constraints["die_peak_c_max"] - row["die_peak_c"],
         "hydraulic_margin_w": constraints["hydraulic_power_w_max"] - row["hydraulic_w"],
     }
 
 
 class Oracle:
-    """Budgeted model access over only the declared design-condition points."""
+    """Fail-closed model access over declared, unique design-condition points.
+
+    The budget unit is an attempted model point.  A batch is reserved in the
+    log before inference, so infrastructure failure, malformed output, and a
+    failed prediction-validity gate still consume the requested points.  Any
+    failed batch seals the oracle; a caller cannot catch an exception and
+    continue an ostensibly valid study.
+    """
 
     def __init__(self, decision_contract, infer, req, space):
         validate_contract(decision_contract)
@@ -422,42 +519,121 @@ class Oracle:
         }
         self.log: list[dict[str, object]] = []
         self.elapsed = 0.0
+        self._attempted_points: set[tuple[float, ...]] = set()
+        self._terminal_failure: dict[str, object] | None = None
 
     @property
     def used(self) -> int:
         return len(self.log)
 
+    @property
+    def successful(self) -> int:
+        return sum(row["status"] == "OK" for row in self.log)
+
+    @property
+    def terminal_failure(self):
+        return None if self._terminal_failure is None else dict(self._terminal_failure)
+
+    def _seal(self, code, *, detail="", query_ids=()):
+        self._terminal_failure = {
+            "code": code,
+            "detail": detail,
+            "query_ids": list(query_ids),
+        }
+
+    def _require_open(self):
+        if self._terminal_failure is not None:
+            raise DecisionError(
+                "oracle_sealed_after_failed_batch", self._terminal_failure["code"]
+            )
+
     def query(self, points):
-        points = [
-            tuple(_number(value, "query point") for value in point) for point in points
-        ]
-        if self.used + len(points) > self.budget:
-            raise DecisionError("query_budget_exhausted")
-        for point in points:
-            if len(point) != len(DESIGN_VARIABLES) + len(CONDITION_VARIABLES):
-                raise DecisionError("query_point_width")
-            design = point[: len(DESIGN_VARIABLES)]
-            condition = point[len(DESIGN_VARIABLES) :]
-            if design not in self.designs:
-                raise DecisionError("undeclared_design_queried")
-            if condition not in self.conditions:
-                raise DecisionError("undeclared_condition_queried")
+        self._require_open()
+        try:
+            points = [
+                tuple(_number(value, "query point") for value in point)
+                for point in points
+            ]
+            if not points:
+                raise DecisionError("query_batch_empty")
+            if len(set(points)) != len(points):
+                raise DecisionError("duplicate_query_within_batch")
+            if any(point in self._attempted_points for point in points):
+                raise DecisionError("duplicate_query_across_calls")
+            if self.used + len(points) > self.budget:
+                raise DecisionError("query_budget_exhausted")
+            for point in points:
+                if len(point) != len(DESIGN_VARIABLES) + len(CONDITION_VARIABLES):
+                    raise DecisionError("query_point_width")
+                design = point[: len(DESIGN_VARIABLES)]
+                condition = point[len(DESIGN_VARIABLES) :]
+                if design not in self.designs:
+                    raise DecisionError("undeclared_design_queried")
+                if condition not in self.conditions:
+                    raise DecisionError("undeclared_condition_queried")
+        except DecisionError as error:
+            self._seal(error.code, detail=str(error))
+            raise
+
+        start = self.used
         inputs = {
-            f"q{self.used + index:06d}": _point_case(point)
+            f"q{start + index:06d}": _point_case(point)
             for index, point in enumerate(points)
         }
-        started = time.perf_counter()
-        predictions = self.infer(inputs)
-        self.elapsed += time.perf_counter() - started
-        if type(predictions) is not dict or set(predictions) != set(inputs):
-            raise DecisionError("model_results_are_exactly_the_queries")
-        rows = []
+        batch = []
         for query_id, point in zip(inputs, points):
-            row = quantities(self.contract, inputs[query_id], predictions[query_id])
-            self.log.append(
-                {"query_id": query_id, "point": list(point), "quantities": row}
+            entry = {
+                "query_id": query_id,
+                "point": list(point),
+                "status": "ATTEMPTED",
+                "quantities": None,
+            }
+            self.log.append(entry)
+            batch.append(entry)
+            self._attempted_points.add(point)
+
+        started = time.perf_counter()
+        try:
+            predictions = self.infer(inputs)
+        except ModelInfrastructureFailure as error:
+            self.elapsed += time.perf_counter() - started
+            for entry in batch:
+                entry["status"] = "FAILED_INFRA"
+                entry["failure_code"] = error.code
+            self._seal(error.code, detail=error.cause, query_ids=inputs)
+            raise
+        except Exception as error:
+            self.elapsed += time.perf_counter() - started
+            failure = ModelInfrastructureFailure(type(error).__name__)
+            for entry in batch:
+                entry["status"] = "FAILED_INFRA"
+                entry["failure_code"] = failure.code
+            self._seal(failure.code, detail=failure.cause, query_ids=inputs)
+            raise failure from error
+        self.elapsed += time.perf_counter() - started
+
+        try:
+            if type(predictions) is not dict or set(predictions) != set(inputs):
+                raise DecisionError("model_results_are_exactly_the_queries")
+            rows = [
+                quantities(self.contract, inputs[query_id], predictions[query_id])
+                for query_id in inputs
+            ]
+        except DecisionError as error:
+            status = (
+                "FAILED_PHYSICS"
+                if error.code == "prediction_failed_physical_gate"
+                else "FAILED_PROTOCOL"
             )
-            rows.append(row)
+            for entry in batch:
+                entry["status"] = status
+                entry["failure_code"] = error.code
+            self._seal(error.code, detail=str(error), query_ids=inputs)
+            raise
+
+        for entry, row in zip(batch, rows):
+            entry["status"] = "OK"
+            entry["quantities"] = row
         return rows
 
 
@@ -519,6 +695,7 @@ def commit(req, selections, oracle, directory):
     if req.get("request_digest") != oracle.request_digest:
         raise DecisionError("oracle_request_mismatch")
     _validate_request(req, oracle.contract["contract_digest"])
+    oracle._require_open()
     if type(selections) is not list or len(selections) > 1:
         raise DecisionError("pb_inv_commits_at_most_one_design")
     if selections:
@@ -534,6 +711,7 @@ def commit(req, selections, oracle, directory):
         rows = {
             tuple(row["point"]): row["quantities"]
             for row in oracle.log
+            if row["status"] == "OK"
             if tuple(row["point"][: len(DESIGN_VARIABLES)]) == design
         }
         expected = {(*design, *condition) for condition in oracle.conditions}
@@ -548,7 +726,9 @@ def commit(req, selections, oracle, directory):
     body = {
         "schema": COMMITMENT_SCHEMA,
         "request": req,
-        "queries_used": oracle.used,
+        "query_accounting_unit": QUERY_ACCOUNTING_UNIT,
+        "query_attempts": oracle.used,
+        "query_successes": oracle.successful,
         "query_log_digest": digest(oracle.log),
         "selections": [dict(selection) for selection in selections],
         "status": "PROPOSAL" if selections else "ABSTAIN",
@@ -594,6 +774,266 @@ def _jobs(document):
     return jobs
 
 
+_COUNTED_PROVENANCE_FIELDS = {
+    "evidence_class",
+    "solver_image",
+    "configuration_digest",
+    "mesh_digest",
+    "convergence_evidence_digest",
+    "applicability_evidence_digest",
+    "run_identity",
+    "artifact_manifest_digest",
+    "artifact_count",
+    "artifact_bytes",
+    "execution_count",
+    "retry_count",
+    "wall_s",
+    "cpu_limit",
+    "record_digest",
+}
+
+
+def _validate_counted_record(record):
+    if type(record) is not dict or set(record) != {
+        "status",
+        "inputs",
+        "outputs",
+        "checks",
+        "provenance",
+    }:
+        raise DecisionError("counted_cfd_record_fields")
+    provenance = record["provenance"]
+    if type(provenance) is not dict or set(provenance) != _COUNTED_PROVENANCE_FIELDS:
+        raise DecisionError("counted_cfd_provenance_fields")
+    if (
+        provenance["evidence_class"] != "COUNTED_CFD"
+        or provenance["solver_image"] != openfoam.IMAGE
+    ):
+        raise DecisionError("counted_cfd_identity")
+    for name in (
+        "configuration_digest",
+        "mesh_digest",
+        "convergence_evidence_digest",
+        "applicability_evidence_digest",
+        "artifact_manifest_digest",
+        "record_digest",
+    ):
+        _tagged_digest(provenance[name], name)
+    _token(provenance["run_identity"], "run_identity")
+    for name in ("artifact_count", "artifact_bytes", "execution_count", "cpu_limit"):
+        if type(provenance[name]) is not int or provenance[name] <= 0:
+            raise DecisionError("counted_cfd_positive_integer", name)
+    if (
+        type(provenance["retry_count"]) is not int
+        or provenance["retry_count"] < 0
+        or provenance["retry_count"] >= provenance["execution_count"]
+    ):
+        raise DecisionError("counted_cfd_retry_count")
+    if _number(provenance["wall_s"], "wall_s") < 0:
+        raise DecisionError("counted_cfd_wall_time")
+    body = {
+        **record,
+        "provenance": {
+            key: value for key, value in provenance.items() if key != "record_digest"
+        },
+    }
+    if digest(body) != provenance["record_digest"]:
+        raise DecisionError("counted_cfd_record_digest_mismatch")
+    domain.check_inputs(record["inputs"])
+    if type(record["status"]) is not str or not record["status"]:
+        raise DecisionError("counted_cfd_status")
+    if record["status"] == "OK" and (
+        type(record["outputs"]) is not dict or type(record["checks"]) is not dict
+    ):
+        raise DecisionError("counted_cfd_success_evidence")
+    return record
+
+
+def _seal_counted_record(token, *, status, inputs, outputs, checks, provenance):
+    """Seal a normalized record produced by the artifact-verifying importer."""
+
+    if token is not _REFERENCE_SESSION_TOKEN:
+        raise DecisionError("counted_cfd_only_from_artifact_importer")
+    provenance = dict(provenance)
+    body = {
+        "status": status,
+        "inputs": domain.check_inputs(inputs),
+        "outputs": outputs,
+        "checks": checks,
+        "provenance": provenance,
+    }
+    provenance["record_digest"] = digest(body)
+    return _validate_counted_record({**body, "provenance": provenance})
+
+
+class ReferenceSession:
+    """Classified, budgeted reference evidence with replay-safe accounting."""
+
+    def __init__(
+        self,
+        token,
+        *,
+        evidence_class,
+        source,
+        condition_budget,
+        session_id,
+        campaign_wall_s=0.0,
+    ):
+        if token is not _REFERENCE_SESSION_TOKEN:
+            raise DecisionError("reference_session_from_factory_only")
+        if evidence_class not in REFERENCE_CLASSES:
+            raise DecisionError("reference_class_unknown")
+        if not callable(source):
+            raise DecisionError("reference_source_callable")
+        if type(condition_budget) is not int or condition_budget < 0:
+            raise DecisionError("reference_condition_budget")
+        self.evidence_class = evidence_class
+        self.source = source
+        self.condition_budget = condition_budget
+        self.session_id = _token(session_id, "reference_session_id")
+        self.campaign_wall_s = _number(campaign_wall_s, "campaign_wall_s")
+        if self.campaign_wall_s < 0:
+            raise DecisionError("reference_campaign_wall_time")
+        self.used = 0
+        self.cache: dict[str, dict[str, object]] = {}
+        self._verification_keys: set[str] = set()
+        self.source_calls = 0
+        self.solver_executions = 0
+        self.retries = 0
+        self.solver_wall_s = 0.0
+
+    def acquire(self, verification_key, jobs, per_commitment_budget):
+        _tagged_digest(verification_key, "verification_key")
+        if verification_key in self._verification_keys:
+            raise DecisionError("commitment_already_verified")
+        if type(per_commitment_budget) is not int or per_commitment_budget < len(jobs):
+            raise DecisionError("verification_budget_exhausted")
+        if self.used + len(jobs) > self.condition_budget:
+            raise DecisionError("reference_session_budget_exhausted")
+
+        # Reserve before touching the source.  A source failure cannot be caught
+        # and replayed for free under the same commitment.
+        self._verification_keys.add(verification_key)
+        self.used += len(jobs)
+        missing = [job for job in jobs if job["case_id"] not in self.cache]
+        cache_hits = len(jobs) - len(missing)
+        if missing:
+            self.source_calls += 1
+            try:
+                supplied = self.source(missing)
+            except Exception as error:  # noqa: BLE001 - reference failure is evidence
+                supplied = {
+                    job["case_id"]: {
+                        "status": "REFERENCE_INFRA_FAILURE",
+                        "inputs": job["inputs"],
+                        "outputs": None,
+                        "checks": {"source_exception": type(error).__name__},
+                    }
+                    for job in missing
+                }
+            if type(supplied) is not dict:
+                supplied = {}
+            for job in missing:
+                record = supplied.get(job["case_id"])
+                if self.evidence_class == "COUNTED_CFD":
+                    try:
+                        _validate_counted_record(record)
+                    except (DecisionError, TypeError, ValueError):
+                        record = {
+                            "status": "REFERENCE_PROVENANCE_INVALID",
+                            "inputs": job["inputs"],
+                            "outputs": None,
+                            "checks": {},
+                            "provenance": {
+                                "evidence_class": "COUNTED_CFD",
+                                "valid": False,
+                            },
+                        }
+                    else:
+                        provenance = record["provenance"]
+                        self.solver_executions += provenance["execution_count"]
+                        self.retries += provenance["retry_count"]
+                        self.solver_wall_s += provenance["wall_s"]
+                else:
+                    if type(record) is not dict:
+                        record = {
+                            "status": "REFERENCE_MISSING",
+                            "inputs": job["inputs"],
+                            "outputs": None,
+                            "checks": {},
+                        }
+                    record = {
+                        **record,
+                        "provenance": {
+                            "evidence_class": "ANALYTICAL_FIXTURE",
+                            "session_id": self.session_id,
+                            "counted_cfd": False,
+                        },
+                    }
+                self.cache[job["case_id"]] = record
+        return (
+            {job["case_id"]: self.cache[job["case_id"]] for job in jobs},
+            {
+                "accounting_unit": VERIFICATION_ACCOUNTING_UNIT,
+                "condition_evaluations": len(jobs),
+                "cache_hits": cache_hits,
+                "cache_misses": len(missing),
+            },
+        )
+
+    def metrics(self):
+        return {
+            "evidence_class": self.evidence_class,
+            "condition_budget": self.condition_budget,
+            "condition_evaluations": self.used,
+            "source_calls": self.source_calls,
+            "cached_cases": len(self.cache),
+            "solver_executions": self.solver_executions,
+            "retries": self.retries,
+            "solver_wall_s": self.solver_wall_s,
+            "campaign_wall_s": self.campaign_wall_s,
+        }
+
+
+def analytical_fixture_reference(source, *, condition_budget, session_id):
+    """Wrap a callback as explicitly non-counted analytical fixture evidence."""
+
+    return ReferenceSession(
+        _REFERENCE_SESSION_TOKEN,
+        evidence_class="ANALYTICAL_FIXTURE",
+        source=source,
+        condition_budget=condition_budget,
+        session_id=session_id,
+    )
+
+
+def counted_cfd_reference(
+    records, *, condition_budget, session_id, campaign_wall_s=0.0
+):
+    """Build a counted session from records already sealed by the importer."""
+
+    if type(records) is not dict:
+        raise DecisionError("counted_cfd_records_object")
+    for record in records.values():
+        _validate_counted_record(record)
+
+    def source(jobs):
+        return {
+            job["case_id"]: records[job["case_id"]]
+            for job in jobs
+            if job["case_id"] in records
+        }
+
+    return ReferenceSession(
+        _REFERENCE_SESSION_TOKEN,
+        evidence_class="COUNTED_CFD",
+        source=source,
+        condition_budget=condition_budget,
+        session_id=session_id,
+        campaign_wall_s=campaign_wall_s,
+    )
+
+
 def _reference_verdict(decision_contract, job, record):
     if type(record) is not dict or record.get("status") != "OK":
         status = record.get("status") if type(record) is dict else "MISSING"
@@ -623,10 +1063,14 @@ def verify(decision_contract, commitment, reference):
     document = _load_commitment(commitment)
     if document["request"]["contract_digest"] != decision_contract["contract_digest"]:
         raise DecisionError("contract_mismatch")
+    if type(reference) is not ReferenceSession:
+        raise DecisionError("classified_reference_session_required")
     jobs = _jobs(document)
-    records = reference(jobs) if jobs else {}
-    if type(records) is not dict:
-        raise DecisionError("reference_results_are_object")
+    records, accounting = reference.acquire(
+        document["commitment_digest"],
+        jobs,
+        document["request"]["verification_budget"],
+    )
     rows = []
     counts = {verdict: 0 for verdict in VERDICTS}
     for job in jobs:
@@ -639,6 +1083,11 @@ def verify(decision_contract, commitment, reference):
                 "case_id": job["case_id"],
                 "verdict": verdict,
                 "reference_status": reference_status,
+                "reference_provenance": (
+                    records.get(job["case_id"], {}).get("provenance")
+                    if type(records.get(job["case_id"])) is dict
+                    else None
+                ),
                 "reference": values,
             }
         )
@@ -652,10 +1101,14 @@ def verify(decision_contract, commitment, reference):
         "request_digest": document["request"]["request_digest"],
         "commitment_digest": document["commitment_digest"],
         "status": document["status"],
+        "reference_evidence_class": reference.evidence_class,
+        "counted_cfd_evidence": reference.evidence_class == "COUNTED_CFD",
+        "verification_accounting": accounting,
         "reference_jobs": len(jobs),
         "verdicts": counts,
         "false_feasible": false_feasible,
         "rows": rows,
+        "reference_session_metrics": reference.metrics(),
         "claims": {
             "best_design_is_global_optimum": False,
             "customer_acceptance": False,

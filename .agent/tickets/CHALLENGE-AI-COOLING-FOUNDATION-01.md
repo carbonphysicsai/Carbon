@@ -1,6 +1,6 @@
 # CHALLENGE-AI-COOLING-FOUNDATION-01 — customer-bound cooling design foundation
 
-**Status:** candidate complete; canonical CI pending
+**Status:** engineering candidate complete; counted CFD owner-blocked; exact-head PR automation pending
 
 **Authority:** OWNER-CHALLENGE-FOUNDATION-01
 
@@ -34,8 +34,20 @@ making the full-manifold, transient and experimental gaps impossible to miss.
 
 ### REPAIR / REPLACE
 
-None authorized. A full-manifold physical version is a prospective versioned
-expansion, not a repair hidden in this ticket.
+- Repair duplicate query enforcement, attempted-query charging, terminal batch
+  failures, classified reference provenance and verification accounting.
+- Preserve the periodic-cell physics. A full-manifold physical version remains
+  a prospective versioned expansion, not a repair hidden in this ticket.
+
+### CONTINUATION STUDY
+
+- Freeze one explicit synthetic eight-design/six-condition DEVELOPMENT study.
+- Reconstruct the existing learned KRR baseline; do not relabel an analytical
+  fixture as a learned model.
+- Separate model-value, search-method-value and finite-set comparator questions.
+- Persist inspectable per-scenario evidence, cost, failure and regret reports.
+- Prepare a bounded counted-CFD plan, but do not execute it without the exact
+  science and compute/spend approval recorded in the design packet.
 
 ## Definition of Done
 
@@ -58,16 +70,29 @@ expansion, not a repair hidden in this ticket.
 8. The existing cold-plate CPU suite and applicable quality/acceptance checks
    pass in the canonical environment or their infrastructure unavailability is
    reported exactly.
+9. Duplicate model points fail closed, failed attempted points consume budget,
+   and no failed oracle can continue or commit.
+10. Analytical fixture and counted-CFD evidence are structurally distinct;
+    counted evidence binds retained solver artifacts and pinned provenance.
+11. Verification condition evaluations, cache hits, solver executions and
+    retries have separate enforced accounting.
+12. A frozen runner reports analytical-versus-learned, method-versus-method and
+    selected-versus-finite-comparator evidence with representative and boundary
+    groups separate.
+13. The fixture smoke is labelled as a fixture. Counted CFD is either run under
+    the exact owner-approved cap or handed off as an exact ready-to-run plan.
 
 ## Out of scope
 
-Pipeline entry or gate signatures; protocol lock; new reference runs or spend;
+Pipeline entry or gate signatures; protocol lock; unauthorized reference runs or spend;
 private/protected material; full headers/manifolds; spanwise maps; transient
 loads; experiment construction; new scientific thresholds; customer acceptance;
 LIVE, production, reward, frontier, settlement or chain behavior.
 
-## Human input required for the next version
+## Human input required for counted execution
 
-Customer requirements and rights; scientific population/measurement/reference/
-acceptance decisions; technical manifold/construction/runtime bounds; and
-process authorization for protocol/queue/budget. All remain fail closed.
+Science-owner approval of the frozen synthetic assumptions/comparison policy and
+compute/spend-owner approval of 48 initial runs, 12 reserved retries, 60 hard
+cap, 2 CPUs per case, 6 parallel and 3600 seconds per case. Customer
+requirements/rights, acceptance thresholds, full-manifold and LIVE decisions
+remain out of scope and fail closed.
