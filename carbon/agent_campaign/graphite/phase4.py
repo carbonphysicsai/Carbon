@@ -7,38 +7,53 @@
         --credential-file PATH \
         --miner-profile PROFILE.json --miner-campaign ID [--session N] \
         [--challenge TOKEN]
+    python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
+    python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
 
 **The engine.** The attack engine is challenge-neutral and lives in
 `carbon.agent_campaign.attack` (the neutral core, its per-Challenge adapters,
 analysis, verify, the knowledge store, report and benchmark). This module is
 the *session driver* only: it runs one Attacker session on #504's phase-3
-harness and then runs Carbon's own side through the engine. It owns no
-science, no grade and no authority.
+harness and then runs Carbon's own side through the engine's published
+interfaces. It owns no science, no grade and no authority.
 
 **The session.** `AttackerProvider` is #504's `Phase3Provider`, so an Attacker
 session inherits the v2 session-limits rule (no session-turn cap, no per-role
 call cap; the grant's per-run money cap and elapsed limit bind), the engine's
-recorded context compaction, the parallel-call rule, and the experiment's
-pods. It runs the Attacker role's prompt and closed tool manifest
-(`roles.py`). Its miner tools go through the real miner path (the standard
-miner MCP door to the Challenge's DEVELOPMENT campaign); `AttackerTools`
-enforces one resource rule before dispatch: a sandbox code run must ask for a
-wall allowance of at most the adapter's `code_run_seconds` (family
-`resource_and_failure_accounting`). Nothing else caps the session; money and
-time bind (OWNER-GRAPHITE-ATTACKER-01 §5).
+recorded context compaction and the parallel-call rule. It runs the Attacker
+role's prompt and closed tool manifest (`roles.py`) against the Challenge's
+adapter: the brief names the adapter's public identity, construction level,
+families (each with its check and its boundary as the goal), the families
+declared NOT_RUN, the code-run wall allowance and the attack-knowledge
+snapshot the session runs under. `AttackerTools` enforces one resource rule
+before dispatch: a sandbox code run must ask for a wall allowance of at most
+the adapter's `code_run_seconds` (family `resource_and_failure_accounting`).
+Nothing else caps the session; money and time bind (OWNER-GRAPHITE-ATTACKER-01
+§5). An Attacker proposes no construction, so its session has no baseline and
+launches no pod; its frozen session record says so.
 
 **Carbon's side** reads the session's journal, never the model's prose
-(`attack.analysis`), maps each attempt to a family through the Challenge's
-adapter, re-verifies each with the adapter's oracle, and rebuilds every attack
-construction it scores on the phase-3 pods (`attack.verify`). A verified
-breach, or a wrongly refused control, is recorded on the #475 controller as a
-`FAILING_TRIGGER` through `controller.record_finding`, where it stops any
-later expansion. Attempts, verified findings and near-misses go into the
-durable attack-knowledge store (`attack.knowledge`), whose snapshot digest the
-run pins. The per-family report and benchmark B2 (Attacker vs battery's
-deterministic `track_a` at an equal attempt budget) come from `attack.report`
-and `attack.benchmark`.
+(`attack.analysis.attempts`), maps each attempt to a family through the
+adapter (`map_to_families`) and verifies every one (`attack.verify.verify`):
+Carbon rebuilds each construction it scores with the adapter's `rebuild`
+(an unrebuildable one is typed and never scored), re-checks it with the
+adapter's oracle and bundles a breach's specimen for a clean rebuild. A
+`BREACHED` verdict carries its conditions in the CONDITIONS vocabulary and is
+recorded on the #475 controller through `verify.record` ->
+`controller.record_finding`, where it stops any later expansion. Every verdict
+is written to the durable attack-knowledge store with its own outcome
+(near-misses only when the oracle says so; a timeout or crash is never a near
+miss). The per-family report is built from the session's verdicts, and
+benchmark B2 compares them with the adapter's deterministic engine runs at an
+equal attempt budget, recorded under the store snapshot the session was pinned
+to before it ran.
+
+**Seam: Carbon's verify-pod rebuild.** Rebuilding attack constructions on
+Carbon-launched phase-3 pods is declared NOT_RUN here (`POD_REBUILD_SEAM`): no
+pod is launched and `verify` gets no pod build records, so an attempt the path
+says ran on a pod is `UNDETERMINED`, never a pass. The grant keeps the pods'
+share reserved; the token share is the session's money cap.
 
 **`--dry-run`** runs one session with a scripted model and `ScriptedPods`
 under `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner
@@ -46,12 +61,9 @@ path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
 **Grant.** A live run reads `GRAPHITE-GRANT-PHASE4`
-(OWNER-GRAPHITE-ATTACKER-01 §5). One grant covers both the Attacker's model
-calls and the pods on which Carbon rebuilds the constructions it scores.
-
-Nothing here grades a finding, submits, opens a pull request, writes weights or
-touches chain state. Not security acceptance. A live run is NOT executed in
-this work.
+(OWNER-GRAPHITE-ATTACKER-01 §5). Nothing here grades a finding, submits, opens
+a pull request, writes weights or touches chain state. Not security
+acceptance. A live run is NOT executed in this work.
 """
 
 from __future__ import annotations
@@ -60,12 +72,15 @@ import argparse
 import contextlib
 import json
 import os
+import re
 import shutil
 import stat
 import subprocess
 import sys
+from decimal import Decimal
 from pathlib import Path
 
+from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_loop import run_epoch
 from carbon.development_session.research_tools import PREFIX
@@ -75,7 +90,15 @@ from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
 from . import tools as toolbox
-from .phase3 import Phase3Provider, RunnerRefused, _root, load_grant
+from .phase3 import (
+    Phase3Provider,
+    RunnerRefused,
+    _install_cancel,
+    _root,
+    check_code_ref,
+    load_grant,
+)
+from .pods import PodFailure
 from .provider import EPOCH, OWNER, GraphiteProvider, SessionBrief
 from .roles import PARALLEL_RULES, ROLES, RoleName
 
@@ -91,22 +114,39 @@ GRANT_ID = "GRAPHITE-GRANT-PHASE4"
 GRANT_FILE = "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
 #: The pipeline stage an Attacker campaign runs at.
 STAGE = "test_iterate"
-#: The construction level battery's first adapter runs at (Level 0).
+#: The Challenge and construction level the CLI attacks by default (battery
+#: Level 0, the first adapter); `--challenge` names another registered one.
 BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
 BATTERY_LEVEL = 0
-#: A run's worst case rebuilds up to this many attack constructions on their
-#: own verify pods; the grant's `worst_case_run_cost` is derived from it
-#: (grants/README.md). Money binds, not this count.
+#: The grant's worst case budgets this many verify pods (grants/README.md);
+#: the pods' share stays reserved while Carbon's verify-pod rebuild is a seam.
+#: Money binds, not this count.
 ATTACKER_VERIFY_PODS = 6
-#: Code runs the session's model may start: the research sandbox applies the
-#: wall allowance; no Carbon count caps a session (money and time bind).
-#: The per-family attempt budget benchmark B2 holds the Attacker and battery's
-#: deterministic harness to.
+#: The per-family attempt budget benchmark B2 holds the Attacker and the
+#: adapter's deterministic engine runs to. Not a session cap.
 ATTACK_BUDGET = 8
-ROWS_SCHEMA = "carbon.graphite.attack-rows.v2"
-LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v1"
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v1"
+#: The strategy label the knowledge store records for the Attacker's attempts:
+#: `graphite-attacker:<operation>` ("which strategy found what").
+STRATEGY = "graphite-attacker"
+LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v2"
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v2"
+PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
+#: What a session needs from its adapter besides the core protocol (the
+#: adapter's session surface, `attack.adapter.SessionSurface`).
+SESSION_SURFACE = ("public_identity", "code_run_seconds")
+#: The dry run's script also needs a recipe the contract refuses.
+DRY_RUN_SURFACE = (*SESSION_SURFACE, "recipe_outside_contract")
+POD_REBUILD_SEAM = {
+    "name": "carbon_verify_pod_rebuild",
+    "state": "NOT_RUN",
+    "reason": (
+        "rebuilding attack constructions on Carbon-launched phase-3 pods is not "
+        "wired in phase 4; no pod is launched and verify receives no pod build "
+        "records, so a pod-scored attempt is UNDETERMINED, never a pass"
+    ),
+}
 _TERMINAL = ("succeeded", "failed", "cancelled")
+_DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 
 # -- the attack engine seam ----------------------------------------------------------------
@@ -114,13 +154,12 @@ def attack_modules():
     """The neutral attack engine (`carbon.agent_campaign.attack`). Imported
     here, not at module load, so the driver imports before the engine slices
     merge; a test injects fakes by replacing this function."""
-    from ..attack import adapter, analysis, benchmark, engine, knowledge, report, verify
+    from ..attack import adapter, analysis, benchmark, knowledge, report, verify
 
     return {
         "adapter": adapter,
         "analysis": analysis,
         "benchmark": benchmark,
-        "engine": engine,
         "knowledge": knowledge,
         "report": report,
         "verify": verify,
@@ -136,15 +175,36 @@ def get_adapter(atk, challenge_id, level):
         raise RunnerRefused("no_attack_adapter_for_challenge_level") from None
 
 
+def surface_value(adapter, name):
+    """One member of the adapter's session surface, called when callable.
+    Refused typed when the adapter does not supply it: the driver never
+    substitutes another Challenge's value."""
+    value = getattr(adapter, name, None)
+    if value is None:
+        raise RunnerRefused("adapter_session_surface_missing: " + name)
+    return value() if callable(value) else value
+
+
 def adapter_code_run_seconds(adapter):
     """The wall allowance one sandbox code run may ask, from the adapter's
-    resource family (battery Level 0: `battery.research.PRACTICE_SECONDS`).
+    session surface (battery Level 0: `battery.research.PRACTICE_SECONDS`).
     A positive integer, or the runner refuses."""
-    value = getattr(adapter, "code_run_seconds", None)
-    seconds = value() if callable(value) else value
+    seconds = surface_value(adapter, "code_run_seconds")
     if type(seconds) is not int or seconds < 1:
         raise RunnerRefused("adapter_code_run_seconds_is_a_positive_integer")
     return seconds
+
+
+def public_identity(adapter):
+    """The Challenge's public development identity, from the adapter."""
+    identity = surface_value(adapter, "public_identity")
+    if (
+        type(identity) is not dict
+        or type(identity.get("id")) is not str
+        or type(identity.get("version")) is not str
+    ):
+        raise RunnerRefused("adapter_public_identity_is_an_id_and_a_version")
+    return {"id": identity["id"], "version": identity["version"]}
 
 
 # -- the Attacker's tools ------------------------------------------------------------------
@@ -214,12 +274,12 @@ class AttackerTools:
         return await self.miner.call(name, arguments, identity)
 
 
-# -- the budget ----------------------------------------------------------------------------
+# -- the budget and the pods -----------------------------------------------------------------
 def attacker_budget(grant, verify_pods=ATTACKER_VERIFY_PODS):
     """One Attacker run's share of the grant, split between the verify pods and
     the model-call tokens, like #504's budget but at the Attacker's worst-case
     pod count (`ATTACKER_VERIFY_PODS`). The grant's `worst_case_run_cost` is
-    the combined cap."""
+    the combined cap; the token share is the session's model-call money cap."""
     base = ex.phase3_budget(grant)
     budget = ex.Phase3Budget(
         run_cap_usd=base.run_cap_usd,
@@ -232,14 +292,42 @@ def attacker_budget(grant, verify_pods=ATTACKER_VERIFY_PODS):
     return budget
 
 
+class NoVerifyPods:
+    """The pod backend of a live Attacker run while Carbon's verify-pod rebuild
+    is a seam (`POD_REBUILD_SEAM`): it launches nothing, so it needs no key and
+    can spend nothing. A launch is refused before any provider write."""
+
+    name = "none"
+
+    def describe(self):
+        return {"backend": self.name, "seam": POD_REBUILD_SEAM["name"]}
+
+    def launch(self, job, private):
+        raise PodFailure("launch", "phase4_launches_no_pod", executed=False)
+
+    def wait(self, handle, *, deadline, cancelled):
+        raise PodFailure("wait", "phase4_launches_no_pod", executed=False)
+
+    def fetch(self, handle):
+        raise PodFailure("fetch", "phase4_launches_no_pod", executed=False)
+
+    def terminate(self, handle):
+        return True
+
+    def charge(self, handle):
+        return Decimal(0)
+
+    def recover(self, intent_id, private):
+        return None
+
+
 # -- the provider --------------------------------------------------------------------------
 class AttackerProvider(Phase3Provider):
     """#504's `Phase3Provider` for Attacker sessions: the v2 session-limits
-    rule (no call cap), compaction, the parallel-call rule, and the
-    experiment's pods, but driving the Attacker role with `AttackerTools`
-    instead of the Constructor's proposal path. An Attacker session proposes no
-    construction, so it bundles and scores nothing itself; Carbon rebuilds the
-    constructions it scores on these pods on its own side (`attack.verify`)."""
+    rule (no call cap), compaction and the parallel-call rule, driving the
+    Attacker role with `AttackerTools` against one Challenge's adapter. An
+    Attacker proposes no construction: its experiment has no baseline and runs
+    no pod, and its session bundles and scores nothing itself."""
 
     def __init__(
         self,
@@ -248,14 +336,13 @@ class AttackerProvider(Phase3Provider):
         grant,
         model,
         pods,
-        code_run_seconds,
+        adapter,
         miner_attach=None,
         miner_tools=None,
         **kwargs,
     ):
-        if type(code_run_seconds) is not int or code_run_seconds < 1:
-            raise ProviderUnavailable("code_run_seconds_required")
-        self._code_run_seconds = code_run_seconds
+        self.adapter = adapter
+        self._code_run_seconds = adapter_code_run_seconds(adapter)
         super().__init__(
             root=root,
             grant=grant,
@@ -269,15 +356,53 @@ class AttackerProvider(Phase3Provider):
         # twelve; the token share follows (grants/README.md).
         self.budget = attacker_budget(grant)
 
+    def session_limits_record(self, task):
+        """The v2 record an Attacker session freezes: the base v2 rule (no
+        call cap, money and elapsed time bind) and what an Attacker does,
+        without the Constructor's pod, delivery and stall fields."""
+        return {
+            **GraphiteProvider.session_limits_record(self, task),
+            "money_cap_covers": "model_calls",
+            "pods_per_session": 0,
+            "verify_pod_rebuild": POD_REBUILD_SEAM["state"],
+            "code_run_seconds_at_most": self._code_run_seconds,
+            "on_limit_stop": "record_attempts_only",
+        }
+
     def start(self, spec, idempotency_key):
-        # #504's `Phase3Provider.start` enforces the Constructor; the Attacker
-        # uses the same harness with its own role, so go to the base provider's
-        # start after the Attacker-only check.
+        # #504's `Phase3Provider.start` enforces the Constructor and battery's
+        # baseline; the Attacker uses the same harness with its own role and
+        # brief check, then the base provider's start.
         if type(spec) is TaskSpec and self.find(idempotency_key) is None:
             brief = self._brief(spec.instructions_digest)
-            if brief is not None and brief["role"] != RoleName.ATTACKER.value:
-                raise ProviderUnavailable("phase4_runs_the_attacker_only")
+            if brief is not None:
+                if brief["role"] != RoleName.ATTACKER.value:
+                    raise ProviderUnavailable("phase4_runs_the_attacker_only")
+                check_attacker_observation(
+                    brief["initial_observation"],
+                    self.adapter,
+                    code_run_seconds=self._code_run_seconds,
+                )
         return GraphiteProvider.start(self, spec, idempotency_key)
+
+    def experiment(self, run_id):
+        """The run's pod accounting, with no baseline: an Attacker proposes no
+        construction, so no pod runs one for it."""
+        return ex.Experiment(
+            root=self._dir(run_id) / "experiment",
+            run_id=run_id,
+            pods=self.pods,
+            budget=self.budget,
+            baseline=None,
+            token_committed=lambda: self._tokens_usd(run_id),
+            cancelled=lambda: self._state(run_id)["cancel_requested"],
+            ladder=self.ladder,
+            emit=lambda event_id, body: self._emit(run_id, event_id, body),
+            scorer=self.scorer or self._frozen_rule,
+            repository=self.repository,
+            clock=self.clock,
+            randomness=self.randomness,
+        )
 
     def _manifest(self, opened):
         return {**super()._manifest(opened), "implementation": "graphite-phase4"}
@@ -330,65 +455,49 @@ class AttackerProvider(Phase3Provider):
 # -- brief, controller and one session -------------------------------------------------------
 def family_vectors(adapter):
     """The families the adapter names, worded for the Attacker's brief: the
-    family id, its Track A check and its neutral goal. The adapter owns the
-    neutral wording (lesson 2026-10-02-attacker-brief-protected-markers); the
-    brief refuses if any string names protected material."""
-    rows = []
-    for family in adapter.families():
-        rows.append(
-            {
-                "id": _attr(family, "name", "family_id"),
-                "check": _attr(family, "check"),
-                "goal": _attr(family, "goal", default=""),
-            }
-        )
-    return rows
+    family's name, its Track A check and its boundary as the goal. The adapter
+    owns the neutral wording (lesson 2026-10-02-attacker-brief-protected-
+    markers); the brief refuses if any string names protected material."""
+    return [
+        {"id": family.name, "check": family.check, "goal": family.boundary}
+        for family in adapter.families()
+    ]
 
 
-def _attr(obj, *names, default=None):
-    """The first present attribute or mapping key among `names`."""
-    for name in names:
-        if isinstance(obj, dict):
-            if name in obj:
-                return obj[name]
-        elif hasattr(obj, name):
-            return getattr(obj, name)
-    if default is not None or not names:
-        return default
-    raise KeyError(names[0])
+def seam_vectors(adapter):
+    """The families the adapter declares NOT_RUN at this level: named so the
+    Attacker spends nothing on them; never a pass. Their check is left out: one
+    Track A check's name (`fresh_attack_confirmation`) trips the protected
+    filter, and a seam asks nothing of the Attacker."""
+    return [{"id": seam.name, "state": "NOT_RUN"} for seam in adapter.level_families()]
 
 
-def baseline_strategy(adapter):
-    """The construction the Attacker probes around; the experiment machinery
-    rebuilds it. From the adapter when it names one, else battery's public
-    scaffold (battery Level 0)."""
-    if hasattr(adapter, "baseline"):
-        value = adapter.baseline
-        return value() if callable(value) else value
-    from carbon.battery.research import SCAFFOLD
-
-    return SCAFFOLD
-
-
-def public_identity(adapter):
-    value = getattr(adapter, "public_identity", None)
-    if value is not None:
-        return value() if callable(value) else value
-    from carbon.battery.challenge import CHALLENGE
-
-    return {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}
+def knowledge_brief(view, adapter):
+    """What the pinned attack-knowledge snapshot says about this Challenge's
+    families: the snapshot digest and per-family counts (no boundary text, no
+    content). The session runs under this snapshot; B2 is recorded under it."""
+    priors = view.priors(adapter.challenge_id)
+    names = {family.name for family in adapter.families()}
+    by_family = {
+        name: {key: value for key, value in entry.items() if key != "boundaries"}
+        for name, entry in priors.get("by_family", {}).items()
+        if name in names
+    }
+    return {"snapshot": view.digest, "by_family": by_family}
 
 
-def brief_observation(adapter, *, code_run_seconds):
+def brief_observation(adapter, *, knowledge=None):
     """The Attacker's starting observation: the Challenge's public development
-    identity, the construction level, the adapter's families and the one
-    resource limit a code run is held to. Refused if it names protected
+    identity and contract token, the construction level, the adapter's
+    families and seams, the attack-knowledge snapshot it runs under, and the
+    one resource limit a code run is held to. Refused if it names protected
     material (SessionBrief does the same check)."""
     observation = {
         "challenge": public_identity(adapter),
+        "challenge_id": adapter.challenge_id,
         "stage": STAGE,
         "level": adapter.level,
-        "baseline_strategy": baseline_strategy(adapter),
+        "contract_digest": adapter.contract_digest,
         "objective": (
             "Probe this Challenge's research path for each family below, through "
             "the tools you are given, at the construction level named. Try "
@@ -398,10 +507,12 @@ def brief_observation(adapter, *, code_run_seconds):
             "is a report for Carbon to verify, never a verdict."
         ),
         "families": family_vectors(adapter),
+        "not_run": seam_vectors(adapter),
+        "attack_knowledge": knowledge,
         "limits": {
             "model_calls": None,
             "code_runs": None,
-            "code_run_seconds_at_most": code_run_seconds,
+            "code_run_seconds_at_most": adapter_code_run_seconds(adapter),
         },
     }
     if toolbox.protected(observation):
@@ -409,14 +520,35 @@ def brief_observation(adapter, *, code_run_seconds):
     return observation
 
 
-def session_brief(adapter, *, checkout_commit, code_run_seconds, repository=REPOSITORY):
+def check_attacker_observation(observation, adapter, *, code_run_seconds):
+    """An Attacker brief serves exactly its adapter's Challenge and level, at
+    its families and wall allowance, with no baseline (an Attacker proposes no
+    construction). Refused typed otherwise; the driver substitutes nothing."""
+    expected = {
+        "challenge": public_identity(adapter),
+        "challenge_id": adapter.challenge_id,
+        "level": adapter.level,
+        "contract_digest": adapter.contract_digest,
+    }
+    for key, value in expected.items():
+        if observation.get(key) != value:
+            raise ProviderUnavailable("attacker_brief_" + key + "_is_not_the_adapters")
+    named = [row.get("id") for row in observation.get("families") or ()]
+    if named != [family.name for family in adapter.families()]:
+        raise ProviderUnavailable("attacker_brief_families_are_not_the_adapters")
+    limits = observation.get("limits") or {}
+    if limits.get("code_run_seconds_at_most") != code_run_seconds:
+        raise ProviderUnavailable("attacker_brief_code_run_seconds_mismatch")
+    if "baseline_strategy" in observation:
+        raise ProviderUnavailable("attacker_brief_carries_no_baseline")
+
+
+def session_brief(adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY):
     role = ROLES[RoleName.ATTACKER]
     manifest = boundaries.checkout_manifest(repository, role.boundary)
     return SessionBrief(
         role=RoleName.ATTACKER,
-        initial_observation=brief_observation(
-            adapter, code_run_seconds=code_run_seconds
-        ),
+        initial_observation=brief_observation(adapter, knowledge=knowledge),
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
     )
@@ -425,9 +557,9 @@ def session_brief(adapter, *, checkout_commit, code_run_seconds, repository=REPO
 def attacker_profile(adapter):
     document = {
         "schema": PROFILE_SCHEMA,
-        "challenge": _attr(adapter, "challenge_id"),
+        "challenge": adapter.challenge_id,
         "level": adapter.level,
-        "contract_digest": _attr(adapter, "contract_digest", default=""),
+        "contract_digest": adapter.contract_digest,
         "surface": "red-team the Challenge's research path through the miner tools",
         "widens": [],
     }
@@ -447,7 +579,7 @@ def controller_for(store, provider, grant, clock=None):
     )
 
 
-def ensure_campaign(control, adapter, *, checkout_digest, profile_digest):
+def ensure_campaign(control, *, checkout_digest, profile_digest):
     if CAMPAIGN in control.budget()["campaigns"]:
         return
     grant = control.grant
@@ -466,62 +598,219 @@ def session_key(number):
     return f"graphite-phase4-session-{number}"
 
 
-def _is_finding(verdict):
-    """A verified breach, or a wrongly refused control: the engine records it
-    as a finding and stops expansion. Read from the verdict whether it names a
-    breach and carries a condition in the CONDITIONS vocabulary."""
-    breached = _attr(verdict, "breached", "is_finding", default=False)
-    condition = _attr(verdict, "condition", default=None)
-    return bool(breached) and condition is not None
-
-
-def carbon_side(store, control, provider, run_id, adapter, atk, *, budget):
-    """Carbon's own side of a finished session, through the engine: the
-    session's attempts read from its journal, mapped to families, verified with
-    the adapter's oracle and rebuilt on the pods; a verified breach recorded on
-    the controller as a finding; attempts and findings written to the durable
-    knowledge store. Returns (coverage report, B2, finding ids, store digest)."""
-    analysis, verify = atk["analysis"], atk["verify"]
-    engine, report, benchmark = atk["engine"], atk["report"], atk["benchmark"]
+# -- the attack-knowledge store ---------------------------------------------------------------
+def open_store(store, atk):
+    """The durable attack-knowledge store under the runner's store."""
     knowledge = atk["knowledge"]
+    name = getattr(knowledge, "STORE_DIRNAME", "graphite-attack-knowledge")
+    return knowledge.AttackStore(Path(store).resolve() / name)
 
-    session_dir = provider._dir(run_id)
-    attempts = analysis.attempts(session_dir)
-    mapped = analysis.map_to_families(attempts, adapter)
 
-    kstore = knowledge.AttackStore(Path(store) / "knowledge")
-    cid, level = _attr(adapter, "challenge_id"), adapter.level
-    findings = []
-    for family, family_attempts in mapped.items():
-        for attempt in family_attempts:
-            verdict = verify.verify(attempt, adapter, pods=provider.pods)
-            kstore.add_attempt(
-                cid, level, family=family, attempt=attempt, verdict=verdict
+def pin_session(store, number, kstore):
+    """The store snapshot session `number` runs under, frozen once before the
+    session opens (a resume reuses it), as a read-only view. B2 is recorded
+    under its digest; specimens added later belong to the next snapshot."""
+    path = Path(store) / "pins" / f"session-{number}.json"
+    if path.is_file():
+        value = json.loads(path.read_bytes())["attack_knowledge_digest"]
+    else:
+        value = kstore.snapshot()
+        path.parent.mkdir(mode=0o700, exist_ok=True)
+        write_once(
+            path,
+            canonical(
+                {
+                    "schema": PIN_SCHEMA,
+                    "session": number,
+                    "attack_knowledge_digest": value,
+                }
+            ),
+        )
+    return kstore.pin(value)
+
+
+def is_finding(verdict, verify):
+    """A verdict is a finding exactly when it is BREACHED, and then it carries
+    its conditions (the published `verify.Verdict` contract). A verdict where
+    the two disagree is refused: never read as a pass."""
+    breached = verdict.outcome == verify.BREACHED
+    if breached != bool(tuple(verdict.conditions)):
+        raise RunnerRefused("verdict_breach_and_conditions_disagree")
+    return breached
+
+
+def store_outcome(verdict, verify):
+    """A verdict as the knowledge store's outcome vocabulary. A timeout or
+    crash, an unrebuildable construction, Graphite's own refusal (nothing
+    reached the path) and anything not judged are never a hold."""
+    if verdict.outcome == verify.BREACHED:
+        return "BREACHED"
+    if verdict.rebuild == verify.UNREBUILDABLE:
+        return "UNREBUILDABLE"
+    if verdict.outcome == verify.HELD:
+        return "NOT_RUN" if verdict.refused_by == "graphite" else "HELD"
+    if verdict.outcome == verify.INFRA:
+        return "TIMEOUT" if "TIME" in (verdict.reason or "").upper() else "CRASH"
+    return "NOT_RUN"  # UNDETERMINED or NOT_APPLICABLE: nothing judged
+
+
+def _specimen_value(attempt, analysis):
+    """The input a finding's regression specimen re-runs: the construction
+    the attempt carried, else its arguments; only its identity when its
+    content was withheld."""
+    if attempt.withheld is not None:
+        return {"attempt": attempt.identity}
+    construction = analysis.construction(attempt)
+    if type(construction) is dict:
+        return construction
+    return dict(attempt.arguments)
+
+
+def _evidence(verdict, attempt):
+    found = sorted(
+        {
+            value
+            for value in verdict.evidence.values()
+            if type(value) is str and _DIGEST.fullmatch(value)
+        }
+    )
+    return found or [attempt.intent_digest]
+
+
+def remember(kstore, atk, adapter, definition, attempt, verdict, rows):
+    """Write one verdict to the knowledge store with its own outcome: the
+    attempt always, a near miss only when the oracle reports one, and each
+    finding with its regression specimen. A record the store refuses is listed
+    with its typed code, never dropped silently."""
+    knowledge, verify = atk["knowledge"], atk["verify"]
+    if definition is None:
+        rows["not_stored"].append(
+            {"attempt": attempt.identity, "reason": "no_family_takes_this_attempt"}
+        )
+        return
+    boundary = definition.boundary
+    if knowledge.sealed(boundary) or knowledge.held_out(boundary):
+        boundary = definition.name  # the store refuses such words; never stored
+    common = {
+        "challenge_id": adapter.challenge_id,
+        "level": adapter.level,
+        "contract_digest": adapter.contract_digest,
+        "check": definition.check,
+        "family": definition.name,
+        "boundary": boundary,
+        "strategy": STRATEGY + ":" + (attempt.operation or "unknown"),
+        "attempt_id": attempt.identity,
+    }
+
+    def write(kind, call, **fields):
+        try:
+            call(**common, **fields)
+        except knowledge.KnowledgeError as refused:
+            rows["refused"].append(
+                {"attempt": attempt.identity, "kind": kind, "code": refused.code}
             )
-            if _is_finding(verdict):
-                finding_id = verify.record(verdict, control)
-                kstore.add_finding(cid, level, family=family, verdict=verdict)
-                findings.append(finding_id)
-            else:
-                kstore.add_near_miss(cid, level, family=family, verdict=verdict)
+            return False
+        rows["written"] += 1
+        return True
 
-    runs = [engine.run_family(family, budget=budget) for family in adapter.families()]
-    held_out = adapter.controls("held_out")
-    family_report = report.family_report(runs, controls_held_out=held_out)
-    b2 = benchmark.b2(runs, baseline_runs=None, budget=budget)
-    store_digest = kstore.snapshot()
+    outcome = store_outcome(verdict, verify)
+    payload = {**attempt.record(), "arguments": dict(attempt.arguments)}
+    if not write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome):
+        # Its arguments named material the store refuses: keep the attempt's
+        # identity and digests alone.
+        payload = attempt.record()
+        write("attempt", kstore.add_attempt, attempt=payload, outcome=outcome)
+    if verdict.near_miss and outcome != "BREACHED":
+        write(
+            "near_miss",
+            kstore.add_near_miss,
+            attempt=payload,
+            note=verdict.reason or "the oracle reported a near miss",
+        )
+    if outcome == "BREACHED":
+        for condition in verdict.conditions:
+            write(
+                "finding",
+                kstore.add_finding,
+                condition=condition,
+                specimen=_specimen_value(attempt, atk["analysis"]),
+                evidence=_evidence(verdict, attempt),
+                # Carbon scores only what it rebuilt; an attempt that carried no
+                # construction was re-run by Carbon's own oracle as given.
+                rebuilt=verdict.rebuild != verify.UNREBUILDABLE,
+            )
 
+
+def held_out_rows(adapter, atk):
+    """Each held-out control against its family's real boundary, as the
+    report's `{family, control, outcome}` rows: the wrongful-rejection
+    measurement only, never fed to a run or the store."""
+    return [
+        {"family": family, "control": row["control"], "outcome": row["outcome"]}
+        for family, rows in atk["adapter"].held_out_outcomes(adapter).items()
+        for row in rows
+    ]
+
+
+def carbon_side(
+    store, control, provider, run_id, adapter, atk, *, budget, kstore, view
+):
+    """Carbon's own side of a finished session, through the engine (module
+    docstring). Returns (coverage report, B2, finding ids, store digest)."""
+    analysis, verify = atk["analysis"], atk["verify"]
+    report, benchmark = atk["report"], atk["benchmark"]
+    view.replay(view.digest)  # the snapshot the brief named is served whole
+
+    found = analysis.attempts(provider._dir(run_id))
+    mapped = analysis.map_to_families(found, adapter)
+    families = tuple(adapter.families())
+    seams = tuple(adapter.level_families())
+    definitions = {family.name: family for family in families}
+    specimen_dir = Path(store).resolve() / "specimens"
+    verdicts, findings = [], []
+    rows = {"written": 0, "refused": [], "not_stored": []}
+    for family, attempts in mapped.items():
+        for attempt in attempts:
+            verdict = verify.verify(
+                attempt, adapter, pods=None, family=family, specimen_dir=specimen_dir
+            )
+            if is_finding(verdict, verify):
+                findings.extend(verify.record(verdict, control))
+            verdicts.append(verdict)
+            remember(
+                kstore, atk, adapter, definitions.get(family), attempt, verdict, rows
+            )
+
+    held_out = held_out_rows(adapter, atk)
+    attacker = report.attacker_runs(verdicts, families=families)
+    baseline = atk["adapter"].run_adapter(adapter, budget=budget)
+    family_report = report.family_report(
+        attacker, controls_held_out=held_out, seams=seams
+    )
+    b2 = benchmark.b2(
+        attacker,
+        baseline,
+        budget=budget,
+        store_snapshot=view.digest,
+        controls_held_out=held_out,
+        seams=seams,
+    )
+    after = kstore.snapshot()
     coverage = {
         "schema": COVERAGE_SCHEMA,
-        "challenge": cid,
-        "construction_level": level,
-        "store_digest": store_digest,
+        "challenge": adapter.challenge_id,
+        "construction_level": adapter.level,
+        "contract_digest": adapter.contract_digest,
+        "attempts": len(found),
+        "verdicts": [verdict.record() for verdict in verdicts],
         "families": family_report,
         "findings": findings,
         "benchmark_b2": b2,
+        "attack_knowledge": {"pinned": view.digest, "after": after, **rows},
+        "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
     }
-    return coverage, b2, findings, store_digest
+    return coverage, b2, findings, after
 
 
 def _log(store, entry):
@@ -536,7 +825,9 @@ def _log(store, entry):
     path.chmod(0o600)
 
 
-def run_session(store, control, provider, adapter, brief, number, atk, *, budget):
+def run_session(
+    store, control, provider, adapter, brief, number, atk, *, budget, kstore, view
+):
     """Launch (or resume) Attacker session `number`, run it, and do Carbon's
     side through the engine. Returns the iteration-log entry and the coverage
     report."""
@@ -545,7 +836,6 @@ def run_session(store, control, provider, adapter, brief, number, atk, *, budget
     _document, profile = attacker_profile(adapter)
     ensure_campaign(
         control,
-        adapter,
         checkout_digest=brief.checkout_manifest_digest,
         profile_digest=profile,
     )
@@ -566,15 +856,23 @@ def run_session(store, control, provider, adapter, brief, number, atk, *, budget
     phase = control.poll(key)
     coverage = None
     findings = []
-    if final:
-        coverage, _b2, findings, _digest = carbon_side(
-            store, control, provider, run_id, adapter, atk, budget=budget
+    if final in _TERMINAL:
+        coverage, _b2, findings, _after = carbon_side(
+            store,
+            control,
+            provider,
+            run_id,
+            adapter,
+            atk,
+            budget=budget,
+            kstore=kstore,
+            view=view,
         )
     entry = {
         "schema": LOG_SCHEMA,
         "session": number,
         "run_id": run_id,
-        "challenge": _attr(adapter, "challenge_id"),
+        "challenge": adapter.challenge_id,
         "construction_level": adapter.level,
         "role": RoleName.ATTACKER.value,
         "stage": STAGE,
@@ -584,7 +882,8 @@ def run_session(store, control, provider, adapter, brief, number, atk, *, budget
         "settled_usd": str(provider.usage(run_id).settled) if final else None,
         "code_runs": provider.code_runs(run_id) if final else 0,
         "findings": findings,
-        "store_digest": coverage["store_digest"] if coverage else None,
+        "store_pinned": view.digest,
+        "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
     }
     if final in _TERMINAL:
         _log(store, entry)
@@ -658,15 +957,14 @@ def command_run(args):
         raise RunnerRefused("grant_is_not_the_phase4_grant")
     if grant.provider != "graphite":
         raise RunnerRefused("grant_provider_must_be_graphite")
-    if not args.runpod_key_file:
-        raise RunnerRefused("required: --runpod-key-file")
     engy = owner_only_file(args.credential_file)
-    runpod = owner_only_file(args.runpod_key_file)
+    # The brief records the checkout Carbon's side runs from: this HEAD,
+    # pushed and clean (#504's rule), so the run's code is identified.
+    head = _head()
+    check_code_ref(head)
     store = _store(root, False)
-    code_run_seconds = adapter_code_run_seconds(adapter)
     from . import miner_path
     from .model import LiveModel, ModelAccessRefused
-    from .pods import RunPodPods
 
     try:
         model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
@@ -678,20 +976,22 @@ def command_run(args):
             args.miner_profile, args.miner_campaign, session=session
         )
 
-    pods = RunPodPods(root=store / "pods", key_file=runpod, code_ref=_head())
     provider = AttackerProvider(
         root=store / "graphite",
         grant=grant,
         model=model,
-        pods=pods,
-        code_run_seconds=code_run_seconds,
+        pods=NoVerifyPods(),
+        adapter=adapter,
         miner_attach=attach,
     )
     control = controller_for(store, provider, grant)
     try:
+        kstore = open_store(store, atk)
+        view = pin_session(store, args.session, kstore)
         brief = session_brief(
-            adapter, checkout_commit=_head(), code_run_seconds=code_run_seconds
+            adapter, checkout_commit=head, knowledge=knowledge_brief(view, adapter)
         )
+        _install_cancel(provider, provider.run_id_for(session_key(args.session)))
         entry, coverage = run_session(
             store,
             control,
@@ -701,6 +1001,8 @@ def command_run(args):
             args.session,
             atk,
             budget=ATTACK_BUDGET,
+            kstore=kstore,
+            view=view,
         )
     finally:
         control.close()
@@ -710,9 +1012,59 @@ def command_run(args):
     return 0 if entry["provider_state"] == "succeeded" else 4
 
 
-def command_log(args):
+def _runs_dir(args):
     root = Path(args.root).expanduser().resolve()
-    store = root / ("attacker-dry-run" if args.dry_run else "attacker")
+    store = root / (
+        "attacker-dry-run" if getattr(args, "dry_run", False) else "attacker"
+    )
+    return store, store / "graphite" / "runs"
+
+
+def command_cancel(args):
+    """Ask a running Attacker session to stop at its next checkpoint (SIGINT
+    or SIGTERM in the runner does the same). It launches no pod, so there is
+    nothing to reconcile after it."""
+    _store_dir, runs = _runs_dir(args)
+    run_id = GraphiteProvider.run_id_for(session_key(args.session))
+    state_path = runs / run_id / "state.json"
+    if not state_path.is_file():
+        raise RunnerRefused("unknown_session")
+    state = json.loads(state_path.read_bytes())
+    if state["state"] in _TERMINAL:
+        print(json.dumps({"session": args.session, "state": state["state"]}))
+        return 0
+    state["cancel_requested"] = True
+    temporary = state_path.with_name("state.json.tmp")
+    temporary.write_bytes(canonical(state))
+    temporary.chmod(0o600)
+    os.replace(temporary, state_path)
+    print(json.dumps({"session": args.session, "state": "cancel_requested"}))
+    return 0
+
+
+def command_status(args):
+    store, runs = _runs_dir(args)
+    out = {}
+    for run in sorted(runs.glob("graphite-*")) if runs.is_dir() else ():
+        path = run / "state.json"
+        out[run.name] = json.loads(path.read_bytes()) if path.is_file() else None
+    pins = store / "pins"
+    print(
+        json.dumps(
+            {
+                "runs": out,
+                "pins": (
+                    sorted(p.name for p in pins.glob("*.json")) if pins.is_dir() else []
+                ),
+            },
+            indent=1,
+        )
+    )
+    return 0
+
+
+def command_log(args):
+    store, _runs = _runs_dir(args)
     with contextlib.suppress(FileNotFoundError):
         sys.stdout.write((store / "iteration-log.jsonl").read_text())
     return 0
@@ -742,16 +1094,14 @@ def dry_run_grant(repository=REPOSITORY):
 
 
 def dry_run_script(adapter):
+    """The scripted Attacker: read the Challenge, validate a recipe the
+    adapter's contract refuses, ask for a code run with no wall allowance
+    (refused before dispatch), and stop."""
     from .model import text, tool
 
-    outside = None
-    recipe = getattr(adapter, "recipe_outside_contract", None)
-    if recipe is not None:
-        outside = recipe() if callable(recipe) else recipe
-    if outside is None:
-        from carbon.battery.research import SCAFFOLD
-
-        outside = {**SCAFFOLD, "backbone": "transolver"}
+    for name in DRY_RUN_SURFACE:
+        surface_value(adapter, name)
+    outside = surface_value(adapter, "recipe_outside_contract")
     return [
         tool(PREFIX + "get_challenge_info", {}),
         tool(PREFIX + "dry_validate", {"strategy_json": json.dumps(outside)}),
@@ -770,7 +1120,7 @@ def dry_run_script(adapter):
     ]
 
 
-def dry_run(root, adapter, atk):
+def dry_run(root, adapter, atk, *, miner_tools=None):
     from .model import ScriptedModel
     from .pods import ScriptedPods
 
@@ -779,22 +1129,33 @@ def dry_run(root, adapter, atk):
         shutil.rmtree(store)
     store.mkdir(mode=0o700)
     grant = dry_run_grant()
-    code_run_seconds = adapter_code_run_seconds(adapter)
     provider = AttackerProvider(
         root=store / "graphite",
         grant=grant,
         model=ScriptedModel(dry_run_script(adapter)),
         pods=ScriptedPods(),
-        code_run_seconds=code_run_seconds,
+        adapter=adapter,
+        miner_tools=miner_tools,
         randomness=lambda n: b"\x00" * n,
     )
     control = controller_for(store, provider, grant)
     try:
+        kstore = open_store(store, atk)
+        view = pin_session(store, 1, kstore)
         brief = session_brief(
-            adapter, checkout_commit="0" * 40, code_run_seconds=code_run_seconds
+            adapter, checkout_commit="0" * 40, knowledge=knowledge_brief(view, adapter)
         )
         entry, coverage = run_session(
-            store, control, provider, adapter, brief, 1, atk, budget=ATTACK_BUDGET
+            store,
+            control,
+            provider,
+            adapter,
+            brief,
+            1,
+            atk,
+            budget=ATTACK_BUDGET,
+            kstore=kstore,
+            view=view,
         )
     finally:
         control.close()
@@ -827,15 +1188,23 @@ def main(argv=None):
         "--credential-file",
         help="path of an owner-only file holding the Engy key; never read here",
     )
-    run.add_argument("--runpod-key-file")
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--session", type=int, default=1)
-    log = sub.add_parser("log")
-    log.add_argument("--root", required=True)
-    log.add_argument("--dry-run", action="store_true")
+    cancel = sub.add_parser("cancel")
+    cancel.add_argument("--root", required=True)
+    cancel.add_argument("--session", type=int, required=True)
+    for name in ("status", "log"):
+        command = sub.add_parser(name)
+        command.add_argument("--root", required=True)
+        command.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
-    return {"run": command_run, "log": command_log}[args.command](args)
+    return {
+        "run": command_run,
+        "cancel": command_cancel,
+        "status": command_status,
+        "log": command_log,
+    }[args.command](args)
 
 
 if __name__ == "__main__":

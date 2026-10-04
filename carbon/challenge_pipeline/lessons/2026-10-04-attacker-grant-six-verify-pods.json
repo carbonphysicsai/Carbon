@@ -13,7 +13,7 @@
  "observed": "#504's phase3_budget reserves twelve pods a session (2.96), leaving only 0.45 of tokens; the Attacker's worst case is six verify pods, so the driver rebuilds the budget at six pods to reach the owner-approved 1.48 pods and 1.93 tokens.",
  "keep": [
   "Money binds, not a pod count: the grant's run cost is the cap, the six-pod figure only derives the token share.",
-  "The Attacker's model-call money cap is the token share; Carbon rebuilds the constructions it scores on the verify pods on its own side."
+  "The Attacker's model-call money cap is the token share; the verify pods' share stays reserved while Carbon's verify-pod rebuild is a declared NOT_RUN seam (no pod is launched in phase 4)."
  ],
  "change": [
   "A phase-4 budget uses the Attacker's verify-pod count, not the Constructor's session-pod count."

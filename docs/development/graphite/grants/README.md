@@ -424,8 +424,11 @@ nothing, and a live run takes place only after the engine merges and that dry
 run passes (OWNER-GRAPHITE-ATTACKER-01 §5).
 
 One grant covers both kinds of spend, as the phase-3 grant does: the Attacker's
-Engy model calls, and the RunPod pods on which Carbon rebuilds every attack
-construction it scores (the verify step; §5). Each run is reserved at
+Engy model calls, and the RunPod pods on which Carbon would rebuild the attack
+constructions it scores (the verify step; §5). In this build that pod rebuild
+is a declared NOT_RUN seam (`phase4.POD_REBUILD_SEAM`): a live Attacker run
+launches no pod, and the pods' share of each run stays reserved but unspent.
+Each run is reserved at
 `worst_case_run_cost` by the campaign controller; inside the run every model
 call is reserved before dispatch and admitted against the run's token share.
 **Money and time bind, never a call count** (OWNER-GRAPHITE-ATTACKER-01 §5,
@@ -443,7 +446,7 @@ session-limits rule with no session-turn cap and no per-role call cap.
 | `cleanup_allowance` | `0.25` USD | pod_control's `CLEANUP_RESERVE_USD`, as phase 3 |
 | `worst_case_run_cost` | `3.41` USD | Derived (below) |
 | `max_runtime_s` | `15600` | As proposed and approved |
-| `max_concurrency` | `1` | One session at a time; one verify pod at a time |
+| `max_concurrency` | `1` | One session at a time |
 | `max_submissions` | `3` | One session export per permitted run |
 
 ### Arithmetic
@@ -457,16 +460,19 @@ on their own pods (the verify step, §5):
 
     6 × USD 0.246369864 = 1.478219184  →  USD 1.48 (rounded up to the cent)
 
-**Tokens per run.** The Attacker starts on `glm-5.2`. The plan's estimate is
-about 40 model calls a session; at `DEFAULT_SETTINGS` (65,536 input and 2,048
-output tokens) one `glm-5.2` call reserves 65,536 × 680 + 2,048 × 1,500 =
-47,636,480 nanodollars, USD 0.04763648:
+**One run's worst case.** The owner approved USD 3.41 a run: the six pods
+plus about 40 `glm-5.2` calls.
 
-    40 × USD 0.04763648 = 1.9054592  →  USD 1.93 (rounded up to the cent)
+**Tokens per run.** The token share is what the run cost leaves after the
+pods:
 
-**One run's worst case.** Pods plus tokens:
+    3.41 − 1.48 = USD 1.93
 
-    1.48 + 1.93 = USD 3.41
+The Attacker starts on `glm-5.2`. At `DEFAULT_SETTINGS` (65,536 input and 2,048
+output tokens) one call reserves 65,536 × 680 + 2,048 × 1,500 = 47,636,480
+nanodollars, USD 0.04763648, so the token share covers about 40 calls
+(1.93 / 0.04763648 ≈ 40.5; 40 calls are USD 1.9054592). The call count only
+explains the figure: money binds, not the count.
 
 **Runs.** Three permitted runs, plus cleanup, stay under the ceiling:
 
