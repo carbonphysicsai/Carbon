@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-graphite-pod-store-threads",
+ "recorded_at": "2026-10-04T23:50:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "campaign_session",
+  "ref": "Graphite phase-3 live session 3, run graphite-18fc7b1c1eeea8aa at REF ac78f661; fixed on claude/fix-pod-store-threads",
+  "description": "The Constructor's first real pod launch (the session's baseline proposal, after eight model calls) through Carbon's live RunPod backend, then a no-network reproduction of it from the code."
+ },
+ "expected": "A phase-3 session that passed its dry run and the Graphite suites launches its first pod through the operator compute layer.",
+ "observed": "The launch died at the first store write with sqlite3.ProgrammingError (SQLite objects created in a thread can only be used in that same thread), and the session ended failed with reconciliation_required; no pod was created. RunPodPods builds the operator ComputeStore, one sqlite connection with the default check_same_thread, on the runner's main thread, and Phase3Tools.call runs the proposal through asyncio.to_thread, so every live session's first launch would fail. The dry run uses ScriptedPods and the backend tests called RunPodPods on the main thread only, so no synthetic path reached the store from a worker thread. All three live phase-3 sessions so far have ended on a Carbon harness defect, not on a model or scientific outcome. The no-network replay also showed the create request was not a pure function of the job (pod_control gzips the CA bundle with a timestamp), so a replayed launch in another second was refused as a different request.",
+ "keep": [
+  "A dry run and a pre-live gate drive the live backend's own code with only the external service faked, on the threads the live session uses, beside any scripted stand-in.",
+  "An operator store opens its connection where it is used; transactions stay BEGIN IMMEDIATE, so threads and the independent reconciler's process serialize on SQLite's own write lock.",
+  "A request that is journalled for idempotency is a pure function of its durable record: no timestamps or other per-call bytes in it."
+ ],
+ "change": [
+  "ComputeStore opens one connection per operation; the spend gate and a compare-and-set REQUESTED to DISPATCHED claim form one admission, so concurrent threads cannot double-admit or double-create.",
+  "pods.real_path_check builds RunPodPods on the calling thread and runs launch, wait and fetch through asyncio.to_thread concurrently, replays, recovers and terminates on the calling thread, and runs the independent reconciler, with RunPod in memory; the phase-3 dry run fails unless it is OK, and the phase-4 pre-live gate can call it.",
+  "tests/cpu/test_graphite_pod_store_threads.py drives the real RunPodPods.launch through asyncio.to_thread; its thread tests fail on the old store with the live error."
+ ],
+ "protocol_elements": [
+  "graphite.pods",
+  "operator.compute-store",
+  "dry-run.coverage"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
