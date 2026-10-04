@@ -72,6 +72,7 @@ def provider_plan(agent, budget, selection=None):
         PARALLEL_CALLS_V2,
     )
     from carbon.development_session.research_campaign import FINAL_EPOCHS
+    from carbon.development_session.research_tools import TOOLS_RULE
 
     ceilings = (budget or {}).get("ceilings") or {}
     if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
@@ -100,6 +101,12 @@ def provider_plan(agent, budget, selection=None):
         # Conversation messages at each step as recorded guidance. A plan
         # frozen before the amendment has no rule and reads none.
         "miner_guidance": miner_guidance.RULE,
+        # Frozen with the plan (LP-PROD-D, wired by OWNER-LAUNCHPAD-PROD-01):
+        # the v2 research tools text, read_file's text-once result
+        # (`content_utf8`) and the agent's `research_environment`. A plan
+        # frozen earlier names no rule, keeps the historical tools, reads and
+        # observation byte for byte, and replays unchanged.
+        "research_tools": TOOLS_RULE,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()

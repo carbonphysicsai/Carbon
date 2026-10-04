@@ -530,7 +530,7 @@ def test_carbons_agent_researches_battery_through_the_same_path(
     )
     from carbon.development_session.research_campaign import run_agent
     from carbon.development_session.research_loop import SELECT
-    from carbon.development_session.research_tools import PREFIX
+    from carbon.development_session.research_tools import PREFIX, TOOLS_RULE, TOOLS_V2
 
     path, ledger, owner, connection, manifest = battery_campaign(
         tmp_path, monkeypatch, agent="autonomous", budget=AGENT_BUDGET
@@ -632,6 +632,10 @@ def test_carbons_agent_researches_battery_through_the_same_path(
         campaign=_battery_campaign(),
         args=SimpleNamespace(api_key_file=None, battery_validator=str(config)),
         sdk=adapter._sdk,
+        # A new battery plan freezes the v2 research tools rule, whose first
+        # observation reads the composition's research environment
+        # (PreparedCampaign.composition; LP-PROD-D, wired in provider_plan).
+        composition=composition,
         grant=None,
         task=None,
         agent_policy=AUTONOMOUS,
@@ -655,6 +659,15 @@ def test_carbons_agent_researches_battery_through_the_same_path(
     assert requests[0]["instructions"] == CHALLENGE_PROMPT_V2
     first = json.loads(requests[0]["input"][0]["content"])
     assert first["challenge"]["challenge_id"] == BATTERY
+    # The plan froze the v2 research tools rule: its tools text and the
+    # host's research environment reach the agent (LP-PROD-D).
+    assert manifest["provider"]["research_tools"] == TOOLS_RULE
+    assert first["research_environment"]["rule"] == TOOLS_RULE
+    offered = {tool["name"]: tool for tool in requests[0]["tools"]}
+    for tool in TOOLS_V2:
+        assert offered[tool["name"]]["description"].startswith(
+            tool["description"]
+        ), tool["name"]
     plan = json.loads((root / "epoch-1" / "plan.json").read_bytes())
     assert plan["agent_policy"]["challenge"]["id"] == BATTERY
     # Epoch 1: the agent's selection was scored by the validator daemon.

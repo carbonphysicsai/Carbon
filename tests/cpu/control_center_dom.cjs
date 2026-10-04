@@ -417,14 +417,20 @@ class Clock {
 // The page: index.html and its scripts in one context, against `server`.
 // `server(request)` answers {status, body} or {network: true} or
 // {timeout: true}, or a promise of one; it sees {method, path, body, headers}.
-async function openPage(root, server, {sessionStorage, localStorage, clock} = {}) {
+// `hash` is the fragment of the address the page is opened at (a session
+// link's `#token=...`); `page.replaced` records each history entry the page
+// replaced, as the address it left in the bar.
+async function openPage(root, server, {sessionStorage, localStorage, clock, hash = ""} = {}) {
   const doc = new Document();
   parseHTML(doc, fs.readFileSync(path.join(root, "index.html"), "utf8"));
   const time = clock || new Clock();
   const requests = [];
+  const replaced = [];
   let pending = 0;
   const location = {
-    _hash: "",
+    _hash: hash,
+    pathname: "/",
+    search: "",
     get hash() { return this._hash; },
     set hash(value) {
       const next = String(value).startsWith("#") || value === "" ? String(value) : "#" + value;
@@ -436,7 +442,14 @@ async function openPage(root, server, {sessionStorage, localStorage, clock} = {}
   };
   const window = {
     document: doc, location,
-    history: {replaceState(_, __, url) { location._hash = String(url).startsWith("#") ? String(url) : location._hash; }},
+    // As a browser does: the URL's fragment, or none, replaces the address
+    // of this history entry, and no hashchange fires.
+    history: {replaceState(_, __, url) {
+      const text = String(url);
+      const at = text.indexOf("#");
+      location._hash = at < 0 || at === text.length - 1 ? "" : text.slice(at);
+      replaced.push(location.href);
+    }},
     sessionStorage: sessionStorage || new Storage(), localStorage: localStorage || new Storage(),
     crypto: webcrypto,
     AbortSignal: {timeout: ms => ({timeout: ms})},
@@ -473,7 +486,7 @@ async function openPage(root, server, {sessionStorage, localStorage, clock} = {}
   const context = vm.createContext(window);
   vm.runInContext("Date.now = () => __now();", Object.assign(context, {__now: () => time.now}));
   const page = {
-    doc, window, context, requests, clock: time,
+    doc, window, context, requests, replaced, clock: time,
     $: id => doc.getElementById(id),
     errors: doc._errors,
     // Let every promise settle: answers, their handlers and what they start.

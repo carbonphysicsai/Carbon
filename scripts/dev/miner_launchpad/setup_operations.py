@@ -413,6 +413,15 @@ def status(
     pending_worker = bool(
         steps["compute"].get("checked") and steps["compute"]["check"].get("next_step")
     )
+    # A compute check that no longer describes this install (LP-PROD-E):
+    # why, and the one step that clears it, as setup states them.
+    stale = steps["compute"].get("stale") or []
+    if pending_worker:
+        compute_missing = "worker_not_sent"
+    elif stale:
+        compute_missing = "compute_check_is_stale"
+    else:
+        compute_missing = "compute_not_checked"
     written = steps["review"]["profile_written"]
     done = {
         "signer": steps["signer"]["checked"] or agent.get("checked", False),
@@ -427,7 +436,7 @@ def status(
         "register": ["registration_not_confirmed"],
         "agent": ["agent_not_chosen"],
         "inference": ["inference_not_checked"],
-        "compute": ["worker_not_sent" if pending_worker else "compute_not_checked"],
+        "compute": [compute_missing],
         "review": ["profile_not_written"],
     }
     rows = []
@@ -460,6 +469,10 @@ def status(
         "steps": rows,
         "done": [row["id"] for row in rows if row["state"] == "done"],
         "profile_written": written,
+        # Where each Challenge's frozen candidates are evaluated: Carbon's
+        # published endpoint, the miner's own intake, or none yet, with what
+        # to do (LP-PROD-E). Setup's own `steps.evaluation`, as it is.
+        "evaluation": steps.get("evaluation"),
         "next": None,
     }
     if nxt is None:
@@ -498,6 +511,13 @@ def status(
         if step == "inference":
             entry["before"] = call("quote", door)
             entry["consent"] = {"max_cost_nano": "the quote's max_cost_nano"}
+        if step == "compute" and stale:
+            # Checking again clears it, or only the installer does: setup's
+            # own next step says which.
+            entry["stale"] = stale
+            entry["next_step"] = steps["compute"].get("next_step")
+        elif step == "compute" and steps["compute"].get("set_aside"):
+            entry["set_aside"] = steps["compute"]["set_aside"].get("reasons", [])
     result["next"] = entry
     result["skips"] = {OWN_AGENT: {"inference": "your agent uses its own model"}}
     return result
@@ -553,5 +573,19 @@ def _options(setup, step, state) -> dict:
                 {"id": card["id"], "transport": card["transport"]}
                 for card in remote["guides"]["cards"]
             ],
+        }
+    if step == "review":
+        # The Challenge ids `intakes` may name, and each intake of the miner's
+        # own that an update set aside: sent again as `intakes`, Review keeps
+        # it (it writes only the intakes it is given; LP-PROD-E).
+        challenges = (state["steps"].get("evaluation") or {}).get("challenges") or []
+        kept = {
+            item["id"]: item["set_aside_intake"]
+            for item in challenges
+            if item.get("set_aside_intake")
+        }
+        return {
+            "intakes": [item["id"] for item in challenges],
+            **({"name_again": kept} if kept else {}),
         }
     return {}
