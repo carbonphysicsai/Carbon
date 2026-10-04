@@ -210,7 +210,11 @@ def _setups(tmp_path, monkeypatch):
     environment.write_private(
         setup.installation_path,
         json.dumps(
-            {"schema": environment.INSTALLATION_SCHEMA, "revision": REVISION, "images": {}}
+            {
+                "schema": environment.INSTALLATION_SCHEMA,
+                "revision": REVISION,
+                "images": {},
+            }
         ).encode(),
     )
     head["revision"] = NEW

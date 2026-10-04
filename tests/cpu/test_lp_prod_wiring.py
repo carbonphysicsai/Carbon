@@ -91,9 +91,7 @@ def _setup(tmp_path, name, checks):
     return base, setup, made
 
 
-def test_status_names_a_stale_compute_check_and_the_installers_update(
-    tmp_path, head
-):
+def test_status_names_a_stale_compute_check_and_the_installers_update(tmp_path, head):
     """A checkout moved after the install: checking again would be stale
     again, so status says why and that the installer's update clears it,
     rather than sending an agent round the compute check."""
@@ -106,7 +104,11 @@ def test_status_names_a_stale_compute_check_and_the_installers_update(
     environment.write_private(
         setup.installation_path,
         json.dumps(
-            {"schema": environment.INSTALLATION_SCHEMA, "revision": REVISION, "images": {}}
+            {
+                "schema": environment.INSTALLATION_SCHEMA,
+                "revision": REVISION,
+                "images": {},
+            }
         ).encode(),
     )
     server = _door(setup)
@@ -322,7 +324,10 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
             composition.tasks.close()
     # Reads follow the frozen rule: text once under v2, base64 alone before.
     new_read = _read(plan, tmp_path / "read-new", body)
-    assert (new_read["content_utf8"], new_read["content_base64"]) == (body.decode(), None)
+    assert (new_read["content_utf8"], new_read["content_base64"]) == (
+        body.decode(),
+        None,
+    )
     old_read = _read(old, tmp_path / "read-old", body)
     assert set(old_read) == {"name", "digest", "bytes", "offset", "content_base64"}
     assert base64.b64decode(old_read["content_base64"]) == body

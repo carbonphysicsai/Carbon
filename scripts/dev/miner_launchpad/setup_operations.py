@@ -416,6 +416,12 @@ def status(
     # A compute check that no longer describes this install (LP-PROD-E):
     # why, and the one step that clears it, as setup states them.
     stale = steps["compute"].get("stale") or []
+    if pending_worker:
+        compute_missing = "worker_not_sent"
+    elif stale:
+        compute_missing = "compute_check_is_stale"
+    else:
+        compute_missing = "compute_not_checked"
     written = steps["review"]["profile_written"]
     done = {
         "signer": steps["signer"]["checked"] or agent.get("checked", False),
@@ -430,11 +436,7 @@ def status(
         "register": ["registration_not_confirmed"],
         "agent": ["agent_not_chosen"],
         "inference": ["inference_not_checked"],
-        "compute": [
-            "worker_not_sent"
-            if pending_worker
-            else "compute_check_is_stale" if stale else "compute_not_checked"
-        ],
+        "compute": [compute_missing],
         "review": ["profile_not_written"],
     }
     rows = []
