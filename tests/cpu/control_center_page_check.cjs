@@ -477,27 +477,64 @@ scenario("a campaign without last_refusal shows no refusal", async () => {
   clean(page);
 });
 
-// ---- 5. Reconcile in reach whenever the state needs it. ----
+// ---- 5. The controller's recovery in reach whenever the state needs it. ----
+// The page offers what the controller publishes (slice C's `recovery`), and
+// each state's documents are the controller's own for that state
+// (fx.recovering: the observe row with `supervisor.recovery_actions`, and the
+// campaign view built for that state by the real campaign-view code), so a
+// state is never paired with another state's recovery.
+const LABELS = {reconcile: "Reconcile", resume: "Resume", stop: "Stop"};
 for (const stateName of ["RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED"]) {
-  scenario("Reconcile is on the Live tab, with why, for " + stateName, async () => {
+  scenario("the controller's recovery is on the Live tab, with why, for " + stateName, async () => {
+    const real = fx.recovering[stateName];
+    const offered = real.view.recovery.map(item => item.action);
+    assert.ok(offered.length, "the controller offers recovery for " + stateName);
+    assert.deepEqual(real.run.recovery, real.view.recovery, "the list row and the view agree");
     const state = launchable(world());
-    const run = {...copy(fx.run), state: stateName};
+    const run = copy(real.run);
     state.runs = [run];
-    state.view = copy(fx.view);
-    state.view.fixture = false;
-    state.view.campaign.state = stateName;
-    state.view.controls = state.view.controls.map(control => ({...control, available: true, reason: null}));
+    state.view = copy(real.view);
+    const page = await open(state);
+    page.go("#campaigns/" + run.id + "/live");
+    await page.advance(0);
+    const now = "#campaign-detail [data-part=now]";
+    // Each action the controller offers is first among the Live tab's
+    // controls, ready, and the way forward (Stop aside) is the primary one.
+    for (const action of offered) {
+      const button = one(page, now + " [data-action=" + action + "]");
+      assert.equal(button.disabled, false, action);
+      assert.equal(button.classList.contains("primary"), action !== "stop", action);
+    }
+    // Reconcile is on the Live tab exactly when the controller asks for it.
+    assert.equal(all(page, now + " [data-action=reconcile]").length, offered.includes("reconcile") ? 1 : 0);
+    const attention = page.text(one(page, "#campaign-detail [data-part=attention]"));
+    assert.match(attention, /Needs attention/);
+    assert.ok(attention.includes(LABELS[offered[0]]), "why names the way forward: " + attention);
+    await page.press(one(page, now + " [data-action=" + offered[0] + "]"));
+    assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/" + offered[0]));
+    clean(page);
+  });
+}
+scenario("a controller that publishes no recovery list gets Reconcile from the state, with why", async () => {
+  // A controller before slice C: the page reads the state itself.
+  for (const name of Object.keys(fx.recovering)) {
+    const state = launchable(world());
+    const run = copy(fx.recovering[name].run);
+    delete run.recovery;
+    state.runs = [run];
+    state.view = copy(fx.recovering[name].view);
+    delete state.view.recovery;
     const page = await open(state);
     page.go("#campaigns/" + run.id + "/live");
     await page.advance(0);
     const button = one(page, "#campaign-detail [data-part=now] [data-action=reconcile]");
-    assert.equal(button.disabled, false);
-    assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /Needs attention/);
+    assert.equal(button.disabled, false, name);
+    assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /Needs attention/, name);
     await page.press(button);
-    assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
+    assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"), name);
     clean(page);
-  });
-}
+  }
+});
 scenario("a healthy campaign's Live tab keeps Reconcile in the header only", async () => {
   const state = launchable(world());
   state.runs = [copy(fx.run)];
@@ -760,6 +797,159 @@ scenario("a send that does not go through leaves its button ready again", async 
   assert.equal(send.textContent, "Send my worker");
   assert.equal(send.disabled, false);
   clean(page);
+});
+
+// ---- 9. The Tools tab reads a file under either research tools rule. ----
+scenario("Tools: a read answered as text (v2 rule) or as base64 (historical) shows the same file", async () => {
+  const state = launchable(world());
+  const run = copy(fx.run);
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const text = "loss = 0.25\nstep = 42 · é\n";
+  const bytes = Buffer.from(text, "utf8");
+  const file = {name: "notes.txt", bytes: bytes.length, digest: "sha256:" + "0".repeat(64)};
+  let rule = "v2";
+  state.tools = {open: true, idle_close_seconds: 600, holds: "", tasks: [], tools: [{name: "carbon_research_v2__start_research_task", operation: "start_research_task", description: "One task.", input_schema: {type: "object", properties: {}, required: []}}]};
+  const reply = result => ({body: {ok: true, result: {payload: {status: "OK", public_result: {result}}}}});
+  state.script.push({keep: true, match: r => /^\/api\/v1\/tools\/[^/]+\/call$/.test(r.path), answer: r => {
+    const args = r.body.arguments;
+    if (args.action === "inventory") return reply({files: [file]});
+    if (args.action !== "read_file") return reply({});
+    const {offset, count} = args.arguments;
+    const chunk = bytes.subarray(offset, offset + count);
+    // The v2 rule returns the bytes once, as text; the historical rule, base64 alone.
+    const content = rule === "v2" ? {content_utf8: chunk.toString("utf8"), content_base64: null} : {content_base64: chunk.toString("base64")};
+    return reply({name: file.name, digest: file.digest, bytes: file.bytes, offset, ...content});
+  }});
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  for (rule of ["v2", "historical"]) {
+    await page.press([...all(page, "#campaign-detail .rs-files button")].find(b => b.textContent === "View"));
+    assert.equal(one(page, "#campaign-detail .rs-viewer pre").textContent, text, rule);
+  }
+  const {readBytes} = page.window.CarbonTools;
+  assert.deepEqual([...readBytes({content_utf8: "é", content_base64: null})], [0xc3, 0xa9]);
+  assert.deepEqual([...readBytes({content_base64: "w6k="})], [0xc3, 0xa9]);
+  assert.throws(() => readBytes({content_utf8: null, content_base64: null}), /read_file_result_unreadable/);
+  clean(page);
+});
+
+// ---- 10. The session link (LP-PROD-C D14): read once, kept nowhere. ----
+const kept = storage => [...storage.map.values()].join("\n");
+scenario("a session link connects once and leaves its token nowhere", async () => {
+  const LINK = "link_" + "A1b2-C3d4_".repeat(4);
+  const state = launchable(world());
+  const session = new Storage(), local = new Storage();
+  const page = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local, hash: "#token=" + LINK});
+  page.state = state;
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected", "connected by the link alone");
+  assert.equal(page.window.location.hash, "", "the fragment is gone from the address");
+  assert.deepEqual(page.replaced, ["http://127.0.0.1:8788/"], "this history entry replaced, no other");
+  assert.ok(page.requests.length > 3 && page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
+  assert.equal(page.$("token").value, "");
+  // Browsing on saves routes, never the token.
+  page.go("#campaigns");
+  await page.advance(0);
+  assert.match(kept(local), /#campaigns/);
+  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  // A link opened later in this same tab (the Control Center restarted with
+  // a new token) is taken the same way, before the route is read.
+  const OTHER = "other_" + "Z9y8-X7w6_".repeat(4);
+  const before = page.requests.length;
+  page.go("#token=" + OTHER);
+  await page.advance(0);
+  assert.equal(page.window.location.hash, "");
+  assert.equal(page.text("connection-state"), "Connected");
+  const after = page.requests.slice(before);
+  assert.ok(after.length && after.every(r => r.headers.Authorization === "Bearer " + OTHER));
+  assert.ok(!kept(local).includes(OTHER) && !kept(session).includes(OTHER));
+  assert.ok(page.replaced.every(address => !address.includes(LINK) && !address.includes(OTHER)));
+  clean(page);
+});
+scenario("an unreadable session link is removed, kept nowhere, and said", async () => {
+  const state = launchable(world());
+  const local = new Storage();
+  const page = await openPage(ROOT, state.server, {localStorage: local, hash: "#token=has%20a%20space"});
+  await page.advance(0);
+  assert.equal(page.window.location.hash, "");
+  assert.notEqual(page.text("connection-state"), "Connected");
+  assert.match(page.text("message"), /session link this page cannot read/);
+  assert.equal(page.requests.length, 0, "nothing sent with it");
+  assert.ok(!kept(local).includes("space"));
+  clean(page);
+});
+
+// ---- 11. Setup says what an install changed (LP-PROD-E). ----
+scenario("setup shows a stale compute check, why, and the installer's update that clears it", async () => {
+  const doc = fx.setups.stale;
+  const compute = doc.steps.compute;
+  const state = launchable(world({setup: copy(doc)}));
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  const box = one(page, "#setup-compute-stale");
+  assert.match(box.textContent, /no longer matches this install/);
+  for (const reason of compute.stale) assert.ok(box.textContent.includes(reason), reason);
+  assert.ok(box.textContent.includes("Next: " + compute.next_step + "."));
+  // The installer's update is a command the miner runs: ready to copy.
+  assert.equal(one(page, "#setup-compute-stale code").textContent, compute.next_step.replace(/^run /, ""));
+  // Overview's path says so too.
+  page.go("#overview");
+  await page.advance(0);
+  assert.ok(page.text("getting-started-steps").includes("Next: " + compute.next_step + "."));
+  clean(page);
+});
+
+scenario("Review shows each Challenge's evaluation and names a set-aside intake again", async () => {
+  const doc = fx.setups.set_aside;
+  const item = doc.steps.evaluation.challenges[0];
+  assert.ok(item.set_aside_intake && item.note, "an intake the update set aside");
+  const state = launchable(world({setup: copy(doc)}));
+  const page = await open(state);
+  page.go("#setup/compute");
+  await page.advance(0);
+  assert.match(one(page, "#setup-compute-stale").textContent, /An update set your compute check aside/);
+  page.go("#setup/review");
+  await page.advance(0);
+  const row = [...all(page, "#setup-evaluation .evaluation-row")].find(node => node.dataset.challenge === item.id);
+  assert.ok(row, "a row for " + item.id);
+  assert.ok(row.textContent.includes(item.note));
+  assert.ok(row.textContent.includes("set aside by the update: " + item.set_aside_intake));
+  await page.press([...row.querySelectorAll("button")].find(b => b.textContent === "Name it again"));
+  assert.equal(page.$("setup-review-intake_challenge").value, item.id);
+  assert.equal(page.$("setup-review-intake_url").value, item.set_aside_intake);
+  clean(page);
+});
+
+scenario("Review's answer names what it could not do; Carbon's endpoint shows its receiver, for reference", async () => {
+  const state = launchable(world({setup: copy(fx.setups.none)}));
+  const page = await open(state);
+  page.go("#setup/review");
+  await page.advance(0);
+  const none = fx.setups.none.steps.evaluation.challenges[0];
+  assert.match(page.text("setup-evaluation"), /None yet/);
+  assert.ok(page.text("setup-evaluation").includes(none.note));
+  const answer = fx.setups.review_answer;
+  assert.ok(answer.warnings.length, "the real review warned");
+  state.script.push({match: r => r.path === "/api/v1/setup/review", answer: () => { state.setup = copy(fx.setups.none_reviewed); return {body: copy(answer)}; }});
+  await page.press([...all(page, "#setup-body form[data-step=review] button")].find(b => /Write my profile/.test(b.textContent)));
+  assert.deepEqual(lastPost(state, "/api/v1/setup/review").body, {confirm: true});
+  for (const warning of answer.warnings) assert.ok(page.text("setup-result").includes(warning.message), warning.code);
+  // Carbon's published endpoint: whose it is, and its receiver for reference.
+  const published = fx.setups.published.steps.evaluation.challenges[0];
+  assert.equal(published.source, "published");
+  const second = launchable(world({setup: copy(fx.setups.published)}));
+  const other = await open(second);
+  other.go("#setup/review");
+  await other.advance(0);
+  const text = other.text("setup-evaluation");
+  assert.match(text, /Carbon's endpoint/);
+  assert.ok(text.includes(published.intake) && text.includes("Receiver hotkey: " + published.receiver_hotkey));
+  assert.ok(text.includes("For reference" + published.receiver_hotkey_note.slice("for reference".length)));
+  clean(page);
+  clean(other);
 });
 
 (async () => {

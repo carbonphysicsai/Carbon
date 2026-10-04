@@ -1,6 +1,23 @@
 "use strict";
 (() => {
   let token = "";
+  // ---- The session link (LP-PROD-C D14). The Control Center prints its
+  // loopback address with #token=<token> once this page declares, in its
+  // own head, that it reads the fragment (index.html, carbon-session-link
+  // fragment-v1). The fragment is read here, first, and removed from the
+  // address bar by replacing this history entry, before anything reads or
+  // stores the route; the token then lives in this tab's memory only, as a
+  // pasted one does. A fragment is never sent to the server. Returns the
+  // token, "" for a link this page cannot read, or null for no link.
+  const SESSION_LINK = /^#token=([A-Za-z0-9_-]{1,512})$/;
+  function takeSessionLink() {
+    const hash = location.hash;
+    if (!hash.startsWith("#token=")) return null;
+    history.replaceState(null, "", location.pathname + location.search);
+    const match = SESSION_LINK.exec(hash);
+    return match ? match[1] : "";
+  }
+  const linkToken = takeSessionLink();
   let selected = "";
   let runs = [];
   let pending = null;
@@ -387,7 +404,13 @@
     // Setup shows one step at a time; #setup/<step> names it.
     if (current.view === "setup") applySetupStep();
   }
-  window.addEventListener("hashchange", show);
+  // A session link opened in a tab already showing this page changes only
+  // the fragment: it is taken (and removed) before the route is read.
+  window.addEventListener("hashchange", () => {
+    const fresh = takeSessionLink();
+    show();
+    if (fresh !== null) connectFromLink(fresh);
+  });
   // The navigation is built from the page's own views: a view marked data-nav
   // is listed, and nothing else can be, so the two cannot drift. Development
   // diagnostics are listed apart, under their own label.
@@ -721,7 +744,10 @@
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")));
+      // Review writes the profile and says what it could not do: a Challenge
+      // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
+      const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...warnings.map(item => setupLine(item.message, "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
@@ -793,6 +819,66 @@
     if (id === "compute") return choiceName("compute", steps.compute.choice) + (steps.compute.remote_machine ? " · " + steps.compute.remote_machine.destination + " (" + steps.compute.remote_machine.transport + ")" : "");
     return choiceName("agent", steps.agent.choice);
   }
+  // A compute check setup no longer counts (LP-PROD-E), as setup states it:
+  // stale, with its reasons and the one step that clears them (checking
+  // again, or the installer's update), or set aside by an update. Null when
+  // neither.
+  function staleCompute(steps) {
+    const compute = steps?.compute || {};
+    const reasons = list => Array.isArray(list) ? list.filter(item => typeof item === "string") : [];
+    if (reasons(compute.stale).length && typeof compute.next_step === "string") return {title: "Your compute check no longer matches this install", reasons: reasons(compute.stale), next: compute.next_step};
+    if (reasons(compute.set_aside?.reasons).length) return {title: "An update set your compute check aside", reasons: reasons(compute.set_aside.reasons), next: "check Compute again"};
+    return null;
+  }
+  // What setup says must happen before a step counts: why, each reason, and
+  // the step that clears it (a command, copyable, when it is one to run).
+  function setupAttention(parent, id, title, reasons, next) {
+    const box = el("div", undefined, "setup-attention"); box.id = "setup-" + id; box.setAttribute("role", "status");
+    box.append(el("p", title + ":", "reason"));
+    const list = el("ul"); for (const reason of reasons) list.append(el("li", reason)); box.append(list);
+    if (next) {
+      box.append(el("p", "Next: " + next + ".", "status-line"));
+      const command = /^run (\S.*)$/.exec(next);
+      if (command) copyRow(box, null, command[1]);
+    }
+    parent.append(box);
+    return box;
+  }
+  // Where each Challenge's frozen candidates are evaluated (LP-PROD-E):
+  // Carbon's published endpoint, the miner's own intake, or plainly none
+  // yet, as setup's `steps.evaluation` says. An intake of the miner's own
+  // that an update set aside is named again with one click.
+  function evaluationSection(parent, evaluation, nameAgain) {
+    const items = Array.isArray(evaluation?.challenges) ? evaluation.challenges : [];
+    if (!items.length && !evaluation?.problem) return null;
+    const box = el("section", undefined, "setup-evaluation"); box.id = "setup-evaluation";
+    box.append(el("h3", "Where your candidates are evaluated"));
+    for (const item of items) {
+      const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
+      const head = el("p");
+      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your intake", "pill-done"] : ["None yet", "pill-need"];
+      head.append(el("strong", (item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
+      row.append(head);
+      if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
+      if (item.receiver_hotkey) {
+        row.append(el("p", "Receiver hotkey: " + item.receiver_hotkey, "hint"));
+        const note = item.receiver_hotkey_note;
+        if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
+      }
+      if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
+      if (item.set_aside_intake) {
+        row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
+        const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
+        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake));
+        row.append(again);
+      }
+      box.append(row);
+    }
+    if (evaluation.problem) box.append(el("p", "Carbon's list of evaluation endpoints could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
+    if (evaluation.published_by) box.append(el("p", "Carbon publishes its endpoints in " + evaluation.published_by + ", in this checkout.", "hint"));
+    parent.append(box);
+    return box;
+  }
   function stepSentence(id, j) {
     const state = j.state[id];
     const steps = j.steps;
@@ -801,7 +887,10 @@
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
-    if (id === "compute") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : "Choose where practice runs.";
+    if (id === "compute") {
+      const stale = staleCompute(steps);
+      return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : stale ? stale.title + ". Next: " + stale.next + "." : "Choose where practice runs.";
+    }
     if (id === "agent") return state === "done" ? "Checked: " + checkedText(id, steps) + ", and your signer answered." : "Carbon's agent, or your own agent over MCP.";
     if (state === "done") return "Campaigns on record: " + research.runs.length + ".";
     if (state === "waiting") return "Opens when steps 3 to 5 are done.";
@@ -1107,6 +1196,10 @@
     // Checked but still waiting for its worker is not done yet.
     const computeDone = steps.compute?.checked && !j.sendPending ? "Checked: " + checkedText("compute", steps) + "." : null;
     const computePanel = stepPanel(body, "compute", computeDone);
+    // A check that no longer describes this install, or one an update set
+    // aside (LP-PROD-E): why, and setup's own step that clears it.
+    const computeStale = staleCompute(steps);
+    if (computeStale) setupAttention(computePanel, "compute-stale", computeStale.title, computeStale.reasons, computeStale.next);
     const compute = stepForm(computePanel, "compute");
     const remoteChoice = offered.compute.find(c => c.needs_remote);
     const guides = remoteChoice?.guides || {cards: [], notes: []};
@@ -1413,6 +1506,7 @@
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    const evaluationBox = el("div"); review.append(evaluationBox);
     // A validator's intake, when a Challenge's validator runs elsewhere
     // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
     // read and checked by that Challenge; nothing is signed.
@@ -1421,6 +1515,12 @@
     const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
     intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
+    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url) => {
+      // Review writes only the intakes it is given: this one, again.
+      intakeChallenge.value = challengeId; intake.value = url;
+      reviewMore.parentNode.open = true;
+      $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
+    });
     const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
     write.disabled = !steps.review?.ready;
     const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);
@@ -1518,12 +1618,25 @@
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
   }
-  $("connect-form").addEventListener("submit", async event => {
+  $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy || polling) return;
+    connect($("token").value.trim());
+  });
+  // The session link connects as a pasted token does. One read while a
+  // refresh or an operation is under way waits for it, rather than being lost.
+  function connectFromLink(value) {
+    if (!value) {
+      message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
+      return;
+    }
+    if (busy || polling) { setTimeout(() => connectFromLink(value), 250); return; }
+    connect(value);
+  }
+  async function connect(value) {
     connected = false;
     render();
-    token = $("token").value.trim();
+    token = value;
     try {
       await readCapabilities();
       const catalog = await api("/api/v1/capabilities");
@@ -1553,7 +1666,7 @@
       render();
       message("Could not connect: " + error.message, true);
     }
-  });
+  }
   $("settings-recheck").addEventListener("click", async () => {
     if (busy || !connected) return;
     busy = true; render();
@@ -3222,4 +3335,5 @@
   buildNavigation();
   show();
   setInterval(refresh, 1500);
+  if (linkToken !== null) connectFromLink(linkToken);
 })();

@@ -170,6 +170,14 @@ details pre{white-space:pre-wrap;background:var(--bg);border:1px solid var(--bor
 .setup-nav button{min-width:120px}
 #setup-result{margin-top:16px}
 #setup-result p{font-size:15px}
+/* What setup says must happen first, and where candidates are evaluated. */
+.setup-attention{margin:10px 0 18px}
+.setup-attention ul{margin:4px 0 8px 15px;padding:0 0 0 12px;font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+.setup-evaluation{margin:20px 0 4px;padding:18px 24px;background:var(--bg);border:1px solid var(--border)}
+.setup-evaluation h3{margin-bottom:6px}
+.evaluation-row{padding:12px 0;border-top:1px solid var(--border);overflow-wrap:anywhere}
+.evaluation-row:first-of-type{border-top:0}
+.evaluation-row>p:first-child{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 4px}
 
 /* Where's your GPU? */
 .where{margin-top:8px}

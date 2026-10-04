@@ -12,15 +12,20 @@ page to that, through its own scripts, without a browser:
   current choices under the same key, and can be discarded;
 - a refusal is shown with what to do, and a submit is "submitted" only once
   the campaign's record shows it admitted;
-- Reconcile (or the controller's own recovery actions) is in reach whenever
-  the state needs it, with why;
+- the controller's own recovery actions are in reach whenever the state
+  needs them, with why, each state over its own controller documents (and
+  Reconcile, read from the state, for a controller that publishes none);
 - practice, freeze and submit keep one key until the answer or the record
   shows how they ended, never into the next epoch; an edited retry is a new
   request, said so; a held one can be discarded; the Tools tab reports
   readable text;
 - limits are typed in dollars and minutes, kept exactly and never rounded
   up; usage reads in the same units; old campaign links resolve; the
-  Connections page names the real MCP command.
+  Connections page names the real MCP command;
+- the Tools tab reads a file under either research tools rule; the session
+  link connects once and leaves its token nowhere; setup shows a stale or
+  set-aside compute check, where each Challenge's candidates are evaluated,
+  and Review's warnings (wiring after slices A to G were integrated).
 
 The page scenarios run in Node (tests/cpu/control_center_page_check.cjs over
 the small DOM in control_center_dom.cjs) when Node is installed. The
@@ -110,8 +115,136 @@ def _setup_document(tmp_path):
     return document
 
 
+#: The states whose recovery the Live tab must offer (control_center_page_check).
+RECOVERING = ("RECONCILIATION_REQUIRED", "INTERRUPTED", "PAUSE_REQUESTED")
+
+
+def _recovering(fixture):
+    """Each recovering state's documents as the controller publishes them:
+    the observe row with `supervisor.recovery_actions` for that state (as
+    `RunnerAdapter.get` adds it), and the campaign view built from that row
+    by the real campaign-view code, as a campaign (not a fixture), so its
+    controls are that state's too (LP-PROD-C D7)."""
+    from scripts.dev.miner_launchpad import campaign_view
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    value = {}
+    for state in RECOVERING:
+        own = {
+            **fixture.own(),
+            "state": state,
+            "in_flight": None,
+            "last_refusal": None,
+            "recovery": supervision.recovery_actions(state, None),
+        }
+        view = campaign_view.build(
+            own,
+            view=fixture.view,
+            contract=fixture.contract,
+            notes=list(fixture.notes),
+            feedback_mode="FULL",
+            predictions=fixture.predictions,
+            now=fixture.clock(),
+            toolbox=fixture.toolbox(),
+        )
+        value[state] = {"run": own, "view": view}
+    return value
+
+
+def _served_setup(setup):
+    """Setup as the Control Center's `GET /api/v1/setup` serves it."""
+    from scripts.dev.miner_launchpad import setup_operations
+
+    return _plain(
+        {
+            **setup.state(),
+            "choices": setup.offered(),
+            "status": setup_operations.status(
+                setup, door=setup_operations.HTTP, campaigns=0
+            ),
+        }
+    )
+
+
+def _setups(tmp_path, monkeypatch):
+    """What setup serves after an install changed things (LP-PROD-E), each
+    from the real `EnvironmentSetup` over its own state directory: a compute
+    check made stale by a moved checkout; a compute check and the miner's own
+    intake set aside by an update; a Challenge with no published endpoint
+    before and after Review, and Review's own answer; and Carbon's published
+    endpoint written by Review."""
+    from test_miner_launchpad_environment_setup import Onboarding, completed
+    from test_miner_setup_after_install import (
+        NEW,
+        OWN,
+        REVISION,
+        Intakes,
+        Reinstalled,
+        entry,
+        publish,
+        rebuild,
+    )
+
+    from scripts.dev.miner_launchpad import environment_setup as environment
+
+    head = {"revision": REVISION}
+    monkeypatch.setattr(
+        environment, "checkout_revision", lambda repo=None: head["revision"]
+    )
+    challenge = environment.intake_challenges()[0]
+
+    def made(name, checks):
+        base = tmp_path / ("setup-" + name)
+        (base / "state").mkdir(parents=True, mode=0o700)
+        setup = environment.EnvironmentSetup(
+            base / "state", onboarding=Onboarding(), checks=checks
+        )
+        setup.attach = lambda path: True
+        completed(base, setup)
+        return base, setup
+
+    value = {}
+    # Moved by hand after the install: only the installer's update clears it.
+    publish(tmp_path, monkeypatch, [])
+    _, setup = made("stale", Reinstalled(REVISION))
+    environment.write_private(
+        setup.installation_path,
+        json.dumps(
+            {"schema": environment.INSTALLATION_SCHEMA, "revision": REVISION, "images": {}}
+        ).encode(),
+    )
+    head["revision"] = NEW
+    value["stale"] = _served_setup(setup)
+    assert value["stale"]["steps"]["compute"]["next_step"] == environment.REINSTALL_STEP
+    head["revision"] = REVISION
+    # An update sets a remote miner's compute check and profile aside, and
+    # keeps the intake the miner named in it.
+    checks = Intakes()
+    base, setup = made("set-aside", checks)
+    setup.review({"confirm": True, "intakes": {challenge["id"]: OWN}})
+    record = setup._record()
+    record["compute"]["choice"] = environment.REMOTE
+    setup._save(record)
+    head["revision"] = checks.revision = NEW
+    rebuild(base, base / "state", NEW)
+    setup.after_install()
+    value["set_aside"] = _served_setup(setup)
+    head["revision"] = REVISION
+    # None published: Review writes the profile and says it cannot submit.
+    _, setup = made("none", Reinstalled())
+    value["none"] = _served_setup(setup)
+    value["review_answer"] = _plain(setup.review({"confirm": True}))
+    value["none_reviewed"] = _served_setup(setup)
+    # Carbon's endpoint, published and written by Review.
+    publish(tmp_path, monkeypatch, [entry(challenge["id"])])
+    _, setup = made("published", Reinstalled())
+    setup.review({"confirm": True})
+    value["published"] = _served_setup(setup)
+    return value
+
+
 @pytest.fixture
-def documents(tmp_path, journey):
+def documents(tmp_path, journey, monkeypatch):
     from carbon.development_session.exam_environment import exam_environment
     from scripts.dev.miner_launchpad import capabilities, controller
     from scripts.dev.miner_launchpad.operations import describe, perform
@@ -123,6 +256,7 @@ def documents(tmp_path, journey):
     fixture = FixtureRunner()
     try:
         view, run = fixture.view_document(), fixture.own()
+        recovering = _recovering(fixture)
     finally:
         fixture.close()
     opened = _open_options()
@@ -148,7 +282,9 @@ def documents(tmp_path, journey):
         },
         "view": view,
         "run": run,
+        "recovering": recovering,
         "setup_send": _setup_document(tmp_path),
+        "setups": _setups(tmp_path, monkeypatch),
     }
     path = tmp_path / "control-center-documents.json"
     path.write_text(json.dumps(_plain(value)))

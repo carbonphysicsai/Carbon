@@ -112,6 +112,15 @@
     for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return btoa(binary);
   }
+  // A read_file result's bytes. A campaign that froze the v2 research tools
+  // rule (LP-PROD-D) returns them once: as content_utf8 when they are UTF-8
+  // text, otherwise as content_base64, the other null. The historical rule
+  // returns content_base64 alone. Either way, the same bytes.
+  function readBytes(value) {
+    if (typeof value?.content_utf8 === "string") return new TextEncoder().encode(value.content_utf8);
+    if (typeof value?.content_base64 === "string") return decode(value.content_base64);
+    throw new Error("read_file_result_unreadable");
+  }
   function asText(bytes) { try { return new TextDecoder("utf-8", {fatal: true}).decode(bytes); } catch (_) { return null; } }
   function parseJSON(text) { try { return {value: JSON.parse(text)}; } catch (error) { return {error: "Not valid JSON: " + error.message}; } }
   function errorText(error) {
@@ -232,7 +241,7 @@
   async function readChunk(w, file, offset) {
     const answer = await workspace(w, "read_file", {name: file.name, offset, count: READ_CHUNK}, ["View " + file.name, "Read its bytes"]);
     if (answer.error) throw new Error(answer.error);
-    return decode(answer.value.content_base64);
+    return readBytes(answer.value);
   }
   async function view(w, viewer, file, offset, shown = "") {
     viewer.replaceChildren(el("h4", file.name), el("p", "Reading…", "hint"));
@@ -645,7 +654,7 @@
     // is focused in it, and a refresh must never take focus from an editor.
     if (w.node.parentNode !== panel) panel.append(w.node);
   }
-  window.CarbonTools = {mount, readable};
+  window.CarbonTools = {mount, readable, readBytes};
   // Each page refresh moves a freeze or submit's line on, from the record.
   CC.onRender(() => { for (const w of benches.values()) follow(w); });
 })();
