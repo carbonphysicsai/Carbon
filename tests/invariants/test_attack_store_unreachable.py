@@ -203,9 +203,8 @@ def store_constants(path):
             ):
                 values[target.id] = node.value.value
     for name, nodes in bound.items():
-        assert len(nodes) == 1 and name in values, (
-            f"{name} must be bound once, to a string literal, at module level"
-        )
+        once = len(nodes) == 1 and name in values
+        assert once, f"{name} must be bound once, to a string literal, at module level"
     return values
 
 
