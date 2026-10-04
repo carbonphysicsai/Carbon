@@ -377,7 +377,11 @@ def test_a_verdict_whose_breach_and_conditions_disagree_is_refused(capsys):
         (_verdict("BREACHED", ("FAILING_TRIGGER",)), "BREACHED"),
         (_verdict("HELD"), "HELD"),
         (_verdict("HELD", refused_by="graphite"), "NOT_RUN"),
-        (_verdict("INFRA", reason="infra:FAILED_INFRA"), "CRASH"),
+        (_verdict("INFRA", reason="infra:FAILED_INFRA"), "FAILED_INFRA"),
+        (_verdict("INFRA", reason="oracle_no_answer:FAILED_INFRA"), "FAILED_INFRA"),
+        (_verdict("INFRA", reason="infra:dispatch_unresolved"), "FAILED_INFRA"),
+        (_verdict("INFRA", reason="infra:result_missing"), "CRASH"),
+        (_verdict("INFRA", reason="rebuild_crashed:OSError"), "CRASH"),
         (_verdict("INFRA", reason="oracle_no_answer:TIMEOUT"), "TIMEOUT"),
         (_verdict("HELD", rebuild="UNREBUILDABLE"), "UNREBUILDABLE"),
         (_verdict("UNDETERMINED"), "NOT_RUN"),
@@ -387,7 +391,8 @@ def test_a_verdict_whose_breach_and_conditions_disagree_is_refused(capsys):
 def test_the_store_outcome_is_never_a_hold_for_what_was_not_judged(verdict, outcome):
     """A timeout, crash, unrebuildable construction or Graphite's own refusal
     is never stored as a hold (counting FAILED_INFRA as a pass turns this
-    red)."""
+    red), and an infrastructure failure is stored FAILED_INFRA, never folded
+    into CRASH."""
     assert phase4.store_outcome(verdict, VERIFY) == outcome
 
 
@@ -751,7 +756,7 @@ def test_an_infrastructure_failure_is_never_a_pass_or_a_near_miss(tmp_path):
         assert line["timeouts_crashes"] == 1
         assert line["completed"] == 0 and line["held"] == 0
         assert line["status"] == "INCONCLUSIVE"
-        assert [a["outcome"] for a in kstore.attempts(SYNTHETIC, 0)] == ["CRASH"]
+        assert [a["outcome"] for a in kstore.attempts(SYNTHETIC, 0)] == ["FAILED_INFRA"]
         assert kstore.near_misses(SYNTHETIC, 0) == []
     finally:
         control.close()
@@ -884,7 +889,6 @@ def test_a_tampered_copy_of_the_committed_grant_is_refused(
     modules = stand_in_modules(StandIn())
     monkeypatch.setattr(phase4, "attack_modules", lambda: modules)
     committed = json.loads(GRANT_FILE.read_bytes())
-    assert phase4.check_committed_grant(GRANT_FILE) == phase4.grant_digest(committed)
     credential = tmp_path / "engy"
     credential.write_text("x")
     credential.chmod(0o600)
@@ -912,17 +916,41 @@ def test_a_tampered_copy_of_the_committed_grant_is_refused(
         assert code == "grant_differs_from_the_committed_phase4_grant", change
 
 
+def _no_network(monkeypatch):
+    """A socket guard of the test's own: any connect or name lookup fails
+    the test, whatever the code under test does with the error."""
+    import socket
+
+    used = []
+
+    def refuse(*args, **kwargs):
+        used.append(repr(args[:2]))
+        raise AssertionError("network use in a run that must send nothing")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket.socket, "connect_ex", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    return used
+
+
 @needs_engine
-def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(tmp_path):
+def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(
+    tmp_path, monkeypatch
+):
+    used = _no_network(monkeypatch)
     out = io.StringIO()
     with redirect_stdout(out):
         code = phase4.main(["run", "--root", str(tmp_path / "root"), "--dry-run"])
-    assert code == 0
+    assert code == 0 and used == []
     body = out.getvalue()
     printed = json.loads(body[body.index('{\n "coverage"') :])
     entry, coverage = printed["session"], printed["coverage"]
     assert entry["provider_state"] == "succeeded"
-    assert Decimal(entry["settled_usd"]) < Decimal("0.01")
+    # Nothing is spent: the settled amount is exactly zero, not merely small.
+    assert Decimal(entry["settled_usd"]) == 0
+    assert printed["dry_run"]["settled_is_zero"] is True
+    assert printed["dry_run"]["network_attempts"] == []
     assert coverage["challenge"] == CID and coverage["construction_level"] == 0
     assert coverage["claims"] == {"security_acceptance": False, "graded": False}
     assert coverage["benchmark_b2"]["store_snapshot"] == entry["store_pinned"]
@@ -941,3 +969,145 @@ def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(tmp_path):
     root = tmp_path / "root"
     assert (root / "attacker-dry-run" / "iteration-log.jsonl").is_file()
     assert not (root / "attacker").exists()
+
+
+# -- L1: the grant check never trusts the working tree ------------------------------------------
+def _git(cwd, *args):
+    import os
+    import subprocess
+
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.invalid",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.invalid",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_NOSYSTEM": "1",
+    }
+    return subprocess.run(
+        ["git", *args], cwd=cwd, env=env, check=True, capture_output=True
+    )
+
+
+def _grant_repo(tmp_path):
+    """A repository holding the committed phase-4 grant, pushed to a bare
+    remote: what `check_committed_grant` reads, apart from this checkout."""
+    remote, repo = tmp_path / "remote.git", tmp_path / "repo"
+    _git(tmp_path, "init", "-q", "--bare", "-b", "main", str(remote))
+    _git(tmp_path, "init", "-q", "-b", "main", str(repo))
+    grant = repo / phase4.GRANT_FILE
+    grant.parent.mkdir(parents=True)
+    grant.write_bytes(GRANT_FILE.read_bytes())
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "grant")
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "-u", "origin", "main")
+    return repo, grant
+
+
+def test_the_committed_grant_is_read_from_head_not_the_working_tree(tmp_path, capsys):
+    """L1. The committed blob at a pushed HEAD is the grant: an operator who
+    edits the working-tree grant and passes it (or an identical copy) is
+    refused; so is a clean copy while the grants directory differs from
+    HEAD, an unpushed HEAD, and a HEAD with no grant committed. Mutation:
+    read `REPOSITORY / GRANT_FILE` from disk again, and the edited
+    working-tree grant passes."""
+    repo, grant = _grant_repo(tmp_path)
+    committed = json.loads(grant.read_bytes())
+    copy = tmp_path / "copy.json"
+    copy.write_bytes(grant.read_bytes())
+    assert phase4.check_committed_grant(copy, repo) == phase4.grant_digest(committed)
+    assert phase4.check_committed_grant(grant, repo) == phase4.grant_digest(committed)
+
+    def refusal(path):
+        return _refusal(capsys, lambda: phase4.check_committed_grant(path, repo))
+
+    # The operator edits the working-tree grant and hands it in, or an
+    # identical copy of it: refused against HEAD's blob.
+    raised = {**committed, "monetary_ceiling": "100.00"}
+    grant.write_text(json.dumps(raised))
+    edited_copy = tmp_path / "edited-copy.json"
+    edited_copy.write_text(json.dumps(raised))
+    for path in (grant, edited_copy):
+        assert refusal(path) == "grant_differs_from_the_committed_phase4_grant"
+    # A clean copy while the grants directory differs from HEAD.
+    assert refusal(copy) == "grants_directory_has_uncommitted_changes"
+    _git(repo, "checkout", "--", phase4.GRANT_FILE)
+    (grant.parent / "NOTE.txt").write_text("untracked")
+    assert refusal(copy) == "grants_directory_has_uncommitted_changes"
+    (grant.parent / "NOTE.txt").unlink()
+    assert phase4.check_committed_grant(copy, repo)
+    # A HEAD that is not on a remote branch.
+    (repo / "other.txt").write_text("x")
+    _git(repo, "add", "other.txt")
+    _git(repo, "commit", "-q", "-m", "local only")
+    assert refusal(copy) == "grant_commit_not_pushed"
+    # A HEAD with no grant committed.
+    _git(repo, "rm", "-q", phase4.GRANT_FILE)
+    _git(repo, "commit", "-q", "-m", "no grant")
+    assert refusal(copy) == "phase4_grant_not_committed"
+
+
+def test_mutation_reading_the_working_tree_grant_lets_an_edit_through(
+    tmp_path, capsys, monkeypatch
+):
+    repo, grant = _grant_repo(tmp_path)
+    raised = {**json.loads(grant.read_bytes()), "monetary_ceiling": "100.00"}
+    grant.write_text(json.dumps(raised))
+
+    def from_disk(path, repository=phase4.REPOSITORY):
+        given = json.loads(Path(path).read_bytes())
+        on_disk = json.loads((Path(repository) / phase4.GRANT_FILE).read_bytes())
+        if phase4.grant_digest(given) != phase4.grant_digest(on_disk):
+            raise phase4.RunnerRefused("grant_differs_from_the_committed_phase4_grant")
+        return phase4.grant_digest(on_disk)
+
+    assert from_disk(grant, repo)  # the old check: the edit passes
+    code = _refusal(capsys, lambda: phase4.check_committed_grant(grant, repo))
+    assert code == "grant_differs_from_the_committed_phase4_grant"
+
+
+# -- one code-run rule ----------------------------------------------------------------------------
+@needs_engine
+def test_the_dispatcher_calls_the_adapters_own_code_run_rule(monkeypatch):
+    """`AttackerTools` refuses a code run by the adapter's own
+    `code_run_refusal`, the function battery's `resource_accounting` family
+    attacks: for every one of that family's code-run attacks the dispatcher
+    and the family's rule agree, and lifting battery's rule lifts the
+    dispatcher's (no copy)."""
+    from carbon.agent_campaign.attack.adapters import battery
+
+    adapter = battery.ADAPTER
+    seconds = phase4.adapter_code_run_seconds(adapter)
+    rule = phase4.code_run_rule(adapter, seconds)
+    attacks = dict(battery.ADAPTER.family_spec("resource_accounting").attacks())
+    code_runs = {k: v for k, v in attacks.items() if v["kind"] == "code_run"}
+    assert code_runs
+
+    def dispatch(inner):
+        miner = RecordingMiner()
+        tools = phase4.AttackerTools(
+            miner=miner, emit=lambda *a: None, code_run_seconds=seconds, refusal=rule
+        )
+        arguments = {
+            "kind": "workspace",
+            "strategy_json": None,
+            "action": "run_python",
+            "arguments_json": json.dumps(inner, allow_nan=True),
+        }
+        result = asyncio.run(tools.call(PREFIX + "start_research_task", arguments, "i"))
+        return result.get("reason_code") if not miner.calls else None
+
+    for name, value in code_runs.items():
+        inner = value["arguments"]
+        if not isinstance(inner, dict):
+            continue  # not JSON an agent could send as arguments_json
+        assert dispatch(inner) == battery.code_run_refusal(inner), name
+        assert dispatch(inner) is not None, name
+    monkeypatch.setattr(battery, "code_run_refusal", lambda arguments: None)
+    assert dispatch({"seconds": seconds + 1}) is None
+    # An adapter without its own rule gets the core's at its allowance.
+    core = phase4.code_run_rule(StandIn(), 600)
+    assert core({"seconds": 601}) == "code_run_needs_seconds_up_to_600"
+    assert core({"seconds": 600}) is None
