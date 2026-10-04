@@ -15,7 +15,9 @@ page to that, through its own scripts, without a browser:
 - the controller's own recovery actions, Reconcile among them, are in reach
   whenever the state needs them, with why, each state over its own
   controller documents (and Reconcile, read from the state, for a controller
-  that publishes none);
+  that publishes none); beside Reconcile, what it books for each model call
+  whose outcome is unknown, and once it has, what it booked and any caveat,
+  over a real campaign's documents;
 - practice, freeze and submit keep one key until the answer or the record
   shows how they ended, never into the next epoch; an edited retry is a new
   request, said so; a held one can be discarded; the Tools tab reports
@@ -152,6 +154,54 @@ def _recovering(fixture):
     return value
 
 
+def _reconciled(host, monkeypatch):
+    """A real campaign whose model call's outcome is unknown, as the
+    controller publishes it awaiting Reconcile and again once Reconcile has
+    settled it (LP-PROD-W2): the observe row and the campaign view, each from
+    the real host. The call is answered by another model than the one
+    selected, so the settlement carries A's model caveat. No provider is
+    reached: the transport is a fixture."""
+    from test_lp_prod_wire_runtime import OWNER, launched
+    from test_model_provider import completed, request
+
+    from carbon.development_session.research_agent import request_model
+    from carbon.development_session.research_control import CampaignControl
+    from carbon.development_session.research_ledger import CampaignLedger
+    from scripts.dev.miner_launchpad.operations import perform
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(lambda _: None))
+    identity, root = launched(host)
+    ledger = CampaignLedger(root)
+    ledger.generation = CampaignControl(ledger).acquire()
+    with pytest.raises(ValueError):
+        request_model(
+            ledger,
+            owner=OWNER,
+            identity="model-1",
+            request=request(),
+            credential_file=None,
+            transport=lambda _: completed("another-model"),
+            sleep=pytest.fail,
+        )
+    CampaignControl(ledger).settled(ledger.generation, cleanup_verified=False)
+
+    def published():
+        return {
+            "run": host.get(identity),
+            "view": perform(host, "campaign_view", {"campaign": identity}),
+        }
+
+    awaiting = published()
+    assert awaiting["view"]["campaign"]["state"] == "RECONCILIATION_REQUIRED"
+    assert awaiting["view"]["reconciliation"]["awaiting_settlement"]
+    host.control(identity, "reconcile")
+    settled = published()
+    (call,) = settled["view"]["reconciliation"]["settled"]
+    assert call["caveat"] and not settled["view"]["reconciliation"]["awaiting_settlement"]
+    return {"awaiting": awaiting, "settled": settled}
+
+
 def _served_setup(setup):
     """Setup as the Control Center's `GET /api/v1/setup` serves it."""
     from scripts.dev.miner_launchpad import setup_operations
@@ -268,12 +318,16 @@ def documents(tmp_path, journey, monkeypatch):
     setup_model = capabilities._model(
         opened, capabilities.NO_PROFILE, {"model_selection": SETUP_MODEL}
     )
+    preflight = journey.preflight()
+    # After every other read of the journey host: this launches a campaign.
+    reconciled = _reconciled(journey, monkeypatch)
     value = {
         "caps": caps,
         "caps_setup_model": {**caps, "model": setup_model},
         "options": options,
         "options_setup_model": {**options, "agents": opened["agents"]},
-        "preflight": journey.preflight(),
+        "preflight": preflight,
+        "reconciled": reconciled,
         "operations": describe(),
         "catalog": controller.capability_catalog(),
         "exam": exam_environment(),

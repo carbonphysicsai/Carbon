@@ -97,7 +97,9 @@
   // offered; otherwise this page reads the state, and offers Reconcile.
   const RECOVERY = {
     PAUSE_REQUESTED: "A pause was asked for and the running step has not confirmed it. Wait for the step to end; if it stays here, Reconcile settles what it holds.",
-    RECONCILIATION_REQUIRED: "Work may still be held after an interruption. Reconcile checks what is held and cleans it up; then Resume or Stop.",
+    // Reconcile also settles each model call whose outcome is unknown
+    // (LP-PROD-W2): booked at its full reservation, and never resent.
+    RECONCILIATION_REQUIRED: "Work may still be held after an interruption. Reconcile checks what is held and cleans it up, and books each model call whose outcome is unknown at its full reservation; it resends nothing. Then Resume or Stop.",
     INTERRUPTED: "The controller stopped mid-step. Reconcile settles what was held, then Resume continues the campaign.",
   };
   // The same states, said as the controller's own recovery actions say them.
@@ -363,6 +365,39 @@
     parent.append(list);
   }
 
+  // ---- What Reconcile settles (LP-PROD-W2). The campaign view's
+  // `reconciliation`: each model call whose outcome is unknown and what
+  // Reconcile would book for it, while the campaign awaits reconciliation;
+  // each call it settled, why, the charge it booked and any caveat, after.
+  // All text from the record, set as text.
+  function charge(nano) { return typeof nano === "number" ? money(nano) : "no money figure (this model is not priced)"; }
+  function settlement(box, r) {
+    if (!r) return;
+    head(box, "Model calls whose outcome is unknown", "Reconcile");
+    const awaiting = Array.isArray(r.awaiting_settlement) ? r.awaiting_settlement : [];
+    const settled = Array.isArray(r.settled) ? r.settled : [];
+    if (awaiting.length) {
+      para(box, "Reconcile books each of these calls at its full reservation, the most its request could cost, because whether the provider ran it is unknown. It resends nothing: the next call goes out under a fresh identity, with its own reservation.", "status-line");
+      const list = el("ul", undefined, "rs-settle");
+      for (const call of awaiting) list.append(el("li", String(call.identity) + " · Reconcile books " + charge(call.booked_on_settlement_nanodollars)));
+      box.append(list);
+    }
+    if (settled.length) {
+      // A total only of calls booked in money: an unpriced call adds none.
+      const priced = settled.some(call => typeof call.booked_nanodollars === "number");
+      para(box, "Settled by Reconcile · booked " + charge(priced ? r.booked_nanodollars : null) + " in all", "status-line");
+      const list = el("ul", undefined, "rs-settle");
+      for (const call of settled) {
+        const item = el("li");
+        item.append(el("span", String(call.identity) + " · " + words(call.reason).toLowerCase() + " · booked " + charge(call.booked_nanodollars)));
+        if (call.caveat) item.append(el("p", call.caveat, "hint rs-caveat"));
+        list.append(item);
+      }
+      box.append(list);
+    }
+    if (r.accounting) para(box, r.accounting, "hint");
+  }
+
   // ---- Tabs. ----
   function tabLive(panel, doc, run) {
     // The grid's parts are redrawn one by one: a new event redraws Recent
@@ -399,6 +434,11 @@
       quick.append(anchor("Contract", tab("contract"), "button"));
       now.append(quick);
     });
+    // Beside Reconcile: the model calls whose outcome is unknown, what it
+    // books for them, and once it has, what it booked (LP-PROD-W2). Kept in
+    // place, hidden when there are none, so no other part moves.
+    const reconciliation = doc.reconciliation || null;
+    part(grid, "settlement", JSON.stringify(reconciliation), box => settlement(box, reconciliation), "rs-panel rs-wide").hidden = !reconciliation;
     const byId = Object.fromEntries(doc.charts.map(c => [c.id, c]));
     part(grid, "trend", JSON.stringify([byId.trend_score || null, byId.trend_components || null]), trend => {
       head(trend, "Practice runs", "Live metrics");

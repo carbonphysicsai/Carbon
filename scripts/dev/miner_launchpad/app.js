@@ -3256,7 +3256,11 @@
       if (action === "export") download(await api("/api/v1/research/" + id), "carbon-research-" + id + ".json");
       else await api("/api/v1/research/" + id + "/" + action, {});
       message("Research request acknowledged. Check observed state and cleanup in the campaign.");
-    } catch (error) { message("Research request unresolved: " + error.message, true); }
+    } catch (error) {
+      // The controller's next step when it gives one: for a Reconcile, A's
+      // step for a model call it would not settle (LP-PROD-W2).
+      message("Research request unresolved: " + error.message + (error.nextStep ? ". Next: " + error.nextStep.replace(/\.$/, "") + "." : ""), true);
+    }
     finally { busy = false; await refresh(); render(); }
   }
   $("research-launch").addEventListener("click", () => launchResearch());

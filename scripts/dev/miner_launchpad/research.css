@@ -90,6 +90,8 @@ a.rs-change:hover { background: var(--muted); }
 .rs-quote cite { display: block; margin-top: 6px; font-family: var(--mono); font-size: 10.5px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); }
 .rs-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .rs-quick button, .rs-quick .button { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+.rs-settle { margin: 8px 0 12px; padding-left: 20px; overflow-wrap: anywhere; }
+.rs-settle .rs-caveat { margin: 4px 0 0; }
 .rs-compare td:last-child { white-space: nowrap; }
 .rs-better { color: var(--fg); font-weight: 600; }
 .rs-worse { color: var(--red); font-weight: 600; }

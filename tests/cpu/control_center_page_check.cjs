@@ -550,6 +550,8 @@ scenario("a healthy campaign's Live tab keeps Reconcile in the header only", asy
   assert.equal(all(page, "#campaign-detail [data-part=now] [data-action=reconcile]").length, 0);
   assert.equal(all(page, "#campaign-detail .rs-head [data-action=reconcile]").length, 1);
   assert.equal(page.text(one(page, "#campaign-detail [data-part=attention]")), "");
+  // No model call's outcome is unknown: nothing to settle is shown.
+  assert.equal(one(page, "#campaign-detail [data-part=settlement]").hidden, true);
   clean(page);
 });
 scenario("a queued campaign with no frozen record can be reconciled without its view", async () => {
@@ -594,6 +596,56 @@ scenario("the controller's own recovery actions are offered when its record carr
   Object.assign(run, {in_flight: {operation: "run", state: "RUNNING", since: 1800000000, supervisor_running: true}, recovery: []});
   await refresh(page);
   assert.equal(page.text(attention()), "");
+  clean(page);
+});
+// What Reconcile settles (LP-PROD-W2), over a real campaign's documents
+// (fx.reconciled: a model call answered by another model, so its outcome is
+// unknown, published awaiting Reconcile and again once it settled it).
+scenario("the Live tab says what Reconcile books before the press, and what it booked after", async () => {
+  const {awaiting, settled} = fx.reconciled;
+  const state = launchable(world());
+  const run = copy(awaiting.run);
+  state.runs = [run];
+  state.view = copy(awaiting.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  const panel = () => one(page, "#campaign-detail [data-part=settlement]");
+  // Before: the call, what Reconcile books for it and that nothing is resent,
+  // beside the Reconcile control; the line above says the same.
+  const pending = awaiting.view.reconciliation.awaiting_settlement[0];
+  assert.equal(panel().hidden, false);
+  let text = page.text(panel());
+  assert.ok(text.includes(pending.identity + " · Reconcile books $"), text);
+  assert.match(text, /at its full reservation/);
+  assert.match(text, /It resends nothing/);
+  assert.ok(text.includes(awaiting.view.reconciliation.accounting), "the accounting rule is shown");
+  assert.match(page.text(one(page, "#campaign-detail [data-part=attention]")), /books each model call whose outcome is unknown at its full reservation; it resends nothing/);
+  // A press refused with the settlement's own step: the page says that step.
+  const step = "a model call of this campaign is still being admitted or in flight; settle once it has ended";
+  state.script.push({match: r => r.path === "/api/v1/research/" + run.id + "/reconcile", answer: {status: 409, body: {error: "call_in_flight", next_step: step}}});
+  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  assert.match(page.text("message"), /call_in_flight/);
+  assert.ok(page.text("message").includes("Next: " + step + "."), page.text("message"));
+  // The press, answered as the controller answers it: the settled campaign.
+  state.script.push({match: r => r.path === "/api/v1/research/" + run.id + "/reconcile", answer: () => {
+    state.runs = [copy(settled.run)];
+    state.view = copy(settled.view);
+    return {body: settled.run};
+  }});
+  await page.press(one(page, "#campaign-detail [data-part=now] [data-action=reconcile]"));
+  assert.ok(state.posted.some(entry => entry.path === "/api/v1/research/" + run.id + "/reconcile"));
+  for (let i = 0; i < 3; i++) await refresh(page);
+  // After: what it booked, why the outcome was unknown, and the caveat that
+  // the booking is not a proven bound for a call another model answered.
+  const done = settled.view.reconciliation.settled[0];
+  assert.equal(panel().hidden, false);
+  text = page.text(panel());
+  assert.match(text, /Settled by Reconcile · booked \$/);
+  assert.ok(text.includes(done.identity + " · " + done.reason.replaceAll("_", " ") + " · booked $"), text);
+  assert.ok(done.caveat && text.includes(done.caveat), "the model caveat is shown: " + text);
+  assert.ok(text.includes(settled.view.reconciliation.accounting));
+  assert.doesNotMatch(text, /Reconcile books/, "nothing awaits settlement now");
   clean(page);
 });
 
