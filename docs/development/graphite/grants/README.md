@@ -113,6 +113,13 @@ Constructor session now has its own cap of 150 calls
 unchanged. Only `max_runtime_s` changes; the ceiling, `worst_case_run_cost`
 and the pod budget do not.
 
+**Amendment (2026-10-03): no call cap.** OWNER-GRAPHITE-MINER-01 §6. Asked
+about per-epoch call and trial caps, the owner said: "Yes generous and tunable
+limits. I don't like that internal graphite has limits like that honestly". A
+Constructor session opened from 2026-10-03 has no session-turn cap and no
+per-role call cap. The run's money cap and its runtime bind. No grant value
+changes. See "Since 2026-10-03" below.
+
 **State.** Complete: the grant validates and the runner accepts it. No live
 session has run.
 
@@ -218,6 +225,51 @@ on tokens. The plan estimates about USD 0.10 a session on
 reported charge, not from its reservation. The plan's estimate is about
 USD 0.10 of tokens and USD 1-3 of pod time per session. The first live
 session measures the real figures and replaces these numbers.
+
+### Since 2026-10-03: money and time bind, not call counts
+
+**Authority.** OWNER-GRAPHITE-MINER-01 §6 (quoted in the amendment above).
+The engineering choices are recorded in GRAPHITE-MINER-S6
+(`.agent/decisions/2026-10-03-GRAPHITE-MINER-S6.md`).
+
+**What changed.** Only the rule a new session runs under, not the grant.
+- A session opened from 2026-10-03 records the v2 session-limits rule
+  (`provider.SESSION_LIMITS_V2`) in its session record, under
+  `session_limits`. It has no session-turn cap and no per-role call cap. The
+  research loop runs it with the engine's count-free limits and its
+  recorded context compaction.
+- The 150 calls of `roles.CONSTRUCTOR_SESSION_TURNS` are historical. A session
+  recorded under them, every session opened before 2026-10-03, resumes under
+  them and replays byte-identically.
+- Stall detection and its one-rung escalation are unchanged.
+
+**What bounds a run now.** The same two limits as before, now the only ones:
+- **Money.** The controller reserves `worst_case_run_cost` (USD 4.91) for each
+  run. Inside the run, every model call and every pod is admitted against
+  that same cap. Model calls are also held to the token share (USD 1.95).
+  The session record states both caps (`money_cap_nanodollars`,
+  `model_spend_cap_nanodollars`). The controller's launch gate (settled and
+  reserved spend, plus the next run's worst case, plus cleanup, within the
+  ceiling) uses money alone, so the arithmetic above is unchanged:
+  3 × 4.91 + 0.25 = 14.98 ≤ 15.00.
+- **Time.** `max_runtime_s` (39,600 s) is still the run's elapsed limit. Its
+  value was derived from 150 calls and 12 pods. It is now a time bound, not a
+  call count.
+
+**How many calls fit.** Money, not a count, decides. At the Constructor's
+starting rung, settled at its full reservation, the token share holds
+⌊1.95 / 0.00313344⌋ = 622 calls. At reported charges far below the
+reservation, the token share holds more, and the runtime binds first. On
+`glm-5.2` the token share still stops a run after 40 calls.
+
+**How a capped session ends.** A session the agent does not end stops when its
+next model call would pass the money cap or cannot finish within the runtime.
+It ends `failed` with `run_cap_reached` and the dimension, as a capped run
+always has. Under the v2 rule the session's work is still closed:
+- on a money stop, the best improvement is bundled, and its ablation pods are
+  admitted against the same run cap;
+- on any stop, the stall rule's escalation applies;
+- on a runtime stop, no new pod launches, so nothing is bundled.
 
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 

@@ -62,6 +62,7 @@ from carbon.agent_campaign.graphite import delivery, miner_path, phase3, pod_pha
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import tools as gt
 from carbon.agent_campaign.graphite.model import ScriptedModel, tools
+from carbon.agent_campaign.graphite.provider import SESSION_LIMITS_V1
 from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -123,6 +124,8 @@ def test_the_phase3_grant_is_complete_and_one_ceiling_covers_tokens_and_pods():
     assert run == Decimal("4.91")
     assert 3 * run + granted.cleanup_allowance <= granted.monetary_ceiling
     assert (granted.monetary_ceiling - granted.cleanup_allowance) // run == 3
+    # The recorded runtime was derived from the historical 150-call cap; it
+    # stays the grant's value and is now a time bound, not a call count.
     assert granted.max_runtime_s == CONSTRUCTOR_SESSION_TURNS * 120 + 12 * 30 * 60
     assert granted.max_runtime_s == 39600
     assert (granted.max_concurrency, granted.max_submissions) == (1, 3)
@@ -400,14 +403,23 @@ def _plan(graphite):
     return json.loads(path.read_bytes())
 
 
-def test_a_constructor_session_makes_up_to_150_model_calls(tmp_path):
+def test_a_historical_constructor_session_makes_up_to_150_model_calls(tmp_path):
     """OWNER-GRAPHITE-03 amendment ("up the plan to 150"), GRAPHITE-D26: a
-    Constructor session runs past the shared 48 and stops at exactly 150."""
+    Constructor session opened under the v1 session-limits rule, as every
+    session before 2026-10-03 was, runs past the shared 48 and stops at
+    exactly 150. A new session has no call cap (OWNER-GRAPHITE-MINER-01 §6,
+    `test_graphite_internal_limits`); this rule stays for the records."""
     assert CONSTRUCTOR_SESSION_TURNS == 150
     probe = tool(PREFIX + "get_challenge_info", {})
     script = [probe] * CONSTRUCTOR_SESSION_TURNS + [text("never sent: the cap")]
     miner = RecordingMinerTools()
-    result, graphite, _ = session(tmp_path, script, ScriptedPods(), miner=miner)
+    result, graphite, _ = session(
+        tmp_path,
+        script,
+        ScriptedPods(),
+        miner=miner,
+        session_limits=SESSION_LIMITS_V1,
+    )
     assert result["provider_state"] == "succeeded"
     assert len(graphite.model.requests) == CONSTRUCTOR_SESSION_TURNS
     assert graphite.model.remaining == 1
@@ -418,15 +430,17 @@ def test_a_constructor_session_makes_up_to_150_model_calls(tmp_path):
     assert outcome["reason"] == "epoch provider-call ceiling"
     assert _plan(graphite)["max_provider_calls"] == CONSTRUCTOR_SESSION_TURNS
     assert graphite.caps()["provider_attempts"] == CONSTRUCTOR_SESSION_TURNS
+    assert result["session_limits"]["schema"] == SESSION_LIMITS_V1
 
 
-def test_a_constructor_session_below_the_cap_ends_when_the_agent_stops(tmp_path):
+def test_a_constructor_session_ends_when_the_agent_stops(tmp_path):
     probe = tool(PREFIX + "get_challenge_info", {})
     script = [probe] * 60 + [text("done")]
     result, graphite, _ = session(tmp_path, script, ScriptedPods())
     assert result["provider_state"] == "succeeded"
     assert len(graphite.model.requests) == 61  # past the shared 48
     assert graphite.model.remaining == 0
+    assert result["session_limits"]["session_turns"] is None
 
 
 # -- several tool calls in one turn (LP-PROD-A, superseding GRAPHITE-D33) -----------------
@@ -509,8 +523,8 @@ def test_every_role_runs_under_the_v2_rule_and_its_prompt_states_it():
 
 def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
     """On glm-5.2 a call reserves 47,636,480 nanodollars; settled at that
-    charge, the 1.95 token share stops the run after 40 calls, well before
-    the 150-call cap."""
+    charge, the 1.95 token share stops the run after 40 calls. No call cap
+    applies to a new session; the money cap is the bound."""
     probe = tool(PREFIX + "get_challenge_info", {})
     script = [probe] * CONSTRUCTOR_SESSION_TURNS
     graphite = provider(tmp_path, script, ScriptedPods())
@@ -538,6 +552,8 @@ def test_the_money_cap_still_stops_an_expensive_rung_first(tmp_path):
     assert len(graphite.model.requests) == 40
     tokens = graphite._tokens_usd(run_id())
     assert tokens <= graphite.budget.token_allowance_usd == Decimal("1.95")
+    # The money stop still closed the session (nothing to bundle here).
+    assert result["delivery"] == {"status": "NO_IMPROVEMENT", "bundle": None}
 
 
 def test_the_session_pod_limit_and_the_grant_run_limit_hold(tmp_path):
