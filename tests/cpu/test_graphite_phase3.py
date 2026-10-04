@@ -873,7 +873,7 @@ def test_on_engy_chat_calls_run_in_order_and_settle_from_the_reported_charge(
     sends them back as one assistant message and three tool messages; and
     every call settles at its reported charge, not its reservation."""
     folder = tmp_path / "key"
-    folder.mkdir(mode=0o700)
+    folder.mkdir(mode=0o700, parents=True)
     key = folder / "engy.key"
     key.write_text("sk-SPECIMEN-not-a-key")
     key.chmod(0o600)
