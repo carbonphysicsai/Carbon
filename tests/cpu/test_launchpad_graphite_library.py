@@ -166,6 +166,9 @@ def test_search_serves_only_what_a_miner_may_see(library_host):
         assert "internal_note" not in served  # only the card's own fields
         assert served["score"] == 2.5 and served["reasons"]
     assert [c["pinned"] for c in found["cards"]] == [True, False, False]
+    # S2's buildability under the Challenge's contract, served as booleans.
+    assert [c["plan_input"] for c in found["cards"]] == [True, True, True]
+    assert {c["capability_request_candidate"] for c in found["cards"]} == {False}
     assert found["check_status"] == "UNCHECKED" and found["untrusted"] is True
     (asked,) = library.searches
     assert asked["bans"] == ("arxiv-2101.00001v1",)
@@ -229,6 +232,93 @@ def test_the_library_list_shows_the_pack_curation_imports_and_plans(library_host
     assert "secret-ish" not in json.dumps(listed)
     assert [p["digest"] for p in listed["plans"]] == [plan]
     assert listed["plans"][0]["created_by"] == "miner"
+    # S2's timestamp text, as the library recorded it.
+    assert listed["plans"][0]["created_at"] == "2026-10-03T12:00:00Z"
+
+
+def test_plans_are_listed_newest_first(library_host):
+    host, library, _opened = library_host
+    first = library.save_plan(plan_document())
+    second = run(host, "plan_edit", {"plan_document": plan_document(parent=first)})
+    listed = run(host, "plan_list", {})["plans"]
+    # S2 lists them oldest first; the doors show the newest first.
+    assert [p["digest"] for p in listed] == [second["digest"], first]
+    assert [p["created_at"] for p in listed] == [
+        "2026-10-03T12:00:01Z",
+        "2026-10-03T12:00:00Z",
+    ]
+    from scripts.dev.miner_launchpad.runner import _plan_entry
+
+    # A timestamp in any other form is never shown as given.
+    assert _plan_entry({"digest": first, "created_at": "yesterday"})["created_at"] is None
+    assert _plan_entry({"digest": first, "created_at": 1.5})["created_at"] == 1.5
+
+
+@pytest.mark.parametrize(
+    "code,answered,status",
+    [
+        ("card_not_found", "card_not_found", 404),
+        ("card_banned", "card_banned", 409),
+        ("plan_not_found", "plan_not_found", 404),
+        ("plan_invalid", "plan_invalid", 409),
+        ("import_invalid", "import_invalid", 400),
+        ("search_invalid", "library_query_invalid", 400),
+        # Any other code of S2's is not one a door names.
+        ("evidence_invalid", "library_unavailable", 409),
+        ("curation_not_found", "library_unavailable", 409),
+    ],
+)
+def test_s2s_typed_refusals_are_answered_by_their_own_code(code, answered, status):
+    from test_launchpad_graphite import LibraryError
+
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    def refused():
+        raise LibraryError(code, "detail with /a/private/path")
+
+    with pytest.raises(Rejected) as caught:
+        RunnerAdapter._library_call(refused)
+    assert (caught.value.code, caught.value.status) == (answered, status)
+    assert "private" not in str(caught.value)
+
+
+def test_a_code_on_anything_but_s2s_refusal_is_not_trusted():
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    class Coded(RuntimeError):
+        code = "card_not_found"
+
+    def broken():
+        raise Coded("not a refusal")
+
+    with pytest.raises(Rejected) as caught:
+        RunnerAdapter._library_call(broken)
+    assert caught.value.code == "library_unavailable"
+
+
+def test_s2s_refusals_reach_each_door_by_name(library_host):
+    """The library raises S2's `LibraryError`, never a KeyError: an unknown
+    card, a pin of one, an unknown plan and a refused import each answer
+    their own code and step, not `library_unavailable`."""
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    host, library, _opened = library_host
+    library.refused_text = "a text S2 refuses"
+    for name, body, code in (
+        ("library_card", {"card_id": "nope-1"}, "card_not_found"),
+        ("library_pin", {"card_id": "nope-1"}, "card_not_found"),
+        ("library_ban", {"card_id": "nope-1"}, "card_not_found"),
+        ("plan_get", {"plan": "sha256:" + "d" * 64}, "plan_not_found"),
+        (
+            "library_import",
+            {"title": "Notes", "text": "a text S2 refuses"},
+            "import_invalid",
+        ),
+    ):
+        with pytest.raises(Rejected) as refused:
+            run(host, name, body)
+        assert refused.value.code == code, name
+        assert code in NEXT_ACTIONS
 
 
 def test_a_missing_pack_is_named_in_the_list(library_host):
@@ -264,6 +354,32 @@ def test_the_library_lives_in_the_setup_root(tmp_path):
         assert refused.value.code == "library_unavailable"
     finally:
         bare.close()
+
+
+def test_no_host_has_a_relative_library_root(tmp_path, monkeypatch):
+    """S2's library refuses any root that is not absolute. A host's profile
+    path is absolute and resolved - the profile reader refuses any other, so
+    `--profile ./runner-profile.json` is refused before a host exists - and
+    the library root is made absolute regardless."""
+    from pathlib import Path
+
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    profile = tmp_path / "environment" / "runner-profile.json"
+    profile.parent.mkdir(mode=0o700)
+    profile.write_bytes(canonical({"principal": "alice"}))
+    profile.chmod(0o600)
+    monkeypatch.chdir(tmp_path / "environment")
+    relative = Path("./runner-profile.json")
+    with pytest.raises(ValueError):
+        RunnerAdapter(tmp_path / "relative.sqlite3", configuration=relative)
+    with pytest.raises(ValueError):
+        RunnerAdapter.for_profile(relative)
+    host = RunnerAdapter(tmp_path / "runner.sqlite3", configuration=profile)
+    try:
+        assert host.library_root.is_absolute()
+    finally:
+        host.close()
 
 
 # --- writes ------------------------------------------------------------------
@@ -304,6 +420,30 @@ def test_a_keyed_write_replays_its_answer_and_a_changed_one_conflicts(library_ho
     with pytest.raises(Rejected) as refused:
         run(host, "library_ban", {"card_id": "own-1", "idempotency_key": KEY})
     assert refused.value.code == "operation_replay_conflict"
+
+
+def test_a_library_write_does_not_hold_the_hosts_lock(library_host):
+    """S2's library serialises its own writes; the host's lock, which launches
+    and operations take, is held only while a key is claimed and answered."""
+    host, library, _opened = library_host
+    taken = []
+    pin = library.pin
+
+    def watched(card_id):
+        def other():
+            if host.lock.acquire(timeout=5):
+                taken.append(True)
+                host.lock.release()
+
+        thread = threading.Thread(target=other)
+        thread.start()
+        thread.join(timeout=10)
+        return pin(card_id)
+
+    library.pin = watched
+    run(host, "library_pin", {"card_id": "own-1", "idempotency_key": KEY})
+    run(host, "library_pin", {"card_id": "imported-1"})
+    assert taken == [True, True]
 
 
 def test_a_failed_keyed_write_leaves_its_key_free(library_host):

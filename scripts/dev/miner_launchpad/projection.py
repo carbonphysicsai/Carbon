@@ -352,7 +352,8 @@ def project(row, root):
     value["completed_experiments"] = len(value["experiments"])
     if manifest.get("agent") == "graphite":
         # Graphite's mode, stage, plan, research spend and hunt (S4), read
-        # from the frozen plan and the ledger; observe shows the stage.
+        # from the frozen plan, S3's view of its own records and the ledger;
+        # observe shows the stage.
         value["graphite"] = graphite_progress(manifest, status, root)
     value["candidate_freezes"] = []
     # Where a miner's own journey stands, from the campaign's files: which
@@ -486,58 +487,49 @@ def project(row, root):
 #: Who researches, as the projection labels it.
 AGENT_LABELS = {"none": "manual", "graphite": "carbon-graphite"}
 
-#: S1's stage namespace (`research_loop.run_epoch(stage=...)`): a staged
-#: epoch's start operation (`research-epoch-N-<stage>`) and its provider and
-#: tool calls (`epoch-N-<stage>-provider-NNN`, `epoch-N-<stage>-tool-NNN[-KK]`).
-#: An unstaged epoch's identities (`epoch-N-provider-NNN`) match neither.
-_STAGE_START = re.compile(r"research-epoch-(\d{1,4})-([a-z][a-z0-9_]{0,31})")
-_STAGE_CALL = re.compile(
-    r"epoch-(\d{1,4})-([a-z][a-z0-9_]{0,31})-(?:provider|tool)-\d{3}(?:-\d{2})?"
-)
-_EPOCH_CALL = re.compile(r"epoch-(\d{1,4})-(?:provider|tool)-\d{3}(?:-\d{2})?")
-#: A hunt's Reader calls, by the identity prefix the driver gives them.
-_HUNT_CALL = re.compile(r"graphite-hunt-[A-Za-z0-9._-]{1,96}")
-#: Stages that construct: their spend is the build's, not research's. Every
-#: other stage (the hunt, the Reader, the Planner) is research.
-BUILD_STAGES = frozenset({"construct", "constructor", "build"})
-#: Where the driver keeps a hunt's report (S3; S2's `HuntReport`).
-HUNT_REPORT = ("graphite", "hunt-report.json")
+#: Graphite's own records, as S3's driver keeps them: write-once stage records
+#: under `<campaign>/graphite/stages/` (the hunt's carries its report's
+#: counts), and the hunt's Reader calls metered as `graphite-reader-<digest>`
+#: (`miner.budget.READER_PREFIX`).
+GRAPHITE_STAGES = ("graphite", "stages")
+READER_PREFIX = "graphite-reader-"
+SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
 _HUNT_FIELDS = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra")
+_STAGE_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}")
+_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 
 
-def _stage_of(identity):
-    """The stage an operation belongs to: a staged epoch's stage, `hunt`
-    for a hunt's Reader call, `build` for an unstaged epoch's call, or None
-    for anything else (a worker, a practice trial)."""
-    if type(identity) is not str:
-        return None
-    for pattern in (_STAGE_START, _STAGE_CALL):
-        match = pattern.fullmatch(identity)
-        if match:
-            return match.group(2)
-    if _HUNT_CALL.fullmatch(identity):
-        return "hunt"
-    if _EPOCH_CALL.fullmatch(identity):
-        return "build"
-    return None
+def _graphite_view(root, operations):
+    """S3's own view of a Graphite campaign (`miner.driver.view`): its stages,
+    the current one, the plan its Planner wrote or the miner chose, what its
+    research stages spent against the research share, and the hunt's cost.
+    A test replaces it."""
+    from carbon.agent_campaign.graphite.miner.driver import view
+
+    return view(root, operations=operations)
 
 
 def _hunt_report(root):
-    """The hunt's report as the driver kept it, or None: its counts only."""
-    path = Path(root).joinpath(*HUNT_REPORT)
+    """The counts of the hunt's report, from its stage record (S3), or None
+    before the hunt finished."""
+    path = Path(root).joinpath(*GRAPHITE_STAGES, "hunt.json")
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > 1 << 20:
             return None
-        report = json.loads(path.read_bytes())
+        record = json.loads(path.read_bytes())
     except (OSError, ValueError):
         return None
+    report = record.get("report") if type(record) is dict else None
     if type(report) is not dict:
         return None
     counts = {}
     for name in _HUNT_FIELDS:
         item = report.get(name)
-        # A count, or (failed_infra) whether arXiv failed; a list is counted.
-        if type(item) is bool or (type(item) is int and item >= 0):
+        if type(item) is bool:
+            # S2 says whether arXiv failed; the view counts it (0 or 1).
+            counts[name] = int(item)
+        elif type(item) is int and item >= 0:
             counts[name] = item
         elif type(item) is list:
             counts[name] = len(item)
@@ -546,63 +538,101 @@ def _hunt_report(root):
     return counts
 
 
+def _count(value):
+    return value if type(value) is int and value >= 0 else None
+
+
+def _spend(value):
+    value = value if type(value) is dict else {}
+    return {key: _count(value.get(key)) for key in SPEND_KEYS}
+
+
+def _stages(value):
+    rows = []
+    for row in value if type(value) is list else []:
+        if type(row) is not dict or type(row.get("stage")) is not str:
+            continue
+        if not _STAGE_NAME.fullmatch(row["stage"]):
+            continue
+        code = row.get("code")
+        rows.append(
+            {
+                "stage": row["stage"],
+                "state": row.get("state") if row.get("state") in _STAGE_STATES else None,
+                "code": code if type(code) is str and _CODE.fullmatch(code) else None,
+            }
+        )
+    return rows[:16]
+
+
 def graphite_progress(manifest, status, root):
-    """A Graphite campaign's progress, from its frozen plan and its ledger:
-    {edition, mode, stage, plan_digest, research_share, research_spent,
-    hunt}. `stage` is the stage of the newest model call or stage start
-    (None before any); `research_spent` is what research stages booked
-    (settled where settled, reserved otherwise), beside the share of the
-    miner's ceilings they may use; `hunt` the hunt's counts and what its
-    Reader calls booked, or None when there was no hunt. Nothing is read but
-    the plan, the ledger's operations and the hunt's own report."""
+    """A Graphite campaign's progress: {edition, mode, stage, stages,
+    plan_digest, research_share, research_spent, research_cap, hunt}.
+
+    The frozen plan's `provider.graphite` block gives the edition and mode.
+    Everything else is S3's driver's own view of its records
+    (`miner.driver.view`): the stages and the current one (None before any,
+    `complete` once done), the plan digest - the one the miner chose, or the
+    one the campaign's Planner wrote - the research share (FULL only), what
+    the research stages (the hunt's Reader and the Planner) spent and the cap
+    the share sets. `hunt` is None without a hunt; otherwise the counts of
+    its report (None until it finished), how many Reader calls it made and
+    what they cost, all of them read live from the ledger. Without the
+    driver's view (an unreadable record), only the frozen block's values
+    are shown, and nothing is invented."""
     provider = (
         manifest.get("provider") if type(manifest.get("provider")) is dict else {}
     )
     block = provider.get("graphite") if type(provider.get("graphite")) is dict else {}
+    operations = status["operations"]
+    try:
+        seen = _graphite_view(root, operations)
+    except Exception:  # noqa: BLE001 - shown as unknown, never as a failure
+        seen = None
+    seen = seen if type(seen) is dict else {}
+    mode = block.get("mode") if block.get("mode") in GRAPHITE_MODES else None
     share = block.get("research_share")
-    stage = None
-    spent = {"provider_nanodollars": 0, "provider_attempts": 0}
-    hunt_cost = 0
-    hunt_calls = 0
-    for op in status["operations"]:
-        found = _stage_of(op.get("id"))
-        if found is None:
-            continue
-        stage = found
-        if found in BUILD_STAGES:
-            continue
-        charge = op["actual"] if op.get("actual") is not None else op.get("reservation")
-        charge = charge if type(charge) is dict else {}
-        for key in spent:
-            amount = charge.get(key)
-            if type(amount) is int:
-                spent[key] += amount
-        if found == "hunt":
-            hunt_calls += 1
-            amount = charge.get("provider_nanodollars")
-            hunt_cost += amount if type(amount) is int else 0
-    hunt = block.get("hunt")
-    report = _hunt_report(root)
+    plan_digest = seen.get("plan_digest", block.get("plan_digest"))
+    stage = seen.get("stage")
+    hunt = None
+    if block.get("hunt") is not None:
+        calls, cost = 0, 0
+        for op in operations:
+            if not str(op.get("id", "")).startswith(READER_PREFIX):
+                continue
+            # As the driver's view and the ledger count use: settled where
+            # settled, reserved otherwise.
+            charge = op.get("actual")
+            charge = charge if charge is not None else op.get("reservation")
+            amount = (charge if type(charge) is dict else {}).get(
+                "provider_nanodollars"
+            )
+            calls += 1
+            cost += amount if type(amount) is int else 0
+        hunt = {
+            **(_hunt_report(root) or dict.fromkeys(_HUNT_FIELDS)),
+            "reader_calls": calls,
+            "cost_nanodollars": cost,
+        }
     return {
         "edition": block.get("edition") if type(block.get("edition")) is str else None,
-        "mode": block.get("mode") if block.get("mode") in GRAPHITE_MODES else None,
-        "stage": stage,
-        "plan_digest": (
-            block.get("plan_digest") if type(block.get("plan_digest")) is str else None
-        ),
+        "mode": mode,
+        "stage": stage if type(stage) is str and _STAGE_NAME.fullmatch(stage) else None,
+        "stages": _stages(seen.get("stages")),
+        "plan_digest": plan_digest if type(plan_digest) is str else None,
         # Of the miner's provider_nanodollars and provider_attempts ceilings;
-        # the research stages stop at it (`research_share_reached`).
-        "research_share": share if type(share) in (int, float) else None,
-        "research_spent": spent,
-        "hunt": (
-            None
-            if hunt is None and report is None
-            else {
-                **(report or dict.fromkeys(_HUNT_FIELDS)),
-                "reader_calls": hunt_calls,
-                "cost_nanodollars": hunt_cost,
-            }
+        # only FULL applies it, and its research stages stop at it
+        # (`research_share_reached`).
+        "research_share": (
+            share if mode == "FULL" and type(share) in (int, float) else None
         ),
+        "research_spent": _spend(seen.get("research_spent")),
+        "research_cap": (
+            _spend(seen["research_cap"])
+            if type(seen.get("research_cap")) is dict
+            else None
+        ),
+        "hunt": hunt,
     }
 
 

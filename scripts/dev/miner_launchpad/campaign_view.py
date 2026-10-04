@@ -619,6 +619,9 @@ def stages(own):
 #: Graphite's modes and what its section of the view carries (S4).
 GRAPHITE_MODES = ("RESEARCH", "BUILD", "FULL")
 _GRAPHITE_STAGE = re.compile(r"[a-z][a-z0-9_]{0,31}")
+_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+_SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
 _HUNT_COUNTS = (
     "fetched",
     "deduped",
@@ -648,26 +651,51 @@ def graphite_section(own):
     )
     hunt = value.get("hunt") if type(value.get("hunt")) is dict else None
     stage = value.get("stage")
+    cap = value.get("research_cap") if type(value.get("research_cap")) is dict else None
+
+    def spend(vector):
+        return {key: count(vector.get(key)) for key in _SPEND_KEYS}
+
     return {
         "edition": _str(value.get("edition")),
         "mode": value.get("mode") if value.get("mode") in GRAPHITE_MODES else None,
         "stage": (
             stage if type(stage) is str and _GRAPHITE_STAGE.fullmatch(stage) else None
         ),
+        # Each stage the campaign runs, in order, with its state and the
+        # closed code it ended on (`research_share_reached`, ...).
+        "stages": [
+            {
+                "stage": row["stage"],
+                "state": (
+                    row.get("state") if row.get("state") in _STAGE_STATES else None
+                ),
+                "code": (
+                    row["code"]
+                    if type(row.get("code")) is str and _CODE.fullmatch(row["code"])
+                    else None
+                ),
+            }
+            for row in (
+                value.get("stages") if type(value.get("stages")) is list else []
+            )[:16]
+            if type(row) is dict
+            and type(row.get("stage")) is str
+            and _GRAPHITE_STAGE.fullmatch(row["stage"])
+        ],
         "plan_digest": _str(value.get("plan_digest")),
         "research_share": (
             share if type(share) in (int, float) and finite(share) is not None else None
         ),
-        "research_spent": {
-            key: count(spent.get(key))
-            for key in ("provider_nanodollars", "provider_attempts")
-        },
+        "research_spent": spend(spent),
+        # What the share lets research spend, per capped dimension (FULL).
+        "research_cap": None if cap is None else spend(cap),
         "hunt": (
             None
             if hunt is None
             else {
                 key: (
-                    hunt.get(key)
+                    int(hunt[key])
                     if key == "failed_infra" and type(hunt.get(key)) is bool
                     else count(hunt.get(key))
                 )

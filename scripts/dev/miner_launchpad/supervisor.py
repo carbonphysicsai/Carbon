@@ -793,9 +793,18 @@ NEXT_ACTIONS = {
     "graphite_mode_invalid": "Send graphite_mode as RESEARCH, BUILD or FULL, or omit it for FULL.",
     "graphite_field_not_used_by_mode": (
         "That field is not used by this graphite_mode: research_share is for "
-        "FULL, plan for BUILD, and a hunt only runs where the Planner does "
-        "(RESEARCH, FULL, or BUILD with no plan). Leave it out, or change "
-        "the mode."
+        "FULL, plan for BUILD, and a hunt runs only in RESEARCH and FULL. "
+        "Leave it out, or change the mode."
+    ),
+    "graphite_launch_invalid": (
+        "This campaign's Graphite launch fields are not the ones this Carbon "
+        "reads, so nothing was called. Update Carbon (re-run the installer) "
+        "and launch again; the campaign itself cannot be repaired."
+    ),
+    "curation_not_found": (
+        "The pins and bans this campaign was launched with are no longer in "
+        "your library, so nothing was called. Launch again: the new campaign "
+        "takes your pins and bans as they are now."
     ),
     "research_share_invalid": "Send research_share as a number from 0 to 1, or omit it for 0.10.",
     "graphite_limits_invalid": (
@@ -819,9 +828,10 @@ NEXT_ACTIONS = {
         "have the Planner write one."
     ),
     "plan_invalid": (
-        "The plan cites a card that is unknown or banned, or leaves out a "
-        "pinned card. Read it (carbon_plan_get), correct it and save it "
-        "(carbon_plan_edit), or change your pins and bans."
+        "The plan cites a card that is unknown or banned, leaves out a "
+        "pinned card, or is for another Challenge. Read it (carbon_plan_get), "
+        "correct it and save it (carbon_plan_edit), change your pins and "
+        "bans, or launch it on its own Challenge."
     ),
     "plan_document_required": (
         "Send plan_document as a JSON object, as carbon_plan_get returns a plan."
