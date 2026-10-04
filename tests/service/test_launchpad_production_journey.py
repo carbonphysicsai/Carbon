@@ -1,0 +1,1675 @@
+"""The Launchpad production journey, end to end (OWNER-LAUNCHPAD-PROD-01).
+
+A test (or a lettered few) per stage of a miner's journey through the merged
+production work (LP-PROD-A to G), each through the doors a miner uses:
+
+1. a launch from a short-lived MCP stdio client that exits at once is carried
+   out by a supervisor in another process, not left QUEUED;
+2. attaching announces the research tools - `notifications/tools/list_changed`
+   to a handshake-era client (2), an event on a current client's
+   `subscriptions/listen` stream (2b) - and lists them;
+3. a research call with an argument mistake is answered with a correction
+   naming the field, before dispatch, and the corrected call succeeds;
+4. Carbon's agent runs a three-call parallel turn in order, journalled; a
+   malformed selection and an unpractised one are answered recoverably; a
+   practised one is selected; a resume replays with no model call and no
+   dispatch;
+5. a reply cut off at the output cap and a transient 503 do not end the
+   epoch; a call whose outcome is unknown is settled conservatively, and the
+   epoch goes on (5b: by the Control Center's own reconcile action);
+6. a submit is refused at once with its next step when no validator is
+   configured (6a), and otherwise shows a closed refusal or the validator's
+   outcome, through a loopback intake to a throwaway validator (6b), never a
+   false "Submitted"; an intake's refusal reaches the miner with its own
+   next step (6c);
+7. closing the Control Center pauses, never stops; restarting it flags no
+   idle campaign; resume survives a profile change that does not matter.
+
+No paid call is made. Real here: the MCP SDK client and the stdio servers
+(`standard_cli`), the campaign host (`RunnerAdapter`, the operations table and
+its gates, supervision, control settling, the ledger and the projection), the
+Control Center's HTTP door, the research SDK and battery's research service,
+Carbon's agent loop and provider layer, battery's practice program (in a
+subprocess) and the battery intake, worker and validator daemon on loopback.
+
+DEVELOPMENT FIXTURES ONLY, by name, none reachable from a product door:
+- the model provider is a scripted transport (`Script`); nothing reaches a
+  provider, and nothing here is agent evidence;
+- chain registration and signing are the existing fixtures (a stub chain,
+  `test_standard_mcp_cli.FixtureSigner`, the intake tests' development keys);
+- preparing a campaign is a fixture: `journey_fixture` for the lifecycle
+  stages (1, 7) and `battery_prepare` for battery (4, 5, 6), which composes
+  battery's real research service with the test practice runner
+  (`battery_subprocess_runner`, not isolated) instead of Docker images;
+- the validator is a throwaway `operate init` deployment with the `direct`
+  backend, its pool opened from published development cases.
+Every state directory is under pytest's tmp_path; every listener is loopback.
+This is engineering evidence of the path, not scientific, security or
+economic evidence; tests are not a security audit.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import itertools
+import json
+import os
+import secrets
+import signal
+import socket
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+REPOSITORY = Path(__file__).resolve().parents[2]
+HERE = Path(__file__).resolve()
+sys.path[:0] = [str(REPOSITORY), str(REPOSITORY / "tests" / "cpu")]
+
+#: journey_fixture.FIXTURE_CHALLENGE, spelled out: the subprocess entry points
+#: below import this module before `scripts` is importable.
+FIXTURE_CHALLENGE = {"id": "fixture-reference-burgers", "version": "0"}
+#: The battery Challenge's registry id.
+BATTERY = "battery-fastcharge-ageing-development-v1"
+RESEARCH = "carbon_research_v2__"
+PRINCIPAL = "alice"
+
+
+def recipe(neighbours):
+    return {
+        "schema_version": "1.0",
+        "challenge_id": BATTERY,
+        "backbone": "knn",
+        "parameters": {"neighbours": neighbours},
+    }
+
+
+KNN = recipe(6)
+UNPRACTISED = recipe(3)
+
+
+# --- processes ---------------------------------------------------------------
+#
+# Each process a miner runs is a real process here: an MCP stdio server (a
+# client of the campaigns' supervisor), the detached supervisor it starts, and
+# the Control Center. Each records its pid under <root>/pids, so a test can
+# show which process carried the work, and the fixture ends what outlives it.
+
+
+def record_pid(root, kind):
+    (Path(root) / "pids" / f"{kind}-{os.getpid()}").write_text(str(os.getpid()))
+
+
+def pids(root, kind):
+    return sorted(
+        int(p.name.rsplit("-", 1)[1]) for p in (root / "pids").glob(kind + "-*")
+    )
+
+
+def alive(pid):
+    """Whether `pid` is running (a zombie is not)."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    return stat.rsplit(")", 1)[1].split()[0] != "Z"
+
+
+def wait_for(predicate, what, timeout=60.0):
+    deadline = time.monotonic() + timeout
+    while True:
+        value = predicate()
+        if value:
+            return value
+        assert time.monotonic() < deadline, "timed out waiting for " + what
+        time.sleep(0.1)
+
+
+def spawn(root, role, variant=None):
+    """Start this module as `role` over `root`, in its own session, as
+    `supervisor.spawn_detached` starts a detached supervisor: its standard
+    streams are never a client's stdio (they go to a log under the root)."""
+    home = Path(root) / "home"
+    home.mkdir(mode=0o700, exist_ok=True)
+    # The child keeps its own copy of the log's descriptor.
+    with open(Path(root) / "logs" / f"{role}-{time.time_ns()}.log", "ab") as log:
+        return subprocess.Popen(
+            [
+                sys.executable,
+                str(HERE),
+                role,
+                str(root),
+                *([variant] if variant else []),
+            ],
+            cwd=REPOSITORY,
+            # The test's own HOME: nothing reads or writes the real ~/.carbon.
+            env={**os.environ, "HOME": str(home)},
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=log,
+            start_new_session=True,
+            close_fds=True,
+        )
+
+
+def shared_root(tmp_path):
+    """The miner's machine: one runner database, campaigns and setup state,
+    shared by every process in a test."""
+    root = tmp_path / "miner"
+    root.mkdir(mode=0o700)
+    for name in ("campaigns", "pids", "logs", "fixture-hosts", "setup-state"):
+        (root / name).mkdir(mode=0o700)
+    (root / "runner-profile.json").write_text("{}")
+    return root
+
+
+@pytest.fixture
+def processes(tmp_path):
+    """Ends every process a test started that is still running, and fails
+    the test if one had to be ended (a supervisor must retire by itself)."""
+    started = []
+    yield started
+    for proc in started:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(10)
+    leftover = []
+    for folder in tmp_path.glob("*/pids"):
+        for path in folder.iterdir():
+            pid = int(path.read_text())
+            if alive(pid):
+                leftover.append(path.name)
+                with contextlib.suppress(ProcessLookupError):
+                    os.kill(pid, signal.SIGKILL)
+    assert not leftover, leftover
+
+
+def stdio(root, role="serve", variant=None):
+    """The MCP stdio server a miner's own client starts: this module as
+    `role` over `root`. HOME is the test's own, so nothing reads or writes
+    the real ~/.carbon."""
+    from mcp.client.stdio import StdioServerParameters
+
+    environment = {"HOME": str(root / "home")}
+    for name in ("JAX_PLATFORMS", "XLA_PYTHON_CLIENT_PREALLOCATE"):
+        if name in os.environ:
+            environment[name] = os.environ[name]
+    return StdioServerParameters(
+        command=sys.executable,
+        args=[str(HERE), role, str(root), *([variant] if variant else [])],
+        cwd=REPOSITORY,
+        env=environment,
+    )
+
+
+def client(root, role="serve", variant=None, **options):
+    from mcp import Client
+
+    (root / "home").mkdir(mode=0o700, exist_ok=True)
+    return Client(stdio(root, role, variant), read_timeout_seconds=120, **options)
+
+
+def refusal_of(result):
+    """An MCP operation refusal: JSON {error, field, next_step} after the
+    SDK's "Error executing tool <name>: " prefix (LP-PROD-B)."""
+    assert result.is_error, result.structured_content
+    return json.loads(result.content[0].text.split(": ", 1)[1])
+
+
+async def observe(session, campaign, until, what, timeout=90.0):
+    deadline = time.monotonic() + timeout
+    while True:
+        result = await session.call_tool("carbon_observe", {"campaign": campaign})
+        assert not result.is_error, result.content
+        view = result.structured_content["payload"]
+        if until(view):
+            return view
+        assert time.monotonic() < deadline, (what, view)
+        await asyncio.sleep(0.2)
+
+
+def method_of(message):
+    for item in (message, getattr(message, "root", None)):
+        method = getattr(item, "method", None)
+        if type(method) is str:
+            return method
+    return type(message).__name__
+
+
+# --- the lifecycle host, shared across processes ------------------------------
+
+
+class Registered:
+    """The stub chain the open tier reads: the fixture hotkey holds UID 0."""
+
+    async def capture(self, context):
+        from carbon.chain.models import MetagraphSnapshot, Participant
+        from scripts.dev.miner_launchpad.journey_fixture import HOTKEY
+
+        return MetagraphSnapshot(
+            context=context,
+            finalized_block=100,
+            block_hash="0x" + "cd" * 32,
+            timestamp_ms=1,
+            participants=(
+                Participant(
+                    uid=0, hotkey=HOTKEY, coldkey="5" + "C" * 47, registered_at=1
+                ),
+            ),
+        )
+
+
+#: Runner-profile changes a test makes. `unrelated` changes nothing a campaign
+#: was frozen with (LP-PROD-C D10: the profile's name and a validator intake);
+#: `revision` changes the accepted revision, which a frozen campaign binds.
+VARIANTS = {
+    None: lambda cfg: cfg,
+    "unrelated": lambda cfg: {
+        **cfg,
+        "profile_id": "journey-profile-renamed",
+        "intakes": {FIXTURE_CHALLENGE["id"]: "https://validator.example/intake"},
+    },
+    "revision": lambda cfg: {
+        **cfg,
+        "accepted_revision": "b" * 40,
+        "runtime": {**cfg["runtime"], "implementation": {"revision": "b" * 40}},
+    },
+}
+
+
+def install_journey(root, patch, variant=None):
+    """`journey_fixture`'s fixtures in this process - preparation, training
+    and the final exam - and its runner profile over the shared `root`.
+
+    `journey_host` builds a host on a root of its own; its fixtures are kept
+    and its host is closed, so several processes (and peers) share one
+    database exactly as a miner's Control Center and MCP clients do."""
+    from scripts.dev.miner_launchpad.journey_fixture import journey_host
+    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+
+    own = root / "fixture-hosts" / f"{os.getpid()}-{secrets.token_hex(4)}"
+    own.mkdir(mode=0o700)
+    inline = journey_host(own, patch=patch)
+    try:
+        cfg = {
+            **inline.configured(),
+            "campaigns_root": str(root / "campaigns"),
+            "paths": {
+                name: str(root / (name + ".json"))
+                for name in PATH_FIELDS | {"operator_config"}
+            },
+        }
+        fixtures = SimpleNamespace(
+            cfg=VARIANTS[variant](cfg),
+            registration=inline.registration,
+            preflight=inline.preflight,
+        )
+    finally:
+        inline.close()
+    return fixtures
+
+
+def peer(fixtures, root, role):
+    """One process's campaign host over the shared root, as `role`."""
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    host = RunnerAdapter(
+        root / "runner.sqlite3",
+        principal=PRINCIPAL,
+        registration=fixtures.registration,
+        role=role,
+    )
+    host.configured = lambda: fixtures.cfg
+    host.preflight = fixtures.preflight
+    return host
+
+
+def agent_fixtures(root, patch):
+    """Two DEVELOPMENT FIXTURES for the lifecycle stages, read from files so
+    a test steers them across processes:
+    - preparation waits while <root>/hold-preparation exists;
+    - Carbon's agent (`run_agent`) records which process runs it, then works
+      between real campaign checkpoints - a pause parks it there - until
+      <root>/release-agent exists, and completes the campaign."""
+    from carbon.development_session import research_campaign
+    from carbon.development_session.research_control import CampaignControl
+
+    prepare = research_campaign.prepare
+
+    async def gated(args, *, ledger=None):
+        while (root / "hold-preparation").exists():
+            await asyncio.sleep(0.05)
+        return await prepare(args, ledger=ledger)
+
+    def record_run():
+        with open(root / "agent-runs.jsonl", "a") as runs:
+            runs.write(json.dumps({"pid": os.getpid()}) + "\n")
+
+    async def run_agent(prepared, *, transport=None):
+        record_run()
+        control = CampaignControl(prepared.ledger)
+        while not (root / "release-agent").exists():
+            control.checkpoint(prepared.ledger.generation)
+            await asyncio.sleep(0.05)
+        research_campaign._complete(prepared)
+
+    patch(research_campaign, "prepare", gated)
+    patch(research_campaign, "run_agent", run_agent)
+
+
+def agent_runs(root):
+    path = root / "agent-runs.jsonl"
+    if not path.exists():
+        return []
+    return [json.loads(line)["pid"] for line in path.read_text().splitlines()]
+
+
+def lock_held(root):
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    return supervision.supervisor_alive(
+        supervision.lock_directory(root / "runner.sqlite3", PRINCIPAL)
+    )
+
+
+def ledger_status(root, campaign):
+    from carbon.development_session.research_control import CampaignControl
+    from carbon.development_session.research_ledger import CampaignLedger
+
+    status = CampaignControl(CampaignLedger(root / "campaigns" / campaign)).status()
+    return status["desired"], status["state"]
+
+
+def dispatches(root, campaign):
+    import sqlite3
+
+    with contextlib.closing(sqlite3.connect(root / "runner.sqlite3")) as db:
+        return [
+            (row[0], row[1], row[2], row[3])
+            for row in db.execute(
+                "SELECT operation,state,outcome,supervisor FROM launchpad_dispatch WHERE campaign=? ORDER BY seq",
+                (campaign,),
+            )
+        ]
+
+
+def launch_body(key, agent="none"):
+    return {
+        "challenge": FIXTURE_CHALLENGE["id"],
+        "challenge_version": FIXTURE_CHALLENGE["version"],
+        "agent": agent,
+        "idempotency_key": key,
+    }
+
+
+# --- 1. a launch outlives the client that made it -----------------------------
+
+
+def test_1_a_launch_from_a_client_that_exits_at_once_is_carried_out(
+    tmp_path, processes
+):
+    """The live failure of 2026-10-03: a stdio client's launch ran on that
+    client's own thread and was left QUEUED when it exited. Now the client
+    queues it and starts a detached supervisor, which carries it out after
+    the client and its server process are gone (preparation is held until
+    then, so the order is shown, not assumed)."""
+    root = shared_root(tmp_path)
+    (root / "hold-preparation").touch()
+
+    async def launch_and_exit():
+        async with client(root) as session:
+            result = await session.call_tool(
+                "carbon_launch", launch_body("e2e-launch-key-0000001")
+            )
+            assert not result.is_error, result.content
+            return result.structured_content["payload"]
+
+    launched = asyncio.run(launch_and_exit())
+    campaign = launched["id"]
+    assert launched["state"] == "QUEUED"
+    assert launched["in_flight"]["operation"] == "run"
+    assert launched["last_refusal"] is None
+    # The client and its server process are gone ...
+    (server,) = pids(root, "server")
+    wait_for(lambda: not alive(server), "the stdio server to exit")
+    # ... and the supervisor it started is alive, in its own session, and
+    # holds the launch while preparation is held.
+    (detached,) = wait_for(lambda: pids(root, "supervisor"), "a detached supervisor")
+    assert alive(detached) and os.getsid(detached) != os.getsid(0)
+    wait_for(lambda: lock_held(root), "the supervisor lock")
+    assert not (root / "campaigns" / campaign / "campaign-manifest.json").exists()
+    (root / "hold-preparation").unlink()
+
+    async def watch():
+        async with client(root) as session:
+            return await observe(
+                session,
+                campaign,
+                lambda v: v["state"] == "READY",
+                "the launch carried out",
+            )
+
+    view = asyncio.run(watch())
+    assert view["in_flight"] is None and view["last_refusal"] is None
+    assert view["recovery"] == []
+    manifest = json.loads(
+        (root / "campaigns" / campaign / "campaign-manifest.json").read_bytes()
+    )
+    assert (manifest["agent"], manifest["challenge"]) == ("none", FIXTURE_CHALLENGE)
+    ((operation, state, outcome, supervisor),) = dispatches(root, campaign)
+    assert (operation, state, outcome) == ("run", "DONE", "finished")
+    assert supervisor.startswith("sup-")
+    # Once idle, the detached supervisor retires by itself.
+    wait_for(lambda: not alive(detached), "the detached supervisor to retire", 60)
+    assert not lock_held(root)
+
+
+# --- 2. and 3. attach, and a research mistake corrected by name ---------------
+
+
+def attachable_battery(tmp_path, monkeypatch):
+    """A registration-admitted battery campaign as a launch leaves it, under
+    a runner profile (the existing stdio attach fixture)."""
+    from test_standard_mcp_cli import prepare_battery
+
+    root = tmp_path / "miner"
+    root.mkdir(mode=0o700)
+    _path, ledger, owner, _ = prepare_battery(root, monkeypatch)
+    for name in ("pids", "logs", "setup-state", "home"):
+        (root / name).mkdir(mode=0o700)
+    return root, ledger, owner
+
+
+def test_2_attaching_announces_and_lists_the_research_tools(
+    tmp_path, monkeypatch, processes
+):
+    """A handshake-era client (the initialize handshake) is sent
+    `notifications/tools/list_changed` when it attaches and again when it
+    detaches, and its next tools/list holds the research tools exactly while
+    it is attached (LP-PROD-B). Detaching leaves the miner's own campaign
+    READY for them (LP-PROD-C)."""
+    from test_standard_mcp_cli import CAMPAIGN
+
+    from carbon.development_session.research_control import CampaignControl
+
+    root, ledger, _owner = attachable_battery(tmp_path, monkeypatch)
+    methods = []
+
+    async def handler(message):
+        methods.append(method_of(message))
+
+    async def exercise():
+        async with client(
+            root, "attach", mode="legacy", message_handler=handler
+        ) as session:
+            before = {tool.name for tool in (await session.list_tools()).tools}
+            assert {"carbon_attach_campaign", "carbon_launch"} <= before
+            assert not any(name.startswith(RESEARCH) for name in before)
+            result = await session.call_tool(
+                "carbon_attach_campaign", {"campaign": CAMPAIGN}
+            )
+            assert not result.is_error, result.content
+            payload = result.structured_content["payload"]
+            assert payload["attached"] == CAMPAIGN
+            assert payload["list_changed_announced"] is True
+            assert RESEARCH + "start_research_task" in payload["tools_added"]
+            for _ in range(100):
+                if "notifications/tools/list_changed" in methods:
+                    break
+                await asyncio.sleep(0.05)
+            after = {tool.name for tool in (await session.list_tools()).tools}
+            assert set(payload["tools_added"]) <= after
+            for name in ("start_research_task", "get_research_result", "dry_validate"):
+                assert RESEARCH + name in after
+            detached = await session.call_tool("carbon_detach_campaign", {})
+            assert not detached.is_error, detached.content
+            assert detached.structured_content["payload"]["detached"] == CAMPAIGN
+            gone = {tool.name for tool in (await session.list_tools()).tools}
+            assert not any(name.startswith(RESEARCH) for name in gone)
+
+    asyncio.run(exercise())
+    assert "notifications/tools/list_changed" in methods
+    assert methods.count("notifications/tools/list_changed") >= 2  # attach, detach
+    assert CampaignControl(ledger).status()["state"] == "READY"
+
+
+def test_2b_a_current_client_hears_the_change_on_its_listen_stream(
+    tmp_path, monkeypatch, processes
+):
+    """A client on the current protocol (2026-07-28, the SDK's default
+    negotiation) learns of the new tools on its `subscriptions/listen`
+    stream, where that era carries change notifications (LP-PROD-B)."""
+    import anyio
+    from mcp.client.subscriptions import ToolsListChanged
+    from mcp_types.version import MODERN_PROTOCOL_VERSIONS
+    from test_standard_mcp_cli import CAMPAIGN
+
+    root, _ledger, _owner = attachable_battery(tmp_path, monkeypatch)
+
+    async def exercise():
+        async with client(root, "attach") as session:
+            assert session.protocol_version in MODERN_PROTOCOL_VERSIONS
+            async with session.listen(tools_list_changed=True) as stream:
+                result = await session.call_tool(
+                    "carbon_attach_campaign", {"campaign": CAMPAIGN}
+                )
+                assert not result.is_error, result.content
+                with anyio.fail_after(30):
+                    event = await stream.__anext__()
+                assert isinstance(event, ToolsListChanged)
+                names = {tool.name for tool in (await session.list_tools()).tools}
+                assert RESEARCH + "start_research_task" in names
+                detached = await session.call_tool("carbon_detach_campaign", {})
+                assert not detached.is_error, detached.content
+
+    asyncio.run(exercise())
+
+
+def test_3_a_research_mistake_is_corrected_by_name_and_the_retry_succeeds(
+    tmp_path, monkeypatch, processes
+):
+    """The most common agent mistake - a workspace action missing a field -
+    is answered before dispatch, naming the field in object terms, retryable,
+    charging nothing; the corrected call succeeds (LP-PROD-B door, LP-PROD-D
+    named refusals)."""
+    from test_standard_mcp_cli import CAMPAIGN
+
+    root, ledger, owner = attachable_battery(tmp_path, monkeypatch)
+    request = {
+        "kind": "workspace",
+        "action": "public_material",
+        "hypothesis": "Read the Challenge's public objective",
+        "expected_effect": "Know what the recipe is scored on",
+    }
+
+    async def exercise():
+        async with client(root, "attach") as session:
+            attached = await session.call_tool(
+                "carbon_attach_campaign", {"campaign": CAMPAIGN}
+            )
+            assert not attached.is_error, attached.content
+            mistake = await session.call_tool(
+                RESEARCH + "start_research_task",
+                {**request, "operation_id": "e2e-mistake-000000001", "arguments": {}},
+            )
+            assert not mistake.is_error, mistake.content
+            refused = mistake.structured_content
+            assert refused["requires_reconciliation"] is False
+            payload = refused["payload"]
+            assert payload["status"] == "REJECTED_BEFORE_DISPATCH"
+            assert payload["correction_code"] == "workspace_field_missing"
+            assert payload["field"] == "arguments.name"
+            assert "arguments.name" in payload["correction"]
+            assert payload["authority_granted"] is False
+            fixed = await session.call_tool(
+                RESEARCH + "start_research_task",
+                {
+                    **request,
+                    "operation_id": "e2e-corrected-0000001",
+                    "arguments": {"name": "objective"},
+                },
+            )
+            assert not fixed.is_error, fixed.content
+            body = fixed.structured_content["payload"]
+            assert body["terminal_task"]["state"] == "SUCCEEDED"
+            document = body["public_result"]["result"]["document"]
+            assert document["challenge"]["id"] == BATTERY
+
+    asyncio.run(exercise())
+    # The mistake started nothing and spent no research-trial slot.
+    assert ledger.status(owner=owner)["used"]["research_trials"] == 0
+
+
+# --- 4., 5. and 6.: battery through the Launchpad -----------------------------
+
+#: The fixture runtime a battery campaign is frozen with (the stdio fixtures'
+#: image ids; nothing runs in an image here).
+BATTERY_REVISION = "f" * 40
+BATTERY_IMAGES = ["fixture-cpu", "fixture-analysis"]
+
+
+def battery_prepare(patch, *, miner_key=None):
+    """DEVELOPMENT FIXTURE: prepare a battery product campaign the way
+    `battery.campaign.prepare_battery` does - its real manifest
+    (`manifest_document`, with the provider plan a launch freezes), its real
+    research service and gateway (`compose`), the research SDK - with the
+    stdio tests' chain connection and signer, and the test practice runner
+    (`battery_subprocess_runner`, not isolated) in place of the worker image,
+    the doctor and the miner's signer. `miner_key` is the intake tests'
+    development key, for a submission through an intake."""
+    import battery_subprocess_runner as practice_runner
+    from test_c08_authenticated_miner_mcp import NOW
+    from test_standard_mcp_cli import FixtureSigner, fixture_connection
+
+    import carbon.chain.auth
+    from carbon.battery import campaign as battery
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.development_session import research_campaign, research_tools
+    from carbon.development_session.data import write_once
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_agent_policy import AUTONOMOUS
+    from carbon.development_session.research_tools import ResearchMinerTools
+    from carbon.miner_mcp import standard_cli
+
+    patch(carbon.chain.auth, "BittensorMessageSigner", FixtureSigner)
+    patch(research_tools, "BittensorMessageSigner", FixtureSigner)
+    challenge = campaign_for(
+        {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version}
+    )
+    # One clock for every preparation: 50 ms per transmission, inside the
+    # fixture snapshot's freshness window, never faster than the rate limit.
+    ticks = itertools.count(NOW, 50_000_000)
+
+    async def prepare(args, *, ledger=None):
+        connection = fixture_connection(args.root)
+        connection.service.gateway.clock_ns = lambda: next(ticks)
+        if miner_key is not None:
+            connection.miner_key = miner_key
+        owner = await standard_cli._requester(connection)
+        path = args.root / "campaign-manifest.json"
+        if path.exists():
+            manifest = json.loads(path.read_bytes())
+        else:
+            manifest = battery.manifest_document(
+                args.product,
+                owner=owner,
+                implementation={"revision": BATTERY_REVISION},
+                images=BATTERY_IMAGES,
+            )
+            write_once(path, canonical(manifest))
+        ledger.freeze(manifest)
+        composition, wrapper = battery.compose(
+            ledger=ledger,
+            owner=owner,
+            image=SimpleNamespace(image_id=BATTERY_IMAGES[0]),
+            analysis=SimpleNamespace(image_id=BATTERY_IMAGES[1]),
+            connection=connection,
+            runner=practice_runner.run,
+            backend=practice_runner.BACKEND,
+        )
+        return research_campaign.PreparedCampaign(
+            args=args,
+            ledger=ledger,
+            owner=owner,
+            manifest=manifest,
+            seeds=None,
+            role_root=None,
+            data=None,
+            image=None,
+            key=None,
+            config=None,
+            composition=composition,
+            sdk=ResearchMinerTools(
+                connection=connection,
+                wrapper=wrapper,
+                composition=composition,
+                ledger=ledger,
+                owner=owner,
+            ),
+            task=None,
+            grant=None,
+            agent_policy=AUTONOMOUS,
+            campaign=challenge,
+            challenge=CHALLENGE,
+            selection=None,
+        )
+
+    patch(research_campaign, "prepare", prepare)
+
+
+class Script:
+    """The model provider, scripted: each item in order is a reply (a dict),
+    or an exception the transport raises. Every request is kept as sent."""
+
+    def __init__(self, *items):
+        self.items, self.requests = list(items), []
+
+    def __call__(self, request):
+        from carbon.development_session.profile import canonical
+
+        self.requests.append(json.loads(canonical(request)))
+        if not self.items:
+            raise AssertionError("the scripted provider has no more replies")
+        item = self.items.pop(0)
+        if isinstance(item, BaseException):
+            raise item
+        return item
+
+
+def reply(*output, status="completed", reason=None, output_tokens=100):
+    from carbon.development_session.agent import MODEL
+
+    body = {
+        "model": MODEL,
+        "status": status,
+        "output": list(output),
+        "usage": {
+            "input_tokens": 1000,
+            "output_tokens": output_tokens,
+            "input_tokens_details": {"cached_tokens": 0},
+            "output_tokens_details": {"reasoning_tokens": 0},
+        },
+    }
+    if reason is not None:
+        body["incomplete_details"] = {"reason": reason}
+    return body
+
+
+def call(call_id, name, arguments, **extra):
+    return {
+        "type": "function_call",
+        "name": name,
+        "call_id": call_id,
+        "arguments": json.dumps(arguments),
+        **extra,
+    }
+
+
+def task(kind, *, strategy=None, action=None, arguments=None, why="a test step"):
+    from carbon.development_session.research_tools import PREFIX
+
+    return PREFIX + "start_research_task", {
+        "kind": kind,
+        "strategy_json": None if strategy is None else json.dumps(strategy),
+        "action": action,
+        "arguments_json": None if arguments is None else json.dumps(arguments),
+        "hypothesis": why,
+        "expected_effect": "an observation that decides the next step",
+    }
+
+
+def outputs(request):
+    return {
+        item["call_id"]: json.loads(item["output"])
+        for item in request["input"]
+        if item.get("type") == "function_call_output"
+    }
+
+
+class BatteryLaunchpad:
+    """A miner's Control Center host with battery campaigns: the real
+    campaign host in this process (INLINE, as the browser smoke runs it) over
+    `battery_prepare`, Carbon's agent with a scripted provider, and the
+    Control Center's HTTP door on loopback when a test asks for it."""
+
+    def __init__(self, tmp_path, monkeypatch, *, miner_key=None):
+        from carbon.development_session import research_agent, research_campaign
+        from scripts.dev.miner_launchpad.runner import PATH_FIELDS, RunnerAdapter
+
+        self.root = shared_root(tmp_path)
+        install = install_journey(self.root, monkeypatch.setattr)
+        battery_prepare(monkeypatch.setattr, miner_key=miner_key)
+        monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(lambda _: None))
+        # Retries wait no wall time here; the waits asked for are recorded.
+        self.waits = []
+        monkeypatch.setattr(
+            research_agent,
+            "retry_wait",
+            lambda retries, after, jitter: self.waits.append(retries) or 0.0,
+        )
+        self.transport = None
+        real = research_campaign.run_agent
+
+        async def run_agent(prepared, *, transport=None):
+            assert self.transport is not None, "no scripted provider"
+            return await real(prepared, transport=self.transport)
+
+        monkeypatch.setattr(research_campaign, "run_agent", run_agent)
+        self.cfg = {
+            "profile_id": "battery-journey-profile",
+            "principal": PRINCIPAL,
+            "enabled": True,
+            "campaigns_root": str(self.root / "campaigns"),
+            "accepted_revision": BATTERY_REVISION,
+            "runtime": {
+                "implementation": {"revision": BATTERY_REVISION},
+                "images": list(BATTERY_IMAGES),
+            },
+            "paths": {
+                name: str(self.root / (name + ".json"))
+                for name in PATH_FIELDS | {"operator_config"}
+            },
+        }
+        self.host = RunnerAdapter(
+            self.root / "runner.sqlite3",
+            principal=PRINCIPAL,
+            registration=install.registration,
+        )
+        self.host.configured = lambda: self.cfg
+        self.host.preflight = install.preflight
+        self.servers = []
+
+    def perform(self, operation, request):
+        from scripts.dev.miner_launchpad.operations import perform
+
+        return perform(self.host, operation, request)
+
+    def join(self):
+        for thread in list(self.host.threads.values()):
+            thread.join(timeout=600)
+            assert not thread.is_alive()
+
+    def launch(self, key, agent="none", budget=None):
+        from carbon.battery.challenge import CHALLENGE
+        from carbon.development_session.research_agent import RESERVATION_NANO
+
+        if agent != "none" and budget is None:
+            budget = {
+                "ceilings": {
+                    "provider_attempts": 24,
+                    "provider_nanodollars": 24 * RESERVATION_NANO,
+                    "research_trials": 4,
+                }
+            }
+        body = {
+            "challenge": CHALLENGE.challenge_id,
+            "challenge_version": CHALLENGE.version,
+            "agent": agent,
+            "idempotency_key": key,
+            **({} if budget is None else {"budget": budget}),
+        }
+        campaign = self.perform("launch", body)["id"]
+        self.join()
+        return campaign
+
+    def campaign_root(self, campaign):
+        return self.root / "campaigns" / campaign
+
+    def view(self, campaign):
+        return self.host.get(campaign)
+
+    def owner(self, campaign):
+        manifest = self.campaign_root(campaign) / "campaign-manifest.json"
+        return json.loads(manifest.read_bytes())["owner"]
+
+    def ledger(self, campaign):
+        from carbon.development_session.research_ledger import CampaignLedger
+
+        return CampaignLedger(self.campaign_root(campaign))
+
+    def http(self):
+        """The Control Center's HTTP door over this host, on loopback."""
+        from scripts.dev.miner_launchpad import controller
+
+        token = "e2e-" + secrets.token_hex(20)
+        server = controller.Server(
+            controller.Controller(self.root / "launchpad.sqlite3"),
+            token,
+            port=0,
+            research_runner=self.host,
+        )
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.servers.append(server)
+        return server, token
+
+    def close(self):
+        for server in self.servers:
+            server.shutdown()
+            server.server_close()
+        self.host.close()
+
+
+def post(server, token, path, body):
+    import http.client
+
+    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=30)
+    try:
+        connection.request(
+            "POST",
+            path,
+            json.dumps(body),
+            {"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+        )
+        response = connection.getresponse()
+        return response.status, json.loads(response.read())
+    finally:
+        connection.close()
+
+
+@pytest.fixture
+def battery(tmp_path, monkeypatch):
+    launchpad = BatteryLaunchpad(tmp_path, monkeypatch)
+    yield launchpad
+    launchpad.close()
+
+
+def test_4_carbons_agent_runs_a_parallel_turn_selects_a_practised_recipe_and_replays(
+    battery,
+):
+    """Carbon's own agent on battery, launched through the Launchpad with the
+    miner's finite budget: the v2 rule frozen with the plan runs a three-call
+    turn in the model's order, each call journalled under its own identity
+    (one a real practice through battery's research service); a selection
+    missing a field and one of a recipe never practised are answered as
+    REJECTED_BEFORE_DISPATCH and the epoch goes on; the practised recipe is
+    selected (LP-PROD-A). With no validator configured the selection is not
+    evaluated and the campaign says so by name. A resume replays the epoch
+    from its journal: no model call, no dispatch, nothing spent."""
+    from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
+    from carbon.development_session.research_loop import (
+        SELECT,
+        SELECTION_INVALID,
+        SELECTION_NOT_PRACTICED,
+    )
+    from carbon.development_session.research_tools import PREFIX
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    select = {"strategy_json": json.dumps(KNN), "used_feedback": False}
+    battery.transport = script = Script(
+        reply(
+            call("a", PREFIX + "get_challenge_info", {}),
+            call(
+                "b",
+                *task(
+                    "workspace",
+                    action="public_material",
+                    arguments={"name": "objective"},
+                    why="Read the objective first",
+                ),
+            ),
+            call("c", *task("practice", strategy=KNN, why="Neighbours interpolate")),
+        ),
+        reply(call("d", SELECT, select)),  # no reason: malformed
+        reply(
+            call(
+                "e",
+                SELECT,
+                {**select, "strategy_json": json.dumps(UNPRACTISED), "reason": "r"},
+            )
+        ),
+        reply(call("f", SELECT, {**select, "reason": "practised; the only result"})),
+    )
+    campaign = battery.launch("e2e-agent-key-00000001", agent="autonomous")
+    root = battery.campaign_root(campaign)
+    folder = root / "epoch-1"
+    assert len(script.requests) == 4 and not script.items
+    plan = json.loads((folder / "plan.json").read_bytes())
+    assert plan["parallel_calls"] == PARALLEL_CALLS_V2
+    # The parallel turn: all three ran, in the model's order, each journalled
+    # before and after it ran under its own identity.
+    identities = ["epoch-1-tool-000", "epoch-1-tool-000-01", "epoch-1-tool-000-02"]
+    turn = json.loads((folder / "epoch-1-provider-000-calls.json").read_bytes())
+    assert [c["tool"] for c in turn["calls"]] == identities
+    for identity, call_id in zip(identities, "abc", strict=True):
+        intent = json.loads((folder / (identity + "-intent.json")).read_bytes())
+        assert intent["call_id"] == call_id
+        assert (folder / (identity + "-result.json")).exists()
+    answered = outputs(script.requests[1])
+    assert list(answered) == ["a", "b", "c"]
+    assert answered["b"]["terminal_task"]["state"] == "SUCCEEDED"
+    assert answered["c"]["terminal_task"]["state"] == "SUCCEEDED"
+    # The malformed selection was answered, naming its field; the epoch went on.
+    malformed = outputs(script.requests[2])["d"]
+    assert (malformed["status"], malformed["code"]) == (
+        "REJECTED_BEFORE_DISPATCH",
+        SELECTION_INVALID,
+    )
+    assert malformed["field"] == "reason"
+    # The unpractised selection was refused with what was practised.
+    unpractised = outputs(script.requests[3])["e"]
+    assert unpractised["code"] == SELECTION_NOT_PRACTICED
+    assert unpractised["practiced_recipes"] == [KNN]
+    # The practised one was selected.
+    selected = json.loads((folder / "selected-recipe.json").read_bytes())
+    assert selected["strategy"] == KNN
+    # No validator is configured: the selection is not evaluated, and the
+    # miner is told so by name with the next step - never "Submitted".
+    view = battery.view(campaign)
+    assert view["journey"]["submitted_epochs"] == []
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"]) == (
+        "evaluation_unavailable",
+        "submit",
+    )
+    assert refused["next_action"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+    assert (
+        submit_stage(battery, campaign)["refusal"]["code"] == "evaluation_unavailable"
+    )
+    ledger, owner = battery.ledger(campaign), battery.owner(campaign)
+
+    def spent():
+        used = ledger.status(owner=owner)["used"]
+        return {
+            k: used[k]
+            for k in ("provider_attempts", "provider_nanodollars", "research_trials")
+        }
+
+    before = spent()
+    assert before["provider_attempts"] == 4 and before["research_trials"] == 1
+    results = sorted(folder.glob("epoch-1-tool-*-result.json"))
+    # Resume: the epoch replays from its journal - no model call, no dispatch.
+    battery.transport = never = Script()
+    resumed = battery.host.control(campaign, "resume")
+    assert resumed["last_refusal"] is None
+    battery.join()
+    assert never.requests == []
+    assert spent() == before
+    assert sorted(folder.glob("epoch-1-tool-*-result.json")) == results
+    assert battery.view(campaign)["last_refusal"]["code"] == "evaluation_unavailable"
+
+
+def provider_trouble(battery):
+    """Carbon's agent through provider trouble, to the call whose outcome is
+    unknown: a reply cut off at the output cap (its finished call runs, the
+    cut one is answered `call_truncated`), a 503 retried inside the turn, and
+    then a timeout, which interrupts the run for reconciliation."""
+    from carbon.development_session.model_provider import ProviderHTTPError
+    from carbon.development_session.research_loop import CALL_TRUNCATED
+    from carbon.development_session.research_tools import PREFIX
+
+    battery.transport = script = Script(
+        reply(
+            call("a", PREFIX + "get_challenge_info", {}, status="completed"),
+            call("b", *task("practice", strategy=KNN, why="cut off mid-call")),
+            status="incomplete",
+            reason="max_output_tokens",
+            output_tokens=2048,
+        ),
+        ProviderHTTPError(503, code=None, retry_after=None, usage_reported=False),
+        reply(call("c", PREFIX + "get_interaction_manifest", {})),
+        TimeoutError("timed out"),
+    )
+    campaign = battery.launch("e2e-trouble-key-000001", agent="autonomous")
+    folder = battery.campaign_root(campaign) / "epoch-1"
+    assert len(script.requests) == 4 and not script.items
+    # The cut reply: the finished call ran; the cut one did not, and said so.
+    answered = outputs(script.requests[1])
+    assert answered["a"]["reply"]["status"] == "OK"
+    assert answered["b"]["code"] == CALL_TRUNCATED
+    assert (folder / "epoch-1-provider-000-truncated.json").exists()
+    # The 503 (no usage: rejected before generation) was retried inside the
+    # turn, the same request sent again.
+    assert battery.waits == [0]
+    turn = json.loads((folder / "epoch-1-provider-001-turn.json").read_bytes())
+    assert turn["attempts"] == 2 and len(turn["rejections"]) == 1
+    assert script.requests[2] == script.requests[1]  # the same request, again
+    ledger, owner = battery.ledger(campaign), battery.owner(campaign)
+    assert ledger.status(owner=owner)["used"]["research_trials"] == 0
+    # The timeout: its outcome is unknown, so nothing is resent on its own.
+    view = battery.view(campaign)
+    assert view["state"] == "RECONCILIATION_REQUIRED", view["state"]
+    assert {"action": "reconcile", "operation": "halt"} in view["recovery"]
+    from carbon.development_session.research_agent import uncertain_calls
+
+    (uncertain,) = uncertain_calls(ledger, owner=owner)
+    assert uncertain["refusal"] is None
+    return campaign, script, uncertain
+
+
+def finish_after_settlement(battery, campaign, script, uncertain):
+    """Resume after the unknown call was settled: the same turn goes out
+    again under a fresh identity, and the agent stops; the campaign ends."""
+    from carbon.development_session.research_agent import RESERVATION_NANO
+    from carbon.development_session.research_agent_policy import STOP
+
+    unknown = script.requests[-1]
+    battery.transport = rest = Script(
+        reply(
+            call(
+                "s",
+                STOP,
+                {
+                    "reason": "no_feasible_action",
+                    "evidence": "a scripted control-flow test; no result",
+                    "used_feedback": False,
+                },
+            )
+        )
+    )
+    battery.host.control(campaign, "resume")
+    battery.join()
+    assert rest.requests == [unknown]
+    view = battery.view(campaign)
+    assert view["state"] == "COMPLETED", view["state"]
+    ledger, owner = battery.ledger(campaign), battery.owner(campaign)
+    used = ledger.status(owner=owner)["used"]
+    # Cut reply, 503 and its retry, the unknown call, its resend.
+    assert used["provider_attempts"] == 5
+    assert (
+        used["provider_nanodollars"]
+        >= uncertain["booked_on_settlement"]["provider_nanodollars"]
+        == RESERVATION_NANO
+    )
+
+
+def test_5_provider_trouble_continues_and_an_unknown_outcome_settles_conservatively(
+    battery,
+):
+    """LP-PROD-A end to end through the Launchpad: the call whose outcome is
+    unknown is settled at its full reservation by the settlement entry point,
+    run as the reconcile action runs it (the campaign's owner lock and a
+    fresh control generation, observed RECONCILING); the Control Center's
+    reconcile then finds nothing outstanding, and resume carries the epoch
+    on. 5b drives the same settlement through the reconcile action itself."""
+    from carbon.development_session.research_agent import (
+        settle_uncertain_calls,
+        uncertain_calls,
+    )
+    from carbon.development_session.research_control import CampaignControl
+    from scripts.dev.miner_launchpad.controller import owner_lock
+
+    campaign, script, uncertain = provider_trouble(battery)
+    ledger, owner = battery.ledger(campaign), battery.owner(campaign)
+    with owner_lock(battery.campaign_root(campaign)):
+        ledger.generation = CampaignControl(ledger).acquire()
+        settled = settle_uncertain_calls(ledger, owner=owner)
+    assert settled["refused"] == []
+    (settlement,) = settled["settled"]
+    assert settlement["identity"] == uncertain["identity"]
+    assert settlement["booked"] == uncertain["booked_on_settlement"]
+    assert settlement["caveat"] is None  # answered by the selected model
+    assert settlement["retry_dispatched"] is False
+    assert uncertain_calls(ledger, owner=owner) == []
+    reconciled = battery.host.control(campaign, "reconcile")
+    assert reconciled["state"] != "RECONCILIATION_REQUIRED", reconciled["state"]
+    finish_after_settlement(battery, campaign, script, uncertain)
+
+
+def test_5b_the_reconcile_action_settles_an_unknown_model_call(battery):
+    """The miner's Reconcile (Control Center or `carbon_halt action=reconcile`)
+    is the only entry point a miner has: it must settle the unknown call
+    (LP-PROD-A handoff to LP-PROD-C), not leave the campaign awaiting
+    reconciliation forever."""
+    from carbon.development_session.research_agent import uncertain_calls
+
+    campaign, script, uncertain = provider_trouble(battery)
+    reconciled = battery.host.control(campaign, "reconcile")
+    ledger, owner = battery.ledger(campaign), battery.owner(campaign)
+    assert uncertain_calls(ledger, owner=owner) == []
+    assert reconciled["state"] != "RECONCILIATION_REQUIRED", reconciled["state"]
+    finish_after_settlement(battery, campaign, script, uncertain)
+
+
+def practised_and_frozen(battery):
+    """A miner's own battery campaign (no agent): practised, then frozen."""
+    campaign = battery.launch("e2e-miner-key-00000001")
+    assert battery.view(campaign)["state"] == "READY"
+    battery.perform(
+        "practice",
+        {
+            "campaign": campaign,
+            "strategy": KNN,
+            "hypothesis": "Neighbours interpolate the smooth map",
+            "idempotency_key": "e2e-practice-key-00001",
+        },
+    )
+    battery.join()
+    view = battery.view(campaign)
+    assert view["completed_experiments"] == 1, view.get("last_refusal")
+    battery.perform(
+        "freeze_candidate",
+        {"campaign": campaign, "strategy": KNN, "reason": "practised"},
+    )
+    battery.join()
+    view = battery.view(campaign)
+    assert view["journey"]["frozen_awaiting_submission"] is True, view["last_refusal"]
+    return campaign
+
+
+def test_6a_a_submit_with_no_validator_is_refused_at_once_at_both_doors(battery):
+    """No validator deployment or intake for the Challenge: the submit is
+    refused at once with its next step at the browser's door and at the MCP
+    door, nothing is recorded, and the frozen candidate is kept - never
+    "Submitted" (LP-PROD-C D11, B's door)."""
+    from mcp import Client
+
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.miner_mcp.mcp_operations import make_operation_tools
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    campaign = practised_and_frozen(battery)
+    submit = {"campaign": campaign, "idempotency_key": "e2e-submit-key-000001"}
+    server, token = battery.http()
+    status, body = post(server, token, "/api/v1/operations/submit", submit)
+    assert (status, body["error"]) == (409, "evaluation_unavailable")
+    assert body["next_step"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+    view = battery.view(campaign)
+    assert view["in_flight"] is None and view["last_refusal"] is None
+    assert view["journey"]["submitted_epochs"] == []
+    assert view["journey"]["frozen_awaiting_submission"] is True
+    door = create_open_tier_server(
+        reader=Registered(), context=carbon_testnet_context()
+    )
+    for tool in make_operation_tools(battery.host):
+        door._tool_manager._tools[tool.name] = tool
+
+    async def through_mcp():
+        async with Client(door, mode="legacy") as session:
+            return await session.call_tool("carbon_submit", submit)
+
+    refused = refusal_of(asyncio.run(through_mcp()))
+    assert refused["error"] == "evaluation_unavailable"
+    # One next step for one code, whichever door the miner uses.
+    assert refused["next_step"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+
+
+@pytest.fixture
+def intake_battery(tmp_path, monkeypatch):
+    """The battery host whose campaigns sign intake submissions with the
+    intake tests' development key (`test_battery_intake.MINER`)."""
+    from test_battery_intake import MINER, signed
+
+    from carbon.battery import deployment
+    from carbon.battery import intake as ib
+    from carbon.battery import remote_submission as rs
+
+    class Roomy(ib.PeerLimits):
+        # Every request here comes from one loopback peer.
+        def __init__(self):
+            super().__init__(burst=500, rate=100.0)
+
+    monkeypatch.setattr(deployment, "_VALIDATORS", {})
+    monkeypatch.setattr(ib, "PeerLimits", Roomy)
+    # The miner's signer, as a fixture: the test key signs in test code.
+    monkeypatch.setattr(rs, "_signed", lambda signer, facts, body: signed(signer, body))
+    monkeypatch.setattr(rs, "POLL_S", 0.3)
+    launchpad = BatteryLaunchpad(tmp_path, monkeypatch, miner_key=MINER)
+    yield launchpad
+    launchpad.close()
+
+
+def free_port():
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+def test_6b_a_submit_shows_a_closed_refusal_then_the_validators_outcome(
+    intake_battery, tmp_path, refs
+):
+    """Through the Control Center's HTTP door: an intake that cannot be
+    reached is a closed refusal on the campaign with its next step, and the
+    candidate is kept; through a loopback intake to a throwaway validator the
+    submission is scored and the outcome is what the campaign shows. A
+    submit is never shown as submitted before a verdict."""
+    from test_battery_intake_service_e2e import made_here, open_pool, serving
+
+    from carbon.battery import intake as ib
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    battery = intake_battery
+    campaign = practised_and_frozen(battery)
+    server, token = battery.http()
+    battery.cfg = {
+        **battery.cfg,
+        "intakes": {BATTERY: f"http://127.0.0.1:{free_port()}"},
+    }
+    status, body = post(
+        server,
+        token,
+        "/api/v1/operations/submit",
+        {"campaign": campaign, "idempotency_key": "e2e-submit-key-000001"},
+    )
+    assert status == 200, body
+    battery.join()
+    view = battery.view(campaign)
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"]) == ("intake_unreachable", "submit")
+    assert refused["next_action"] == supervision.NEXT_ACTIONS["intake_unreachable"]
+    assert view["journey"]["submitted_epochs"] == []
+    assert view["journey"]["frozen_awaiting_submission"] is True
+    assert view["final_results"] == []
+    stage = submit_stage(battery, campaign)
+    assert stage["detail"].startswith("Not submitted")
+    assert stage["refusal"]["code"] == "intake_unreachable"
+    made = made_here(tmp_path / "validator-service")
+    open_pool(made, refs)
+    with serving(made) as live:
+        battery.cfg = {**battery.cfg, "intakes": {BATTERY: live.url}}
+        status, body = post(
+            server,
+            token,
+            "/api/v1/operations/submit",
+            {"campaign": campaign, "idempotency_key": "e2e-submit-key-000002"},
+        )
+        assert status == 200, body
+        battery.join()
+        inbox = ib.Inbox(live.config["inbox"]).counts()
+    view = battery.view(campaign)
+    assert view["last_refusal"] is None, view["last_refusal"]
+    assert view["journey"]["submitted_epochs"] == [1]
+    (shown,) = view["final_results"]
+    assert shown["status"] == "VALIDATOR_OUTCOME"
+    assert shown["result"]["state"] == "SCORED"
+    assert shown["result"]["qualification"] is False
+    assert shown["result"]["reward"] is False
+    assert inbox == {"RECEIVED": 0, "ADMITTED": 1, "REFUSED": 0}
+    stage = submit_stage(battery, campaign)
+    assert stage["detail"].startswith("1 DEVELOPMENT outcome")
+    assert "refusal" not in stage
+
+
+def submit_stage(battery, campaign):
+    """The DEVELOPMENT submit stage of the campaign view the miner reads."""
+    document = battery.perform("campaign_view", {"campaign": campaign})
+    return {stage["id"]: stage for stage in document["stages"]}["submit"]
+
+
+@contextlib.contextmanager
+def not_an_intake():
+    """A loopback HTTP server that answers, but is not a battery intake."""
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            body = json.dumps({"schema": "not-a-battery-intake"}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *_):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(10)
+
+
+def test_6c_an_intake_refusal_reaches_the_miner_with_its_own_next_step(
+    intake_battery,
+):
+    """An address that answers but is not a battery intake: nothing is sent
+    for evaluation, the candidate is kept, and the miner is told what to do
+    about this refusal - not the catalog's generic fallback (LP-PROD-G's
+    closed intake codes, as the campaign reports them, LP-PROD-C)."""
+    from carbon.battery import campaign as battery_campaign
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    battery = intake_battery
+    campaign = practised_and_frozen(battery)
+    with not_an_intake() as url:
+        battery.cfg = {**battery.cfg, "intakes": {BATTERY: url}}
+        battery.perform(
+            "submit", {"campaign": campaign, "idempotency_key": "e2e-submit-key-000001"}
+        )
+        battery.join()
+    view = battery.view(campaign)
+    refused = view["last_refusal"]
+    assert (refused["code"], refused["operation"]) == ("intake_mismatch", "submit")
+    assert battery_campaign.intake_outcome(refused["code"]) == "REFUSED"
+    assert view["journey"]["submitted_epochs"] == []
+    assert view["journey"]["frozen_awaiting_submission"] is True
+    assert refused["next_action"] != supervision.FALLBACK_ACTION
+
+
+# --- 7. closing pauses; restarting flags nothing; resume survives ------------
+
+
+def start_control_center(root, processes, variant=None):
+    proc = spawn(root, "control-center", variant)
+    processes.append(proc)
+    wait_for(
+        lambda: pids(root, "control-center") and lock_held(root), "a Control Center"
+    )
+    return proc
+
+
+def close_control_center(root, proc):
+    proc.send_signal(signal.SIGTERM)
+    assert proc.wait(60) == 0
+    assert (root / f"control-center-closed-{proc.pid}").exists()
+
+
+def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
+    tmp_path, processes
+):
+    """Three processes, as on a miner's machine: the Control Center (the
+    supervisor), the miner's MCP client and, later, a restarted Control
+    Center. Closing the client changes nothing; closing the Control Center
+    pauses Carbon's running agent (reversible) and leaves an idle campaign
+    READY; a restart flags neither; a profile change the campaign was not
+    frozen with does not orphan it, while one it was frozen with is named."""
+    root = shared_root(tmp_path)
+    first = start_control_center(root, processes)
+
+    async def launch_both():
+        async with client(root) as session:
+            idle = await session.call_tool(
+                "carbon_launch", launch_body("e2e-idle-key-000000001")
+            )
+            busy = await session.call_tool(
+                "carbon_launch",
+                launch_body("e2e-agent-key-00000001", agent="autonomous"),
+            )
+            for result in (idle, busy):
+                assert not result.is_error, result.content
+            idle = idle.structured_content["payload"]["id"]
+            busy = busy.structured_content["payload"]["id"]
+            await observe(session, idle, lambda v: v["state"] == "READY", "READY")
+            await asyncio.to_thread(
+                wait_for, lambda: first.pid in agent_runs(root), "Carbon's agent"
+            )
+            return idle, busy
+
+    idle, busy = asyncio.run(launch_both())
+    # The client closed: nothing it launched was paused or stopped.
+    assert ledger_status(root, busy)[0] == "RUN"
+    close_control_center(root, first)
+    assert ledger_status(root, busy) == ("PAUSE", "PAUSED")
+    assert ledger_status(root, idle)[1] == "READY"
+
+    def looked_at(*campaigns, variant=None):
+        async def look():
+            async with client(root, variant=variant) as session:
+                views = []
+                for campaign in campaigns:
+                    result = await session.call_tool(
+                        "carbon_observe", {"campaign": campaign}
+                    )
+                    assert not result.is_error, result.content
+                    views.append(result.structured_content["payload"])
+                return views
+
+        return asyncio.run(look())
+
+    paused, ready = looked_at(busy, idle)
+    assert paused["state"] == "PAUSED"  # never STOPPED
+    refusal = paused["last_refusal"]
+    assert (refusal["code"], refusal["kind"]) == (
+        "paused_when_supervisor_closed",
+        "paused",
+    )
+    assert paused["recovery"] == [
+        {"action": "resume", "operation": "resume"},
+        {"action": "stop", "operation": "halt"},
+    ]
+    assert ready["state"] == "READY" and ready["last_refusal"] is None
+    # A restart recovers what the closed process left, and flags nothing idle.
+    second = start_control_center(root, processes)
+    time.sleep(1.0)  # several supervisor passes
+    paused, ready = looked_at(busy, idle)
+    assert ready["state"] == "READY" and ready["last_refusal"] is None
+    assert paused["state"] == "PAUSED"
+    assert paused["last_refusal"]["code"] == "paused_when_supervisor_closed"
+    close_control_center(root, second)
+    # So does a campaign host restarted in-process (INLINE, which recovers
+    # as it starts: the browser smoke's host).
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    inline = RunnerAdapter(root / "runner.sqlite3", principal=PRINCIPAL)
+    try:
+        assert inline.get(idle)["state"] == "READY"
+        assert inline.get(idle)["last_refusal"] is None
+        assert inline.get(busy)["state"] == "PAUSED"
+    finally:
+        inline.close()
+    # A change the campaign was frozen with is named, and changes nothing ...
+
+    async def resume(variant):
+        async with client(root, variant=variant) as session:
+            return await session.call_tool("carbon_resume", {"campaign": busy})
+
+    refused = refusal_of(asyncio.run(resume("revision")))
+    assert refused["error"] == "profile_changed_since_launch"
+    assert ledger_status(root, busy) == ("PAUSE", "PAUSED")
+    # ... and one it was not frozen with resumes it, carried out by the
+    # restarted Control Center under the changed profile.
+    third = start_control_center(root, processes, "unrelated")
+    resumed = asyncio.run(resume("unrelated"))
+    assert not resumed.is_error, resumed.content
+    wait_for(lambda: third.pid in agent_runs(root), "the agent to carry on")
+    (root / "release-agent").touch()
+    wait_for(
+        lambda: ledger_status(root, busy)[1] == "COMPLETED",
+        "the resumed campaign to complete",
+        90,
+    )
+    (done,) = looked_at(busy, variant="unrelated")
+    assert done["state"] == "COMPLETED" and done["last_refusal"] is None
+    assert agent_runs(root) == [first.pid, third.pid]
+    close_control_center(root, third)
+
+
+# --- entry points of the processes above --------------------------------------
+
+
+def _quietly_handle_stop(stop):
+    def handler(*_):
+        stop.set()
+
+    for name in ("SIGTERM", "SIGINT", "SIGHUP"):
+        with contextlib.suppress(ValueError, OSError):
+            signal.signal(getattr(signal, name), handler)
+
+
+def _serve(root, variant):
+    """A miner's own MCP client's server: `standard_cli` with the runner
+    profile and no campaign (every operation, including launch), a CLIENT of
+    the campaigns' supervisor, starting this module as the detached
+    supervisor when work waits with none running."""
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.miner_mcp import open_tier, standard_cli
+    from scripts.dev.miner_launchpad import runner
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    record_pid(root, "server")
+    fixtures = install_journey(root, setattr, variant)
+    agent_fixtures(root, setattr)
+    runner.RunnerAdapter.spawn = staticmethod(
+        lambda configuration: spawn(root, "supervise", variant)
+    )
+
+    def for_profile(cls, *_, **__):
+        host = peer(fixtures, root, supervision.CLIENT)
+        with contextlib.suppress(Exception):
+            host.wake_if_stranded()
+        return host
+
+    runner.RunnerAdapter.for_profile = classmethod(for_profile)
+    real = open_tier.create_open_tier_server
+    open_tier.create_open_tier_server = lambda **kw: real(
+        reader=Registered(), context=carbon_testnet_context(), **kw
+    )
+    return standard_cli.main(
+        [
+            "--configuration",
+            str(root / "runner-profile.json"),
+            "--state-dir",
+            str(root / "setup-state"),
+        ]
+    )
+
+
+def _supervise(root, variant):
+    """The detached supervisor a client starts (`supervisor.main`), over the
+    lifecycle fixtures, retiring after one idle second."""
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    record_pid(root, "supervisor")
+    fixtures = install_journey(root, setattr, variant)
+    agent_fixtures(root, setattr)
+    host = peer(fixtures, root, supervision.DETACHED)
+    host.supervisor.idle_exit, host.supervisor.poll = 1.0, 0.1
+    stopping = host.supervisor.stopping
+    _quietly_handle_stop(stopping)
+    try:
+        host.supervisor.run_until_idle()
+    finally:
+        host.close()
+    return 0
+
+
+def _control_center(root, variant):
+    """The Control Center's campaign host: the supervisor while it runs; on
+    SIGTERM it closes as the Control Center does."""
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    record_pid(root, "control-center")
+    fixtures = install_journey(root, setattr, variant)
+    agent_fixtures(root, setattr)
+    host = peer(fixtures, root, supervision.SUPERVISOR)
+    host.supervisor.poll = 0.1
+    host.supervisor.start()
+    stop = threading.Event()
+    _quietly_handle_stop(stop)
+    while not stop.wait(0.2):
+        pass
+    host.close()
+    (root / f"control-center-closed-{os.getpid()}").touch()
+    return 0
+
+
+def _serve_attach(root):
+    """`standard_cli` with the battery campaign's runner profile: the
+    operation tools and attach, with the stdio attach fixtures (stub chain,
+    fixture signer, fixture runtime)."""
+    from test_standard_mcp_cli import FixtureSigner, fixture_runtime
+
+    import carbon.chain.auth
+    from carbon.development_session import research_tools
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+    from carbon.miner_mcp import open_tier, standard_cli
+
+    record_pid(root, "server")
+    carbon.chain.auth.BittensorMessageSigner = FixtureSigner
+    research_tools.BittensorMessageSigner = FixtureSigner
+    standard_cli._runtime = fixture_runtime
+    real = open_tier.create_open_tier_server
+    open_tier.create_open_tier_server = lambda **kw: real(
+        reader=Registered(), context=carbon_testnet_context(), **kw
+    )
+    return standard_cli.main(
+        [
+            "--configuration",
+            str(root / "profile.json"),
+            "--state-dir",
+            str(root / "setup-state"),
+        ]
+    )
+
+
+ROLES = {
+    "serve": _serve,
+    "supervise": _supervise,
+    "control-center": _control_center,
+}
+
+
+def main(argv):
+    role, root = argv[0], Path(argv[1])
+    if role == "attach":
+        return _serve_attach(root)
+    return ROLES[role](root, argv[2] if len(argv) > 2 else None)
+
+
+if __name__ != "__main__":
+    # The published development reference cases, as a pytest fixture (6b).
+    from test_battery_validator_daemon import refs  # noqa: F401
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))
