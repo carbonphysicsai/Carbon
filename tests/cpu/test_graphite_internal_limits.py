@@ -12,16 +12,23 @@ and replays byte-identically.
 Claims tested, with a scripted model, scripted pods and no spend:
 
 - a new session freezes the v2 rule with the money cap and elapsed limit it
-  binds, and the per-run worst case stays computable from money alone;
+  binds and the engine tool it is offered, and the per-run worst case stays
+  computable from money alone;
 - the loop receives `LIMITS_V2` with no counts and `COMPACTION_V1`, never a
   call cap; a v1 session receives exactly the cap it had;
+- a v2 session is offered its closed manifest plus the engine's compaction
+  tool, which, called unasked, is refused by the loop and reaches no role
+  tool; a v1 session is offered its manifest alone;
 - a v1 plan is byte-identical to the plan the code before this change wrote
   (digests pinned from 9bfd9add), and a v1 record resumes under its own cap
   on a provider that opens v2 sessions, from every crash point;
-- a resume under a changed or unknown rule is refused before any call;
+- a resume under a changed or unknown rule, or whose rule no longer matches
+  the epoch plan it wrote, is refused before any call;
 - end to end, a v2 Constructor session runs past 150 calls until its money
-  cap; a money stop still bundles the best improvement and applies the stall
-  rule; an elapsed stop launches no new pod.
+  cap, or stops at an operator's own call cap; every pod stays inside the
+  elapsed limit (a proposal that cannot finish in time is refused typed, an
+  ablation that cannot is recorded NOT_RUN_NO_TIME); a limit stop still
+  bundles the best improvement and applies the stall rule.
 
 The end-to-end claims run on the engine's limits rule (`research_loop` with
 `limits`/`compaction`, slice S1). Predictions are SYNTHETIC. Nothing here is
@@ -32,6 +39,7 @@ from __future__ import annotations
 
 import json
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from graphite_fixtures import RecordingMinerTools, reader_script, started
@@ -61,15 +69,19 @@ from carbon.agent_campaign.graphite.model import ScriptedModel
 from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
+    ROLES,
     RoleName,
 )
 from carbon.agent_campaign.provider import RunState
 from carbon.development_session.model_provider import ENGY_LADDER
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import (
+    COMPACT,
+    COMPACTION_FIELDS,
     COMPACTION_V1,
     LIMITS_V2,
 )
+from carbon.development_session.research_loop import COMPACTION_NOT_REQUESTED
 
 PROBE = tool(PREFIX + "get_challenge_info", {})
 #: The epoch plans the code before this change (9bfd9add) wrote for the two
@@ -82,6 +94,8 @@ V1_READER_PLAN = (
 )
 CAPPED_ON_MONEY = {"code": "run_cap_reached", "dimension": "provider_nanodollars"}
 CAPPED_ON_TIME = {"code": "run_cap_reached", "dimension": "elapsed_seconds"}
+CAPPED_ON_CALLS = {"code": "run_cap_reached", "dimension": "provider_attempts"}
+READER = ROLES[RoleName.READER]
 
 
 def _opened(graphite, number=1):
@@ -95,6 +109,20 @@ def _plan_bytes(run_dir):
 
 def _state(graphite):
     return json.loads((graphite._dir(run_id()) / "state.json").read_bytes())
+
+
+def _ablations(outcome):
+    bundle = Path(outcome["bundle"])
+    return json.loads((bundle / "ablations.json").read_bytes())["ablations"]
+
+
+def _answers(model):
+    """Every tool result the model was sent, in order, from its last request."""
+    return [
+        json.loads(item["output"])
+        for item in model.requests[-1]["input"]
+        if item.get("type") == "function_call_output"
+    ]
 
 
 class LoopRecorder:
@@ -148,13 +176,21 @@ def test_a_new_session_freezes_the_v2_rule_with_its_money_and_time_bounds(tmp_pa
         "binding": ["money_cap", "elapsed_seconds"],
         "loop_limits": gp.LOOP_LIMITS,
         "compaction": COMPACTION_V1,
+        # What the model is offered beyond its closed manifest.
+        "engine_tools": [COMPACT],
         "money_cap_covers": "model_calls_and_pods",
         "pods_per_session": 12,
+        # Every pod must also finish within the remaining elapsed time.
+        "pod_seconds": 1800,
+        "pod_admission": "money_cap_and_remaining_elapsed_seconds",
         "stall_attempts": CONSTRUCTOR_STALL_ATTEMPTS,
         "stall_escalation": "one_rung",
-        "on_cap_stop": "bundle_best_improvement_and_escalate_on_stall",
-        "on_elapsed_stop": "escalate_on_stall_without_new_pods",
+        "on_limit_stop": "bundle_best_improvement_and_escalate_on_stall",
     }
+    assert graphite.offered_tools(opened) == [
+        *ROLES[RoleName.CONSTRUCTOR].tools,
+        COMPACT,
+    ]
     # No count caps the run's ledger: only money and elapsed time.
     assert opened["caps"]["provider_attempts"] is None
     assert graphite.caps()["provider_attempts"] is None
@@ -169,12 +205,40 @@ def test_a_new_session_freezes_the_v2_rule_with_its_money_and_time_bounds(tmp_pa
 
 
 def test_an_operator_call_cap_still_narrows_a_v2_run(tmp_path):
-    """No call cap is Carbon's; an operator may still set one, recorded."""
-    graphite = provider(tmp_path, [PROBE] * 3, ScriptedPods(), max_calls_per_run=2)
+    """No call cap is Carbon's; an operator may still set one. It is recorded,
+    the run stops at it, and the stop still closes the session's work."""
+    script = [propose(variant(width=128)), PROBE, PROBE]
+    account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
+    result, graphite, _ = session(tmp_path, script, account, max_calls_per_run=2)
     assert graphite.caps()["provider_attempts"] == 2
-    record = graphite.session_limits_record({"max_runtime_s": 60})
+    record = _opened(graphite)["session_limits"]
     assert record["operator_call_cap"] == 2
     assert record["session_turns"] is None and record["role_call_cap"] is None
+    assert phase3.model_call_cap(result["session_limits"]) == 2
+    # Two calls, then the operator's cap refuses the third.
+    assert len(graphite.model.requests) == 2 and graphite.model.remaining == 1
+    assert result["provider_state"] == "failed"
+    assert _state(graphite)["failure"] == CAPPED_ON_CALLS
+    # The stop bundled the improvement, its ablation run inside the run cap.
+    outcome = result["delivery"] or {}
+    assert outcome.get("status") == "BUNDLED"
+    assert outcome["clean_rebuild"]["status"] == "REBUILT"
+    assert [a["status"] for a in _ablations(outcome)] == ["SCORED"]
+    assert len(account.launched) == 3 and account.alive == {}
+
+
+def test_the_call_cap_reported_is_the_one_in_force():
+    v2 = {
+        "schema": gp.SESSION_LIMITS_V2,
+        "operator_call_cap": None,
+        "loop_limits": gp.LOOP_LIMITS,
+    }
+    assert phase3.model_call_cap(v2) is None
+    assert phase3.model_call_cap({**v2, "operator_call_cap": 7}) == 7
+    counted = {**gp.LOOP_LIMITS, "calls_per_epoch": 9}
+    assert phase3.model_call_cap({**v2, "loop_limits": counted}) == 9
+    v1 = {"schema": gp.SESSION_LIMITS_V1, "provider_attempts": 150}
+    assert phase3.model_call_cap(v1) == 150
 
 
 def test_the_loop_gets_count_free_limits_and_compaction_never_a_call_cap(
@@ -209,6 +273,44 @@ def test_a_v1_session_passes_exactly_the_cap_it_had(tmp_path, recorded_loop):
     assert "max_provider_calls" not in harness
     for kwargs in (constructor, harness):
         assert "limits" not in kwargs and "compaction" not in kwargs
+
+
+def test_the_engine_tool_is_offered_under_v2_only_and_reaches_no_role_tool(tmp_path):
+    """A v2 session is offered its closed manifest, then the engine's
+    compaction tool, on every turn. Called when Carbon did not ask for a
+    compaction, the loop refuses it typed; the role's toolbox never sees it.
+    A v1 session is offered its manifest alone."""
+    unasked = tool(COMPACT, {field: "x" for field in COMPACTION_FIELDS})
+    script = [unasked, tool("lit_search", {"query": "operator"}), text("done")]
+    model = ScriptedModel(list(script))
+    graphite, run = started(tmp_path / "v2", model)
+    assert graphite.run(run) == "succeeded"
+    offered = [*READER.tools, COMPACT]
+    assert graphite.offered_tools(graphite.session_record(run)) == offered
+    assert len(model.requests) == 3
+    for request in model.requests:
+        assert [t["name"] for t in request["tools"]] == offered
+    refused = json.loads(
+        next(
+            item["output"]
+            for item in model.requests[1]["input"]
+            if item.get("type") == "function_call_output"
+        )
+    )
+    assert COMPACTION_NOT_REQUESTED in json.dumps(refused)
+    # The toolbox answered the search only; the compaction call never reached it.
+    tools_seen = [e["tool"] for e in graphite.events(run, 0) if "tool" in e]
+    assert tools_seen == ["lit_search"]
+    old = ScriptedModel([script[1], script[2]])
+    historical, old_run = started(
+        tmp_path / "v1", old, session_limits=gp.SESSION_LIMITS_V1
+    )
+    assert historical.run(old_run) == "succeeded"
+    assert historical.offered_tools(historical.session_record(old_run)) == list(
+        READER.tools
+    )
+    for request in old.requests:
+        assert [t["name"] for t in request["tools"]] == list(READER.tools)
 
 
 def test_an_unknown_rule_is_refused_before_anything_opens(tmp_path):
@@ -314,6 +416,39 @@ def test_a_resume_under_a_changed_rule_is_refused(tmp_path, change, detail):
     failure = graphite.session_record(run)["outcome"]["failure"]
     assert failure == {"code": "session_record_mismatch", "detail": detail}
     assert model.requests == []
+
+
+@pytest.mark.parametrize("rule", [gp.SESSION_LIMITS_V2, gp.SESSION_LIMITS_V1])
+def test_a_record_whose_rule_no_longer_matches_its_started_plan_is_refused(
+    tmp_path, rule
+):
+    """A harness role's caps are the same under either rule, so only the
+    epoch plan the session already wrote shows its rule: a v2 record with its
+    block dropped, or a v1 record given one, resumes nothing."""
+    model = ScriptedModel(reader_script())
+    crashed, run = started(
+        tmp_path / "g", model, crash_at_checkpoint=3, session_limits=rule
+    )
+    with pytest.raises(ctl.SimulatedCrash):
+        crashed.run(run)
+    assert (crashed._dir(run) / "ledger" / "epoch-1" / "plan.json").is_file()
+    path = crashed._dir(run) / "session-open.json"
+    opened = json.loads(path.read_bytes())
+    if rule == gp.SESSION_LIMITS_V2:
+        del opened["session_limits"]
+    else:
+        opened["session_limits"] = crashed.session_limits_record(opened["task"])
+    assert crashed.caps(gp.SESSION_LIMITS_V1) == crashed.caps(gp.SESSION_LIMITS_V2)
+    path.write_bytes(canonical(opened))
+    sent = len(model.requests)
+    resumed = harness_provider(tmp_path / "g", model)
+    assert resumed.run(run) == "failed"
+    failure = resumed.session_record(run)["outcome"]["failure"]
+    assert failure == {
+        "code": "session_record_mismatch",
+        "detail": "session_limits_changed",
+    }
+    assert len(model.requests) == sent
 
 
 def _open_phase3(graphite, number=1):
@@ -433,8 +568,9 @@ def test_a_stall_then_a_money_stop_escalates_one_rung(tmp_path):
 
 
 class JumpClock:
-    """The run ledger's clock; `jump` moves it to one minute before the run's
-    elapsed limit, so the next model call cannot fit its 120 s timeout."""
+    """The run ledger's clock (the run starts at `LEDGER_NOW`); `jump` moves
+    it to `left` seconds before the run's elapsed limit. With the default
+    minute left the next model call cannot fit its 120 s timeout."""
 
     def __init__(self, limit):
         self.now, self.limit = LEDGER_NOW, limit
@@ -442,13 +578,14 @@ class JumpClock:
     def __call__(self):
         return self.now
 
-    def jump(self):
-        self.now = LEDGER_NOW + self.limit - 60
+    def jump(self, left=60):
+        self.now = LEDGER_NOW + self.limit - left
+
+    def leaving(self, left):
+        return lambda: self.jump(left)
 
 
-def _elapsed_session(tmp_path, script_before, account):
-    clock = JumpClock(grant().max_runtime_s)
-    script = [*script_before, dict(PROBE, hook=clock.jump), text("never sent")]
+def _timed_session(tmp_path, script, account, clock, **kw):
     graphite = phase3.Phase3Provider(
         root=tmp_path / "graphite",
         grant=grant(),
@@ -457,6 +594,7 @@ def _elapsed_session(tmp_path, script_before, account):
         miner_tools=RecordingMinerTools(),
         clock=clock,
         randomness=lambda n: b"\x01" * n,
+        **kw,
     )
     control = controller(tmp_path, graphite)
     try:
@@ -466,7 +604,13 @@ def _elapsed_session(tmp_path, script_before, account):
     return result, graphite
 
 
-def test_an_elapsed_stop_launches_no_new_pod(tmp_path):
+def _elapsed_session(tmp_path, script_before, account):
+    clock = JumpClock(grant().max_runtime_s)
+    script = [*script_before, dict(PROBE, hook=clock.jump), text("never sent")]
+    return _timed_session(tmp_path, script, account, clock)
+
+
+def test_an_elapsed_stop_bundles_with_no_pod_past_the_limit(tmp_path):
     account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
     result, graphite = _elapsed_session(
         tmp_path, [propose(variant(width=128))], account
@@ -474,9 +618,14 @@ def test_an_elapsed_stop_launches_no_new_pod(tmp_path):
     assert result["provider_state"] == "failed"
     assert _state(graphite)["failure"] == CAPPED_ON_TIME
     assert graphite.model.remaining == 1
-    # The improvement is recorded, but no ablation pod ran past the limit.
+    # The improvement is bundled, but its ablation pod could not finish in the
+    # minute left: recorded as not run, and no pod ran past the limit.
     assert len(account.launched) == 2 and account.alive == {}
-    assert result["delivery"] is None
+    outcome = result["delivery"]
+    assert outcome["status"] == "BUNDLED"
+    assert outcome["clean_rebuild"]["status"] == "REBUILT"
+    [ablation] = _ablations(outcome)
+    assert ablation["status"] == phase3.ABLATION_NO_TIME == "NOT_RUN_NO_TIME"
 
 
 def test_an_elapsed_stop_still_applies_the_stall_rule(tmp_path):
@@ -487,7 +636,64 @@ def test_an_elapsed_stop_still_applies_the_stall_rule(tmp_path):
     history = graphite.ladder.history()
     assert len(history) == 1
     assert history[0]["kind"] == "build_stalled_against_baseline"
-    assert result["delivery"] is None
+    assert result["delivery"] == {"status": "NO_IMPROVEMENT", "bundle": None}
+
+
+def test_a_first_proposal_needs_time_for_its_pod_and_the_baselines(tmp_path):
+    """3,000 s left hold one 1,800 s pod, not the baseline's and the
+    proposal's: refused before anything starts, and the agent goes on."""
+    clock = JumpClock(grant().max_runtime_s)
+    late = dict(propose(variant(width=128)), hook=clock.leaving(3000))
+    account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
+    result, graphite = _timed_session(tmp_path, [late, text("done")], account, clock)
+    assert result["provider_state"] == "succeeded"
+    assert account.launched == []
+    [answer] = _answers(graphite.model)
+    assert answer["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert answer["reason_code"] == phase3.PROPOSAL_NO_TIME
+    assert answer["pods_needed"] == 2 and answer["seconds_needed"] == 3600
+    assert answer["seconds_left"] == 3000
+    assert answer["dispatched"] is False and answer["authority_granted"] is False
+    assert graphite.experiment(run_id()).records() == []
+    assert result["delivery"] == {"status": "NO_IMPROVEMENT", "bundle": None}
+
+
+def test_a_late_proposal_is_refused_and_delivery_runs_no_late_ablation(tmp_path):
+    """After a first proposal ran, 1,000 s left cannot hold another pod: the
+    second proposal is refused typed; the agent ends the session, and the
+    bundle records its ablation as not run rather than run past the limit."""
+    clock = JumpClock(grant().max_runtime_s)
+    first = propose(variant(width=128))
+    second = dict(propose(variant(width=96)), hook=clock.leaving(1000))
+    account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
+    result, graphite = _timed_session(
+        tmp_path, [first, second, text("done")], account, clock
+    )
+    assert result["provider_state"] == "succeeded"
+    assert len(account.launched) == 2 and account.alive == {}
+    answer = _answers(graphite.model)[-1]
+    assert answer["reason_code"] == phase3.PROPOSAL_NO_TIME
+    assert answer["pods_needed"] == 1 and answer["seconds_left"] == 1000
+    outcome = result["delivery"]
+    assert outcome["status"] == "BUNDLED"
+    assert [a["status"] for a in _ablations(outcome)] == [phase3.ABLATION_NO_TIME]
+
+
+def test_a_v1_session_starts_pods_as_it_always_did(tmp_path):
+    """The time gate is the v2 rule's; a v1 session is unchanged."""
+    clock = JumpClock(grant().max_runtime_s)
+    late = dict(propose(variant(width=128)), hook=clock.leaving(3000))
+    account = ScriptedPods(steps=steps(1.0, 0.4, 1.0))
+    result, _graphite = _timed_session(
+        tmp_path,
+        [late, text("done")],
+        account,
+        clock,
+        session_limits=gp.SESSION_LIMITS_V1,
+    )
+    assert result["provider_state"] == "succeeded"
+    assert len(account.launched) == 3
+    assert result["delivery"]["status"] == "BUNDLED"
 
 
 def test_a_v1_session_closes_nothing_at_a_cap_as_before(tmp_path):
@@ -497,21 +703,9 @@ def test_a_v1_session_closes_nothing_at_a_cap_as_before(tmp_path):
     account = ScriptedPods(steps=steps(1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
     clock = JumpClock(grant().max_runtime_s)
     script = [*attempts, dict(PROBE, hook=clock.jump), text("never sent")]
-    graphite = phase3.Phase3Provider(
-        root=tmp_path / "graphite",
-        grant=grant(),
-        model=ScriptedModel(script),
-        pods=account,
-        miner_tools=RecordingMinerTools(),
-        clock=clock,
-        randomness=lambda n: b"\x01" * n,
-        session_limits=gp.SESSION_LIMITS_V1,
+    result, graphite = _timed_session(
+        tmp_path, script, account, clock, session_limits=gp.SESSION_LIMITS_V1
     )
-    control = controller(tmp_path, graphite)
-    try:
-        result = phase3.run_session(control, graphite, brief(graphite), 1)
-    finally:
-        control.close()
     assert _state(graphite)["failure"] == CAPPED_ON_TIME
     assert graphite.experiment(run_id()).stall_observation() is not None
     assert graphite.ladder.history() == []

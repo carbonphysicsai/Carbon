@@ -200,11 +200,13 @@ permitted runs, rounded down to the cent:
 
 The run's research ledger is frozen with 1.95 as its money cap, and a pod is
 admitted only while tokens committed, plus pods committed, plus the new pod's
-reservation stay within 4.91. A Constructor session makes at most 150 model
-calls (`roles.CONSTRUCTOR_SESSION_TURNS`, passed to the research loop as its
-`max_provider_calls`; the shared `research_agent_policy.MAX_PROVIDER_CALLS`
-of 48 is unchanged for every other epoch). At `DEFAULT_SETTINGS` (65,536
-input and 2,048 output tokens) one call reserves:
+reservation stay within 4.91. A Constructor session opened before 2026-10-03
+makes at most 150 model calls (`roles.CONSTRUCTOR_SESSION_TURNS`, passed to
+the research loop as its `max_provider_calls`; the shared
+`research_agent_policy.MAX_PROVIDER_CALLS` of 48 is unchanged for every other
+epoch). A session opened from 2026-10-03 has no call cap; see "Since
+2026-10-03" below. At `DEFAULT_SETTINGS` (65,536 input and 2,048 output
+tokens) one call reserves:
 
 - `deepseek-v4-flash-0731` (the Constructor's start): 65,536 × 45 + 2,048 × 90
   = 3,133,440 nanodollars, so 150 calls reserve
@@ -217,7 +219,8 @@ So whichever rung the Constructor reaches, a run cannot spend more than 1.95
 on tokens. The plan estimates about USD 0.10 a session on
 `deepseek-v4-flash-0731` and about USD 2 on `glm-5.2` (§7).
 
-**Runtime.** Every model call and every pod, one after another:
+**Runtime.** Every model call and every pod, one after another, for a session
+opened before 2026-10-03 (150 calls):
 
       150 × 120 s (the provider timeout) + 12 × 1,800 s = 18,000 + 21,600 = 39,600 s
 
@@ -237,7 +240,9 @@ The engineering choices are recorded in GRAPHITE-MINER-S6
   (`provider.SESSION_LIMITS_V2`) in its session record, under
   `session_limits`. It has no session-turn cap and no per-role call cap. The
   research loop runs it with the engine's count-free limits and its
-  recorded context compaction.
+  recorded context compaction. Its model is offered the role's closed
+  manifest plus the engine's compaction tool, which the loop answers itself
+  and which reaches no role tool; the record names it (`engine_tools`).
 - The 150 calls of `roles.CONSTRUCTOR_SESSION_TURNS` are historical. A session
   recorded under them, every session opened before 2026-10-03, resumes under
   them and replays byte-identically.
@@ -252,9 +257,22 @@ The engineering choices are recorded in GRAPHITE-MINER-S6
   reserved spend, plus the next run's worst case, plus cleanup, within the
   ceiling) uses money alone, so the arithmetic above is unchanged:
   3 × 4.91 + 0.25 = 14.98 ≤ 15.00.
-- **Time.** `max_runtime_s` (39,600 s) is still the run's elapsed limit. Its
-  value was derived from 150 calls and 12 pods. It is now a time bound, not a
-  call count.
+- **Time.** `max_runtime_s` (39,600 s) is still the run's elapsed limit,
+  counted from the run ledger's first reservation. Its value was derived from
+  150 calls and 12 pods. It is now a time bound, not a call count, and it
+  bounds pods as well as model calls:
+  - a model call is admitted only when its 120 s timeout fits the time left;
+  - a pod is admitted only when its full 1,800 s lifetime fits the time left.
+    A proposal also counts the baseline's pod when the baseline has not run,
+    and is otherwise refused before anything starts
+    (`proposal_cannot_fit_remaining_time`). An ablation that cannot fit is
+    recorded `NOT_RUN_NO_TIME` in the bundle.
+
+  Under the old rule the bound held by construction (the sum above). Without
+  a call cap, model calls could otherwise take the whole runtime and a pod
+  could still start just before its end, so the pod admission check is what
+  keeps the run inside 39,600 s. The controller cancels a run past the limit
+  only after the runner returns, so it is not relied on.
 
 **How many calls fit.** Money, not a count, decides. At the Constructor's
 starting rung, settled at its full reservation, the token share holds
@@ -265,11 +283,12 @@ reservation, the token share holds more, and the runtime binds first. On
 **How a capped session ends.** A session the agent does not end stops when its
 next model call would pass the money cap or cannot finish within the runtime.
 It ends `failed` with `run_cap_reached` and the dimension, as a capped run
-always has. Under the v2 rule the session's work is still closed:
-- on a money stop, the best improvement is bundled, and its ablation pods are
-  admitted against the same run cap;
-- on any stop, the stall rule's escalation applies;
-- on a runtime stop, no new pod launches, so nothing is bundled.
+always has. An operator's own call cap, when one is set, stops it the same
+way. Under the v2 rule the session's work is still closed:
+- on any stop, the best improvement is bundled. Its ablation pods are
+  admitted against the same run cap and the time left, so on a runtime stop
+  the bundle records every ablation as `NOT_RUN_NO_TIME` and no pod starts;
+- on any stop, the stall rule's escalation applies.
 
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 

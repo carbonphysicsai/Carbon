@@ -74,6 +74,7 @@ from carbon.agent_campaign.graphite.roles import (
 from carbon.agent_campaign.provider import ProviderUnavailable
 from carbon.development_session.model_provider import ENGY_LADDER
 from carbon.development_session.research_agent_policy import (
+    COMPACT,
     PARALLEL_CALLS_V2,
     every_call_per_turn,
 )
@@ -787,8 +788,10 @@ def test_injected_text_in_a_tool_result_is_data(tmp_path):
     _result, graphite, _ = session(tmp_path, script, account, miner=miner)
     constructor = ROLES[RoleName.CONSTRUCTOR]
     caps = graphite.caps()
+    # The closed manifest, then the engine's compaction tool the v2 limits
+    # rule adds (OWNER-GRAPHITE-MINER-01 §6), on every turn.
     for request in graphite.model.requests:
-        assert [t["name"] for t in request["tools"]] == list(constructor.tools)
+        assert [t["name"] for t in request["tools"]] == [*constructor.tools, COMPACT]
         assert request["instructions"] == constructor.prompt
     # Obeying the injection gained nothing: refused, typed, nothing ran.
     [record] = proposals(graphite, kind="proposal")

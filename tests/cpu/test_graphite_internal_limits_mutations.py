@@ -70,11 +70,20 @@ MUTATIONS = {
         lambda m: m.setattr(
             phase3.Phase3Provider,
             "_close_at_limit",
-            lambda self, run_id, experiment, dimension: self._escalate_on_stall(
+            lambda self, run_id, experiment: self._escalate_on_stall(
                 run_id, experiment
             ),
         ),
         lambda tmp: t6.test_a_money_stop_still_bundles_the_best_improvement(tmp),
+    ),
+    # An operator's call-cap stop closes the session's work too.
+    "v2_operator_cap_stop_bundles": (
+        lambda m: m.setattr(
+            phase3.Phase3Provider,
+            "_close_at_limit",
+            lambda self, run_id, experiment: None,
+        ),
+        lambda tmp: t6.test_an_operator_call_cap_still_narrows_a_v2_run(tmp),
     ),
     # A money stop still applies the stall rule's one-rung escalation.
     "v2_money_stop_escalates": (
@@ -85,25 +94,57 @@ MUTATIONS = {
         ),
         lambda tmp: t6.test_a_stall_then_a_money_stop_escalates_one_rung(tmp),
     ),
-    # An elapsed stop launches no new pod.
-    "v2_elapsed_stop_runs_no_pod": (
+    # Delivery runs no ablation pod that cannot finish within the elapsed
+    # limit: without the time-bound view the ablation runs past it.
+    "v2_ablation_pods_fit_the_time": (
         lambda m: m.setattr(
             phase3.Phase3Provider,
-            "_close_at_limit",
-            lambda self, run_id, experiment, dimension: self._deliver(
-                run_id, experiment, None
-            ),
+            "_delivery_view",
+            lambda self, run_id, experiment: experiment,
         ),
-        lambda tmp: t6.test_an_elapsed_stop_launches_no_new_pod(tmp),
+        lambda tmp: t6.test_an_elapsed_stop_bundles_with_no_pod_past_the_limit(tmp),
+    ),
+    # A proposal whose pods cannot finish in time is refused before any pod.
+    "v2_proposal_pods_fit_the_time": (
+        lambda m: m.setattr(phase3.Phase3Tools, "_no_time", lambda self: None),
+        lambda tmp: t6.test_a_first_proposal_needs_time_for_its_pod_and_the_baselines(
+            tmp
+        ),
+    ),
+    # A proposal after the baseline counts its own pod only, not the baseline's.
+    "v2_late_proposal_refused": (
+        lambda m: m.setattr(phase3.Phase3Tools, "_no_time", lambda self: None),
+        lambda tmp: t6.test_a_late_proposal_is_refused_and_delivery_runs_no_late_ablation(
+            tmp
+        ),
     ),
     # An elapsed stop still applies the stall rule.
     "v2_elapsed_stop_escalates": (
         lambda m: m.setattr(
             phase3.Phase3Provider,
             "_close_at_limit",
-            lambda self, run_id, experiment, dimension: None,
+            lambda self, run_id, experiment: None,
         ),
         lambda tmp: t6.test_an_elapsed_stop_still_applies_the_stall_rule(tmp),
+    ),
+    # The record names the engine tool the model is offered beyond its
+    # manifest.
+    "v2_engine_tools_recorded": (
+        lambda m: m.setattr(gp, "ENGINE_TOOLS_V2", ()),
+        lambda tmp: t6.test_a_new_session_freezes_the_v2_rule_with_its_money_and_time_bounds(
+            tmp
+        ),
+    ),
+    # A resumed record's rule must match the epoch plan it already wrote.
+    "v2_started_plan_checked": (
+        lambda m: m.setattr(
+            gp.GraphiteProvider,
+            "_check_started_plan",
+            lambda self, run_id, opened: None,
+        ),
+        lambda tmp: t6.test_a_record_whose_rule_no_longer_matches_its_started_plan_is_refused(
+            tmp, gp.SESSION_LIMITS_V2
+        ),
     ),
     # Only the v2 rule closes a capped session; v1 is unchanged.
     "v1_cap_closes_nothing": (

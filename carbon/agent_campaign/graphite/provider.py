@@ -27,13 +27,19 @@ from that date runs under `SESSION_LIMITS_V2`: no session-turn cap and no
 per-role call cap. The money cap and the elapsed limit above are its binding
 bounds; the loop runs with the engine's count-free limits
 (`research_agent_policy.LIMITS_V2`, both counts None) and its recorded
-context compaction (`COMPACTION_V1`). The session record freezes the rule,
-with the money cap and the elapsed limit it binds, under `session_limits`,
-and a resume under a different rule is refused. A session whose record has
-no `session_limits` block, every one opened before, runs under the
-historical rule (`SESSION_LIMITS_V1`) on resume: the loop's shared call cap,
-or the provider's historical session cap (`HISTORICAL_SESSION_TURNS`), so its
-plan replays byte-identically.
+context compaction (`COMPACTION_V1`). The model is then offered the role's
+closed manifest plus the engine's compaction tool (`ENGINE_TOOLS_V2`), which
+the loop answers itself and which reaches no role tool. The session record
+freezes the rule, with the money cap and the elapsed limit it binds and the
+engine tools it offers, under `session_limits`, and a resume under a
+different rule, or whose rule no longer matches the epoch plan it wrote, is
+refused. A session whose record has no `session_limits` block, every one
+opened before, runs under the historical rule (`SESSION_LIMITS_V1`) on
+resume: the loop's shared call cap, or the provider's historical session cap
+(`HISTORICAL_SESSION_TURNS`), and its manifest alone, so its plan replays
+byte-identically. A record altered before its epoch began writes no plan and
+cannot be told from a historical one; for a harness role its caps are the
+same under either rule.
 
 **Cancellation.** `cancel` records the request; the worker stops at the
 loop's next ledger checkpoint, which precedes every reservation, so no new
@@ -68,7 +74,11 @@ from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import select, selection_from_record
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent import ProviderCallFailed
-from carbon.development_session.research_agent_policy import COMPACTION_V1, LIMITS_V2
+from carbon.development_session.research_agent_policy import (
+    COMPACT,
+    COMPACTION_V1,
+    LIMITS_V2,
+)
 from carbon.development_session.research_ledger import VERSION, CampaignLedger
 from carbon.development_session.research_loop import run_epoch
 
@@ -126,6 +136,14 @@ SESSION_LIMITS = (SESSION_LIMITS_V1, SESSION_LIMITS_V2)
 #: The engine's limits for a v2 session: no call count, no trial count, so
 #: only the ledger's ceilings bind (the run's money and elapsed time).
 LOOP_LIMITS = {**LIMITS_V2, "calls_per_epoch": None, "trials_per_epoch": None}
+#: The tools the engine adds, by name and after the role's closed manifest, to
+#: what a v2 session's model is offered every turn: the compaction tool
+#: (`COMPACTION_V1`). The loop answers it itself, with a recorded summary when
+#: it asked for one and a typed refusal otherwise; it never reaches the role's
+#: toolbox, the miner path or a pod, so it widens no role's authority. The
+#: session record names them (`engine_tools`). A v1 session is offered its
+#: manifest alone.
+ENGINE_TOOLS_V2 = (COMPACT,)
 
 
 class RunCancelled(Exception):
@@ -418,6 +436,7 @@ class GraphiteProvider:
             "binding": ["money_cap", "elapsed_seconds"],
             "loop_limits": dict(LOOP_LIMITS),
             "compaction": dict(COMPACTION_V1),
+            "engine_tools": list(ENGINE_TOOLS_V2),
         }
 
     @staticmethod
@@ -429,6 +448,41 @@ class GraphiteProvider:
         if type(block) is not dict or block.get("schema") != SESSION_LIMITS_V2:
             raise SessionMismatch("session_limits_unknown")
         return SESSION_LIMITS_V2
+
+    @classmethod
+    def offered_tools(cls, opened):
+        """The tool names a session's model is offered every turn, in order:
+        the role's closed manifest, then, under v2, the engine's tools the
+        record names (`engine_tools`)."""
+        manifest = list(opened["role"]["tool_manifest"])
+        if cls.rule_of(opened) == SESSION_LIMITS_V2:
+            return manifest + list(opened["session_limits"]["engine_tools"])
+        return manifest
+
+    def _check_started_plan(self, run_id, opened):
+        """A session whose epoch began wrote its plan under its rule: under v2
+        the plan carries the recorded loop limits and compaction; under v1 it
+        carries neither; either way it offers exactly `offered_tools`. A
+        record whose rule no longer matches the plan it wrote (a v2 block
+        dropped or added after the epoch began) resumes nothing."""
+        path = self._dir(run_id) / "ledger" / f"epoch-{EPOCH}" / "plan.json"
+        if not path.is_file():
+            return
+        try:
+            plan = json.loads(path.read_bytes())
+        except ValueError:
+            raise SessionMismatch("epoch_plan_unreadable") from None
+        expected = {}
+        if self.rule_of(opened) == SESSION_LIMITS_V2:
+            block = opened["session_limits"]
+            expected = {
+                "limits": block["loop_limits"],
+                "compaction": block["compaction"],
+            }
+        found = {key: plan[key] for key in ("limits", "compaction") if key in plan}
+        offered = [tool.get("name") for tool in plan.get("tools") or ()]
+        if found != expected or offered != self.offered_tools(opened):
+            raise SessionMismatch("session_limits_changed")
 
     def _expected_limits(self, opened):
         """What the session record's limits must be for this provider to
@@ -763,6 +817,7 @@ class GraphiteProvider:
                 digest(canonical(brief)),
                 self._expected_limits(opened),
             )
+            self._check_started_plan(run_id, opened)
         except (SessionMismatch, ValueError) as error:
             code = (
                 error.args[0]
