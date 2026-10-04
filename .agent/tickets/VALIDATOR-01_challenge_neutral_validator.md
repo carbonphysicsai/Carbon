@@ -1,16 +1,19 @@
 # VALIDATOR-01 — One challenge-neutral validator, battery as the first adapter
 
-**Status:** slice 1 implemented in bounded DEVELOPMENT scope, awaiting review.
-Slice 2 waits for the Graphite Attacker PR (`claude/graphite-attack-engine`).
+**Status:** slice 1 merged in bounded DEVELOPMENT scope (#559, `de4bf912`).
+Slice 2 implemented in bounded DEVELOPMENT scope, awaiting review.
 **Authority:**
 - OWNER-GRAPHITE-TEST-WAVE-01 §3: "validator build needs to start soon and
   shouldn't be hard";
+- OWNER-GRAPHITE-TEST-WAVE-02 §3 (#564): the pod worker-timeout rule;
 - the Launchpad production work list, item 7 (a real submission and
   validation endpoint);
-- the Test Lead's brief and slice-1 review, 2026-10-04.
+- the Test Lead's brief and its reviews of slices 1 and 2, 2026-10-04.
 
-**Executor:** the Carbon Validator session. Branch `claude/validator-core`,
-from main `5d963845`.
+**Executor:** the Carbon Validator session.
+- Slice 1: branch `claude/validator-core`, from main `5d963845`.
+- Slice 2: branch `claude/validator-scoring`, from main `f49ac6d9f` (after
+  the Attacker, #563).
 
 ## Outcome
 
@@ -194,6 +197,66 @@ as sealed outside the pool is refused.
   submission and a missing one get the same `unknown_submission`, so the read
   is no oracle for which submissions exist.
 
+### Slice 2
+
+- **VAL-D9 — no silent Challenge default in shared code.** A caller that names
+  no scoring gets the only registered one. Once a second is registered, every
+  unnamed call is refused (`challenge_scoring_must_be_named`). This keeps the
+  Attacker's existing calls (`experiment.admit(strategy, seed)`,
+  `recorded_contract()`, `FrozenRule(root)`, `pod_phase.built_record`)
+  working unchanged without a battery literal in Graphite.
+- **VAL-D10 — battery's bytes are unchanged.** These stay exactly as before:
+  - the build record, data paths, worker deadline, frozen rule and baseline;
+  - the brief's challenge and objective text;
+  - every refusal code battery returned
+    (`not_the_battery_development_challenge` is battery's own
+    `wrong_challenge_code`).
+
+  Two shared-code codes became neutral: `phase3_challenge_not_served` (was
+  `phase3_serves_battery_development_only`) and
+  `miner_campaign_is_not_the_sessions_challenge` (was
+  `miner_campaign_is_not_battery_development`). `miner_path` and the
+  observation check keep their id-and-version comparison.
+  `check_battery_development` is renamed `check_challenge`.
+- **VAL-D11 — what the pinned pod image allows: no separation.** The EV4 study
+  image (`pod_control.IMAGE`) runs the bootstrap, the supervisor (`pod_phase`)
+  and the program as one non-root user. Bootstrap notes that only `/tmp` is
+  writable, and the reconstruction-worker family runs as `USER 65532`. So the
+  supervisor cannot drop the program to another uid, and the program can
+  reach `failure.json`, the `/status` server and the supervisor itself. Every
+  pod-side signal is evidence only.
+  - Host authority is Carbon's own poll times of the phase: `HostTiming`'s
+    lower and upper bounds, plus the pod lifecycle.
+  - A supervisor report is admissible only for an image listed in
+    `pod_outcome.SEPARATED_IMAGES`, a host-side record. That list is empty,
+    and the pod's own claim never adds to it.
+  - The admissible path is implemented and tested so that Levels 4-5 (where
+    participant code runs) need only a verified image record.
+- **VAL-D12 — how the host confirms a timeout.**
+  - **Confirmed:** the host's lower bound on the phase's duration (last
+    running poll minus first) is at least the declared worker seconds. That
+    span includes Carbon's own compile and pin check, which run before the
+    program, so the bound can over-credit by that pre-run time and never
+    under-credit.
+  - **Contradicted:** the upper bound (the end poll minus the last poll
+    before running) is below the declared seconds. That is FAILED_INFRA, no
+    retry, and an `OTHER_SIGNAL` finding (`POD_TIMING_DISAGREEMENT`) bound to
+    the claim's digest and the host readings.
+  - **Unconfirmed:** anything else. On a first attempt it still earns the
+    retry, because the retry blames no one. On the second it is FAILED_INFRA.
+- **VAL-D13 — program failures follow the same rule.** The decision says the
+  stage is never taken from a file the candidate can write. So a pod-claimed
+  program or compile failure is `FAILED_INFRA` /
+  `candidate_failure_unattributed`, with the claim kept as evidence. It is
+  `CANDIDATE_FAILED` only on an admissible report. This changes the Level 0
+  feedback a failing recipe gets, which was `CANDIDATE_FAILED` / `program`.
+- **VAL-D14 — the retry is an ordinary pod.** It gets its own intent
+  (`<intent>-r1`), is admitted against the run's pod count and money cap
+  before launch, and has its reservation, launch, terminate and settlement
+  ledgered. Both attempts are typed in the ledger (`pod_attempt_typed`) and in
+  the proposal record (`attempts`). A restart after any attempt closes the
+  proposal `interrupted_not_rerun`, as before.
+
 ## Slices
 
 1. **The neutral validator and the battery adapter** (this PR):
@@ -201,17 +264,22 @@ as sealed outside the pool is refused.
    battery}.py`, `tests/cpu/test_challenge_validator_contract.py`,
    `tests/cpu/test_challenge_validator_battery.py`, this ticket and a lessons
    entry.
-2. **A neutral ChallengeScoring layer for Graphite** (after the Attacker PR
-   merges, from the new main). It removes the battery-only scoring from:
-   - `graphite/phase3.py` (608–614, 679–695);
-   - `design_search/experiment.py` (152–201 admit, 226–262 FrozenRule);
-   - `pod_phase.py` (47–52);
-   - `pods.py` (52–102);
-   - `miner_path.py` (115–136).
-
-   `FORBIDDEN_DATA` and `tools.protected` are kept. Coordinate with the Test
-   Engineer, whose Attacker scores through `experiment.admit` today. Line
-   numbers are as of `5d963845`; re-verify them on the new main.
+2. **A neutral ChallengeScoring layer for Graphite, and the pod worker-timeout
+   rule** (#559's successor, from main `f49ac6d9f`).
+   - `carbon/challenge_validator/scoring.py`: `ChallengeScoring` and its
+     registry, the neutral `admit`, `rebuild_differences`, `FORBIDDEN_DATA`.
+   - `carbon/challenge_validator/battery_scoring.py`: `BatteryScoring`, with
+     battery's build, frozen PRACTICE rule, data paths and baseline moved
+     unchanged out of the Graphite modules.
+   - Graphite delegates to the session's scoring: `graphite/experiment.py`
+     (`recorded_contract`, `admit`, `FrozenRule`), `pods.py` (data paths, the
+     worker deadline, `ship_list`), `pod_phase.built_record`, `phase3.py`
+     (`check_observation`, `session_brief`, the provider) and `miner_path.py`
+     (`check_challenge`). `FORBIDDEN_DATA` and `tools.protected` are kept.
+   - `graphite/pod_outcome.py`: the timeout rule's order of authority, wired
+     into `Experiment.run` with one retry.
+   - Tests: `tests/cpu/test_challenge_validator_scoring.py` and
+     `tests/cpu/test_graphite_pod_timeout.py`.
 3. **Follow-up:** battery's intake, worker and validator service onto the
    neutral `Validator` (VAL-D3).
 
