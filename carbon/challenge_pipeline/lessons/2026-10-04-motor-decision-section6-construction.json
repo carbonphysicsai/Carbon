@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-decision-section6-construction",
+  "recorded_at": "2026-10-04T16:05:26Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "optimizer_pilot",
+    "ref": "motor-decision-construction-fixture-v1 construction identity sha256:32b415866b3590b918e83f8d3f378c6b7bc6056e231efa42a5bfd95055b50507",
+    "description": "Reconstructed the registered analytical and learned KRR models and persisted all four proposals for the exact OWNER-GRAPHITE-TEST-WAVE-01 section 6 scenario without exposing a reference interface."
+  },
+  "expected": "Each search method agrees with the full-grid selection for the same model, all four commitments exist before reference access, and query reduction is reported only when observed.",
+  "observed": "The analytical arms both selected d07 and each used 48 attempted points. The learned arms both selected d06; fixed grid used 48 attempted points and screen-then-confirm used 43. Analytical and learned selections disagree. No GetDP result was imported or executed, so neither selection has reference-backed feasibility or design-quality evidence.",
+  "keep": [
+    "Enforce the exact owner scenario, design rule and analysis policy in the loader rather than relying on a checked-in JSON file alone.",
+    "Re-derive commitment feasibility and objective fields from the successful query log.",
+    "Treat model disagreement as the question for the independent finite comparator, not as proof of learned-model value."
+  ],
+  "change": [
+    "Implement the provenance-bound GetDP evaluator and restart-safe campaign ledger before requesting the bounded compute approval."
+  ],
+  "protocol_elements": [
+    "construction-before-reference custody",
+    "challenge-specific cross-condition objective aggregation",
+    "equal-cost deciding view"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

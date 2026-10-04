@@ -1,0 +1,15 @@
+{
+  "analytic-v1": {
+    "kind": "ANALYTICAL_BASELINE"
+  },
+  "learned-krr-v1": {
+    "cpu_s": 2.71875,
+    "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
+    "historical_training_and_tuning_cost": null,
+    "kind": "LEARNED_RECONSTRUCTION",
+    "length": 4.0,
+    "ridge": 0.0001,
+    "training_records": 150,
+    "wall_s": 0.19178749999264255
+  }
+}
