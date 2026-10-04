@@ -458,6 +458,33 @@ as sealed outside the pool is refused.
   fails identically on main `f49ac6d9f` (checked on a detached main checkout)
   and is fixed by #572 (PR Head, 2026-10-04).
 
+### Slice 3
+
+- `tests/cpu/test_battery_intake.py` gains the door:
+  - every door code refused at once (400), recorded, never queued, admitted
+    or recorded `INVALID_CONSTRUCTION`, with the strategy never stored. That
+    covers a stale digest, a wrong-case or spaced digest, NaN, a duplicate
+    key, an array, deep nesting, a huge integer, non-JSON and cross-Challenge;
+  - a passing submission recorded `RECEIVED` under its id and scored as
+    before;
+  - the client-computed submission id unchanged;
+  - a v2 window refusal recorded;
+  - every `SCREEN_REFUSALS` code explained and classified `REFUSED`;
+  - no intake without its door;
+  - an owner-only ledger and its configured path.
+- `tests/cpu/test_challenge_validator_contract.py`: `screen` and `note`, and
+  the `RECEIVED` kind.
+- `scripts/check_quality.py --base origin/main`: passed.
+- Canonical, slice 3 at `e71ff86cf` (same groups): **372 passed, pytest exit
+  0**. The run covers:
+  - the intake, intake end-to-end, remote submission, validator service,
+    daemon and deployment suites;
+  - the three `challenge_validator` suites;
+  - the Launchpad wire doors, the one-journey definition, provider deadlines
+    and the remote runner;
+  - the lessons log;
+  - the battery MCP stdio and Launchpad production journey service suites.
+
 ## Invariants exercised
 
 1 (no seed leakage), 3 (pinned evaluation), 4 (disclosure allow-list),
