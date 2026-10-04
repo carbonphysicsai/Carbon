@@ -676,14 +676,32 @@ def battery_prepare(patch, *, miner_key=None):
         if path.exists():
             manifest = json.loads(path.read_bytes())
         else:
+            # The selection a new plan of Carbon's agent freezes, as
+            # prepare_battery builds it: the model's own maximum output is
+            # its default output cap (OWNER-LAUNCHPAD-PROD-02).
+            selection = (
+                None
+                if args.product.agent == "none"
+                else research_campaign.supplied_selection(
+                    args,
+                    output_default=research_campaign.new_plan_output_default(args),
+                )
+            )
             manifest = battery.manifest_document(
                 args.product,
                 owner=owner,
                 implementation={"revision": BATTERY_REVISION},
                 images=BATTERY_IMAGES,
+                selection=selection,
             )
             write_once(path, canonical(manifest))
         ledger.freeze(manifest)
+        plan = manifest["provider"]
+        # The model selection the frozen plan records, as prepare_battery
+        # reads it, for Carbon's agent to call.
+        selection = (
+            None if plan.get("agent") == "none" else battery.plan_selection(args, plan)
+        )
         composition, wrapper = battery.compose(
             ledger=ledger,
             owner=owner,
@@ -717,7 +735,7 @@ def battery_prepare(patch, *, miner_key=None):
             agent_policy=AUTONOMOUS,
             campaign=challenge,
             challenge=CHALLENGE,
-            selection=None,
+            selection=selection,
         )
 
     patch(research_campaign, "prepare", prepare)
@@ -857,13 +875,12 @@ class BatteryLaunchpad:
 
     def launch(self, key, agent="none", budget=None):
         from carbon.battery.challenge import CHALLENGE
-        from carbon.development_session.research_agent import RESERVATION_NANO
 
         if agent != "none" and budget is None:
             budget = {
                 "ceilings": {
                     "provider_attempts": 24,
-                    "provider_nanodollars": 24 * RESERVATION_NANO,
+                    "provider_nanodollars": 24 * new_plan_reservation(),
                     "research_trials": 4,
                 }
             }
@@ -1102,6 +1119,24 @@ def provider_trouble(battery):
     return campaign, script, uncertain
 
 
+def new_plan_reservation():
+    """What each model call of a new plan on the pinned model reserves: the
+    cost of its whole input and its own maximum output, the default output
+    cap of a new plan (OWNER-LAUNCHPAD-PROD-02)."""
+    from carbon.development_session.model_provider import (
+        GPT5_MINI,
+        OUTPUT_DEFAULT_V2,
+        select,
+    )
+
+    return select(
+        provider_id="openai-responses",
+        model_id=GPT5_MINI,
+        credential={"kind": "file", "reference": "unset"},
+        output_default=OUTPUT_DEFAULT_V2,
+    ).reservation_nano
+
+
 def finish_after_settlement(battery, campaign, script, uncertain):
     """Resume after the unknown call was settled: the same turn goes out
     again under a fresh identity, and the agent stops; the campaign ends."""
@@ -1131,10 +1166,13 @@ def finish_after_settlement(battery, campaign, script, uncertain):
     used = ledger.status(owner=owner)["used"]
     # Cut reply, 503 and its retry, the unknown call, its resend.
     assert used["provider_attempts"] == 5
+    # Settled at its full reservation: the model's own maximum output, not
+    # the historical 2,048-token cap (OWNER-LAUNCHPAD-PROD-02).
     assert (
         used["provider_nanodollars"]
         >= uncertain["booked_on_settlement"]["provider_nanodollars"]
-        == RESERVATION_NANO
+        == new_plan_reservation()
+        > RESERVATION_NANO
     )
 
 

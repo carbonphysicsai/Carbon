@@ -39,7 +39,17 @@ def prepare(tmp_path, monkeypatch, agent):
         agent=agent,
     )
     constructed = []
-    monkeypatch.setattr(campaign, "ResponsesTransport", constructed.append)
+    # The pinned transport, or (since a new plan's output cap is the model's
+    # own maximum, OWNER-LAUNCHPAD-PROD-02) the selection's: either is built
+    # from the key file.
+    monkeypatch.setattr(
+        campaign, "ResponsesTransport", lambda path: constructed.append(str(path))
+    )
+    monkeypatch.setattr(
+        campaign,
+        "SelectionTransport",
+        lambda selection: constructed.append(selection.credential.reference),
+    )
     prepared = asyncio.run(campaign.prepare(args, ledger=meter))
     return prepared, constructed, args
 
@@ -54,4 +64,4 @@ def test_an_agentless_campaign_prepares_without_a_provider_key(tmp_path, monkeyp
 def test_the_agent_still_needs_its_key(tmp_path, monkeypatch, agent):
     prepared, constructed, args = prepare(tmp_path, monkeypatch, agent)
     assert prepared.agent == "autonomous"
-    assert constructed == [args.api_key_file]
+    assert constructed == [str(args.api_key_file)]

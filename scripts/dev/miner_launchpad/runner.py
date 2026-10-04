@@ -637,7 +637,7 @@ MODEL_SELECTION_FIELDS = frozenset(
 )
 
 
-def setup_selection(cfg, *, settings=None):
+def setup_selection(cfg, *, settings=None, output_default=None):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -649,6 +649,7 @@ def setup_selection(cfg, *, settings=None):
     return select(
         credential={"kind": "file", "reference": path or "unset"},
         settings=settings,
+        output_default=output_default,
         **chosen,
     )
 
@@ -728,7 +729,9 @@ class LaunchChoice:
     selection: object = None
     feedback_mode: str | None = None
     #: The launch's settings overrides, exactly as `select` accepted them.
-    #: None keeps the pinned defaults and the historical args shape.
+    #: None keeps the historical args shape and sets nothing: the campaign's
+    #: own builder chooses the defaults, a new plan's output cap being the
+    #: model's own maximum (OWNER-LAUNCHPAD-PROD-02).
     settings: dict | None = None
 
     def apply(self, args):
@@ -1845,10 +1848,12 @@ class RunnerAdapter:
     @staticmethod
     def _launch_choice(cfg, request, challenge):
         """The launch's model and feedback choice, refused by name before
-        anything is created. None when the launch chose neither, which is
-        exactly today's pinned default."""
+        anything is created. None when the launch chose neither: the pinned
+        provider and model, whose output cap the campaign's own builder
+        chooses (the model's own maximum, OWNER-LAUNCHPAD-PROD-02)."""
         from carbon.development_session.model_provider import (
             ADAPTERS,
+            OUTPUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
             select,
@@ -1908,14 +1913,20 @@ class RunnerAdapter:
             if refusal is not None:
                 raise Rejected(refusal, 409)
             try:
+                # A launch makes a new plan: an unset output cap is the
+                # model's own maximum (OWNER-LAUNCHPAD-PROD-02), as the
+                # campaign's own builder will choose it.
                 selection = (
-                    setup_selection(cfg, settings=settings)
+                    setup_selection(
+                        cfg, settings=settings, output_default=OUTPUT_DEFAULT_V2
+                    )
                     if same_as_setup
                     else select(
                         provider_id=provider,
                         model_id=model,
                         credential={"kind": "file", "reference": path},
                         settings=settings,
+                        output_default=OUTPUT_DEFAULT_V2,
                     )
                 )
                 budget = miner_budget(request.get("budget"))

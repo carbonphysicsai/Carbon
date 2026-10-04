@@ -102,7 +102,9 @@ FIELDS = {
             "max_input_tokens, max_output_tokens, reasoning_effort and "
             "timeout_seconds, within the provider selection's bounds. Needs "
             "model_provider; recorded in the campaign manifest. Omitted: the "
-            "pinned defaults."
+            "pinned defaults, except max_output_tokens, which is the chosen "
+            "model's own maximum output where Carbon records one; set it to "
+            "cap the agent's replies (each call is reserved at the cap)."
         ),
     ),
     "feedback_mode": (

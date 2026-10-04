@@ -521,7 +521,9 @@ def test_both_doors_carry_model_settings_as_an_object():
 def test_a_chosen_output_cap_reaches_the_campaign_and_its_record(tmp_path, monkeypatch):
     """The cap flows launch -> choice -> args -> the campaign's own selection
     builder -> the provider plan the manifest freezes, and sizes the per-call
-    reservation. The specimen: the same launch without settings keeps 2048."""
+    reservation. The specimen: the same launch without settings takes the
+    model's own maximum (OWNER-LAUNCHPAD-PROD-02; it kept 2048 before), so the
+    miner's cap is what binds."""
     from carbon.battery.campaign import provider_plan
 
     cfg, _ = engy_profile(tmp_path)
@@ -548,8 +550,8 @@ def test_a_chosen_output_cap_reaches_the_campaign_and_its_record(tmp_path, monke
     bridge.launch(default_request, "request-key-default-settings")
     default = started[1][4]
     assert default.settings is None
-    assert default.selection.settings.max_output_tokens == 2048
-    assert selection.reservation_nano > default.selection.reservation_nano
+    assert default.selection.settings.max_output_tokens == 131072
+    assert selection.reservation_nano < default.selection.reservation_nano
 
 
 @pytest.mark.parametrize(

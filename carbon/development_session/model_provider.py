@@ -72,6 +72,9 @@ UNKNOWN_SPEND = (
     "records token usage only; limit spend at your provider."
 )
 
+#: The output caps a selection may carry (`select`), inclusive.
+OUTPUT_TOKEN_BOUNDS = (256, 131072)
+
 
 @dataclass(frozen=True)
 class Pricing:
@@ -125,6 +128,26 @@ class Settings:
             "max_output_tokens": self.max_output_tokens,
             "reasoning_effort": self.reasoning_effort,
             "timeout_seconds": self.timeout_seconds,
+        }
+
+
+@dataclass(frozen=True)
+class OutputMaximum:
+    """The most output tokens one reply may carry, as the provider documents
+    it, and where that came from. Recorded like a price: sourced and dated,
+    never guessed."""
+
+    tokens: int
+    reference: str
+    observed: str
+    note: str
+
+    def record(self):
+        return {
+            "max_output_tokens": self.tokens,
+            "reference": self.reference,
+            "observed": self.observed,
+            "note": self.note,
         }
 
 
@@ -246,6 +269,11 @@ class ProviderAdapter:
     #: (`published_pricing`) rather than listed in Carbon.
     live_pricing: bool = False
     errors: ErrorSemantics = OPENAI_ERRORS
+    #: Each model's own documented maximum output, by id (`OutputMaximum`).
+    output_maxima: dict = field(default_factory=dict)
+    #: The provider's documented maximum for every model it serves, where it
+    #: states one and no model's own is recorded.
+    output_maximum: OutputMaximum | None = None
 
     def summary_models(self):
         ids = (
@@ -281,6 +309,17 @@ GPT5_MINI_PRICING = Pricing(
         "re-verified since; reconcile against your provider's usage export."
     ),
 )
+GPT5_MINI_OUTPUT = OutputMaximum(
+    tokens=128000,
+    reference=(
+        "OpenAI model page, https://developers.openai.com/api/docs/models/gpt-5-mini"
+    ),
+    observed="2026-10-03",
+    note=(
+        "400,000 context window, 128,000 max output tokens; gpt-5-mini-2025-08-07 "
+        "is the page's default snapshot. Reasoning counts against the output."
+    ),
+)
 
 
 def _engy(input_nano, output_nano, cached_nano, context):
@@ -311,6 +350,18 @@ ENGY_MODELS = {
 ENGY_LADDER = tuple(ENGY_MODELS)
 ENGY_DEFAULT_MODEL = "deepseek-v4-flash-0731"
 ENGY_MODELS_URL = "https://api.engy.ai/v1/models"
+ENGY_OUTPUT = OutputMaximum(
+    tokens=OUTPUT_TOKEN_BOUNDS[1],
+    reference="Engy published list, " + ENGY_MODELS_URL,
+    observed="2026-10-03",
+    note=(
+        "Engy states no output maximum apart from each model's context: every "
+        "ladder model's max_model_len equals its context_length, 262,144 tokens "
+        "or more. After the default 65,536-token input that leaves more than "
+        "131,072, Carbon's highest output cap, so a reply may use all of it. A "
+        "larger input setting leaves less room; set max_output_tokens to fit."
+    ),
+)
 
 #: Chutes (Bittensor subnet 64): OpenAI Chat Completions with a bearer key.
 #: Its public model list carries each model's price in USD per million tokens
@@ -337,6 +388,7 @@ ADAPTERS = {
             endpoint="https://api.openai.com/v1/responses",
             base_url="https://api.openai.com/v1",
             priced_models={GPT5_MINI: GPT5_MINI_PRICING},
+            output_maxima={GPT5_MINI: GPT5_MINI_OUTPUT},
         ),
         ProviderAdapter(
             adapter_id="engy-anthropic",
@@ -351,6 +403,7 @@ ADAPTERS = {
             reported_charge="x_engy.charged_micro",
             models_url=ENGY_MODELS_URL,
             errors=ENGY_MESSAGES_ERRORS,
+            output_maximum=ENGY_OUTPUT,
         ),
         ProviderAdapter(
             adapter_id="engy-chat",
@@ -364,6 +417,7 @@ ADAPTERS = {
             reported_charge="x_engy.charged_micro",
             models_url=ENGY_MODELS_URL,
             errors=ENGY_CHAT_ERRORS,
+            output_maximum=ENGY_OUTPUT,
         ),
         ProviderAdapter(
             adapter_id="chutes",
@@ -400,13 +454,27 @@ ADAPTERS = {
     )
 }
 
-#: The historical settings every pinned campaign ran with.
+#: The historical settings every pinned campaign ran with. They stay exactly
+#: as they are: the pinned default resolves to them, and every plan frozen
+#: before OUTPUT_DEFAULT_V2 recorded its output cap from them.
 DEFAULT_SETTINGS = Settings(
     max_input_tokens=65536,
     max_output_tokens=2048,
     reasoning_effort="low",
     timeout_seconds=120,
 )
+
+#: How a new plan's output cap is chosen when the miner sets none
+#: (OWNER-LAUNCHPAD-PROD-02, decision 1: no Carbon-imposed output cap). Its
+#: default is the selected model's own maximum output (`output_maximum`), and
+#: only a cap the miner sets binds below it. Every call is still reserved and
+#: metered at that cap against the miner's own ceilings. A selection built
+#: without it (None, the historical rule) keeps `DEFAULT_SETTINGS`' 2,048, so
+#: what an earlier plan recorded, and every caller that is not a new plan
+#: (Graphite, a development grant), is unchanged. A plan records its cap, so
+#: it replays the same under either rule.
+OUTPUT_DEFAULT_V2 = "carbon.model-selection.output-default.v2"
+OUTPUT_DEFAULTS = (None, OUTPUT_DEFAULT_V2)
 
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -672,6 +740,48 @@ def _credential(value):
     return CredentialReference("file", reference)
 
 
+#: Where a new plan's default output cap came from (`output_maximum`).
+OUTPUT_FROM_MODEL = "model_documented_maximum"
+OUTPUT_FROM_PROVIDER = "provider_documented_maximum"
+OUTPUT_CONSERVATIVE = "no_documented_maximum"
+
+
+def output_maximum(provider_id, model_id):
+    """The selected model's own maximum output, as Carbon records it:
+    `{"max_output_tokens", "basis", "source"}`.
+
+    1. The model's own documented maximum (`ProviderAdapter.output_maxima`).
+    2. Otherwise the provider's documented maximum for the models it serves
+       (`ProviderAdapter.output_maximum`).
+    3. Otherwise Carbon knows none, and never guesses one. A cap above a
+       model's real maximum is refused by its provider as an invalid request,
+       which replays and stops the campaign, so the conservative historical
+       cap (`DEFAULT_SETTINGS`, 2,048 tokens) is reserved until the miner sets
+       their own.
+
+    Never outside `OUTPUT_TOKEN_BOUNDS`.
+    """
+    adapter = ADAPTERS.get(provider_id)
+    if adapter is None:
+        raise ModelSelectionRefused("unknown provider adapter")
+    documented = adapter.output_maxima.get(model_id)
+    basis = OUTPUT_FROM_MODEL
+    if documented is None:
+        documented, basis = adapter.output_maximum, OUTPUT_FROM_PROVIDER
+    if documented is None:
+        return {
+            "max_output_tokens": DEFAULT_SETTINGS.max_output_tokens,
+            "basis": OUTPUT_CONSERVATIVE,
+            "source": None,
+        }
+    low, high = OUTPUT_TOKEN_BOUNDS
+    return {
+        "max_output_tokens": min(max(documented.tokens, low), high),
+        "basis": basis,
+        "source": documented.record(),
+    }
+
+
 def select(
     *,
     provider_id,
@@ -681,6 +791,7 @@ def select(
     settings=None,
     declared_pricing=None,
     published_pricing=None,
+    output_default=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
@@ -691,10 +802,16 @@ def select(
     `declared_pricing` is the miner's own statement of price for a model with
     no listed price; a listed price is never overridden. `published_pricing`
     is a live-priced provider's own price as `published_pricing()` read it.
+    `output_default` is how an unset max_output_tokens is chosen: None, the
+    historical 2,048, or `OUTPUT_DEFAULT_V2` for a new plan, the model's own
+    maximum (`output_maximum`). A max_output_tokens in `settings` binds
+    either way.
     """
     adapter = ADAPTERS.get(provider_id)
     if adapter is None:
         raise ModelSelectionRefused("unknown provider adapter")
+    if output_default not in OUTPUT_DEFAULTS:
+        raise ModelSelectionRefused("unknown output default")
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -702,6 +819,10 @@ def select(
     if adapter.allowed_models is not None and model_id not in adapter.allowed_models:
         raise ModelSelectionRefused("model id not allowed for this provider")
     chosen = dict(DEFAULT_SETTINGS.record())
+    if output_default == OUTPUT_DEFAULT_V2:
+        chosen["max_output_tokens"] = output_maximum(provider_id, model_id)[
+            "max_output_tokens"
+        ]
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")
@@ -713,7 +834,7 @@ def select(
             chosen["max_input_tokens"], 16384, 1048576, "max_input_tokens"
         ),
         max_output_tokens=_int(
-            chosen["max_output_tokens"], 256, 131072, "max_output_tokens"
+            chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"
         ),
         reasoning_effort=chosen["reasoning_effort"],
         timeout_seconds=_int(chosen["timeout_seconds"], 10, 600, "timeout_seconds"),

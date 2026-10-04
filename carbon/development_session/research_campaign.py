@@ -33,6 +33,8 @@ from .data import write_once
 from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .model_provider import (
     MODEL,
+    OUTPUT_DEFAULT_V2,
+    OUTPUT_DEFAULTS,
     SelectionTransport,
     check_budget,
     select,
@@ -759,11 +761,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
 
 
-def supplied_selection(args):
+def supplied_selection(args, *, output_default=None):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
-    time; its path is never recorded."""
+    time; its path is never recorded. `output_default` is how an unset
+    output cap is chosen (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -774,19 +777,34 @@ def supplied_selection(args):
     if type(spec) is not dict:
         raise ValueError("model selection must be an object")
     credential = {"kind": "file", "reference": "unset" if path is None else str(path)}
-    return select(**{"credential": credential, **spec})
+    return select(
+        **{"credential": credential, **spec, "output_default": output_default}
+    )
+
+
+def new_plan_output_default(args):
+    """How a new campaign's agent output cap is chosen when the miner sets
+    none. A product campaign is the miner's own, on the miner's own budget,
+    so its agent may use the selected model's own maximum output
+    (`OUTPUT_DEFAULT_V2`, OWNER-LAUNCHPAD-PROD-02). A campaign admitted by a
+    development grant keeps the historical default its grant was sized for."""
+    return OUTPUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
 
 
 def resolve_selection(args, record):
     """A frozen campaign's selection from its recorded block; a differing
-    `model_selection` supplied on resume is refused."""
+    `model_selection` supplied on resume is refused.
+
+    A supplied choice that sets no output cap names the frozen one under
+    either output default: the plan recorded the cap its own rule chose, and
+    resolving it again under today's rule must not refuse an earlier plan."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
     )
-    if (
-        getattr(args, "model_selection", None) is not None
-        and supplied_selection(args).record() != chosen.record()
+    if getattr(args, "model_selection", None) is not None and all(
+        supplied_selection(args, output_default=rule).record() != chosen.record()
+        for rule in OUTPUT_DEFAULTS
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -795,12 +813,13 @@ def resolve_selection(args, record):
 def campaign_selection(args):
     """The campaign's model selection (`model_provider`). A frozen campaign's
     is the one its manifest records - every campaign frozen before selection
-    existed resolves to the pinned default - otherwise the miner's."""
+    existed resolves to the pinned default - otherwise the miner's, with a new
+    plan's output default (`new_plan_output_default`)."""
     manifest_path = args.root / "campaign-manifest.json"
     if manifest_path.exists():
         frozen = json.loads(manifest_path.read_bytes())
         return resolve_selection(args, frozen["provider"])
-    return supplied_selection(args)
+    return supplied_selection(args, output_default=new_plan_output_default(args))
 
 
 @dataclasses.dataclass

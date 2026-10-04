@@ -311,12 +311,20 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_agent_policy import AUTONOMOUS
-        from carbon.development_session.research_campaign import supplied_selection
+        from carbon.development_session.research_campaign import (
+            new_plan_output_default,
+            supplied_selection,
+        )
 
         if getattr(args, "agent_policy", None) != AUTONOMOUS:
             raise ValueError("a battery agent runs only under the autonomous policy")
         if frozen is None:
-            selection = supplied_selection(args)
+            # A new plan: its agent's output cap defaults to the selected
+            # model's own maximum, unless the miner set one
+            # (OWNER-LAUNCHPAD-PROD-02). The plan records the cap it chose.
+            selection = supplied_selection(
+                args, output_default=new_plan_output_default(args)
+            )
             plan = provider_plan(agent, product.budget, selection)
         else:
             plan = frozen["provider"]
