@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-attack-battery-adapter-level-0",
+  "recorded_at": "2026-10-04T15:30:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_attack_battery_adapter.py (plus test_battery_track_a.py and test_agent_campaign_climb.py), with the adapter's own smoke run, on WSL, JAX CPU",
+    "description": "Battery's Level 0 attack adapter (slice AT-B of OWNER-GRAPHITE-ATTACKER-01). It runs the eight Track A checks as nine families and two seams, against the real boundaries, with specimens, trained and held-out controls and twelve mutations."
+  },
+  "expected": "track_a's five families could be reused unchanged and the remaining checks added beside them, with every name an agent might see passing Graphite's protected-material check.",
+  "observed": "Graphite's protected-material check refused more than expected. The Track A check id fresh_attack_confirmation contains the deny fragment 'confirmation'. Every control named after the EV4 panel contains 'ev4'. track_a's canary needles contain 'canary'. The first draft reported a staged-canary leak as an exposure (OTHER_SIGNAL) instead of a breach (FAILING_TRIGGER), because the output scan ran before the detector. A cold `import carbon.agent_campaign.graphite.tools` fails on its circular import with `literature` unless `literature` loads first. `climb.ClimbPlan` refuses level 0, so a Level 0 ablation has to reuse the registered Level 1 draft plan, whose previous and ablated profiles are both Level 0. An accepted battery compile costs about 0.45 s. A contract-level refusal is near-instant, so a sweep over all 40 withheld capabilities costs little, and the panel controls dominate the run time.",
+  "keep": [
+    "Look up a reused harness's boundaries at call time, so that a weakened boundary is seen and the harness's own report stays byte-identical.",
+    "Decide a breach before scanning a boundary's output for protected text, and keep evidence only by digest.",
+    "Derive permission sweeps from the live contract, read only, rather than from a hand-written list."
+  ],
+  "change": [
+    "Check every agent-visible name against agent_campaign.boundaries.DENY_FRAGMENTS when it is written: check ids such as fresh_attack_confirmation, and anything named after EV4 or EV5, are Carbon's vocabulary only.",
+    "Make graphite.tools importable on its own, or document that literature loads first."
+  ],
+  "protocol_elements": [
+    "the eight shared Track A checks, each with an attack example and a valid control",
+    "trained and held-out controls, with the held-out controls read only for the wrongful-rejection rate",
+    "higher construction levels declared NOT_RUN, never a pass"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

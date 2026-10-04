@@ -23,8 +23,9 @@ A request the adapter refuses comes back as a typed result with no authority.
 A failure after which the request may have been dispatched sets
 `requires_reconciliation`, so the research loop stops rather than resend.
 
-Phase 3 attaches only to a battery DEVELOPMENT campaign (the battery
-Challenge's own id and version): no other Challenge, and nothing official.
+Phase 3 attaches only to a DEVELOPMENT campaign for the session's Challenge
+(its `ChallengeScoring`'s id and version; battery today): no other Challenge,
+and nothing official.
 """
 
 from __future__ import annotations
@@ -112,27 +113,32 @@ def _refused(code):
     }
 
 
-def check_battery_development(manifest):
-    """The attached miner campaign must be the battery DEVELOPMENT Challenge."""
-    from carbon.battery.challenge import CHALLENGE
+def check_challenge(manifest, scoring=None):
+    """The attached miner campaign must be the session's DEVELOPMENT Challenge
+    (its `ChallengeScoring`; the only registered one unless named)."""
+    from carbon.challenge_validator import scoring as challenge_scoring
 
+    try:
+        scoring = challenge_scoring.resolve(scoring)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise MinerPathRefused(refused.code) from None
     challenge = (manifest or {}).get("challenge") or {}
-    if challenge.get("id") != CHALLENGE.challenge_id or challenge.get("version") != (
-        CHALLENGE.version
-    ):
-        raise MinerPathRefused("miner_campaign_is_not_battery_development")
+    named = {"id": challenge.get("id"), "version": challenge.get("version")}
+    if not scoring.check_challenge(named):
+        raise MinerPathRefused("miner_campaign_is_not_the_sessions_challenge")
     return challenge
 
 
 @contextlib.asynccontextmanager
-async def attach(configuration, campaign, *, session):
-    """Attach to a miner's battery campaign through the standard miner door;
-    yields `MinerPathTools`. The lock is held for the whole session."""
+async def attach(configuration, campaign, *, session, scoring=None):
+    """Attach to a miner's campaign for the session's Challenge through the
+    standard miner door; yields `MinerPathTools`. The lock is held for the
+    whole session."""
     from pathlib import Path
 
     from carbon.miner_mcp.standard_cli import attached_profile, load_profile
 
     profile = load_profile(Path(configuration), campaign)
-    check_battery_development(profile.manifest)
+    check_challenge(profile.manifest, scoring)
     async with attached_profile(profile) as (adapter, _profile):
         yield MinerPathTools(adapter, session=session)

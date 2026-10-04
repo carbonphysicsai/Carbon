@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-validator-01-attribution-policy",
+  "recorded_at": "2026-10-04T21:20:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-01 slice 2 (#573), branch claude/validator-scoring at 5b35a6ecc. Canonical (groups chain archive science-jax science-torch mcp): 910 passed, 1 failed. The failure is the protected_marker_removed mutation, red on main f49ac6d9f and fixed by #572. scripts/check_quality.py passed.",
+    "description": "Two rulings refined slice 2's pod failure attribution. The Test Lead made attribution level-dependent: at Levels 0-3 Carbon's own trainer writes the claim, so a program failure stays CANDIDATE_FAILED. At the owner's direction, attribution became a versioned, registered policy (pod-attribution-v1): a data document pinned by digest in a registry and interpreted by pod_outcome, with invariants checked at load."
+  },
+  "expected": "A rule about who wrote a pod's claim can be changed from evidence without editing scoring code, and nothing an attacker writes in a pod can give it infrastructure semantics or a score.",
+  "observed": "The first draft applied the shared-uid rule everywhere, so a recipe that crashed Carbon's own trainer would have been typed FAILED_INFRA, with infra semantics: no penalty, a retry, a refund. That opens the very Track A family (selective crash/retry) the rule was meant to defend. The threat lives where participant code runs, so the construction level is the right switch, and it must come from the run's recorded permission profile, never the submission. Moving the rule into a registered policy separated two kinds of content. The tunables (trusted levels, retry count, the admissible outcomes) live in the document. The invariants (never SCORED, ambiguity never blamed) stay as load-time checks a policy cannot loosen. Recording the raw claim, the host timing and the policy version on every attempt is what lets the Attacker judge v1. Before v1, a pod compile failure was FAILED_INFRA, not CANDIDATE_FAILED, and keeping it so was a deliberate reading of 'as before'. Adding package-data for the policy files would have triggered the hour-long environment rebuild, so they are read from the checkout, like battery's EV contract JSON.",
+  "keep": [
+    "Put a rule that is still being discovered in a registered, versioned policy document; keep the invariants it must respect as code-level checks it cannot override.",
+    "Record the policy version and digest, the raw evidence and the authority's observations on every outcome the policy types.",
+    "Derive who could have written evidence from the run's recorded profile, never from the submission.",
+    "When a ruling says 'stays as before', check what 'before' actually was in the code before changing it."
+  ],
+  "change": [
+    "When a security rule would change who bears a failure, ask which party the threat comes from at each construction level before applying it everywhere.",
+    "Check whether a packaging change triggers the environment lane before adding data files that would need it."
+  ],
+  "protocol_elements": [
+    "pod failure attribution is a registered, versioned policy (pod-attribution-v1) whose outcomes record their policy version",
+    "at Levels 0-3 Carbon's own trainer writes a pod's claim; at Levels 4-5 without a separated image the claim is evidence only",
+    "no policy may score an unfinished run or blame a candidate on ambiguous evidence"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

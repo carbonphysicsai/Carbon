@@ -5,8 +5,10 @@
 # tarballs by SHA-256, checked before they are unpacked. The build needs the
 # network; a run never does (it runs with --network none).
 #
-# GetDP and Gmsh are GPL. Carbon runs them on an operator host and writes
-# their input files; it does not redistribute them.
+# GetDP and Gmsh are GPL-2.0-or-later. The built image is published (owner
+# decision, OWNER-DATA-MOTOR-01) and so redistributes their unmodified upstream
+# binaries; the matching upstream source releases and their SHA-256 are
+# recorded in that decision.
 
 FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
 

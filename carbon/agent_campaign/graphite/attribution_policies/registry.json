@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.graphite.pod-attribution-registry.v1",
+  "current": "pod-attribution-v1",
+  "versions": {
+    "pod-attribution-v1": "sha256:a349dbf8821d01e553e7c4355d7185f1780a6f06987303912da6f89cbce60c97"
+  },
+  "rule": "A new attribution policy is a new document in this directory plus a registered entry here (and, to make it current, a change to `current`), never an edit to scoring code. Every pod outcome records the version and digest it was typed under."
+}

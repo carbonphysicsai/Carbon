@@ -366,6 +366,53 @@ settles at its full reservation, as on `engy-anthropic`:
   hold 30 calls, where 120 s calls would hold 150.
 - Pods are admitted exactly as before.
 
+## GRAPHITE-GRANT-PHASE3-R2 (GRAPHITE-01 phase 3, refund of sessions 2 and 3)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-REFUND-01
+(`.agent/decisions/2026-10-04-OWNER-GRAPHITE-PHASE3-REFUND-01.md`). Asked
+whether session 2 counts as one of GRAPHITE-GRANT-PHASE3's runs, the owner said
+"no". Asked to approve this grant, which also refunds session 3, the owner said
+"approve R2". Both sessions failed on Carbon harness defects, not Graphite
+attempts:
+
+- session 2 stopped on `context_ceiling` (GRAPHITE-D34);
+- session 3 hit the pod store's cross-thread `sqlite3.ProgrammingError`.
+
+**Why a second grant.** The controller counts every run row against
+`permitted_runs` and binds its store to the exact grant document it first
+opened. GRAPHITE-GRANT-PHASE3 therefore stays unchanged, at 3 of 3 runs used,
+and can never launch again. This grant runs in a fresh controller root.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `10.07` USD | 2 × `worst_case_run_cost` + `cleanup_allowance` (below) |
+| `permitted_runs` | `2` | Sessions 2 and 3 refunded |
+| `max_submissions` | `2` | One per run, as GRAPHITE-GRANT-PHASE3 |
+| `worst_case_run_cost` | `4.91` USD | Unchanged from GRAPHITE-GRANT-PHASE3 |
+| `cleanup_allowance` | `0.25` USD | Unchanged |
+| `max_runtime_s`, `max_concurrency`, `provider`, `account`, `expires_at`, `granted_by` | as GRAPHITE-GRANT-PHASE3 | Unchanged |
+
+### Arithmetic
+
+    validator:   cleanup + worst case          = 0.25 + 4.91        = 5.16  ≤ 10.07
+    run 1 gate:  0 + 4.91 + 0.25               = 5.16               ≤ 10.07
+    run 2 gate:  run 1 (at most 4.91) + 4.91 + 0.25 = 10.07         ≤ 10.07
+
+Run 2 can always launch, even if run 1 is held at its full reservation.
+
+**Phase-3 total.** Sessions 1–3 spent about USD 0.015 (USD 0.0031, 0.0063 and
+0.0055) and created no pods. With this grant, phase 3's worst case is about
+USD 10.09, inside the original USD 15.00. GRAPHITE-GRANT-PHASE3's unused
+headroom cannot be spent, because that grant cannot launch.
+
+**Entry conditions for each run.** These apply in addition to the phase-3
+handoff:
+
+- the pod-thread fix has merged;
+- the real-path no-spend pre-live check passes at the run's REF;
+- the owner confirms the REF;
+- the operator host is agreed with Data Collection.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
@@ -483,3 +530,84 @@ runtime cap of 4,800 s is under the approved two hours.
 | `max_concurrency` | `1` | One session at a time |
 | `max_runtime_s` | `4800` | 8 calls × 600 s, under the approved two hours |
 | `max_submissions` | `2` | As PLANNER-01 |
+
+## GRAPHITE-GRANT-PHASE4 (Graphite's Attacker, the general attack engine)
+
+**Authority.** OWNER-GRAPHITE-ATTACKER-01
+(`.agent/decisions/2026-10-04-OWNER-GRAPHITE-ATTACKER-01.md`), and the Test
+Lead's record OWNER-GRAPHITE-TEST-WAVE-01 §2
+(carbonphysicsai/Carbon#556), which records the same approval. Asked to
+approve the live grant for Graphite's Attacker, the owner answered "Approve
+now". The engine is challenge-neutral; its first adapter is battery Level 0.
+
+**State.** Approved. The grant validates and the phase-4 runner accepts it. No
+live session has run: the engine's scripted dry run
+(`python -m carbon.agent_campaign.graphite.phase4 run --dry-run`) spends
+nothing, and a live run takes place only after the engine merges and that dry
+run passes (OWNER-GRAPHITE-ATTACKER-01 §5).
+
+One grant covers both kinds of spend, as the phase-3 grant does: the Attacker's
+Engy model calls, and the RunPod pods on which Carbon would rebuild the attack
+constructions it scores (the verify step; §5). In this build that pod rebuild
+is a declared NOT_RUN seam (`phase4.POD_REBUILD_SEAM`): a live Attacker run
+launches no pod, and the pods' share of each run stays reserved but unspent.
+Each run is reserved at
+`worst_case_run_cost` by the campaign controller; inside the run every model
+call is reserved before dispatch and admitted against the run's token share.
+**Money and time bind, never a call count** (OWNER-GRAPHITE-ATTACKER-01 §5,
+following OWNER-GRAPHITE-MINER-01 §6): the Attacker session opens under the v2
+session-limits rule with no session-turn cap and no per-role call cap.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `10.50` USD | The owner, as proposed. Tokens and pods together |
+| `account` | `Carbon-Account` | The same paying account as the phase-2 and phase-3 grants |
+| `expires_at` | `2026-12-31T23:59:59Z` | As proposed and approved |
+| `provider` | `graphite` | The provider a Graphite grant binds |
+| `granted_by` | `owner` | OWNER-GRAPHITE-ATTACKER-01 §5 |
+| `permitted_runs` | `3` | The first block of 3 Attacker sessions |
+| `cleanup_allowance` | `0.25` USD | pod_control's `CLEANUP_RESERVE_USD`, as phase 3 |
+| `worst_case_run_cost` | `3.41` USD | Derived (below) |
+| `max_runtime_s` | `15600` | As proposed and approved |
+| `max_concurrency` | `1` | One session at a time |
+| `max_submissions` | `3` | One session export per permitted run |
+
+### Arithmetic
+
+This is engineering arithmetic from recorded prices, not a new price. It uses
+the same pod price as the phase-3 grant (`graphite.pods.prices()`, read from
+the EV4 pod tooling): USD 0.246369864 per 30-minute pod.
+
+**Pods per run.** A run's worst case rebuilds up to six attack constructions
+on their own pods (the verify step, §5):
+
+    6 × USD 0.246369864 = 1.478219184  →  USD 1.48 (rounded up to the cent)
+
+**One run's worst case.** The owner approved USD 3.41 a run: the six pods
+plus about 40 `glm-5.2` calls.
+
+**Tokens per run.** The token share is what the run cost leaves after the
+pods:
+
+    3.41 − 1.48 = USD 1.93
+
+The Attacker starts on `glm-5.2`. At `DEFAULT_SETTINGS` (65,536 input and 2,048
+output tokens) one call reserves 65,536 × 680 + 2,048 × 1,500 = 47,636,480
+nanodollars, USD 0.04763648, so the token share covers about 40 calls
+(1.93 / 0.04763648 ≈ 40.5; 40 calls are USD 1.9054592). The call count only
+explains the figure: money binds, not the count.
+
+**Runs.** Three permitted runs, plus cleanup, stay under the ceiling:
+
+    3 × 3.41 + 0.25 = 10.48 ≤ 10.50
+
+The run's research ledger is frozen with the token share as its money cap, so
+a run cannot spend more than that on model calls whatever rung the Attacker
+reaches; the controller reserves the whole `worst_case_run_cost` per run, and
+its launch gate (settled and reserved spend, plus the next run's worst case,
+plus cleanup, within the ceiling) uses money alone. No call count bounds a
+run. The grant's `max_runtime_s` is the run's elapsed limit.
+
+**Expected spend.** Each call and each pod settles from the provider's
+reported charge, not from its reservation. The first live session measures the
+real figures and replaces these numbers.
