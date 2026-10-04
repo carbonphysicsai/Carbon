@@ -27,9 +27,10 @@ const TASK_ID_PATTERN = /^rtsk_[a-f0-9]{64}$/;
 // failure carries an explicit dispatch flag. A fixed list here would judge a
 // server that adds a precise code (for example a pre-dispatch refusal that
 // says dispatch did not happen) as having emitted no coded failure at all.
-// Observed errors are JSON-stringified tool content, so a coded failure is a
-// text block that starts with its code.
-const CODED_FAILURE = /"text":"([A-Z][A-Z_]{3,39});/;
+// Observed errors are JSON-stringified tool content. A coded failure's text
+// starts with its code, or carries it after the SDK's "Error executing tool
+// <name>: " prefix.
+const CODED_FAILURE = /(?:"text":"|:\s)([A-Z][A-Z_]{3,39});/;
 const ERROR_PATTERN =
   /\b([A-Z][A-Z_]{3,39});\s*dispatch_may_have_occurred=(true|false)/;
 // A leaked absolute path, home directory or bearer-shaped secret in an error.
