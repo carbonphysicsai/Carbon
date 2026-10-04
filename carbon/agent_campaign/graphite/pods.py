@@ -50,6 +50,7 @@ import urllib.parse
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
+from types import MappingProxyType
 from typing import Protocol
 
 REPOSITORY = Path(__file__).resolve().parents[3]
@@ -788,6 +789,12 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
 CHECK_KEY = "graphite-real-path-check-no-key"
 CHECK_SCHEMA = "carbon.graphite.pod-real-path-check.v1"
 _REST_PODS = "https://rest.runpod.io/v1/pods"
+_CHECK_FILES = MappingProxyType(
+    {
+        "DONE.json": b'{"exit": 0, "synthetic": true}',
+        "check.json": b'{"real_path_check": true, "synthetic": true}',
+    }
+)
 
 
 class InMemoryRunPod:
@@ -847,10 +854,7 @@ class InMemoryRunPod:
         return 404, {"error": "not modelled"}
 
     #: What every in-memory pod exports: a stated synthetic marker, nothing else.
-    FILES = {
-        "DONE.json": b'{"exit": 0, "synthetic": true}',
-        "check.json": b'{"real_path_check": true, "synthetic": true}',
-    }
+    FILES = _CHECK_FILES
 
     def http(self, url, token, timeout):
         pod_id = url.split("//", 1)[1].split("-8000.", 1)[0]
@@ -949,8 +953,7 @@ def real_path_check(root, *, code_ref=None, repository=REPOSITORY, launches=2):
             for index in range(launches)
         ]
         privates = {
-            job.intent_id: private_dir(root / "private" / job.intent_id)
-            for job in jobs
+            job.intent_id: private_dir(root / "private" / job.intent_id) for job in jobs
         }
 
         async def lifecycle(job):

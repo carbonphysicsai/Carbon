@@ -129,7 +129,9 @@ def test_one_intent_launched_twice_at_once_sends_one_create(tmp_path):
     item = job(0)
     results = launch_all(live, tmp_path, [item, item])
     assert fake.creates() == 1
-    pod_ids = {result.pod_id for result in results if isinstance(result, pods.PodHandle)}
+    pod_ids = {
+        result.pod_id for result in results if isinstance(result, pods.PodHandle)
+    }
     assert len(pod_ids) == 1
     for result in results:
         if isinstance(result, BaseException):
