@@ -203,6 +203,12 @@ def _cold_plate():
     return describe()
 
 
+def _motor():
+    from .motor import describe
+
+    return describe()
+
+
 def _compile_burgers(strategy):
     from carbon.development_session.research_catalog import compile_recipe
 
@@ -221,6 +227,12 @@ def _compile_cold_plate(strategy):
     return compile_recipe(strategy)
 
 
+def _compile_motor(strategy):
+    from carbon.motor.compile import compile_recipe
+
+    return compile_recipe(strategy)
+
+
 def _entries():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
@@ -229,6 +241,8 @@ def _entries():
         BURGERS_CONTRACT,
         COLD_PLATE_CHALLENGE,
         COLD_PLATE_CONTRACT,
+        MOTOR_CHALLENGE,
+        MOTOR_CONTRACT,
     )
 
     carrier = ("docker_cli", "trusted_worker_image", "jax", "optax")
@@ -298,12 +312,23 @@ def _entries():
             _compile_cold_plate,
         ),
         Entry(
-            "electric-motor-magnetics",
-            None,
-            "Electric-motor magnetic design (reserved)",
-            RESERVED,
+            MOTOR_CHALLENGE,
+            MOTOR_CONTRACT.version,
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section)",
+            IMPLEMENTED,
             "launch",
             "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "NumPy KRR practice in the isolated CPU research carrier; "
+                    "exact public TRAIN and recipe bytes staged",
+                    "numpy-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _motor,
+            _compile_motor,
         ),
         Entry(
             "photonic-coupler",

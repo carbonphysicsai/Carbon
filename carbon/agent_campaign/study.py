@@ -119,9 +119,21 @@ def _studies():
 
         return STUDY
 
-    from carbon.reconstruction.capability_registry import COLD_PLATE_CHALLENGE
+    def motor():
+        from carbon.motor.admission_study import STUDY
 
-    return {BATTERY_CHALLENGE: battery, COLD_PLATE_CHALLENGE: cold_plate}
+        return STUDY
+
+    from carbon.reconstruction.capability_registry import (
+        COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
+    )
+
+    return {
+        BATTERY_CHALLENGE: battery,
+        COLD_PLATE_CHALLENGE: cold_plate,
+        MOTOR_CHALLENGE: motor,
+    }
 
 
 def _text(value):

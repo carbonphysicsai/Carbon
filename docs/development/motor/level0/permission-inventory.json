@@ -1,0 +1,76 @@
+{
+ "authority": "the capability manifest, not the planning label",
+ "challenge": "electric-motor-magnetics",
+ "construction_contract_digest": "sha256:72a5d668fdbc3bb5a6f39332b7f9a2b38ef3568ddfd4fcc2b72f2507ae91af84",
+ "envelope": {
+  "batching": "closed_form_full_train",
+  "precision": "float64",
+  "train_cases": 150,
+  "worker_cpu": 2,
+  "worker_deadline_seconds": 600,
+  "worker_memory_bytes": 4294967296,
+  "worker_swap_bytes": 0
+ },
+ "not_permitted": [
+  "hybrid.reference_solver_reuse",
+  "model_family.neural_operator",
+  "model_family.pretrained_weights",
+  "objective.loss_expressions",
+  "optimizer.learned_optimizer"
+ ],
+ "permitted": [
+  {
+   "applies_to": null,
+   "id": "model_family.kernel_ridge",
+   "planning_level": 0,
+   "surface": null
+  },
+  {
+   "applies_to": [
+    "kernel_ridge"
+   ],
+   "id": "architecture.length",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "choice",
+    [
+     "length_0p25",
+     "length_0p5",
+     "length_1",
+     "length_2",
+     "length_4",
+     "length_8",
+     "length_16"
+    ],
+    null,
+    "length_4"
+   ]
+  },
+  {
+   "applies_to": [
+    "kernel_ridge"
+   ],
+   "id": "architecture.ridge",
+   "planning_level": 0,
+   "surface": [
+    "model",
+    "choice",
+    [
+     "ridge_1e_8",
+     "ridge_1e_6",
+     "ridge_1e_4",
+     "ridge_1e_2",
+     "ridge_1e_1",
+     "ridge_1"
+    ],
+    null,
+    "ridge_1e_4"
+   ]
+  }
+ ],
+ "profile": "level-0",
+ "recorded_difference_from_ladder": "every permitted capability is placed at planning level 0",
+ "schema": "carbon.agent-campaign.permission-inventory.v1",
+ "submission_form": "declarative strategy only; no executable code"
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-format-first-pass",
+  "recorded_at": "2026-10-04T23:13:28.8784784+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 Ruff format first pass",
+    "description": "Checked formatting over the changed Python surface."
+  },
+  "expected": "New Motor files should satisfy repository formatting without forcing unrelated historical reformatting.",
+  "observed": "Eight new Motor implementation/test files and the new discovery adapter need deterministic formatting. The formatter also identified one pre-existing unrelated wrap in challenge_kit/standard.py, which this ticket will preserve.",
+  "keep": [
+    "Limit mechanical formatting to newly authored Motor files."
+  ],
+  "change": [
+    "Format the new Motor files only and leave the unrelated pre-existing standard.py line untouched."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.static-checks",
+    "delivery.scope-discipline"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
