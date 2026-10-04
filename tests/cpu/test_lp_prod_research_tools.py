@@ -10,8 +10,8 @@ Claims tested, each absence paired with the same check finding a presence:
   workspace state its own run changed;
 - the executor reads the same check, so a request that reaches it anyway
   completes as REQUEST_REFUSED, never as an infrastructure failure;
-- through the standard MCP door, such a refusal must arrive as a refusal
-  that dispatched nothing (pending LP-PROD-B's door, a strict xfail);
+- through the standard MCP door, such a refusal arrives as a refusal that
+  dispatched nothing (the door verifies it with `correction_parts`, W1);
 - a run's result - CPU, Julia, local and remote GPU - returns stdout and
   stderr tails and, on a nonzero exit, the traceback with its first and last
   lines, each bounded as delivered;
@@ -679,13 +679,25 @@ def test_registered_correction_refuses_text_carbon_did_not_write():
         "correction_code": "public_material_unknown",
         "field": "arguments_json.name",
         "correction": research_tools.task_correction(
-            "public_material_unknown", "arguments_json.name", None, choices=("a",)
+            "public_material_unknown",
+            "arguments_json.name",
+            None,
+            choices=("objective",),
         ),
     }
     assert registered_correction(listed)
     assert not registered_correction(
-        {**listed, "correction": listed["correction"].replace("a.", "a b.")}
+        {
+            **listed,
+            "correction": listed["correction"].replace("objective.", "objective b."),
+        }
     )
+    # A value that looks like a choice but is on no closed list (a private
+    # identifier, say) is not one Carbon may list (W1).
+    unlisted = research_tools.task_correction(
+        "public_material_unknown", "arguments_json.name", None, choices=("a",)
+    )
+    assert not registered_correction({**listed, "correction": unlisted})
     with pytest.raises(TypeError):
         research_tools.TaskContractMismatch("read_file_range", SENTINEL)
     with pytest.raises(TypeError):
@@ -1477,24 +1489,11 @@ def test_one_maximal_read_fits_beside_the_battery_agents_first_request(tmp_path)
 # ---- 1 (door). A value refusal crosses the standard MCP door as refused.
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AdapterFailure,
-    reason=(
-        "LP-PROD-B: carbon/miner_mcp/standard.py _result accepts a correction "
-        "only for start_research_task and only as text it rebuilds without "
-        "the tool or listed choices a correction names (on origin/main, also "
-        "only without its field); anything else it reports as INVALID_RESULT "
-        "that may have dispatched. It must verify a refusal with "
-        "research_tools.registered_correction. Strict: when the door is "
-        "fixed this passes, and the mark must go."
-    ),
-)
 def test_a_value_refusal_crosses_the_standard_mcp_door_as_refused(door):
     """Nothing started, so the door must say so: a refusal with its code,
-    field and fix, not an invalid result that may have dispatched. Checked
-    against slice B's door with `registered_correction` in `_correction`:
-    this passes, and B's own door tests still pass."""
+    field and fix, not an invalid result that may have dispatched. The door
+    verifies it with the builder's own rule (`correction_parts`, W1); until
+    then this was a strict xfail against slice B's door."""
     from carbon.miner_mcp.standard import (
         AdapterCode,
         ResearchToolAdapter,

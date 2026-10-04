@@ -229,6 +229,27 @@ class WorkspaceRequestRefused(ValueError):
         self.code, self.field, self.choices = code, field, tuple(choices)
 
 
+#: The material names every bound material service serves.
+PUBLIC_MATERIALS = (
+    "objective",
+    "capabilities",
+    "training_data",
+    "practice_data",
+    "reference_method",
+)
+
+
+def every_public_material_name():
+    """Every name `public_material_names` can return, for any material
+    service: the closed list a `public_material_unknown` correction lists
+    from (`research_tools.correction_choices`)."""
+    from .advection_research import MATERIAL as ADVECTION_MATERIAL
+    from .julia_envelope import MATERIAL as ENVELOPE
+    from .julia_research import MATERIAL
+
+    return (*PUBLIC_MATERIALS, MATERIAL, ADVECTION_MATERIAL, ENVELOPE)
+
+
 def public_material_names(public_material):
     """The material names the bound material service serves, in order.
 
@@ -241,13 +262,7 @@ def public_material_names(public_material):
     from .julia_envelope import JuliaEnvelopeMaterial
     from .julia_research import MATERIAL, JuliaPublicMaterial
 
-    names = [
-        "objective",
-        "capabilities",
-        "training_data",
-        "practice_data",
-        "reference_method",
-    ]
+    names = list(PUBLIC_MATERIALS)
     if type(public_material) is JuliaPublicMaterial:
         names.append(MATERIAL)
     if type(public_material) is PublicAdvectionMaterial:

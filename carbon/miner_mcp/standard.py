@@ -33,15 +33,11 @@ from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import DispatchStopped
 from carbon.development_session.research_tools import (
     FIELDS,
-    NULLABLE_TASK_FIELDS,
     PREFIX,
     TASK_CORRECTIONS,
     PreDispatchRefusal,
     ResearchMinerTools,
-    task_correction,
-)
-from carbon.development_session.research_tools import (
-    _registered_argument as registered_argument,
+    correction_parts,
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
@@ -353,6 +349,10 @@ _OBJECT_CORRECTIONS = {
         "This field takes a JSON object (or null where the description allows "
         "it), not a string, list or number."
     ),
+    "json_object_required": (
+        "This field takes one JSON object (not a list or a number), with no "
+        "repeated keys and finite numbers, at most 16384 bytes once encoded."
+    ),
 }
 
 
@@ -368,42 +368,28 @@ def object_wording(text):
 def _correction(operation, value):
     """A registered correction for the object-valued wire, or a refusal.
 
-    The SDK builds a correction from a registered code and the one field that
-    broke the contract (`task_correction`), or, on an older shape, the
-    registered text alone. Only text this module can rebuild from those passes:
-    the code must be registered, the field must be one the SDK may name, and
-    the text must equal what `task_correction` makes for them. So no solver
-    message or exception text can ride along, whatever the shape.
+    The SDK builds every correction with one registered builder
+    (`research_tools.task_correction`): a closed code, the field that broke
+    the contract, the tool, and any values it lists, each drawn from a closed
+    public list - or, on an older shape, the registered text alone. This door
+    verifies a record with that builder's own rule
+    (`research_tools.correction_parts`) and forwards only what it rebuilds
+    exactly, for any research operation (W1: named and listed corrections
+    were refused here as INVALID_RESULT). So no solver message, exception text
+    or private value can ride along, whatever the shape; and a correction
+    naming another tool than the one called is refused.
     """
-    code, text = value["correction_code"], value["correction"]
-    if (
-        operation != "start_research_task"
-        or type(code) is not str
-        or code not in TASK_CORRECTIONS
-        or type(text) is not str
-    ):
+    parts = correction_parts(value)
+    if parts is None or parts.tool not in (None, operation):
         _invalid()
-    field = value.get("field")
-    if "field" in value:
-        if type(field) is not str or not (
-            field in NULLABLE_TASK_FIELDS or registered_argument(field)
-        ):
-            _invalid()
-        # The SDK passes the field's own value; only whether it is the string
-        # "null" changes the text, so these two are every text it can make.
-        expected = {
-            task_correction(code, field, None),
-            task_correction(code, field, "null"),
-        }
-    else:
-        expected = {TASK_CORRECTIONS[code]}
-    if text not in expected:
-        _invalid()
-    if code in _OBJECT_CORRECTIONS:
-        text = text.replace(TASK_CORRECTIONS[code], _OBJECT_CORRECTIONS[code])
-    projected = {"correction_code": code, "correction": object_wording(text)}
-    if field is not None:
-        projected["field"] = object_wording(field)
+    text = value["correction"]
+    if parts.code in _OBJECT_CORRECTIONS:
+        text = text.replace(
+            TASK_CORRECTIONS[parts.code], _OBJECT_CORRECTIONS[parts.code]
+        )
+    projected = {"correction_code": parts.code, "correction": object_wording(text)}
+    if parts.field is not None:
+        projected["field"] = object_wording(parts.field)
     return projected
 
 
