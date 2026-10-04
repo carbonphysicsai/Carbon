@@ -648,11 +648,26 @@ class ResearchToolAdapter:
     @property
     def sdk_tools(self):
         """The SDK's own tool list for this campaign, for descriptions only:
-        the prospective `tools_for_sdk` when authored Julia is admitted,
-        otherwise the fixed list. Discovery; execution rechecks everything."""
-        from carbon.development_session.research_tools import TOOLS, tools_for_sdk
+        the tools of the rule the campaign froze (`campaign_tools_rule`: the
+        historical `TOOLS`, or `TOOLS_V2` for a campaign that froze the v2
+        rule), with run_julia only when authored Julia is admitted.
+        Discovery; execution rechecks everything.
 
-        return tools_for_sdk(self._sdk) if self.authored_julia_available else TOOLS
+        Until the review repair, a campaign without Julia was always described
+        by `TOOLS`, so an MCP session attached to a new battery campaign of
+        Carbon's agent (which freezes v2) read v1 descriptions (read_file
+        count up to 4096, base64) beside v2 results (content_utf8, up to
+        8192)."""
+        from carbon.development_session.research_tools import (
+            TOOLS,
+            TOOLS_V2,
+            campaign_tools_rule,
+            tools_for_sdk,
+        )
+
+        if self.authored_julia_available:
+            return tools_for_sdk(self._sdk)
+        return TOOLS if campaign_tools_rule(self._sdk.ledger) is None else TOOLS_V2
 
     @property
     def gpu_lane(self):

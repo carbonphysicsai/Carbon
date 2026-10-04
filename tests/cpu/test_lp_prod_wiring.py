@@ -13,7 +13,8 @@ by tests/cpu/control_center_page_check.cjs (test_control_center_live_page):
 - D -> A: a new battery campaign of Carbon's agent freezes the v2 research
   tools rule in its run plan, so its tools, its reads and its first
   observation follow it; a plan frozen earlier names no rule and keeps the
-  historical tools, reads and observation byte for byte.
+  historical tools, reads and observation byte for byte; a miner's MCP
+  session attached to either campaign is described the tools it froze.
 
 No chain, provider, signer, container or intake is reached: the checks are
 the existing fixtures, and the checkout's revision is patched.
@@ -331,3 +332,51 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
     old_read = _read(old, tmp_path / "read-old", body)
     assert set(old_read) == {"name", "digest", "bytes", "offset", "content_base64"}
     assert base64.b64decode(old_read["content_base64"]) == body
+
+
+def test_an_mcp_session_is_described_the_tools_its_campaign_froze(tmp_path):
+    """Review repair: a miner's MCP session attached to a new battery campaign
+    of Carbon's agent (allowed on a paused one, LP-PROD-C D12) was described
+    the historical tools - read_file `count<=4096`, base64 - while its reads
+    returned the v2 rule's text once, up to 8192. `sdk_tools` now follows the
+    rule the campaign froze, with or without authored Julia; a campaign
+    frozen before the rule is still described by `TOOLS`, byte for byte."""
+    from test_lp_prod_research_tools import battery_composition
+
+    from carbon.battery import campaign
+    from carbon.development_session.research_tools import (
+        PREFIX,
+        TOOLS,
+        TOOLS_V2,
+        ResearchMinerTools,
+    )
+    from carbon.miner_mcp.standard import ResearchToolAdapter
+    from carbon.miner_mcp.standard_server import _create_server
+
+    plan = campaign.provider_plan("autonomous", BUDGET)
+    old = {key: value for key, value in plan.items() if key != "research_tools"}
+    for name, frozen, tools, read in (
+        ("new", plan, TOOLS_V2, "count: 1 to 8192"),
+        ("old", old, TOOLS, "count<=4096"),
+    ):
+        meter, composition, _ = battery_composition(tmp_path / name, frozen)
+        try:
+            sdk = ResearchMinerTools(
+                connection=None,
+                wrapper=None,
+                composition=composition,
+                ledger=meter,
+                owner="alice",
+            )
+            adapter = ResearchToolAdapter(sdk, principal="alice")
+            assert adapter.authored_julia_available is False
+            assert adapter.sdk_tools is tools, name
+            listed = {
+                tool.name: tool.description
+                for tool in asyncio.run(_create_server(adapter).list_tools())
+            }
+            described = listed[PREFIX + "start_research_task"]
+            assert read in described, name
+            assert ("content_utf8" in described) is (tools is TOOLS_V2), name
+        finally:
+            composition.tasks.close()
