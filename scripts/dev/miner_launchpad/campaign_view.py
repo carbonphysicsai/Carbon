@@ -710,6 +710,49 @@ def recovery(own):
     ][:4]
 
 
+def reconciliation(own):
+    """The model calls whose outcome was unknown (LP-PROD-W2): what the
+    miner's Reconcile settled - each call, why, the charge booked (its full
+    reservation) and any caveat - and, while the campaign awaits
+    reconciliation, what is still unresolved and what settling it would
+    book; None for a campaign with neither. Closed shapes only."""
+    value = own.get("unknown_outcome_calls")
+    if type(value) is not dict:
+        return None
+
+    def charge(amount):
+        return amount if type(amount) is int and amount >= 0 else None
+
+    settled = [
+        {
+            "identity": _str(item.get("identity")),
+            "reason": _str(item.get("reason"), 64),
+            "booked_nanodollars": charge(item.get("booked_nanodollars")),
+            "caveat": clean_text(item.get("caveat"), 512),
+        }
+        for item in (value.get("settled") or [])[:EVENTS_MAX]
+        if type(item) is dict
+    ]
+    awaiting = [
+        {
+            "identity": _str(item.get("identity")),
+            "booked_on_settlement_nanodollars": charge(
+                item.get("booked_on_settlement_nanodollars")
+            ),
+        }
+        for item in (value.get("awaiting_settlement") or [])[:EVENTS_MAX]
+        if type(item) is dict
+    ]
+    if not settled and not awaiting:
+        return None
+    return {
+        "settled": settled,
+        "booked_nanodollars": sum(c["booked_nanodollars"] or 0 for c in settled),
+        "awaiting_settlement": awaiting,
+        "accounting": clean_text(value.get("accounting"), 1024),
+    }
+
+
 def tiles(own, rows, now):
     usage = own.get("usage") if type(own.get("usage")) is dict else None
     started = own.get("started_unix")
@@ -1279,6 +1322,9 @@ def build(
         "last_refusal": last_refusal(own),
         "in_flight": in_flight(own),
         "recovery": recovery(own),
+        # Model calls whose outcome was unknown: what Reconcile settled at
+        # the full reservation and what still awaits it (LP-PROD-W2).
+        "reconciliation": reconciliation(own),
         "tiles": tiles(own, rows, now),
         "current_operation": next(
             (

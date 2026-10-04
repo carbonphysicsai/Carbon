@@ -376,6 +376,34 @@ def checkout_refusal(cfg, repository=None):
     return None
 
 
+def stepped(code, next_step, status=409):
+    """A `Rejected` that carries its own next step, which the HTTP door sends
+    as `next_step` (`controller.error_body`): for a code whose step depends
+    on what was found - a model call's settlement refusal, a profile that no
+    longer describes this install - rather than on the code alone."""
+    refused = Rejected(code, status)
+    refused.next_step = next_step
+    return refused
+
+
+def install_refusal(configuration, cfg):
+    """`carbon_updated_rerun_installer`, carrying the step that clears it and
+    why, when the runner profile at `configuration` (content `cfg`) no longer
+    describes what the installer installed beside it; otherwise None.
+
+    LP-PROD-E's staleness check (`environment_setup.profile_staleness`),
+    applied before a profile is attached (LP-PROD-W2): until then the Control
+    Center attached `runner-profile.json` on every start, and `carbon-mcp
+    --configuration` any profile, whatever the installer had installed since.
+    Only `after_install` moved a stale one aside."""
+    from scripts.dev.miner_launchpad.environment_setup import profile_staleness
+
+    reasons, step = profile_staleness(configuration, cfg)
+    if not reasons:
+        return None
+    return stepped(CARBON_UPDATED, step + ": " + "; ".join(reasons))
+
+
 def _readable(load, path):
     """An image record loaded from `path`, or None when it cannot be."""
     try:
@@ -1307,8 +1335,15 @@ class RunnerAdapter:
         supervisor when work is waiting. The Control Center passes SUPERVISOR
         and supervises from a daemon thread until closed; the detached
         supervisor process passes DETACHED and runs its own loop.
+
+        A profile that no longer describes what the installer installed
+        beside it is never attached: `carbon_updated_rerun_installer`, with
+        the step that clears it (`install_refusal`, LP-PROD-W2).
         """
         cfg = validated_profile(private_json(Path(configuration)))
+        refused = install_refusal(configuration, cfg)
+        if refused is not None:
+            raise refused
         database = runner_database(cfg)
         database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         host = cls(
@@ -2976,8 +3011,18 @@ class RunnerAdapter:
         ledger = self._ledger(row, kind, root)
         control = CampaignControl(ledger)
         if action == "reconcile":
-            if not self._settle_if_idle(ledger, control, root):
+            outcome = self._settle_if_idle(ledger, control, root, reconciling=True)
+            if outcome is False:
                 raise Rejected("campaign_busy", 409)
+            if isinstance(outcome, Rejected):
+                raise outcome
+            refused = outcome.get("refused") if isinstance(outcome, dict) else None
+            if refused:
+                # A call Carbon will not settle stays unresolved and the
+                # campaign awaits reconciliation: its closed code, with the
+                # settlement's own next step (LP-PROD-W2). What was settled
+                # meanwhile is booked and shown in the campaign's readback.
+                raise stepped(refused[0]["code"], refused[0]["next_step"])
         else:
             if action == "resume":
                 try:
@@ -3049,25 +3094,38 @@ class RunnerAdapter:
         if binding_changes(cfg, row, json.loads(manifest.read_bytes())):
             raise Rejected("profile_changed_since_launch", 409)
 
-    def _settle_if_idle(self, ledger, control, root):
+    def _settle_if_idle(self, ledger, control, root, *, reconciling=False):
         """Settle the campaign now, with the real cleanup check, if no live
         process holds its ownership lock: PAUSED or STOPPED as asked, or
         RECONCILIATION_REQUIRED while work may be outstanding; reconciled with
         nothing outstanding, a campaign whose miner selects is READY again.
         False when a live holder (a run, an operation, an attached agent or
         the page's tools) has it; that holder settles it. A finished campaign
-        is left as it is."""
+        is left as it is.
+
+        `reconciling` is the miner's Reconcile. It first settles every model
+        call whose outcome is unknown (`_settle_model_calls`), here, under the
+        owner lock and the generation just taken (observed RECONCILING), so
+        LP-PROD-A's reconcile fence admits it; it returns that settlement's
+        report (or the `Rejected` it ended in) instead of True. Pause, stop
+        and recovery never settle a model call."""
         stack = ExitStack()
         try:
             stack.enter_context(owner_lock(root))
         except RuntimeError:
             return False
+        settlement = True
         with stack:
             try:
                 generation = control.acquire()
             except DispatchStopped:
                 return True
             ledger.generation = generation
+            if reconciling:
+                try:
+                    settlement = self._settle_model_calls(ledger)
+                except Exception:  # noqa: BLE001 - settled as it stands, by code
+                    settlement = Rejected("operation_not_completed", 409)
             completed = (root / "campaign-complete.json").exists()
             control.settled(
                 generation,
@@ -3077,7 +3135,33 @@ class RunnerAdapter:
                 and product_agent(root) == "none",
                 cleanup_verified=self._cleanup(ledger),
             )
-        return True
+        return settlement
+
+    @staticmethod
+    def _settle_model_calls(ledger):
+        """The reconcile action's settlement of the campaign's model calls
+        whose outcome is unknown (LP-PROD-A's `settle_uncertain_calls`,
+        through `research_campaign.reconcile_model_calls`): each is booked at
+        its full reservation and journalled, and the next resume sends the
+        same request under a fresh identity. Nothing is resent here.
+
+        Before LP-PROD-W2 nothing called it: a campaign whose model call's
+        outcome was unknown (a timeout, a dropped connection, a 500) stayed
+        RECONCILIATION_REQUIRED, because `_cleanup` reconciles worker
+        operations only. A product campaign's calls are its manifest owner's
+        (`CampaignLedger._reserve`). Its own fences still apply: a call in
+        flight (`call_in_flight`) and a holder that is not this reconcile
+        (`control_fenced`) are refused, and so is a call whose reported
+        charge or usage the ledger cannot book."""
+        from carbon.development_session.research_campaign import (
+            reconcile_model_calls,
+        )
+
+        with ledger.db() as db:
+            frozen = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        # Nothing frozen, nothing dispatched: an empty report.
+        owner = json.loads(frozen[0]).get("owner") if frozen is not None else None
+        return reconcile_model_calls(ledger, owner=owner)
 
     def get(self, identity):
         """The campaign as its owner observes it: the projection, the last

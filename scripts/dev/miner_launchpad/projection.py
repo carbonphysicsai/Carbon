@@ -224,11 +224,15 @@ def project(row, root):
         value["operations"].append(
             {"id": op["id"], "phase": op["phase"], "state": op["state"]}
         )
+        result = op["result"] or {}
         if op["actual"] is None:
             target = reserved
-        elif (op["result"] or {}).get(
-            "schema"
-        ) == "carbon.autoresearch.worker-reconciliation.v1":
+        elif (
+            result.get("schema") == "carbon.autoresearch.worker-reconciliation.v1"
+            # A model call settled at its full reservation: its outcome, and
+            # so what the provider charged, is unknown (LP-PROD-W2).
+            or result.get("provider_settlement") is not None
+        ):
             target = uncertain
         else:
             target = reported
@@ -257,6 +261,15 @@ def project(row, root):
         "held_within_reserved": held,
         "cost_basis": "Integer nanodollars; published-rate estimates from provider token usage, not an invoice guarantee",
     }
+    from carbon.development_session.research_campaign import unknown_outcome_calls
+
+    # Model calls whose outcome was unknown: what the miner's Reconcile
+    # settled, at what booked charge and with what caveat, and - while the
+    # campaign awaits reconciliation - what is still unresolved (LP-PROD-W2).
+    # Read from the ledger alone: observing takes no lease.
+    value["unknown_outcome_calls"] = unknown_outcome_calls(
+        status["operations"], awaiting=value["state"] == "RECONCILIATION_REQUIRED"
+    )
     value["attempted_experiments"] = status["used"]["research_trials"]
     for note in status["notes"]:
         if note["kind"] == "hypothesis":

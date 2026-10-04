@@ -117,6 +117,42 @@ def error_body(code, exc=None):
     return body
 
 
+def attach_runner(profile, *, legacy_database=None, role=None):
+    """The campaign host for the runner profile at `profile`, or None with
+    why it was not attached: (runner, None) or (None, refusal).
+
+    A profile that no longer describes what the installer installed beside
+    it (LP-PROD-E's staleness check, `runner.install_refusal`) is refused
+    `carbon_updated_rerun_installer` rather than attached (LP-PROD-W2):
+    until then a restart attached `runner-profile.json` whenever it existed,
+    so a profile at an earlier accepted revision or images ran on. The
+    refusal reads as the preflight the page already renders for an updated
+    checkout (LP-PROD-C D9: `status: CARBON_UPDATED`, `code`, `reason`), with
+    `next_step`: the one step that clears it, and why. Any other failure is
+    raised, as before."""
+    from scripts.dev.miner_launchpad.runner import CARBON_UPDATED, RunnerAdapter
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS, SUPERVISOR
+
+    try:
+        runner = RunnerAdapter.for_profile(
+            profile,
+            legacy_database=legacy_database,
+            role=SUPERVISOR if role is None else role,
+        )
+    except Rejected as refused:
+        if refused.code != CARBON_UPDATED:
+            raise
+        return None, {
+            "available": False,
+            "profile": None,
+            "status": "CARBON_UPDATED",
+            "code": refused.code,
+            "reason": NEXT_ACTIONS[refused.code],
+            "next_step": getattr(refused, "next_step", None),
+        }
+    return runner, None
+
+
 def session_url(origin: str, token: str) -> str:
     """The page's address with the session token in its fragment.
 
@@ -609,6 +645,9 @@ class Server(ThreadingHTTPServer):
         # C-MLP-03: after registration the miner sets up their environment
         # here, and the profile it writes is loaded without a restart.
         self.research_profile = None
+        # Why the runner profile was not attached, when it no longer
+        # describes this install (`attach_runner`, LP-PROD-W2).
+        self.profile_refusal = None
         self.legacy_database = legacy_database
         self.attach_lock = threading.Lock()
         self.setup = None
@@ -634,17 +673,25 @@ class Server(ThreadingHTTPServer):
         Only into an empty seat: an operator's `--research-profile` is never
         replaced from the browser. Re-attaching the same file is a no-op, since
         the runner re-reads its profile on every operation.
+
+        A profile that no longer describes this install is not attached
+        (False), and the page reads why (`profile_refusal`): the setup page
+        loads a written profile on every read, so this is the same check as
+        on start (LP-PROD-W2).
         """
-        from scripts.dev.miner_launchpad.runner import RunnerAdapter
         from scripts.dev.miner_launchpad.supervisor import SUPERVISOR
 
         with self.attach_lock:
             if self.research_runner is not None:
                 return self.research_profile == Path(profile)
             # The Control Center supervises its campaigns (LP-PROD-C).
-            self.research_runner = RunnerAdapter.for_profile(
+            runner, refused = attach_runner(
                 profile, legacy_database=self.legacy_database, role=SUPERVISOR
             )
+            self.profile_refusal = refused
+            if runner is None:
+                return False
+            self.research_runner = runner
             self.research_profile = Path(profile)
             return True
 
@@ -804,7 +851,10 @@ class Handler(BaseHTTPRequestHandler):
                         "preflight": (
                             runner.preflight()
                             if runner
-                            else {"available": False, "status": "ADMISSION_DISABLED"}
+                            # A profile not attached because it no longer
+                            # describes this install says so (LP-PROD-W2).
+                            else self.server.profile_refusal
+                            or {"available": False, "status": "ADMISSION_DISABLED"}
                         ),
                         "runs": runner.recent() if runner else [],
                     },
@@ -1083,7 +1133,7 @@ def main() -> None:
                 sources.attach(path)
             except Exception:  # noqa: BLE001 - do not print private source errors.
                 parser.error("DEVELOPMENT source attachment failed verification")
-        runner = None
+        runner = refused = None
         if args.research_profile is None:
             # The profile "Set up your environment" wrote here, so a restart
             # opens the miner's own setup without a flag (C-MLP-04).
@@ -1091,16 +1141,15 @@ def main() -> None:
             if written.is_file() and not written.is_symlink():
                 args.research_profile = written
         if args.research_profile is not None:
-            from scripts.dev.miner_launchpad.runner import RunnerAdapter
-            from scripts.dev.miner_launchpad.supervisor import SUPERVISOR
-
             # The same host an MCP client with this profile constructs, over
             # the same records; earlier browser-only records are adopted once.
             # While it runs, the Control Center is the campaigns' supervisor
             # (LP-PROD-C): it runs its own and its clients' campaign work, and
-            # closing it pauses that work rather than stopping it.
-            runner = RunnerAdapter.for_profile(
-                args.research_profile, legacy_database=database, role=SUPERVISOR
+            # closing it pauses that work rather than stopping it. A profile
+            # that no longer describes this install is not attached; the
+            # page's setup writes a current one (LP-PROD-W2).
+            runner, refused = attach_runner(
+                args.research_profile, legacy_database=database
             )
         server = Server(
             controller,
@@ -1113,6 +1162,7 @@ def main() -> None:
         )
         if runner is not None:
             server.research_profile = args.research_profile
+        server.profile_refusal = refused
         controller.recover()
         done = threading.Event()
 
@@ -1129,9 +1179,15 @@ def main() -> None:
         thread.start()
         print(
             f"Carbon DEVELOPMENT Control Center: {server.origin}"
-            if runner
+            if runner or refused
             else f"Carbon DEVELOPMENT controller rehearsal: {server.origin}"
         )
+        if refused is not None:
+            # Named, with the step that clears it, never attached (LP-PROD-W2).
+            print(
+                f"Runner profile not attached: {refused['code']}. "
+                f"Next: {refused['next_step']}."
+            )
         # The link carries the token in its fragment, so a restart needs only
         # a click; the server still binds loopback and checks Host, Origin and
         # the bearer token on every request (LP-PROD-C D14). Printed only once
@@ -1142,7 +1198,7 @@ def main() -> None:
         print(f"Local session token (paste into page; do not share): {token}")
         print(
             "Set up your environment, then choose a Challenge and launch."
-            if runner
+            if runner or refused
             else "No agents, paid compute, training, registration, or submissions."
         )
         try:
