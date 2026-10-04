@@ -19,7 +19,6 @@ agent evidence.
 from __future__ import annotations
 
 import asyncio
-import importlib
 import io
 import json
 import sqlite3
@@ -1975,13 +1974,11 @@ def test_a_product_campaign_shows_the_miner_budget_beside_the_plan(world):
 NEW_PAPER = "2610.99901v1"
 
 
-def literature_module(name):
-    return importlib.import_module(PACKAGE + "." + name)
-
-
 def pack_paper():
     """An arXiv id the shipped pack already holds a card for."""
-    for card in literature_module("pack").load_shared_pack().cards:
+    from carbon.agent_campaign.graphite.miner import pack
+
+    for card in pack.load_shared_pack().cards:
         if card["card_id"].startswith("arxiv-"):
             return card["card_id"][len("arxiv-") :]
     raise AssertionError("the shipped pack holds no arXiv card")
@@ -2144,10 +2141,9 @@ def reader_ledger(tmp_path, caps):
 
 @needs_literature
 def test_the_literature_slice_sends_and_bounds_what_the_edition_froze():
-    hunts = literature_module("hunt")
-    focus = literature_module("focus")
-    library = literature_module("library")
-    pack = literature_module("pack")
+    from carbon.agent_campaign.graphite.miner import focus, library, pack
+    from carbon.agent_campaign.graphite.miner import hunt as hunts
+
     # The prompt every hunt request carries is the edition's frozen one.
     assert hunts.READER_PROMPT == editions.READER_EXTRACTION_PROMPT
     assert hunts.READER_PROMPT_DIGEST == (
@@ -2183,9 +2179,9 @@ def test_the_literature_slice_sends_and_bounds_what_the_edition_froze():
 
 @needs_literature
 def test_a_real_hunt_reads_once_through_the_miner_reader(tmp_path, gate):
+    from carbon.agent_campaign.graphite.miner import hunt as hunts
     from carbon.challenge_registry import describe
 
-    hunts = literature_module("hunt")
     library = driver.open_library(tmp_path / "library")
     ledger, share = reader_ledger(tmp_path, {})
     transport = Transport()
@@ -2230,10 +2226,10 @@ def test_a_real_hunt_reads_once_through_the_miner_reader(tmp_path, gate):
 
 @needs_literature
 def test_a_real_hunt_stopped_by_the_share_releases_its_claim(tmp_path, gate):
+    from carbon.agent_campaign.graphite.miner import hunt as hunts
+    from carbon.agent_campaign.graphite.miner import pack
     from carbon.challenge_registry import describe
 
-    hunts = literature_module("hunt")
-    pack = literature_module("pack")
     library = driver.open_library(tmp_path / "library")
     ledger, share = reader_ledger(tmp_path, {"provider_attempts": 0})
     transport = Transport()

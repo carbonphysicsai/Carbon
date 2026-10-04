@@ -322,6 +322,22 @@ re-exported names from their own submodules (scratch
 `r2_lazy_handoff.diff`), the key-material invariant and this slice's plain
 import test pass, and S2's strict xfail turns XPASS.
 
+Round 3 (integration failures on claude/graphite-miner 4eee5771). The
+code-authority inventory of unresolved dynamic imports
+(`test_canonical_python_cannot_import_retired_namespaces`) caught this
+slice's test helper that imported S2's modules by a computed name. The
+integration tests now import S2's `pack`, `library`, `hunt` and `focus` by
+static, function-local imports (they run only where S2 is present), so the
+inventory is unchanged; no product file imports dynamically. In a throwaway
+worktree of 4eee5771 with this change, that test passes and all 112 S3
+tests pass unskipped (one expected xfail, the plain import below). The
+key-material invariant is not this slice's file: with the measured
+`r2_lazy_handoff.diff` (still applying cleanly to 4eee5771) it passes there,
+together with this slice's mutation tests, S2's library tests (its import
+test is now self-resolving) and the rest of the code-authority tests except
+`test_default_workflow_delegates_all_semantics_to_repository_scripts`, which
+fails on the base as well.
+
 **Open (handoffs, not owner decisions).**
 - Lead: whether the learning signal (decision 10) must become a
   practice-improvement signal; that needs a per-Challenge practice metric
@@ -335,8 +351,8 @@ import test pass, and S2's strict xfail turns XPASS.
   `tests/cpu/graphite_fixtures.py`, `test_graphite_boundaries.py`,
   `test_graphite_harness.py`, `test_graphite_ladder.py`,
   `test_graphite_method_cards.py` and `test_graphite_phase2_runner.py` (no
-  product code imports them); remove S2's strict xfail in the same change.
-  This slice's plain-import test then holds unchanged.
+  product code imports them). S2's import test is now self-resolving, and
+  this slice's plain-import test then holds unchanged.
 - S1: optionally type the model call's own time refusal (`provider timeout
   cannot fit remaining campaign time`) in the engine, so its outcome is
   journalled like a ceiling's; the driver ends the stage typed meanwhile.
