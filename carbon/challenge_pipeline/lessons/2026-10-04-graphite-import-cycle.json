@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-graphite-import-cycle",
+ "recorded_at": "2026-10-04T16:31:31Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_graphite_miner_driver.py run on its own on main c0c6d340; fixed on claude/fix-graphite-import-cycle",
+  "description": "Ran the Graphite miner driver suite alone, then traced the import order of every Graphite module and of the Launchpad launch, the Launchpad card door, the standard MCP door and the phase-3 CLI, each in a fresh interpreter."
+ },
+ "expected": "Each suite passes on its own and inside the Graphite run, and every Graphite module imports whichever one a process imports first.",
+ "observed": "Alone, the driver suite failed 9 of 74 with ImportError: literature builds its fixture index at import and its card check imported tools.protected, while tools imports literature at its top. Importing tools first, miner.imports first, or calling the miner toolbox's lazy protected check (or the Launchpad card door's) before any library was opened hit it. The combined Graphite run hid it because an earlier test had already imported the Graphite modules in a working order. No product entry hit it: the Launchpad launch opens the miner's library (literature first) before any check, the card door opens the library before serving a card, the phase-3 CLI imports literature before tools, and the MCP door does not import Graphite.",
+ "keep": [
+  "Run a suite on its own as well as inside its group; a shared process's import order can hide a cycle.",
+  "Test import order in fresh interpreters, one per first import, since a module already imported by the test process hides the order a real process sees."
+ ],
+ "change": [
+  "The protected-material check moved to the leaf carbon/agent_campaign/graphite/protected_material.py, which imports nothing from Graphite; tools re-exports it unchanged and literature imports it from the leaf.",
+  "tests/cpu/test_graphite_import_order.py imports each Graphite module first, and each real entry point, in a fresh interpreter; 9 of its 21 cases fail on the old code."
+ ],
+ "protocol_elements": [
+  "graphite.tools",
+  "graphite.literature",
+  "test.isolation"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
