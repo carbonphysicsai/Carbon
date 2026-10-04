@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-mutation-patches-the-reader",
+ "recorded_at": "2026-10-04T20:40:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_attack_battery_adapter.py::test_each_disabled_boundary_turns_its_guard_red[protected_marker_removed], red on main f49ac6d9f; fixed on claude/fix-protected-marker-mutation",
+  "description": "Ran the battery adapter's disabled-boundary mutations on main after #561 (protected-material check moved to a leaf module) and #563 (attack engine) merged separately, each green on its own base."
+ },
+ "expected": "Removing the 'hidden' protected markers disables Graphite's protected-material check, so the guard the mutation targets turns red.",
+ "observed": "The mutation patched graphite.tools.PROTECTED_MARKERS. Since #561 the check reads graphite.protected_material.PROTECTED_MARKERS and tools only re-exports the tuple, so the patch disabled nothing, the guard stayed green, and the mutation test failed with DID NOT RAISE. Each PR passed CI on its own base; the break appeared only once both were on main.",
+ "keep": [
+  "A mutation must patch the module the check reads at call time, not a module that re-exports the name.",
+  "When a PR moves a definition and leaves a re-export, search tests for monkeypatches of the old location."
+ ],
+ "change": [
+  "The protected_marker_removed mutation patches graphite.protected_material.PROTECTED_MARKERS; reverting the fix turns the case red again."
+ ],
+ "protocol_elements": [
+  "graphite.protected_material",
+  "test.mutation"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
