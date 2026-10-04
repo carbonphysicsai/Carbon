@@ -443,6 +443,137 @@ def test_the_share_caps_research_and_never_refuses_a_replay(tmp_path):
         reserve(hunt, budget.READER_PREFIX + "b" * 40)
 
 
+class Refusing:
+    """A campaign ledger that refuses every new reservation with `error`."""
+
+    def __init__(self, error):
+        self.error = error
+
+    def operation_state(self, identity, *, owner):
+        return None
+
+    def reserve(self, identity, **_):
+        raise self.error
+
+
+MODEL_CALL = {"provider_attempts": 1, "provider_nanodollars": 5}
+
+
+def test_the_miners_own_limits_end_a_model_call_typed_and_nothing_else(tmp_path):
+    """A model call the campaign ledger refuses at one of the miner's own
+    limits - a ceiling the miner set, or the campaign's time - is the typed
+    stop `miner_ceiling_reached` with the dimension that bound, nothing of it
+    reserved. Any other refusal, of any other reservation, and any subclass
+    of the ledger's ValueError, propagates unchanged."""
+    ledger = CampaignLedger(tmp_path / "ledger", clock=lambda: 1000)
+    ledger.freeze(
+        {
+            "schema": "carbon.autoresearch.campaign.v1",
+            **dict.fromkeys(
+                (
+                    "campaign_id",
+                    "implementation",
+                    "objective",
+                    "sampling",
+                    "control",
+                    "selection",
+                    "replica_policy",
+                    "provider",
+                ),
+                "fixture",
+            ),
+            "owner": "alice",
+            "ceilings": {"provider_attempts": 1, "research_trials": 1},
+        }
+    )
+    stage = budget.StageLedger(ledger, owner="alice", caps={})
+
+    def reserve(identity, resources, request=None):
+        return stage.reserve(
+            identity,
+            owner="alice",
+            phase="research",
+            request=request or {"i": identity},
+            resources=resources,
+        )
+
+    reserve("epoch-1-provider-000", {"provider_attempts": 1})
+    with pytest.raises(budget.MinerCeilingReached) as stopped:
+        reserve("epoch-1-provider-001", {"provider_attempts": 1})
+    assert stopped.value.code == "miner_ceiling_reached"
+    assert stopped.value.dimension == "provider_attempts"
+    assert stage.limit == {
+        "code": "miner_ceiling_reached",
+        "dimension": "provider_attempts",
+    }
+    assert ledger.operation_state("epoch-1-provider-001", owner="alice") is None
+    assert stopped.value.outcome()["status"] == "STOPPED"
+    assert stopped.value.outcome()["dimension"] == "provider_attempts"
+    # A replay is never refused, past the ceiling too.
+    assert (
+        reserve("epoch-1-provider-000", {"provider_attempts": 1})["dispatch"] is False
+    )
+    # A practice trial's reservation is its tool's own to refuse: untyped.
+    reserve("epoch-1-tool-000", {"research_trials": 1})
+    with pytest.raises(ValueError, match="miner budget: research_trials") as plain:
+        reserve("epoch-1-tool-001", {"research_trials": 1})
+    assert type(plain.value) is ValueError
+    # Another refusal of a model call is not a limit: untyped.
+    with pytest.raises(ValueError, match="replay conflict") as conflict:
+        reserve("epoch-1-provider-000", {"provider_attempts": 1}, request={"x": 1})
+    assert type(conflict.value) is ValueError
+    # The ledger's own refusals, by their exact text and exact type.
+    for text, dimension in (
+        ("miner budget: provider_nanodollars", "provider_nanodollars"),
+        ("campaign elapsed-time exhausted or clock regressed", "elapsed_seconds"),
+        ("provider timeout cannot fit remaining grant", "elapsed_seconds"),
+    ):
+        typed = budget.StageLedger(Refusing(ValueError(text)), owner="a", caps={})
+        with pytest.raises(budget.MinerCeilingReached) as stopped:
+            typed.reserve(
+                "i", owner="a", phase="research", request={}, resources=MODEL_CALL
+            )
+        assert stopped.value.dimension == dimension
+    for error in (
+        ValueError("carbon service capacity: provider_attempts"),
+        ValueError("miner budget: Not A Dimension"),
+        ValueError(budget.CALL_TIME_REFUSAL),
+        campaigns_refusal("miner budget: provider_attempts"),
+        RuntimeError("miner budget: provider_attempts"),
+    ):
+        untyped = budget.StageLedger(Refusing(error), owner="a", caps={})
+        with pytest.raises(type(error)) as raised:
+            untyped.reserve(
+                "i", owner="a", phase="research", request={}, resources=MODEL_CALL
+            )
+        assert raised.value is error
+        assert budget.reserve_limit(error) is None
+    assert budget.call_time_limit(ValueError(budget.CALL_TIME_REFUSAL))
+    assert not budget.call_time_limit(campaigns_refusal(budget.CALL_TIME_REFUSAL))
+    # The texts are the ledger's and the model call's own.
+    from carbon.development_session import research_agent
+
+    reserving = inspect.getsource(CampaignLedger._reserve)
+    assert '"miner budget: " + key' in reserving
+    for text in budget._TIME_REFUSALS:
+        assert '"' + text + '"' in reserving
+    # (`request_model`'s own check, before it reserves anything.)
+    assert '"' + budget.CALL_TIME_REFUSAL + '"' in inspect.getsource(research_agent)
+    # Typed as the engine's ceiling where the engine has one.
+    engine = getattr(research_loop, "CeilingReached", None)
+    if engine is not None:
+        assert issubclass(budget.MinerCeilingReached, engine)
+    else:
+        assert issubclass(budget.MinerCeilingReached, RuntimeError)
+        assert not issubclass(budget.MinerCeilingReached, ValueError)
+
+
+def campaigns_refusal(code):
+    from carbon.development_session.research_campaign import OperationRefused
+
+    return OperationRefused(code)
+
+
 def test_the_stage_namespace_is_the_planner_stage_and_the_reader():
     assert budget.PLAN_PREFIX == "epoch-1-" + driver.PLAN + "-"
     inside = (
@@ -576,20 +707,34 @@ LOADED_FORBIDDEN = DESIGN_FORBIDDEN | {
 }
 
 
+#: Every miner module, by its import name.
+MINER_MODULES = sorted(
+    "carbon.agent_campaign.graphite.miner." + path.stem
+    for path in MINER.glob("*.py")
+    if path.stem != "__init__"
+)
+
+
+def loaded_after(script, *argv):
+    """The modules a fresh interpreter holds after running `script`."""
+    done = subprocess.run(
+        [sys.executable, "-c", textwrap.dedent(script), *argv],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "JAX_PLATFORMS": "cpu"},
+        timeout=300,
+    )
+    return set(json.loads(done.stdout.strip().splitlines()[-1]))
+
+
 def test_the_miner_editions_import_closure_loads_no_internal_module():
     """Every miner module, imported in a fresh interpreter, loads none of the
-    internal edition's modules. The internal package's own `__init__`
-    eagerly imports its provider (and with it the grant, ladder and model),
-    so this run does not execute that `__init__` - it names the package by
-    its path only - and sees exactly what the miner edition itself imports.
-    (Making that `__init__` lazy is an integration follow-up; see the S3
-    decision record.)"""
-    modules = sorted(
-        "carbon.agent_campaign.graphite.miner." + path.stem
-        for path in MINER.glob("*.py")
-        if path.stem != "__init__"
-    )
-    script = textwrap.dedent("""
+    internal edition's modules. This run names the internal package by its
+    path only, without executing its `__init__`, so it sees exactly what the
+    miner edition itself imports; the next test imports it plainly."""
+    loaded = loaded_after(
+        """
         import importlib, json, sys, types
         from pathlib import Path
 
@@ -601,35 +746,43 @@ def test_the_miner_editions_import_closure_loads_no_internal_module():
         for name in json.loads(sys.argv[1]):
             importlib.import_module(name)
         print(json.dumps(sorted(sys.modules)))
-        """)
-    environment = {**os.environ, "JAX_PLATFORMS": "cpu"}
-    done = subprocess.run(
-        [sys.executable, "-c", script, json.dumps(modules)],
-        capture_output=True,
-        text=True,
-        check=True,
-        env=environment,
-        timeout=300,
+        """,
+        json.dumps(MINER_MODULES),
     )
-    loaded = set(json.loads(done.stdout.strip().splitlines()[-1]))
-    assert set(modules) <= loaded
+    assert set(MINER_MODULES) <= loaded
     assert not loaded & LOADED_FORBIDDEN, sorted(loaded & LOADED_FORBIDDEN)
-    # The specimen: the internal package's own __init__ loads them.
-    probe = (
-        "import json, sys, carbon.agent_campaign.graphite; "
-        "print(json.dumps(sorted(sys.modules)))"
+
+
+def test_importing_the_miner_edition_plainly_loads_no_internal_module():
+    """The same through the package's own parents, as every product door
+    imports it. The internal package's `__init__`
+    (`carbon/agent_campaign/graphite/__init__.py`, not this slice's file)
+    eagerly imports its provider, and with it the grant, ladder, model,
+    next-level store, experiment runner and pods. While it does, this is an
+    expected failure, shown to come from that `__init__` alone; once it is
+    lazy (an integration step), this holds with no change here."""
+    loaded = loaded_after(
+        """
+        import importlib, json, sys
+        for name in json.loads(sys.argv[1]):
+            importlib.import_module(name)
+        print(json.dumps(sorted(sys.modules)))
+        """,
+        json.dumps(MINER_MODULES),
     )
-    specimen = subprocess.run(
-        [sys.executable, "-c", probe],
-        capture_output=True,
-        text=True,
-        check=True,
-        env=environment,
-        timeout=300,
-    )
-    assert set(json.loads(specimen.stdout.strip().splitlines()[-1])) & (
-        LOADED_FORBIDDEN
-    )
+    assert set(MINER_MODULES) <= loaded
+    leaked = loaded & LOADED_FORBIDDEN
+    if leaked:
+        parent = loaded_after("""
+            import json, sys
+            import carbon.agent_campaign.graphite
+            print(json.dumps(sorted(sys.modules)))
+            """)
+        assert leaked <= parent, sorted(leaked - parent)
+        pytest.xfail(
+            "carbon/agent_campaign/graphite/__init__.py eagerly imports the "
+            "internal provider: " + ", ".join(sorted(leaked))
+        )
 
 
 def test_a_campaign_runs_with_every_grant_engy_and_pod_path_broken(world, monkeypatch):

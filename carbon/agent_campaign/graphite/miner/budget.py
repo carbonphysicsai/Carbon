@@ -1,27 +1,39 @@
-"""The research stages' share of the miner's own provider ceilings.
+"""The miner edition's stages under the miner's own limits: the research
+share, and the typed stop at the miner's own ceilings.
 
 A FULL campaign researches, then builds, inside one budget: the miner's own
 `provider_nanodollars` and `provider_attempts` ceilings. Its research stages
 (the hunt's Reader calls and the Planner) may spend at most `research_share`
 of each (OWNER-GRAPHITE-MINER-01 item 4); the build gets the rest.
 
-`StageLedger` is the campaign ledger as the research stages see it. Every
-method is the ledger's own except `reserve`, which first refuses a new
-reservation that would take the stages' spend past the share, raising
-`ResearchShareReached` (code `research_share_reached`) before anything is
-reserved or sent. A replayed identity - one the ledger already holds - is
-never refused, so a resume replays every recorded call exactly. What the
-stages spent is read from the ledger itself, by identity namespace, so it
-survives restarts: the hunt's Reader calls are `graphite-reader-*` and the
-Planner's are `epoch-1-plan-*` (the research loop's stage identities,
-compaction calls included). In FULL the hunt has its own, smaller cap over
-its own namespace (`edition.HUNT_PART_OF_SHARE`), and the Planner the whole
-share over both.
+`StageLedger` is the campaign ledger as a miner-edition stage sees it. Every
+method is the ledger's own except `reserve`:
 
-`ResearchShareReached` is the engine's typed ceiling refusal
+- with a research share, it first refuses a new reservation that would take
+  the stages' spend past the share, raising `ResearchShareReached` (code
+  `research_share_reached`) before anything is reserved or sent;
+- for every stage, when the campaign ledger refuses a model call's
+  reservation because one of the miner's own limits bound - a ceiling the
+  miner set (`miner budget: <dimension>`) or the campaign's elapsed time -
+  it raises `MinerCeilingReached` (code `miner_ceiling_reached`, with the
+  dimension), so the session ends STOPPED at the limit, which is the normal
+  end of a miner-edition run (OWNER-GRAPHITE-MINER-01 item 6: limits are
+  money and time). Nothing of that call was reserved or sent. Any other
+  refusal, and a refusal of a reservation that is not a model call (a
+  practice trial is its tool's own to refuse), propagates unchanged.
+
+A replayed identity - one the ledger already holds - is never refused, so a
+resume replays every recorded call exactly. What the stages spent is read
+from the ledger itself, by identity namespace, so it survives restarts: the
+hunt's Reader calls are `graphite-reader-*` and the Planner's are
+`epoch-1-plan-*` (the research loop's stage identities, compaction calls
+included). In FULL the hunt has its own, smaller cap over its own namespace
+(`edition.HUNT_PART_OF_SHARE`), and the Planner the whole share over both.
+
+Both stops are the engine's typed ceiling refusal
 (`research_loop.CeilingReached`) where the engine defines it, so a research
-loop session it stops ends STOPPED with its code, journalled; the hunt's
-Reader turns it into the hunt's own not-sent stop (`hunt.ReaderNotSent`).
+loop session one stops ends STOPPED with its code, journalled; the hunt's
+Reader turns either into the hunt's own not-sent stop (`hunt.ReaderNotSent`).
 
 The campaign ledger's own ceilings still bind every call: the share only
 narrows them. A campaign holds one owner lock and its stages run one at a
@@ -32,6 +44,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 
 from carbon.development_session import research_loop
 
@@ -44,26 +57,68 @@ PLAN_PREFIX = "epoch-1-plan-"
 HUNT_NAMESPACE = (READER_PREFIX,)
 RESEARCH_NAMESPACE = (READER_PREFIX, PLAN_PREFIX)
 RESEARCH_SHARE_REACHED = "research_share_reached"
+MINER_CEILING_REACHED = "miner_ceiling_reached"
+#: The campaign ledger's refusal of a reservation past a ceiling the miner
+#: set (`CampaignLedger._reserve`): this prefix and the dimension.
+_BUDGET_PREFIX = "miner budget: "
+#: The campaign ledger's refusals of a reservation once the campaign's own
+#: time is spent (`CampaignLedger._reserve`), by their exact text. Internal
+#: Graphite reads the first the same way (`provider._LIMIT_MESSAGES`).
+_TIME_REFUSALS = (
+    "campaign elapsed-time exhausted or clock regressed",
+    "provider timeout cannot fit remaining grant",
+)
+#: A model call's own time check, made before it reserves anything
+#: (`research_agent.request_model`): the call cannot finish inside the time
+#: the campaign has left.
+CALL_TIME_REFUSAL = "provider timeout cannot fit remaining campaign time"
+ELAPSED = "elapsed_seconds"
+_DIMENSION = re.compile(r"[a-z_]{1,64}\Z")
 #: The engine's typed ceiling refusal, where it defines one.
 _CEILING = getattr(research_loop, "CeilingReached", None)
 
 
-class ResearchShareReached(_CEILING or RuntimeError):
-    """A research stage reached the miner's research share; nothing was
-    reserved or sent. The engine's `CeilingReached` where it defines one,
-    so the research loop ends the session STOPPED with this code; otherwise
-    a RuntimeError, so no stage mistakes it for a malformed request it may
-    answer and continue past."""
+class _Stop(_CEILING or RuntimeError):
+    """A stage's model call refused by one of the miner's own limits before
+    anything of it was reserved or sent. The engine's `CeilingReached` where
+    it defines one, so the research loop ends the session STOPPED with the
+    code; otherwise a RuntimeError, so no stage mistakes it for a malformed
+    request it may answer and continue past."""
+
+    code = None
+
+    def __init__(self, dimension):
+        if _CEILING is not None:
+            super().__init__(self.code, dimension=dimension)
+        else:
+            super().__init__(self.code)
+        self.dimension = dimension
+
+    def outcome(self):
+        """The session outcome the engine records for it
+        (`CeilingReached.outcome`); the same shape without the engine."""
+        if _CEILING is not None:
+            return super().outcome()
+        return {
+            "status": "STOPPED",
+            "code": self.code,
+            "reason": (
+                "the ledger refused the next model call: "
+                + self.code
+                + "; nothing of it was reserved or sent"
+            ),
+            "dimension": self.dimension,
+        }
+
+
+class ResearchShareReached(_Stop):
+    """A research stage reached the miner's research share."""
 
     code = RESEARCH_SHARE_REACHED
 
     def __init__(self, dimension, spent, want, cap):
-        if _CEILING is not None:
-            super().__init__(RESEARCH_SHARE_REACHED, dimension=dimension)
-        else:
-            super().__init__(RESEARCH_SHARE_REACHED)
-        self.code = RESEARCH_SHARE_REACHED
-        self.dimension, self.spent, self.want, self.cap = dimension, spent, want, cap
+        super().__init__(dimension)
+        self.spent, self.want, self.cap = spent, want, cap
 
     def record(self):
         return {
@@ -73,6 +128,65 @@ class ResearchShareReached(_CEILING or RuntimeError):
             "requested": self.want,
             "share_cap": self.cap,
         }
+
+
+class MinerCeilingReached(_Stop):
+    """A stage reached one of the miner's own limits: a ceiling the miner set
+    (`dimension` names it) or the campaign's time (`elapsed_seconds`)."""
+
+    code = MINER_CEILING_REACHED
+
+    def record(self):
+        return {"code": MINER_CEILING_REACHED, "dimension": self.dimension}
+
+
+#: The stops a stage's model call may end with.
+STOPS = (ResearchShareReached, MinerCeilingReached)
+
+
+def _dimension(text):
+    return text if _DIMENSION.fullmatch(text) else None
+
+
+def reserve_limit(error):
+    """The miner's limit that `error`, a campaign ledger's refusal of a
+    reservation, reports - a ceiling's dimension, or `elapsed_seconds` - or
+    None for any other refusal. Exactly a ValueError with the ledger's own
+    text; a subclass (an operation refusal, a typed stop) is never one."""
+    if type(error) is not ValueError:
+        return None
+    text = str(error)
+    if text.startswith(_BUDGET_PREFIX):
+        return _dimension(text[len(_BUDGET_PREFIX) :])
+    return ELAPSED if text in _TIME_REFUSALS else None
+
+
+def call_time_limit(error):
+    """Whether `error` is a model call's own refusal for want of time, made
+    before it reserved anything (`CALL_TIME_REFUSAL`, exactly)."""
+    return type(error) is ValueError and str(error) == CALL_TIME_REFUSAL
+
+
+def call_reservation(selection):
+    """What one model call on `selection` reserves on the share dimensions
+    (`research_agent.request_model`): one attempt, and its most possible
+    cost when the selection is priced (an unpriced one reserves no money)."""
+    reserved = {"provider_attempts": 1}
+    if selection.reservation_nano is not None:
+        reserved["provider_nanodollars"] = selection.reservation_nano
+    return reserved
+
+
+def share_shortfall(ceilings, fraction, per_call):
+    """The first share dimension on which `fraction` of the miner's
+    `ceilings` cannot admit even one model call reserving `per_call`, as
+    `{dimension, share_cap, per_call}`; None when one call fits on each."""
+    caps = share_caps(ceilings, fraction)
+    for key in SHARE_DIMENSIONS:
+        want = per_call.get(key, 0)
+        if key in caps and want > caps[key]:
+            return {"dimension": key, "share_cap": caps[key], "per_call": want}
+    return None
 
 
 def share_caps(ceilings, fraction):
@@ -106,7 +220,9 @@ def namespace_spend(ledger, owner, namespace=RESEARCH_NAMESPACE):
 
 
 class StageLedger:
-    """The campaign ledger with a research share on `reserve`."""
+    """The campaign ledger as a miner-edition stage sees it: a research share
+    (`caps`, none outside FULL's research stages) and the typed stop at the
+    miner's own limits on `reserve`."""
 
     def __init__(self, ledger, *, owner, caps, namespace=RESEARCH_NAMESPACE):
         if type(caps) is not dict or set(caps) - set(SHARE_DIMENSIONS):
@@ -117,8 +233,10 @@ class StageLedger:
         self._owner = owner
         self.caps = dict(caps)
         self.namespace = namespace
-        #: The refusal that stopped a stage, once one did.
+        #: The share refusal that stopped a stage, once one did.
         self.reached = None
+        #: The miner's limit that stopped a stage, once one did.
+        self.limit = None
 
     def __getattr__(self, name):
         return getattr(self._ledger, name)
@@ -142,6 +260,20 @@ class StageLedger:
                     refused = ResearchShareReached(key, spent[key], want, cap)
                     self.reached = refused.record()
                     raise refused
-        return self._ledger.reserve(
-            identity, owner=owner, phase=phase, request=request, resources=resources
-        )
+        try:
+            return self._ledger.reserve(
+                identity, owner=owner, phase=phase, request=request, resources=resources
+            )
+        except ValueError as refusal:
+            # Only a model call's reservation is typed: a practice trial's is
+            # its tool's own to refuse.
+            dimension = (
+                reserve_limit(refusal)
+                if (resources or {}).get("provider_attempts")
+                else None
+            )
+            if dimension is None:
+                raise
+            stopped = MinerCeilingReached(dimension)
+            self.limit = stopped.record()
+            raise stopped from None

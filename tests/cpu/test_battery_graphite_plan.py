@@ -25,9 +25,12 @@ from test_miner_launchpad_runner import HOTKEY, registered
 from carbon.agent_campaign.graphite.miner import driver
 from carbon.agent_campaign.graphite.miner import edition as editions
 from carbon.battery import campaign as battery
-from carbon.development_session import miner_guidance
+from carbon.development_session import miner_guidance, model_provider
+from carbon.development_session import research_campaign as campaigns
 from carbon.development_session.model_provider import (
+    DEFAULT_SELECTION,
     ENGY_DEFAULT_MODEL,
+    GPT5_MINI,
     select,
 )
 from carbon.development_session.product_campaign import AGENTS, ProductLaunch
@@ -52,6 +55,31 @@ BUDGET = {
 AUTONOMOUS_PLAN_DIGEST = (
     "sha256:df4c17f175827bad53e8ba856cff17292014574c44cd06399abb5e7a6b489629"
 )
+
+
+def new_plan_selection(args):
+    """The model selection `prepare_battery` chooses for a new plan: under
+    the base's new-plan output default where this tree has it
+    (OWNER-LAUNCHPAD-PROD-02: the model's own maximum output, unless the
+    miner set a cap), else as before it."""
+    output_default = getattr(campaigns, "new_plan_output_default", None)
+    if output_default is None:
+        return campaigns.supplied_selection(args)
+    return campaigns.supplied_selection(args, output_default=output_default(args))
+
+
+#: What one model call of a new product plan on the pinned model reserves.
+NEW_PLAN_RESERVATION = new_plan_selection(
+    SimpleNamespace(product="a product launch")
+).reservation_nano
+#: A Graphite launch's budget: the same 24 attempts, and 24 of its calls'
+#: whole cost - enough for a FULL plan's research share to pay for a call.
+GRAPHITE_BUDGET = {
+    "ceilings": {
+        **BUDGET["ceilings"],
+        "provider_nanodollars": 24 * max(RESERVATION_NANO, NEW_PLAN_RESERVATION),
+    }
+}
 
 
 def block(**fields):
@@ -165,6 +193,54 @@ def test_a_graphite_plan_records_the_miners_model_selection():
     plan = battery.provider_plan("graphite", budget, chosen, graphite=block())
     assert plan["model"] == ENGY_DEFAULT_MODEL
     assert plan["model_selection"] == chosen.record()
+
+
+def test_a_full_plan_whose_share_pays_for_no_research_call_is_refused():
+    """FULL's research reserves each call's whole cost against its share of
+    the miner's ceilings; a share that cannot pay for one call would research
+    nothing, so the plan is refused by code before anything freezes."""
+
+    def plan(selection=None, budget=BUDGET, **fields):
+        return battery.provider_plan(
+            "graphite", budget, selection, graphite=block(mode="FULL", **fields)
+        )
+
+    # 4% of 24 attempts is not one attempt.
+    with pytest.raises(campaigns.OperationRefused) as refused:
+        plan(research_share=0.04)
+    assert refused.value.code == driver.RESEARCH_SHARE_TOO_SMALL
+    # 5% pays for one Planner call; with a hunt, its half pays for none.
+    assert plan(research_share=0.05)["graphite"]["research_share"] == 0.05
+    with pytest.raises(campaigns.OperationRefused):
+        plan(research_share=0.05, hunt={})
+    assert plan(research_share=0.1, hunt={})["graphite"]["hunt"] is not None
+    # The cost of a call is the selection's: a model's whole output reserved
+    # (a 128,000-token cap) does not fit half of 24 historical reservations.
+    full_output = select(
+        provider_id="openai-responses",
+        model_id=GPT5_MINI,
+        credential={"kind": "file", "reference": "unset"},
+        settings={"max_output_tokens": 128000},
+    )
+    assert full_output.reservation_nano > 12 * RESERVATION_NANO
+    assert plan(DEFAULT_SELECTION, research_share=0.5)["graphite"]["mode"] == "FULL"
+    with pytest.raises(campaigns.OperationRefused):
+        plan(full_output, research_share=0.5)
+    roomy = {
+        "ceilings": {
+            **BUDGET["ceilings"],
+            "provider_nanodollars": 24 * full_output.reservation_nano,
+        }
+    }
+    assert plan(full_output, budget=roomy, research_share=0.1)["model_selection"] == (
+        full_output.record()
+    )
+    # Only FULL has a share to check.
+    for mode in ("RESEARCH", "BUILD"):
+        frozen = battery.provider_plan(
+            "graphite", BUDGET, full_output, graphite=block(mode=mode)
+        )
+        assert frozen["graphite"]["mode"] == mode
 
 
 def test_the_autonomous_and_agentless_plans_are_unchanged():
@@ -310,7 +386,16 @@ def host(tmp_path, monkeypatch):
         "images": ["sha256:" + "a" * 64, "sha256:" + "b" * 64],
     }
 
-    def args(command, agent="graphite", policy=AUTONOMOUS, graphite=None, **beside):
+    def args(
+        command,
+        agent="graphite",
+        policy=AUTONOMOUS,
+        graphite=None,
+        budget=None,
+        **beside,
+    ):
+        if budget is None:
+            budget = GRAPHITE_BUDGET if agent == "graphite" else BUDGET
         return SimpleNamespace(
             **beside,
             root=root,
@@ -329,7 +414,7 @@ def host(tmp_path, monkeypatch):
                 principal="alice",
                 miner=registered(),
                 runtime=runtime,
-                budget=BUDGET,
+                budget=budget,
                 agent=agent,
                 challenge=dict(CHALLENGE_REF),
             ),
@@ -342,7 +427,7 @@ def host(tmp_path, monkeypatch):
             )
         )
 
-    return SimpleNamespace(root=root, prepare=prepare, literature=literature)
+    return SimpleNamespace(root=root, prepare=prepare, args=args, literature=literature)
 
 
 def test_a_graphite_launch_freezes_its_plan_and_launch_record(host):
@@ -400,11 +485,54 @@ def test_the_launchpads_choice_prepares_a_graphite_campaign(host):
 
 
 def test_an_autonomous_campaign_prepares_as_it_did(host):
+    """Graphite changes nothing of a new autonomous plan: it is the plan
+    `provider_plan` builds for the selection `prepare_battery` chose - with
+    the base's own new-plan output default where the tree has it
+    (OWNER-LAUNCHPAD-PROD-02, which records that selection) - and apart from
+    that selection record it is the base commit's plan byte for byte."""
     prepared = host.prepare("run", agent="autonomous")
     frozen = json.loads((host.root / "campaign-manifest.json").read_bytes())
-    assert frozen["provider"] == battery.provider_plan("autonomous", BUDGET)
-    assert digest(canonical(frozen["provider"])) == AUTONOMOUS_PLAN_DIGEST
+    chosen = new_plan_selection(host.args("run", agent="autonomous"))
+    assert frozen["provider"] == battery.provider_plan("autonomous", BUDGET, chosen)
+    rest = {k: v for k, v in frozen["provider"].items() if k != "model_selection"}
+    assert digest(canonical(rest)) == AUTONOMOUS_PLAN_DIGEST
+    assert frozen["provider"].get("model_selection") == (
+        None if chosen.is_historical_default else chosen.record()
+    )
     assert prepared.agent == "autonomous"
     assert not driver.launch_path(host.root).exists()
     with pytest.raises(ValueError, match="autonomous policy"):
         host.prepare("resume", agent="autonomous", policy=editions.AGENT_POLICY)
+
+
+def test_a_new_graphite_plan_records_the_selection_prepare_chose(host):
+    """A new Graphite plan is a new product plan on the miner's own budget:
+    it freezes the selection `prepare_battery` chose, as the autonomous plan
+    does - under OWNER-LAUNCHPAD-PROD-02's output default, where the tree
+    has it, the model's own maximum output - and its research share is
+    checked against that selection's whole-call cost."""
+    prepared = host.prepare("run", graphite={"mode": "RESEARCH"})
+    frozen = json.loads((host.root / "campaign-manifest.json").read_bytes())
+    chosen = new_plan_selection(host.args("run"))
+    assert frozen["provider"] == battery.provider_plan(
+        "graphite", GRAPHITE_BUDGET, chosen, graphite=frozen["provider"]["graphite"]
+    )
+    assert frozen["provider"].get("model_selection") == (
+        None if chosen.is_historical_default else chosen.record()
+    )
+    assert prepared.selection.record() == chosen.record()
+    if hasattr(model_provider, "output_maximum"):
+        maximum = model_provider.output_maximum(chosen.provider_id, chosen.model_id)
+        assert chosen.settings.max_output_tokens == maximum["max_output_tokens"]
+
+
+def test_a_full_launch_too_small_for_one_research_call_is_refused(host):
+    from carbon.development_session.research_campaign import OperationRefused
+
+    with pytest.raises(OperationRefused) as refused:
+        host.prepare("run", graphite={"mode": "FULL", "research_share": 0.01})
+    assert refused.value.code == driver.RESEARCH_SHARE_TOO_SMALL
+    assert not (host.root / "campaign-manifest.json").exists()
+    # The same launch with a share that pays for its research prepares.
+    prepared = host.prepare("run", graphite={"mode": "FULL", "research_share": 0.1})
+    assert prepared.manifest["provider"]["graphite"]["research_share"] == 0.1

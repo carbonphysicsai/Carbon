@@ -13,9 +13,10 @@ miner's model, key, budget and compute, and uses none of them:
 - `toolbox`: the `sdk` a role's research loop calls: the role's manifest gate,
   the per-stage workspace allowlist, the protected-material filter and the
   literature served as data, origin and UNCHECKED labels kept.
-- `budget`: the research stages' share of the miner's provider ceilings
-  (`StageLedger`), which stops a FULL campaign's research typed
-  `research_share_reached` and never refuses a replayed call.
+- `budget`: the stages under the miner's own limits (`StageLedger`): the
+  research share, which stops a FULL campaign's research typed
+  `research_share_reached`, and the miner's ceilings and time, which end a
+  stage typed `miner_ceiling_reached`; a replayed call is never refused.
 - `plan`: the miner plan (`carbon.graphite.miner-plan.v1`) and its checks.
 - `driver`: `run(prepared)`, the RESEARCH / BUILD / FULL stages over the
   shared research loop, submitting through the campaign's own submit.

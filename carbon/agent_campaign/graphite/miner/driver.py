@@ -19,7 +19,17 @@ reconcile, `last_refusal` and the campaign's own submit.
 - FULL (the default): RESEARCH's stages under the miner's research share of
   the provider ceilings (`budget.StageLedger`: the hunt within its part of
   the share, the Planner within the rest; a stage that reaches its cap stops
-  typed `research_share_reached`), then BUILD.
+  typed `research_share_reached`), then BUILD. A FULL launch whose share
+  cannot pay for one research model call (the Planner's, and with a hunt the
+  hunt's part too) is refused `research_share_too_small` before its manifest
+  freezes (`check_research_share`), rather than run a research stage that
+  could send nothing.
+
+**Limits are money and time** (OWNER-GRAPHITE-MINER-01 item 6). Every stage
+runs under the miner's own ceilings and elapsed time; a model call one of
+them refuses ends that stage STOPPED `miner_ceiling_reached` with the
+dimension that bound, nothing of it reserved or sent - the normal end of a
+miner-edition run, never an interruption. The campaign then completes.
 
 **Stages** are recorded write-once under `<campaign>/graphite/stages/`; a
 finished stage is never run again, so a resume makes no hunt, no arXiv and no
@@ -81,6 +91,7 @@ HUNT_QUERY_INVALID = "hunt_query_invalid"
 LITERATURE_PACK_MISSING = "literature_pack_missing"
 CURATION_NOT_FOUND = "curation_not_found"
 TOO_MANY_PINS = "too_many_pins"
+RESEARCH_SHARE_TOO_SMALL = "research_share_too_small"
 #: The most cards one learning outcome names (the library's own bound,
 #: `library.MAX_OUTCOME_CARDS`); a plan's first-cited cards are kept.
 LEARNING_CARDS = 64
@@ -274,6 +285,38 @@ def freeze_launch(args, root, *, challenge):
     return block
 
 
+def research_share_shortfall(launch, ceilings, selection):
+    """Why a FULL launch's research share cannot pay for one research model
+    call on `selection` under the miner's `ceilings`, or None (and None for
+    any other mode): `{stage, dimension, share_cap, per_call}`.
+
+    The Planner may spend the whole share and the hunt its part of it
+    (`edition.HUNT_PART_OF_SHARE`), each reserving a call's whole cost
+    before it is sent (`budget.call_reservation`), so each must fit one.
+    `launch` is the frozen block or `edition.launch_fields`' result; a door
+    may ask this before a campaign exists, as its launch estimate."""
+    if launch["mode"] != editions.FULL_MODE:
+        return None
+    fraction = editions.share_fraction(launch)
+    per_call = budget.call_reservation(selection)
+    stages = [(PLAN, fraction)]
+    if launch.get("hunt") is not None:
+        stages.append((HUNT, fraction * editions.HUNT_PART_OF_SHARE))
+    for stage, part in stages:
+        short = budget.share_shortfall(ceilings or {}, part, per_call)
+        if short is not None:
+            return {"stage": stage, **short}
+    return None
+
+
+def check_research_share(block, ceilings, selection):
+    """Refuse, `research_share_too_small`, a FULL plan whose research share
+    cannot pay for one research model call (`research_share_shortfall`):
+    its research would send nothing. Raised before the manifest freezes."""
+    if research_share_shortfall(block, ceilings, selection) is not None:
+        raise refused(RESEARCH_SHARE_TOO_SMALL)
+
+
 def frozen_launch(root, block):
     """The launch record frozen with `block`, checked against it."""
     path = launch_path(root)
@@ -324,10 +367,11 @@ def frozen_pack(root, block):
 
 
 def _note_stage_end(run, stage, body):
-    """A research stage that ended without its product (stopped at the
-    research share, refused, arXiv failed) is noted in the campaign ledger,
-    where the miner's campaign view and agent read it. Noted before the
-    stage record is written, so a resume never loses it."""
+    """A stage that ended with a code (stopped at the research share or at
+    the miner's own ceilings or time, refused, arXiv failed, another typed
+    stop of the loop) is noted in the campaign ledger, where the miner's
+    campaign view and agent read it. Noted before the stage record is
+    written, so a resume never loses it."""
     if body.get("code") is not None:
         run.ledger.note(
             owner=run.owner,
@@ -416,8 +460,9 @@ class MinerReader:
     is one call: a resume, or a hunt that meets it again, replays the
     journalled reply and never pays twice.
 
-    A call refused before anything is sent - the research share reached, or
-    a request this Reader will not send - raises the hunt's own
+    A call refused before anything is sent - the research share reached, one
+    of the miner's own ceilings or its time reached (`miner_ceiling_reached`),
+    or a request this Reader will not send - raises the hunt's own
     `hunt.ReaderNotSent` with that code, so the hunt releases the paper's
     claim (a later hunt may read it) and stops typed."""
 
@@ -489,9 +534,15 @@ class MinerReader:
                 transport=self.transport,
                 provider=self.selection,
             )
-        except budget.ResearchShareReached as reached:
-            # Refused by the share before anything was reserved or sent.
+        except budget.STOPS as reached:
+            # Refused by the share or the miner's own limit before anything
+            # was reserved or sent.
             raise ReaderNotSent(reached.code) from None
+        except ValueError as refusal:
+            if not budget.call_time_limit(refusal):
+                raise
+            # The call cannot finish in the campaign's time; nothing reserved.
+            raise ReaderNotSent(budget.MINER_CEILING_REACHED) from None
 
 
 # --- the run -----------------------------------------------------------------
@@ -673,6 +724,12 @@ class _Run:
         }
 
 
+def _stage_ledger(run):
+    """A stage's ledger with no research share: the campaign ledger's own
+    ceilings, a model call they refuse typed `miner_ceiling_reached`."""
+    return budget.StageLedger(run.ledger, owner=run.owner, caps={})
+
+
 def _research_ledger(run, stage):
     """A research stage's ledger. In FULL, the share of the provider
     ceilings: the hunt's part of it over the hunt's own calls, the whole
@@ -680,7 +737,7 @@ def _research_ledger(run, stage):
     BUILD whose Planner runs first, the campaign ledger's own ceilings
     alone."""
     if run.block["mode"] != editions.FULL_MODE:
-        return budget.StageLedger(run.ledger, owner=run.owner, caps={})
+        return _stage_ledger(run)
     fraction = editions.share_fraction(run.block)
     namespace = budget.RESEARCH_NAMESPACE
     if stage == HUNT:
@@ -724,9 +781,10 @@ class _NoRefusal(Exception):
 async def _hunt(run, ledger):
     """The hunt, under this campaign's one hunt id. It ends recorded: DONE,
     DONE with `literature_fetch_failed` (arXiv failed; the Planner proceeds),
-    or STOPPED with the code that stopped it (the research share, a refusal
-    of the hunt's own). A pause, a stop, a provider failure or an unknown
-    outcome propagates, and a resume continues the same hunt."""
+    or STOPPED with the code that stopped it (the research share, the
+    miner's own ceilings or time, a refusal of the hunt's own). A pause, a
+    stop, a provider failure or an unknown outcome propagates, and a resume
+    continues the same hunt."""
     done = run.stages.finished(HUNT)
     if done is not None:
         return done
@@ -785,8 +843,40 @@ async def _hunt(run, ledger):
         "report": _report(report),
         "private_snapshot_digest": run.library.snapshot(),
     }
+    limit = getattr(ledger, "limit", None)
+    if code == budget.MINER_CEILING_REACHED and limit is not None:
+        body["dimension"] = limit["dimension"]
     _note_stage_end(run, HUNT, body)
     return run.stages.finish(HUNT, body)
+
+
+async def _session(ledger, **keywords):
+    """One research loop session on a stage ledger; its outcome.
+
+    The engine ends a session STOPPED itself when the stage ledger refuses a
+    model call typed (`budget.STOPS`, the engine's `CeilingReached`). Two
+    stops reach here instead and end the session the same way, with the
+    same outcome: a model call's own time check, which refuses before
+    anything is reserved (`budget.CALL_TIME_REFUSAL`), and - under an engine
+    that types no ceiling - the stage ledger's stops themselves. Nothing of
+    the refused call was reserved or sent, so the stage ends there."""
+    try:
+        return await run_epoch(ledger, **keywords)
+    except budget.STOPS as stop:
+        return stop.outcome()
+    except ValueError as refusal:
+        if not budget.call_time_limit(refusal):
+            raise
+        return budget.MinerCeilingReached(budget.ELAPSED).outcome()
+
+
+def _stopped(outcome):
+    """What a stage record keeps of a session outcome that ended with a
+    code: the code and, for a limit, the dimension that bound."""
+    kept = {"code": outcome.get("code")}
+    if outcome.get("dimension") is not None:
+        kept["dimension"] = outcome["dimension"]
+    return kept
 
 
 def _finish_arguments(outcome, folder):
@@ -814,7 +904,8 @@ async def _plan(run, ledger):
     """The Planner, as the research loop's stage `plan` of epoch 1. In FULL
     it spends what is left of the research share after the hunt; when
     nothing is left, its first model call is refused and it stops typed
-    `research_share_reached`, having sent nothing."""
+    `research_share_reached`, having sent nothing. At one of the miner's own
+    limits it stops typed `miner_ceiling_reached`."""
     done = run.stages.finished(PLAN)
     if done is not None:
         return done
@@ -843,27 +934,23 @@ async def _plan(run, ledger):
         "banned_cards": len(curation["bans"]),
         "hunt": (hunted or {}).get("report"),
     }
-    outcome = None
-    try:
-        outcome = await run_epoch(
-            ledger,
-            epoch=1,
-            sdk=toolbox,
-            initial_observation=observation,
-            instructions=role.prompt,
-            tools=run.tools(role),
-            stage=PLAN,
-            finish={
-                "tool": editions.FINISH_TOOL,
-                "validate": validate,
-                "status": "PLANNED",
-            },
-            **run.engine(PLAN),
-        )
-    except budget.ResearchShareReached:
-        pass
+    outcome = await _session(
+        ledger,
+        epoch=1,
+        sdk=toolbox,
+        initial_observation=observation,
+        instructions=role.prompt,
+        tools=run.tools(role),
+        stage=PLAN,
+        finish={
+            "tool": editions.FINISH_TOOL,
+            "validate": validate,
+            "status": "PLANNED",
+        },
+        **run.engine(PLAN),
+    )
     reached = getattr(ledger, "reached", None)
-    if reached is not None or outcome is None:
+    if reached is not None:
         body = {
             "status": "STOPPED",
             "code": budget.RESEARCH_SHARE_REACHED,
@@ -887,7 +974,7 @@ async def _plan(run, ledger):
     else:
         body = {
             "status": outcome.get("status"),
-            "code": outcome.get("code"),
+            **_stopped(outcome),
             "reason": str(outcome.get("reason") or "")[:300] or None,
             "plan_digest": None,
             "plan": None,
@@ -953,12 +1040,22 @@ def _learn(run, plan_doc, plan_digest, epoch, result):
 
 async def _build(run, plan_doc, plan_digest):
     """The Constructor's epochs, then the campaign's submit, as Carbon's
-    autonomous agent runs them (`research_campaign.run_agent`)."""
+    autonomous agent runs them (`research_campaign.run_agent`). An epoch the
+    miner's own ceilings or time end (`miner_ceiling_reached`), or any other
+    typed stop of the loop, ends the build STOPPED with that code, noted in
+    the ledger, and the campaign completes."""
     from carbon.development_session.research_report import report
 
+    if run.stages.finished(BUILD) is not None:
+        # Finished: never run again (a stop after its record, before the
+        # campaign's completion, completes it).
+        if not (run.ledger.root / "campaign-complete.json").exists():
+            campaigns._complete(run.prepared)
+        return None
     run.stages.start(BUILD)
     role = run.edition.role("constructor")
     ledger, owner = run.ledger, run.owner
+    session_ledger = _stage_ledger(run)
     feedback = None
     epoch_cap = (run.manifest.get("ceilings") or {}).get("epochs")
     epochs = (
@@ -966,7 +1063,7 @@ async def _build(run, plan_doc, plan_digest):
         if epoch_cap is None
         else campaigns.FINAL_EPOCHS[:epoch_cap]
     )
-    ended = "EPOCHS_USED"
+    ended, stopped = "EPOCHS_USED", None
     for epoch in epochs:
         ledger.checkpoint()
         saved = ledger.root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json"
@@ -981,8 +1078,8 @@ async def _build(run, plan_doc, plan_digest):
             "plan_digest": plan_digest,
             "plan_basis": PLAN_BASIS if plan_doc is not None else NO_PLAN_BASIS,
         }
-        result = await run_epoch(
-            ledger,
+        result = await _session(
+            session_ledger,
             epoch=epoch,
             sdk=run.toolbox(role, BUILD),
             initial_observation=observation,
@@ -996,6 +1093,8 @@ async def _build(run, plan_doc, plan_digest):
         _learn(run, plan_doc, plan_digest, epoch, result)
         if result["status"] != "SELECTED":
             ended = "NOT_SELECTED"
+            if type(result.get("code")) is str:
+                stopped = _stopped(result)
             break
         feedback, retained = await campaigns.submit_or_retain(
             run.prepared, epoch, result["strategy"]
@@ -1006,10 +1105,15 @@ async def _build(run, plan_doc, plan_digest):
         if feedback is None:
             ended = "NOT_SUBMITTED"
             break
-    run.stages.finish(
-        BUILD,
-        {"status": "DONE", "code": None, "ended": ended, "plan_digest": plan_digest},
-    )
+    body = {
+        "status": "DONE" if stopped is None else "STOPPED",
+        "code": None,
+        **(stopped or {}),
+        "ended": ended,
+        "plan_digest": plan_digest,
+    }
+    _note_stage_end(run, BUILD, body)
+    run.stages.finish(BUILD, body)
     campaigns._complete(run.prepared)
     return None
 

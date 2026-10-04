@@ -487,7 +487,10 @@ class Engine:
     keywords. Each scripted turn is one metered model call (identity
     `epoch-N[-<stage>]-provider-NNN`) and then its tool calls, run against
     the stage's toolbox, or locally for a finish, a selection or a stop.
-    A finished stage's outcome replays from `outcome.json`."""
+    A model call the ledger refuses typed (the engine's `CeilingReached`;
+    here the stage ledger's stops) ends the session STOPPED with its
+    outcome, as the engine does. A finished stage's outcome replays from
+    `outcome.json`."""
 
     def __init__(self, scripts=None):
         self.scripts = scripts or {}
@@ -559,17 +562,21 @@ class Engine:
                 "max_output_tokens": provider.settings.max_output_tokens,
                 "reasoning": None,
             }
-            await asyncio.to_thread(
-                request_model,
-                ledger,
-                owner=owner,
-                identity=f"{prefix}provider-{index:03d}",
-                request=request,
-                credential_file=credential_file,
-                transport=transport,
-                provider=provider,
-                accept_incomplete=True,
-            )
+            try:
+                await asyncio.to_thread(
+                    request_model,
+                    ledger,
+                    owner=owner,
+                    identity=f"{prefix}provider-{index:03d}",
+                    request=request,
+                    credential_file=credential_file,
+                    transport=transport,
+                    provider=provider,
+                    accept_incomplete=True,
+                )
+            except budget.STOPS as reached:
+                outcome = reached.outcome()
+                break
             for position, (name, arguments) in enumerate(turn):
                 identity = f"{prefix}tool-{index:03d}" + (
                     f"-{position:02d}" if position else ""
@@ -1213,38 +1220,71 @@ def test_full_hunt_keeps_to_its_part_and_the_planner_gets_the_rest(world):
     spent = budget.namespace_spend(w.prepared.ledger, "alice")
     assert spent["provider_attempts"] == 4
     assert len(w.engine.stage_calls(None)) == 1
+    # The hunt's stop is noted in the campaign ledger, where the miner sees it.
+    assert graphite_notes(w) == [
+        {
+            "graphite_stage": "hunt",
+            "status": "STOPPED",
+            "stop": "research_share_reached",
+        }
+    ]
 
 
-def test_full_with_no_share_left_stops_the_planner_without_a_call(world):
-    w = world(mode="FULL", research_share=0.0, hunt={})
-    w.engine.scripts = {
-        ("plan", 1): [[record_plan(("arxiv-2401.00001", "shared"))]],
-        (None, 1): [STOP_TURN],
-    }
-    transport = Transport()
-    w.run(transport)
-    assert transport.reader_calls == []
-    assert w.stage("hunt")["code"] == budget.RESEARCH_SHARE_REACHED
-    assert w.library.claims == {}
-    planned = w.stage("plan")
-    assert (planned["status"], planned["code"]) == ("STOPPED", "research_share_reached")
-    assert planned["share"]["share_cap"] == 0
-    # Each stop is noted in the campaign ledger, where the miner sees it.
-    notes = [
+def graphite_notes(w):
+    return [
         n["body"]
         for n in w.prepared.ledger.status(owner="alice")["notes"]
         if "graphite_stage" in n["body"]
     ]
-    assert notes == [
-        {"graphite_stage": s, "status": "STOPPED", "stop": "research_share_reached"}
-        for s in ("hunt", "plan")
-    ]
-    # No model call was made for research; the build ran once.
-    assert budget.namespace_spend(w.prepared.ledger, "alice") == {
-        "provider_nanodollars": 0,
-        "provider_attempts": 0,
+
+
+def test_a_full_launch_whose_share_pays_for_no_research_call_is_refused(world):
+    """A share that cannot pay for one research model call would research
+    nothing: refused `research_share_too_small` before the manifest
+    freezes, never run as a research stage that can send nothing."""
+    w = world(mode="FULL", research_share=0.0, hunt={})
+    with pytest.raises(research_campaign.OperationRefused) as refused:
+        w.prepare()
+    assert refused.value.code == driver.RESEARCH_SHARE_TOO_SMALL
+    assert not (w.root / "campaign-manifest.json").exists()
+    assert w.engine.calls == []
+
+    def short(share, hunt=None, ceilings=CEILINGS, selection=DEFAULT_SELECTION):
+        launch = {"mode": "FULL", "research_share": share, "hunt": hunt}
+        return driver.research_share_shortfall(launch, ceilings, selection)
+
+    # 4% of the ceilings pays for one Planner call; the hunt's half for none
+    # (0.8 of a call's cost and of an attempt).
+    assert short(0.04) is None
+    assert short(0.04, hunt={"queries": [], "max_records": 200}) == {
+        "stage": "hunt",
+        "dimension": "provider_nanodollars",
+        "share_cap": 40 * RESERVATION_NANO // 50,
+        "per_call": RESERVATION_NANO,
     }
-    assert len(w.engine.stage_calls(None)) == 1
+    attempts_only = {"provider_attempts": 40, "provider_nanodollars": 10**15}
+    assert short(0.04, hunt={}, ceilings=attempts_only) == {
+        "stage": "hunt",
+        "dimension": "provider_attempts",
+        "share_cap": 0,
+        "per_call": 1,
+    }
+    # Money binds where one call's whole cost does not fit the share.
+    poor = {**CEILINGS, "provider_nanodollars": 5 * RESERVATION_NANO}
+    assert short(0.1, ceilings=poor) == {
+        "stage": "plan",
+        "dimension": "provider_nanodollars",
+        "share_cap": RESERVATION_NANO // 2,
+        "per_call": RESERVATION_NANO,
+    }
+    # An unpriced selection reserves no money, so only attempts bind.
+    unpriced = SimpleNamespace(reservation_nano=None)
+    assert budget.call_reservation(unpriced) == {"provider_attempts": 1}
+    assert short(0.1, ceilings=poor, selection=unpriced) is None
+    # Only FULL has a research share.
+    for mode in ("RESEARCH", "BUILD"):
+        launch = {"mode": mode, "research_share": None, "hunt": None}
+        assert driver.research_share_shortfall(launch, poor, DEFAULT_SELECTION) is None
 
 
 def test_full_runs_hunt_plan_then_build(world):
@@ -1264,6 +1304,163 @@ def test_full_runs_hunt_plan_then_build(world):
         ([HUNTED], True),
         ([HUNTED], False),
     ]
+
+
+# --- the miner's own limits: money and time ---------------------------------------
+
+
+#: A Constructor turn that reads one card and selects nothing.
+READ_TURN = [(editions.LIT_CARD, {"card_id": "arxiv-2401.00001"})]
+
+
+def test_the_build_ends_typed_at_the_miners_own_ceiling(tmp_path, monkeypatch):
+    """8e's end: the miner's own ceiling refuses the next model call, so the
+    session ends STOPPED `miner_ceiling_reached` with the dimension that
+    bound (its outcome recorded), nothing of that call reserved or sent; the
+    build records it, the ledger notes it, and the campaign completes - the
+    normal end of a miner-edition run, never an interruption."""
+    ceilings = {**CEILINGS, "provider_attempts": 3}
+    w = World(tmp_path, monkeypatch, graphite={"mode": "BUILD"}, ceilings=ceilings)
+    w.engine.scripts = {("plan", 1): [STOP_TURN], (None, 1): [READ_TURN] * 5}
+    transport = Transport()
+    assert w.run(transport) is None
+    # The Planner's call and two of the Constructor's; the third was refused.
+    assert len(transport.requests) == 3
+    assert w.spent()["provider_attempts"] == 3
+    outcome = json.loads((w.root / "epoch-1" / "outcome.json").read_bytes())
+    assert (outcome["status"], outcome["code"], outcome["dimension"]) == (
+        "STOPPED",
+        budget.MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    built = w.stage("build")
+    assert {k: built[k] for k in ("status", "code", "dimension", "ended")} == {
+        "status": "STOPPED",
+        "code": budget.MINER_CEILING_REACHED,
+        "dimension": "provider_attempts",
+        "ended": "NOT_SELECTED",
+    }
+    assert (w.root / "campaign-complete.json").exists()
+    assert w.campaign.evaluated == []
+    assert graphite_notes(w) == [
+        {
+            "graphite_stage": "build",
+            "status": "STOPPED",
+            "stop": "miner_ceiling_reached",
+        }
+    ]
+    view = driver.view(w.root)
+    assert view["stage"] == "complete"
+    assert view["stages"][-1] == {
+        "stage": "build",
+        "state": "STOPPED",
+        "code": budget.MINER_CEILING_REACHED,
+    }
+    # Finished stages never run again: a resume sends and records nothing.
+    calls = len(w.engine.calls)
+    assert w.run(Transport(forbid=True)) is None
+    assert len(w.engine.calls) == calls and len(graphite_notes(w)) == 1
+
+
+def test_research_stages_stop_typed_at_the_miners_own_ceiling(tmp_path, monkeypatch):
+    """The hunt's Reader and the Planner meet the miner's ceiling the same
+    way: the hunt releases the paper whose call was refused and stops typed,
+    the Planner stops having sent nothing, each noted; RESEARCH completes."""
+    ceilings = {**CEILINGS, "provider_attempts": 1}
+    w = World(
+        tmp_path,
+        monkeypatch,
+        graphite={"mode": "RESEARCH", "hunt": {}},
+        ceilings=ceilings,
+    )
+    w.feed = [
+        {"arxiv_id": "2402.00009", "title": "Physics-informed battery operator"},
+        {"arxiv_id": "2402.00010", "title": "Operator learning for cell ageing"},
+    ]
+    w.engine.scripts = {("plan", 1): [[record_plan((HUNTED, "miner_hunt"))]]}
+    transport = Transport()
+    assert w.run(transport) is None
+    assert len(transport.requests) == 1 and len(transport.reader_calls) == 1
+    hunted = w.stage("hunt")
+    assert (hunted["status"], hunted["code"], hunted["dimension"]) == (
+        "STOPPED",
+        budget.MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    assert hunted["report"]["stop_code"] == budget.MINER_CEILING_REACHED
+    # The refused paper was never paid for, so its claim was released.
+    assert set(w.library.claims) == {"2402.00009"}
+    planned = w.stage("plan")
+    assert (planned["status"], planned["code"], planned["dimension"]) == (
+        "STOPPED",
+        budget.MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    assert planned["plan"] is None
+    assert graphite_notes(w) == [
+        {"graphite_stage": s, "status": "STOPPED", "stop": "miner_ceiling_reached"}
+        for s in ("hunt", "plan")
+    ]
+    assert (w.root / "campaign-complete.json").exists()
+
+
+def test_a_call_the_campaigns_time_cannot_fit_ends_its_stage_typed(world, monkeypatch):
+    """A model call refuses itself, before it reserves anything, when it
+    cannot finish inside the campaign's time (`request_model`'s own check,
+    not a ledger reservation). The Reader and every stage end typed there
+    too, with the time as the dimension; any other refusal still raises."""
+    from carbon.development_session import research_agent
+
+    w = world(mode="BUILD")
+
+    async def late(ledger, **_):
+        raise ValueError(budget.CALL_TIME_REFUSAL)
+
+    monkeypatch.setattr(driver, "run_epoch", late)
+    assert w.run(Transport(forbid=True)) is None
+    for stage in ("plan", "build"):
+        stopped = w.stage(stage)
+        assert (stopped["status"], stopped["code"], stopped["dimension"]) == (
+            "STOPPED",
+            budget.MINER_CEILING_REACHED,
+            "elapsed_seconds",
+        ), stage
+    assert (w.root / "campaign-complete.json").exists()
+
+    def refuse(*_, **__):
+        raise ValueError(budget.CALL_TIME_REFUSAL)
+
+    monkeypatch.setattr(research_agent, "request_model", refuse)
+    reader = driver.MinerReader(
+        ledger=w.prepared.ledger,
+        owner="alice",
+        selection=DEFAULT_SELECTION,
+        credential_file=None,
+        transport=Transport(forbid=True),
+        role=editions.READER,
+    )
+    request = reader.request("extract", {"paper": {"arxiv_id": "2403.00003"}})
+    with pytest.raises(ReaderNotSent) as stopped:
+        reader(request)
+    assert stopped.value.code == budget.MINER_CEILING_REACHED
+
+    def broken(*_, **__):
+        raise ValueError("provider output malformed; retained and stopped")
+
+    monkeypatch.setattr(research_agent, "request_model", broken)
+    with pytest.raises(ValueError, match="malformed"):
+        reader(request)
+
+    async def failing(ledger, **_):
+        raise ValueError("provider output malformed; retained and stopped")
+
+    elsewhere = w.root.parent / "other"
+    elsewhere.mkdir()
+    other = World(elsewhere, monkeypatch, graphite={"mode": "BUILD"})
+    monkeypatch.setattr(driver, "run_epoch", failing)
+    with pytest.raises(ValueError, match="malformed"):
+        other.run(Transport(forbid=True))
+    assert other.stage("plan") is None
 
 
 # --- refusals before any model call ---------------------------------------------
@@ -1547,7 +1744,10 @@ def test_every_stage_runs_under_the_frozen_engine_rules(world):
     assert constructor["instructions"] == editions.CONSTRUCTOR_PROMPT
     assert constructor["stage"] is None and constructor["finish"] is None
     assert constructor["limits"]["calls_per_epoch"] == 90
-    assert constructor["ledger"] is w.prepared.ledger
+    # The build has no research share; its ledger types the miner's limits.
+    assert isinstance(constructor["ledger"], budget.StageLedger)
+    assert constructor["ledger"].ledger is w.prepared.ledger
+    assert constructor["ledger"].caps == {}
     planner_tools = [t["name"] for t in planner["tools"]]
     assert planner_tools == list(editions.PLANNER.tools)
     task = next(t for t in planner["tools"] if t["name"] == START)
@@ -2125,24 +2325,64 @@ def test_research_runs_on_the_real_literature_and_research_loop(
 def test_the_research_loop_stops_the_planner_typed_at_the_share(
     tmp_path, monkeypatch, gate
 ):
-    """FULL with no research share left: the share ledger refuses the
-    Planner's first call as the engine's typed ceiling, so the research loop
-    itself ends the session STOPPED `research_share_reached`, journalled,
-    with nothing sent; the build goes on with the rest of the budget."""
+    """FULL with a share of two calls (5% of 40 attempts): the share ledger
+    refuses the Planner's third call as the engine's typed ceiling, so the
+    research loop itself ends the session STOPPED `research_share_reached`,
+    journalled, with nothing of that call sent; the build goes on with the
+    rest of the budget."""
     w = World(
-        tmp_path, monkeypatch, graphite={"mode": "FULL", "research_share": 0}, real=True
+        tmp_path,
+        monkeypatch,
+        graphite={"mode": "FULL", "research_share": 0.05},
+        real=True,
     )
-    transport = RoleTransport(constructor=[REAL_STOP, REAL_STOP])
+    search = [(editions.LIT_SEARCH, {"query": "neural operator battery"})]
+    transport = RoleTransport(
+        planner=[search, search, search], constructor=[REAL_STOP, REAL_STOP]
+    )
     assert w.run(transport) is None
     planned = w.stage("plan")
     assert (planned["status"], planned["code"]) == ("STOPPED", "research_share_reached")
+    assert planned["share"]["share_cap"] == 2
     outcome = json.loads((w.root / "epoch-1" / "plan" / "outcome.json").read_bytes())
     assert (outcome["status"], outcome["code"]) == ("STOPPED", "research_share_reached")
-    assert all(
-        not r["instructions"].startswith(editions.PLANNER_PROMPT)
+    sent = [
+        r
         for r in transport.requests
-    )
+        if r["instructions"].startswith(editions.PLANNER_PROMPT)
+    ]
+    assert len(sent) == 2
     assert w.stage("build")["ended"] == "NOT_SELECTED"
+
+
+@needs_engine
+def test_the_research_loop_stops_the_build_typed_at_the_miners_ceiling(
+    tmp_path, monkeypatch, gate
+):
+    """8e's end on the real research loop: the miner's own ceiling refuses
+    the Constructor's next call, the loop records the epoch's outcome
+    STOPPED `miner_ceiling_reached` with the dimension, and the campaign
+    completes instead of being interrupted."""
+    ceilings = {**CEILINGS, "provider_attempts": 3}
+    w = World(
+        tmp_path, monkeypatch, graphite={"mode": "BUILD"}, ceilings=ceilings, real=True
+    )
+    read = [(editions.LIT_CARD, {"card_id": "arxiv-" + pack_paper()})]
+    transport = RoleTransport(planner=[REAL_STOP], constructor=[read] * 5)
+    assert w.run(transport) is None
+    assert len(transport.requests) == 3
+    assert w.spent()["provider_attempts"] == 3
+    outcome = json.loads((w.root / "epoch-1" / "outcome.json").read_bytes())
+    assert (outcome["status"], outcome["code"], outcome["dimension"]) == (
+        "STOPPED",
+        budget.MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    built = w.stage("build")
+    assert (built["status"], built["code"]) == ("STOPPED", "miner_ceiling_reached")
+    assert (w.root / "campaign-complete.json").exists()
+    # A resume replays: nothing is sent again.
+    assert w.run(Transport(forbid=True)) is None
 
 
 @needs_engine

@@ -137,8 +137,12 @@ def graphite_plan(budget, selection, graphite):
     no escalation), and the engine's limits (`LIMITS_V2`) for the Planner
     and the Constructor and its compaction rule (`COMPACTION_V1`). There is
     no per-epoch call or trial count unless the miner set one: the miner's
-    own ceilings bind."""
-    from carbon.agent_campaign.graphite.miner import edition
+    own ceilings bind.
+
+    A FULL plan whose research share cannot pay for one research model call
+    on the selection is refused `research_share_too_small`
+    (`driver.check_research_share`): its research would send nothing."""
+    from carbon.agent_campaign.graphite.miner import driver, edition
     from carbon.development_session import miner_guidance
     from carbon.development_session.model_provider import (
         DEFAULT_SELECTION,
@@ -160,6 +164,7 @@ def graphite_plan(budget, selection, graphite):
     edition.resolve(block["edition"], block["edition_digest"])
     selection = DEFAULT_SELECTION if selection is None else selection
     check_budget(selection, ceilings)
+    driver.check_research_share(block, ceilings, selection)
     limits = block["limits"]
     plan = {
         "agent": "graphite",
