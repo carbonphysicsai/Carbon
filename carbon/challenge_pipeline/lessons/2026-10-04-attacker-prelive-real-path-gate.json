@@ -6,7 +6,7 @@
  "stage": "test_iterate",
  "execution": {
   "kind": "build",
-  "ref": "follow-up to carbonphysicsai/Carbon#563 (branch claude/attack-engine-prelive); .agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-E.md",
+  "ref": "follow-up to carbonphysicsai/Carbon#563 (branch claude/attack-engine-prelive); .agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-F.md",
   "description": "Built the phase-4 pre-live gate: the live run's own code paths up to the network boundary with fakes only at that boundary, under the live run's threading, with a sqlite thread guard and a network guard; made the grant check read the committed blob; scoped short sealed condition ids; and closed the engine review's follow-ups."
  },
  "expected": "A scripted dry run that passes shows the live run's code works, and a grant equal to the working-tree file is the owner's grant.",
