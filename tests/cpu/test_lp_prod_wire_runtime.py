@@ -18,6 +18,7 @@ no chain is read and nothing is spent.
 
 from __future__ import annotations
 
+import asyncio
 import http.client
 import json
 import socket
@@ -248,6 +249,40 @@ def test_a_call_in_flight_or_a_held_campaign_is_never_settled(host):
     assert host.get(identity)["state"] == "RECONCILIATION_REQUIRED"
     # Once the call has ended and the holder has gone, it settles.
     assert host.control(identity, "reconcile")["state"] == "READY"
+
+
+def test_a_refused_settlement_reads_the_same_at_both_doors(host):
+    """Review repair: over MCP, `carbon_halt action=reconcile` answered A's
+    settlement refusals with the catalog's fallback ("Read the code ..."),
+    because the MCP door read only the catalog, which did not name them, while
+    the HTTP door sent A's own step. Both now send A's step; and the catalog,
+    which a `last_refusal` reads, names each settlement code with A's step as
+    a sentence."""
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from carbon.miner_mcp.mcp_operations import PREFIX, make_operation_tools
+    from scripts.dev.miner_launchpad import supervisor as supervision
+
+    identity, root = launched(host)
+    ledger = timed_out(root)
+    halt = {t.name: t for t in make_operation_tools(host)}[PREFIX + "halt"]
+    with ra._provider_lease(ledger):
+        with pytest.raises(Rejected) as browser:
+            host.control(identity, "reconcile")
+        with pytest.raises(ToolError) as agent:
+            asyncio.run(halt.fn(campaign=identity, action="reconcile"))
+    body = error_body(browser.value.code, browser.value)
+    assert body == {
+        "error": "call_in_flight",
+        "next_step": SETTLEMENT_REFUSALS["call_in_flight"],
+    }
+    assert json.loads(str(agent.value)) == body
+    # Nothing was settled through either door.
+    assert [c["identity"] for c in uncertain_calls(ledger, owner=OWNER)] == ["model-1"]
+    for code, said in SETTLEMENT_REFUSALS.items():
+        assert NEXT_ACTIONS[code] == said[0].upper() + said[1:] + ".", code
+        assert supervision.refusal(code)["next_action"] == NEXT_ACTIONS[code]
+        assert supervision.refusal(code)["next_action"] != supervision.FALLBACK_ACTION
 
 
 def test_pause_never_settles_a_model_call(host):
@@ -580,7 +615,10 @@ def test_a_restarted_control_center_names_the_profile_it_did_not_attach(
 def test_carbon_mcp_never_attaches_a_stale_profile(tmp_path, head, capsys):
     """`carbon-mcp --configuration` constructs its host through
     `RunnerAdapter.for_profile`, so it refuses the same profile by name and
-    serves nothing over it."""
+    serves nothing over it. It names the step that clears it, and why - the
+    step the Control Center prints and its HTTP door sends - not the
+    catalog's general one (review repair: it said "re-run the installer"
+    where a compute check and Review clear it)."""
     from carbon.miner_mcp import standard_cli
 
     setup, _ = installed(tmp_path)
@@ -594,10 +632,22 @@ def test_carbon_mcp_never_attaches_a_stale_profile(tmp_path, head, capsys):
         ]
     )
     assert served == 2
+    reasons, step = profile_staleness(setup.profile_path, profile_of(setup))
+    assert step == REINSTALL_STEP
     assert capsys.readouterr().err == (
+        "Carbon MCP unavailable: carbon_updated_rerun_installer. Next: "
+        + step
+        + ": "
+        + "; ".join(reasons)
+        + ".\n"
+    )
+    # The same step the HTTP door sends for the same profile.
+    _, refused = controller.attach_runner(setup.profile_path)
+    assert refused["next_step"] == step + ": " + "; ".join(reasons)
+    # A refusal that carries no step of its own keeps the catalog's.
+    assert standard_cli.unavailable_message(Rejected(CARBON_UPDATED)) == (
         "Carbon MCP unavailable: carbon_updated_rerun_installer. "
         + NEXT_ACTIONS[CARBON_UPDATED]
-        + "\n"
     )
 
 

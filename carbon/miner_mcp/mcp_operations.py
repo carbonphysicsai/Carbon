@@ -17,8 +17,9 @@ submit, halt, resume - needs neither.
 What this door adds, and only as a door (LP-PROD-B): schemas that state the
 table's closed values and the fields a body cannot run without; a launch
 idempotency key generated when the client sends none, and returned; refusals as
-JSON with the code, the field to correct and the next step - the refusal
-catalog's step, the one the browser's door gives for the same code (W1); a
+JSON with the code, the field to correct and the next step - the refusal's
+own step when it carries one, otherwise the refusal catalog's, so the step is
+the one the browser's door gives for the same refusal (W1, repair); a
 run's images as MCP image content rather than base64 inside JSON; and, while
 this session is attached to a campaign, an up-front `campaign_busy` for the
 calls whose body needs that campaign's lock, instead of a run that cannot take
@@ -269,8 +270,13 @@ def make_operation_tools(host, *, guard=None):
                 payload = await asyncio.to_thread(perform, host, op.name, request)
             except Rejected as refused:
                 # A closed code a client can branch on, the field to correct
-                # and the next step; never an argument back.
-                raise ToolError(json_refusal(refusal(refused.code))) from None
+                # and the next step - the refusal's own when it carries one,
+                # as the browser's door sends it; never an argument back.
+                raise ToolError(
+                    json_refusal(
+                        refusal(refused.code, getattr(refused, "next_step", None))
+                    )
+                ) from None
             return OperationResult(
                 operation=op.name,
                 payload=payload,

@@ -219,9 +219,11 @@ message; every refusal after that is one of the forms below, after the SDK's
 - The operation, attach and setup tools answer closed JSON:
   `{"error": <code>, "field": <field to correct, when one is to blame>,
   "next_step": ...}`. An operation's or attach refusal's `next_step` is the
-  Launchpad refusal catalog's text for that code
+  refusal's own step when it carries one (a model call Reconcile would not
+  settle, a runner profile that no longer describes this install), and
+  otherwise the Launchpad refusal catalog's text for that code
   (`scripts/dev/miner_launchpad/supervisor.py` `NEXT_ACTIONS`, served at
-  `GET /api/v1/refusals`), the same step the Control Center gives for it.
+  `GET /api/v1/refusals`): the same step the Control Center gives for it.
 
 A registered pre-dispatch correction from the research SDK (a
 `REJECTED_BEFORE_DISPATCH` result with `correction_code`, `field` and

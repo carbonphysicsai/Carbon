@@ -933,13 +933,22 @@ def unavailable_message(exc):
     (`supervisor.NEXT_ACTIONS`) - a task left RUNNING, for one, says to attach
     with --cleanup-only. Never the exception's message, a path or a secret.
     Before 2026-10-03 every failure printed one sentence asking the miner to
-    verify six things at once (LP-PROD-C D8)."""
+    verify six things at once (LP-PROD-C D8).
+
+    A refusal that carries its own next step (`runner.stepped`: a runner
+    profile that no longer describes this install, with what clears it and
+    why) is told that step, as the Control Center prints and its HTTP door
+    sends it, rather than the catalog's general one (W1 repair)."""
+    from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.supervisor import FALLBACK_ACTION, NEXT_ACTIONS
 
     if isinstance(exc, KeyboardInterrupt):
         code = "carbon_mcp_interrupted"
     else:
         code = refusal_code(exc) or "carbon_mcp_failed"
+    step = getattr(exc, "next_step", None) if isinstance(exc, Rejected) else None
+    if type(step) is str and step:
+        return f"Carbon MCP unavailable: {code}. Next: {step.rstrip('.')}."
     return f"Carbon MCP unavailable: {code}. {NEXT_ACTIONS.get(code, FALLBACK_ACTION)}"
 
 

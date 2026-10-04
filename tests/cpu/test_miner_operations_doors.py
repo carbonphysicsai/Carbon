@@ -227,6 +227,72 @@ def test_a_refusal_reads_the_same_next_step_at_both_doors(browser, code):
     assert answered.get("field") == REFUSAL_FIELDS.get(code)
 
 
+class SteppedHost(SpyHost):
+    """A host whose operation bodies refuse with a code and its own next step
+    (`runner.stepped`), as the reconcile action's settlement refusal and the
+    stale-profile refusal do."""
+
+    def __init__(self, code, step):
+        super().__init__()
+        self.code, self.step = code, step
+
+    def __getattr__(self, name):
+        if not name.endswith("_admitted"):
+            raise AttributeError(name)
+
+        def body(admitted, request):
+            from scripts.dev.miner_launchpad.runner import stepped
+
+            raise stepped(self.code, self.step)
+
+        return body
+
+
+def _stepped_cases():
+    from carbon.development_session.research_agent import SETTLEMENT_REFUSALS
+    from scripts.dev.miner_launchpad.runner import CARBON_UPDATED
+
+    return [
+        *SETTLEMENT_REFUSALS.items(),
+        # What `install_refusal` computes: the step that clears it, and why.
+        (
+            CARBON_UPDATED,
+            (
+                "check Compute again in setup, then review to write your "
+                "profile again: the worker image was rebuilt since this "
+                "profile was written"
+            ),
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("code", "step"), _stepped_cases(), ids=[code for code, _ in _stepped_cases()]
+)
+def test_a_refusal_with_its_own_step_reads_the_same_at_both_doors(browser, code, step):
+    """Review repair: the browser's door sent a refusal's own step
+    (`controller.error_body` reads `next_step`); the MCP door read only the
+    catalog, so a settlement refusal over `carbon_halt action=reconcile` read
+    the fallback and a stale profile read "re-run the installer". Both doors
+    now send the refusal's own step."""
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from scripts.dev.miner_launchpad.operations import REFUSAL_FIELDS
+
+    body = {"campaign": SAMPLE["string"], "action": "reconcile"}
+    status, answered = through_browser(browser, SteppedHost(code, step), "halt", body)
+    assert (status, answered) == (409, {"error": code, "next_step": step})
+    with pytest.raises(ToolError) as refused:
+        through_mcp(SteppedHost(code, step), "halt", body)
+    assert json.loads(str(refused.value)) == {
+        "error": code,
+        "next_step": step,
+        **({"field": REFUSAL_FIELDS[code]} if code in REFUSAL_FIELDS else {}),
+    }
+    # The step is the refusal's, not the catalog's for its code.
+    assert step != NEXT_ACTIONS[code]
+
+
 def test_an_operation_that_admits_work_cannot_skip_registration():
     kwargs = {
         "summary": "x",

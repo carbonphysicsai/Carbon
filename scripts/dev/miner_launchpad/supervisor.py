@@ -143,6 +143,41 @@ NEXT_ACTIONS = {
         "An earlier operation's outcome is unknown. Reconcile the campaign "
         "(halt with action=reconcile); nothing is resent blindly."
     ),
+    # Why Reconcile would not settle a model call whose outcome is unknown
+    # (LP-PROD-A's `research_agent.SETTLEMENT_REFUSALS`, reached through the
+    # reconcile action since W2): A's own steps, as sentences, so the catalog
+    # and a `last_refusal` name them. The reconcile's answer at either door
+    # carries A's step itself (`runner.stepped`). The call stays unresolved.
+    "operation_unavailable": "This owner has no such operation.",
+    "not_a_provider_call": (
+        "This operation is not a model call; reconcile it through its own path."
+    ),
+    "not_uncertain": "This call's outcome is known; there is nothing to settle.",
+    "request_changed": (
+        "The retained request differs from the one reserved; keep the campaign "
+        "as it is and report it."
+    ),
+    "charge_exceeds_reservation": (
+        "The provider reported a charge above the call's reservation, which the "
+        "ledger cannot book; reconcile it against the provider's own usage "
+        "record before this campaign makes another call."
+    ),
+    "usage_exceeds_reservation": (
+        "The provider reported token usage beyond what the call reserved, and "
+        "nothing Carbon recorded shows its charge fits the reservation, which "
+        "is all the ledger can book; reconcile it against the provider's own "
+        "usage record before this campaign makes another call."
+    ),
+    "call_in_flight": (
+        "A model call of this campaign is still being admitted or in flight "
+        "(it holds the campaign's provider-call lease), or this host cannot "
+        "show that none is; settle once it has ended or its process has exited."
+    ),
+    "control_fenced": (
+        "This is not the campaign's reconcile action: settle only from the "
+        "reconcile action, under the campaign's owner lock and its current "
+        "control generation."
+    ),
     # Interruptions this module records.
     "operation_interrupted": (
         "The operation stopped before it finished, most likely because the "

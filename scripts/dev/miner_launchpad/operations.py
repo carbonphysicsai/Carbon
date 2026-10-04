@@ -252,12 +252,20 @@ REFUSAL_FIELDS = {
 }
 
 
-def refusal(code):
+def refusal(code, next_step=None):
     """A refused call's closed body: the code, the field to correct when one
-    is to blame, and the catalog's next step - the JSON both doors can send."""
+    is to blame, and the next step - the JSON both doors can send.
+
+    The step is the refusal's own `next_step` when it carries one (a `Rejected`
+    from `runner.stepped`: a model call's settlement refusal, a profile that
+    no longer describes this install), as the browser's door sends it
+    (`controller.error_body`); otherwise the catalog's step for the code."""
     from scripts.dev.miner_launchpad.supervisor import next_action
 
-    body = {"error": code, "next_step": next_action(code)}
+    body = {
+        "error": code,
+        "next_step": next_action(code) if next_step is None else next_step,
+    }
     field = REFUSAL_FIELDS.get(code)
     if field is not None:
         body["field"] = field
