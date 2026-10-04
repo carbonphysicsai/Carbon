@@ -1,8 +1,11 @@
 # CHALLENGE-AI-COOLING-FOUNDATION-01 — customer-bound cooling design foundation
 
-**Status:** Docker-only registered-campaign follow-up implemented; canonical
-affected-subsystem validation passed; PR automation pending; counted CFD
-owner-blocked on corrected science and compute envelope
+**Status:** PR #552 merged; the exact owner-approved Docker campaign completed
+48/48 initial CFD executions with no retry; the bounded counted result and
+lightweight closeout manifest are recorded in
+`docs/development/evidence/ai-cooling-counted-v1/`. The raw retained solver
+archive remains local and has not been promoted to scientific qualification,
+customer acceptance or LIVE authority.
 
 **Authority:** OWNER-CHALLENGE-FOUNDATION-01
 
@@ -48,8 +51,35 @@ making the full-manifold, transient and experimental gaps impossible to miss.
   fixture as a learned model.
 - Separate model-value, search-method-value and finite-set comparator questions.
 - Persist inspectable per-scenario evidence, cost, failure and regret reports.
-- Prepare a bounded counted-CFD plan, but do not execute it without the exact
-  science and compute/spend approval recorded in the design packet.
+- Execute only the exact bounded counted-CFD plan after the exact science and
+  compute/spend approvals recorded in the design packet. That approved
+  campaign is now complete; any additional cases require a new prospective
+  study identity, sampling design and approval rather than an append to the
+  frozen result.
+
+## Counted campaign outcome
+
+- Approved implementation head: `0a1994b9bcad0f8b9f9e352d992819b853da4bc5`;
+  PR #552 merge: `e8b5abb35171bd0cd9d21a2a52aadf0eedf7083b`.
+- Construction identity:
+  `sha256:5f2a504fa43b280770490246ac5e1c2c26f9c1df1e584a9f16cc7cbf350a4f50`.
+- Campaign identity:
+  `sha256:b862575afb95c71af444fa06c11145df53bd60e1eca13ce5b5145d632b87a0ca`.
+- Docker/OpenFOAM completed 48 of 48 initial executions as `OK`; no retry was
+  eligible or dispatched. The ledger integrity check passed and no campaign
+  container survived closeout.
+- All four registered arms selected `d03` and all six unique selected
+  design-condition cases were reference-confirmed feasible. The complete
+  eight-design comparison set resolved: `d03` was the finite-set best feasible
+  design under the registered worst-case hydraulic-power objective, so exact
+  finite-set regret was `0.0 W` for every arm.
+- The learned KRR did not change the selected design and did not establish a
+  design-quality advantage in this study. Screen-then-confirm reduced model
+  queries from 48 to 13 for the analytical model and from 48 to 18 for KRR.
+- This is descriptive evidence for one synthetic DEVELOPMENT decision problem.
+  It establishes no population reliability, generalisation confidence, global
+  optimum, customer acceptance, full-manifold behavior, qualification or LIVE
+  readiness.
 
 ## Definition of Done
 
@@ -107,12 +137,16 @@ private/protected material; full headers/manifolds; spanwise maps; transient
 loads; experiment construction; new scientific thresholds; customer acceptance;
 LIVE, production, reward, frontier, settlement or chain behavior.
 
-## Human input required for counted execution
+## Human input status
 
-Science-owner approval of the frozen synthetic assumptions/comparison policy and
-compute/spend-owner approval of 48 initial runs, 12 reserved retries, 60 hard
-cap, 2 CPUs per case, 6 parallel, 3600 seconds per case, and the resulting 96
-initial / 120 hard-cap allocated core-hour ceilings. The planning estimates
-remain 19.2 / 24.0 core-hours and are not caps. Customer
-requirements/rights, acceptance thresholds, full-manifold and LIVE decisions
-remain out of scope and fail closed.
+The science owner and compute/spend owner approved the exact frozen campaign
+in the current Codex thread on 2026-10-04, and the approval record is content-
+addressed by the closeout package. That authority is consumed by the completed
+48-execution campaign; it is not standing authority for more cases or a new
+campaign.
+
+Still required before any expansion or customer claim: a prospectively frozen
+sampling design and independent observation unit for uncertainty; customer
+requirements and rights; a new physical/reference contract for full manifolds,
+two-dimensional heat maps or transients; and every applicable scientific,
+security, qualification and LIVE decision.

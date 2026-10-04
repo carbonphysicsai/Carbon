@@ -1,6 +1,6 @@
 # AI accelerator cooling — customer decision design packet
 
-**Status:** RUNNABLE DEVELOPMENT STUDY; COUNTED CFD NOT YET AUTHORIZED
+**Status:** COUNTED DEVELOPMENT CFD COMPLETE; FROZEN BOUNDED RESULT
 
 **Challenge:** `chip-cold-plate`
 
@@ -489,8 +489,28 @@ finite-set reference comparator; do the registered search methods reduce
 queries or computational cost; and does the learned model change or improve the
 decision in this particular study?
 
-The analytical fixture smoke is useful only for testing the workflow. Counted
-CFD remains pending the specific approvals below.
+The analytical fixture smoke is useful only for testing the workflow. The
+science and compute/spend owners subsequently approved the exact frozen
+campaign, and the counted CFD completed:
+
+- 48/48 initial Docker/OpenFOAM executions were `OK`; no retry ran;
+- all four arms selected `d03` (0.25 mm channel, 0.30 mm fin, 2.50 mm depth,
+  1.25 L/min/kW);
+- the six unique selected design-condition cases were all confirmed feasible;
+- the complete eight-design set resolved, with two feasible and six confirmed-
+  infeasible designs;
+- `d03` was the best feasible member under the registered minimum-worst-case-
+  hydraulic-power objective, giving every arm exact finite-set regret 0.0 W;
+- the learned model did not change the design or establish a design-quality
+  advantage; and
+- screen-then-confirm reduced model-query attempts from 48 to 13 for the
+  analytical model and from 48 to 18 for KRR.
+
+The committed lightweight closeout and integrity index is
+`docs/development/evidence/ai-cooling-counted-v1/`. The raw 2.935 GiB solver
+archive and campaign ledger remain retained outside Git. The evidence supports
+only this frozen synthetic finite-set decision; the claim ceiling above is
+unchanged.
 
 ### Expansion evidence
 
@@ -512,7 +532,7 @@ CFD remains pending the specific approvals below.
 | --- | --- | --- |
 | Customer decision | CONTRACT + DEVELOPMENT implementation | Actual customer limits, envelope, manufacturing constraints and review |
 | Periodic-cell reference | PILOTED / numerically verified in bounded scope | Independent numerical-reference review |
-| Customer design search | IMPLEMENTED, tested, fixture-smoked | Counted CFD under the frozen capped plan |
+| Customer design search | IMPLEMENTED, tested, fixture-smoked and counted-CFD evaluated for the frozen finite set | A new prospectively registered study for any broader sampling or physical scope |
 | Full plate/manifold | NOT IMPLEMENTED | New version, reference, population, packet and evidence |
 | Burst-power linkage | NOT IMPLEMENTED here | Separate f02 challenge and later composition contract |
 | Experimental validation | NOT STARTED | Instrument/measurement contract and rig evidence |
@@ -522,53 +542,38 @@ CFD remains pending the specific approvals below.
 | Commercial validation | NO | Customer evidence and rights-cleared study |
 | Production qualification / LIVE | NO | All applicable scientific, security, customer and launch gates |
 
-### Owner decisions for the first counted experiment
+### Owner decisions and execution record for the first counted experiment
 
 | Decision | Recommended value or policy | Source or rationale | Consequence | Responsible owner | Execution step requiring approval |
 | --- | --- | --- | --- | --- | --- |
-| Status of study limits | Approve 100 °C die and 0.25 W cell hydraulic limits **only as synthetic DEVELOPMENT assumptions** | Concrete values create feasible/infeasible separation in the existing bounded grid; no customer requirement is known | Makes counted results interpretable only for this synthetic scenario | Science owner; customer owner for any later customer use | Freeze authorization before `counted` evidence analysis |
-| Finite comparison set | Approve the declared eight designs × six conditions, with four representative and two boundary-stress cases | Covers low/high load, inlet and hot-spot severity while staying within the existing domain and reference | Enables bounded comparator/regret; does not support global or population claims | Science owner | Freeze authorization before 48-case CFD plan execution |
-| Flow control | Use steady-state feed-forward `flow = coefficient × heat load`, subject to declared/reference limits | Matches the existing `flow_lpm_per_kw` variable and makes its controller assumption explicit | Supports only settled points; no transient or controller qualification | Thermal/control owner | Freeze authorization; later controller study before customer reliance |
-| Comparator/regret | Report the best observed reference-feasible design; report exact finite-set best/regret only when every potentially feasible design is sufficiently resolved | Missing evidence for a candidate with no known violation can hide a better feasible member; a confirmed violation remains decisive | Prevents false exact-regret claims while preserving useful best-observed differences | Science owner | Freeze authorization before counted analysis |
-| Counted compute | Approve 48 initial OpenFOAM executions plus at most 12 registered retries, one per eligible failed case; hard cap 60; 2 CPUs/case; 6 parallel; 3600 s/case; retain all artifacts; durable ledger required | Planning estimate is 0.4 core-hour/case, but the configured allocation permits 2 CPUs for the full one-hour wall limit | Estimate: 19.2 initial / 24.0 hard-cap core-hours. Enforced allocation ceilings: 96 initial / 120 hard-cap core-hours. Actual CPU use and orchestration/container/storage overhead require separate measurement | Compute/spend owner | Launch attempt 1 with `reference.run_batch`; this corrected 120 allocated-core-hour hard ceiling requires explicit approval and is the smallest compute block |
-| Group weighting and pass threshold | Keep representative and boundary groups separate; no combined weighting and no pass threshold | No approved customer population or acceptable error rate exists | Evidence remains descriptive; no pass/qualification claim | Science/customer owner | Only required before combining groups or declaring adequacy |
-| Customer requirements and rights | Keep all actual customer values/data absent until supplied and rights-cleared | No customer evidence or rights were provided | Blocks customer acceptance, commercial validation and confidential-data use, but not the synthetic study | Customer/rights owner | Any customer-specific rerun or claim |
+| Status of study limits | 100 °C die and 0.25 W cell hydraulic limits **only as synthetic DEVELOPMENT assumptions** | Approved for this exact campaign; no customer requirement is known | Counted results are interpretable only for this synthetic scenario | Science owner; customer owner for any later customer use | Approved and consumed by this campaign; a new value needs a new approval |
+| Finite comparison set | Declared eight designs × six conditions, with four representative and two boundary-stress cases | Approved and frozen before reference execution | Supports bounded comparator/regret, not global or population claims | Science owner | Approved and completed |
+| Flow control | Steady-state feed-forward `flow = coefficient × heat load`, subject to declared/reference limits | Approved for settled-point comparison only | No transient or controller qualification follows | Thermal/control owner | Approved for this campaign; later controller work remains open |
+| Comparator/regret | Best observed reference-feasible design; exact finite-set best/regret only when every potentially feasible design is sufficiently resolved | Approved missing-evidence policy; all eight designs resolved in the completed campaign | Exact finite-set regret is valid here and remains non-global | Science owner | Approved and completed |
+| Counted compute | 48 initial OpenFOAM executions; up to 12 registered one-per-case retries; hard cap 60; 2 CPUs/case; 6 parallel; 3600 s/case; retain all artifacts and ledger | Approved exact cap; the planning estimate was not treated as the allocation ceiling | 48 ran `OK`, 0 retries; 22.873 allocated CPU-wall core-hours recorded; actual CPU consumption remains unmeasured | Compute/spend owner | Approved, executed and closed |
+| Group weighting and pass threshold | Keep representative and boundary groups separate; no combined weighting and no pass threshold | No approved customer population or acceptable error rate exists | Evidence remains descriptive; no pass/qualification claim | Science/customer owner | Still required before combining groups or declaring adequacy |
+| Customer requirements and rights | Keep all actual customer values/data absent until supplied and rights-cleared | No customer evidence or rights were provided | Blocks customer acceptance, commercial validation and confidential-data use | Customer/rights owner | Still required for any customer-specific rerun or claim |
 
-### Remaining approvals — not yet granted
+### Approval and executed campaign identities
 
-The repository decision records, PR #552 discussion, owner inbox #41 and science
-inbox #42 were checked on 2026-10-04. None contains an approval for this exact
-frozen campaign. The prior PR handoff explicitly keeps both approvals blocked.
-The tracked inspectable plan is still `authorized: false`; its current
-construction identity is
-`sha256:5e9c09602fc6660e83d8e7a99a28d595fb05d0e079a31700d4bc4c7809f99706`
-and its Docker campaign identity is
-`sha256:0cac6087aef35ca24418a3683dd03f286389f5f80fc9f5624b97ad550948e832`.
-These identities describe the regenerated analytical fixture construction and
-ready plan; they do not themselves grant authority.
+On 2026-10-04 the owner stated in the current Codex thread: "552 is merged and
+you have both approvals to proceed." The retained approval record binds that
+authorization to approved head
+`0a1994b9bcad0f8b9f9e352d992819b853da4bc5`, PR #552 merge
+`e8b5abb35171bd0cd9d21a2a52aadf0eedf7083b`, the exact science policy above
+and the exact 48+12 compute envelope. Its SHA-256 is
+`54660092619d6436d080c25df390ec601d8683c20e9a3bde4a80ea517942620c`.
 
-The smallest remaining approvals are:
+The executed construction identity is
+`sha256:5f2a504fa43b280770490246ac5e1c2c26f9c1df1e584a9f16cc7cbf350a4f50`;
+the executed Docker campaign identity is
+`sha256:b862575afb95c71af444fa06c11145df53bd60e1eca13ce5b5145d632b87a0ca`.
+Those replace the earlier unauthorized fixture-plan identities for status
+purposes without changing the preserved fixture evidence.
 
-1. **Science approval for this synthetic DEVELOPMENT pilot only:** approve the
-   100 °C die-temperature limit; 0.25 W periodic-cell hydraulic-power limit;
-   unchanged eight-design × six-condition set; registered steady-state
-   flow-per-heat-load assumption; corrected missing-evidence and finite-set
-   comparator policies; separate representative and boundary-stress reporting;
-   and no population reliability, customer acceptance or qualification claim.
-2. **Compute/spend approval:** approve 48 initial OpenFOAM executions and up to
-   12 registered retries, at most one per eligible case; a hard cap of 60
-   reserved attempts; 2 CPUs per execution; 6 concurrent executions; a
-   3600-second timeout per execution; and retention of every artifact and the
-   campaign ledger. The planning estimate is 19.2–24 core-hours. The configured
-   allocation ceiling is 96 core-hours initially and 120 with maximum retries,
-   plus host, storage and orchestration overhead.
-
-Approval must cover the exact final engineering head and frozen configuration.
-It authorizes only this bounded campaign; it does not establish scientific
-qualification, customer acceptance or LIVE authority.
-
-After the science and compute/spend owners approve the exact frozen plan, the
-ready-to-run Linux commands are:
+The commands below record the executed order. They are an audit trail, **not a
+rerun instruction**: the completed campaign identity and ledger must not be
+reset, relocated or replayed to regain budget.
 
 ```bash
 # Stages 1-3: freeze, reconstruct/search without reference access, and persist
@@ -576,12 +581,10 @@ ready-to-run Linux commands are:
 python -m scripts.dev.cold_plate.decision_study construct \
   --out .carbon-artifacts/ai-cooling-construction
 
-# Build the construction-bound, still-unauthorized 48-case reference plan.
+# Build the construction-bound 48-case reference plan.
 python -m scripts.dev.cold_plate.decision_study plan-cfd \
   --construction .carbon-artifacts/ai-cooling-construction \
   --out .carbon-artifacts/AI_ACCELERATOR_COOLING_CFD_PLAN.json
-
-# STOP here until the science and compute/spend approvals in the table exist.
 
 # Stage 4, attempt 1: reserve all 48 executions in the durable ledger before
 # any solver dispatch. Docker is mandatory for this registered campaign;
@@ -592,33 +595,26 @@ python -m scripts.dev.cold_plate.reference.run_batch \
   --campaign-ledger .carbon-artifacts/ai-accelerator-cooling-synthetic-v1-campaign.sqlite3 \
   --parallel 6 --cpus 2 --timeout-s 3600 --keep all
 
-# Only when attempt 1 has registered retry-eligible failures. The planner and
-# ledger refuse more than 12 retries, an ineligible status, or a second retry.
-python -m scripts.dev.cold_plate.decision_study plan-retry \
-  --initial-dir .carbon-artifacts/ai-cooling-cfd-attempt-1 \
-  --out .carbon-artifacts/AI_ACCELERATOR_COOLING_CFD_RETRY_PLAN.json
-python -m scripts.dev.cold_plate.reference.run_batch \
-  .carbon-artifacts/AI_ACCELERATOR_COOLING_CFD_RETRY_PLAN.json \
-  --out .carbon-artifacts/ai-cooling-cfd-attempt-2 \
-  --campaign-ledger .carbon-artifacts/ai-accelerator-cooling-synthetic-v1-campaign.sqlite3 \
-  --parallel 6 --cpus 2 --timeout-s 3600 --keep all
-
 # Stage 5: import retained evidence, evaluate the already committed proposals
-# and complete finite comparator, and generate the report. Omit the second
-# --reference-dir when no retry was needed.
+# and complete finite comparator, and generate the report. No retry directory
+# was supplied because all 48 initial executions completed OK.
 python -m scripts.dev.cold_plate.decision_study counted \
   --construction .carbon-artifacts/ai-cooling-construction \
   --reference-dir .carbon-artifacts/ai-cooling-cfd-attempt-1 \
-  --reference-dir .carbon-artifacts/ai-cooling-cfd-attempt-2 \
   --out .carbon-artifacts/ai-cooling-counted-result
 ```
 
 The checked-in
 `AI_ACCELERATOR_COOLING_SYNTHETIC_V1_V2_CFD_PLAN.json` is an inspectable,
-unauthorized plan bound to the tracked fixture-v2 construction identity. The
-execution sequence above regenerates that plan from the exact counted
-construction. Heavy solver artifacts and the durable ledger stay in the
-ignored `.carbon-artifacts/` directory and must be retained for import/audit.
+unauthorized plan bound to the tracked fixture-v2 construction identity; it is
+not the executed plan. Heavy solver artifacts and the durable ledger are
+retained read-only at
+`~carbon/shared/evidence/ai-cooling-counted-v1/` in `Ubuntu-24.04` WSL.
+The copy was verified file-for-file against the original and against the
+completion-manifest anchors. The original worktree copy remains until a
+separate off-machine replica is confirmed. The committed closeout package
+records hashes and custody, but cannot recreate the raw 2.935 GiB campaign
+archive.
 
 ### Review-finding disposition
 

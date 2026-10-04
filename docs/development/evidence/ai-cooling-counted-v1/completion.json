@@ -1,0 +1,112 @@
+{
+  "schema": "carbon.cold-plate.development-campaign-completion.v1",
+  "status": "COMPLETE",
+  "completed_date": "2026-10-04",
+  "pull_request": "https://github.com/carbonphysicsai/Carbon/pull/552",
+  "approved_head": "0a1994b9bcad0f8b9f9e352d992819b853da4bc5",
+  "merge_commit": "e8b5abb35171bd0cd9d21a2a52aadf0eedf7083b",
+  "study_id": "ai-accelerator-cooling-synthetic-v1",
+  "campaign_id": "sha256:b862575afb95c71af444fa06c11145df53bd60e1eca13ce5b5145d632b87a0ca",
+  "construction_identity_digest": "sha256:5f2a504fa43b280770490246ac5e1c2c26f9c1df1e584a9f16cc7cbf350a4f50",
+  "execution": {
+    "backend": "DOCKER",
+    "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+    "initial_attempts": 48,
+    "finished_executions": 48,
+    "status_counts": {
+      "OK": 48
+    },
+    "retry_attempts": 0,
+    "campaign_elapsed_s": 7176.1,
+    "observed_pipeline_wall_s": 7177.093588600033,
+    "observed_pipeline_elapsed_hours": 1.994,
+    "solver_wall_sum_s": 41171.2,
+    "cpus_per_execution": 2,
+    "allocated_cpu_wall_core_hours": 22.873,
+    "actual_cpu_consumption": null,
+    "actual_cpu_consumption_limitation": "The Docker --cpus value is an allocation limit, not measured CPU consumption.",
+    "retained_campaign_artifact_bytes": 3151966132,
+    "retained_campaign_artifact_gib": 2.935,
+    "ledger_integrity_check": "ok",
+    "surviving_campaign_containers": 0
+  },
+  "decision_result": {
+    "selected_design_id": "d03",
+    "selected_geometry": {
+      "channel_depth_mm": 2.5,
+      "channel_width_mm": 0.25,
+      "fin_width_mm": 0.3,
+      "flow_lpm_per_kw": 1.25
+    },
+    "proposal_outcomes": {
+      "CONFIRMED_FEASIBLE": 4,
+      "CONFIRMED_INFEASIBLE": 0,
+      "UNRESOLVED": 0,
+      "ABSTAIN": 0
+    },
+    "representative_reference_cases": {
+      "feasible": 4,
+      "total": 4,
+      "minimum_die_temperature_margin_c": 11.762,
+      "maximum_hydraulic_power_w": 0.13027509537250007
+    },
+    "boundary_stress_reference_cases": {
+      "feasible": 2,
+      "total": 2,
+      "minimum_die_temperature_margin_c": 6.824,
+      "maximum_hydraulic_power_w": 0.11773988430749997
+    },
+    "unique_selected_design_condition_reference_cases": 6,
+    "selected_reference_evidence_reuses": 18,
+    "unavailable_or_invalid_reference_evidence": 0,
+    "false_feasible_proposals": 0,
+    "false_feasible_proposal_denominator": 4,
+    "decision_coverage": 1.0,
+    "abstention_rate": 0.0,
+    "finite_set_comparator_status": "COMPLETE_FINITE_SET",
+    "fully_resolved_designs": 8,
+    "confirmed_feasible_designs": 2,
+    "confirmed_infeasible_designs": 6,
+    "exact_finite_set_regret_w_by_arm": {
+      "analytic-v1/fixed_grid": 0.0,
+      "analytic-v1/screen_then_confirm": 0.0,
+      "learned-krr-v1/fixed_grid": 0.0,
+      "learned-krr-v1/screen_then_confirm": 0.0
+    },
+    "model_query_attempts_by_arm": {
+      "analytic-v1/fixed_grid": 48,
+      "analytic-v1/screen_then_confirm": 13,
+      "learned-krr-v1/fixed_grid": 48,
+      "learned-krr-v1/screen_then_confirm": 18
+    },
+    "learned_model_changed_selected_design": false,
+    "learned_model_design_quality_advantage_established": false,
+    "screen_then_confirm_query_reduction_for_learned_model": 30
+  },
+  "evidence_hashes_sha256": {
+    "approval_record": "54660092619d6436d080c25df390ec601d8683c20e9a3bde4a80ea517942620c",
+    "construction": "27c6db6653a818f4c40b86c98c4822abf7cb542eda99475e727e79cd7816b97e",
+    "reference_plan": "439cf090b5dca7db8c2aec534adaa5fa0bfdca34ce0486e1d68bf135dd986de9",
+    "reference_records": "7a390163ad7c7c0e5bbfccf252c002ff49514281a0bfadb3a91740a1c376910b",
+    "ledger_snapshot": "0a40f773f33d8cc0e02068199afaabfdfbc56ee103a9e03797d830d4b3b72d0d",
+    "counted_result": "c9cf9aea3a8af9271f0ce37b3dd04b3f057b40078fa6697bcc098ebf3a8d7d93",
+    "counted_report": "8c815769936c688e62afede8eef69f72104de530d832531c936fe4e5b397daf6"
+  },
+  "interpretation": {
+    "establishes": "For this frozen synthetic DEVELOPMENT pilot and finite periodic-cell comparison set, all four arms selected d03, CFD confirmed d03 feasible at all six registered conditions, and d03 was the best reference-feasible member under the registered worst-case hydraulic-power objective.",
+    "does_not_establish": "Population reliability, generalisation confidence, customer acceptance, global optimality, full cold-plate or manifold behavior, transient/controller performance, scientific qualification, production qualification or LIVE readiness.",
+    "recommended_next_step": "Define a separate pre-registered expansion campaign before using faster paid compute; do not append post-hoc cases to this completed 48-case campaign."
+  },
+  "known_reporting_limitations": [
+    {
+      "field": "conclusion.next_expansion",
+      "issue": "The generated counted result retains pre-campaign wording that says to run the capped CFD plan after authorization even though the campaign is complete.",
+      "disposition": "Treat DONE.json, the ledger snapshot and this completion manifest as the execution-status authority; repair the generator in a separate engineering follow-up before reusing that field."
+    },
+    {
+      "field": "cost.study_end_to_end_wall_s",
+      "issue": "The generated field sums construction and evaluation time but omits reference_campaign_wall_s, despite its end-to-end name.",
+      "disposition": "Use execution.observed_pipeline_wall_s in this completion manifest for the sum of construction, reference-campaign and evaluation wall time; repair the generator in a separate engineering follow-up."
+    }
+  ]
+}

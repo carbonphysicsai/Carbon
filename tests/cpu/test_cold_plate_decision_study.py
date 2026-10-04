@@ -25,6 +25,14 @@ CONFIG = (
 FIXTURE_EVIDENCE = (
     REPOSITORY / "docs" / "development" / "evidence" / "cold-plate-decision-fixture-v2"
 )
+CLOSEOUT = (
+    REPOSITORY
+    / "docs"
+    / "development"
+    / "evidence"
+    / "ai-cooling-counted-v1"
+    / "completion.json"
+)
 CONSTRUCTION_ID = "sha256:" + "a" * 64
 
 
@@ -99,6 +107,48 @@ def test_config_freezes_synthetic_scope_groups_and_bounded_reference_plan():
     assert {row["group"] for row in config["conditions"]} == set(study.GROUPS)
     assert config["claims"]["synthetic_customer_requirement"] is True
     assert config["claims"]["customer_acceptance"] is False
+
+
+def test_counted_campaign_closeout_is_exact_bounded_evidence():
+    assert hashlib.sha256(CLOSEOUT.read_bytes()).hexdigest() == (
+        "697a510bd15ab0f350c7ea16dd4d62f7f6826db8eff1176cc1ad1f8c0025054d"
+    )
+    closeout = json.loads(CLOSEOUT.read_text(encoding="utf-8"))
+    approval = CLOSEOUT.with_name("approval.json")
+    assert (
+        hashlib.sha256(approval.read_bytes()).hexdigest()
+        == closeout["evidence_hashes_sha256"]["approval_record"]
+    )
+    assert closeout["status"] == "COMPLETE"
+    assert closeout["approved_head"] == ("0a1994b9bcad0f8b9f9e352d992819b853da4bc5")
+    assert closeout["execution"]["backend"] == "DOCKER"
+    assert closeout["execution"]["initial_attempts"] == 48
+    assert closeout["execution"]["finished_executions"] == 48
+    assert closeout["execution"]["status_counts"] == {"OK": 48}
+    assert closeout["execution"]["retry_attempts"] == 0
+    assert closeout["execution"]["ledger_integrity_check"] == "ok"
+    result = closeout["decision_result"]
+    assert result["selected_design_id"] == "d03"
+    assert result["proposal_outcomes"] == {
+        "CONFIRMED_FEASIBLE": 4,
+        "CONFIRMED_INFEASIBLE": 0,
+        "UNRESOLVED": 0,
+        "ABSTAIN": 0,
+    }
+    assert result["unique_selected_design_condition_reference_cases"] == 6
+    assert result["selected_reference_evidence_reuses"] == 18
+    assert result["finite_set_comparator_status"] == "COMPLETE_FINITE_SET"
+    assert set(result["exact_finite_set_regret_w_by_arm"].values()) == {0.0}
+    assert result["learned_model_design_quality_advantage_established"] is False
+    nonclaims = closeout["interpretation"]["does_not_establish"]
+    for required in (
+        "Population reliability",
+        "customer acceptance",
+        "global optimality",
+        "scientific qualification",
+        "LIVE readiness",
+    ):
+        assert required in nonclaims
 
 
 def test_freeze_pins_model_search_reference_and_campaign_accounting_code():
