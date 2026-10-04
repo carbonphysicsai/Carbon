@@ -50,9 +50,24 @@ allowed to discover without changing who controls the grade."
      development variant, Carbon's reconstruction shipped with it (the
      reconstruction rule, OWNER-GRAPHITE-02), matched valid and attack panels,
      ablations and combined-permission attacks.
-   - **Scope for this wave:** battery Levels 1–3, whose six level proposals
-     the technical owner already accepted. Cooling and motor follow when
-     their Level 0 contracts exist.
+   - **Scope for this wave:** battery Levels 1–3. Cooling and motor follow
+     when their Level 0 contracts exist.
+   - **Correction to an earlier premise.** The six accepted battery level
+     proposals (`carbon/challenge_pipeline/proposals/battery-…-v1/`) widen
+     nothing past today's contract:
+     - Levels 1, 2 and 5 list capabilities that are already rebuildable;
+     - Levels 3 and 4 are empty;
+     - Level 1 keeps `loss_expressions` excluded.
+
+     Those acceptances therefore don't supply the Level 1–3 surfaces. Asked
+     separately, the owner decided in the Test Engineer's session (recorded
+     with W1's foundation PR) two things:
+     - **Drafted surfaces.** A development-only variant may widen to a surface
+       Carbon drafts, reviewed by the Test Lead and recorded as a registered,
+       versioned policy with its bounds. It needs no technical-owner
+       acceptance for internal use. Opening any surface to miners still does.
+     - **Level 3.** Level 3 is a declarative menu only, with no participant
+       code until the security owner accepts isolation.
    - **Unchanged.** A level tested internally is never opened to miners to
      gather acceptance data. Opening a level to miners is still a locked,
      released contract chosen by the owners.
