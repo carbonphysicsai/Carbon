@@ -769,12 +769,14 @@ def _rebuilt_field_dropped(m):
 
 
 def _protected_marker_removed(m):
-    from carbon.agent_campaign.graphite import tools
+    # The check reads the leaf module's markers (#561); `tools` only
+    # re-exports them, so patching `tools` would disable nothing.
+    from carbon.agent_campaign.graphite import protected_material
 
     m.setattr(
-        tools,
+        protected_material,
         "PROTECTED_MARKERS",
-        tuple(x for x in tools.PROTECTED_MARKERS if "hidden" not in x),
+        tuple(x for x in protected_material.PROTECTED_MARKERS if "hidden" not in x),
     )
 
 
