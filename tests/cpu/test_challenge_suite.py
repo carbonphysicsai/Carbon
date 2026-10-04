@@ -280,8 +280,15 @@ def test_the_committed_coverage_report_is_for_this_suite_and_map():
     assert report["uncited_failures"] == []
     code = {v["id"]: v["participant_code"] for v in report["vectors"]}
     assert all(c["status"] == "NOT_RUN" for c in code.values() if c)
-    # Its provenance is recorded: the commit and environment it ran in.
+    # Its provenance is recorded: the commit and environment it ran in, and the
+    # attack-knowledge store it was frozen under (None: it used none). It was
+    # run on main through the canonical runner (OWNER-GRAPHITE-TEST-WAVE-02).
+    assert report["schema"] == suite.RUN_SCHEMA
+    assert "attack_knowledge_digest" in report
     assert re.fullmatch(r"[0-9a-f]{40}", report["commit"])
+    assert report["environment"]["canonical"] == (
+        "ubuntu-24.04-glibc-cpython-3.11.16-uv-0.12.7-amd64"
+    )
     assert report["claims"] == {"security_acceptance": False, "graded": False}
 
 
