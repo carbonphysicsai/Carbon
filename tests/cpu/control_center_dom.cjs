@@ -2,8 +2,9 @@
 // (LP-PROD-F). It holds enough of the DOM the page uses - elements, text,
 // attributes, dataset, classList, selectors, events with capture and
 // bubbling, focus, hover, presses, forms, radios and details - to run
-// index.html with app.js, research_charts.js, research_view.js and
-// research_tools.js against a scripted controller, on a fake clock.
+// index.html with the scripts it loads (app.js, research_charts.js,
+// research_view.js, research_tools.js and library_view.js) against a
+// scripted controller, on a fake clock.
 //
 // It parses only the page's own index.html. It is a test instrument, not a
 // browser: layout, CSS and real networking are absent by design.
@@ -414,6 +415,14 @@ class Clock {
   clear(id) { this.timers = this.timers.filter(timer => timer.id !== id); }
 }
 
+// The scripts index.html loads (`<script src="/name.js">`), in order.
+function pageScripts(root) {
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const names = [...html.matchAll(/<script\s+src="\/([\w.-]+\.js)"/g)].map(match => match[1]);
+  if (!names.length) throw new Error("index.html loads no script");
+  return names;
+}
+
 // The page: index.html and its scripts in one context, against `server`.
 // `server(request)` answers {status, body} or {network: true} or
 // {timeout: true}, or a promise of one; it sees {method, path, body, headers}.
@@ -544,11 +553,13 @@ async function openPage(root, server, {sessionStorage, localStorage, clock, hash
     },
     text(id) { const node = typeof id === "string" ? doc.getElementById(id) : id; return node ? node.textContent : ""; },
   };
-  for (const name of ["app.js", "research_charts.js", "research_view.js", "research_tools.js"]) {
+  // The page's own scripts, the ones its index.html loads, in its order: a
+  // script the page adds runs here too.
+  for (const name of pageScripts(root)) {
     vm.runInContext(fs.readFileSync(path.join(root, name), "utf8"), context, {filename: name});
   }
   await page.settle();
   return page;
 }
 
-module.exports = {openPage, Clock, Storage, parseHTML, Document};
+module.exports = {openPage, pageScripts, Clock, Storage, parseHTML, Document};

@@ -45,7 +45,7 @@ function world(overrides = {}) {
     if (url === "/api/v1/development") return {body: {sources: []}};
     if (url === "/api/v1/research" && method === "GET") return {body: {preflight: state.preflight, runs: state.runs}};
     if (url === "/api/v1/operations/options") return {body: state.options};
-    if (url === "/api/v1/operations" && method === "GET") return {body: {operations: fx.operations}};
+    if (url === "/api/v1/operations" && method === "GET") return {body: {operations: state.operations || fx.operations}};
     if (url === "/api/v1/setup") return state.setup ? {body: state.setup} : {status: 409, body: {error: "setup_unavailable"}};
     if (url === "/api/v1/operations/campaign_view") return state.view ? {body: state.view} : {status: 409, body: {error: "campaign_view_unavailable"}};
     if (url === "/api/v1/guide/remote-setup") return {body: {available: false, source: "docs", blocks: []}};
@@ -1007,6 +1007,625 @@ scenario("Review's answer names what it could not do; Carbon's endpoint shows it
   assert.ok(text.includes("For reference" + published.receiver_hotkey_note.slice("for reference".length)));
   clean(page);
   clean(other);
+});
+
+// ---- 12. Graphite and its Library (GRAPHITE-MINER-S5). ----
+// The documents are the real ones with Graphite's part added in the shape
+// the cross-slice interface states (control_center_graphite_fixture.py).
+// The Library answers from a scripted store over the fixture cards and
+// plans: what the controller's operations answer, as the interface states
+// it. Bans are never served; a plan citing a banned card or ignoring a pin
+// is refused; a write's key replays its first answer.
+const G = () => fx.graphite;
+function libraryServer(state) {
+  const lib = copy(G().library);
+  Object.assign(lib, {imports: [], keys: new Map(), next: 1, leakBans: false});
+  state.library = lib;
+  const ok = body => ({body});
+  const refuse = (status, error, next_step) => ({status, body: {error, next_step}});
+  const card = id => lib.cards.find(item => item.card_id === id);
+  const curation = () => ({curation: {pins: [...lib.pins], bans: [...lib.bans], digest: "fixture-curation-" + lib.pins.join(",") + "|" + lib.bans.join(",")}});
+  const served = () => lib.cards.filter(item => lib.leakBans || !lib.bans.includes(item.card_id));
+  const curate = (list, add) => body => {
+    if (!card(body.card_id)) return refuse(409, "card_not_found", "search the Library for the card's id");
+    const ids = lib[list];
+    if (add && !ids.includes(body.card_id)) ids.push(body.card_id);
+    if (!add) lib[list] = ids.filter(id => id !== body.card_id);
+    return ok(curation());
+  };
+  const routes = {
+    "library/search": body => ok({results: served().filter(item => JSON.stringify([item.title, item.technique]).toLowerCase().includes(String(body.query).toLowerCase())).sort((a, b) => b.score - a.score)}),
+    "library/card": body => card(body.card_id) ? ok(card(body.card_id)) : refuse(409, "card_not_found", "search the Library for the card's id"),
+    "library/list": () => ok({cards: lib.cards.filter(item => item.origin !== "shared"), shared: lib.shared, pending_imports: lib.imports, ...curation()}),
+    "library/pin": curate("pins", true),
+    "library/unpin": curate("pins", false),
+    "library/ban": curate("bans", true),
+    "library/unban": curate("bans", false),
+    "library/import": body => {
+      const import_id = "fixture-import-" + lib.next++;
+      lib.imports.push({import_id, title: body.title});
+      return ok({import_id});
+    },
+    "plans/list": () => ok({plans: lib.plans.map(({plan, ...entry}) => entry)}),
+    "plans/get": body => {
+      const found = lib.plans.find(item => item.digest === body.plan);
+      return found ? ok(found.plan) : refuse(409, "plan_not_found", "choose a plan from plan_list");
+    },
+    "plans/edit": body => {
+      const plan = body.plan;
+      for (const h of plan.hypotheses || []) for (const cite of h.cites || []) {
+        if (lib.bans.includes(cite.card_id)) return refuse(409, "card_banned", "cite a card you have not banned");
+        if (!card(cite.card_id)) return refuse(409, "card_not_found", "cite a card in the shared pack or your library");
+      }
+      if (lib.pins.some(id => !(plan.pins_considered || []).includes(id))) return refuse(409, "plan_invalid", "consider every pinned card");
+      const digest = String(lib.next++).padStart(2, "0").repeat(32);
+      lib.plans.push({digest, created_by: plan.created_by, parent: plan.parent, created_at: 1800000100, plan});
+      return ok({digest});
+    },
+  };
+  state.script.push({keep: true, match: request => /^\/api\/v1\/(library|plans)\//.test(request.path), answer: request => {
+    const name = request.path.slice("/api/v1/".length);
+    if (!routes[name]) return {status: 404, body: {error: "route_not_found"}};
+    // A write's key replays its first answer; another request under it is refused.
+    const key = request.body && request.body.idempotency_key;
+    if (key) {
+      const {idempotency_key: _, ...rest} = request.body;
+      const kept = lib.keys.get(key);
+      if (kept) return kept.body === JSON.stringify([name, rest]) ? kept.answer : refuse(409, "operation_replay_conflict");
+      const answer = routes[name](rest);
+      lib.keys.set(key, {body: JSON.stringify([name, rest]), answer});
+      return answer;
+    }
+    return routes[name](request.body || {});
+  }});
+  return lib;
+}
+// A launchable world whose controller offers Graphite and the Library.
+function graphiteWorld(overrides = {}) {
+  const state = world({caps: copy(G().caps), options: copy(G().options), operations: copy(G().operations), ...overrides});
+  libraryServer(state);
+  return launchable(state, "graphite");
+}
+function graphiteRun(extra = {}) {
+  return {...copy(G().run), ...extra};
+}
+const posts = (state, url) => state.posted.filter(entry => entry.path === url);
+async function launchNow(page, state, id = "g".repeat(32)) {
+  page.window.CarbonControlCenter.goWizard("launch");
+  await page.advance(0);
+  assert.equal(page.$("research-launch").disabled, false, "launch is ready: " + page.text("wizard-launch-reason"));
+  state.script.push({match: r => r.path === "/api/v1/research" && r.method === "POST", answer: {body: {id}}});
+  await page.press(page.$("research-launch"));
+  return lastPost(state, "/api/v1/research").body;
+}
+async function toAgentStep(page) {
+  page.window.CarbonControlCenter.goWizard("agent");
+  await page.advance(0);
+}
+const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits"];
+
+scenario("Graphite: offered in place of the autonomous agent, which is said to be replaced", async () => {
+  const state = graphiteWorld();
+  assert.ok(state.caps.agents.choices.some(choice => choice.launch_agent === "autonomous"), "the controller still lists the autonomous choice");
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  const offered = [...all(page, "#research-selects input")].map(input => input.value);
+  assert.ok(offered.includes("graphite"));
+  assert.ok(!offered.includes("autonomous"), "never offered for a new launch: " + offered);
+  assert.equal(one(page, "#wizard-graphite").hidden, false, "Graphite's choices show once it is chosen");
+  page.go("#agents");
+  await page.advance(0);
+  assert.match(page.text(one(page, "#agent-catalog [data-agent=replaced]")), /Replaced by Graphite for new campaigns/);
+  assert.match(page.text(one(page, "#agent-catalog [data-agent=graphite]")), /Open the Library/);
+  // A template saved with the autonomous agent is not loaded, and says why.
+  const local = new Storage();
+  local.setItem("carbon.launchpad.launch-templates.v1", JSON.stringify({old: {agent: "autonomous"}}));
+  const second = await open(graphiteWorld(), {localStorage: local});
+  await wizardTo(second, "limits", "graphite");
+  await second.press(second.$("template-load"));
+  assert.match(second.text("message"), /not loaded: Carbon's autonomous agent was replaced by Graphite/);
+  // Choosing Manual hides Graphite's choices; a manual launch carries none.
+  await toAgentStep(page);
+  await page.press(byValue(page, "#research-selects input", "manual"));
+  assert.equal(one(page, "#wizard-graphite").hidden, true);
+  const body = await launchNow(page, state);
+  assert.equal(body.agent, "none");
+  for (const key of GRAPHITE_KEYS) assert.ok(!(key in body), "a manual launch carries no " + key);
+  clean(page); clean(second);
+});
+
+scenario("Graphite: each mode launches with exactly its own fields", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  // Full is the default, with a 10% research share and a hunt of 200 papers.
+  assert.ok(one(page, "#wizard-graphite-mode-full").checked);
+  assert.equal(page.$("wizard-research-share").value, "10");
+  assert.equal(one(page, "#wizard-graphite-plan-box").hidden, true);
+  let body = await launchNow(page, state);
+  assert.equal(body.agent, "graphite");
+  assert.equal(body.graphite_mode, "FULL");
+  assert.equal(body.research_share, 0.1);
+  assert.deepEqual(body.hunt, {max_records: 200});
+  assert.ok(!("plan" in body) && !("limits" in body));
+  assert.equal(body.model, G().caps.model.setup_choice.model_id, "Graphite runs on the miner's chosen model");
+  // A typed share is sent exactly as the fraction it names.
+  await toAgentStep(page);
+  await page.type(page.$("wizard-research-share"), "12.5");
+  page.$("wizard-research-share").blur();
+  body = await launchNow(page, state);
+  assert.equal(body.research_share, 0.125);
+  // Research: the hunt, no share, no plan.
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-research"));
+  assert.equal(one(page, "#wizard-graphite-share").hidden, true);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "RESEARCH");
+  assert.deepEqual(body.hunt, {max_records: 200});
+  assert.ok(!("research_share" in body) && !("plan" in body));
+  // Research without a hunt: the shared pack and the Library only.
+  await toAgentStep(page);
+  await page.press(page.$("wizard-hunt"));
+  body = await launchNow(page, state);
+  assert.ok(!("hunt" in body));
+  // Build with no plan (its Planner writes one), then with the Library's plan.
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  assert.equal(one(page, "#wizard-graphite-hunt").hidden, true);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "BUILD");
+  for (const key of ["plan", "hunt", "research_share", "limits"]) assert.ok(!(key in body), key);
+  await toAgentStep(page);
+  const picker = page.$("wizard-graphite-plan");
+  const digest = G().library.plans[0].digest;
+  assert.ok([...picker.options].some(option => option.value === digest), "the Library's plan is offered");
+  assert.match(page.text("wizard-graphite-plan-note"), /1 plan in your Library/);
+  await page.change(picker, digest);
+  body = await launchNow(page, state);
+  assert.equal(body.plan, digest);
+  // The review says it all before launch.
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /Build mode · plan /);
+  // Back to Full: the plan chosen for Build stays with Build.
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-full"));
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "FULL");
+  assert.ok(!("plan" in body), "a Full launch carries no plan: its research writes one");
+  clean(page);
+});
+
+scenario("Graphite: the hunt estimate uses the model's listed price; queries keep to the closed grammar", async () => {
+  const state = graphiteWorld({setup: copy(fx.setup_send)});
+  const page = await open(state);
+  await wizardTo(page, "model", "graphite");
+  const model = state.caps.model.providers.find(row => row.id === "openai-responses").models[0].id;
+  await page.press(byValue(page, "#wizard-model input", "openai-responses/" + model));
+  await toAgentStep(page);
+  // 600 input and 150 output tokens a paper at the listed per-token price.
+  const pricing = fx.setup_send.choices.inference.find(choice => choice.id === "openai-responses").models.find(entry => entry.model_id === model).pricing;
+  const each = 600 * pricing.input + 150 * pricing.output_including_reasoning;
+  const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
+  const estimate = page.text("wizard-hunt-estimate");
+  assert.ok(estimate.includes("about " + usd(each * 200) + " for up to 200 papers"), estimate);
+  assert.ok(estimate.includes(usd(each) + " each"), estimate);
+  assert.match(estimate, /skipped before any model call/);
+  await page.type(page.$("wizard-hunt-records"), "50");
+  assert.ok(page.text("wizard-hunt-estimate").includes(usd(each * 50) + " for up to 50 papers"));
+  // The closed grammar: refused here before anything is sent.
+  const queries = page.$("wizard-hunt-queries");
+  for (const [typed, said] of [["neural operator AND surrogate:pde", /characters other than letters/], ["one two three four five six seven", /more than 6 terms/], [Array.from({length: 9}, (_, i) => "query " + i).join("\n"), /at most 8 queries/]]) {
+    await page.type(queries, typed);
+    assert.equal(page.$("wizard-next").disabled, true, typed);
+    assert.match(page.text("wizard-next-reason"), /hunt query invalid/);
+    assert.match(page.text("wizard-next-reason"), said);
+  }
+  await page.type(queries, "residual MLP surrogate\n  neural   operator  \n\n");
+  queries.blur();
+  assert.equal(page.$("wizard-next").disabled, false, page.text("wizard-next-reason"));
+  const body = await launchNow(page, state);
+  assert.deepEqual(body.hunt, {max_records: 50, queries: ["residual MLP surrogate", "neural operator"]});
+  // A model with no listed price (setup's choice, priced live): no figure is invented.
+  page.window.CarbonControlCenter.goWizard("model");
+  await page.advance(0);
+  await page.press(byValue(page, "#wizard-model input", G().caps.model.setup_choice.provider_id + "/" + G().caps.model.setup_choice.model_id));
+  await toAgentStep(page);
+  assert.match(page.text("wizard-hunt-estimate"), /No price is listed here for this model/);
+  clean(page);
+});
+
+scenario("Graphite: per-epoch limits are optional; blank sends none, set sends whole numbers", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  await wizardTo(page, "limits", "graphite");
+  await page.press(page.$("path-advanced"));
+  assert.equal(one(page, "#graphite-limits").hidden, false);
+  for (const key of ["calls_per_epoch", "trials_per_epoch", "planner_calls"]) assert.equal(page.$("graphite-limit-" + key).value, "", key);
+  assert.match(page.text("graphite-limits"), /only your campaign's own limits bind/);
+  await page.type(page.$("graphite-limit-calls_per_epoch"), "0");
+  assert.equal(page.$("wizard-next").disabled, true);
+  assert.match(page.text("wizard-next-reason"), /per-epoch limits: model calls per epoch is a whole number/);
+  await page.type(page.$("graphite-limit-calls_per_epoch"), "60");
+  await page.type(page.$("graphite-limit-planner_calls"), "12");
+  page.$("graphite-limit-planner_calls").blur();
+  let body = await launchNow(page, state);
+  assert.deepEqual(body.limits, {calls_per_epoch: 60, planner_calls: 12});
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.type(page.$("graphite-limit-calls_per_epoch"), "");
+  await page.type(page.$("graphite-limit-planner_calls"), "");
+  page.$("graphite-limit-planner_calls").blur();
+  body = await launchNow(page, state);
+  assert.ok(!("limits" in body), "blank: only the campaign's own limits bind");
+  clean(page);
+});
+
+scenario("Graphite: a template carries its choices, as launch fields, and loads them back", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  await page.press(one(page, "#wizard-graphite-mode-research"));
+  await page.type(page.$("wizard-hunt-records"), "40");
+  page.$("wizard-hunt-records").blur();
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.type(page.$("template-name"), "research forty");
+  await page.press(page.$("template-save"));
+  const saved = JSON.parse(page.window.localStorage.getItem("carbon.launchpad.launch-templates.v1"))["research forty"];
+  assert.deepEqual(saved, {agent: "graphite", graphite_mode: "RESEARCH", hunt: {max_records: 40}});
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  page.window.CarbonControlCenter.goWizard("limits");
+  await page.advance(0);
+  await page.press(page.$("template-load"));
+  assert.match(page.text("message"), /loaded/);
+  const body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "RESEARCH");
+  assert.deepEqual(body.hunt, {max_records: 40});
+  clean(page);
+});
+
+scenario("Graphite: the campaign shows its stage, plan, research and build spend, and the hunt", async () => {
+  const state = graphiteWorld();
+  const run = graphiteRun();
+  state.runs = [run];
+  state.view = copy(G().view);
+  const page = await open(state);
+  page.go("#campaigns");
+  await page.advance(0);
+  assert.match(page.text(one(page, "#research-runs a.campaign-card")), /Graphite · Full mode · Building/);
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  await refresh(page);
+  const box = one(page, "#campaign-detail [data-part=graphite]");
+  assert.equal(box.hidden, false);
+  const text = page.text(box);
+  const g = state.view.graphite, spend = state.view.tiles.spend;
+  const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
+  assert.match(text, /Graphite · Full mode/);
+  assert.match(text, /Now: Building/);
+  assert.ok(text.includes("Research spend" + usd(g.research_spent) + " · its share 10% (" + usd(spend.ceiling_nanodollars * 0.1) + " of your " + usd(spend.ceiling_nanodollars) + ")"), text);
+  assert.ok(text.includes("Build spend" + usd(spend.used_nanodollars - g.research_spent)), text);
+  assert.ok(text.includes("2 found on arXiv · 1 already known, not paid for again · 0 set aside at first reading · 1 read into your Library · cost " + usd(g.hunt.cost_nanodollars)), text);
+  // The plan, read from the Library by its digest: its first hypotheses.
+  const plan = G().library.plans[0].plan;
+  assert.ok(text.includes(plan.hypotheses[0].hypothesis) && text.includes(plan.hypotheses[2].hypothesis), text);
+  assert.ok(!text.includes(plan.hypotheses[3].hypothesis), "three shown, the rest in the Library");
+  assert.match(text, /1 more in the Library/);
+  assert.equal(one(page, "#campaign-detail [data-part=graphite] a.link").getAttribute("href"), "#library/plans/" + g.plan_digest);
+  // A campaign without Graphite: the part is there, hidden, and empty.
+  const plain = copy(G().view); delete plain.graphite;
+  state.view = plain;
+  for (let i = 0; i < 3; i++) await refresh(page);
+  assert.equal(one(page, "#campaign-detail [data-part=graphite]").hidden, true);
+  clean(page);
+});
+
+scenario("Library: every card says where it came from and UNCHECKED; search ranks with reasons", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  page.go("#library");
+  await page.advance(0);
+  assert.match(page.text("library-body"), /Your pins and bans/);
+  await page.type(page.$("library-query"), "mlp");
+  await page.press(page.$("library-search-go"));
+  const sent = lastPost(state, "/api/v1/library/search").body;
+  const chosen = selectable();
+  assert.deepEqual(sent, {query: "mlp", challenge: chosen.challenge_id, challenge_version: chosen.version, limit: 20});
+  const cards = [...all(page, "#library-body [data-part=results] .lib-card")];
+  const expected = G().library.cards.filter(card => /mlp/i.test(card.title + card.technique) && !G().library.bans.includes(card.card_id));
+  assert.deepEqual(cards.map(node => node.dataset.card).sort(), expected.map(card => card.card_id).sort());
+  for (const node of cards) {
+    const card = expected.find(item => item.card_id === node.dataset.card);
+    assert.equal(one(page, "#library-body [data-part=results] [data-card=" + card.card_id + "] [data-origin]").dataset.origin, card.origin);
+    assert.ok(node.textContent.includes({shared: "Shared pack", miner_hunt: "Your hunt", miner_import: "Your import"}[card.origin]), card.card_id);
+    assert.equal(node.querySelector("[data-check]").textContent, "UNCHECKED");
+    assert.ok(node.textContent.includes("Relevance " + card.score + " of 3"));
+    for (const reason of card.reasons) assert.ok(node.textContent.includes(reason), reason);
+  }
+  // The banned card is never shown, here or in the results.
+  assert.ok(!page.text(one(page, "#library-body [data-part=results]")).includes("banned MLP variant"));
+  // Even when a controller serves one by mistake.
+  state.library.leakBans = true;
+  await page.press(page.$("library-search-go"));
+  assert.ok(!page.text(one(page, "#library-body [data-part=results]")).includes("banned MLP variant"), "a banned card is never shown in results");
+  state.library.leakBans = false;
+  // Your library: hunted and imported cards, labelled the same way.
+  const mine = one(page, "#library-body [data-part=mine]");
+  assert.match(page.text(mine), /Shared pack: 1773 cards/);
+  for (const node of mine.querySelectorAll(".lib-card")) assert.equal(node.querySelector("[data-check]").textContent, "UNCHECKED");
+  clean(page);
+});
+
+scenario("Library: pin and ban are the controller's operations, under a key, and steer what is shown", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  page.go("#library");
+  await page.advance(0);
+  await page.type(page.$("library-query"), "mlp");
+  await page.press(page.$("library-search-go"));
+  const button = (id, action) => one(page, "#library-body [data-part=results] [data-card=" + id + "] button[data-curate=" + action + "]");
+  // Already pinned: says so.
+  assert.equal(button("fixture-shared-0001", "pin").getAttribute("aria-pressed"), "true");
+  await page.press(button("fixture-hunt-0001", "pin"));
+  const pin = lastPost(state, "/api/v1/library/pin");
+  assert.equal(pin.body.card_id, "fixture-hunt-0001");
+  assert.match(pin.body.idempotency_key, /^[0-9a-f-]{36}$/);
+  assert.equal(button("fixture-hunt-0001", "pin").getAttribute("aria-pressed"), "true");
+  assert.match(page.text(one(page, "#library-body [data-part=curation] [data-list=pin]")), /MLP width schedule/);
+  // Ban: gone from the results, listed with Unban.
+  await page.press(button("fixture-import-0001", "ban"));
+  assert.equal(lastPost(state, "/api/v1/library/ban").body.card_id, "fixture-import-0001");
+  assert.equal(all(page, "#library-body [data-part=results] [data-card=fixture-import-0001]").length, 0);
+  const banned = one(page, "#library-body [data-part=curation] [data-list=ban]");
+  assert.match(page.text(banned), /imported notes on MLP depth/);
+  await page.press([...banned.querySelectorAll("button")].find(b => b.textContent === "Unban" && b.dataset.card === "fixture-import-0001"));
+  assert.equal(lastPost(state, "/api/v1/library/unban").body.card_id, "fixture-import-0001");
+  assert.ok(one(page, "#library-body [data-part=results] [data-card=fixture-import-0001]"));
+  // A lost answer keeps the key: the retry is the same request.
+  state.script.unshift({match: r => r.path === "/api/v1/library/unpin", answer: {timeout: true}});
+  await page.press(button("fixture-hunt-0001", "pin"));
+  const lost = lastPost(state, "/api/v1/library/unpin").body.idempotency_key;
+  assert.match(page.text("library-note"), /Not confirmed: .*same key/);
+  await page.press(button("fixture-hunt-0001", "pin"));
+  assert.equal(lastPost(state, "/api/v1/library/unpin").body.idempotency_key, lost, "the retry is replayed, never repeated");
+  assert.equal(button("fixture-hunt-0001", "pin").getAttribute("aria-pressed"), "false");
+  // A refusal is shown with the controller's next step, and lets the key go.
+  state.script.unshift({match: r => r.path === "/api/v1/library/pin", answer: {status: 409, body: {error: "card_banned", next_step: "unban it first"}}});
+  await page.press(button("fixture-import-0001", "pin"));
+  assert.match(page.text("library-note"), /Refused: card banned\. Next: unban it first\./);
+  assert.equal(button("fixture-import-0001", "pin").getAttribute("aria-pressed"), "false", "a refused pin pins nothing");
+  assert.equal(page.window.sessionStorage.getItem("carbon.launchpad.pending-operation.v1"), "{}");
+  clean(page);
+});
+
+scenario("Library: a route the controller does not have falls back to the operations door", async () => {
+  const state = graphiteWorld();
+  state.script.unshift({keep: true, match: r => r.path === "/api/v1/library/search", answer: {status: 404, body: {error: "route_not_found"}}});
+  state.script.unshift({keep: true, match: r => r.path === "/api/v1/operations/library_search", answer: {body: {results: [G().library.cards[0]]}}});
+  const page = await open(state);
+  page.go("#library");
+  await page.advance(0);
+  await page.type(page.$("library-query"), "anything");
+  await page.press(page.$("library-search-go"));
+  assert.equal(lastPost(state, "/api/v1/operations/library_search").body.query, "anything");
+  assert.ok(one(page, "#library-body [data-part=results] [data-card=fixture-shared-0001]"));
+  // A refusal on the route itself is never retried elsewhere.
+  state.script.unshift({match: r => r.path === "/api/v1/library/card", answer: {status: 409, body: {error: "card_not_found"}}});
+  page.go("#library/card/nope");
+  await page.advance(0);
+  assert.equal(posts(state, "/api/v1/operations/library_card").length, 0);
+  assert.match(page.text(one(page, "#library-body [data-part=card]")), /could not be read: card not found/);
+  clean(page);
+});
+
+scenario("Library: an import queues text for the next Reader stage", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  page.go("#library/import");
+  await page.advance(0);
+  // Nothing to import: said here, nothing sent.
+  await page.press(page.$("library-import-go"));
+  assert.match(page.text("library-import-result"), /Write a title and the text/);
+  assert.equal(posts(state, "/api/v1/library/import").length, 0);
+  // Longer than an import carries: said here, nothing sent.
+  await page.type(page.$("library-import-title"), "Too long");
+  await page.type(page.$("library-import-text"), "x".repeat(20001));
+  await page.press(page.$("library-import-go"));
+  assert.match(page.text("library-import-result"), /at most 20,000 characters; this is 20,001/);
+  assert.equal(posts(state, "/api/v1/library/import").length, 0);
+  const notes = "Residual connections helped when the data was small.";
+  await page.type(page.$("library-import-title"), "My notes on residual MLPs");
+  await page.type(page.$("library-import-text"), notes);
+  assert.equal(page.text("library-import-count"), notes.length + " / 20,000 characters");
+  await page.press(page.$("library-import-go"));
+  const sent = lastPost(state, "/api/v1/library/import").body;
+  assert.equal(sent.title, "My notes on residual MLPs");
+  assert.equal(sent.text, "Residual connections helped when the data was small.");
+  assert.ok(sent.idempotency_key);
+  assert.match(page.text("library-import-result"), /Queued as fixture-import-1: “My notes on residual MLPs”/);
+  assert.equal(page.$("library-import-title").value, "");
+  assert.equal(page.$("library-import-text").value, "");
+  assert.match(page.text(one(page, "#library-body [data-part=pending]")), /My notes on residual MLPs · fixture-import-1/);
+  clean(page);
+});
+
+scenario("Library: the plan editor checks a plan, then saves it as a new version", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  const first = G().library.plans[0];
+  page.go("#library/plans/" + first.digest);
+  await page.advance(0);
+  await refresh(page);
+  const view = () => page.text(one(page, "#library-body [data-part=plan]"));
+  assert.match(view(), /Written byGraphite's Planner/);
+  assert.ok(view().includes(first.plan.hypotheses[0].hypothesis));
+  assert.ok(view().includes("Stops when: " + first.plan.hypotheses[0].stopping_rule));
+  // Each cited card links to it and says where it came from.
+  const cites = one(page, "#library-body [data-part=plan] .lib-cites");
+  assert.deepEqual([...cites.querySelectorAll("[data-origin]")].map(node => node.dataset.origin), ["miner_hunt", "shared"]);
+  assert.equal(cites.querySelector("a").getAttribute("href"), "#library/card/fixture-hunt-0001");
+  await page.press(page.$("library-plan-edit"));
+  assert.equal(page.$("library-plan-hypothesis-0").value, first.plan.hypotheses[0].hypothesis);
+  assert.ok(page.$("library-plan-pin-0").checked, "the plan considered the pin");
+  await page.type(page.$("library-plan-hypothesis-0"), "A wider and deeper residual MLP lowers the practice error.");
+  // Ignoring a pin is refused here, before anything is sent.
+  await page.press(page.$("library-plan-pin-0"));
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /consider every pinned card: Fixture card: residual MLP surrogate .* \(plan invalid\)/);
+  await page.press(page.$("library-plan-pin-0"));
+  // Citing a banned card is refused here too.
+  await page.type(page.$("library-plan-cites-1"), "fixture-shared-0001\nfixture-shared-0003");
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /hypothesis 2 cites Fixture card: a banned MLP variant, which you banned \(card banned\)/);
+  // A card that is in neither the pack nor the library is read first, and refused.
+  await page.type(page.$("library-plan-cites-1"), "fixture-shared-0001, nowhere-0001");
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /cites nowhere-0001, which is in neither the shared pack nor your library \(card not found\)/);
+  // A recipe that is not a JSON object is refused.
+  await page.type(page.$("library-plan-cites-1"), "fixture-shared-0001");
+  await page.type(page.$("library-plan-recipe-1"), "[1, 2]");
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /hypothesis 2: the recipe is a JSON object/);
+  assert.equal(posts(state, "/api/v1/plans/edit").length, 0, "nothing was sent while the plan was refused here");
+  await page.type(page.$("library-plan-recipe-1"), "");
+  // Reorder: the third hypothesis first. Typed text survives the redraw.
+  await page.press([...one(page, "#library-body [data-part=editor] [data-row='2']").querySelectorAll("button")].find(b => b.textContent === "Move up"));
+  assert.equal(page.$("library-plan-hypothesis-0").value, "A wider and deeper residual MLP lowers the practice error.");
+  assert.equal(page.$("library-plan-hypothesis-1").value, first.plan.hypotheses[2].hypothesis);
+  await page.press(page.$("library-plan-save"));
+  const sent = lastPost(state, "/api/v1/plans/edit").body;
+  assert.ok(sent.idempotency_key);
+  const plan = sent.plan;
+  assert.equal(plan.schema, "carbon.graphite.miner-plan.v1");
+  assert.equal(plan.parent, first.digest);
+  assert.equal(plan.created_by, "miner");
+  assert.deepEqual(plan.pins_considered, ["fixture-shared-0001"]);
+  assert.equal(plan.hypotheses[0].hypothesis, "A wider and deeper residual MLP lowers the practice error.");
+  assert.deepEqual(plan.hypotheses[0].recipe, first.plan.hypotheses[0].recipe);
+  assert.deepEqual(plan.hypotheses[0].cites, first.plan.hypotheses[0].cites);
+  assert.equal(plan.hypotheses[1].hypothesis, first.plan.hypotheses[2].hypothesis);
+  assert.deepEqual(plan.hypotheses[2].cites, [{card_id: "fixture-shared-0001", origin: "shared"}]);
+  assert.ok(!("recipe" in plan.hypotheses[2]));
+  // Saved: the new version opens, read back as stored; the first is kept.
+  const created = state.library.plans[state.library.plans.length - 1].digest;
+  assert.equal(page.window.location.hash, "#library/plans/" + created);
+  await refresh(page);
+  assert.match(view(), /Written byYour edit/);
+  assert.equal(all(page, "#library-body [data-part=list] tr[data-plan]").length, 2);
+  assert.match(page.text("library-note"), /Saved as a new version/);
+  // The controller's own refusal is shown with its next step.
+  await page.press(page.$("library-plan-edit"));
+  state.script.unshift({match: r => r.path === "/api/v1/plans/edit", answer: {status: 409, body: {error: "plan_invalid", next_step: "write each hypothesis's stopping rule"}}});
+  await page.press(page.$("library-plan-save"));
+  assert.match(page.text("library-plan-result"), /Refused: plan invalid\. Next: write each hypothesis's stopping rule\./);
+  clean(page);
+});
+
+scenario("Library: a plan written from scratch has no parent", async () => {
+  const state = graphiteWorld();
+  const page = await open(state);
+  page.go("#library/plans");
+  await page.advance(0);
+  await page.press(page.$("library-plan-new"));
+  await page.type(page.$("library-plan-hypothesis-0"), "Mine: a smaller MLP keeps the score.");
+  await page.type(page.$("library-plan-expected_effect-0"), "the same score");
+  await page.type(page.$("library-plan-stopping_rule-0"), "one practice run");
+  await page.press(page.$("library-plan-pin-0"));
+  await page.press(page.$("library-plan-save"));
+  const plan = lastPost(state, "/api/v1/plans/edit").body.plan;
+  assert.equal(plan.parent, null);
+  assert.equal(plan.created_by, "miner");
+  assert.deepEqual(plan.hypotheses, [{hypothesis: "Mine: a smaller MLP keeps the score.", expected_effect: "the same score", stopping_rule: "one practice run", cites: []}]);
+  clean(page);
+});
+
+scenario("Graphite and the Library: a refresh with nothing new changes nothing; typing survives new data", async () => {
+  const state = graphiteWorld();
+  const run = graphiteRun({state: "COMPLETED"});
+  const view = copy(G().view);
+  view.campaign.state = "COMPLETED";
+  view.tiles.elapsed_seconds = null;
+  state.runs = [run];
+  state.view = view;
+  const page = await open(state);
+  const still = async label => {
+    for (let i = 0; i < 2; i++) await refresh(page);
+    const before = page.doc.mutations;
+    page.doc.trace = [];
+    // Past the Library's own re-read, and the campaign view's.
+    for (let i = 0; i < 9; i++) await refresh(page);
+    assert.equal(page.doc.mutations, before, label + ": " + [...new Set(page.doc.trace)].join(" | "));
+  };
+  await wizardTo(page, "agent", "graphite");
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  await still("the wizard's Graphite choices");
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  await still("the review");
+  page.go("#library");
+  await page.advance(0);
+  await page.type(page.$("library-query"), "mlp");
+  await page.press(page.$("library-search-go"));
+  page.$("library-query").blur();
+  await still("the Library's cards");
+  page.go("#library/plans/" + G().library.plans[0].digest);
+  await page.advance(0);
+  await still("a plan");
+  page.go("#campaigns/" + run.id + "/live");
+  await page.advance(0);
+  await still("the campaign's Graphite part");
+  // Typing in the Library survives a re-read that brings new cards.
+  page.go("#library/import");
+  await page.advance(0);
+  const text = page.$("library-import-text");
+  await page.type(text, "Half-written notes");
+  page.go("#library");
+  await page.advance(0);
+  const query = page.$("library-query");
+  await page.type(query, "graph");
+  state.library.cards.push({card_id: "fixture-hunt-0002", origin: "miner_hunt", check_status: "UNCHECKED", title: "Fixture card: found by a running hunt", score: 1, reasons: []});
+  for (let i = 0; i < 9; i++) await refresh(page);
+  assert.ok(query.isConnected && query.value === "graph", "the query being typed is untouched");
+  assert.match(page.text(one(page, "#library-body [data-part=mine]")), /found by a running hunt/);
+  page.go("#library/import");
+  await page.advance(0);
+  assert.ok(text.isConnected && text.value === "Half-written notes", "an import being written is untouched");
+  clean(page);
+});
+
+scenario("Library: a controller without it says so, and nothing is asked of it", async () => {
+  const state = graphiteWorld({operations: copy(G().operations_without_library)});
+  const page = await open(state);
+  page.go("#library");
+  await page.advance(0);
+  assert.match(page.text("library-body"), /does not offer the Library: it predates Graphite's miner edition/);
+  await wizardTo(page, "agent", "graphite");
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  assert.match(page.text("wizard-graphite-plan-note"), /does not list plans/);
+  assert.equal(page.requests.filter(r => /^\/api\/v1\/(library|plans)\//.test(r.path)).length, 0);
+  clean(page);
+});
+
+scenario("Library: a session link opened on a Library address connects and keeps its token nowhere", async () => {
+  const LINK = "link_" + "L1b2-R3d4_".repeat(4);
+  const state = graphiteWorld();
+  const session = new Storage(), local = new Storage();
+  const page = await openPage(ROOT, state.server, {sessionStorage: session, localStorage: local, hash: "#token=" + LINK});
+  page.state = state;
+  await page.advance(0);
+  assert.equal(page.text("connection-state"), "Connected");
+  assert.equal(page.window.location.hash, "");
+  page.go("#library/plans/" + G().library.plans[0].digest);
+  await page.advance(0);
+  await refresh(page);
+  assert.match(page.text(one(page, "#library-body [data-part=plan]")), /Written by/);
+  assert.match(kept(local), /#library\/plans\//);
+  assert.ok(!kept(local).includes(LINK) && !kept(session).includes(LINK));
+  assert.ok(page.requests.every(r => r.headers.Authorization === "Bearer " + LINK));
+  for (const r of page.requests) assert.ok(!JSON.stringify(r.body || {}).includes(LINK) && !r.path.includes(LINK));
+  clean(page);
 });
 
 (async () => {
