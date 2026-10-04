@@ -268,6 +268,26 @@ def test_every_attack_engine_check_meets_the_suites_vectors():
     assert all(v in suite.VECTORS for vs in by_check.values() for v in vs)
 
 
+def test_a_vector_without_admission_checks_maps_nothing(tmp_path):
+    """load_suite accepts a vector with no `admission_checks` key when the
+    others cover the eight; vectors_by_check reads it the same way."""
+    s = json.loads(suite.SUITE.read_text())
+    vectors = s["track_a"]
+    spare = next(
+        v
+        for v in vectors
+        if set(v["admission_checks"])
+        <= {c for o in vectors if o is not v for c in o["admission_checks"]}
+    )
+    del spare["admission_checks"]
+    path = tmp_path / "suite.json"
+    path.write_text(json.dumps(s))
+    loaded = suite.load_suite(path)
+    by_check = suite.vectors_by_check(loaded)
+    assert set(by_check) == set(TRACK_A_CHECKS)
+    assert spare["id"] not in {v for vs in by_check.values() for v in vs}
+
+
 def test_a_suite_that_drops_an_admission_check_is_refused(tmp_path):
     s = json.loads(suite.SUITE.read_text())
     s["track_a"][7]["admission_checks"] = []  # A8 carried adaptive feedback alone

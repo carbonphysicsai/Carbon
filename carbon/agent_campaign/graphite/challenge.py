@@ -180,7 +180,29 @@ def check_record(document):
         or PurePosixPath(grant["file"]).name != grant["id"] + ".json"
     ):
         raise ChallengeError("attacker_grant_is_id_and_its_file")
+    from carbon.agent_campaign.graphite import tools
+
+    if tools.protected(_brief(document)):
+        raise ChallengeError("challenge_record_brief_names_protected_material")
     return document
+
+
+#: The record fields an Attacker brief may carry. The `attacker_campaign`
+#: block (identities, credential reference, grant) is campaign configuration
+#: for the driver; it never goes to a model or through the Graphite toolbox,
+#: whose protected-material check refuses it.
+BRIEF_KEYS = ("challenge", "label", "attack_goals")
+
+
+def _brief(document):
+    return {key: document[key] for key in BRIEF_KEYS}
+
+
+def brief(document):
+    """The brief-facing fields of a checked record. They pass
+    `graphite.tools.protected`; nothing else from the record goes into an
+    Attacker brief."""
+    return _brief(check_record(document))
 
 
 def from_record(document, adapter, construction):
@@ -261,8 +283,12 @@ def get(token, *, pipeline_records=None):
         raise ChallengeError("pipeline_record_has_no_construction_level")
     try:
         adapter = attack_adapters.get(token, level)
-    except attack_adapters.AdapterError:
-        raise ChallengeError("attack_adapter_not_registered") from None
+    except attack_adapters.AdapterError as refused:
+        if refused.code == "adapter_not_registered":
+            raise ChallengeError("attack_adapter_not_registered") from None
+        # Any other refusal (a built-in adapter package that failed to
+        # import) keeps its own code and its cause.
+        raise ChallengeError("attack_adapter_unavailable: " + refused.code) from refused
     return from_record(document, adapter, construction)
 
 

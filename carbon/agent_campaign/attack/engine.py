@@ -17,7 +17,8 @@ vocabulary (`carbon.challenge_readiness.admission`). Every finding is emitted;
 none is suppressed.
 
 A boundary that raises is never a pass either. `InfrastructureFailure` is
-recorded FAILED_INFRA, `TimeoutError` TIMEOUT and any other exception CRASHED.
+recorded FAILED_INFRA, `TimeoutError` or `subprocess.TimeoutExpired` TIMEOUT
+and any other exception CRASHED.
 Each leaves the family INCONCLUSIVE, and none is a finding: infrastructure
 failure is not a scientific result (invariant 7).
 
@@ -43,6 +44,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import subprocess
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
@@ -65,6 +67,10 @@ FAMILY_STATES = ("FINDING", "INCONCLUSIVE", "IN_PROGRESS")
 #: The eight shared Track A checks a family may name.
 TRACK_A_CHECKS = frozenset(CHECKS[LEDGER_TRACK])
 FINDING_CONDITION = "FAILING_TRIGGER"
+#: Exceptions recorded TIMEOUT. `concurrent.futures.TimeoutError` and
+#: `asyncio.TimeoutError` are `TimeoutError` on Python 3.11;
+#: `subprocess.TimeoutExpired` (a pod or subprocess boundary) is not.
+TIMEOUT_ERRORS = (TimeoutError, subprocess.TimeoutExpired)
 _NAME = re.compile(r"^[a-z][a-z0-9_]*\Z")
 
 
@@ -209,7 +215,7 @@ def answer(call, *args):
         return call(*args), None
     except InfrastructureFailure as failed:
         return {"exception": type(failed).__name__}, FAILED_INFRA
-    except TimeoutError as failed:
+    except TIMEOUT_ERRORS as failed:
         return {"exception": type(failed).__name__}, TIMEOUT
     except Exception as failed:  # noqa: BLE001 - a crash is recorded, never a pass
         return {"exception": type(failed).__name__}, CRASHED

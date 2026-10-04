@@ -17,7 +17,9 @@ Mutation-style tests name the mutation each would turn red on.
 
 from __future__ import annotations
 
+import concurrent.futures
 import hashlib
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -148,6 +150,9 @@ def test_mutation_silent_specimen_is_never_counted_as_a_pass():
     [
         (engine.InfrastructureFailure("pod lost"), engine.FAILED_INFRA),
         (TimeoutError("wall clock"), engine.TIMEOUT),
+        # A pod or subprocess boundary's timeout is not a TimeoutError.
+        (subprocess.TimeoutExpired(["worker"], 60), engine.TIMEOUT),
+        (concurrent.futures.TimeoutError(), engine.TIMEOUT),
         (RuntimeError("boom"), engine.CRASHED),
     ],
 )

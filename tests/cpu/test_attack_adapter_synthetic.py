@@ -19,6 +19,7 @@ import ast
 import dataclasses
 import json
 import math
+import sys
 import types
 from pathlib import Path
 
@@ -41,6 +42,11 @@ TOP = {"challenge_id", "model_family", "parameters"}
 ALLOW = {"status", "score"}
 CANARY = "SYNTHETIC-CANARY-PRIVATE-REFERENCE"
 CASES = 5
+#: A legitimate Level 1 construction the climb plan never names: the
+#: permission-ablation family's held-out control.
+HELD_OUT_EXPRESSION = climb.Item("unseen-expression", frozenset({NEW}))
+#: Battery's Graphite record, read as data (the record shape is neutral).
+BATTERY_TOKEN = "battery-fastcharge-ageing-development-v1"
 
 
 # -- the synthetic Challenge's real boundaries and weakened specimens ---------
@@ -399,16 +405,17 @@ def synthetic_adapter(
             runners or Fake().runners(),
             Fake(leaky={f"ablated:{NEW}"}).runners(),
         )
-        menu, expression = plan.panel
+        menu, _ = plan.panel
         controls = (
             *controls,
             adapters.Control(
                 "menu_construction", "permission_ablation", "trained", VERSION,
                 (plan.expanded, menu),
             ),
+            # Held out from the engine: outside the panel and the attacks.
             adapters.Control(
-                "expression_construction", "permission_ablation", "held_out", VERSION,
-                (plan.expanded, expression),
+                "unseen_expression_construction", "permission_ablation", "held_out",
+                VERSION, (plan.expanded, HELD_OUT_EXPRESSION),
             ),
         )  # fmt: skip
     return adapters.DeclaredAdapter(
@@ -511,6 +518,51 @@ def test_the_oracle_re_runs_an_attempt_against_the_real_boundary():
         adapter.oracle(
             "width_surface", recipe(width=999)
         )  # a bare value is not an attempt
+    assert held.specimen == engine.FIRED and breach.specimen == engine.FIRED
+
+
+def _accept_everything(doc):
+    return {"accepted": True, "recipe_digest": engine.digest(doc)}
+
+
+@pytest.mark.parametrize(
+    "changes, specimen",
+    [
+        # The specimen is the real boundary: the detector never fires.
+        ({"specimen": compile_doc}, engine.SILENT),
+        # A detector that cannot fire, whatever the boundary does.
+        (
+            {"boundary": _accept_everything, "breached": lambda result: False},
+            engine.SILENT,
+        ),
+        # The specimen does not answer.
+        ({"specimen": lambda doc: (_ for _ in ()).throw(TimeoutError())}, "TIMEOUT"),
+    ],
+)
+def test_mutation_a_blind_detector_never_yields_held_from_the_oracle(changes, specimen):
+    """Mutation: the per-attempt oracle counting a hold the detector cannot
+    vouch for as HELD. The engine's run says INCONCLUSIVE; so must the oracle."""
+    adapter = synthetic_adapter(0, families=mutate("width_surface", **changes))
+    attempt = adapters.AttackInput("wide", recipe(width=999))
+    verdict = adapter.oracle("width_surface", attempt)
+    assert verdict.verdict == adapters.INCONCLUSIVE != engine.HELD
+    assert verdict.condition is None and verdict.specimen == specimen
+    (run,) = [r for r in adapters.run_adapter(adapter) if r.family == "width_surface"]
+    assert engine.family_state(run) == "INCONCLUSIVE"
+    with pytest.raises(adapters.AdapterError, match="a_hold_needs_a_specimen"):
+        adapters.OracleResult(
+            "width_surface", "wide", engine.HELD, verdict.evidence_digest,
+            specimen=engine.SILENT,
+        )  # fmt: skip
+
+
+def test_the_oracle_reports_a_boundary_that_did_not_answer():
+    def fails(doc):
+        raise engine.InfrastructureFailure("pod lost")
+
+    adapter = synthetic_adapter(0, families=mutate("width_surface", boundary=fails))
+    verdict = adapter.oracle("width_surface", adapters.AttackInput("w", recipe()))
+    assert verdict.verdict == engine.FAILED_INFRA and verdict.condition is None
 
 
 def test_carbon_rebuilds_or_refuses_typed():
@@ -668,6 +720,28 @@ def test_held_out_controls_measure_wrongful_rejection():
     }
 
 
+def test_the_ablation_familys_held_out_control_is_held_out_from_the_engine():
+    """Every climb panel member is an ablation attack input and part of the
+    default control, so the held-out control is a construction outside the
+    plan; it runs as a construction, never as an attack."""
+    plan = climb_plan()
+    fake = Fake()
+    adapter = synthetic_adapter(1, runners=fake.runners())
+    (definition,) = [f for f in adapter.families() if f.name == "permission_ablation"]
+    engine_items = {item.item_id for _, (_, item) in definition.family.attacks()}
+    engine_items |= {item.item_id for item in plan.panel}
+    (held_out,) = [
+        c for c in adapter.controls("held_out") if c.family == "permission_ablation"
+    ]
+    assert held_out.value[1].item_id not in engine_items
+    assert held_out.value[1].item_id not in {i.item_id for i in plan.attacks}
+    adapters.run_adapter(adapter)
+    assert ("level-1", "unseen-expression") not in fake.calls  # never run there
+    outcomes = adapters.held_out_outcomes(adapter)["permission_ablation"]
+    assert [r["outcome"] for r in outcomes] == [engine.PASSED]
+    assert fake.calls[-1] == ("level-1", "unseen-expression")
+
+
 # -- validation and the registry ----------------------------------------------
 
 
@@ -766,17 +840,77 @@ def test_the_registry_keys_adapters_by_challenge_and_level(registered):
         adapters.get(SYNTHETIC, 2)
 
 
-def test_built_in_adapters_load_on_the_first_read(tmp_path, monkeypatch):
-    (tmp_path / "synthetic_builtin_adapters.py").write_text("LOADED = True\n")
-    monkeypatch.syspath_prepend(str(tmp_path))
-    monkeypatch.setattr(adapters, "BUILTIN_PACKAGE", "synthetic_builtin_adapters")
-    registry = adapters._Registry()
-    assert len(registry) == 0
-    import synthetic_builtin_adapters
+_BUILTIN = """
+from carbon.agent_campaign.attack import adapter
+import synthetic_builtin_source
 
-    assert synthetic_builtin_adapters.LOADED
+adapter.register(synthetic_builtin_source.ADAPTER)
+if synthetic_builtin_source.FAIL:
+    raise RuntimeError("the built-in adapter package is broken")
+"""
+
+
+@pytest.fixture
+def builtin_package(tmp_path, monkeypatch):
+    """A temporary built-in adapters package that registers the synthetic
+    Level 0 adapter at import, read by a fresh registry."""
+    name = "synthetic_builtin_adapters"
+    (tmp_path / f"{name}.py").write_text(_BUILTIN)
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(adapters, "BUILTIN_PACKAGE", name)
+    registry = adapters._Registry()
+    monkeypatch.setattr(adapters, "ADAPTERS", registry)
+    source = types.SimpleNamespace(ADAPTER=synthetic_adapter(0), FAIL=False)
+    monkeypatch.setitem(sys.modules, "synthetic_builtin_source", source)
+    sys.modules.pop(name, None)
+    yield name, registry, source
+    sys.modules.pop(name, None)
+
+
+def test_built_in_adapters_load_on_the_first_read(builtin_package):
+    name, registry, source = builtin_package
+    assert name not in sys.modules  # nothing imported it yet
+    assert adapters.get(SYNTHETIC, 0) is source.ADAPTER  # the first read
+    assert name in sys.modules
+    assert list(registry) == [(SYNTHETIC, 0)]
+    with pytest.raises(adapters.AdapterError, match="adapter_already_registered"):
+        adapters.register(synthetic_adapter(0))
+
+
+def test_a_missing_built_in_package_is_an_empty_registry(monkeypatch):
     monkeypatch.setattr(adapters, "BUILTIN_PACKAGE", "no_such_package_anywhere")
     assert len(adapters._Registry()) == 0
+
+
+def test_a_built_in_package_that_fails_to_import_is_never_hidden(
+    builtin_package, tmp_path, monkeypatch
+):
+    """Mutation: an import failure leaving an empty registry that reads as
+    'adapter_not_registered' for the rest of the process."""
+    _, registry, source = builtin_package
+    source.FAIL = True
+    for read in (len, lambda r: adapters.get(SYNTHETIC, 0), list):
+        with pytest.raises(
+            adapters.AdapterError, match="builtin_adapters_failed_to_import"
+        ) as refused:
+            read(registry)
+        assert isinstance(refused.value.__cause__, RuntimeError)
+    assert dict(registry._entries) == {}  # the partial registration rolled back
+    # The Graphite record path keeps the failure's code, not 'not registered'.
+    records, pipeline = tmp_path / "challenges", tmp_path / "records"
+    records.mkdir()
+    pipeline.mkdir()
+    (records / f"{SYNTHETIC}.json").write_text(json.dumps(RECORD))
+    monkeypatch.setattr(challenges, "RECORDS", records)
+    construction = {"challenge": SYNTHETIC, "level": 0, "levels": []}
+    (pipeline / "f99.json").write_text(json.dumps({"construction": construction}))
+    with pytest.raises(
+        challenges.ChallengeError,
+        match="attack_adapter_unavailable: builtin_adapters_failed_to_import",
+    ):
+        challenges.get(SYNTHETIC, pipeline_records=pipeline)
+    source.FAIL = False  # repaired: the next read loads it
+    assert adapters.get(SYNTHETIC, 0) is source.ADAPTER
 
 
 # -- the Graphite record ------------------------------------------------------
@@ -901,6 +1035,25 @@ def test_batterys_record_has_the_same_shape_and_the_phase4_grant():
     assert "session_turns" not in campaign and "ceiling_usd" not in campaign
     assert (REPO / document["suite_report"]).is_file()
     assert "OWNER-GRAPHITE-ATTACKER-01" in campaign["authority"]
+
+
+@pytest.mark.parametrize(
+    "load", [lambda: RECORD, lambda: challenges.load_record(BATTERY_TOKEN)]
+)
+def test_only_the_records_brief_fields_reach_an_attacker_brief(load):
+    """The campaign block names a credential reference, which Graphite's
+    protected-material check refuses; only the brief fields go to a model."""
+    from carbon.agent_campaign.graphite import tools
+
+    document = load()
+    shown = challenges.brief(document)
+    assert set(shown) == set(challenges.BRIEF_KEYS)
+    assert "attacker_campaign" not in shown
+    assert not tools.protected(shown) and not tools.protected(json.dumps(shown))
+    assert tools.protected(json.dumps(document))  # the whole record is refused
+    bad = dict(document, attack_goals={"A3": "read the hidden_case answers"})
+    with pytest.raises(challenges.ChallengeError, match="brief_names_protected"):
+        challenges.check_record(bad)
 
 
 # -- neutrality ---------------------------------------------------------------

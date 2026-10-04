@@ -75,8 +75,16 @@ UNREBUILDABLE_CODES = frozenset(
         "rebuild_failed_infra",
     }
 )
-#: An oracle's verdicts: the engine's attack verdicts, plus NOT_RUN for a seam.
-ORACLE_VERDICTS = frozenset({engine.HELD, engine.BREACHED, *engine.NO_ANSWER, NOT_RUN})
+#: The oracle's verdict when the boundary held but the family's specimen did
+#: not fire on the attempt: the detector is blind to it. Never a pass.
+INCONCLUSIVE = "INCONCLUSIVE"
+#: An oracle's verdicts: the engine's attack verdicts, INCONCLUSIVE for a hold
+#: the detector cannot vouch for, and NOT_RUN for a seam.
+ORACLE_VERDICTS = frozenset(
+    {engine.HELD, engine.BREACHED, *engine.NO_ANSWER, INCONCLUSIVE, NOT_RUN}
+)
+#: The specimen's verdicts an oracle result may carry.
+SPECIMEN_VERDICTS = frozenset({engine.FIRED, engine.SILENT, *engine.NO_ANSWER})
 SESSION_FUNCTIONS = (
     "permission_inventory",
     "public_identity",
@@ -206,6 +214,10 @@ class OracleResult:
     evidence_digest: str
     #: FAILING_TRIGGER for a breach; None otherwise.
     condition: str | None = None
+    #: The family specimen's verdict on the same attempt (FIRED, SILENT or a
+    #: no-answer verdict); None for a seam, which runs nothing.
+    specimen: str | None = None
+    specimen_digest: str | None = None
 
     def __post_init__(self):
         if self.verdict not in ORACLE_VERDICTS:
@@ -214,6 +226,12 @@ class OracleResult:
             raise AdapterError("oracle_condition_outside_conditions", self.condition)
         if (self.verdict == engine.BREACHED) != (self.condition is not None):
             raise AdapterError("only_a_breach_carries_a_condition", self.attempt)
+        if self.specimen is not None and self.specimen not in SPECIMEN_VERDICTS:
+            raise AdapterError("oracle_specimen_verdict_unknown", str(self.specimen))
+        if (self.verdict == NOT_RUN) != (self.specimen is None):
+            raise AdapterError("only_a_seam_runs_no_specimen", self.attempt)
+        if self.verdict == engine.HELD and self.specimen != engine.FIRED:
+            raise AdapterError("a_hold_needs_a_specimen_that_fired", self.attempt)
 
 
 @dataclass(frozen=True)
@@ -276,8 +294,16 @@ class SessionSurface(Protocol):
 
 
 def family_oracle(family, attempt):
-    """Carbon's verdict on one attempt: the attempt re-run against the
-    family's real boundary. `attempt` has a `name` and a `value`."""
+    """Carbon's verdict on one attempt, by the engine's rule for one attack:
+    the attempt is re-run against the family's real boundary and against its
+    vulnerable specimen. `attempt` has a `name` and a `value`.
+
+    BREACHED (FAILING_TRIGGER) when the real boundary let it through. HELD
+    only when the boundary held and the detector fired on the specimen. A
+    boundary that held while the specimen stayed SILENT, or did not answer,
+    is INCONCLUSIVE: the detector is blind to this attempt, so the hold is no
+    evidence, never a pass. A boundary that did not answer gives its own
+    verdict (FAILED_INFRA, TIMEOUT, CRASHED)."""
     if type(family) is not engine.Family:
         raise TypeError("an exact engine Family is required")
     if not (hasattr(attempt, "name") and hasattr(attempt, "value")):
@@ -285,12 +311,19 @@ def family_oracle(family, attempt):
     result, verdict = engine.answer(family.boundary, attempt.value)
     if verdict is None:
         verdict = engine.BREACHED if family.breached(result) else engine.HELD
+    weak, specimen = engine.answer(family.specimen, attempt.value)
+    if specimen is None:
+        specimen = engine.FIRED if family.breached(weak) else engine.SILENT
+    if verdict == engine.HELD and specimen != engine.FIRED:
+        verdict = INCONCLUSIVE
     return OracleResult(
         family=family.name,
         attempt=str(attempt.name),
         verdict=verdict,
         evidence_digest=engine.digest(result),
         condition=engine.FINDING_CONDITION if verdict == engine.BREACHED else None,
+        specimen=specimen,
+        specimen_digest=engine.digest(weak),
     )
 
 
@@ -444,14 +477,20 @@ def ablation_family(plan, runners, specimen_runners, *, name="permission_ablatio
     permission must come back REFUSED; one that runs is breached. A run that
     fails on infrastructure answers nothing. The specimen is the same item
     under `specimen_runners`, a boundary that does not enforce the profile.
-    The control: every panel construction runs under the expanded profile."""
+    The default control: every panel construction runs under the expanded
+    profile.
+
+    Every panel member is therefore an attack input and the default control,
+    so a panel member is a trained control at most. A held-out control for
+    this family must be a construction outside `plan.panel` and
+    `plan.attacks`; it runs as a construction (`runners.construct`)."""
     from carbon.agent_campaign import climb
 
     if type(plan) is not climb.ClimbPlan or type(runners) is not climb.Runners:
         raise TypeError("exact ClimbPlan and Runners required")
     if type(specimen_runners) is not climb.Runners:
         raise TypeError("exact specimen Runners required")
-    panel = {item.item_id for item in plan.panel}
+    attack_ids = {item.item_id for item in plan.attacks}
 
     def attacks():
         out = []
@@ -465,7 +504,7 @@ def ablation_family(plan, runners, specimen_runners, *, name="permission_ablatio
     def under(chosen):
         def run(value):
             profile, item = value
-            call = chosen.construct if item.item_id in panel else chosen.attack
+            call = chosen.attack if item.item_id in attack_ids else chosen.construct
             outcome = call(profile, item)
             status = outcome.get("status")
             if status == "FAILED_INFRA":
@@ -562,13 +601,31 @@ class _Registry(Mapping):
     def __init__(self):
         self._entries = {}
         self._loaded = False
+        self._loading = False
 
     def _load(self):
-        if self._loaded:
-            return
+        """Import the built-in adapters once. A built-in package that fails
+        to import is never hidden: every read raises AdapterError
+        `builtin_adapters_failed_to_import` (chained to the import error)
+        until an import succeeds, rather than reading as an empty registry."""
+        if self._loaded or self._loading:
+            return  # the package's own register() calls arrive while loading
+        self._loading = True
+        before = dict(self._entries)
+        try:
+            if importlib.util.find_spec(BUILTIN_PACKAGE) is not None:
+                importlib.import_module(BUILTIN_PACKAGE)
+        except Exception as failed:
+            # Roll back what the failed import registered, so the next read
+            # retries cleanly and reports the same failure.
+            self._entries = before
+            raise AdapterError(
+                "builtin_adapters_failed_to_import",
+                f"{BUILTIN_PACKAGE}: {type(failed).__name__}: {failed}",
+            ) from failed
+        finally:
+            self._loading = False
         self._loaded = True
-        if importlib.util.find_spec(BUILTIN_PACKAGE) is not None:
-            importlib.import_module(BUILTIN_PACKAGE)
 
     def __getitem__(self, key):
         self._load()

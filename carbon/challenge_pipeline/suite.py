@@ -102,7 +102,7 @@ def vectors_by_check(suite=None):
     suite = suite or load_suite()
     out = {}
     for vector in suite["track_a"]:
-        for check in vector["admission_checks"]:
+        for check in vector.get("admission_checks", ()):
             out.setdefault(check, []).append(vector["id"])
     return out
 
