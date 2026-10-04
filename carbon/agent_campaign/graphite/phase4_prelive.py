@@ -66,6 +66,7 @@ import sqlite3
 import threading
 import time
 import traceback
+import urllib.parse
 from decimal import Decimal
 from pathlib import Path
 
@@ -607,6 +608,12 @@ def _where(error):
     return [f"{Path(f.filename).name}:{f.lineno}:{f.name}" for f in frames[-4:]]
 
 
+def _path_of(url):
+    """A provider call as its path and query, without naming the host."""
+    parts = urllib.parse.urlsplit(url)
+    return parts.path + ("?" + parts.query if parts.query else "")
+
+
 def _fresh(root):
     Path(root).mkdir(parents=True, exist_ok=True, mode=0o700)
     store = Path(root) / STORE_DIRNAME
@@ -887,9 +894,7 @@ def _run(gate, store, adapter, atk, grant_path, repository):
             raise AssertionError("the pod lifecycle did not finish: " + str(result))
         return {
             **result,
-            "runpod_calls": [
-                f"{m} {u.split('runpod.io')[-1]}" for m, u in transport.calls
-            ],
+            "runpod_calls": [f"{m} {_path_of(u)}" for m, u in transport.calls],
             "runpod_threads": sorted(transport.threads),
         }
 
