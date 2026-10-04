@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-timing-calibration",
+  "recorded_at": "2026-10-04T21:15:00Z",
+  "challenge": "electric-motor-magnetics",
+  "stage": "design",
+  "execution": {
+    "kind": "pod_run",
+    "ref": "docs/development/evidence/motor-timing-2026-10-04 (operator host Docker and runpod-cpu5c-16vcpu native, plan motor-timeout-calibration-v1)",
+    "description": "Timed 12 public TRAIN geometries (the 6 slowest by recorded TRAIN wall time, each at study conditions b01 and b02) at 6 concurrent cases on the operator host in the pinned Docker image and on one cpu5c pod natively, to set the counted motor campaign's timeout and a priced cost unit."
+  },
+  "expected": "The operator host might need a timeout above the registered 3,600 s: the motor pilot's host p95 was 4,550 s and TRAIN maxima reached 3,640 s.",
+  "observed": "All 24 runs were OK. Host p50/p95/max 1,404/1,500/1,505 s; cpu5c 898/921/924 s; host/cpu5c ratio 1.54-1.63. Torque curves were bitwise identical across routes. Two times host p95 is 3,000 s, so V1's 3,600 s stands and no new study version was needed. The first cpu5c pod failed at import because CPU_SHIP lacked carbon.design_search after #562; an editable install had hidden it from local tests.",
+  "keep": [
+    "Calibrate timeouts on the exact host, mesh, concurrency and image the counted run will use; earlier figures at 16 concurrent or on refinement meshes overstated it about 2x.",
+    "Run the same cases on both routes so host core-seconds can be priced through a paired ratio.",
+    "Test a pod's shipped tree with python -I -S so site-packages cannot supply missing modules."
+  ],
+  "change": [
+    "A wait loop must report every terminal state; one missed the pod's done stage and the idle pod ran about 2.5 h past completion. Prefer a pod-side self-terminate on completion for timing pods."
+  ],
+  "protocol_elements": [
+    "reference timing route",
+    "pinned image",
+    "paired timing",
+    "operator compute accounting"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

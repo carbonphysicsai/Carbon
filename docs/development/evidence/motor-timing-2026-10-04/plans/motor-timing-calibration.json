@@ -1,0 +1,185 @@
+{
+  "batch": "motor-timeout-calibration-v1",
+  "cases": [
+    {
+      "case_id": "cal-train-0019-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.941368190163892,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.8254381863944076,
+        "magnet_mm": 1.861912144724839,
+        "slot_bottom_mm": 40.474250323794664,
+        "slot_open_deg": 4.702505039777257,
+        "tooth_mm": 4.1941779619728
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0019-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.941368190163892,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.8254381863944076,
+        "magnet_mm": 1.861912144724839,
+        "slot_bottom_mm": 40.474250323794664,
+        "slot_open_deg": 4.702505039777257,
+        "tooth_mm": 4.1941779619728
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0021-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.8365849663246407,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.7815898439786562,
+        "magnet_mm": 2.205388628557828,
+        "slot_bottom_mm": 39.69328553576304,
+        "slot_open_deg": 1.6434268471768783,
+        "tooth_mm": 4.323786893921928
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0021-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.8365849663246407,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.7815898439786562,
+        "magnet_mm": 2.205388628557828,
+        "slot_bottom_mm": 39.69328553576304,
+        "slot_open_deg": 1.6434268471768783,
+        "tooth_mm": 4.323786893921928
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0023-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.702077250359797,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.9108367643852505,
+        "magnet_mm": 2.312652376157248,
+        "slot_bottom_mm": 39.8279799206842,
+        "slot_open_deg": 3.132001496040334,
+        "tooth_mm": 3.0530203851416005
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0023-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.702077250359797,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.9108367643852505,
+        "magnet_mm": 2.312652376157248,
+        "slot_bottom_mm": 39.8279799206842,
+        "slot_open_deg": 3.132001496040334,
+        "tooth_mm": 3.0530203851416005
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0015-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.8659521141323521,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.7217787449293399,
+        "magnet_mm": 2.3630686979205997,
+        "slot_bottom_mm": 37.74896411309011,
+        "slot_open_deg": 4.0580383612904365,
+        "tooth_mm": 2.884806111939354
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0015-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.8659521141323521,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.7217787449293399,
+        "magnet_mm": 2.3630686979205997,
+        "slot_bottom_mm": 37.74896411309011,
+        "slot_open_deg": 4.0580383612904365,
+        "tooth_mm": 2.884806111939354
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0004-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.9261644046906812,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.6648435061287491,
+        "magnet_mm": 3.2684481657372335,
+        "slot_bottom_mm": 37.95534905626502,
+        "slot_open_deg": 4.753452054400518,
+        "tooth_mm": 4.416427673344422
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0004-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.9261644046906812,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.6648435061287491,
+        "magnet_mm": 3.2684481657372335,
+        "slot_bottom_mm": 37.95534905626502,
+        "slot_open_deg": 4.753452054400518,
+        "tooth_mm": 4.416427673344422
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0006-b01",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.9912277646928525,
+        "current_angle_deg": 0.0,
+        "current_density_a_mm2": 15.0,
+        "embrace": 0.5655476381855782,
+        "magnet_mm": 3.8552446742736373,
+        "slot_bottom_mm": 36.4165428511336,
+        "slot_open_deg": 5.7891375696117,
+        "tooth_mm": 3.7451523825405157
+      },
+      "options": {}
+    },
+    {
+      "case_id": "cal-train-0006-b02",
+      "kind": "ordinary",
+      "inputs": {
+        "airgap_mm": 0.9912277646928525,
+        "current_angle_deg": 30.0,
+        "current_density_a_mm2": 12.0,
+        "embrace": 0.5655476381855782,
+        "magnet_mm": 3.8552446742736373,
+        "slot_bottom_mm": 36.4165428511336,
+        "slot_open_deg": 5.7891375696117,
+        "tooth_mm": 3.7451523825405157
+      },
+      "options": {}
+    }
+  ]
+}

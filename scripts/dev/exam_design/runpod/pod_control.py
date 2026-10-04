@@ -110,6 +110,18 @@ CAMPAIGNS = {
         "max_pods": 2,
         "name": "carbon-challenge-pools",
     },
+    # Motor timing on the approved CPU reference route, runpod-cpu5c-16vcpu
+    # (OWNER-DATA-MOTOR-01, 2026-10-04): one pod, cpu5c only (no fallback
+    # flavor), a lower per-pod rate guard, public TRAIN geometries only.
+    "motor-timing": {
+        "evidence": "docs/development/evidence/motor-timing-2026-10-04",
+        "active": "motor_timing_active_pods",
+        "token": None,
+        "max_pods": 1,
+        "name": "carbon-motor-timing",
+        "cpu_flavors": ["cpu5c"],
+        "max_cpu_rate": 1.0,
+    },
 }
 #: The operator's limits in STATE_DIR, never committed:
 #: ``{"balance_floor_usd": F, "ceilings_usd": {"<campaign>": C, ...}}``.
@@ -906,6 +918,23 @@ def print_created(pod_id: str, rate: float, deadline: float, ref: str, files: in
 #: terminated at once, and the budget check charges every pod at this rate.
 MAX_CPU_RATE = 2.0
 CPU_FLAVORS = ["cpu5c", "cpu3c"]  # compute-optimized, newest first
+
+
+def cpu_policy() -> tuple[list[str], float]:
+    """The CPU flavors this campaign may rent and its per-pod rate guard: a
+    campaign can narrow both (a timing route names one flavor), never widen."""
+    spec = CAMPAIGNS[CAMPAIGN]
+    flavors = spec.get("cpu_flavors", CPU_FLAVORS)
+    rate = spec.get("max_cpu_rate", MAX_CPU_RATE)
+    if (
+        not flavors
+        or not set(flavors) <= set(CPU_FLAVORS)
+        or not 0 < rate <= MAX_CPU_RATE
+    ):
+        raise SystemExit(f"refusing: campaign {CAMPAIGN} has an invalid CPU policy")
+    return list(flavors), float(rate)
+
+
 #: The cold plate's pinned image. RunPod did not start a pod named by digest
 #: alone (no container after 13 minutes, 2026-10-02); a tag beside the digest
 #: changes nothing about what is pulled, because the digest wins.
@@ -954,6 +983,7 @@ CPU_KINDS = {
             " && tar xzf /tmp/dl/gmsh.tgz -C /opt/gmsh --strip-components 1"
             " && export PATH=/opt/getdp/bin:/opt/gmsh/bin:$PATH PYTHONPATH=/opt/gmsh/lib"
             " && getdp --version && gmsh --version"
+            " && grep -m1 'model name' /proc/cpuinfo && nproc"
         ),
         "environment": (
             f"runpod-cpu-pod:{UBUNTU_IMAGE} + scripts/dev/motor/reference/Dockerfile"
@@ -966,6 +996,9 @@ CPU_SHIP = [
     "carbon/__init__.py",
     "carbon/cold_plate",
     "carbon/motor",
+    # The motor runner's campaign ledger (carbon/motor/reference_campaign.py).
+    "carbon/design_search/__init__.py",
+    "carbon/design_search/campaign.py",
     "scripts/dev/cold_plate/reference/run_batch.py",
     "scripts/dev/motor/reference/run_batch.py",
     "scripts/dev/motor/reference/Dockerfile",
@@ -989,12 +1022,13 @@ def cpu_start_command(setup: str) -> str:
 def cmd_dispatch_cpu(a) -> None:
     """One CPU pod running one public pool plan natively (pod_phase.py)."""
     kind = CPU_KINDS[a.kind]
+    flavors, max_rate = cpu_policy()
     limits = operator_limits()
     allowed = allowed_pods(a.max_pods)
     check_pod_allowance(active_pods(), pods(), allowed)
     acct = account()
     minutes = float(a.minutes)
-    pod_cost = pod_cost_usd(minutes, MAX_CPU_RATE)
+    pod_cost = pod_cost_usd(minutes, max_rate)
     spent = committed_spend()
     cap = campaign_cap()
     check_budget(spent, pod_cost, cap)
@@ -1041,7 +1075,7 @@ def cmd_dispatch_cpu(a) -> None:
         "computeType": "CPU",
         "cloudType": "SECURE",
         "interruptible": False,
-        "cpuFlavorIds": CPU_FLAVORS,
+        "cpuFlavorIds": flavors,
         "cpuFlavorPriority": "custom",
         "vcpuCount": a.vcpu,
         "containerDiskInGb": DISK_GB,
@@ -1077,7 +1111,7 @@ def cmd_dispatch_cpu(a) -> None:
             f"create failed ({code}); pods now: {[p['id'] for p in after]} - reconcile before retrying"
         )
     record_active(pod_id, token)
-    rate_actual = float(resp.get("costPerHr") or MAX_CPU_RATE)
+    rate_actual = float(resp.get("costPerHr") or max_rate)
     ledger(
         "created",
         pod_id=pod_id,
@@ -1109,7 +1143,7 @@ def cmd_dispatch_cpu(a) -> None:
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,
     )
-    if rate_actual > MAX_CPU_RATE:
+    if rate_actual > max_rate:
         print("rate above the maximum: terminating immediately")
         _terminate(pod_id)
         return
