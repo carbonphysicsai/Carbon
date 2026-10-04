@@ -16,6 +16,7 @@ import json
 
 import pytest
 from test_cw1_research_ledger import ledger
+from test_cw1_research_loop import response
 from test_parallel_tool_calls_v2 import record_practice
 from test_research_loop_limits import (
     INFO,
@@ -26,8 +27,10 @@ from test_research_loop_limits import (
     START,
     START_TOOL,
     STRATEGY,
+    ShareLedger,
     call,
     epoch,
+    forever,
     never,
     post,
     role,
@@ -38,6 +41,7 @@ from test_research_loop_limits import (
 )
 
 from carbon.development_session import miner_guidance as guidance
+from carbon.development_session import model_provider as mp
 from carbon.development_session import research_loop
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import (
@@ -51,10 +55,14 @@ from carbon.development_session.research_agent_policy import (
 )
 from carbon.development_session.research_loop import (
     FINISH_INVALID,
+    MINER_CEILING_REACHED,
     SELECTION_NOT_PRACTICED,
     SELECTION_TOOL,
+    CeilingReached,
+    MinerCeilings,
     guidance_cursor,
     guidance_delivered,
+    miner_ceiling,
     session_turns,
     tool_identity,
 )
@@ -568,3 +576,179 @@ def test_a_miner_role_offers_the_reply_tool_with_the_rule(tmp_path):
     assert guidance.REPLY_TOOL in plan["tools"]
     assert plan["miner_guidance"] == guidance.RULE
     assert canonical(plan["tools"][-1]) == canonical(guidance.REPLY_TOOL)
+
+
+# -- the miner's own ceilings end a miner session, typed -----------------------
+
+
+def test_a_miner_session_ends_typed_at_its_own_provider_call_ceiling(tmp_path):
+    """Integration regression (journey 8e): with no call cap a miner session
+    runs until the miner's own provider-call ceiling refuses its next model
+    call, and that is its normal end - STOPPED `miner_ceiling_reached`,
+    journalled, never raised. Raised, it left the campaign INTERRUPTED,
+    telling the miner to resume into the same refusal."""
+    meter = ledger(tmp_path, ceilings={**ROOMY, "provider_attempts": 5})
+    transport, requests = forever()
+    report = miner(meter, transport)
+    assert report["status"] == "STOPPED"
+    assert report["code"] == MINER_CEILING_REACHED
+    assert report["dimension"] == "provider_attempts"
+    assert "nothing of it was reserved or sent" in report["reason"]
+    assert len(requests) == 5
+    # The refused call holds nothing in the ledger.
+    status = meter.status(owner="alice")
+    assert status["used"]["provider_attempts"] == 5
+    assert not [
+        op for op in status["operations"] if op["id"].startswith("epoch-1-provider-005")
+    ]
+    assert json.loads((folder(meter) / "outcome.json").read_bytes()) == report
+    # A resume replays the five calls, meets the same refusal and calls nothing.
+    (folder(meter) / "outcome.json").unlink()
+    assert miner(meter, never) == report
+
+
+def test_the_miner_ceiling_mutation_is_caught(tmp_path, monkeypatch):
+    """Specimen: with the miner's ceiling read as an ordinary refusal, the
+    test above fails - the session raises the ledger's refusal instead of
+    ending typed."""
+    monkeypatch.setattr(research_loop, "miner_ceiling", lambda *a, **k: None)
+    with pytest.raises(ValueError, match="miner budget: provider_attempts"):
+        test_a_miner_session_ends_typed_at_its_own_provider_call_ceiling(tmp_path)
+
+
+def test_a_miner_session_ends_typed_at_its_own_money_ceiling(tmp_path):
+    reservation = mp.DEFAULT_SELECTION.reservation_nano
+    # Room for one call's reservation; the booked call leaves too little.
+    meter = ledger(
+        tmp_path, ceilings={**ROOMY, "provider_nanodollars": reservation + 1}
+    )
+    transport, requests = forever()
+    report = miner(meter, transport)
+    assert (report["status"], report["code"], report["dimension"]) == (
+        "STOPPED",
+        MINER_CEILING_REACHED,
+        "provider_nanodollars",
+    )
+    assert len(requests) == 1
+
+
+def test_a_miner_session_ends_typed_when_its_time_cannot_hold_a_call(tmp_path):
+    """The campaign's elapsed time is the miner's ceiling too: a call whose
+    provider timeout no longer fits is refused before its reservation."""
+    timeout = mp.DEFAULT_SELECTION.settings.timeout_seconds
+    now = [1000.0]
+    meter = ledger(
+        tmp_path,
+        clock=lambda: now[0],
+        ceilings=ROOMY,
+        elapsed_seconds=timeout + 250,
+    )
+    requests = []
+
+    def slow(request):
+        # Each reply takes 100 seconds of the campaign's time.
+        requests.append(request)
+        now[0] += 100
+        return response([call(f"c{len(requests)}", INFO)])
+
+    report = miner(meter, slow)
+    assert (report["status"], report["code"], report["dimension"]) == (
+        "STOPPED",
+        MINER_CEILING_REACHED,
+        "elapsed_seconds",
+    )
+    # Started at 1000 with 250 s beyond one timeout: the fourth call, at
+    # 1300, could not finish by 1000 + timeout + 250.
+    assert len(requests) == 3
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 3
+    (folder(meter) / "outcome.json").unlink()
+    assert miner(meter, never) == report
+
+
+def test_a_stage_ledgers_own_typed_refusal_keeps_its_code(tmp_path):
+    """The research share's typed refusal is the stage ledger's, not the
+    miner's ceiling: it ends a miner session with its own code."""
+    ledger(tmp_path, ceilings=ROOMY)
+    meter = ShareLedger(tmp_path, clock=lambda: 1000)
+    report = miner(meter, forever()[0])
+    assert report["code"] == "research_share_reached"
+
+
+def test_outside_the_miner_policy_a_ceiling_refusal_still_propagates(tmp_path):
+    """A role that is not a miner's (internal Graphite, whose own ledger
+    types the refusal as its run cap) keeps the ledger's refusal as it was."""
+    meter = ledger(tmp_path, ceilings={**ROOMY, "provider_attempts": 2})
+    with pytest.raises(ValueError, match="miner budget: provider_attempts"):
+        role(meter, forever()[0], limits=LIMITS_V2)
+    assert not (folder(meter) / "outcome.json").exists()
+
+
+def test_a_refusal_after_the_reservation_is_not_a_ceiling_stop(tmp_path):
+    """Only a refusal before anything of the call is recorded ends the
+    session typed. One raised after its reservation (the storage check)
+    leaves the call for reconciliation, as it always has."""
+    meter = ledger(tmp_path, ceilings=ROOMY)
+
+    def full(_bytes):
+        raise ValueError("miner budget: retained_bytes")
+
+    meter.check_storage = full
+    with pytest.raises(ValueError, match="miner budget: retained_bytes"):
+        miner(meter, never)
+    assert not (folder(meter) / "outcome.json").exists()
+    assert meter.operation_state("epoch-1-provider-000", owner="alice") == "RESERVED"
+
+
+def test_a_tools_own_ceiling_refusal_is_not_a_session_stop(tmp_path):
+    """A research trial's reservation is the tool's to refuse: the miner's
+    ceiling is read only on a model call's reservation, never inside a tool
+    dispatch, whose intent is already journalled."""
+    meter = ledger(tmp_path, ceilings={**ROOMY, "research_trials": 0})
+    practice = {"kind": "practice", "strategy_json": json.dumps(STRATEGY)}
+    transport, _ = scripted([[call("p", START, practice)]])
+    with pytest.raises(ValueError, match="miner budget: research_trials"):
+        miner(meter, transport)
+    assert not (folder(meter) / "outcome.json").exists()
+    # Not even through the session's own ledger view: no model-call dimension.
+    with pytest.raises(ValueError, match="miner budget: research_trials") as raised:
+        MinerCeilings(meter).reserve(
+            "fixture-trial",
+            owner="alice",
+            phase="research",
+            request={},
+            resources={"research_trials": 1},
+        )
+    assert type(raised.value) is ValueError
+
+
+def test_only_the_ledgers_plain_ceiling_refusals_are_the_miners_ceiling():
+    reached = miner_ceiling(
+        ValueError("miner budget: provider_attempts"), reserving=True
+    )
+    assert type(reached) is CeilingReached
+    assert (reached.code, reached.dimension) == (
+        MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    timed = miner_ceiling(
+        ValueError("provider timeout cannot fit remaining campaign time"),
+        reserving=False,
+    )
+    assert (timed.code, timed.dimension) == (MINER_CEILING_REACHED, "elapsed_seconds")
+
+    class RunCap(ValueError):
+        """An internal run's own typed cap."""
+
+    for error, reserving in (
+        # Not raised by the reservation, so possibly after it.
+        (ValueError("miner budget: provider_attempts"), False),
+        (ValueError("provider timeout cannot fit remaining campaign time"), True),
+        (RunCap("miner budget: provider_attempts"), True),
+        (RuntimeError("miner budget: provider_attempts"), True),
+        (ValueError("miner budget: not_a_dimension"), True),
+        (ValueError("carbon service capacity: reference_invocations"), True),
+        (ValueError("miner budget, sequence aggregate: provider_attempts"), True),
+        (ValueError("provider timeout cannot fit remaining grant"), False),
+        (ValueError("campaign elapsed-time exhausted or clock regressed"), False),
+    ):
+        assert miner_ceiling(error, reserving=reserving) is None, error

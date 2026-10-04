@@ -56,6 +56,7 @@ from carbon.development_session.research_loop import (
     COMPACTION_FAILED,
     COMPACTION_NOT_REQUESTED,
     CONTEXT_CEILING,
+    MINER_CEILING_REACHED,
     SELECTION_TOOL,
     compaction_summary,
 )
@@ -594,6 +595,52 @@ def test_compaction_calls_count_against_a_set_call_cap(tmp_path):
     assert meter.status(owner="alice")["used"]["provider_attempts"] == 25
     turns = [t["turn"] for t in report["provider_turns"]]
     assert sum("-compact-" in t for t in turns) == len(asked)
+
+
+def test_a_miner_session_compacts_then_ends_typed_at_its_own_ceiling(tmp_path):
+    """Integration regression (journey 8e): a miner's Constructor session
+    with no call cap compacts, as a metered call of its own, and goes on
+    until the miner's own provider-call ceiling - the compaction calls
+    counted in it - refuses the next model call. It ends STOPPED
+    `miner_ceiling_reached` with its outcome journalled, not interrupted,
+    and a resume replays it exactly."""
+    from carbon.battery.challenge import CHALLENGE
+
+    meter = ledger(tmp_path, ceilings={**ROOMY, "provider_attempts": 60})
+    transport, requests = long_run(200)
+
+    def run(model):
+        return role(
+            meter,
+            model,
+            Bulky(meter),
+            provider=WIDER,
+            compaction=COMPACTION_V1,
+            limits=LIMITS_V2,
+            agent_policy=GRAPHITE_MINER,
+            challenge=CHALLENGE,
+            tools=(INFO_TOOL, SELECTION_TOOL, STOP_TOOL),
+        )
+
+    report = run(transport)
+    assert report["status"] == "STOPPED"
+    assert (report["code"], report["dimension"]) == (
+        MINER_CEILING_REACHED,
+        "provider_attempts",
+    )
+    assert report["compactions"] >= 1
+    assert len(requests) == 60
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 60
+    compacting = [
+        t["turn"] for t in report["provider_turns"] if "-compact-" in t["turn"]
+    ]
+    assert len(compacting) == sum(asked_to_compact(r) for r in requests)
+    record, _ = assert_journalled(meter, requests)
+    assert record["calls"][0] == compacting[0]
+    root = meter.root / "epoch-1"
+    assert json.loads((root / "outcome.json").read_bytes()) == report
+    (root / "outcome.json").unlink()
+    assert run(never) == report
 
 
 def test_a_staged_miner_session_compacts_under_its_own_identity(tmp_path):

@@ -98,17 +98,50 @@ this.
    anything is written. Under the rule the agent sees, before each turn, the
    optional caps and what the campaign ledger still holds
    (`turn-status.v2`), and is told to finish when the calls the budget is
-   sure of reach `FINISH_NOTICE_CALLS`. A plain ledger refusal propagates as
-   it always did; a ledger that refuses with the new `CeilingReached` (the
-   miner edition's stage ledger, `research_share_reached`) ends the session
-   STOPPED with that code, nothing of the refused call reserved.
-   `CeilingReached` is raised only from the reservation of a model call
-   (provider_attempts or provider_nanodollars); a research trial's own
-   reservation is the tool's to refuse, because raised inside a tool
-   dispatch, after its intent is journalled, it would leave the dispatch for
-   reconciliation. A plan without the rule keeps 48 and 8 exactly. Limits,
-   compaction and finish are a role's only; Carbon's autonomous epoch is
-   unchanged.
+   sure of reach `FINISH_NOTICE_CALLS`. A ledger that refuses with the new
+   `CeilingReached` (the miner edition's stage ledger,
+   `research_share_reached`) ends the session STOPPED with that code,
+   nothing of the refused call reserved. `CeilingReached` is raised only
+   from the reservation of a model call (provider_attempts or
+   provider_nanodollars); a research trial's own reservation is the tool's
+   to refuse, because raised inside a tool dispatch, after its intent is
+   journalled, it would leave the dispatch for reconciliation. A plan
+   without the rule keeps 48 and 8 exactly. Limits, compaction and finish
+   are a role's only; Carbon's autonomous epoch is unchanged.
+
+   *The miner's own ceiling ends a miner session typed (corrected after
+   integration).* The first version let the campaign ledger's plain refusal
+   ("miner budget: provider_attempts") propagate under every policy. In
+   the merged edition a BUILD campaign with no call cap ran its 80 provider
+   attempts (79 Constructor turns and one compaction) and the 81st
+   reservation raised: the campaign ended INTERRUPTED (`campaign_interrupted`,
+   telling the miner to resume into the same refusal), with no epoch outcome,
+   where OWNER-GRAPHITE-MINER-01 item 6 makes the miner's money and time the
+   normal end of such a session. Now, under `GRAPHITE_MINER` only, a model
+   call the miner's own ceiling refuses ends the session STOPPED with code
+   `miner_ceiling_reached` and the dimension, journalled in its outcome, so a
+   resume replays it and calls nothing:
+   - the refusal of the call's reservation, "miner budget: <dimension>" for a
+     ledger dimension (provider calls, provider spend, retained bytes), read
+     only from the ledger's `reserve` of a model call (`MinerCeilings`, the
+     session's ledger as its model calls alone see it); the ledger refuses
+     before it records anything, and never refuses an identity it holds;
+   - the call whose provider timeout no longer fits the campaign's elapsed
+     time, refused before its reservation, as `elapsed_seconds`.
+   Only the ledger's plain `ValueError` with exactly these words counts. Not
+   the miner's ceiling, and unchanged: a subclass (internal Graphite's own
+   `RunCapReached`, which its ledger raises and its run handles), Carbon's
+   service capacity, a sequence aggregate, a refusal raised after the
+   reservation (`check_storage`, which leaves the call for reconciliation),
+   any refusal inside a tool dispatch (a research trial's), and the ledger's
+   "elapsed-time exhausted or clock regressed" (a regressed clock is not a
+   ceiling; for a model call the timeout refusal comes first). Every other
+   policy, internal Graphite included, keeps the propagation it had. Matching
+   the ledger's words is how internal Graphite already reads them
+   (`provider.GraphiteLedger`); `research_ledger.py` is not this slice's file
+   (see the handoffs). With only ledger ceilings, a compaction can take the
+   campaign's last provider attempt, after which the next turn ends the
+   session typed; the compaction is metered and recorded like any call.
 
 7. **Context compaction** (`COMPACTION_V1`: trigger 0.85, keep the last 6
    turns, both from the agreed design). When a turn's request would pass 85%
@@ -204,11 +237,21 @@ this.
   does, but a refusal of its own is clearer to the model. A miner role's
   call cap goes in `limits`, never `max_provider_calls`. A staged
   Constructor's selection is `epoch-N/<stage>/selected-recipe.json`; the
-  shared keep-unevaluated-candidate helper must read it there.
+  shared keep-unevaluated-candidate helper must read it there. A miner
+  session the miner's own ceiling ends returns STOPPED with
+  `code: miner_ceiling_reached` and `dimension`; the driver needs no ledger
+  mapping of its own for it, and may carry that code into its stage record
+  so the supervisor shows its next step.
 - S4 (views): staged miner-guidance reads are visible through
   `research_loop.guidance_delivered`, not `miner_guidance.delivered`. A
   session outcome under the compaction rule carries `compactions` and
-  `compactions_deferred`.
+  `compactions_deferred`. A miner session's outcome may carry
+  `code: miner_ceiling_reached` with its `dimension` (`provider_attempts`,
+  `provider_nanodollars`, `retained_bytes` or `elapsed_seconds`), the code
+  S4's next-step table already names.
+- Lead (no slice owns `research_ledger.py`): a typed exception for the
+  ledger's ceiling refusals would let the loop and internal Graphite stop
+  matching its words.
 - S6 (internal Graphite): `limits=LIMITS_V2` replaces `max_provider_calls`
   (both together are refused), and `compaction=COMPACTION_V1`; the internal
   ledger's provider_attempts or money cap satisfies the finite-ledger rule.

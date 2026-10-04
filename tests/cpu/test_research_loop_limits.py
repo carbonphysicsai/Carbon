@@ -401,7 +401,9 @@ def test_the_limits_rule_is_closed():
 def test_unset_caps_let_a_session_run_past_48_bounded_by_the_ledger(tmp_path):
     """OWNER-GRAPHITE-MINER-01, item 6: with no per-epoch cap the session runs
     past the historical 48 model calls, and the campaign's own provider-call
-    ceiling ends it, refused by the ledger before anything is sent."""
+    ceiling ends it, refused by the ledger before anything is sent. Outside
+    the miner policy the refusal propagates (a miner session ends typed:
+    `test_research_loop_stages`)."""
     meter = ledger(tmp_path, ceilings={**ROOMY, "provider_attempts": 60})
     transport, requests = forever()
     with pytest.raises(ValueError, match="miner budget: provider_attempts"):

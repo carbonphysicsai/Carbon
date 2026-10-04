@@ -37,7 +37,10 @@ and journal byte for byte:
   with an explicit, journalled compaction call.
 
 The Graphite miner policy (`GRAPHITE_MINER`) runs a role's own instructions
-and tools with a Challenge under the rules Carbon's autonomous agent has.
+and tools with a Challenge under the rules Carbon's autonomous agent has. Its
+session ends typed (`miner_ceiling_reached`) when the miner's own campaign
+ceiling refuses its next model call: the ledger's limits are the normal end
+of a session with no call cap, not an interruption.
 """
 
 from __future__ import annotations
@@ -94,6 +97,7 @@ from .research_agent_policy import (
 )
 from .research_catalog import compile_recipe
 from .research_guidance import effective_digest
+from .research_ledger import DIMENSIONS
 from .research_tools import PREFIX, _json, _schema, tools_for_sdk
 
 SELECT = "carbon_autoresearch_select_recipe"
@@ -253,15 +257,17 @@ class CeilingReached(ValueError):
     campaign itself goes on. Nothing raised it before OWNER-GRAPHITE-MINER-01,
     so no earlier session reads differently.
 
-    `code` is a closed snake_case code (`research_share_reached`); `dimension`
-    names the ledger dimension that bound, when one did.
+    `code` is a closed snake_case code (`research_share_reached`,
+    `miner_ceiling_reached`); `dimension` names the ledger dimension that
+    bound, when one did.
 
     It is raised only from the reservation of a model call, one that reserves
-    provider_attempts or provider_nanodollars. The loop turns it into a typed
-    stop around its own model calls; a tool's own reservation (a research
-    trial) is the tool's to refuse, and this raised from inside a tool
-    dispatch, after the call's intent is journalled, would leave that
-    dispatch for reconciliation like any other exception there."""
+    provider_attempts or provider_nanodollars, or (`miner_ceiling`) for the
+    elapsed-time refusal a model call meets before its reservation. The loop
+    turns it into a typed stop around its own model calls; a tool's own
+    reservation (a research trial) is the tool's to refuse, and this raised
+    from inside a tool dispatch, after the call's intent is journalled, would
+    leave that dispatch for reconciliation like any other exception there."""
 
     def __init__(self, code, *, dimension=None):
         if type(code) is not str or not re.fullmatch(r"[a-z][a-z0-9_]{2,63}", code):
@@ -284,6 +290,85 @@ class CeilingReached(ValueError):
             ),
             "dimension": self.dimension,
         }
+
+
+#: The typed stop of a Graphite miner session whose next model call the
+#: miner's own campaign ceiling refuses (OWNER-GRAPHITE-MINER-01, item 6:
+#: money and time are the limits): provider spend, provider calls, retained
+#: bytes or elapsed time. Under the miner policy that is how a session with
+#: no call cap normally ends, so it is an outcome, not an interruption.
+MINER_CEILING_REACHED = "miner_ceiling_reached"
+#: The campaign ledger's own refusals of a model call by the miner's
+#: ceilings, as `CampaignLedger` words them: a reservation past a ceiling the
+#: miner set ("miner budget: <dimension>"), and a call whose provider timeout
+#: no longer fits the campaign's elapsed time, refused before its
+#: reservation (`research_agent.request_model`).
+_MINER_BUDGET = "miner budget: "
+_PROVIDER_TIME = "provider timeout cannot fit remaining campaign time"
+#: The dimensions a model call reserves; a ceiling stop is only ever about one.
+_MODEL_CALL_DIMENSIONS = frozenset({"provider_attempts", "provider_nanodollars"})
+
+
+def miner_ceiling(error, *, reserving):
+    """The miner's own ceiling that refused a model call, as
+    `CeilingReached(MINER_CEILING_REACHED, dimension=...)`, or None.
+
+    Exactly the campaign ledger's plain refusals, never a subclass (an
+    internal run's own typed cap, `RunCapReached`, stays its run's to
+    handle): with `reserving`, raised from the ledger's `reserve` of the
+    call, "miner budget: <dimension>" for a ledger dimension - the ledger
+    refuses before it records anything; without it, raised by the model call
+    before its reservation, the elapsed-time refusal, as `elapsed_seconds`.
+    Carbon's own service capacity, a sequence aggregate, and a refusal raised
+    after a reservation (`check_storage`) are not the miner's ceiling and
+    stay as they were."""
+    if type(error) is not ValueError:
+        return None
+    text = str(error)
+    if reserving:
+        dimension = text[len(_MINER_BUDGET) :]
+        if text.startswith(_MINER_BUDGET) and dimension in DIMENSIONS:
+            return CeilingReached(MINER_CEILING_REACHED, dimension=dimension)
+        return None
+    if text == _PROVIDER_TIME:
+        return CeilingReached(MINER_CEILING_REACHED, dimension="elapsed_seconds")
+    return None
+
+
+class MinerCeilings:
+    """A Graphite miner session's ledger, as its model calls see it.
+
+    `reserve` raises the ledger's plain refusal of a model call by the
+    miner's own ceiling as `CeilingReached(MINER_CEILING_REACHED)`
+    (`miner_ceiling`), so the loop ends the session STOPPED with that code;
+    the ledger refused before it recorded anything, so nothing of the call
+    was reserved or sent, and a replayed identity - one the ledger already
+    holds - is never refused. Only a reservation that carries
+    provider_attempts or provider_nanodollars is read this way. Every other
+    method, refusal and typed `CeilingReached` (a stage ledger's research
+    share) is the wrapped ledger's own. The session's tools never see it:
+    they hold the campaign ledger itself."""
+
+    def __init__(self, ledger):
+        self._ledger = ledger
+
+    def __getattr__(self, name):
+        return getattr(self._ledger, name)
+
+    def reserve(self, identity, *, owner, phase, request, resources):
+        try:
+            return self._ledger.reserve(
+                identity,
+                owner=owner,
+                phase=phase,
+                request=request,
+                resources=resources,
+            )
+        except ValueError as error:
+            reached = miner_ceiling(error, reserving=True)
+            if reached is None or not _MODEL_CALL_DIMENSIONS & set(resources or {}):
+                raise
+            raise reached from None
 
 
 def rejected_call(code, field, reason, fix, **extra):
@@ -1542,7 +1627,13 @@ async def run_epoch(
     under.
 
     A ledger that refuses a model call with `CeilingReached` ends the session
-    STOPPED with that code.
+    STOPPED with that code. Under `GRAPHITE_MINER` the campaign ledger's own
+    refusal of a model call by a ceiling the miner set - provider spend,
+    provider calls, retained bytes or elapsed time - does too, with
+    `miner_ceiling_reached` and the dimension (`MinerCeilings`): nothing of
+    the refused call was reserved or sent, and the outcome is journalled, so
+    a resume replays it. Under any other policy that refusal propagates as it
+    always has.
     """
     check_parallel_rule(parallel_calls)
     every_call = parallel_calls == PARALLEL_CALLS_V2
@@ -1773,6 +1864,24 @@ async def run_epoch(
         if not path.exists():
             write_once(path, canonical({"phase": phase}))
         return json.loads(path.read_bytes())["phase"]
+
+    # A Graphite miner session's model calls reserve through `MinerCeilings`,
+    # so a ceiling the miner set ends the session typed; every other session's
+    # calls reserve on the ledger itself, exactly as before.
+    calls_ledger = MinerCeilings(ledger) if miner else ledger
+
+    def model_call(**arguments):
+        """One model call of this session (`request_model`). Under the miner
+        policy a call the miner's own ceiling refuses raises
+        `CeilingReached(MINER_CEILING_REACHED)`, before anything of it is
+        reserved; otherwise every exception is the provider layer's own."""
+        try:
+            return request_model(calls_ledger, **arguments)
+        except ValueError as error:
+            reached = miner_ceiling(error, reserving=False) if miner else None
+            if reached is None:
+                raise
+            raise reached from None
 
     async def dispatch(name, arguments, identity):
         """One call that leaves this epoch's folder, after its intent."""
@@ -2017,8 +2126,7 @@ async def run_epoch(
             )
             try:
                 response = await asyncio.to_thread(
-                    request_model,
-                    ledger,
+                    model_call,
                     owner=owner,
                     identity=identity,
                     request=request,
@@ -2241,8 +2349,7 @@ async def run_epoch(
         # A reply the provider ended early comes back metered (LP-PROD-A).
         try:
             response = await asyncio.to_thread(
-                request_model,
-                ledger,
+                model_call,
                 owner=owner,
                 identity=call_id,
                 request=request,
