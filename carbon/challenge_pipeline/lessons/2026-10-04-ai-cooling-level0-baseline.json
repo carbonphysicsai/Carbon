@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-baseline",
+  "recorded_at": "2026-10-04T18:22:54Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 pre-change Windows diagnostic",
+    "description": "Ran the registry, campaign, construction-contract, admission-study and cold-plate focused suites before changing the Level-0 Launchpad integration."
+  },
+  "expected": "The focused baseline should identify any pre-existing failures separately from the new cooling integration, with canonical Linux acceptance deferred to the repository wrapper and CI.",
+  "observed": "The usable Windows environment ran 183 tests: 169 passed, 1 skipped and 14 failed. Thirteen failures were known host/environment limitations (POSIX resource, UID/GID and file-mode behavior, or missing optional MCP/cryptography packages). One failure is a pre-existing stale closeout-file digest assertion on current main. The first three attempts also established that the default python launcher was absent or incomplete and that the carbon-ccm virtual environment was the usable diagnostic interpreter.",
+  "keep": [
+    "Run the exact changed subsystem under canonical Linux before delivery.",
+    "Separate host diagnostic limitations and pre-existing failures from ticket regressions."
+  ],
+  "change": [
+    "Use the repository's canonical wrapper or a dependency-complete virtual environment instead of assuming the Windows python launcher is usable."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

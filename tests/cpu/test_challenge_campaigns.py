@@ -10,13 +10,14 @@ import pytest
 from carbon.challenge_registry import campaigns
 from carbon.challenge_registry.registry import (
     ChallengeDeferred,
-    ChallengeNotImplemented,
     UnknownChallenge,
     UnsupportedVersion,
 )
 from carbon.reconstruction.capability_registry import (
     BATTERY_CHALLENGE,
     BATTERY_CONTRACT,
+    COLD_PLATE_CHALLENGE,
+    COLD_PLATE_CONTRACT,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,6 +43,7 @@ def _imports(path, package):
 @pytest.mark.parametrize("path", WORKFLOW, ids=lambda p: p.name)
 def test_the_shared_workflow_names_no_challenge_package(path):
     assert _imports(path, "carbon.battery") == []
+    assert _imports(path, "carbon.cold_plate") == []
 
 
 def test_the_import_scan_finds_a_challenge_package_where_one_is_imported():
@@ -63,10 +65,24 @@ def test_battery_resolves_to_its_own_campaign():
     assert campaign.check_attached is battery.check_attached
 
 
+def test_cold_plate_resolves_to_its_own_cpu_only_campaign():
+    campaign = campaigns.campaign_for(
+        {"id": COLD_PLATE_CHALLENGE, "version": COLD_PLATE_CONTRACT.version}
+    )
+    from carbon.cold_plate import campaign as cold_plate
+
+    assert campaign.key == cold_plate.CHALLENGE
+    assert campaign.evaluate is cold_plate.evaluate_frozen
+    assert campaign.refusal_retains_candidate is True
+    assert campaign.gpu_image(None, None) is None
+    assert campaign.backends == ("numpy",)
+    assert campaign.practice_provenance == cold_plate.PRACTICE_PROVENANCE
+
+
 @pytest.mark.parametrize(
     ("challenge", "refusal"),
     [
-        ({"id": "chip-cold-plate", "version": None}, ChallengeNotImplemented),
+        ({"id": COLD_PLATE_CHALLENGE, "version": None}, UnsupportedVersion),
         ({"id": "airfoil", "version": None}, ChallengeDeferred),
         ({"id": "no-such-challenge", "version": "1"}, UnknownChallenge),
         ({"id": BATTERY_CHALLENGE, "version": "0.0-not-it"}, UnsupportedVersion),

@@ -55,6 +55,15 @@ states or qualification maturity. It is one frozen synthetic DEVELOPMENT
 decision problem, not population reliability, customer acceptance or a
 full-manifold result.
 
+`CHALLENGE-AI-COOLING-06` subsequently registers the same bounded periodic
+cell as a declarative Level-0 construction target: exact KRR calibration-grid
+choices, pinned public TRAIN/PRACTICE material, CPU-only reconstruction and a
+draft admission-study adapter. The draft remains unfreezable because its
+attack budget and fresh confirmation population are `HUMAN_INPUT`; official
+evaluation also remains fail closed until the separate validator/scoring
+adapter exists. See `AI_ACCELERATOR_COOLING_LEVEL0_LAUNCHPAD.md`. This changes
+engineering reachability, not any row value, review approval or maturity.
+
 **How to read it:**
 - **Cases OK and failures** are recounted by the tests from each pilot's
   retained `records.jsonl`, so they cannot drift from the evidence.

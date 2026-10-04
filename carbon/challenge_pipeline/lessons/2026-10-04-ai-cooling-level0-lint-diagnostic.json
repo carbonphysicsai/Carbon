@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-lint-diagnostic",
+  "recorded_at": "2026-10-04T20:34:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Ruff changed-file diagnostic",
+    "description": "Ran Ruff over every changed Python source and test file."
+  },
+  "expected": "The bounded implementation should satisfy the repository lint rules.",
+  "observed": "Ruff found eight mechanical issues: six unused or import-order findings in new cooling/report code and one now-unused reservation exception import; all were local and fixable. It found no behavioral or security rule violation. No worker, solver, pod or paid service ran.",
+  "keep": [
+    "Lint the exact changed-file set before broader acceptance."
+  ],
+  "change": [
+    "Remove the unused imports and apply repository import ordering, then rerun Ruff."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

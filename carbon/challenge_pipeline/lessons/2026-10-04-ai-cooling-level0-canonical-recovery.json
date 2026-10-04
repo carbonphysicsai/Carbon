@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-canonical-recovery",
+  "recorded_at": "2026-10-04T20:34:30Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "Docker Desktop canonical-validation recovery",
+    "description": "Started Docker Desktop, isolated its unreadable user config, checked both Windows named-pipe endpoints and requested the Linux engine."
+  },
+  "expected": "Docker Desktop should expose a Linux engine for the canonical wrapper.",
+  "observed": "Docker Desktop and its backend processes are present, but neither the default nor Docker Desktop Linux named pipe appeared after the bounded recovery attempts; Ubuntu WSL access remains denied by the host service. Canonical validation could not start, and no image build or container ran.",
+  "keep": [
+    "Leave canonical acceptance to CI or a host with a functioning Docker/WSL service; do not substitute native output as canonical."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "canonical-validation",
+    "host-environment-blocker"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

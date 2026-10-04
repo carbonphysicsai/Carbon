@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-formatting-single-worker",
+  "recorded_at": "2026-10-04T20:24:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Black single-worker changed-file formatting diagnostic",
+    "description": "Retried the same bounded formatter with one worker to eliminate multiprocessing as the cause."
+  },
+  "expected": "Single-worker Black should complete the explicit changed-file list.",
+  "observed": "The process again produced no further output for more than 60 seconds and was interrupted. This rules out Black's worker fan-out as the immediate cause on this host; canonical formatting remains required. No model worker, solver, pod or paid service ran.",
+  "keep": [
+    "Treat local formatter completion as unverified until the canonical wrapper reports it."
+  ],
+  "change": [
+    "Do not spend more time on this host-specific formatter stall; use the repository canonical Linux path."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
