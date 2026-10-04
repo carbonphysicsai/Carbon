@@ -36,8 +36,23 @@ review decision for this intake, an id of the form
 `OWNER-…INTAKE-EXPOSURE-NN` - and terminates TLS itself (`tls_cert`,
 `tls_key`). The owner recorded OWNER-INTAKE-EXPOSURE-01 on 2026-10-02 for
 testnet 567 and the routes above; exposing a host stays an operator action.
+A public bind also needs the deployment's isolated carrier: a deployment
+that rebuilds recipes in this process (`backend: direct`) is never exposed
+(`intake_exposure_needs_carrier`, LP-PROD-G). The TLS handshake runs in the
+connection's own thread under its socket timeout, never in the accept loop.
 Tests are not a security audit; this module is security-sensitive (AGENTS
 §13).
+
+**As a service** (`scripts/dev/battery_validator_service`, LP-PROD-G) the
+intake logs one JSON line per event to stderr - start, stop, worker passes
+that moved something, worker failures by type, and the refresher failing or
+recovering - and never a peer address, hotkey, path or request. It holds
+`<inbox>.serve.lock` while it runs, so the service's status and restore see
+it however it was started. A start the host cannot serve yet (Docker down
+or still starting) is waited out before anything listens. SIGTERM stops it:
+the listener closes and the worker may finish its pass within a grace
+period. A configuration refusal exits 2, so a supervisor does not restart
+into it; any other failure exits 1 and is restarted after a backoff.
 
 Nothing here scores, qualifies, commits on chain or signs with a key: the
 miner signs; the service key, if configured, belongs to the daemon.
@@ -47,11 +62,15 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import fcntl
 import ipaddress
 import json
+import os
 import re
+import signal
 import sqlite3
 import ssl
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -81,7 +100,28 @@ PEER_BURST, PEER_RATE, IN_FLIGHT, INBOX_DEPTH = 10, 1.0, 8, 64
 #: gateway's 60 s window can no longer authenticate anything.
 REFRESH_S, SNAPSHOTS_KEPT, SNAPSHOT_MAX_AGE_S = 12.0, 5, 60.0
 SOCKET_TIMEOUT_S = 10.0
+#: On SIGTERM the worker may finish the pass in flight for this long; a run
+#: cut off after it is recovered as infrastructure on the next start.
+STOP_GRACE_S = 30.0
+#: A start refused for the host's state is retried after this backoff,
+#: doubling up to the maximum (engineering values).
+HOST_RETRY_MIN_S, HOST_RETRY_MAX_S = 1.0, 60.0
+SERVE_LOCK_SUFFIX = ".serve.lock"
 EXPOSURE_RECORD = r"OWNER-[A-Z0-9-]*INTAKE-EXPOSURE-[0-9]{2}"
+SERVICE = "battery-intake"
+
+
+def log(event, *, out=None, **fields):
+    """One structured line on stderr: UTC time, service, event, counts and
+    exception types only - never a peer, hotkey, path or request."""
+    record = {
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "service": SERVICE,
+        "event": event,
+        **fields,
+    }
+    print(json.dumps(record, sort_keys=True), file=out or sys.stderr, flush=True)
+
 
 _TERMINAL = {
     "SCORED",
@@ -146,11 +186,7 @@ def require_exposure(config, *, repository):
     the miner client refuses plain HTTP beyond loopback, and behind a TLS
     proxy every request would share one peer's limits. Loopback needs neither.
     """
-    try:
-        loopback = ipaddress.ip_address(config["host"]).is_loopback
-    except ValueError:
-        loopback = config["host"] == "localhost"
-    if loopback:
+    if is_loopback(config["host"]):
         return
     record = config.get("exposure_record")
     # Only a record made for this purpose counts: any other owner decision,
@@ -165,6 +201,43 @@ def require_exposure(config, *, repository):
         raise IntakeUnavailable("intake_exposure_unrecorded")
     if not ("tls_cert" in config and "tls_key" in config):
         raise IntakeUnavailable("intake_exposure_needs_tls")
+
+
+def is_loopback(host):
+    """Whether a bind address is reachable from this host only."""
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return host == "localhost"
+
+
+def require_isolation(config, deployment_config):
+    """A public bind needs the deployment's isolated carrier (LP-PROD-G).
+
+    A `direct` deployment rebuilds and runs recipes in the validator's own
+    process (`DIRECT_TRUSTED_PROCESS`): local development only. Miner input
+    from beyond this host is untrusted (AGENTS §6.6), so such a deployment is
+    never exposed, whatever exposure record the configuration names.
+    """
+    if not is_loopback(config["host"]) and deployment_config["backend"] != "carrier":
+        raise IntakeUnavailable("intake_exposure_needs_carrier")
+
+
+def tls_context(config):
+    """The server TLS context for a configuration that names one, or None.
+
+    An unreadable certificate or key is a configuration state, refused by
+    name before anything listens.
+    """
+    if "tls_cert" not in config:
+        return None
+    tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    tls.minimum_version = ssl.TLSVersion.TLSv1_2
+    try:
+        tls.load_cert_chain(config["tls_cert"], config["tls_key"])
+    except (OSError, ssl.SSLError):
+        raise IntakeUnavailable("intake_tls_unreadable") from None
+    return tls
 
 
 # --- snapshots ------------------------------------------------------------------
@@ -216,20 +289,31 @@ class _Pinned:
         return self.snapshot
 
 
-def refresher(window, context, *, reader=None, period=REFRESH_S, stop=None):
+def refresher(window, context, *, reader=None, period=REFRESH_S, stop=None, out=None):
     """Read the metagraph every `period` seconds until `stop` is set.
 
     A failed read keeps the previous snapshots; once they age out, the intake
     answers `snapshot_unavailable` - an infrastructure state, never a refusal
-    of the miner.
+    of the miner. Only a change between reading and failing is logged (with
+    the exception's type), so a chain outage is one line, not one per period.
     """
-    from carbon.chain.sdk import BittensorReader
+    if reader is None:
+        from carbon.chain.sdk import BittensorReader
 
-    reader = BittensorReader() if reader is None else reader
+        reader = BittensorReader()
     stop = threading.Event() if stop is None else stop
+    failing = False
     while not stop.is_set():
-        with contextlib.suppress(Exception):
+        try:
             window.add(asyncio.run(reader.capture(context)))
+        except Exception as failure:  # noqa: BLE001 - infrastructure
+            if not failing:
+                log("snapshot_refresh_failed", out=out, type=type(failure).__name__)
+            failing = True
+        else:
+            if failing:
+                log("snapshot_refresh_recovered", out=out)
+            failing = False
         stop.wait(period)
 
 
@@ -309,8 +393,12 @@ class Inbox:
     def receive(self, submission_id, submission, now_ns):
         """Record one submission once; a resend is the same submission.
 
-        A submission refused only for timing (`hotkey_window_used`) is
-        received again on resend, so the miner simply sends it next window.
+        A submission refused at admission for a reason that is never a
+        judgement of it (`RECEIVED_AGAIN`: the hotkey's window, an undated
+        receipt, a missing commitment or commitment reader, a backend this
+        validator does not serve) is received again on resend, under the same
+        submission id. The miner simply sends it again once the reason has
+        passed; it is never a second submission.
         """
         document = json.dumps(
             {
@@ -341,7 +429,7 @@ class Inbox:
                     "INSERT INTO inbox VALUES(?,?,?,?,'RECEIVED',NULL,?)",
                     (submission_id, submission.hotkey, document, now_ns, block),
                 )
-            elif known[0] == "REFUSED" and _timing_only(known[1]):
+            elif known[0] == "REFUSED" and _received_again(known[1]):
                 db.execute(
                     "UPDATE inbox SET state='RECEIVED', failure=NULL, document=?, "
                     "received_ns=?, block=? WHERE submission_id=?",
@@ -396,6 +484,15 @@ class Inbox:
                 ).fetchall()
             ]
 
+    def counts(self):
+        """How many submissions are in each state: for the operator's status
+        and the worker's log line, never per hotkey."""
+        with self._db() as db:
+            rows = db.execute(
+                "SELECT state, COUNT(*) FROM inbox GROUP BY state"
+            ).fetchall()
+        return {"RECEIVED": 0, "ADMITTED": 0, "REFUSED": 0, **dict(rows)}
+
     def mark(self, submission_id, state, failure=None):
         with self._db() as db:
             db.execute(
@@ -408,10 +505,28 @@ class Inbox:
             )
 
 
-def _timing_only(failure):
-    return failure is not None and json.loads(failure).get("failure", {}).get(
-        "code"
-    ) in ("hotkey_window_used",)
+#: Every refusal `work_once` records is one of these, and none is a verdict on
+#: the submission: a timing rule (`hotkey_window_used`, `receipt_block_missing`),
+#: a step the miner takes and then resends (`commitment_required`), or this
+#: validator's own state (`commitment_reader_unavailable`,
+#: `backend_not_served`). Until LP-PROD-G only the first was received again,
+#: so the others held a recipe's one submission id refused for good.
+RECEIVED_AGAIN = frozenset(
+    {
+        "hotkey_window_used",
+        "receipt_block_missing",
+        "commitment_required",
+        "commitment_reader_unavailable",
+        "backend_not_served",
+    }
+)
+
+
+def _received_again(failure):
+    return (
+        failure is not None
+        and json.loads(failure).get("failure", {}).get("code") in RECEIVED_AGAIN
+    )
 
 
 #: Bittensor's target block time, for a human "about N minutes" only; every
@@ -643,12 +758,14 @@ def work_once(inbox, target):
 
     Each daemon call holds the deployment's single-writer lock for its own
     duration only. An infrastructure state leaves the submission where it
-    was, to be retried; it is never a refusal of the miner.
+    was, to be retried; it is never a refusal of the miner. Returns what the
+    pass moved, as counts only.
     """
     from .daemon import BackendNotServed, CommitmentRequired
     from .deployment import writer
     from .pool_store import HotkeyWindowUsed
 
+    moved = {"admitted": 0, "refused": 0, "processed": 0, "advanced": 0}
     for submission_id, submission in inbox.received():
         try:
             with writer(target):
@@ -660,6 +777,7 @@ def work_once(inbox, target):
                 else {"code": "receipt_block_missing"}
             )
             inbox.mark(submission_id, "REFUSED", {"failure": failure})
+            moved["refused"] += 1
             continue
         except CommitmentRequired:
             code = (
@@ -668,12 +786,14 @@ def work_once(inbox, target):
                 else "commitment_required"
             )
             inbox.mark(submission_id, "REFUSED", {"failure": {"code": code}})
+            moved["refused"] += 1
             continue
         except BackendNotServed as missing:
             # This validator has no image for the recipe's backend: not a
             # judgement of the recipe, and nothing is recorded in the pool.
             failure = {"code": "backend_not_served", "backend": missing.backend}
             inbox.mark(submission_id, "REFUSED", {"failure": failure})
+            moved["refused"] += 1
             continue
         # An invalid construction is admitted and settled at once; it does
         # not use the hotkey's window (the daemon does not count it either).
@@ -686,25 +806,29 @@ def work_once(inbox, target):
                 else None
             ),
         )
+        moved["admitted"] += 1
     for submission_id in inbox.admitted():
         with writer(target):
             if target.outcome(submission_id)["state"] not in _TERMINAL:
                 target.process(submission_id)
+                moved["processed"] += 1
     with writer(target):
-        target.run_pending()
+        moved["advanced"] = len(target.run_pending() or ())
+    return moved
 
 
-def worker(inbox, target, wake, *, stop, idle_s=30.0):
-    import sys
-
+def worker(inbox, target, wake, *, stop, idle_s=30.0, out=None):
     while not stop.is_set():
         wake.clear()
         try:
-            work_once(inbox, target)
+            moved = work_once(inbox, target)
         except Exception as failure:  # noqa: BLE001
             # Infrastructure: the inbox keeps every submission for the next
             # pass. Only the exception's type is logged, never its content.
-            print(f"intake worker: {type(failure).__name__}", file=sys.stderr)
+            log("worker_failure", out=out, type=type(failure).__name__)
+        else:
+            if any(moved.values()):
+                log("worker_pass", out=out, **moved)
         wake.wait(idle_s)
 
 
@@ -760,18 +884,134 @@ def _handler(intake):
     return Handler
 
 
-def serve(config_path, *, repository, stop=None):
-    """Run the intake: refresher, worker and listener, until `stop` is set."""
+class _Server(ThreadingHTTPServer):
+    """The listener. A connection that fails outside a request (a TLS
+    handshake that never completes or is malformed) is logged by exception
+    type only: the base class would print the peer's address and a trace."""
+
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        log("connection_failed", type=getattr(sys.exc_info()[0], "__name__", None))
+
+
+def listener(config, intake):
+    """Bind the configured address; with TLS, wrap it so each connection's
+    handshake runs in that connection's own thread, under its socket timeout.
+
+    Wrapping with the default `do_handshake_on_connect` would run every
+    handshake inside `accept`, in the single serving thread: one client that
+    connects and sends nothing would stop the intake for everyone.
+    """
+    tls = tls_context(config)
+    httpd = _Server((config["host"], config["port"]), _handler(intake))
+    if tls is not None:
+        httpd.socket = tls.wrap_socket(
+            httpd.socket, server_side=True, do_handshake_on_connect=False
+        )
+    return httpd
+
+
+def serve_lock_path(config):
+    """The lock a serving intake holds: `<inbox>.serve.lock`."""
+    return Path(str(config["inbox"]) + SERVE_LOCK_SUFFIX)
+
+
+def _serving_lock(config):
+    """Hold the serving lock for the intake's life and return its fd.
+
+    It is the signal the service's `status` and `restore` read to see the
+    intake running, under a supervisor or a systemd unit, even while it
+    waits for the host and does not listen yet. A probe holds it shared for
+    an instant, so it is retried briefly; a lock still held belongs to
+    another intake on the same inbox (`intake_already_serving`).
+    """
+    from .operate import LOCK_RETRY_S, LOCK_TRIES
+
+    fd = os.open(serve_lock_path(config), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    for _ in range(LOCK_TRIES):
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            time.sleep(LOCK_RETRY_S)
+        else:
+            return fd
+    os.close(fd)
+    raise IntakeUnavailable("intake_already_serving")
+
+
+def _when_host_ready(config, repository, stop):
+    """The writable deployment, once the host can serve it.
+
+    A start refused for the host's state - `evaluation_host_unavailable`:
+    Docker down, or still starting after a reboot - is retried after a
+    backoff doubling from 1 s to 60 s, each attempt logged
+    `waiting_for_host`, until it builds, or `stop` is set (None). Exiting
+    instead would spend a supervisor's restart limit on a passing outage. A
+    configuration refusal (`operate.exit_code`) propagates at once.
+    """
+    from . import deployment
+    from .operate import REFUSED_EXIT, exit_code
+
+    delay = HOST_RETRY_MIN_S
+    while True:
+        try:
+            return deployment.validator(config["deployment"], repository=repository)
+        except deployment.EvaluationUnavailable as unavailable:
+            if exit_code(unavailable.code) == REFUSED_EXIT:
+                raise
+            log("waiting_for_host", code=unavailable.code, retry_in_s=delay)
+        if stop.wait(delay):
+            return None
+        delay = min(HOST_RETRY_MAX_S, delay * 2)
+
+
+def serve(
+    config_path,
+    *,
+    repository,
+    stop=None,
+    reader=None,
+    verifier=None,
+    ready=None,
+):
+    """Run the intake: refresher, worker and listener, until `stop` is set.
+
+    `reader` is the refresher's chain reader (the metagraph reader when None;
+    tests pass a fixed snapshot so nothing reaches a chain) and `verifier`
+    the hotkey verifier (`BittensorHotkeyVerifier` when None). `ready`, if
+    given, is called with the bound `(host, port)` once the listener accepts
+    connections. Everything that can refuse is checked before anything
+    listens or starts: the configuration, the exposure and its isolation,
+    the TLS material, the serving lock and the deployment. A deployment the
+    host cannot serve yet is waited for (`_when_host_ready`).
+    """
+    from . import deployment
+
+    config = load_config(config_path, repository=repository)
+    require_isolation(config, deployment.load_config(config["deployment"]))
+    tls_context(config)  # refused by name before the deployment starts
+    stop = threading.Event() if stop is None else stop
+    lock = _serving_lock(config)
+    try:
+        target = _when_host_ready(config, repository, stop)
+        if target is not None:
+            _serve(config, target, repository, stop, reader, verifier, ready)
+    finally:
+        os.close(lock)
+
+
+def _serve(config, target, repository, stop, reader, verifier, ready):
+    """`serve` once the deployment is built: the refresher, the worker and
+    the listener, until `stop` is set."""
     from carbon.chain.auth import BittensorHotkeyVerifier
     from carbon.development_session.chain_onboarding import carbon_testnet_context
     from carbon.transport.store import ReceiptJournal
 
     from . import deployment
 
-    config = load_config(config_path, repository=repository)
     context = carbon_testnet_context()
-    target = deployment.validator(config["deployment"], repository=repository)
-    reader = deployment.validator(
+    status = deployment.validator(
         config["deployment"], repository=repository, readonly=True
     )
     inbox = Inbox(config["inbox"])
@@ -780,16 +1020,19 @@ def serve(config_path, *, repository, stop=None):
         context=context,
         receiver=config["receiver"],
         journal=ReceiptJournal(Path(config["transport_journal"]), context),
-        verifier=BittensorHotkeyVerifier(),
+        verifier=BittensorHotkeyVerifier() if verifier is None else verifier,
         inbox=inbox,
         window=window,
-        status_reader=reader.outcome,
+        status_reader=status.outcome,
         rule=target.rule,
     )
-    stop = threading.Event() if stop is None else stop
+    httpd = listener(config, intake)
     threads = [
         threading.Thread(
-            target=refresher, args=(window, context), kwargs={"stop": stop}, daemon=True
+            target=refresher,
+            args=(window, context),
+            kwargs={"stop": stop, "reader": reader},
+            daemon=True,
         ),
         threading.Thread(
             target=worker,
@@ -800,22 +1043,28 @@ def serve(config_path, *, repository, stop=None):
     ]
     for thread in threads:
         thread.start()
-    httpd = ThreadingHTTPServer((config["host"], config["port"]), _handler(intake))
-    if "tls_cert" in config:
-        tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        tls.minimum_version = ssl.TLSVersion.TLSv1_2
-        tls.load_cert_chain(config["tls_cert"], config["tls_key"])
-        httpd.socket = tls.wrap_socket(httpd.socket, server_side=True)
+    host, port = httpd.server_address[:2]
     try:
         threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        log("listening", host=host, port=port, tls="tls_cert" in config)
+        if ready is not None:
+            ready((host, port))
         stop.wait()
     finally:
         httpd.shutdown()
         httpd.server_close()
+        # The worker may finish the pass in flight; one cut off after the
+        # grace period is recovered as infrastructure on the next start.
+        intake.wake.set()
+        threads[1].join(STOP_GRACE_S)
+        log("stopped", worker_finished=not threads[1].is_alive())
 
 
 def main(argv=None):
     import argparse
+
+    from .deployment import EvaluationUnavailable
+    from .operate import REFUSED_EXIT, exit_code
 
     parser = argparse.ArgumentParser(prog="carbon.battery.intake")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -823,11 +1072,32 @@ def main(argv=None):
     run.add_argument("--config", required=True)
     args = parser.parse_args(argv)
     repository = Path(__file__).resolve().parents[2]
+    stop = threading.Event()
+    for number in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(number, lambda *_: stop.set())
     try:
-        serve(args.config, repository=repository)
+        serve(args.config, repository=repository, stop=stop)
     except IntakeUnavailable as refused:
+        # A configuration state: exit 2, which a supervisor does not restart.
+        log("refused", code=refused.code)
         print(json.dumps({"unavailable": refused.code}))
-        return 2
+        return REFUSED_EXIT
+    except EvaluationUnavailable as unavailable:
+        # The deployment's own code decides: its configuration exits 2; the
+        # host's state (`evaluation_host_unavailable`, or a code not known
+        # as a configuration) exits 1, restarted after a backoff.
+        code = exit_code(unavailable.code)
+        log(
+            "refused" if code == REFUSED_EXIT else "unavailable",
+            code=unavailable.code,
+        )
+        print(json.dumps({"unavailable": unavailable.code}))
+        return code
+    except OSError as failure:
+        # The address is taken or the host refused the bind: infrastructure,
+        # which a supervisor retries after its backoff.
+        log("failed", type=type(failure).__name__)
+        return 1
     return 0
 
 

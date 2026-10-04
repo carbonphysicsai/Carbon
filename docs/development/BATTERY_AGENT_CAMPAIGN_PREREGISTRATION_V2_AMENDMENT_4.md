@@ -279,3 +279,49 @@ These are amendment 3's (C5), plus:
 - **Kept in private operator evidence:** scores, pool versions against
   submissions, and cost figures, as in tiers 0 to 3A.
 - **The evidence** is addressed to the MQ-008 holder. No verdict is written.
+
+## 2026-10-03: prospective amendment, the parallel-call rule
+
+**Owner, in session on 2026-10-03** (OWNER-LAUNCHPAD-PROD-02, decision 4),
+asked whether pre-registered battery agent tiers may run under the v2
+parallel-call rule: "yes new rule obviously".
+
+**From its next run, every pre-registered battery agent tier runs under
+`PARALLEL_CALLS_V2`.** Its rule is `EVERY_CALL_RUN_IN_ORDER` (schema
+`carbon.autoresearch.parallel-calls.v2`, `.agent/decisions/2026-10-03-LP-PROD-A.md`):
+every tool call of a turn runs, in the model's order, and there is no
+consecutive-turn stop. It replaces "`FIRST_RUN_REST_REFUSED`, three in a row
+stops" in:
+- amendment 3, C3 (stage 3A's campaign), and any campaign configured
+  exactly as 3A;
+- this amendment, D5 (the ladder's campaigns).
+
+**Prospective only. Nothing recorded is rewritten or reinterpreted.**
+- 3A and the 3B ladder ran under the one-call rule, as pre-registered.
+  Their results (`BATTERY_AGENT_CAMPAIGN_V2_RESULTS_TIER_3.md`) stand as
+  recorded, under that rule.
+- A campaign frozen before this note keeps the rule its plan froze and
+  replays unchanged.
+
+**What else a run under v2 changes**, stated so the instrument is whole. Each
+comes with the rule (LP-PROD-A, decision 1):
+- a short status note before every turn: model calls and trial slots left;
+- any tool call renews the one free-text reminder;
+- Carbon's agent may select only a practiced recipe
+  (`selection_not_practiced` otherwise, and the epoch goes on);
+- the battery prompt is `CHALLENGE_PROMPT_V2`, and each request sends
+  `parallel_tool_calls: true`.
+
+**Predictions.** Amendment 3's P1 ("not stopped by the parallel-call rule")
+has no refuting event under v2, which has no such stop. For a run under v2,
+P1 is reported as not applicable, never as held. Every other prediction,
+measure, stop rule, cap and budget is unchanged. The output allowance stays
+the one each tier sets at launch (16,384 tokens): a cap set at launch binds
+(OWNER-LAUNCHPAD-PROD-02, decision 1).
+
+**Open, outside decision 4.** A battery plan frozen from now on also freezes
+the v2 research tools rule (`research_tools`, LP-PROD-D): the v2 tools text,
+read_file's text-once result and the agent's `research_environment`. The
+owner's answer covers the parallel-call rule only. Whether a pre-registered
+tier also runs under the v2 tools rule is to be settled before that tier's
+next run.

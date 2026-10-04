@@ -72,6 +72,9 @@ UNKNOWN_SPEND = (
     "records token usage only; limit spend at your provider."
 )
 
+#: The output caps a selection may carry (`select`), inclusive.
+OUTPUT_TOKEN_BOUNDS = (256, 131072)
+
 
 @dataclass(frozen=True)
 class Pricing:
@@ -129,6 +132,26 @@ class Settings:
 
 
 @dataclass(frozen=True)
+class OutputMaximum:
+    """The most output tokens one reply may carry, as the provider documents
+    it, and where that came from. Recorded like a price: sourced and dated,
+    never guessed."""
+
+    tokens: int
+    reference: str
+    observed: str
+    note: str
+
+    def record(self):
+        return {
+            "max_output_tokens": self.tokens,
+            "reference": self.reference,
+            "observed": self.observed,
+            "note": self.note,
+        }
+
+
+@dataclass(frozen=True)
 class CredentialReference:
     """Where the miner's own key file is. Never the key itself."""
 
@@ -148,9 +171,14 @@ class ErrorSemantics:
     usage object; the attempt is counted and no token charge recorded. A
     status in `rate_limit_statuses`, or any response whose error code is in
     `overload_codes`, is a rate limit: rejected before generation and safe to
-    retry under a new reservation. Every other failure - a 5xx, a timeout, a
-    dropped connection, an unreadable body - keeps its full reservation,
-    because the request may have been processed.
+    retry under a new reservation. A status in `unavailable_statuses` whose
+    body carries no usage object (and no provider charge report, Engy's
+    `x_engy`) is a server that answered it could not take the request (502,
+    503, 529): rejected before generation and retried the same way
+    (OWNER-LAUNCHPAD-PROD-01, LP-PROD-A). Every other failure - any other
+    5xx, a 5xx that reports usage or a charge, a timeout, a dropped
+    connection, an unreadable body - keeps its full reservation, because the
+    request may have been processed.
     """
 
     unbilled_rejections: tuple[int, ...]
@@ -159,6 +187,7 @@ class ErrorSemantics:
     quota_codes: tuple[str, ...]
     context_codes: tuple[str, ...]
     basis: str
+    unavailable_statuses: tuple[int, ...] = (502, 503, 529)
 
 
 OPENAI_ERRORS = ErrorSemantics(
@@ -169,10 +198,12 @@ OPENAI_ERRORS = ErrorSemantics(
     context_codes=("context_length_exceeded",),
     basis=(
         "Carbon's recorded reading of OpenAI-style API error semantics "
-        "(2026-09-26): a 4xx rejection is returned before generation and carries "
-        "no usage object, so the attempt is counted and no token charge is "
-        "recorded. Not invoice-verified; a 5xx or any unreadable outcome keeps "
-        "the full reservation."
+        "(2026-09-26; 502, 503 and 529 added 2026-10-03 under "
+        "OWNER-LAUNCHPAD-PROD-01): a 4xx rejection, and a 502, 503 or 529 whose "
+        "body carries no usage object, is returned before generation, so the "
+        "attempt is counted and no token charge is recorded. Not "
+        "invoice-verified; any other 5xx, a 5xx that reports usage, or any "
+        "unreadable outcome keeps the full reservation."
     ),
 )
 MESSAGES_ERRORS = ErrorSemantics(
@@ -183,10 +214,13 @@ MESSAGES_ERRORS = ErrorSemantics(
     context_codes=(),
     basis=(
         "Carbon's recorded reading of Anthropic Messages error semantics "
-        "(2026-09-26): 429 rate_limit_error and 529 or overloaded_error are "
-        "rejected before generation and retried as rate limits; other 4xx are "
-        "counted with no token charge; 5xx keep the full reservation. Messages "
-        "has no context-limit code, so an over-long prompt is an invalid request."
+        "(2026-09-26; 502 and 503 added 2026-10-03 under "
+        "OWNER-LAUNCHPAD-PROD-01): 429 rate_limit_error and 529 or "
+        "overloaded_error are rejected before generation and retried as rate "
+        "limits; a 502 or 503 whose body carries no usage object is rejected "
+        "before generation and retried; other 4xx are counted with no token "
+        "charge; any other 5xx keeps the full reservation. Messages has no "
+        "context-limit code, so an over-long prompt is an invalid request."
     ),
 )
 ENGY_BASIS = (
@@ -235,6 +269,11 @@ class ProviderAdapter:
     #: (`published_pricing`) rather than listed in Carbon.
     live_pricing: bool = False
     errors: ErrorSemantics = OPENAI_ERRORS
+    #: Each model's own documented maximum output, by id (`OutputMaximum`).
+    output_maxima: dict = field(default_factory=dict)
+    #: The provider's documented maximum for every model it serves, where it
+    #: states one and no model's own is recorded.
+    output_maximum: OutputMaximum | None = None
 
     def summary_models(self):
         ids = (
@@ -270,6 +309,17 @@ GPT5_MINI_PRICING = Pricing(
         "re-verified since; reconcile against your provider's usage export."
     ),
 )
+GPT5_MINI_OUTPUT = OutputMaximum(
+    tokens=128000,
+    reference=(
+        "OpenAI model page, https://developers.openai.com/api/docs/models/gpt-5-mini"
+    ),
+    observed="2026-10-03",
+    note=(
+        "400,000 context window, 128,000 max output tokens; gpt-5-mini-2025-08-07 "
+        "is the page's default snapshot. Reasoning counts against the output."
+    ),
+)
 
 
 def _engy(input_nano, output_nano, cached_nano, context):
@@ -300,6 +350,18 @@ ENGY_MODELS = {
 ENGY_LADDER = tuple(ENGY_MODELS)
 ENGY_DEFAULT_MODEL = "deepseek-v4-flash-0731"
 ENGY_MODELS_URL = "https://api.engy.ai/v1/models"
+ENGY_OUTPUT = OutputMaximum(
+    tokens=OUTPUT_TOKEN_BOUNDS[1],
+    reference="Engy published list, " + ENGY_MODELS_URL,
+    observed="2026-10-03",
+    note=(
+        "Engy states no output maximum apart from each model's context: every "
+        "ladder model's max_model_len equals its context_length, 262,144 tokens "
+        "or more. After the default 65,536-token input that leaves more than "
+        "131,072, Carbon's highest output cap, so a reply may use all of it. A "
+        "larger input setting leaves less room; set max_output_tokens to fit."
+    ),
+)
 
 #: Chutes (Bittensor subnet 64): OpenAI Chat Completions with a bearer key.
 #: Its public model list carries each model's price in USD per million tokens
@@ -326,6 +388,7 @@ ADAPTERS = {
             endpoint="https://api.openai.com/v1/responses",
             base_url="https://api.openai.com/v1",
             priced_models={GPT5_MINI: GPT5_MINI_PRICING},
+            output_maxima={GPT5_MINI: GPT5_MINI_OUTPUT},
         ),
         ProviderAdapter(
             adapter_id="engy-anthropic",
@@ -340,6 +403,7 @@ ADAPTERS = {
             reported_charge="x_engy.charged_micro",
             models_url=ENGY_MODELS_URL,
             errors=ENGY_MESSAGES_ERRORS,
+            output_maximum=ENGY_OUTPUT,
         ),
         ProviderAdapter(
             adapter_id="engy-chat",
@@ -353,6 +417,7 @@ ADAPTERS = {
             reported_charge="x_engy.charged_micro",
             models_url=ENGY_MODELS_URL,
             errors=ENGY_CHAT_ERRORS,
+            output_maximum=ENGY_OUTPUT,
         ),
         ProviderAdapter(
             adapter_id="chutes",
@@ -389,13 +454,27 @@ ADAPTERS = {
     )
 }
 
-#: The historical settings every pinned campaign ran with.
+#: The historical settings every pinned campaign ran with. They stay exactly
+#: as they are: the pinned default resolves to them, and every plan frozen
+#: before OUTPUT_DEFAULT_V2 recorded its output cap from them.
 DEFAULT_SETTINGS = Settings(
     max_input_tokens=65536,
     max_output_tokens=2048,
     reasoning_effort="low",
     timeout_seconds=120,
 )
+
+#: How a new plan's output cap is chosen when the miner sets none
+#: (OWNER-LAUNCHPAD-PROD-02, decision 1: no Carbon-imposed output cap). Its
+#: default is the selected model's own maximum output (`output_maximum`), and
+#: only a cap the miner sets binds below it. Every call is still reserved and
+#: metered at that cap against the miner's own ceilings. A selection built
+#: without it (None, the historical rule) keeps `DEFAULT_SETTINGS`' 2,048, so
+#: what an earlier plan recorded, and every caller that is not a new plan
+#: (Graphite, a development grant), is unchanged. A plan records its cap, so
+#: it replays the same under either rule.
+OUTPUT_DEFAULT_V2 = "carbon.model-selection.output-default.v2"
+OUTPUT_DEFAULTS = (None, OUTPUT_DEFAULT_V2)
 
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -661,6 +740,48 @@ def _credential(value):
     return CredentialReference("file", reference)
 
 
+#: Where a new plan's default output cap came from (`output_maximum`).
+OUTPUT_FROM_MODEL = "model_documented_maximum"
+OUTPUT_FROM_PROVIDER = "provider_documented_maximum"
+OUTPUT_CONSERVATIVE = "no_documented_maximum"
+
+
+def output_maximum(provider_id, model_id):
+    """The selected model's own maximum output, as Carbon records it:
+    `{"max_output_tokens", "basis", "source"}`.
+
+    1. The model's own documented maximum (`ProviderAdapter.output_maxima`).
+    2. Otherwise the provider's documented maximum for the models it serves
+       (`ProviderAdapter.output_maximum`).
+    3. Otherwise Carbon knows none, and never guesses one. A cap above a
+       model's real maximum is refused by its provider as an invalid request,
+       which replays and stops the campaign, so the conservative historical
+       cap (`DEFAULT_SETTINGS`, 2,048 tokens) is reserved until the miner sets
+       their own.
+
+    Never outside `OUTPUT_TOKEN_BOUNDS`.
+    """
+    adapter = ADAPTERS.get(provider_id)
+    if adapter is None:
+        raise ModelSelectionRefused("unknown provider adapter")
+    documented = adapter.output_maxima.get(model_id)
+    basis = OUTPUT_FROM_MODEL
+    if documented is None:
+        documented, basis = adapter.output_maximum, OUTPUT_FROM_PROVIDER
+    if documented is None:
+        return {
+            "max_output_tokens": DEFAULT_SETTINGS.max_output_tokens,
+            "basis": OUTPUT_CONSERVATIVE,
+            "source": None,
+        }
+    low, high = OUTPUT_TOKEN_BOUNDS
+    return {
+        "max_output_tokens": min(max(documented.tokens, low), high),
+        "basis": basis,
+        "source": documented.record(),
+    }
+
+
 def select(
     *,
     provider_id,
@@ -670,6 +791,7 @@ def select(
     settings=None,
     declared_pricing=None,
     published_pricing=None,
+    output_default=None,
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
@@ -680,10 +802,16 @@ def select(
     `declared_pricing` is the miner's own statement of price for a model with
     no listed price; a listed price is never overridden. `published_pricing`
     is a live-priced provider's own price as `published_pricing()` read it.
+    `output_default` is how an unset max_output_tokens is chosen: None, the
+    historical 2,048, or `OUTPUT_DEFAULT_V2` for a new plan, the model's own
+    maximum (`output_maximum`). A max_output_tokens in `settings` binds
+    either way.
     """
     adapter = ADAPTERS.get(provider_id)
     if adapter is None:
         raise ModelSelectionRefused("unknown provider adapter")
+    if output_default not in OUTPUT_DEFAULTS:
+        raise ModelSelectionRefused("unknown output default")
     if model_id is None:
         model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
@@ -691,6 +819,10 @@ def select(
     if adapter.allowed_models is not None and model_id not in adapter.allowed_models:
         raise ModelSelectionRefused("model id not allowed for this provider")
     chosen = dict(DEFAULT_SETTINGS.record())
+    if output_default == OUTPUT_DEFAULT_V2:
+        chosen["max_output_tokens"] = output_maximum(provider_id, model_id)[
+            "max_output_tokens"
+        ]
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
             raise ModelSelectionRefused("unknown model setting")
@@ -702,7 +834,7 @@ def select(
             chosen["max_input_tokens"], 16384, 1048576, "max_input_tokens"
         ),
         max_output_tokens=_int(
-            chosen["max_output_tokens"], 256, 131072, "max_output_tokens"
+            chosen["max_output_tokens"], *OUTPUT_TOKEN_BOUNDS, "max_output_tokens"
         ),
         reasoning_effort=chosen["reasoning_effort"],
         timeout_seconds=_int(chosen["timeout_seconds"], 10, 600, "timeout_seconds"),
@@ -909,24 +1041,58 @@ class ProviderOutcome(enum.Enum):
     INVALID_REQUEST = "invalid_request"
     TRANSIENT_SERVER = "transient_server"
     UNKNOWN = "unknown"
+    #: A 502, 503 or 529 whose body carries no usage object and no provider
+    #: charge report (LP-PROD-A).
+    SERVER_UNAVAILABLE = "server_unavailable"
+    #: The connection was refused or the provider's name did not resolve:
+    #: nothing was sent (LP-PROD-A).
+    UNREACHABLE = "unreachable"
+
+
+#: Rejected before generation, so the attempt incurred no charge, and safe to
+#: send again at once under a new identity and reservation, after a backoff
+#: (`research_agent.request_model`).
+RETRY_SAFE = frozenset(
+    {
+        ProviderOutcome.RATE_LIMITED,
+        ProviderOutcome.SERVER_UNAVAILABLE,
+        ProviderOutcome.UNREACHABLE,
+    }
+)
 
 
 class ProviderHTTPError(Exception):
     """A provider HTTP rejection reduced to what classification needs.
 
-    Only the status, the provider's machine-readable error code and a bounded
-    Retry-After survive; the message text, which can echo request or
-    credential material, is discarded here.
+    Only the status, the provider's machine-readable error code, a bounded
+    Retry-After and whether the body carried a usage object or a provider
+    charge report (`usage_reported`) survive; the
+    message text, which can echo request or credential material, is
+    discarded here.
     """
 
-    def __init__(self, status, *, code=None, retry_after=None):
+    def __init__(self, status, *, code=None, retry_after=None, usage_reported=False):
         super().__init__("provider HTTP status " + str(status))
         self.status, self.code, self.retry_after = status, code, retry_after
+        self.usage_reported = usage_reported
 
 
 class NotDispatched(ValueError):
     """The request could not be expressed in the provider's protocol and was
     never sent. Safe: nothing was processed, so nothing can have been billed."""
+
+
+class CredentialUnavailable(ValueError):
+    """The miner's key file is missing, unreadable or malformed, found before
+    anything was sent: a credential failure the miner fixes, with nothing
+    processed or billed. Carries no path or key text."""
+
+
+class ProviderUnreachable(ConnectionError):
+    """The connection to the provider was refused, or its name did not
+    resolve, before any byte of the request was sent: nothing was processed,
+    so nothing can have been billed. Carries no provider or network text. An
+    `OSError`, so a caller that catches network failures still catches it."""
 
 
 @dataclass(frozen=True)
@@ -975,6 +1141,14 @@ def classify(error, errors=OPENAI_ERRORS):
         return ProviderFailure(
             ProviderOutcome.INVALID_REQUEST, None, None, None, True, False
         )
+    if type(error) is ProviderUnreachable:
+        return ProviderFailure(
+            ProviderOutcome.UNREACHABLE, None, None, None, True, True
+        )
+    if type(error) is CredentialUnavailable:
+        return ProviderFailure(
+            ProviderOutcome.AUTH_CREDENTIAL, None, None, None, True, False
+        )
     if type(error) is not ProviderHTTPError:
         return ProviderFailure(ProviderOutcome.UNKNOWN, None, None, None, False, False)
     status, code = error.status, _code(error.code)
@@ -984,6 +1158,16 @@ def classify(error, errors=OPENAI_ERRORS):
     ):
         return ProviderFailure(
             ProviderOutcome.RATE_LIMITED, status, code, retry_after, True, True
+        )
+    if (
+        status in errors.unavailable_statuses
+        and error.usage_reported is False
+        and code not in errors.quota_codes
+    ):
+        # The server answered it could not take the request, and reported no
+        # usage: rejected before generation (OWNER-LAUNCHPAD-PROD-01).
+        return ProviderFailure(
+            ProviderOutcome.SERVER_UNAVAILABLE, status, code, retry_after, True, True
         )
     unbilled = status in errors.unbilled_rejections
     if status == 402 or code in errors.quota_codes:
@@ -1129,16 +1313,31 @@ class _TrackedHTTPSHandler(_TrackedHandler, urllib.request.HTTPSHandler):
     pass
 
 
+#: Connection failures that happen before any byte of the request is written:
+#: a refused TCP connect (only `connect` returns it) and a name that did not
+#: resolve. urllib wraps both in `URLError` from the connect inside
+#: `HTTPConnection.request`, before the request line is sent.
+_NOT_SENT = (ConnectionRefusedError, socket.gaierror)
+
+
 def _exchange(opener, outgoing, timeout, limit):
     """Send the request and read the bounded reply; the network half of
-    `_post`, run in its worker thread. Rejections become `ProviderHTTPError`."""
+    `_post`, run in its worker thread. Rejections become `ProviderHTTPError`,
+    and a connection refused or a name unresolved before anything was sent
+    becomes `ProviderUnreachable`."""
     try:
         with opener.open(outgoing, timeout=timeout) as response:
             return response.read(limit + 1)
     except urllib.error.HTTPError as rejected:
-        code = None
+        code, usage = None, False
         try:
             parsed = json.loads(rejected.read(64 * 1024))
+            if type(parsed) is dict:
+                # A body that reports usage, or a provider charge (Engy's
+                # `x_engy`), may have been generated and billed.
+                usage = (
+                    parsed.get("usage") is not None or parsed.get("x_engy") is not None
+                )
             error = parsed.get("error") if type(parsed) is dict else None
             if type(error) is dict:
                 # OpenAI names it `code`; Anthropic Messages names it `type`.
@@ -1149,8 +1348,12 @@ def _exchange(opener, outgoing, timeout, limit):
             None if rejected.headers is None else rejected.headers.get("Retry-After")
         )
         raise ProviderHTTPError(
-            rejected.code, code=code, retry_after=retry_after
+            rejected.code, code=code, retry_after=retry_after, usage_reported=usage
         ) from None
+    except urllib.error.URLError as failed:
+        if isinstance(failed.reason, _NOT_SENT):
+            raise ProviderUnreachable("provider unreachable; nothing sent") from None
+        raise
 
 
 def _post(selection, body, opener=None, deadline=None):
@@ -1167,10 +1370,17 @@ def _post(selection, body, opener=None, deadline=None):
     headers = {"Content-Type": "application/json"}
     if adapter.protocol == MESSAGES:
         headers["anthropic-version"] = ANTHROPIC_VERSION
+    try:
+        key = read_credential(selection.credential)
+    except (OSError, ValueError):
+        # Nothing has been sent: a typed credential failure, never an
+        # outcome to reconcile (LP-PROD-A).
+        raise CredentialUnavailable("provider key file unusable") from None
     if adapter.auth == "x-api-key":
-        headers["x-api-key"] = read_credential(selection.credential)
+        headers["x-api-key"] = key
     else:
-        headers["Authorization"] = "Bearer " + read_credential(selection.credential)
+        headers["Authorization"] = "Bearer " + key
+    del key
     outgoing = urllib.request.Request(
         selection.endpoint, data=body, headers=headers, method="POST"
     )
@@ -1220,12 +1430,62 @@ def _text(item):
     )
 
 
+def _refuse_constant(name):
+    raise ValueError("not a JSON number: " + name)
+
+
+def _chat_arguments(arguments):
+    """A history tool call's arguments as Chat Completions receives them: the
+    model's own string when it is one JSON object, otherwise "{}"."""
+    if type(arguments) is str:
+        try:
+            value = json.loads(arguments, parse_constant=_refuse_constant)
+        except (ValueError, RecursionError):
+            value = None
+        if type(value) is dict:
+            return arguments
+    return "{}"
+
+
+#: How a protocol names a reply cut off at its output limit, read as the
+#: Responses API's `incomplete_details.reason`.
+_INCOMPLETE_REASONS = {"length": "max_output_tokens", "max_tokens": "max_output_tokens"}
+
+
+def _incomplete(status, stop_reason):
+    """The Responses-shaped `incomplete_details` of a translated reply that
+    did not complete, from the protocol's own stop reason (a closed code, or
+    `unknown`); nothing for a completed one."""
+    if status == "completed":
+        return {}
+    # Untrusted: a stop reason that is not a string is `unknown`, never a
+    # lookup that raises.
+    reason = (
+        _INCOMPLETE_REASONS.get(stop_reason, stop_reason)
+        if type(stop_reason) is str
+        else None
+    )
+    return {"incomplete_details": {"reason": _code(reason) or "unknown"}}
+
+
 def chat_request(request):
     """Translate the loop's Responses-shaped request into Chat Completions.
 
     The loop keeps one history format; this adapter maps it onto chat
     messages. Reasoning items and the reasoning setting have no portable chat
     equivalent and are not sent; `store` is a Responses-only field.
+
+    A turn's function calls, and any text the model wrote before them, become
+    one assistant message carrying all of them, as the model returned it and
+    as Chat Completions requires before their tool replies (a turn with
+    several calls, LP-PROD-A). A call whose arguments are not one JSON object
+    - none, blank, cut off by the output limit, or otherwise malformed - is
+    sent back as "{}" (`_chat_arguments`): a chat endpoint may parse the
+    arguments in its history and refuse the whole request, which would wedge
+    the epoch on the model's own mistake. The loop has already answered such
+    a call with a typed result naming the problem. The loop journals the
+    Responses-shaped request, never this translation, so a replay is
+    unaffected.
     """
     messages = [{"role": "system", "content": request["instructions"]}]
     for item in request["input"]:
@@ -1237,22 +1497,21 @@ def chat_request(request):
                 {"role": item.get("role", "assistant"), "content": _text(item)}
             )
         elif kind == "function_call":
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": None,
-                    "tool_calls": [
-                        {
-                            "id": item["call_id"],
-                            "type": "function",
-                            "function": {
-                                "name": item["name"],
-                                "arguments": item["arguments"],
-                            },
-                        }
-                    ],
-                }
-            )
+            call = {
+                "id": item["call_id"],
+                "type": "function",
+                "function": {
+                    "name": item["name"],
+                    "arguments": _chat_arguments(item.get("arguments")),
+                },
+            }
+            previous = messages[-1]
+            if previous["role"] == "assistant":
+                previous.setdefault("tool_calls", []).append(call)
+            else:
+                messages.append(
+                    {"role": "assistant", "content": None, "tool_calls": [call]}
+                )
         elif kind == "function_call_output":
             messages.append(
                 {
@@ -1292,7 +1551,12 @@ def _engy_report(response):
 
 def chat_response(response):
     """Translate a Chat Completions reply into the Responses shape the loop
-    reads: one message item and/or function_call items, and token usage."""
+    reads: one message item and/or function_call items, and token usage.
+
+    A reply that did not finish (`finish_reason` other than stop or
+    tool_calls) is `incomplete`, with `incomplete_details.reason`:
+    `max_output_tokens` for `length`, otherwise the finish reason as a closed
+    code (LP-PROD-A)."""
     if type(response) is not dict or type(response.get("choices")) is not list:
         raise ValueError("chat response malformed")
     if len(response["choices"]) != 1 or type(response["choices"][0]) is not dict:
@@ -1339,13 +1603,12 @@ def chat_response(response):
             translated_usage["output_tokens_details"] = {
                 "reasoning_tokens": details["reasoning_tokens"]
             }
+    finished = choice.get("finish_reason")
+    status = "completed" if finished in ("stop", "tool_calls") else "incomplete"
     return {
         "model": response.get("model"),
-        "status": (
-            "completed"
-            if choice.get("finish_reason") in ("stop", "tool_calls")
-            else "incomplete"
-        ),
+        "status": status,
+        **_incomplete(status, finished),
         "output": output,
         "usage": translated_usage,
         "provider_protocol": CHAT_COMPLETIONS,
@@ -1465,7 +1728,10 @@ def messages_response(response):
     Messages reports input excluding cache reads and writes; the loop's
     input_tokens is their sum, with the cache read as cached tokens.
     Messages has no reasoning-token count; one is recorded only if the
-    provider adds it.
+    provider adds it. A turn that did not finish (`max_tokens`, `pause_turn`,
+    `refusal`) is `incomplete`, with `incomplete_details.reason`
+    `max_output_tokens` for `max_tokens`, otherwise the stop reason
+    (LP-PROD-A).
     """
     from .profile import canonical
 
@@ -1541,17 +1807,20 @@ def messages_response(response):
         )
         if reasoning is not None:
             translated["output_tokens_details"] = {"reasoning_tokens": reasoning}
+    stopped = response.get("stop_reason")
+    status = (
+        "completed"
+        if stopped in ("end_turn", "tool_use", "stop_sequence")
+        else "incomplete"
+    )
     return {
         "model": response.get("model"),
-        "status": (
-            "completed"
-            if response.get("stop_reason") in ("end_turn", "tool_use", "stop_sequence")
-            else "incomplete"
-        ),
+        "status": status,
+        **_incomplete(status, stopped),
         "output": output,
         "usage": translated,
         "provider_protocol": MESSAGES,
-        "provider_stop_reason": response.get("stop_reason"),
+        "provider_stop_reason": stopped,
         **_engy_report(response),
     }
 
@@ -1587,10 +1856,12 @@ class SelectionTransport:
 
     No redirect is followed and nothing is retried here; a rejection is raised
     as `ProviderHTTPError`, an untranslatable request as `NotDispatched`
-    before anything is sent, a call past its hard total deadline
-    (`call_deadline_seconds`) as `ProviderDeadlineExceeded`, and anything else
-    propagates unchanged; all but a rejection classify as UNKNOWN. `opener`
-    replaces urllib's, and `deadline_seconds` the deadline, for tests only.
+    before anything is sent, a connection refused or a name unresolved before
+    anything is sent as `ProviderUnreachable`, a call past its hard total
+    deadline (`call_deadline_seconds`) as `ProviderDeadlineExceeded`, and
+    anything else propagates unchanged; all but those first three classify
+    as UNKNOWN. `opener` replaces urllib's, and `deadline_seconds` the
+    deadline, for tests only.
     """
 
     def __init__(

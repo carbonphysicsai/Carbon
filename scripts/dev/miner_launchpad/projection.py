@@ -12,6 +12,18 @@ from carbon.development_session.research_guidance import context, verify, verify
 from carbon.development_session.research_ledger import DIMENSIONS, CampaignLedger
 from carbon.development_session.research_workspace import CAPABILITY_FIELDS
 
+
+class RecordsDiffer(ValueError):
+    """A campaign's own records disagree with each other or with its row
+    (its guidance, its association, a result's digest): it cannot be read
+    back consistently, which reloading does not change. Its closed code says
+    so (`campaign_readback_unavailable`, LP-PROD-C); any other failure to
+    read a campaign may pass and is answered more mildly. A ValueError, as
+    before, for every caller that catches one."""
+
+    code = "campaign_readback_unavailable"
+
+
 #: What a refusal shows: which operation, why, and the correction if any.
 REFUSAL_FIELDS = {
     "operation",
@@ -162,7 +174,7 @@ def project(row, root):
     # it; None for a campaign recorded before a Challenge was named.
     value["challenge"] = manifest.get("challenge")
     if verify(manifest.get("research_guidance")) != task:
-        raise ValueError("campaign guidance association differs")
+        raise RecordsDiffer("campaign guidance association differs")
     if task is not None:
         value["effective_research_inputs"] = verify_history(
             root, task, manifest.get("agent_policy", binding(LEGACY)), context(manifest)
@@ -171,7 +183,7 @@ def project(row, root):
         manifest.get("campaign_id") != row["campaign"]
         or manifest.get("principal") != row["principal"]
     ):
-        raise ValueError("campaign projection association differs")
+        raise RecordsDiffer("campaign projection association differs")
     status = ledger.status(owner=manifest["owner"])
     # A product campaign (C-MLP-02-D11) has no expiry and, unless its miner set
     # one, no elapsed budget; a retired-grant campaign keeps its grant's expiry.
@@ -212,11 +224,15 @@ def project(row, root):
         value["operations"].append(
             {"id": op["id"], "phase": op["phase"], "state": op["state"]}
         )
+        result = op["result"] or {}
         if op["actual"] is None:
             target = reserved
-        elif (op["result"] or {}).get(
-            "schema"
-        ) == "carbon.autoresearch.worker-reconciliation.v1":
+        elif (
+            result.get("schema") == "carbon.autoresearch.worker-reconciliation.v1"
+            # A model call settled at its full reservation: its outcome, and
+            # so what the provider charged, is unknown (LP-PROD-W2).
+            or result.get("provider_settlement") is not None
+        ):
             target = uncertain
         else:
             target = reported
@@ -245,6 +261,15 @@ def project(row, root):
         "held_within_reserved": held,
         "cost_basis": "Integer nanodollars; published-rate estimates from provider token usage, not an invoice guarantee",
     }
+    from carbon.development_session.research_campaign import unknown_outcome_calls
+
+    # Model calls whose outcome was unknown: what the miner's Reconcile
+    # settled, at what booked charge and with what caveat, and - while the
+    # campaign awaits reconciliation - what is still unresolved (LP-PROD-W2).
+    # Read from the ledger alone: observing takes no lease.
+    value["unknown_outcome_calls"] = unknown_outcome_calls(
+        status["operations"], awaiting=value["state"] == "RECONCILIATION_REQUIRED"
+    )
     value["attempted_experiments"] = status["used"]["research_trials"]
     for note in status["notes"]:
         if note["kind"] == "hypothesis":
@@ -290,7 +315,7 @@ def project(row, root):
                 (manifest["owner"],),
             ):
                 if digest(body) != pin:
-                    raise ValueError("research result changed")
+                    raise RecordsDiffer("research result changed")
                 result = json.loads(body)
                 if result.get("provenance") in PRACTICE_PROVENANCES:
                     value["experiments"].append(

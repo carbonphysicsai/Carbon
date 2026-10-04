@@ -102,6 +102,33 @@ def status_message(facts, submission_id, *, request=None):
     return _body(facts, STATUS_TOOL, {"submission_id": submission_id}, request)
 
 
+def submission_id(hotkey, strategy, contract_digest):
+    """The submission id the intake answers for this hotkey, recipe and
+    contract, worked out before anything is sent (LP-PROD-G).
+
+    The same three always name the same submission
+    (`daemon.submission_identity`, over the recipe exactly as
+    `submission_message` sends it), so a client resending a frozen candidate
+    first checks that the resend names the submission it means - never a
+    second one under another hotkey. The value built here is read for its
+    identity only; nothing is authenticated or admitted by it.
+    """
+    from .challenge import CHALLENGE
+    from .daemon import AuthenticatedSubmission, submission_identity
+
+    sent = json.loads(json.dumps(strategy, sort_keys=True, separators=(",", ":")))
+    return submission_identity(
+        AuthenticatedSubmission(
+            hotkey=hotkey,
+            receipt={},
+            challenge_id=CHALLENGE.challenge_id,
+            challenge_version=CHALLENGE.version,
+            strategy=sent,
+            contract_digest=contract_digest,
+        )
+    )[1]
+
+
 def post(url, body, headers, *, timeout=30.0):
     """Send signed bytes; returns `(status, answer)`. Refusals are answers."""
     request = urllib.request.Request(
@@ -148,6 +175,51 @@ REFUSALS = {
         "This validator requires an on-chain commitment it cannot yet read."
     ),
     "commitment_required": "Commit this recipe's hash on chain, then resend.",
+    "backend_not_served": (
+        "This validator has no worker image for your recipe's backend. This is "
+        "not a verdict on your recipe and nothing was recorded; send it to a "
+        "validator that serves the backend, or resend once this one does."
+    ),
+    # A campaign's own trip through an intake (`campaign._evaluate_through_intake`).
+    "evaluation_queued": (
+        "Your submission is on the validator's queue and has no verdict yet. "
+        "Your candidate stays frozen; submit again later to ask for its result. "
+        "It is the same submission, never a second one."
+    ),
+    "intake_unreachable": (
+        "The validator's intake could not be reached, or the address did not "
+        "answer as an intake. Nothing was evaluated; check the intake address "
+        "and your connection, then submit again."
+    ),
+    "intake_mismatch": (
+        "The configured intake serves another chain or Challenge, or is not a "
+        "battery intake. Nothing was sent for evaluation; check the intake "
+        "address."
+    ),
+    "intake_signer_changed": (
+        "This epoch's candidate was submitted under another hotkey than the "
+        "signer now connected. Nothing was sent; connect the signer of the "
+        "hotkey that submitted it to read its result. A candidate is never "
+        "submitted again under a second hotkey."
+    ),
+    "signer_unavailable": (
+        "Your signer did not sign this request: it is not running, or it "
+        "declined. Start carbon-miner-signer, then submit again; a submission "
+        "the validator already received stays the same submission."
+    ),
+    "evaluation_failed_infra": (
+        "The validator's infrastructure failed on every retry. This is not a "
+        "verdict on your recipe and your epoch is not used."
+    ),
+    "intake_changed_since_submission": (
+        "This epoch's candidate was submitted to another validator intake than "
+        "the one now configured. Configure that intake again to read its "
+        "result; a candidate is never submitted twice."
+    ),
+    "intake_answer_unrecognised": (
+        "The validator answered in a way this client does not recognise. "
+        "Nothing was evaluated; check the intake serves this version."
+    ),
     "TRANSPORT_IDENTITY": (
         "Your hotkey is not registered on this subnet (or the validator's is "
         "not). Register first, then resend."
@@ -196,6 +268,12 @@ _WAITING = {
 
 def _minutes(seconds):
     return max(1, round(seconds / 60))
+
+
+def explain(code):
+    """The plain explanation of one closed refusal code, or None for a code
+    this client does not know (shown as the code itself, never guessed)."""
+    return REFUSALS.get(code)
 
 
 def describe(status, answer):

@@ -298,29 +298,45 @@ def test_actual_gateway_public_workflow_and_restart_over_stdio(tmp_path, monkeyp
     assert status["used"]["research_trials"] == 0
     from carbon.development_session.research_control import CampaignControl
 
-    assert CampaignControl(ledger).status()["state"] == "INTERRUPTED"
+    # An agent-less campaign (the miner selects) is waiting for its miner once
+    # the attached client detaches: READY. Before 2026-10-03 (LP-PROD-C) every
+    # detach settled INTERRUPTED, so it looked broken after each attach.
+    assert CampaignControl(ledger).status()["state"] == "READY"
 
 
 @pytest.mark.parametrize(
-    "failure",
+    ("failure", "code"),
     [
-        "disabled",
-        "retired_profile",
-        "grant_campaign",
-        "another_principal",
-        "missing_campaign",
-        "unresolved",
+        ("disabled", "research_dispatch_disabled"),
+        ("retired_profile", "runner_profile_v1_retired"),
+        ("grant_campaign", "campaign_manifest_differs"),
+        ("another_principal", "campaign_manifest_differs"),
+        ("missing_campaign", "campaign_not_prepared"),
+        ("revision", "campaign_revision_differs"),
+        ("unresolved", "reconciliation_required"),
     ],
 )
 def test_missing_authority_or_reconciliation_fails_closed(
-    tmp_path, monkeypatch, failure, capsys
+    tmp_path, monkeypatch, failure, code, capsys
 ):
+    """Each failure is named by the check that refused it, with its next
+    action (LP-PROD-C D8); until 2026-10-03 every one printed the same
+    sentence asking the miner to verify six things."""
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
     path, ledger, owner = prepare(tmp_path, monkeypatch)
     profile = json.loads(path.read_bytes())
     if failure == "disabled":
         private_write(path, {**profile, "enabled": False})
     elif failure == "retired_profile":
         private_write(path, {**profile, "schema": "carbon.launchpad.runner-profile.v1"})
+    elif failure == "revision":
+        # The profile now accepts another revision than the campaign froze.
+        revised = "e" * 40
+        runtime = {**profile["runtime"], "implementation": {"revision": revised}}
+        private_write(
+            path, {**profile, "accepted_revision": revised, "runtime": runtime}
+        )
     elif failure in {"grant_campaign", "another_principal"}:
         # A campaign this profile did not launch - one admitted under the
         # retired grant, or another principal's - is never attached to.
@@ -356,7 +372,137 @@ def test_missing_authority_or_reconciliation_fails_closed(
     output = capsys.readouterr()
     assert output.out == ""
     assert str(tmp_path) not in output.err
-    assert "Carbon MCP unavailable" in output.err
+    assert "Carbon MCP unavailable: " + code + "." in output.err
+    if code in NEXT_ACTIONS:
+        assert NEXT_ACTIONS[code] in output.err
+
+
+def test_a_task_left_running_names_the_cleanup_only_attach(
+    tmp_path, monkeypatch, capsys
+):
+    """The live case: an earlier session left a research task RUNNING. The
+    miner is told to attach with --cleanup-only, not to verify everything."""
+    import sqlite3
+
+    from carbon import research
+
+    path, ledger, _owner = prepare(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        standard_cli,
+        "_runtime",
+        lambda profile: (fixture_connection(profile.root), None, None, profile.root),
+    )
+    tasks = ledger.root / "research-tasks" / "research-tasks.sqlite3"
+    with sqlite3.connect(tasks) as db:
+        db.execute(
+            "INSERT INTO tasks (id, request, view) VALUES ('left-running', x'00', x'00')"
+        )
+    monkeypatch.setattr(
+        research,
+        "load_canonical",
+        lambda encoded, kind: SimpleNamespace(state=research.ResearchTaskState.RUNNING),
+    )
+    assert (
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN]) == 2
+    )
+    err = capsys.readouterr().err
+    assert "Carbon MCP unavailable: task_left_running." in err
+    assert "--cleanup-only" in err
+    assert str(tmp_path) not in err
+
+
+def test_a_held_campaign_is_named_busy(tmp_path, monkeypatch, capsys):
+    from scripts.dev.miner_launchpad.controller import owner_lock
+
+    path, ledger, _owner = prepare(tmp_path, monkeypatch)
+    with owner_lock(ledger.root):  # the Control Center's tools, say
+        assert (
+            standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN])
+            == 2
+        )
+    assert "Carbon MCP unavailable: campaign_busy." in capsys.readouterr().err
+
+
+def test_an_owner_change_is_named_for_what_fixes_it(tmp_path, monkeypatch, capsys):
+    """Review nit: an authenticated owner other than the campaign's was named
+    `session_unavailable`, whose step (resume once) cannot fix it -
+    preparation refuses the same change."""
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    path, _ledger, _owner = prepare(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        standard_cli,
+        "_runtime",
+        lambda profile: (fixture_connection(profile.root), None, None, profile.root),
+    )
+
+    async def another_owner(connection):
+        return "another-owner"
+
+    monkeypatch.setattr(standard_cli, "_requester", another_owner)
+    assert (
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN]) == 2
+    )
+    err = capsys.readouterr().err
+    assert "Carbon MCP unavailable: campaign_owner_changed." in err
+    assert NEXT_ACTIONS["campaign_owner_changed"] in err
+
+
+def test_a_public_record_missing_its_fields_is_the_profiles_to_fix(
+    tmp_path, monkeypatch
+):
+    """Review nit: the miner public record's `netuid` and `hotkey` were read
+    outside any check, so a record without them was named by the check
+    around it - `runtime_unavailable`, "Docker is not running"."""
+    from carbon.chain.models import CARBON_NETUID
+    from carbon.development_session import miner_network
+
+    path, _ledger, _owner = prepare(tmp_path, monkeypatch)
+    profile = standard_cli.load_profile(path, CAMPAIGN)
+    paths = {name: Path(value) for name, value in profile.document["paths"].items()}
+    monkeypatch.setattr(
+        miner_network,
+        "binding",
+        lambda **_: SimpleNamespace(
+            netuid=CARBON_NETUID, context=None, publisher_hotkey=None
+        ),
+    )
+    private_write(paths["miner_public"], {"netuid": CARBON_NETUID})
+    with pytest.raises(KeyError) as failed:
+        standard_cli._connection(profile, paths)
+    assert standard_cli.refusal_code(failed.value) == "runner_profile_unusable"
+
+
+def test_a_paused_campaign_is_attachable_and_stays_paused(tmp_path, monkeypatch):
+    """LP-PROD-C D12: the Tools tab of a campaign its miner paused opens.
+    Attaching lifts the pause only for the attachment, which holds the
+    campaign's lock, and detaching settles it PAUSED again. A stop asked
+    while attached stands."""
+    from carbon.development_session.research_control import CampaignControl
+
+    path, ledger, _owner, _ = prepare_battery(tmp_path, monkeypatch)
+    monkeypatch.setattr(standard_cli, "_runtime", fixture_runtime)
+    control = CampaignControl(ledger)
+    control.request("pause")
+    control.settled(control.acquire(), cleanup_verified=True)
+    assert control.status()["state"] == "PAUSED"
+    seen = []
+
+    async def attach(during=None):
+        async with standard_cli.attached(path, CAMPAIGN):
+            seen.append(CampaignControl(ledger).status()["desired"])
+            if during is not None:
+                during()
+
+    asyncio.run(attach())
+    assert seen == ["RUN"]  # lifted while attached, so its calls are admitted
+    status = control.status()
+    assert (status["desired"], status["state"]) == ("PAUSE", "PAUSED")
+    asyncio.run(attach(lambda: CampaignControl(ledger).request("stop")))
+    assert control.status()["state"] == "STOPPED"
+    with pytest.raises(standard_cli.AttachRefused) as refused:
+        asyncio.run(attach())
+    assert refused.value.code == "campaign_stopped"
 
 
 @pytest.mark.parametrize("registered", [False, True])

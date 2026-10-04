@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="carbon-session-link" content="fragment-v1">
   <title>Carbon | Miner Control Center · Development</title>
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/research.css">
@@ -19,7 +20,7 @@
   <div class="shell">
   <nav id="tool-nav" class="tool-nav" aria-label="Control Center"></nav>
   <main>
-    <section id="connect-panel" class="connect panel"><div><p class="eyebrow section-label">Start here</p><h2>Connect this browser</h2><p class="hint">Paste the local session token the server printed. It stays in this tab's memory only.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit" class="primary">Connect</button></div></form></section>
+    <section id="connect-panel" class="connect panel"><div><p class="eyebrow section-label">Start here</p><h2>Connect this browser</h2><p class="hint">Open the link the Control Center printed, or paste the local session token it printed. Either way the token stays in this tab's memory only.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit" class="primary">Connect</button></div></form></section>
     <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
     <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
 
@@ -63,7 +64,7 @@
           <div id="research-review"></div>
           <p id="composition-summary" class="hint" aria-live="polite"></p>
         </section>
-        <section class="step" data-step="launch" aria-labelledby="step-launch-heading" hidden><h2 id="step-launch-heading">Launch</h2><p id="wizard-launch-note" class="hint">Launching records the campaign, then your registration is read before anything runs. A lost response is retried with the same request, never duplicated.</p><p id="wizard-launch-summary" class="launch-summary"></p><button id="research-launch" class="primary" type="button" disabled>Launch research</button><p id="wizard-launch-reason" class="reason"></p></section>
+        <section class="step" data-step="launch" aria-labelledby="step-launch-heading" hidden><h2 id="step-launch-heading">Launch</h2><p id="wizard-launch-note" class="hint">Launching records the campaign, then your registration is read before anything runs. A lost response is retried with the same request, never duplicated.</p><p id="wizard-launch-summary" class="launch-summary"></p><p id="research-pending" class="reason" role="status" hidden></p><div class="launch-actions"><button id="research-launch" class="primary" type="button" disabled>Launch research</button><button id="research-discard" type="button" hidden>Discard the unconfirmed launch</button></div><p id="wizard-launch-reason" class="reason"></p></section>
         <div class="wizard-nav"><button id="wizard-back" type="button">Back</button><button id="wizard-next" type="button" class="primary">Next</button></div>
         <p id="wizard-next-reason" class="reason" aria-live="polite"></p>
       </div>
@@ -134,6 +135,7 @@
             <p class="hint">A pause or restart does not extend the lifetime. At most four active runs.</p>
             <div class="cost"><span>External spend</span><strong>$0.00</strong></div>
             <button class="primary" id="launch-button" type="submit">Launch rehearsal <span aria-hidden="true">↗</span></button>
+            <button id="launch-discard" type="button" hidden>Discard the unconfirmed launch</button>
           </fieldset></form>
         </section>
         <section class="panel activity"><div class="panel-heading"><h2>Rehearsal activity</h2><span id="rehearsal-state" class="small-tag">Fixture</span></div>

@@ -347,27 +347,33 @@ def test_a_live_model_is_bound_to_its_grant_and_the_engy_ladder(tmp_path):
     assert live.transport_for(engy).selection is engy
 
 
-def test_several_tool_calls_in_one_turn_stop_the_session(tmp_path):
-    """A role other than the Constructor keeps the loop's historical rule
-    (GRAPHITE-D33): such a turn stops the session."""
+def test_several_tool_calls_in_one_turn_all_run_for_every_role(tmp_path):
+    """Every role runs under `PARALLEL_CALLS_V2` (LP-PROD-A, superseding
+    GRAPHITE-D33, under which a Reader's such turn ended `harness_error`):
+    both searches run, in order, and the session goes on."""
     model = ScriptedModel(
         [
             tools(
                 tool("lit_search", {"query": "a"}),
                 tool("lit_search", {"query": "b"}),
-            )
+            ),
+            text("done"),
         ]
     )
     graphite, run_id = started(tmp_path / "graphite", model)
-    assert graphite.run(run_id) == "failed"
-    assert graphite.session_record(run_id)["outcome"]["failure"]["code"] == (
-        "harness_error"
-    )
+    assert graphite.run(run_id) == "succeeded"
+    answered = [
+        item["call_id"]
+        for item in model.requests[1]["input"]
+        if item.get("type") == "function_call_output"
+    ]
+    assert answered == ["script-001-0", "script-001-1"]
+    assert model.requests[1]["parallel_tool_calls"] is True
 
 
-def test_a_constructor_turn_with_several_tool_calls_runs_only_the_first(tmp_path):
-    """GRAPHITE-D33 (owner, 2026-10-03): the Constructor runs under the loop's
-    `PARALLEL_CALLS` rule, so the first call runs and the rest are refused."""
+def test_a_constructor_turn_with_several_tool_calls_runs_every_call(tmp_path):
+    """LP-PROD-A (OWNER-LAUNCHPAD-PROD-01): the Constructor's several calls
+    all run, in the model's order, each under its own tool identity."""
     miner = RecordingMinerTools()
     model = ScriptedModel(
         [
@@ -382,14 +388,16 @@ def test_a_constructor_turn_with_several_tool_calls_runs_only_the_first(tmp_path
         tmp_path / "graphite", model, role=RoleName.CONSTRUCTOR, miner_tools=miner
     )
     assert graphite.run(run_id) == "succeeded"
-    assert [call[0] for call in miner.calls] == [PREFIX + "get_challenge_info"]
-    refused = [
-        json.loads(item["output"])
+    assert [call[0] for call in miner.calls] == [
+        PREFIX + "get_challenge_info",
+        PREFIX + "get_interaction_manifest",
+    ]
+    answered = [
+        json.loads(item["output"])["status"]
         for item in model.requests[1]["input"]
         if item.get("type") == "function_call_output"
-        and item["call_id"] == "script-001-1"
     ]
-    assert [r["status"] for r in refused] == ["REFUSED_NOT_RUN"]
+    assert "REFUSED_NOT_RUN" not in answered and len(answered) == 2
 
 
 def test_a_session_brief_is_typed():

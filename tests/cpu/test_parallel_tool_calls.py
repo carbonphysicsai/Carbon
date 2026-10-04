@@ -187,11 +187,18 @@ def test_the_rule_is_frozen_never_inferred(tmp_path):
         )
 
 
-def test_a_new_battery_plan_freezes_the_rule():
+def test_a_new_battery_plan_freezes_the_v2_rule():
+    """From LP-PROD-A (OWNER-LAUNCHPAD-PROD-01) a new battery campaign freezes
+    `PARALLEL_CALLS_V2`; a campaign frozen earlier keeps `PARALLEL_CALLS`,
+    read back from its own manifest (`frozen_parallel_calls`)."""
     from carbon.battery.campaign import provider_plan
+    from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
 
     plan = provider_plan(
         "autonomous",
         {"ceilings": {"provider_attempts": 10, "provider_nanodollars": 10**9}},
     )
-    assert plan["parallel_calls"] == PARALLEL_CALLS
+    assert plan["parallel_calls"] == PARALLEL_CALLS_V2
+    assert frozen_parallel_calls(
+        {"provider": {**plan, "parallel_calls": PARALLEL_CALLS}}
+    ) == (PARALLEL_CALLS)

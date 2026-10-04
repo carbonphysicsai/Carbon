@@ -67,7 +67,9 @@ account and a recording miner tool, under a synthetic grant, writing only
 under `DIR/dry-run`. Carbon's admission, frozen-rule scoring, comparison,
 bundle and clean rebuild are real; the predictions are SYNTHETIC. Its first
 turn returns three tool calls at once, as live session 1's model did, so the
-parallel-call rule (GRAPHITE-D33) runs before any spend.
+parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
+(LP-PROD-A) all three run, and the dry run reports how many calls of
+several-call turns ran and how many did not.
 """
 
 from __future__ import annotations
@@ -88,7 +90,7 @@ from pathlib import Path
 
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_loop import run_epoch
+from carbon.development_session.research_loop import parallel_call_counts, run_epoch
 
 from .. import boundaries
 from ..grant import SpendingGrant
@@ -369,8 +371,8 @@ class Phase3Provider(GraphiteProvider):
                 instructions=role.prompt,
                 tools=role.tool_schemas(),
                 max_provider_calls=CONSTRUCTOR_SESSION_TURNS,
-                # A turn with several tool calls runs the first and refuses
-                # the rest (GRAPHITE-D33).
+                # Every tool call of a turn runs, in the model's order
+                # (LP-PROD-A, superseding GRAPHITE-D33's first-call rule).
                 parallel_calls=PARALLEL_RULES.get(role.name),
             )
         if report["status"] != "RECONCILIATION_REQUIRED":
@@ -978,8 +980,8 @@ def dry_run_script(baseline):
     unrebuildable = {**baseline, "backbone": "transolver"}
     prefix = "carbon_research_v2__"
     return [
-        # Live session 1's first turn: three tool calls at once. The first
-        # runs; the other two are refused and journalled (GRAPHITE-D33).
+        # Live session 1's first turn: three tool calls at once. All three
+        # run, in order, each journalled (LP-PROD-A).
         tools(
             tool(prefix + "get_challenge_info", {}),
             tool(prefix + "get_interaction_manifest", {}),
@@ -1040,18 +1042,14 @@ def dry_run(root, literature=None):
         result = run_session(control, provider, brief, 1)
     finally:
         control.close()
-    refusals = (provider._dir(result["run_id"]) / "ledger" / f"epoch-{EPOCH}").glob(
-        "*-parallel-refusal.json"
-    )
     result["dry_run"] = {
         "synthetic": True,
         "note": "scripted model, scripted pods and SYNTHETIC predictions; "
         "admission, scoring, comparison, bundle and clean rebuild are Carbon's own",
         "pods_launched": len(pods.launched),
         "pods_alive": sorted(pods.alive),
-        # The tool calls the parallel-call rule refused, from its journal.
-        "refused_parallel_calls": sum(
-            len(json.loads(path.read_bytes())["refused"]) for path in refusals
+        **parallel_call_counts(
+            provider._dir(result["run_id"]) / "ledger" / f"epoch-{EPOCH}"
         ),
     }
     print(json.dumps(result, indent=1, default=str))

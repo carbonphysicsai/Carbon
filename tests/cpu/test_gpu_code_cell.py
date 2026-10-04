@@ -463,6 +463,8 @@ def test_a_local_gpu_run_records_its_device(tmp_path, monkeypatch):
         operation = ledger.root / "operation-x"
         (operation / "snapshot").mkdir(parents=True)
         (operation / "snapshot" / "speed.json").write_bytes(b"{}")
+        # What the miner lane keeps of the program's streams.
+        (operation / "stdout.txt").write_bytes(b"step 1 on the GPU\n")
         from carbon.development_session.profile import digest
 
         return {"operation": "operation-x", "files": {"speed.json": digest(b"{}")}}
@@ -480,8 +482,18 @@ def test_a_local_gpu_run_records_its_device(tmp_path, monkeypatch):
     assert result["device"]["kind"] == "local_gpu"
     assert result["device"]["device_kind"] == "NVIDIA L4"
     assert result["workspace_exports"] == ["1" * 20 + "-speed.json"]
+    # What the program printed comes back with its result (LP-PROD-D).
+    assert result["program_output"] == {
+        "stdout_tail": "step 1 on the GPU\n",
+        "stderr_tail": None,
+    }
 
     def failing(ledger, **kwargs):
+        operation = ledger.root / "operation-y"
+        operation.mkdir()
+        (operation / "stderr.txt").write_bytes(
+            b"Traceback (most recent call last):\nRuntimeError: CUDA error\n"
+        )
         raise research_carrier.MinerProgramFailure(
             {
                 "schema": research_carrier.MINER_FAILURE_SCHEMA,
@@ -500,6 +512,9 @@ def test_a_local_gpu_run_records_its_device(tmp_path, monkeypatch):
     )
     assert failed["outcome"] == "MINER_PROGRAM_FAILED"
     assert failed["device"]["kind"] == "local_gpu"
+    assert failed["program_output"]["traceback"] == (
+        "Traceback (most recent call last):\nRuntimeError: CUDA error\n"
+    )
 
 
 class FakeRemote:
@@ -525,7 +540,11 @@ class FakeRemote:
         output = {
             "plot.png": b"\x89PNG\r\n\x1a\nfake",
             "carbon-stdout.txt": b"printed on the GPU\n",
-            "carbon-job-stderr.txt": b"a warning\n",
+            "carbon-job-stderr.txt": (
+                b"a warning\n"
+                if self.returncode == 0
+                else b"Traceback (most recent call last):\nRuntimeError: on the GPU\n"
+            ),
         }
         for name, body in output.items():
             (snapshot / name).write_bytes(body)
@@ -565,6 +584,12 @@ def test_a_remote_gpu_run_uses_the_route_and_keeps_its_output(tmp_path):
     assert result["workspace_exports"] == ["3" * 20 + "-plot.png"]
     assert result["device"]["kind"] == "remote_gpu"
     assert result["device"]["transport"] == "ssh-docker"
+    # The job's exported stdout and stderr, kept as stdout.txt and
+    # stderr.txt above, come back with the result (LP-PROD-D).
+    assert result["program_output"] == {
+        "stdout_tail": "printed on the GPU\n",
+        "stderr_tail": "a warning\n",
+    }
     failed = gpu_code_cell.run(
         executor_with(tmp_path / "again", lane(FakeRemote(returncode=1))),
         identity="rtsk_" + "4" * 64,
@@ -573,6 +598,9 @@ def test_a_remote_gpu_run_uses_the_route_and_keeps_its_output(tmp_path):
     )
     assert failed["outcome"] == "MINER_PROGRAM_FAILED"
     assert failed["worker"]["failure_code"] == "RUNTIME"
+    assert failed["program_output"]["traceback"] == (
+        "Traceback (most recent call last):\nRuntimeError: on the GPU\n"
+    )
 
 
 def real_remote_lane(tmp_path):
@@ -625,6 +653,7 @@ def test_a_real_remote_run_reads_the_job_result_where_the_runner_records_it(
     assert result["workspace_exports"] == ["5" * 20 + "-speed.json"]
     operation = executor.ledger.root / result["worker"]["operation"]
     assert (operation / "stdout.txt").read_bytes() == b"ran on the remote GPU\n"
+    assert result["program_output"]["stdout_tail"] == "ran on the remote GPU\n"
     assert result["device"]["isolation"] == gpu_code_cell.REMOTE_SANDBOX
     failed = gpu_code_cell.run(
         executor,

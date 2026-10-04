@@ -11,6 +11,7 @@ import contextlib
 import hmac
 import json
 import os
+import re
 import secrets
 import sqlite3
 import threading
@@ -50,6 +51,12 @@ STATIC = {
     "/fonts/neue-0.otf": ("fonts/neue-0.otf", "font/otf"),
     "/fonts/neue-1.otf": ("fonts/neue-1.otf", "font/otf"),
 }
+#: A path this controller does not serve, answered 404. Its own code, left
+#: unnamed in the refusal catalog as `unknown_operation` is: until the review
+#: repair it was `not_found`, which the catalog names for a validator intake's
+#: answer ("the validator holds no submission of this candidate"), so a
+#: mistyped API path came back with that step.
+ROUTE_NOT_FOUND = "route_not_found"
 
 
 class Rejected(Exception):
@@ -59,6 +66,130 @@ class Rejected(Exception):
         super().__init__(code)
         self.code = code
         self.status = status
+
+
+class LockHeld(RuntimeError):
+    """`owner_lock` found its lock held by a live process. A RuntimeError with
+    the historical message, so every existing caller is unchanged; a door
+    that reaches one answers `campaign_busy` (LP-PROD-C)."""
+
+
+def failure_answer(exc, *, reading, campaign=False):
+    """The closed (status, code) a door answers for a failure that is not a
+    `Rejected` (LP-PROD-C D8).
+
+    Before 2026-10-03 every ValueError and RuntimeError was answered
+    `research_reconciliation_required`, which named a state the campaign was
+    not in and sent the miner to reconcile something that needed nothing. Now:
+    a held lock is `campaign_busy`; a typed failure answers its own closed code
+    (a signer failure, an operation's refusal, a campaign whose records
+    disagree: `campaign_readback_unavailable`); anything else is answered for
+    what was asked - a campaign that could not be read just now
+    (`campaign_read_failed`), another read (`readback_unavailable`), or an
+    operation that did not complete (`operation_not_completed`). Never the
+    exception's message. `error_body` adds the next step for each.
+    """
+    from scripts.dev.miner_launchpad.supervisor import exception_code
+
+    if isinstance(exc, LockHeld):
+        return 409, "campaign_busy"
+    code = exception_code(exc)
+    if code is not None:
+        return 409, code
+    if reading:
+        return 409, ("campaign_read_failed" if campaign else "readback_unavailable")
+    return 409, "operation_not_completed"
+
+
+def error_body(code, exc=None):
+    """An error answer's body: `{error}`, the `field` and `next_step` a
+    setup refusal names, and otherwise the refusal catalog's next step for
+    `code` when the catalog names it (LP-PROD-C D8).
+
+    So a synchronous refusal - a submit with no validator configured
+    (`evaluation_unavailable`), a held campaign (`campaign_busy`) - carries
+    what to do next in the answer itself, under the name setup refusals
+    already use and the MCP door's refusal body uses too. The step is the
+    catalog's fixed text, never anything from the request or the failure.
+    A code the catalog does not name keeps the bare `{error}`."""
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
+    body = {"error": code}
+    for name in ("field", "next_step"):
+        if getattr(exc, name, None) is not None:
+            body[name] = getattr(exc, name)
+    if "next_step" not in body and code in NEXT_ACTIONS:
+        body["next_step"] = NEXT_ACTIONS[code]
+    return body
+
+
+def attach_runner(profile, *, legacy_database=None, role=None):
+    """The campaign host for the runner profile at `profile`, or None with
+    why it was not attached: (runner, None) or (None, refusal).
+
+    A profile that no longer describes what the installer installed beside
+    it (LP-PROD-E's staleness check, `runner.install_refusal`) is refused
+    `carbon_updated_rerun_installer` rather than attached (LP-PROD-W2):
+    until then a restart attached `runner-profile.json` whenever it existed,
+    so a profile at an earlier accepted revision or images ran on. The
+    refusal reads as the preflight the page already renders for an updated
+    checkout (LP-PROD-C D9: `status: CARBON_UPDATED`, `code`, `reason`), with
+    `next_step`: the one step that clears it, and why. Any other failure is
+    raised, as before."""
+    from scripts.dev.miner_launchpad.runner import CARBON_UPDATED, RunnerAdapter
+    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS, SUPERVISOR
+
+    try:
+        runner = RunnerAdapter.for_profile(
+            profile,
+            legacy_database=legacy_database,
+            role=SUPERVISOR if role is None else role,
+        )
+    except Rejected as refused:
+        if refused.code != CARBON_UPDATED:
+            raise
+        return None, {
+            "available": False,
+            "profile": None,
+            "status": "CARBON_UPDATED",
+            "code": refused.code,
+            "reason": NEXT_ACTIONS[refused.code],
+            "next_step": getattr(refused, "next_step", None),
+        }
+    return runner, None
+
+
+def session_url(origin: str, token: str) -> str:
+    """The page's address with the session token in its fragment.
+
+    A fragment never leaves the browser: it is not sent to this server, not
+    logged by it, and not carried in a Referer. The page reads it once, removes
+    it from the address bar and authenticates as if it had been pasted
+    (slice F), so a restart needs only the printed link."""
+    return f"{origin}/#token={token}"
+
+
+#: How the page declares, in its own `<head>`, that it reads `#token=` once
+#: and removes it from the address bar before anything stores the route
+#: (slice F). Matched exactly; whitespace inside the tag is free.
+SESSION_LINK_DECLARATION = re.compile(
+    r'<meta\s+name="carbon-session-link"\s+content="fragment-v1"\s*/?>'
+)
+
+
+def session_link_supported(page: Path | None = None) -> bool:
+    """Whether the page this Control Center serves reads the session link.
+
+    Until it declares so (`SESSION_LINK_DECLARATION`), no link is printed:
+    a page that does not read the fragment would keep the token in its
+    saved route and the address bar's history, and still not connect. So
+    this cannot ship ahead of the page that handles it (LP-PROD-C D14)."""
+    page = page or Path(__file__).with_name("index.html")
+    try:
+        head = page.read_text(encoding="utf-8")[:65536]
+    except OSError:
+        return False
+    return SESSION_LINK_DECLARATION.search(head) is not None
 
 
 def validate_spec(value: object) -> dict:
@@ -520,6 +651,9 @@ class Server(ThreadingHTTPServer):
         # C-MLP-03: after registration the miner sets up their environment
         # here, and the profile it writes is loaded without a restart.
         self.research_profile = None
+        # Why the runner profile was not attached, when it no longer
+        # describes this install (`attach_runner`, LP-PROD-W2).
+        self.profile_refusal = None
         self.legacy_database = legacy_database
         self.attach_lock = threading.Lock()
         self.setup = None
@@ -545,15 +679,25 @@ class Server(ThreadingHTTPServer):
         Only into an empty seat: an operator's `--research-profile` is never
         replaced from the browser. Re-attaching the same file is a no-op, since
         the runner re-reads its profile on every operation.
+
+        A profile that no longer describes this install is not attached
+        (False), and the page reads why (`profile_refusal`): the setup page
+        loads a written profile on every read, so this is the same check as
+        on start (LP-PROD-W2).
         """
-        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+        from scripts.dev.miner_launchpad.supervisor import SUPERVISOR
 
         with self.attach_lock:
             if self.research_runner is not None:
                 return self.research_profile == Path(profile)
-            self.research_runner = RunnerAdapter.for_profile(
-                profile, legacy_database=self.legacy_database
+            # The Control Center supervises its campaigns (LP-PROD-C).
+            runner, refused = attach_runner(
+                profile, legacy_database=self.legacy_database, role=SUPERVISOR
             )
+            self.profile_refusal = refused
+            if runner is None:
+                return False
+            self.research_runner = runner
             self.research_profile = Path(profile)
             return True
 
@@ -639,6 +783,13 @@ class Handler(BaseHTTPRequestHandler):
                 from scripts.dev.miner_launchpad.operations import describe
 
                 self.reply(200, {"operations": describe()})
+            elif self.path == "/api/v1/refusals":
+                # The next action for every refusal code a door can answer or
+                # a campaign can record, from the one closed table (LP-PROD-C
+                # D8): the page renders any error or `last_refusal` with it.
+                from scripts.dev.miner_launchpad.supervisor import catalog
+
+                self.reply(200, catalog())
             elif self.path == "/api/v1/onboarding/requirements":
                 # Open tier. No campaign, no compute, no ledger.
                 self.reply(200, self.server.onboarding.requirements())
@@ -706,7 +857,10 @@ class Handler(BaseHTTPRequestHandler):
                         "preflight": (
                             runner.preflight()
                             if runner
-                            else {"available": False, "status": "ADMISSION_DISABLED"}
+                            # A profile not attached because it no longer
+                            # describes this install says so (LP-PROD-W2).
+                            else self.server.profile_refusal
+                            or {"available": False, "status": "ADMISSION_DISABLED"}
                         ),
                         "runs": runner.recent() if runner else [],
                     },
@@ -725,7 +879,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise Rejected("research_admission_unavailable", 409)
                 parts = self.path.split("/")
                 if len(parts) != 5:
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 self.reply(200, route(runner, parts[4], "state", None))
             elif self.path.startswith("/api/v1/development/"):
                 sources = self.server.development_sources
@@ -739,13 +893,16 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/v1/runs/"):
                 self.reply(200, self.server.controller.get(self.path[13:]))
             else:
-                raise Rejected("not_found", 404)
+                raise Rejected(ROUTE_NOT_FOUND, 404)
         except Rejected as exc:
-            self.reply(exc.status, {"error": exc.code})
+            self.reply(exc.status, error_body(exc.code, exc))
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
-        except ValueError:
-            self.reply(409, {"error": "research_reconciliation_required"})
+        except Exception as exc:  # noqa: BLE001 - a closed code, never a message
+            status, code = failure_answer(
+                exc, reading=True, campaign=self.path.startswith("/api/v1/research/")
+            )
+            self.reply(status, error_body(code))
 
     def do_POST(self):
         try:
@@ -826,7 +983,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise Rejected("research_admission_unavailable", 409)
                 parts = self.path.split("/")
                 if len(parts) != 6 or parts[5] == "state":
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 result = route(runner, parts[4], parts[5], value)
             elif self.path.startswith("/api/v1/conversation/"):
                 # The miner's message to their own agent, from this page
@@ -865,23 +1022,21 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 parts = self.path.split("/")
                 if len(parts) != 6 or parts[1:4] != ["api", "v1", "runs"]:
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 if value != {} or type(value) is not dict:
                     raise Rejected("control_body_must_be_empty_object")
                 result = self.server.controller.control(parts[4], parts[5])
             self.reply(200, result)
         except Rejected as exc:
-            body = {"error": exc.code}
             # A setup refusal names the field it is about, and the next step
-            # when there is one to take.
-            for name in ("field", "next_step"):
-                if getattr(exc, name, None) is not None:
-                    body[name] = getattr(exc, name)
-            self.reply(exc.status, body)
+            # when there is one to take; any other refusal the catalog names
+            # carries its next step too (`error_body`).
+            self.reply(exc.status, error_body(exc.code, exc))
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
-        except (ValueError, RuntimeError):
-            self.reply(409, {"error": "research_reconciliation_required"})
+        except Exception as exc:  # noqa: BLE001 - a closed code, never a message
+            status, code = failure_answer(exc, reading=False)
+            self.reply(status, error_body(code))
 
 
 @contextlib.contextmanager
@@ -927,7 +1082,7 @@ def owner_lock(directory: Path):
         try:
             acquire()
         except OSError as exc:
-            raise RuntimeError("Another launcher owns this state directory") from exc
+            raise LockHeld("Another launcher owns this state directory") from exc
         try:
             yield
         finally:
@@ -984,7 +1139,7 @@ def main() -> None:
                 sources.attach(path)
             except Exception:  # noqa: BLE001 - do not print private source errors.
                 parser.error("DEVELOPMENT source attachment failed verification")
-        runner = None
+        runner = refused = None
         if args.research_profile is None:
             # The profile "Set up your environment" wrote here, so a restart
             # opens the miner's own setup without a flag (C-MLP-04).
@@ -992,11 +1147,14 @@ def main() -> None:
             if written.is_file() and not written.is_symlink():
                 args.research_profile = written
         if args.research_profile is not None:
-            from scripts.dev.miner_launchpad.runner import RunnerAdapter
-
             # The same host an MCP client with this profile constructs, over
             # the same records; earlier browser-only records are adopted once.
-            runner = RunnerAdapter.for_profile(
+            # While it runs, the Control Center is the campaigns' supervisor
+            # (LP-PROD-C): it runs its own and its clients' campaign work, and
+            # closing it pauses that work rather than stopping it. A profile
+            # that no longer describes this install is not attached; the
+            # page's setup writes a current one (LP-PROD-W2).
+            runner, refused = attach_runner(
                 args.research_profile, legacy_database=database
             )
         server = Server(
@@ -1010,6 +1168,7 @@ def main() -> None:
         )
         if runner is not None:
             server.research_profile = args.research_profile
+        server.profile_refusal = refused
         controller.recover()
         done = threading.Event()
 
@@ -1026,13 +1185,26 @@ def main() -> None:
         thread.start()
         print(
             f"Carbon DEVELOPMENT Control Center: {server.origin}"
-            if runner
+            if runner or refused
             else f"Carbon DEVELOPMENT controller rehearsal: {server.origin}"
         )
+        if refused is not None:
+            # Named, with the step that clears it, never attached (LP-PROD-W2).
+            print(
+                f"Runner profile not attached: {refused['code']}. "
+                f"Next: {refused['next_step']}."
+            )
+        # The link carries the token in its fragment, so a restart needs only
+        # a click; the server still binds loopback and checks Host, Origin and
+        # the bearer token on every request (LP-PROD-C D14). Printed only once
+        # the page declares it reads the fragment (`session_link_supported`).
+        if session_link_supported():
+            link = session_url(server.origin, token)
+            print(f"Open (this link holds your session token; do not share): {link}")
         print(f"Local session token (paste into page; do not share): {token}")
         print(
             "Set up your environment, then choose a Challenge and launch."
-            if runner
+            if runner or refused
             else "No agents, paid compute, training, registration, or submissions."
         )
         try:

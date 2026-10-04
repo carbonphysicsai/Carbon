@@ -2,6 +2,13 @@
 
 The legacy provider does not execute the new task kind. This explicit D4
 composition opts in; all files/scripts remain miner-owned and non-authoritative.
+
+A request's values are the requester's to get right, and refusing them is
+never an infrastructure failure (LP-PROD-D). `check_workspace_request` is the
+one rule: the request path reads it before dispatch, so a bad value starts no
+task and charges no trial slot, and the executor reads it again before acting,
+so a request that reaches it anyway completes as REQUEST_REFUSED with the same
+code, field and fix.
 """
 
 from __future__ import annotations
@@ -140,6 +147,406 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             return load_canonical(self._requests[task_id], StartResearchTaskRequest)
 
 
+#: The most bytes one `read_file` returns, by the campaign's research tools
+#: rule (`research_tools.frozen_tools_rule`; None is the historical rule).
+#: Historical: 4 KiB as `content_base64`, exactly as before. Under v2
+#: (LP-PROD-D): 8 KiB, returned once - as `content_utf8` when the bytes are
+#: UTF-8 text no longer escaped than base64, otherwise as `content_base64`
+#: (`read_file_content`). Whatever a read returns stays in the agent's
+#: context for the rest of its epoch, and a request is admitted only within
+#: max_input_tokens less a reserve (61440 at the default selection). 8 KiB is
+#: the most whose worst case - 16 KiB of escaped text, carried in the
+#: history as a JSON string - still fits beside the battery agent's first
+#: request (about 34 KB) as its first tool result; 12 KiB does not. A test
+#: checks that fit against the real request (test_lp_prod_research_tools).
+READ_FILE_MAX_BYTES = {None: 4096, "carbon.autoresearch.research-tools.v2": 8192}
+#: The notebook kinds a miner (or their agent) may write.
+NOTEBOOK_KINDS = ("hypothesis", "decision", "notebook")
+#: The actions that run the miner's own program in the miner lane.
+RUN_ACTIONS = frozenset({"run_python", "run_julia"})
+#: The bound on a run's prospective hypothesis and expected effect.
+RUN_TEXT = 2048
+
+
+def reserved_stage_names(action):
+    """The names the carrier stages itself for `action`, which a run's own
+    files may not take: every run's `program.py` (the carrier refuses it in
+    any stage) and, for run_julia, its program `program.jl` too."""
+    return frozenset(
+        {"program.py", "program.jl"} if action == "run_julia" else {"program.py"}
+    )
+
+
+def read_file_limit(executor):
+    """The most bytes one `read_file` returns for this executor's campaign:
+    the limit its frozen research tools rule sets (`READ_FILE_MAX_BYTES`)."""
+    from .research_tools import campaign_tools_rule
+
+    return READ_FILE_MAX_BYTES[campaign_tools_rule(getattr(executor, "ledger", None))]
+
+
+def read_file_content(chunk, rule):
+    """One read's bytes as its result carries them, by research tools rule.
+
+    The historical rule returns `content_base64` alone, as it always has. v2
+    returns the bytes once, never both encodings: `content_utf8` when they
+    decode as UTF-8 and their JSON-escaped text is no longer than their
+    base64 (ordinary text always is), otherwise `content_base64`; the other
+    is null. Text full of control or non-ASCII characters escapes to up to
+    six bytes per byte, so it comes back as base64 rather than cost the
+    model's context several times its size.
+    """
+    encoded = base64.b64encode(chunk).decode("ascii")
+    if rule is None:
+        return {"content_base64": encoded}
+    try:
+        text = chunk.decode("utf-8")
+    except UnicodeDecodeError:
+        text = None
+    if text is not None and len(canonical(text)) - 2 > len(encoded):
+        text = None
+    return {
+        "content_utf8": text,
+        "content_base64": encoded if text is None else None,
+    }
+
+
+class WorkspaceRequestRefused(ValueError):
+    """A workspace request whose values Carbon refuses: the requester's to fix.
+
+    `code` is a closed correction code (`research_tools.TASK_CORRECTIONS`),
+    `field` the registered field it is about, and `choices` the Carbon-written
+    values the correction may list (material names, environments). The text
+    is the historical message, so a caller that only knew ValueError reads
+    what it always read. It is never an infrastructure failure: before
+    dispatch it becomes REJECTED_BEFORE_DISPATCH, and at execution the task
+    completes reporting REQUEST_REFUSED, with nothing run and no trial slot
+    charged.
+    """
+
+    def __init__(self, code, field, message, choices=()):
+        super().__init__(message)
+        self.code, self.field, self.choices = code, field, tuple(choices)
+
+
+#: The material names every bound material service serves.
+PUBLIC_MATERIALS = (
+    "objective",
+    "capabilities",
+    "training_data",
+    "practice_data",
+    "reference_method",
+)
+
+
+def every_public_material_name():
+    """Every name `public_material_names` can return, for any material
+    service: the closed list a `public_material_unknown` correction lists
+    from (`research_tools.correction_choices`)."""
+    from .advection_research import MATERIAL as ADVECTION_MATERIAL
+    from .julia_envelope import MATERIAL as ENVELOPE
+    from .julia_research import MATERIAL
+
+    return (*PUBLIC_MATERIALS, MATERIAL, ADVECTION_MATERIAL, ENVELOPE)
+
+
+def public_material_names(public_material):
+    """The material names the bound material service serves, in order.
+
+    The bound material service owns the allowlist. No arbitrary path, case
+    coordinate, URL, evaluator query or hidden-role selector.
+    """
+    from .advection_research import MATERIAL as ADVECTION_MATERIAL
+    from .advection_research import PublicAdvectionMaterial
+    from .julia_envelope import MATERIAL as ENVELOPE
+    from .julia_envelope import JuliaEnvelopeMaterial
+    from .julia_research import MATERIAL, JuliaPublicMaterial
+
+    names = list(PUBLIC_MATERIALS)
+    if type(public_material) is JuliaPublicMaterial:
+        names.append(MATERIAL)
+    if type(public_material) is PublicAdvectionMaterial:
+        names.append(ADVECTION_MATERIAL)
+    if type(public_material) is JuliaEnvelopeMaterial:
+        names += [MATERIAL, ENVELOPE]
+    return tuple(dict.fromkeys(names))
+
+
+def _refuse(code, field, message, choices=()):
+    raise WorkspaceRequestRefused(code, field, message, choices)
+
+
+def _workspace_name(value, field):
+    from .research_workspace import is_workspace_name
+
+    if not is_workspace_name(value):
+        _refuse(
+            "workspace_name_invalid",
+            field,
+            "workspace names are bounded flat identifiers, never paths",
+        )
+
+
+def _decoded(text):
+    try:
+        return base64.b64decode(text, validate=True)
+    except (ValueError, TypeError):
+        return None
+
+
+def check_workspace_request(executor, action, args, *, state=True):
+    """Refuse a workspace request's values before anything acts on them.
+
+    Raises `WorkspaceRequestRefused` naming the first problem: its closed code,
+    its registered field and the fix. One function for both callers - the
+    request path before dispatch and the executor before it acts - so what is
+    refused before dispatch is refused by the rule execution would apply.
+
+    `state=False` skips the checks that read the workspace or the budget (a
+    file exists, a write's expected digest, a compute-time budget): the
+    request path does so when a task for this operation id already exists,
+    so resending a started request returns that task rather than a refusal
+    of a request that already ran. Checks only; nothing is written.
+    """
+    expected, optional = workspace_fields(action)
+    if not expected <= set(args):
+        missing = sorted(expected - set(args))
+        _refuse(
+            "workspace_field_missing",
+            "arguments_json." + missing[0],
+            "workspace fields differ from registered action",
+        )
+    if not set(args) <= expected | optional:
+        _refuse(
+            "workspace_field_unexpected",
+            "arguments_json",
+            "workspace fields differ from registered action",
+        )
+    workspace = getattr(executor, "workspace", None)
+    if action == "public_material":
+        names = public_material_names(executor.public_material)
+        if args["name"] not in names:
+            _refuse(
+                "public_material_unknown",
+                "arguments_json.name",
+                "public material unavailable",
+                names,
+            )
+    elif action == "read_file":
+        _workspace_name(args["name"], "arguments_json.name")
+        limit = read_file_limit(executor)
+        for name, low, high in (
+            ("offset", 0, None),
+            ("count", 1, limit),
+        ):
+            value = args[name]
+            if (
+                type(value) is not int
+                or value < low
+                or (high is not None and value > high)
+            ):
+                _refuse(
+                    "read_file_range",
+                    "arguments_json." + name,
+                    "bounded byte range required",
+                    (str(limit),),
+                )
+        if state and workspace.current_digest(args["name"]) is None:
+            _refuse(
+                "workspace_file_missing",
+                "arguments_json.name",
+                "workspace artifact unavailable",
+            )
+    elif action == "write_file":
+        _workspace_name(args["name"], "arguments_json.name")
+        body = (
+            _decoded(args["content_base64"])
+            if type(args["content_base64"]) is str
+            else None
+        )
+        if body is None:
+            _refuse(
+                "write_file_content_invalid",
+                "arguments_json.content_base64",
+                "base64 file content required",
+            )
+        expected_digest = args["expected_digest"]
+        if expected_digest is not None and type(expected_digest) is not str:
+            _refuse(
+                "write_file_expected_digest_conflict",
+                "arguments_json.expected_digest",
+                "workspace compare-and-swap conflict",
+            )
+        if state:
+            current = workspace.current_digest(args["name"])
+            # Writing the bytes a file already holds succeeds whatever the
+            # guard says, exactly as the workspace's own write does.
+            if current != digest(body) and current != expected_digest:
+                _refuse(
+                    "write_file_expected_digest_conflict",
+                    "arguments_json.expected_digest",
+                    "workspace compare-and-swap conflict",
+                )
+    elif action == "notebook":
+        if args["kind"] not in NOTEBOOK_KINDS:
+            _refuse(
+                "notebook_kind_unknown",
+                "arguments_json.kind",
+                "miner notebook kind unavailable",
+                NOTEBOOK_KINDS,
+            )
+        from .miner_guidance import is_reserved
+
+        if is_reserved(args["body"]):
+            # Only the miner's own page writes a miner message (RSURF-D13).
+            _refuse(
+                "notebook_body_reserved",
+                "arguments_json.body",
+                "miner message schema is reserved",
+            )
+    elif action == "capability_request":
+        from .research_workspace import capability_request_refusal
+
+        refused = capability_request_refusal(
+            args["request"], getattr(executor, "challenge", None)
+        )
+        if refused is not None:
+            _refuse(*refused)
+    elif action == "check_design":
+        from .design_check import design_refusal
+
+        refused = design_refusal(args["design"])
+        if refused is not None:
+            _refuse(*refused)
+    elif action in RUN_ACTIONS:
+        _check_run(executor, action, args, workspace, state=state)
+
+
+def _check_run(executor, action, args, workspace, *, state):
+    """`check_workspace_request` for the miner's own program."""
+    for name in ("hypothesis", "expected_effect"):
+        value = args[name]
+        if type(value) is not str or not 1 <= len(value) <= RUN_TEXT:
+            _refuse(
+                "run_hypothesis_required",
+                "arguments_json." + name,
+                "prospective hypothesis and expected effect required",
+            )
+    if type(args["source"]) is not str or not args["source"]:
+        _refuse(
+            "run_source_required", "arguments_json.source", "research source required"
+        )
+    files = args["files"]
+    if (
+        type(files) is not list
+        or any(type(name) is not str for name in files)
+        or len(files) != len(set(files))
+    ):
+        _refuse(
+            "run_files_invalid",
+            "arguments_json.files",
+            "distinct workspace selection required",
+        )
+    reserved = reserved_stage_names(action)
+    for name in files:
+        _workspace_name(name, "arguments_json.files")
+        if name in reserved:
+            _refuse(
+                "run_files_invalid",
+                "arguments_json.files",
+                "closed stage required",
+                tuple(sorted(reserved)),
+            )
+    seconds = args.get("seconds")
+    if seconds is not None and (type(seconds) is not int or seconds < 1):
+        _refuse(
+            "run_seconds_invalid",
+            "arguments_json.seconds",
+            "a positive wall allowance, or none",
+        )
+    if action == "run_julia":
+        from .julia_analysis import DEFAULT_ENVIRONMENT, ENVIRONMENTS
+
+        if args.get("environment", DEFAULT_ENVIRONMENT) not in ENVIRONMENTS:
+            _refuse(
+                "julia_environment_unknown",
+                "arguments_json.environment",
+                "environment must be one of: " + ", ".join(ENVIRONMENTS),
+                ENVIRONMENTS,
+            )
+    from . import gpu_code_cell
+
+    lane = getattr(executor, "gpu", None)
+    code = gpu_code_cell.refusal(action, args, lane)
+    if code is not None:
+        # A device that cannot run (RSURF-D20); the two historical messages
+        # are kept, every other is its code, as `gpu_code_cell.run` raises.
+        _refuse(
+            code,
+            (
+                "arguments_json.seconds"
+                if code == "remote_gpu_seconds_required"
+                else "arguments_json.device"
+            ),
+            {
+                "device_choice_invalid": "device is cpu or gpu",
+                "gpu_lane_not_configured": "this campaign has no GPU lane",
+            }.get(code, code),
+        )
+    remote = args.get("device") == "gpu" and getattr(lane, "remote", None) is not None
+    if remote and gpu_code_cell.WRAPPED in files:
+        _refuse(
+            "run_files_invalid",
+            "arguments_json.files",
+            gpu_code_cell.WRAPPED + " is the wrapper's own name",
+            (gpu_code_cell.WRAPPED,),
+        )
+    if not state:
+        return
+    for name in files:
+        if workspace.current_digest(name) is None:
+            _refuse(
+                "workspace_file_missing",
+                "arguments_json.files",
+                "workspace artifact unavailable",
+            )
+    if seconds is None and not remote:
+        from .research_carrier import _has_time_budget
+
+        if _has_time_budget(executor.ledger):
+            # The miner's own budget still binds where they set one: a run
+            # with no allowance could not be reserved against it.
+            _refuse(
+                "run_seconds_required",
+                "arguments_json.seconds",
+                "you set a compute-time budget; give this run a wall allowance",
+            )
+
+
+def refused_result(refused):
+    """The task result for a workspace request refused at execution.
+
+    The request path refuses these before dispatch; this is the same refusal
+    for a request that reached the executor anyway (a raw protocol client, or
+    a workspace that changed in between). Carbon examined the request and
+    refused it: the task completes with this typed outcome, never as an
+    infrastructure failure, and nothing ran or was charged.
+    """
+    from .research_tools import task_correction
+
+    return {
+        "outcome": "REQUEST_REFUSED",
+        "correction_code": refused.code,
+        "field": refused.field,
+        "correction": task_correction(
+            refused.code, refused.field, None, choices=refused.choices
+        ),
+        "nothing_ran": True,
+        "trial_charged": False,
+        "authority_granted": False,
+    }
+
+
 def workspace_fields(action):
     """The (required, optional) argument fields of one workspace action.
 
@@ -229,35 +636,17 @@ class PublicResearchExecutor:
                 "CREATE TABLE IF NOT EXISTS research_results(owner TEXT NOT NULL,task TEXT NOT NULL,body BLOB NOT NULL,digest TEXT NOT NULL,PRIMARY KEY(owner,task))"
             )
 
+    #: The Challenge this executor serves, by registry token: its registry
+    #: answers capability requests, the roadmap and demand. Burgers' unless
+    #: the composition says otherwise (battery's sets its own), as before
+    #: Challenges were threaded through.
+    challenge = None
+
     def _workspace_action(self, spec, identity):
         args = _arguments(spec.arguments_json)
-        expected, optional = workspace_fields(spec.action)
-        if not expected <= set(args) <= expected | optional:
-            raise ValueError("workspace fields differ from registered action")
+        # The one value check the request path also reads before dispatch.
+        check_workspace_request(self, spec.action, args)
         if spec.action == "public_material":
-            from .advection_research import MATERIAL as ADVECTION_MATERIAL
-            from .advection_research import PublicAdvectionMaterial
-            from .julia_envelope import MATERIAL as ENVELOPE
-            from .julia_envelope import JuliaEnvelopeMaterial
-            from .julia_research import MATERIAL, JuliaPublicMaterial
-
-            # The bound material service owns the allowlist. No arbitrary path,
-            # case coordinate, URL, evaluator query or hidden-role selector.
-            allowed = {
-                "objective",
-                "capabilities",
-                "training_data",
-                "practice_data",
-                "reference_method",
-            }
-            if type(self.public_material) is JuliaPublicMaterial:
-                allowed.add(MATERIAL)
-            if type(self.public_material) is PublicAdvectionMaterial:
-                allowed.add(ADVECTION_MATERIAL)
-            if type(self.public_material) is JuliaEnvelopeMaterial:
-                allowed.update({MATERIAL, ENVELOPE})
-            if args["name"] not in allowed:
-                raise ValueError("public material unavailable")
             result = self.public_material(args["name"], self.workspace)
             from .gpu_research import PublicGPUPractice
 
@@ -267,42 +656,25 @@ class PublicResearchExecutor:
         if spec.action == "inventory":
             return {"files": self.workspace.inventory()}
         if spec.action == "read_file":
-            offset, count = args["offset"], args["count"]
-            if (
-                type(offset) is not int
-                or offset < 0
-                or type(count) is not int
-                or not 1 <= count <= 4096
-            ):
-                raise ValueError("bounded byte range required")
-            body = self.workspace.get(args["name"])
-            return {
-                "name": args["name"],
-                "digest": digest(body),
-                "bytes": len(body),
-                "offset": offset,
-                "content_base64": base64.b64encode(
-                    body[offset : offset + count]
-                ).decode("ascii"),
-            }
+            return self._read_file(args)
         if spec.action == "write_file":
-            if type(args["content_base64"]) is not str:
-                raise ValueError("base64 file content required")
-            body = base64.b64decode(args["content_base64"], validate=True)
-            return {
-                "name": args["name"],
-                "digest": self.workspace.put(
-                    args["name"], body, expected_digest=args["expected_digest"]
-                ),
-            }
-        if spec.action == "notebook":
-            if args["kind"] not in {"hypothesis", "decision", "notebook"}:
-                raise ValueError("miner notebook kind unavailable")
-            from .miner_guidance import is_reserved
+            from .research_workspace import WorkspaceConflict
 
-            if is_reserved(args["body"]):
-                # Only the miner's own page writes a miner message (RSURF-D13).
-                raise ValueError("miner message schema is reserved")
+            try:
+                fingerprint = self.workspace.put(
+                    args["name"],
+                    base64.b64decode(args["content_base64"], validate=True),
+                    expected_digest=args["expected_digest"],
+                )
+            except WorkspaceConflict:
+                # Changed since the check, by another write: the same refusal.
+                _refuse(
+                    "write_file_expected_digest_conflict",
+                    "arguments_json.expected_digest",
+                    "workspace compare-and-swap conflict",
+                )
+            return {"name": args["name"], "digest": fingerprint}
+        if spec.action == "notebook":
             self.ledger.note(owner=self.owner, kind=args["kind"], body=args["body"])
             return {"retained": True}
         if spec.action == "check_design":
@@ -311,28 +683,34 @@ class PublicResearchExecutor:
             # Compile-only: no execution and no trial charged. What it records
             # is demand: registry ids only, never the miner's own text.
             result = check_design(args["design"])
-            if self.demand is not None:
+            if getattr(self, "demand", None) is not None:
                 from .capability_demand import demanded
 
-                ids, unrecognized = demanded(result)
-                self.demand.record(self.owner, ids, unrecognized=unrecognized)
+                ids, unrecognized = demanded(result, self.challenge)
+                self.demand.record(
+                    self.owner,
+                    ids,
+                    unrecognized=unrecognized,
+                    challenge=self.challenge,
+                )
             return result
         if spec.action == "roadmap":
             from .capability_demand import public_roadmap
 
-            return public_roadmap(self.demand)
+            return public_roadmap(getattr(self, "demand", None), self.challenge)
         if spec.action == "capability_request":
             record = request_capability(
-                self.ledger, owner=self.owner, request=args["request"]
+                self.ledger,
+                owner=self.owner,
+                request=args["request"],
+                challenge=self.challenge,
             )
-            if self.demand is not None and "capability" in record:
-                self.demand.record(self.owner, [record["capability"]])
+            if getattr(self, "demand", None) is not None and "capability" in record:
+                self.demand.record(
+                    self.owner, [record["capability"]], challenge=self.challenge
+                )
             return record
-        if any(
-            type(args[k]) is not str or not 1 <= len(args[k]) <= 2048
-            for k in ("hypothesis", "expected_effect")
-        ):
-            raise ValueError("prospective hypothesis and expected effect required")
+        files = self._staged(args["files"])
         self.ledger.note(
             owner=self.owner,
             kind="hypothesis",
@@ -342,14 +720,7 @@ class PublicResearchExecutor:
                 "expected_effect": args["expected_effect"],
             },
         )
-        from .gpu_code_cell import DEVICES
-
-        device = args.get("device", "cpu")
-        if device not in DEVICES:
-            raise ValueError("device is cpu or gpu")
-        if device == "gpu":
-            if self.gpu is None:
-                raise ValueError("this campaign has no GPU lane")
+        if args.get("device", "cpu") == "gpu":
             from . import gpu_code_cell
 
             # run_julia on gpu: this machine's GPU, in a CUDA environment
@@ -358,27 +729,22 @@ class PublicResearchExecutor:
                 self,
                 identity=identity,
                 args=args,
-                files=self.workspace.snapshot(args["files"]),
+                files=files,
                 action=spec.action,
             )
         runner, image, selection = run_script, self.image, {}
         if spec.action == "run_julia":
-            from .julia_analysis import DEFAULT_ENVIRONMENT, ENVIRONMENTS, run_julia
+            from .julia_analysis import DEFAULT_ENVIRONMENT, run_julia
 
-            environment = args.get("environment", DEFAULT_ENVIRONMENT)
-            if environment not in ENVIRONMENTS:
-                raise ValueError(
-                    "environment must be one of: " + ", ".join(ENVIRONMENTS)
-                )
             runner, image = run_julia, self.julia_image
-            selection = {"environment": environment}
+            selection = {"environment": args.get("environment", DEFAULT_ENVIRONMENT)}
         try:
             result = runner(
                 self.ledger,
                 owner=self.owner,
                 identity=identity,
                 source=args["source"],
-                files=self.workspace.snapshot(args["files"]),
+                files=files,
                 image=image,
                 seconds=args.get("seconds"),
                 **selection,
@@ -394,12 +760,66 @@ class PublicResearchExecutor:
                 "outcome": "MINER_PROGRAM_FAILED",
                 "worker": failure.result,
                 "workspace_exports": [],
+                "program_output": self.program_output(failure.result),
             }
         return {
             "provenance": "MINER_SELF_REPORTED",
             "worker": result,
             "workspace_exports": self.export(identity, result),
+            "program_output": self.program_output(result),
         }
+
+    def _staged(self, names):
+        """The run's own files, read once; a file gone since the check is the
+        same refusal, never an infrastructure failure."""
+        from .research_workspace import WorkspaceFileMissing
+
+        try:
+            return self.workspace.snapshot(names)
+        except WorkspaceFileMissing:
+            _refuse(
+                "workspace_file_missing",
+                "arguments_json.files",
+                "workspace artifact unavailable",
+            )
+
+    def _read_file(self, args):
+        """One bounded slice of an own file, encoded as the campaign's
+        research tools rule says (`read_file_content`): base64 alone under
+        the historical rule, exactly as before; under v2 the bytes once, as
+        text when they are text."""
+        from .research_tools import campaign_tools_rule
+        from .research_workspace import WorkspaceFileMissing
+
+        offset, count = args["offset"], args["count"]
+        try:
+            body = self.workspace.get(args["name"])
+        except WorkspaceFileMissing:
+            _refuse(
+                "workspace_file_missing",
+                "arguments_json.name",
+                "workspace artifact unavailable",
+            )
+        return {
+            "name": args["name"],
+            "digest": digest(body),
+            "bytes": len(body),
+            "offset": offset,
+            **read_file_content(
+                body[offset : offset + count], campaign_tools_rule(self.ledger)
+            ),
+        }
+
+    def program_output(self, worker):
+        """The bounded tails of what the program printed, for its result."""
+        from .research_carrier import program_output
+
+        worker = worker if type(worker) is dict else {}
+        return program_output(
+            self.ledger,
+            worker.get("operation"),
+            observation=worker.get("observation"),
+        )
 
     def export(self, identity, result, *, skip=frozenset()):
         """Import only the bounded validated export into the owner's scratch
@@ -446,7 +866,12 @@ class PublicResearchExecutor:
             DevelopmentWorkspaceTaskSpecV1,
             DevelopmentWorkspaceTaskSpecV2,
         ):
-            result = self._workspace_action(spec, identity)
+            try:
+                result = self._workspace_action(spec, identity)
+            except WorkspaceRequestRefused as refused:
+                # The requester's values, refused before anything acted on
+                # them: a typed outcome, never an infrastructure failure.
+                result = refused_result(refused)
             evidence = ResearchEvidenceClass.STRUCTURAL_ONLY
         elif type(spec) is PracticeTaskSpec:
             # The practice adapter supplies trusted labels/randomness and the

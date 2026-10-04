@@ -136,7 +136,10 @@ def test_prelaunch_review_pin_persistence_and_legacy_migration(tmp_path, monkeyp
     cfg["research_guidance"] = "changed before retry"
     with pytest.raises(Rejected, match="review"):
         bridge.launch(body, KEY)
-    with pytest.raises(ValueError, match="resume binding"):
+    # Refused by name since LP-PROD-C D10 (was a bare ValueError, answered
+    # research_reconciliation_required): the guidance the launch was admitted
+    # with changed, so it cannot be carried out under this profile.
+    with pytest.raises(Rejected, match="profile_changed_since_launch"):
         bridge.control(run["id"], "resume")
     with meter.db() as db:
         manifest["research_guidance"]["text"] = "tampered"

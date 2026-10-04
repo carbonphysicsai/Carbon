@@ -222,6 +222,58 @@ def test_cancel_reuses_identity_across_surfaces_and_shutdown_joins(
     asyncio.run(run())
 
 
+def test_a_retried_plain_cancel_without_an_operation_id_is_accepted_again(
+    tmp_path, monkeypatch
+):
+    """LP-PROD-B review fix, through the real MCP tool, task provider and
+    signed fixture gateway: with operation_id optional, a cancel that omits it
+    uses the task's own cancellation identity, so a retry after a lost
+    response is accepted again rather than refused as a second cancellation
+    of a task whose first is still pending."""
+    from carbon.development_session.research_tools import PREFIX
+    from carbon.miner_mcp.standard_server import _create_server
+
+    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    composition, adapter = compose(path, ledger, owner, monkeypatch)
+    ready, release = threading.Event(), threading.Event()
+    original = composition.executor._workspace_action
+
+    def holding(spec, identity):
+        # Never polls for cancellation, so the task stays CANCEL_REQUESTED.
+        ready.set()
+        assert release.wait(5)
+        return original(spec, identity)
+
+    composition.executor._workspace_action = holding
+    server = _create_server(adapter)
+
+    async def run():
+        try:
+            identity = task_id(await adapter.start_task(request()))
+            assert await asyncio.to_thread(ready.wait, 3)
+            for _ in range(2):
+                result = await server.call_tool(
+                    PREFIX + "cancel_research_task", {"task_id": identity}
+                )
+                content = result.structured_content
+                assert content["operation_id"] == "mcp-cancel-" + identity
+                assert content["payload"]["reply"]["status"] == "OK", content
+                assert state(adapter_result(content)) == "CANCEL_REQUESTED"
+            # tasks/cancel reuses the same retained identity.
+            assert state(await adapter.cancel_task(identity)) == "CANCEL_REQUESTED"
+        finally:
+            release.set()
+            await adapter.shutdown_tasks()
+            composition.tasks.close()
+
+    asyncio.run(run())
+
+
+def adapter_result(content):
+    """A plain tool's structured result, read the way `state` reads one."""
+    return SimpleNamespace(payload=content["payload"])
+
+
 def test_cleanup_attachment_reads_and_cancels_expired_owned_work_without_dispatch(
     tmp_path, monkeypatch
 ):

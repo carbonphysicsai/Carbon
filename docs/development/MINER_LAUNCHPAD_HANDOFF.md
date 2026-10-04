@@ -12,6 +12,61 @@ verified-source bridge and remaining real-campaign dependency are described in
 `MINER_LAUNCHPAD_RESEARCH_BRIDGE.md`. Older pending-acceptance notes below record
 the original handoff, not the current delivery status.
 
+## Installing, starting and updating today (LP-PROD-E, 2026-10-03)
+
+The sections below are the 2026-09-17 record. Today a miner installs and runs
+the Control Center on Linux x86-64, or WSL2 on Windows. The installer refuses
+macOS and native Windows, as the canonical environment does.
+
+```sh
+git clone https://github.com/carbonphysicsai/Carbon.git ~/carbon
+~/carbon/scripts/install_miner.sh              # install, check, start (--gpu, --service)
+~/carbon/.venv/bin/carbon-control-center       # start it again later
+~/carbon/scripts/install_miner.sh --update     # move to the latest main
+```
+
+- **One terminal.** `--service` runs the Control Center as the systemd user
+  service `carbon-control-center`. The miner's one terminal then runs
+  `carbon-miner-signer`. The service's output, with the session token, goes
+  to `control-center.log` (owner-only) in the owner-only state directory,
+  never the journal, line by line, so the token is there while the service
+  runs. Without `--service`, the installer starts the Control Center in its
+  own terminal and first prints the command that starts it again.
+  - A user service does not inherit your shell's environment: no SSH agent
+    (`SSH_AUTH_SOCK`) and no `~/.local/bin` on its PATH. A remote setup that
+    needs your SSH agent, or Hermes installed there, works from a Control
+    Center started in a terminal.
+  - It stops when you log out unless your system keeps user services running
+    (`loginctl enable-linger`, your choice); on WSL, systemd must be on.
+- **Updating.** `--update` moves the checkout to the latest main, or to
+  `--ref`, which must be in main. If that revision's installer differs, the
+  new installer carries on. It rebuilds the images, including a GPU worker
+  built before (a plain install does too), and checks setup against them. A
+  compute check made at another revision or with other images is set aside,
+  with the runner profile written from it (moved to
+  `environment/runner-profile.stale.json`, so a restarted Control Center does
+  not load it). This machine's compute is checked again, and a runner profile
+  written before is written again with the new accepted revision and the
+  miner's own intakes. It prints what changed. Your own remote setup is never
+  reached: check Compute again in setup, send or push the new worker, and
+  review again. An install from before 2026-10-03 runs the installer once
+  with `--no-start` first, since its installer has no `--update`.
+- **A checkout moved by hand.** After a `git pull`, setup shows compute as
+  unchecked and names `install_miner.sh --update` as the step, since only the
+  installer records a new install.
+- **What stops an install before anything changes:** a running Control
+  Center on the state directory (stop it first), a checkout with local
+  changes (the installer names the `git stash` command), a ref outside main,
+  an `--update` to a revision whose installer has no `--update`, or too
+  little disk (5 GiB beside the checkout; 12 GiB for Docker's images, 24 GiB
+  with the GPU worker; their sum when one filesystem holds both).
+- **The evaluation endpoint.** Setup's Review writes the endpoint Carbon
+  publishes for each Challenge (`scripts/dev/miner_launchpad/published_endpoints.json`)
+  into the runner profile's intakes. With none published, setup and the
+  prelaunch review say plainly that the profile can practise and freeze but
+  cannot submit. The published receiver hotkey is shown for reference only;
+  nothing compares it yet with the receiver the intake reports at submit.
+
 ## Product target
 
 Let a visitor choose a challenge, connect or launch an agent, choose a reasoning
@@ -34,10 +89,11 @@ steps are counters, not physics experiments. Scientific results and submission
 receipts remain null. External spend is zero because no provider is called, not
 because this version implements a monetary spending limiter.
 
-From the repository root on Linux, macOS or Windows:
+The 2026-09-17 rehearsal ran from the repository root. Today use the installer
+and `carbon-control-center` (above); Linux x86-64 or WSL2 only:
 
 ```sh
-python scripts/dev/miner_launchpad/controller.py
+~/carbon/.venv/bin/carbon-control-center
 ```
 
 Use the loopback address printed by the command and paste its generated local
@@ -52,9 +108,11 @@ and 1,000 retained runs are admitted; the UI lists the 50 most recent. Credentia
 are not accepted as request fields. No shell command or external endpoint can be
 supplied through the API.
 
-On Windows use a private, user-owned state directory: POSIX mode bits do not
-establish a Windows ACL. OS file locking prevents concurrent controller ownership
-on each supported host and releases ownership when the process exits.
+The 2026-09-17 rehearsal also ran on native Windows, with a private,
+user-owned state directory, since POSIX mode bits do not establish a Windows
+ACL. The installer no longer supports native Windows: use WSL2. OS file locking
+prevents concurrent controller ownership and releases ownership when the
+process exits.
 An unconfirmed browser launch retains only its request key and closed rehearsal
 specification in tab session storage across reloads. Credentials remain in memory.
 If retry storage is unavailable, launch fails closed before dispatch. Closing the

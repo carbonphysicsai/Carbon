@@ -39,12 +39,20 @@ def _feedback_modes():
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
 FIELDS = {
-    "agent": ("string", "Who selects: autonomous (Carbon's agent) or none (you)."),
+    "agent": (
+        "string",
+        (
+            "Who selects: autonomous (Carbon's agent) or none (you, or your "
+            "own agent over MCP). Setup's names are accepted too: "
+            "carbon-autonomous means autonomous, own-agent means none."
+        ),
+    ),
     "idempotency_key": (
         "string",
         (
-            "16-80 letters, digits, - or _, one per action: a retry with the "
-            "same key and request replays it; another request under it is refused."
+            "16-80 letters, digits, - or _ (no '.' or ':', unlike a research "
+            "operation_id), one per action: a retry with the same key and "
+            "request replays it; another request under it is refused."
         ),
     ),
     "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
@@ -67,7 +75,13 @@ FIELDS = {
             "Required; there is no default Challenge."
         ),
     ),
-    "challenge_version": ("string", "The exact version of that Challenge."),
+    "challenge_version": (
+        "string",
+        (
+            "The exact version of that Challenge, as carbon_challenges_v1__list "
+            "gives it. Required with challenge to launch."
+        ),
+    ),
     "model_provider": (
         "string",
         (
@@ -88,7 +102,9 @@ FIELDS = {
             "max_input_tokens, max_output_tokens, reasoning_effort and "
             "timeout_seconds, within the provider selection's bounds. Needs "
             "model_provider; recorded in the campaign manifest. Omitted: the "
-            "pinned defaults."
+            "pinned defaults, except max_output_tokens, which is the chosen "
+            "model's own maximum output where Carbon records one; set it to "
+            "cap the agent's replies (each call is reserved at the cap)."
         ),
     ),
     "feedback_mode": (
@@ -137,6 +153,126 @@ FIELDS = {
         ),
     ),
 }
+
+#: Setup's names for who researches, accepted wherever launch's are
+#: (LP-PROD-B): an agent that read them in carbon_setup_status sends them as
+#: they were. Normalised before every gate, so a replay under either name is
+#: the same request and the campaign records only launch's own value.
+AGENT_ALIASES = {"carbon-autonomous": "autonomous", "own-agent": "none"}
+
+#: The closed values of a field, for the schemas both doors publish. The
+#: bodies still check them; this states them up front instead of leaving a
+#: client to learn them from refusals.
+CHOICES = {
+    "agent": ("none", "autonomous", *AGENT_ALIASES),
+    "action": ("stop", "pause", "reconcile"),
+    "note_kind": ("hypothesis", "plan", "observation", "reply"),
+}
+
+#: Fields an operation's body refuses to run without, by its own specific
+#: code (`challenge_required`, `challenge_version_unsupported`), which the
+#: closed-request gate therefore leaves optional. The MCP schemas mark them
+#: required so a client learns it before calling; an MCP call that omits one
+#: is then refused by the SDK's schema validation and never reaches the body.
+#: The browser door's closed-request gate is unchanged, so a browser request
+#: that omits one still gets the body's specific refusal.
+BODY_REQUIRED = {"launch": frozenset({"challenge", "challenge_version"})}
+
+
+def takes_owner_lock(name, request):
+    """Whether this call's body takes the campaign's ownership lock - which
+    a research attachment (`carbon_attach_campaign`, the page's tool session)
+    holds for as long as it lasts, so the call answers `campaign_busy` until
+    it is released."""
+    return name in {"practice", "freeze_candidate", "submit", "resume"} or (
+        name == "halt"
+        and type(request) is dict
+        and request.get("action") == "reconcile"
+    )
+
+
+#: For a refusal code, the request field to correct, where one is to blame.
+#: A client branches on the code. The next step is not here: it is the
+#: refusal catalog's (`supervisor.NEXT_ACTIONS`), which the browser's door, a
+#: campaign's `last_refusal` and this door all read, so one code has one next
+#: step whichever door a miner uses (W1: until then the MCP door read its own
+#: steps here and gave most of the catalog's codes a generic one). A code not
+#: listed has no field to blame; one the catalog does not name is still a
+#: closed code, with the catalog's fallback step.
+REFUSAL_FIELDS = {
+    "research_profile_mismatch": "profile",
+    "challenge_required": "challenge",
+    "challenge_unknown": "challenge",
+    "challenge_retired": "challenge",
+    "challenge_deferred": "challenge",
+    "challenge_not_implemented": "challenge",
+    "challenge_version_unsupported": "challenge_version",
+    "challenge_has_no_toolbox": "challenge",
+    "gpu_scope_is_for_another_challenge": "challenge",
+    "invalid_agent": "agent",
+    "invalid_idempotency_key": "idempotency_key",
+    "research_launch_replay_conflict": "idempotency_key",
+    "operation_replay_conflict": "idempotency_key",
+    "invalid_budget": "budget",
+    "research_review_changed": "review_digest",
+    "invalid_feedback_mode": "feedback_mode",
+    "feedback_mode_not_offered_by_challenge": "feedback_mode",
+    "model_provider_required": "model_provider",
+    "unknown_model_provider": "model_provider",
+    "model_selection_refused": "model",
+    "model_selection_needs_the_autonomous_agent": "agent",
+    "model_provider_endpoint_not_configured": "model_provider",
+    "model_provider_credential_not_configured": "model_provider",
+    "campaign_busy": "campaign",
+    "freeze_a_candidate_first": "campaign",
+    "retired_grant_campaign": "campaign",
+    "research_run_unavailable": "campaign",
+    "campaign_journal_not_ready": "campaign",
+    "strategy_json_invalid": "strategy",
+    "strategy_object_required": "strategy",
+    "design_malformed": "strategy",
+    "design_refused": "strategy",
+    "design_excluded": "strategy",
+    "design_not_yet_rebuildable": "strategy",
+    "design_needs_owner_decision": "strategy",
+    "bounded_hypothesis_required": "hypothesis",
+    "bounded_reason_required": "reason",
+    "used_feedback_boolean_required": "used_feedback",
+    "invalid_research_control": "action",
+    "note_kind_unknown": "note_kind",
+    "bounded_note_required": "note",
+    "reply_to_unknown_message": "reply_to",
+    "reply_to_only_for_replies": "reply_to",
+    "cursor_out_of_bounds": "after",
+    "limit_out_of_bounds": "limit",
+    "unknown_experiment": "experiment",
+    "unknown_practice_case": "practice_case",
+    "research_task_id_required": "task",
+    "run_output_unavailable": "task",
+    "not_a_workspace_run": "task",
+    "attach_unavailable": "campaign",
+}
+
+
+def refusal(code, next_step=None):
+    """A refused call's closed body: the code, the field to correct when one
+    is to blame, and the next step - the JSON both doors can send.
+
+    The step is the refusal's own `next_step` when it carries one (a `Rejected`
+    from `runner.stepped`: a model call's settlement refusal, a profile that
+    no longer describes this install), as the browser's door sends it
+    (`controller.error_body`); otherwise the catalog's step for the code."""
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    body = {
+        "error": code,
+        "next_step": next_action(code) if next_step is None else next_step,
+    }
+    field = REFUSAL_FIELDS.get(code)
+    if field is not None:
+        body["field"] = field
+    return body
+
 
 #: The gates, in the only order they run. `replay` is read-only and precedes
 #: registration so a lost response replays without a chain read. Launch
@@ -278,12 +414,13 @@ OPERATIONS = {
         Operation(
             "run_output",
             "A finished workspace run's own output (run_python or run_julia): "
-            "its retained stdout, the last 64 KiB as text; the files it "
-            "exported to your workspace; and any raster image among them "
-            "inline as base64 (PNG, JPEG, GIF or WebP; at most 1 MiB each, "
-            "3 MiB and 6 images in all). Self-reported, untrusted text. The "
-            "sandbox keeps no stderr, and no stdout when the program fails. "
-            "Reads only.",
+            "its retained stdout and stderr, the last 64 KiB of each as text, "
+            "for successful and failed runs alike (a run recorded before "
+            "stderr was kept has none); where it ran; the files it exported "
+            "to your workspace; and any raster image among them (PNG, JPEG, "
+            "GIF or WebP; at most 1 MiB each, 3 MiB and 6 images in all) - "
+            "over MCP as image content, in the browser inline. Self-reported, "
+            "untrusted text. Reads only.",
             frozenset({"campaign", "task"}),
             frozenset(),
             ("request", "profile", "campaign"),
@@ -391,6 +528,10 @@ def perform(host, name, request):
     for gate in op.gates:
         if gate == "request":
             _closed(op, request)
+            agent = request.get("agent")
+            if type(agent) is str and agent in AGENT_ALIASES:
+                # Setup's name for the same choice; never the caller's dict.
+                request = {**request, "agent": AGENT_ALIASES[agent]}
         elif gate == "profile":
             try:
                 # New work needs an enabled, runnable profile. Reading and

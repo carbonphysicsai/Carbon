@@ -86,12 +86,26 @@ def test_workspace_reuses_start_result_lifecycle_and_has_no_recipe(tmp_path):
 
 
 def test_protected_material_request_cannot_reach_data_provider(tmp_path):
+    """A name outside the allowlist never reaches the material service.
+
+    Since LP-PROD-D the task completes as REQUEST_REFUSED with the allowed
+    names, instead of failing as infrastructure with no reason: the refusal
+    is the requester's to fix, and nothing about it is an infrastructure
+    failure. The provider is still never called."""
     f, p, e = compose(tmp_path)
     req = request(f, "public_material", {"name": "final-epoch-1"})
     task = p.start_research_task(req).task
     done = p.run_queued_task(task.task_id)
-    assert done.state is research.ResearchTaskState.FAILED_INFRA
-    assert e.public_result(done) is None
+    assert done.state is research.ResearchTaskState.SUCCEEDED
+    result = e.public_result(done)["result"]
+    assert result["outcome"] == "REQUEST_REFUSED"
+    assert result["correction_code"] == "public_material_unknown"
+    assert result["field"] == "arguments_json.name"
+    assert "Allowed here: objective, capabilities" in result["correction"]
+    assert result["nothing_ran"] is True and result["trial_charged"] is False
+    # The provider was never reached, and the name sent is not repeated.
+    assert "SYNTHETIC_ENGINEERING_TEST" not in canonical(result).decode()
+    assert "final-epoch-1" not in canonical(result).decode()
     p.close()
 
 
@@ -114,11 +128,20 @@ def test_owned_files_roundtrip_and_closed_arguments(tmp_path):
         done = p.run_queued_task(task.task_id)
         assert done.state is research.ResearchTaskState.SUCCEEDED
     assert e.public_result(done)["result"]["content_base64"] == "cHVibGlj"
+    # This campaign froze no research tools rule: its read is base64 alone,
+    # exactly as before. Text read back as text is the v2 rule's (LP-PROD-D).
+    assert "content_utf8" not in e.public_result(done)["result"]
+    # A field the action does not take completes as a typed refusal naming
+    # the arguments, never as an infrastructure failure (LP-PROD-D), and the
+    # path sent is not repeated.
     req = request(f, "inventory", {"path": "/controller"}, 3)
     task = p.start_research_task(req).task
-    assert (
-        p.run_queued_task(task.task_id).state is research.ResearchTaskState.FAILED_INFRA
-    )
+    done = p.run_queued_task(task.task_id)
+    assert done.state is research.ResearchTaskState.SUCCEEDED
+    refused = e.public_result(done)["result"]
+    assert refused["outcome"] == "REQUEST_REFUSED"
+    assert refused["correction_code"] == "workspace_field_unexpected"
+    assert "/controller" not in canonical(refused).decode()
     p.close()
 
 

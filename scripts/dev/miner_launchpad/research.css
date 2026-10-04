@@ -90,6 +90,8 @@ a.rs-change:hover { background: var(--muted); }
 .rs-quote cite { display: block; margin-top: 6px; font-family: var(--mono); font-size: 10.5px; font-style: normal; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); }
 .rs-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .rs-quick button, .rs-quick .button { min-height: 44px; padding: 8px 14px; font-size: 14px; }
+.rs-settle { margin: 8px 0 12px; padding-left: 20px; overflow-wrap: anywhere; }
+.rs-settle .rs-caveat { margin: 4px 0 0; }
 .rs-compare td:last-child { white-space: nowrap; }
 .rs-better { color: var(--fg); font-weight: 600; }
 .rs-worse { color: var(--red); font-weight: 600; }
@@ -245,3 +247,13 @@ a.rs-change:hover { background: var(--muted); }
 .rs-runs-on { font-size: 14px; font-weight: 600; }
 @media (max-width: 560px) { .rs-where { grid-template-columns: minmax(0, 1fr); } .rs-where dd { margin-bottom: 6px; } }
 .frozen-guidance { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* What needs attention (LP-PROD-F): a refusal with what to do, and the
+   recovery a campaign's state needs, above its header. */
+.rs-attention:empty, .rs-notice:empty, .rs-fallback:empty, .rs-reading:empty { display: none; }
+.rs-refusal, .rs-recovery { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--border); border-left: 3px solid var(--red); background: var(--card); display: flex; flex-direction: column; gap: 6px; }
+.rs-refusal .status-line, .rs-recovery .status-line { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.rs-refusal .refusal-next { margin: 0; overflow-wrap: anywhere; }
+.rs-recovery button, .rs-refusal .button { align-self: flex-start; min-height: 44px; }
+.rs-active .rs-refusal, .rs-active .rs-recovery { margin-top: 8px; }
+.rs-bench-slot:empty, .rs-journey-part:empty { display: none; }

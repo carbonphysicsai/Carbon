@@ -197,7 +197,10 @@ class McpDriver:
     async def perform(self, name, body):
         result = await self.client.call_tool("carbon_" + name, body)
         if result.is_error:
-            return result.content[0].text.split(": ")[-1], None
+            # The MCP door's refusal is JSON {error, field, next_step}
+            # (LP-PROD-B) after the SDK's "Error executing tool <name>: ".
+            refusal = json.loads(result.content[0].text.split(": ", 1)[1])
+            return refusal["error"], None
         return "done", result.structured_content["payload"]
 
     async def close(self):

@@ -193,8 +193,11 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
-    # Runs the same canonical acceptance inside the image (see canonical).
-    timeout-minutes: 90
+    # Runs the same canonical acceptance inside the image (see canonical),
+    # serially and unsharded: on 2026-10-04 its main test lane alone took 79
+    # min for 11,036 tests and the whole run about 100 min, so 90 cancelled a
+    # passing run before its interop and smoke lanes.
+    timeout-minutes: 150
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"

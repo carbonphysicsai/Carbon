@@ -69,9 +69,10 @@ def provider_plan(agent, budget, selection=None):
     )
     from carbon.development_session.research_agent_policy import (
         AUTONOMOUS,
-        PARALLEL_CALLS,
+        PARALLEL_CALLS_V2,
     )
     from carbon.development_session.research_campaign import FINAL_EPOCHS
+    from carbon.development_session.research_tools import TOOLS_RULE
 
     ceilings = (budget or {}).get("ceilings") or {}
     if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
@@ -91,13 +92,21 @@ def provider_plan(agent, budget, selection=None):
         "max_research_trials_per_epoch": 8,
         "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
         "evaluator_access": False,
-        # Frozen with the plan: a provider that returns several tool calls in
-        # one turn gets the first run and the rest refused, not a stopped run.
-        "parallel_calls": PARALLEL_CALLS,
+        # Frozen with the plan: every tool call of a turn runs, in the model's
+        # order (`PARALLEL_CALLS_V2`, OWNER-LAUNCHPAD-PROD-01, LP-PROD-A). A
+        # plan frozen earlier keeps its own rule (`PARALLEL_CALLS`: the first
+        # call runs and the rest are refused) and replays unchanged.
+        "parallel_calls": PARALLEL_CALLS_V2,
         # Frozen with the plan (RSURF-D13): the agent reads the miner's
         # Conversation messages at each step as recorded guidance. A plan
         # frozen before the amendment has no rule and reads none.
         "miner_guidance": miner_guidance.RULE,
+        # Frozen with the plan (LP-PROD-D, wired by OWNER-LAUNCHPAD-PROD-01):
+        # the v2 research tools text, read_file's text-once result
+        # (`content_utf8`) and the agent's `research_environment`. A plan
+        # frozen earlier names no rule, keeps the historical tools, reads and
+        # observation byte for byte, and replays unchanged.
+        "research_tools": TOOLS_RULE,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
@@ -302,12 +311,20 @@ async def prepare_battery(args, *, ledger=None, campaign):
         from carbon.development_session.agent import ResponsesTransport
         from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_agent_policy import AUTONOMOUS
-        from carbon.development_session.research_campaign import supplied_selection
+        from carbon.development_session.research_campaign import (
+            new_plan_output_default,
+            supplied_selection,
+        )
 
         if getattr(args, "agent_policy", None) != AUTONOMOUS:
             raise ValueError("a battery agent runs only under the autonomous policy")
         if frozen is None:
-            selection = supplied_selection(args)
+            # A new plan: its agent's output cap defaults to the selected
+            # model's own maximum, unless the miner set one
+            # (OWNER-LAUNCHPAD-PROD-02). The plan records the cap it chose.
+            selection = supplied_selection(
+                args, output_default=new_plan_output_default(args)
+            )
             plan = provider_plan(agent, product.budget, selection)
         else:
             plan = frozen["provider"]
@@ -740,16 +757,218 @@ async def evaluate_candidate(prepared, epoch, record):
     }
 
 
+#: How a frozen candidate's trip through a validator intake ends when it is
+#: not a verdict, by closed code (LP-PROD-G). None of these consumes the
+#: epoch: the candidate stays frozen, and submitting it again is the same
+#: submission (`daemon.submission_identity`: same hotkey, recipe and
+#: contract), never a second admission.
+#: - QUEUED: the validator holds the submission and has not finished.
+#: - UNAVAILABLE: the validator, or the way to it, could not serve. Not a
+#:   verdict and nothing for the miner to change; submit again later.
+#: - REFUSED: no evaluation happened, for a named reason the miner acts on
+#:   (wait for the next window, commit on chain, register, re-sign).
+#: Every other code the intake or its transport can answer is REFUSED; an
+#: answer outside them all is `intake_answer_unrecognised` (UNAVAILABLE).
+#: A trip that ends in an exception has its own closed code (`_failure_code`):
+#: the miner's signer not signing (`signer_unavailable`), an intake for
+#: another chain or Challenge (`intake_mismatch`), and a resend that would
+#: name another hotkey's submission (`intake_signer_changed`) are REFUSED.
+#: `intake_client.explain(code)` gives each one's plain explanation.
+INTAKE_QUEUED = frozenset({"evaluation_queued"})
+INTAKE_UNAVAILABLE = frozenset(
+    {
+        "intake_unreachable",
+        "intake_answer_unrecognised",
+        "evaluation_failed_infra",
+        "rate",
+        "capacity",
+        "inbox_full",
+        "snapshot_unavailable",
+        "receipt_block_missing",
+        "commitment_reader_unavailable",
+        "backend_not_served",
+        "TRANSPORT_CAPACITY",
+        "TRANSPORT_STORE",
+        "AUTH_UNAVAILABLE",
+    }
+)
+
+
+def intake_code(code):
+    """The closed code an intake refusal is reported under."""
+    from .intake_client import REFUSALS
+
+    return code if code in REFUSALS else "intake_answer_unrecognised"
+
+
+def intake_outcome(code):
+    """`QUEUED`, `UNAVAILABLE` or `REFUSED` for a closed intake code, so a
+    door can show a refused submit as waiting, the validator's state, or
+    the miner's to act on."""
+    code = intake_code(code)
+    if code in INTAKE_QUEUED:
+        return "QUEUED"
+    return "UNAVAILABLE" if code in INTAKE_UNAVAILABLE else "REFUSED"
+
+
+def _resend(url, signer, submission_id, failure, strategy, contract_digest, io):
+    """Send the epoch's frozen candidate again, so the intake receives it
+    again under the same submission id.
+
+    Before anything is sent, the id the resend would name is worked out from
+    the signer's public hotkey (`intake_client.submission_id`). If it is not
+    the epoch's submission - the signer was changed after the epoch was
+    recorded, so the status poll was `not_found` for another hotkey's id -
+    nothing is sent (`intake_signer_changed`): a resend under the new hotkey
+    would be a second submission of the candidate, with its own admission
+    and window. A refusal for the hotkey's window is answered here, sending
+    nothing, until the intake's chain has reached the window's first block.
+    """
+    from . import intake_client
+    from . import remote_submission as rs
+
+    hotkey = getattr(signer, "ss58_address", None)
+    if (
+        type(hotkey) is not str
+        or intake_client.submission_id(hotkey, strategy, contract_digest)
+        != submission_id
+    ):
+        raise rs.IntakeRefusal("intake_signer_changed")
+    facts = io["read"](url)
+    next_block = (failure or {}).get("next_block")
+    block = (facts.get("snapshot") or {}).get("finalized_block")
+    if next_block is not None and type(block) is int and block < next_block:
+        raise rs.IntakeRefusal(
+            "hotkey_window_used",
+            intake_client.describe(200, {"state": "REFUSED", "failure": failure}),
+        )
+    body = intake_client.submission_message(facts, strategy, contract_digest)
+    status, answer = io["post"](url, body, rs._signed(signer, facts, body))
+    if status != 202 or "submission_id" not in answer:
+        raise rs.IntakeRefusal(
+            answer.get("refused", f"http_{status}"),
+            intake_client.describe(status, answer),
+        )
+    if answer["submission_id"] != submission_id:
+        # The id was checked before sending, so only an intake that names
+        # submissions some other way answers so: not this protocol, and
+        # nothing more is sent to it.
+        raise rs.IntakeRefusal("intake_answer_unrecognised")
+
+
+def submit_through_intake(
+    url, signer, *, root, epoch, strategy, contract_digest, read=None, post=None
+):
+    """The epoch's frozen candidate through a validator intake, to a verdict.
+
+    `remote_submission.submit_and_wait` submits once per epoch (it records
+    the submission id) and polls. Two of its answers are not verdicts and are
+    settled here, at most once per call, by resending the same candidate:
+    - REFUSED at admission for a reason that is never a judgement of the
+      recipe (`intake.RECEIVED_AGAIN`), which the intake receives again;
+    - `not_found` for the epoch's recorded submission: the validator no longer
+      holds it (an inbox restored from an earlier backup).
+    Either resend is sent only when the signer's hotkey names that same
+    submission (`_resend`; otherwise `intake_signer_changed`, nothing sent).
+    A candidate recorded against another intake is refused
+    (`intake_changed_since_submission`): an epoch's submission belongs to the
+    validator that received it. Returns `(status, answer, submission_id)`;
+    raises `IntakeRefusal` with the intake's or the transport's code.
+    """
+    from . import intake_client
+    from . import remote_submission as rs
+    from .intake import RECEIVED_AGAIN
+
+    passed = {} if read is None else {"read": read, "post": post}
+    io = {
+        "read": read or intake_client.read_intake,
+        "post": post or intake_client.post,
+    }
+    record = rs._record_path(root, epoch)
+    recorded = json.loads(record.read_bytes()) if record.exists() else None
+    if recorded is not None and recorded.get("url") != url:
+        raise rs.IntakeRefusal("intake_changed_since_submission")
+
+    def wait():
+        return rs.submit_and_wait(
+            url,
+            signer,
+            root=root,
+            epoch=epoch,
+            strategy=strategy,
+            contract_digest=contract_digest,
+            **passed,
+        )
+
+    try:
+        status, answer, submission_id = wait()
+    except rs.IntakeRefusal as refused:
+        if refused.code != "not_found" or recorded is None:
+            raise
+        sid = recorded["submission_id"]
+        _resend(url, signer, sid, None, strategy, contract_digest, io)
+        return wait()
+    failure = answer.get("failure") or {}
+    if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
+        return status, answer, submission_id
+    _resend(url, signer, submission_id, failure, strategy, contract_digest, io)
+    return wait()
+
+
+def _failure_code(failure):
+    """The closed code for a trip to the intake that ended in an exception.
+
+    - the miner's signer did not sign (`SignerFailure`): `signer_unavailable`;
+    - the intake describes another chain or Challenge, or is not a battery
+      intake (`IntakeMismatch`): `intake_mismatch`;
+    - an HTTP refusal of the intake's public facts (`read_intake` raises it,
+      a 429 `rate` or a 503 `snapshot_unavailable` among them): the intake's
+      own code when its JSON body names one, else `intake_unreachable`;
+    - a body that is not JSON (a proxy's error page, another server), a
+      connection that failed or broke mid-answer: `intake_unreachable`;
+    - JSON in a shape this client does not read: `intake_answer_unrecognised`.
+    """
+    import http.client
+    import urllib.error
+
+    from carbon.chain.external_signer import SignerFailure
+
+    from .intake_client import IntakeMismatch
+
+    if isinstance(failure, SignerFailure):
+        return "signer_unavailable"
+    if isinstance(failure, IntakeMismatch):
+        return "intake_mismatch"
+    if isinstance(failure, urllib.error.HTTPError):
+        try:
+            body = json.loads(failure.read(65536) or b"{}")
+        except (OSError, ValueError, http.client.HTTPException):
+            body = None
+        code = body.get("refused") if type(body) is dict else None
+        return intake_code(code) if type(code) is str else "intake_unreachable"
+    if isinstance(failure, (OSError, http.client.HTTPException, json.JSONDecodeError)):
+        return "intake_unreachable"
+    return "intake_answer_unrecognised"
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
-    `remote_submission`. The epoch is consumed only by a verdict."""
+    `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
+    or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
+    else raises `OperationRefused` with a closed code (`intake_outcome`),
+    including every way the trip itself can fail (`_failure_code`), so the
+    campaign keeps its frozen candidate instead of ending on an exception."""
+    import http.client
+
+    from carbon.chain.external_signer import SignerFailure
     from carbon.development_session.research_campaign import OperationRefused
 
-    from .remote_submission import IntakeRefusal, submit_and_wait
+    from .intake_client import describe
+    from .remote_submission import IntakeRefusal
 
     try:
         status, answer, submission_id = await asyncio.to_thread(
-            submit_and_wait,
+            submit_through_intake,
             url,
             prepared.sdk.connection.miner_key,
             root=prepared.ledger.root,
@@ -759,19 +978,37 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
             or prepared.manifest["contract_digest"],
         )
     except IntakeRefusal as refused:
-        raise OperationRefused(refused.code) from None
-    except OSError:
-        raise OperationRefused("intake_unreachable") from None
-    if answer.get("state") == "FAILED_INFRA_EXHAUSTED":
+        raise OperationRefused(intake_code(refused.code)) from None
+    except (
+        SignerFailure,
+        OSError,
+        http.client.HTTPException,
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+    ) as failure:
+        raise OperationRefused(_failure_code(failure)) from None
+    state = answer.get("state")
+    if state == "REFUSED":
+        # Refused at admission and not received again: never a verdict.
+        failure = answer.get("failure") or {}
+        raise OperationRefused(intake_code(failure.get("code")))
+    if state == "FAILED_INFRA_EXHAUSTED":
         raise OperationRefused("evaluation_failed_infra")
-    from .intake_client import describe
-
+    if state not in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):
+        raise OperationRefused("intake_answer_unrecognised")
+    try:
+        description = describe(status, answer)
+    except (KeyError, TypeError, AttributeError, ValueError):
+        # A verdict this client cannot read is not taken as the epoch's.
+        raise OperationRefused("intake_answer_unrecognised") from None
     return {
         "schema": "carbon.battery.permitted-feedback.v1",
         "epoch": epoch,
         "outcome": answer,
         "via": {"intake": url, "submission_id": submission_id},
-        "description": describe(status, answer),
+        "description": description,
         "official_eligible": False,
         "reward": False,
     }
@@ -802,8 +1039,15 @@ def agent_observation(prepared, epoch, feedback):
     less its long list of unsupported capabilities, which the agent can read
     through `public_material capabilities` or `roadmap`. Nothing private: the
     prior feedback is the daemon's allow-listed outcome.
+
+    A campaign whose run plan froze the research tools rule
+    (`research_tools.TOOLS_RULE`, LP-PROD-D) also sees this host's research
+    environment, `research_environment`: whether the campaign has a GPU lane
+    for its code cells, and which backends its practice serves. A plan frozen
+    without the rule sees exactly what it always saw.
     """
     from carbon.challenge_registry import describe
+    from carbon.development_session.research_tools import frozen_tools_rule
 
     from .research import SCAFFOLD
 
@@ -811,12 +1055,23 @@ def agent_observation(prepared, epoch, feedback):
     unsupported = document.pop("unsupported")
     manifest = prepared.manifest
     mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
+    rule = frozen_tools_rule(manifest)
+    extra = {}
+    if rule is not None:
+        extra["research_environment"] = research_environment(prepared, rule)
     return {
         "challenge": document,
         "unsupported_capabilities": {
             "count": len(unsupported),
-            "read_with": "workspace public_material {name: capabilities} or roadmap {}",
+            "read_with": (
+                "workspace public_material {name: capabilities} or roadmap {}"
+                if rule is None
+                else "start_research_task kind=workspace action=public_material "
+                'arguments_json="{\\"name\\":\\"capabilities\\"}", or '
+                'action=roadmap arguments_json="{}"'
+            ),
         },
+        **extra,
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
@@ -834,3 +1089,61 @@ def agent_observation(prepared, epoch, feedback):
             "practiced, or stop for a supported reason."
         ),
     }
+
+
+def research_environment(prepared, rule):
+    """What this host gives a campaign's research, as its agent should know it.
+
+    Facts about the miner's own composition only: whether the campaign's
+    frozen runtime has a GPU lane for code cells (and which), which backends
+    its practice serves on this host, and whether authored Julia is offered.
+    Nothing here is evaluation material, and nothing grants anything.
+    """
+    # The composition's own executor and practice, never a default: a
+    # campaign is composed before its agent observes anything, so a missing
+    # one is an error here, not a quiet "cpu only".
+    executor = prepared.composition.executor
+    lane = executor.gpu
+    practice = executor.practice
+    julia = executor.julia_image is not None
+    described = None if lane is None else lane.describe()
+    return {
+        "rule": rule,
+        "gpu_lane": described,
+        "code_cell_devices": _code_cell_devices(described, julia),
+        "practice_backends": list(practice.backends),
+        "practice_device": "gpu" if practice.gpu_image is not None else "cpu",
+        "practice_note": (
+            "a practice whose recipe names a backend outside practice_backends "
+            "is refused before it starts (backend_not_served) and charges "
+            "nothing"
+        ),
+        "authored_julia": julia,
+    }
+
+
+def _code_cell_devices(described, julia):
+    """Which code-cell actions take device=gpu here: those the lane's own
+    description lists (`GpuLane.describe`) among those this campaign offers
+    (run_julia only with authored Julia). Never more than the lane runs: a
+    remote lane runs run_python only."""
+    offered = ["run_python", "run_julia"] if julia else ["run_python"]
+
+    def said(names, verb):
+        return " and ".join(names) + " " + (verb if len(names) > 1 else verb + "s")
+
+    if described is None:
+        return (
+            "cpu only: this campaign was launched without a GPU lane, so "
+            + said(offered, "take")
+            + " device=cpu (the default)"
+        )
+    on_gpu = [name for name in offered if name in described["actions"]]
+    text = "cpu (the default) or gpu: " + said(on_gpu, "take") + " device=gpu"
+    text += " on the lane above"
+    if "run_julia" in on_gpu:
+        text += ", run_julia in the lane's julia_environments only"
+    cpu_only = [name for name in offered if name not in on_gpu]
+    if cpu_only:
+        text += "; " + said(cpu_only, "run") + " on cpu only"
+    return text

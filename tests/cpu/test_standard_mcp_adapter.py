@@ -259,8 +259,12 @@ def test_trial_replay_and_adapter_reconstruction_use_one_existing_ledger(
     call(reopened, "start_research_task", args)
     assert meter.status(owner="alice")["used"]["research_trials"] == 0
     args["strategy"]["parameters"]["steps"] = 1024
-    with pytest.raises(AdapterFailure, match="OPERATIONAL_STOP"):
+    # A changed request under a used operation_id is refused at the binding,
+    # before anything is signed: its own code, and honestly nothing started
+    # (LP-PROD-B; it was an OPERATIONAL_STOP that "may have" dispatched).
+    with pytest.raises(AdapterFailure, match="OPERATION_ID_REUSED") as reused:
         call(reopened, "start_research_task", args)
+    assert reused.value.dispatch_may_have_occurred is False
     assert meter.status(owner="alice")["used"]["research_trials"] == 0
 
 
@@ -492,8 +496,10 @@ def test_real_authenticated_workspace_survives_adapter_reconnect(
         assert not first.requires_reconciliation
         if numerical:
             changed = {**args, "hypothesis": "changed request under the same key"}
-            with pytest.raises(AdapterFailure, match="OPERATIONAL_STOP"):
+            # Refused at the operation-id binding, before anything is signed.
+            with pytest.raises(AdapterFailure, match="OPERATION_ID_REUSED") as reused:
                 call(reopened, "start_research_task", changed)
+            assert reused.value.dispatch_may_have_occurred is False
             assert ledger.status(owner=owner)["used"]["research_trials"] == 0
             assert executions == [1]
         else:

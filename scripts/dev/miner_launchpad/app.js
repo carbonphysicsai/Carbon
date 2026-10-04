@@ -1,6 +1,23 @@
 "use strict";
 (() => {
   let token = "";
+  // ---- The session link (LP-PROD-C D14). The Control Center prints its
+  // loopback address with #token=<token> once this page declares, in its
+  // own head, that it reads the fragment (index.html, carbon-session-link
+  // fragment-v1). The fragment is read here, first, and removed from the
+  // address bar by replacing this history entry, before anything reads or
+  // stores the route; the token then lives in this tab's memory only, as a
+  // pasted one does. A fragment is never sent to the server. Returns the
+  // token, "" for a link this page cannot read, or null for no link.
+  const SESSION_LINK = /^#token=([A-Za-z0-9_-]{1,512})$/;
+  function takeSessionLink() {
+    const hash = location.hash;
+    if (!hash.startsWith("#token=")) return null;
+    history.replaceState(null, "", location.pathname + location.search);
+    const match = SESSION_LINK.exec(hash);
+    return match ? match[1] : "";
+  }
+  const linkToken = takeSessionLink();
   let selected = "";
   let runs = [];
   let pending = null;
@@ -33,6 +50,8 @@
   const STEPS = [["challenge", "Challenge"], ["agent", "Agent"], ["model", "Model"], ["compute", "Compute"], ["limits", "Tools & limits"], ["review", "Review"], ["launch", "Launch"]];
   const TABS = [["overview", "Overview"], ["experiments", "Experiments"], ["metrics", "Metrics"], ["journal", "Research Journal"], ["artifacts", "Artifacts"], ["submission", "Submission"], ["logs", "Logs"], ["settings", "Settings"]];
   const TERMINAL = ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE", "EXPIRED"];
+  // The keyed operations, as a person names them.
+  const OPERATION_NAMES = {practice: "practice", freeze_candidate: "freeze", submit: "submit"};
   const templateKey = "carbon.launchpad.launch-templates.v1";
   const wizardKey = "carbon.control-center.wizard.v1";
   const draftKey = "carbon.control-center.journey-drafts.v1";
@@ -42,6 +61,9 @@
   let storageError = false;
   try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); pendingResearch = JSON.parse(sessionStorage.getItem(researchKey) || "null"); }
   catch (_) { storageError = true; }
+  // A request held from before this page loaded was sent and not answered:
+  // its outcome is unknown, whatever version of the page held it.
+  for (const kept of [pending, pendingResearch]) if (kept && typeof kept === "object" && kept.unknown !== false) kept.unknown = true;
   // Local conveniences only: a refused storage never blocks the page.
   function stored(key, fallback) {
     try { const value = JSON.parse(localStorage.getItem(key) || "null"); return value && typeof value === "object" && !Array.isArray(value) ? value : fallback; }
@@ -61,8 +83,9 @@
   function saveWizard() { store(wizardKey, {...wizard, budget: composition.budget, launchPath}); }
   const $ = id => document.getElementById(id);
   const message = (text, error = false) => {
-    $("message").textContent = text;
-    $("message").className = error ? "message error" : "message";
+    setText($("message"), text);
+    const kind = error ? "message error" : "message";
+    if ($("message").className !== kind) $("message").className = kind;
   };
   function words(value) { return String(value ?? "").replaceAll("_", " "); }
   function el(tag, text, className) {
@@ -102,15 +125,162 @@
     box.append(head); parent.append(box);
     return box;
   }
-  // Rebuild a region only when what it shows changed, keeping open Details
-  // open: a person reading one is never collapsed by the 1.5 s refresh.
+  // ---- Live regions (LP-PROD-F). The page reads the controller every 1.5 s;
+  // a region is redrawn only when what it shows changed, and never under a
+  // person's hand. A region holding a control being typed into, or an edit
+  // not yet sent, is never rebuilt. During a background refresh it is also
+  // left alone while a pointer is pressed in it: a click is never swallowed
+  // by a redraw. A pointer resting on one of its controls holds it too, so an
+  // element an agent just read stays the element it clicks, but only for
+  // HOVER_HOLD_MS: `:hover` matches every ancestor of the element under the
+  // pointer (a whole campaign card), and an agent leaves its pointer where it
+  // last clicked, so a resting pointer must never keep a state it is
+  // watching for stale. A held region is redrawn on the first refresh after
+  // the hold ends.
+  const FORM_TAGS = ["INPUT", "SELECT", "TEXTAREA"];
+  const HOVERED = "a:hover, button:hover, input:hover, select:hover, textarea:hover, label:hover, summary:hover";
+  const HOVER_HOLD_MS = 3000;
+  // When a resting pointer first held each region's change back.
+  const hoverHeld = new WeakMap();
+  let pressed = null;
+  let background = false;
+  document.addEventListener("pointerdown", event => { pressed = event.target; }, true);
+  // The click follows pointerup in the same task; the press ends after it,
+  // and the page then draws what the click changed.
+  for (const type of ["pointerup", "pointercancel"]) {
+    document.addEventListener(type, () => { setTimeout(() => { if (pressed) { pressed = null; render(); } }, 0); }, true);
+  }
+  // An edit not yet sent is marked by the input itself (a person's or an
+  // agent's), never by the page filling a field. Only typed text counts: a
+  // radio, a checkbox or a select commits its choice at once. A field backed
+  // by a saved draft is restored on a rebuild, so it does not hold its region.
+  const TYPED = ["text", "password", "number", "search", "email", "url", "tel"];
+  document.addEventListener("input", event => {
+    const target = event.target;
+    if (!target || !target.dataset || target.dataset.draft) return;
+    if (target.tagName === "TEXTAREA" || (target.tagName === "INPUT" && TYPED.includes(target.type))) target.dataset.edited = "1";
+  }, true);
+  function sent(...controls) { for (const control of controls) if (control?.dataset) delete control.dataset.edited; }
+  function held(region, quiet = background) {
+    if (!region) return false;
+    const active = document.activeElement;
+    if (active && region.contains(active) && FORM_TAGS.includes(active.tagName)) return true;
+    if (region.querySelector("[data-edited]")) return true;
+    if (!quiet) return false;
+    if (pressed && region.contains(pressed)) return true;
+    let hovered = false;
+    try { hovered = Boolean(region.querySelector(HOVERED)); } catch (_) { hovered = false; }
+    if (!hovered) { hoverHeld.delete(region); return false; }
+    const since = hoverHeld.get(region);
+    if (since === undefined) { hoverHeld.set(region, Date.now()); return true; }
+    if (Date.now() - since < HOVER_HOLD_MS) return true;
+    // Held long enough: drawn now, under the pointer; the next change waits again.
+    hoverHeld.delete(region);
+    return false;
+  }
+  // A render the page did not ask for: the refresh timer or a campaign read.
+  function quietly(draw) {
+    const was = background; background = true;
+    try { draw(); } finally { background = was; }
+  }
+  // Rebuild a region only when what it shows changed and nothing holds it,
+  // keeping open Details open: a person reading one is never collapsed by the
+  // 1.5 s refresh. Returns whether it was rebuilt.
   function rebuild(target, key, build) {
-    if (target.dataset.key === key) return;
+    if (target.dataset.key === key || held(target)) return false;
+    hoverHeld.delete(target);
     const open = new Set([...target.querySelectorAll("details[open]")].map(node => node.dataset.key));
     target.replaceChildren();
     build(target);
     [...target.querySelectorAll("details")].forEach((node, index) => { node.dataset.key = String(index); node.open = open.has(String(index)); });
     target.dataset.key = key;
+    return true;
+  }
+  // Text set only when it differs: an unchanged line is never replaced.
+  function setText(node, text) { if (node && node.textContent !== text) node.textContent = text; }
+  // ---- Refusals (LP-PROD-F). A refusal is known only when the controller
+  // answered with a 4xx and its own code: nothing was started for that
+  // request. A network failure, a timeout, a 5xx, an unreadable answer, or the
+  // controller's catch-all for an unexpected failure leaves the outcome
+  // unknown, and a request whose outcome is unknown keeps its key.
+  const OUTCOME_UNKNOWN = new Set(["research_reconciliation_required", "request_failed", "unreadable_response"]);
+  function refused(error) {
+    return Number.isInteger(error?.status) && error.status >= 400 && error.status < 500 && !OUTCOME_UNKNOWN.has(error.code);
+  }
+  // An error's code or message, read as words, without a closing stop.
+  function said(error) { return words(error?.message).replace(/\.$/, ""); }
+  // Human units for the ledger's resources (LP-PROD-F): what the miner types
+  // and reads, and the whole number the ledger counts. A resource without an
+  // entry is a count. Conversions are exact decimal arithmetic on the whole
+  // number, never floating point: a cap shown is the cap stored, and a cap
+  // read back is never raised above what was typed.
+  const UNITS = {
+    provider_nanodollars: {short: "model spend", unit: "USD", scale: 1e9, step: "0.01", show: value => "$" + cents(fromLedger("provider_nanodollars", value))},
+    numerical_milliseconds: {short: "worker time", unit: "minutes", scale: 60000, step: "0.5", show: value => durationText(value)},
+    retained_bytes: {short: "retained storage", unit: "MB", scale: 1e6, step: "1", show: value => fromLedger("retained_bytes", value) + " MB"},
+  };
+  // Decimal text with at least two places: "2.5" as "2.50"; finer amounts
+  // keep every digit ("0.0015"), so no cap reads as $0.00 unless it is 0.
+  function cents(text) { const [whole, fraction = ""] = text.split("."); return whole + "." + fraction.padEnd(2, "0"); }
+  // Milliseconds as hours, minutes and seconds, exactly: "30 min",
+  // "13 min 32 s", "1 h 2 min 3.456 s", "0.001 s".
+  function durationText(ms) {
+    const parts = [];
+    const hours = Math.floor(ms / 3600000), minutes = Math.floor(ms % 3600000 / 60000), rest = ms % 60000;
+    if (hours) parts.push(hours + " h");
+    if (minutes) parts.push(minutes + " min");
+    if (rest || !parts.length) parts.push(Math.floor(rest / 1000) + (rest % 1000 ? "." + String(rest % 1000).padStart(3, "0").replace(/0+$/, "") : "") + " s");
+    return parts.join(" ");
+  }
+  // A short decimal for a quantity a person reads beside another (minutes
+  // beside seconds), at most three places.
+  function trimmed(value) { return String(Math.round(value * 1000) / 1000); }
+  function resourceName(name) { return UNITS[name] ? UNITS[name].short + " · " + UNITS[name].unit : words(name); }
+  function resourceShort(name) { return UNITS[name]?.short || words(name); }
+  // A ledger amount as a person reads it: in its unit when it is a ledger
+  // whole number, otherwise as recorded, named in the ledger's own unit.
+  function resourceValue(name, value) {
+    if (value === undefined || value === null) return "no limit";
+    if (!UNITS[name] || typeof value !== "number") return String(value);
+    return Number.isSafeInteger(value) && value >= 0 ? UNITS[name].show(value) : String(value) + " " + words(name);
+  }
+  // A typed amount in the resource's human unit, as the ledger's whole
+  // number, rounded down; undefined when blank, NaN when it is not an
+  // amount, Infinity when it is too large to count exactly.
+  function toLedger(name, text) {
+    const typed = String(text ?? "").trim();
+    if (typed === "") return undefined;
+    const scale = UNITS[name]?.scale || 1;
+    if (scale === 1) return /^\d+(\.\d+)?$/.test(typed) ? Number(typed) : NaN;
+    const match = /^(\d*)(?:\.(\d*))?$/.exec(typed);
+    if (!match || !(match[1] || match[2])) return NaN;
+    const fraction = match[2] || "";
+    const unit = 10n ** BigInt(fraction.length);
+    const ledger = (BigInt(match[1] || "0") * unit + BigInt(fraction || "0")) * BigInt(scale) / unit;
+    return ledger <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(ledger) : Infinity;
+  }
+  // A ledger whole number in its human unit, as decimal text: exact whenever
+  // the unit can say it in as many places as its scale has digits (always,
+  // for USD and MB). Otherwise (minutes) the last place is rounded up, so
+  // reading the text back, which rounds down, gives the same whole number.
+  function fromLedger(name, value) {
+    if (value === undefined || value === null) return "";
+    const scale = UNITS[name]?.scale || 1;
+    if (scale === 1 || !(Number.isSafeInteger(value) && value >= 0)) return String(value);
+    const divisor = BigInt(scale);
+    let places = 0;
+    while (10n ** BigInt(places) < divisor) places++;
+    const unit = 10n ** BigInt(places);
+    const scaled = BigInt(value) * unit;
+    const digits = scaled / divisor + (scaled % divisor ? 1n : 0n);
+    const fraction = (digits % unit).toString().padStart(places, "0").replace(/0+$/, "");
+    return (digits / unit).toString() + (fraction ? "." + fraction : "");
+  }
+  // " (10 min)" beside a number of seconds a person would rather read so.
+  function longer(seconds) {
+    if (!(typeof seconds === "number" && seconds >= 60)) return "";
+    const minutes = seconds / 60;
+    return " (" + (minutes >= 60 ? trimmed(minutes / 60) + " h" : trimmed(minutes) + " min") + ")";
   }
   // A command the miner runs, with a button that copies it.
   function copyRow(parent, label, command, id) {
@@ -192,25 +362,36 @@
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(timeout), cache: "no-store", redirect: "error"
     });
-    const result = await response.json();
-    if (!response.ok) {
-      const code = result.error || "request_failed";
+    // An answer that is not JSON (a proxy's error page, a cut-off body) is
+    // an unknown outcome, never a refusal.
+    let result = null;
+    try { result = await response.json(); } catch (_) { result = null; }
+    if (!response.ok || result === null || typeof result !== "object") {
+      const code = (response.ok ? null : result?.error) || (response.ok ? "unreadable_response" : "request_failed");
       const error = new Error(SIGNER_HELP[code] ? code + ": " + SIGNER_HELP[code] : code);
       error.status = response.status;
+      error.code = code;
       // A setup refusal names its field and, when there is one, the next step.
-      error.field = result.field || null;
-      error.nextStep = result.next_step || null;
+      error.field = result?.field || null;
+      error.nextStep = result?.next_step || null;
       throw error;
     }
     return result;
   }
 
   // ---- Routing. One view at a time; a campaign has its own deep link. ----
+  // A campaign's tabs are the research surface's (research_view.js: live,
+  // conversation, experiments, ...). Links this page wrote before it named
+  // them (#.../overview, /metrics, /journal) still open; these are the
+  // fallback page's names for the research surface's own.
+  const LEGACY_TAB = {live: "overview", reasoning: "journal", conversation: "journal", tools: "experiments", contract: "settings"};
   function route() {
-    const parts = location.hash.replace(/^#\/?/, "").split("/").map(decodeURIComponent);
+    const parts = location.hash.replace(/^#\/?/, "").split("/").map(part => { try { return decodeURIComponent(part); } catch (_) { return part; } });
     const views = [...document.querySelectorAll("main > .view")].map(view => view.id);
-    return {view: views.includes(parts[0]) ? parts[0] : "overview", id: parts[1] || "", tab: TABS.some(([name]) => name === parts[2]) ? parts[2] : "overview"};
+    const tab = LEGACY_TAB[parts[2]] || parts[2];
+    return {view: views.includes(parts[0]) ? parts[0] : "overview", id: parts[1] || "", tab: TABS.some(([name]) => name === tab) ? tab : "overview"};
   }
+  function campaignHref(id, tab = "live") { return "#campaigns/" + encodeURIComponent(id) + "/" + tab; }
   function show() {
     const current = route();
     for (const view of document.querySelectorAll("main > .view")) view.hidden = view.id !== current.view;
@@ -223,7 +404,13 @@
     // Setup shows one step at a time; #setup/<step> names it.
     if (current.view === "setup") applySetupStep();
   }
-  window.addEventListener("hashchange", show);
+  // A session link opened in a tab already showing this page changes only
+  // the fragment: it is taken (and removed) before the route is read.
+  window.addEventListener("hashchange", () => {
+    const fresh = takeSessionLink();
+    show();
+    if (fresh !== null) connectFromLink(fresh);
+  });
   // The navigation is built from the page's own views: a view marked data-nav
   // is listed, and nothing else can be, so the two cannot drift. Development
   // diagnostics are listed apart, under their own label.
@@ -264,7 +451,7 @@
   let guideAnchor = null;
   async function renderGuide(anchor) {
     const body = $("guide-body");
-    if (!connected) { body.replaceChildren(el("p", "Connect this browser to read the guide.", "hint")); body.dataset.built = ""; return; }
+    if (!connected) { if (body.dataset.built !== "disconnected") body.replaceChildren(el("p", "Connect this browser to read the guide.", "hint")); body.dataset.built = "disconnected"; return; }
     if (!guideDoc) {
       guideLoading ||= api("/api/v1/guide/remote-setup").then(value => { guideDoc = value; }, error => { body.replaceChildren(el("p", "The guide could not be read: " + error.message, "reason")); }).finally(() => { guideLoading = null; });
       await guideLoading;
@@ -282,46 +469,52 @@
   }
   function renderDevelopment() {
     const sources = $("development-sources");
-    sources.replaceChildren();
-    if (!connected || !developmentSources.length) {
-      const note = document.createElement("p"); note.className = "hint";
-      note.textContent = connected ? "No historical DEVELOPMENT source is attached. Current research campaigns are under Campaigns." : "Reconnect to verify current source state.";
-      sources.append(note);
-    }
-    if (connected) for (const source of developmentSources) {
-      const box = document.createElement("div"); box.className = "integration";
-      const title = document.createElement("h3");
-      title.textContent = source.receipt ? source.receipt.disposition : "Readback unavailable";
-      const note = document.createElement("p");
-      note.textContent = source.receipt ? "DEVELOPMENT EVALUATION · Receipt " + source.receipt.receipt_id : "Source validation failed. No receipt or result is being inferred.";
-      const button = document.createElement("button"); button.type = "button";
-      button.textContent = "Export verified public receipt";
-      button.disabled = busy || source.status !== "VERIFIED_SOURCE";
-      button.addEventListener("click", async () => {
-        if (busy || !connected) return;
-        busy = true; render();
-        try {
-          const fresh = await api("/api/v1/development/" + source.id);
-          if (fresh.status !== "VERIFIED_SOURCE") throw new Error("development_source_unavailable");
-          download(fresh, "carbon-development-" + source.id + ".json");
-        } catch (error) { message("Receipt export unavailable: " + error.message, true); }
-        finally { busy = false; await refresh(); render(); }
-      });
-      box.append(title, note, button); sources.append(box);
-    }
+    const listed = connected ? developmentSources.map(source => [source.id, source.status, source.receipt?.receipt_id ?? null, source.receipt?.disposition ?? null]) : null;
+    rebuild(sources, JSON.stringify(listed), target => {
+      if (!connected || !developmentSources.length) {
+        const note = document.createElement("p"); note.className = "hint";
+        note.textContent = connected ? "No historical DEVELOPMENT source is attached. Current research campaigns are under Campaigns." : "Reconnect to verify current source state.";
+        target.append(note);
+      }
+      if (connected) for (const source of developmentSources) {
+        const box = document.createElement("div"); box.className = "integration";
+        const title = document.createElement("h3");
+        title.textContent = source.receipt ? source.receipt.disposition : "Readback unavailable";
+        const note = document.createElement("p");
+        note.textContent = source.receipt ? "DEVELOPMENT EVALUATION · Receipt " + source.receipt.receipt_id : "Source validation failed. No receipt or result is being inferred.";
+        const button = document.createElement("button"); button.type = "button";
+        button.textContent = "Export verified public receipt";
+        button.dataset.verified = source.status === "VERIFIED_SOURCE" ? "1" : "";
+        button.addEventListener("click", async () => {
+          if (busy || !connected) return;
+          busy = true; render();
+          try {
+            const fresh = await api("/api/v1/development/" + source.id);
+            if (fresh.status !== "VERIFIED_SOURCE") throw new Error("development_source_unavailable");
+            download(fresh, "carbon-development-" + source.id + ".json");
+          } catch (error) { message("Receipt export unavailable: " + error.message, true); }
+          finally { busy = false; await refresh(); render(); }
+        });
+        box.append(title, note, button); target.append(box);
+      }
+    });
+    // Patched in place: a busy page disables, it does not redraw.
+    for (const button of sources.querySelectorAll("button[data-verified]")) button.disabled = busy || !button.dataset.verified;
     $("launch-fields").disabled = !connected || storageError;
     $("launch-button").disabled = busy;
-    $("launch-button").firstChild.textContent = pending ? "Retry same launch " : "Launch rehearsal ";
+    setText($("launch-button").firstChild, pending ? "Retry same launch " : "Launch rehearsal ");
+    $("launch-discard").hidden = !pending;
     $("steps").disabled = Boolean(pending);
     $("seconds").disabled = Boolean(pending);
     const picker = $("run-picker");
-    picker.replaceChildren();
-    for (const run of runs) {
-      const option = document.createElement("option");
-      option.value = run.id;
-      option.textContent = run.id.slice(0, 10) + " · " + run.state;
-      picker.append(option);
-    }
+    rebuild(picker, JSON.stringify(runs.map(run => [run.id, run.state])), target => {
+      for (const run of runs) {
+        const option = document.createElement("option");
+        option.value = run.id;
+        option.textContent = run.id.slice(0, 10) + " · " + run.state;
+        target.append(option);
+      }
+    });
     const run = runs.find(r => r.id === selected) || runs[0];
     $("empty").hidden = Boolean(run);
     $("run-detail").hidden = !run;
@@ -329,28 +522,29 @@
     $("picker-label").hidden = !run;
     if (!run) return;
     selected = run.id;
-    picker.value = selected;
-    $("run-id").textContent = run.id;
-    $("run-state").textContent = run.state;
-    $("run-steps").textContent = run.steps + " / " + run.spec.max_steps;
+    if (picker.value !== selected && !held(picker)) picker.value = selected;
+    setText($("run-id"), run.id);
+    setText($("run-state"), run.state);
+    setText($("run-steps"), run.steps + " / " + run.spec.max_steps);
     $("progress").max = run.spec.max_steps;
     $("progress").value = run.steps;
-    $("deadline").textContent = "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString();
+    setText($("deadline"), "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString());
     $("pause").disabled = !connected || busy || !["QUEUED", "RUNNING"].includes(run.state);
     $("resume").disabled = !connected || busy || !["PAUSED", "INTERRUPTED"].includes(run.state);
     $("stop").disabled = !connected || busy || !["QUEUED", "RUNNING", "PAUSED", "INTERRUPTED"].includes(run.state);
     $("export").disabled = !connected || busy;
-    const events = $("events");
-    events.replaceChildren();
-    for (const event of run.events.slice(-30).reverse()) {
-      const item = document.createElement("li");
-      const at = document.createElement("time");
-      at.textContent = new Date(event.at * 1000).toLocaleTimeString();
-      const kind = document.createElement("span");
-      kind.textContent = event.kind.replaceAll("_", " ");
-      item.append(at, kind);
-      events.append(item);
-    }
+    const shown = run.events.slice(-30).reverse();
+    rebuild($("events"), run.id + "|" + JSON.stringify(shown.map(event => [event.at, event.kind])), events => {
+      for (const event of shown) {
+        const item = document.createElement("li");
+        const at = document.createElement("time");
+        at.textContent = new Date(event.at * 1000).toLocaleTimeString();
+        const kind = document.createElement("span");
+        kind.textContent = event.kind.replaceAll("_", " ");
+        item.append(at, kind);
+        events.append(item);
+      }
+    });
   }
   function download(value, name) {
     const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], {type: "application/json"}));
@@ -370,6 +564,7 @@
   function showOnboarding(nodes) {
     const target = $("onboarding-result");
     target.replaceChildren(...nodes);
+    target.dataset.key = "";
   }
 
   function renderOnboarding() {
@@ -378,12 +573,12 @@
       $(control).disabled = !connected || busy;
     }
     if (!connected) {
-      $("onboarding-facts").replaceChildren();
-      showOnboarding([onboardingLine(
+      if ($("onboarding-facts").children.length) $("onboarding-facts").replaceChildren();
+      rebuild($("onboarding-result"), "disconnected", target => target.append(onboardingLine(
         "Connect this browser to read the current registration requirements. "
         + "Registration itself needs no Carbon account - this page just needs "
         + "its local session token."
-      )]);
+      )));
     }
   }
 
@@ -493,6 +688,10 @@
   let setupRead = false;
   let setupVersion = 0;
   let setupStepShown = null;
+  // The setup state the steps' forms were last drawn from.
+  let setupDrawn = null;
+  // A worker being sent to the miner's machine: its start, while it runs.
+  let sendingWorker = null;
   function setupLine(text, kind) { const line = el("p", text, kind === "error" ? "reason" : ""); return line; }
   async function readSetup() {
     if (!connected) return;
@@ -515,13 +714,18 @@
     setupPolling = true;
     try {
       const fresh = await api("/api/v1/setup");
-      const typing = $("setup-body").contains(document.activeElement) && ["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName);
-      if (setupKey(fresh) !== setupKey(setupState) && !typing) {
+      const changed = setupKey(fresh) !== setupKey(setupState);
+      if (changed) {
         setupState = fresh; setupVersion++;
         // A profile written elsewhere changes what can launch.
         if (fresh.steps?.review?.profile_written && !caps?.profile?.configured) { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
-        renderSetup(); render();
       }
+      // What is done (the step list, Overview) follows at once. The steps'
+      // forms wait while anything holds them: typing, an unsent edit (a key,
+      // an endpoint), a press or a resting pointer.
+      if (setupKey(setupState) !== setupDrawn && !held($("setup-body"), true)) renderSetup();
+      else if (changed) applySetupStep();
+      if (changed) render();
     } catch (_) { /* the next poll tries again */ }
     finally { setupPolling = false; }
   }
@@ -540,7 +744,10 @@
       // Carbon rents no compute (OWNER-MINER-COMPUTE-LINK-ONLY-01): when the
       // compute check deleted Carbon's copy of a rented-GPU key, it says so.
       const removed = step === "compute" ? result.steps?.compute?.check?.retired_compute_key : null;
-      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")));
+      // Review writes the profile and says what it could not do: a Challenge
+      // with no evaluation endpoint, an unreadable published list (LP-PROD-E).
+      const warnings = step === "review" && Array.isArray(result.warnings) ? result.warnings.filter(item => typeof item?.message === "string") : [];
+      $("setup-result").replaceChildren(setupLine(step === "review" ? (result.attached ? "Profile written and loaded. Choose a Challenge to launch." : "Profile written. A different profile is already loaded here, so restart the controller to use this one.") : step === "begin" ? "Registration confirmed. Set up inference, compute and agent next." : "Checked: " + step + "." + (removed ? " " + removed : "")), ...warnings.map(item => setupLine(item.message, "error")));
       // The written profile changes what can launch: read it again now.
       if (step === "review") { try { await readCapabilities(); } catch (_) { /* re-read on request */ } }
       await readSetup();
@@ -551,6 +758,30 @@
       $("setup-result").replaceChildren(setupLine(text, "error"));
       return false;
     }
+  }
+  // Sending the GPU worker streams an image over the miner's own SSH: minutes,
+  // up to an hour. Until the controller answers, the page says it is still
+  // going and for how long; it never sends twice at once.
+  const SEND_WORKER_MS = 3600000;
+  function clock(seconds) {
+    const whole = Math.max(0, Math.floor(seconds));
+    const h = Math.floor(whole / 3600), m = Math.floor(whole % 3600 / 60), s = whole % 60;
+    return (h ? h + "h " : "") + (h || m ? m + "m " : "") + String(s).padStart(h || m ? 2 : 1, "0") + "s";
+  }
+  async function sendWorker(body, target) {
+    if (sendingWorker) return false;
+    sendingWorker = {started: Date.now()};
+    const line = setupLine("");
+    line.id = "setup-send-progress";
+    const bar = el("progress"); bar.setAttribute("aria-label", "Sending your worker");
+    $("setup-result").replaceChildren(line, bar);
+    const tick = () => {
+      setText(line, "Sending your worker to " + target + " over your SSH: " + clock((Date.now() - sendingWorker.started) / 1000) + " so far. It can take up to an hour; leave this page open until it answers.");
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    try { return await setupCall("send_worker", body, SEND_WORKER_MS); }
+    finally { clearInterval(timer); sendingWorker = null; }
   }
   // Where the miner is on the path: the controller's own status, the same one
   // an agent loops on, so the page and the agent never disagree.
@@ -588,6 +819,66 @@
     if (id === "compute") return choiceName("compute", steps.compute.choice) + (steps.compute.remote_machine ? " · " + steps.compute.remote_machine.destination + " (" + steps.compute.remote_machine.transport + ")" : "");
     return choiceName("agent", steps.agent.choice);
   }
+  // A compute check setup no longer counts (LP-PROD-E), as setup states it:
+  // stale, with its reasons and the one step that clears them (checking
+  // again, or the installer's update), or set aside by an update. Null when
+  // neither.
+  function staleCompute(steps) {
+    const compute = steps?.compute || {};
+    const reasons = list => Array.isArray(list) ? list.filter(item => typeof item === "string") : [];
+    if (reasons(compute.stale).length && typeof compute.next_step === "string") return {title: "Your compute check no longer matches this install", reasons: reasons(compute.stale), next: compute.next_step};
+    if (reasons(compute.set_aside?.reasons).length) return {title: "An update set your compute check aside", reasons: reasons(compute.set_aside.reasons), next: "check Compute again"};
+    return null;
+  }
+  // What setup says must happen before a step counts: why, each reason, and
+  // the step that clears it (a command, copyable, when it is one to run).
+  function setupAttention(parent, id, title, reasons, next) {
+    const box = el("div", undefined, "setup-attention"); box.id = "setup-" + id; box.setAttribute("role", "status");
+    box.append(el("p", title + ":", "reason"));
+    const list = el("ul"); for (const reason of reasons) list.append(el("li", reason)); box.append(list);
+    if (next) {
+      box.append(el("p", "Next: " + next + ".", "status-line"));
+      const command = /^run (\S.*)$/.exec(next);
+      if (command) copyRow(box, null, command[1]);
+    }
+    parent.append(box);
+    return box;
+  }
+  // Where each Challenge's frozen candidates are evaluated (LP-PROD-E):
+  // Carbon's published endpoint, the miner's own intake, or plainly none
+  // yet, as setup's `steps.evaluation` says. An intake of the miner's own
+  // that an update set aside is named again with one click.
+  function evaluationSection(parent, evaluation, nameAgain) {
+    const items = Array.isArray(evaluation?.challenges) ? evaluation.challenges : [];
+    if (!items.length && !evaluation?.problem) return null;
+    const box = el("section", undefined, "setup-evaluation"); box.id = "setup-evaluation";
+    box.append(el("h3", "Where your candidates are evaluated"));
+    for (const item of items) {
+      const row = el("div", undefined, "evaluation-row"); row.dataset.challenge = item.id;
+      const head = el("p");
+      const [tag, kind] = item.intake ? [item.source === "published" ? "Carbon's endpoint" : "Your intake", "pill-done"] : ["None yet", "pill-need"];
+      head.append(el("strong", (item.title || item.id) + " · v" + item.version), " ", pill(tag, kind));
+      row.append(head);
+      if (item.intake) row.append(el("p", "A frozen candidate is submitted to " + item.intake + ".", "status-line"));
+      if (item.receiver_hotkey) {
+        row.append(el("p", "Receiver hotkey: " + item.receiver_hotkey, "hint"));
+        const note = item.receiver_hotkey_note;
+        if (typeof note === "string" && note) row.append(el("p", note[0].toUpperCase() + note.slice(1), "hint"));
+      }
+      if (item.note) row.append(el("p", item.note, item.intake ? "hint" : "reason"));
+      if (item.set_aside_intake) {
+        row.append(el("p", "Your own intake, set aside by the update: " + item.set_aside_intake, "status-line"));
+        const again = el("button", "Name it again"); again.type = "button"; again.dataset.nameAgain = item.id;
+        again.addEventListener("click", () => nameAgain(item.id, item.set_aside_intake));
+        row.append(again);
+      }
+      box.append(row);
+    }
+    if (evaluation.problem) box.append(el("p", "Carbon's list of evaluation endpoints could not be read (" + words(evaluation.problem) + "), so none is offered.", "reason"));
+    if (evaluation.published_by) box.append(el("p", "Carbon publishes its endpoints in " + evaluation.published_by + ", in this checkout.", "hint"));
+    parent.append(box);
+    return box;
+  }
   function stepSentence(id, j) {
     const state = j.state[id];
     const steps = j.steps;
@@ -596,7 +887,10 @@
     if (state === "waiting" && id !== "review") return "Opens once your registration is confirmed.";
     if (state === "skipped") return "Skipped: your agent uses its own model.";
     if (id === "inference") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : "Choose a provider and model, and check your key.";
-    if (id === "compute") return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : "Choose where practice runs.";
+    if (id === "compute") {
+      const stale = staleCompute(steps);
+      return state === "done" ? "Checked: " + checkedText(id, steps) + "." : j.sendPending ? "Send your worker to your machine." : stale ? stale.title + ". Next: " + stale.next + "." : "Choose where practice runs.";
+    }
     if (id === "agent") return state === "done" ? "Checked: " + checkedText(id, steps) + ", and your signer answered." : "Carbon's agent, or your own agent over MCP.";
     if (state === "done") return "Campaigns on record: " + research.runs.length + ".";
     if (state === "waiting") return "Opens when steps 3 to 5 are done.";
@@ -641,20 +935,29 @@
     const index = SETUP_IDS.indexOf(id);
     for (const panel of panels) panel.hidden = panel.dataset.stepPanel !== id;
     const [, title, lede] = SETUP_STEPS[index];
-    $("setup-eyebrow").textContent = "Set up · Step " + (index + 1) + " of " + SETUP_STEPS.length;
-    $("setup-heading").textContent = id === "review" ? stepTitle(id, j) : title;
-    $("setup-lede").textContent = lede;
+    setText($("setup-eyebrow"), "Set up · Step " + (index + 1) + " of " + SETUP_STEPS.length);
+    setText($("setup-heading"), id === "review" ? stepTitle(id, j) : title);
+    setText($("setup-lede"), lede);
     const progress = $("setup-progress");
-    progress.replaceChildren();
+    // Built once; each step's state is patched in place, so a step button is
+    // the same element from one refresh to the next.
+    if (progress.children.length !== SETUP_STEPS.length) {
+      progress.replaceChildren();
+      SETUP_STEPS.forEach(([step, label], position) => {
+        const item = el("li");
+        const button = el("button"); button.type = "button"; button.dataset.setupStep = step;
+        button.append(el("span", String(position + 1).padStart(2, "0"), "wp-num"), el("span", label));
+        button.addEventListener("click", () => { location.hash = "#setup/" + step; });
+        item.append(button); progress.append(item);
+      });
+    }
     SETUP_STEPS.forEach(([step, label], position) => {
-      const item = el("li", undefined, "is-" + j.state[step]);
-      const button = el("button"); button.type = "button";
-      button.append(el("span", String(position + 1).padStart(2, "0"), "wp-num"), el("span", label));
+      const item = progress.children[position];
+      const button = item.firstChild;
+      item.className = "is-" + j.state[step];
       button.disabled = !connected || !setupState || !reachable(step, j);
-      if (step === id) button.setAttribute("aria-current", "step");
+      if (step === id) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
       button.setAttribute("aria-label", "Step " + (position + 1) + ": " + label + " · " + STATE_LABEL[j.state[step]]);
-      button.addEventListener("click", () => { location.hash = "#setup/" + step; });
-      item.append(button); progress.append(item);
     });
     const ready = connected && Boolean(setupState);
     progress.hidden = !ready;
@@ -664,8 +967,8 @@
     const following = stepFrom(id, 1, j);
     $("setup-next").hidden = !following;
     $("setup-next").disabled = Boolean(problem);
-    $("setup-next").textContent = following ? "Next: " + SETUP_STEPS[SETUP_IDS.indexOf(following)][1] : "Next";
-    $("setup-next-reason").textContent = problem || "";
+    setText($("setup-next"), following ? "Next: " + SETUP_STEPS[SETUP_IDS.indexOf(following)][1] : "Next");
+    setText($("setup-next-reason"), problem || "");
   }
   $("setup-back").addEventListener("click", () => {
     const before = stepFrom(setupStepShown, -1, journey());
@@ -734,6 +1037,7 @@
   }
   function renderSetup() {
     const body = $("setup-body");
+    setupDrawn = setupKey(setupState);
     if (!connected) { body.replaceChildren(el("p", "Connect this browser to begin.", "hint")); applySetupStep(); return; }
     if (!setupState) {
       body.replaceChildren(el("p", "Setup is off on this controller: start it with a state directory (the installer does).", "reason"));
@@ -892,6 +1196,10 @@
     // Checked but still waiting for its worker is not done yet.
     const computeDone = steps.compute?.checked && !j.sendPending ? "Checked: " + checkedText("compute", steps) + "." : null;
     const computePanel = stepPanel(body, "compute", computeDone);
+    // A check that no longer describes this install, or one an update set
+    // aside (LP-PROD-E): why, and setup's own step that clears it.
+    const computeStale = staleCompute(steps);
+    if (computeStale) setupAttention(computePanel, "compute-stale", computeStale.title, computeStale.reasons, computeStale.next);
     const compute = stepForm(computePanel, "compute");
     const remoteChoice = offered.compute.find(c => c.needs_remote);
     const guides = remoteChoice?.guides || {cards: [], notes: []};
@@ -1097,17 +1405,22 @@
       const sendLabel = el("label", "Send the pinned GPU worker " + workerImage + " to " + target + "."); sendLabel.htmlFor = sendAgree.id;
       const sendRow = el("div", undefined, "consent"); sendRow.append(sendAgree, sendLabel);
       send.append(sendRow);
-      const sendButton = el("button", "Send my worker", "primary"); sendButton.disabled = true;
-      sendAgree.addEventListener("change", () => { sendButton.disabled = !sendAgree.checked; });
+      const sendButton = el("button", sendingWorker ? "Sending…" : "Send my worker", "primary"); sendButton.disabled = true;
+      sendAgree.addEventListener("change", () => { sendButton.disabled = !sendAgree.checked || Boolean(sendingWorker); });
       send.append(sendButton);
       send.addEventListener("submit", async event => {
         event.preventDefault();
-        if (!sendAgree.checked) return;
+        if (!sendAgree.checked || sendingWorker) return;
         const consent = {destination: checkedMachine.destination, image: workerImage};
         if (checkedMachine.port) consent.port = checkedMachine.port;
-        sendButton.disabled = true;
-        $("setup-result").replaceChildren(setupLine("Sending your worker over your SSH. This can take minutes."));
-        await setupCall("send_worker", {consent: {send: consent}}, 3600000);
+        sendButton.disabled = true; sendButton.textContent = "Sending…";
+        try { await sendWorker({consent: {send: consent}}, target); }
+        finally {
+          // A send that did not go through leaves this form drawn: its
+          // button is ready again, as its consent box says.
+          sendButton.textContent = "Send my worker";
+          sendButton.disabled = !sendAgree.checked || Boolean(sendingWorker);
+        }
       });
     }
 
@@ -1193,6 +1506,7 @@
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    const evaluationBox = el("div"); review.append(evaluationBox);
     // A validator's intake, when a Challenge's validator runs elsewhere
     // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
     // read and checked by that Challenge; nothing is signed.
@@ -1201,6 +1515,12 @@
     const intakeChallenge = setupSelect(reviewMore, "intake_challenge", "Validator intake for", intakeChallenges.map(item => [item.id, item.title + " · v" + item.version]));
     const intake = setupField(reviewMore, "intake_url", "Validator intake URL (optional; https, or loopback)");
     intakeChallenge.disabled = intake.disabled = !intakeChallenges.length;
+    evaluationSection(evaluationBox, steps.evaluation, (challengeId, url) => {
+      // Review writes only the intakes it is given: this one, again.
+      intakeChallenge.value = challengeId; intake.value = url;
+      reviewMore.parentNode.open = true;
+      $("setup-result").replaceChildren(setupLine("Your intake is named again below. Write your profile to keep it."));
+    });
     const write = el("button", written ? "Write my profile again" : "Write my profile", written ? "" : "primary");
     write.disabled = !steps.review?.ready;
     const reviewAction = el("div", undefined, "step-action"); reviewAction.append(write);
@@ -1233,6 +1553,14 @@
     if (wizard.challenge && !challengeEntry(wizard.challenge)) wizard.challenge = null;
     if (wizard.agentChoice && !caps.agents.choices.some(choice => choice.id === wizard.agentChoice)) wizard.agentChoice = null;
     if (wizard.agentChoice) composition = {...composition, agent: agentEntry(wizard.agentChoice).launch_agent};
+    // The model chosen in setup is the launch's model unless the miner picks
+    // another here (LP-PROD-F): prefilled, so the Model step passes with it.
+    const setupModel = caps.model?.setup_choice;
+    const listed = (provider, model) => (caps.model?.providers || []).some(row => row.id === provider && row.models.some(entry => entry.id === model));
+    if (wizard.provider && !listed(wizard.provider, wizard.model)) { wizard.provider = null; wizard.model = null; }
+    if (!wizard.provider && setupModel && listed(setupModel.provider_id, setupModel.model_id)) {
+      wizard.provider = setupModel.provider_id; wizard.model = setupModel.model_id;
+    }
   }
   function challengeEntry(selection) {
     if (!caps || !selection) return null;
@@ -1242,6 +1570,11 @@
   function selectedProvider() {
     const providers = caps?.model.providers || [];
     return providers.find(provider => provider.id === wizard.provider) || null;
+  }
+  // The provider and model the runner profile's setup chose, or null.
+  function setupModel() {
+    const value = caps?.model?.setup_choice;
+    return value && typeof value.provider_id === "string" && typeof value.model_id === "string" ? value : null;
   }
   function computeChoice() { return caps?.compute.choices[0] || null; }
 
@@ -1262,14 +1595,16 @@
       }
       connected = true;
       land();
-      render();
+      settleWatches();
+      settleHeld();
+      quietly(render);
       if (!setupRead) { setupRead = true; readSetup(); }
       else pollSetup();
-      $("connection-state").textContent = "Connected";
+      setText($("connection-state"), "Connected");
     } catch (error) {
       connected = false;
-      render();
-      $("connection-state").textContent = "Connection interrupted";
+      quietly(render);
+      setText($("connection-state"), "Connection interrupted");
       message("Controller connection interrupted. Runs may still be active. Reconnect before issuing another command.", true);
     } finally { polling = false; }
   }
@@ -1279,16 +1614,29 @@
     landed = true;
     if (location.hash) return;
     const active = research.runs.find(run => !TERMINAL.includes(run.state));
-    if (active) { location.hash = "#campaigns/" + encodeURIComponent(active.id) + "/overview"; return; }
+    if (active) { location.hash = campaignHref(active.id); return; }
     const last = stored(routeKey, null);
     if (last && typeof last.hash === "string" && last.hash.startsWith("#")) location.hash = last.hash;
   }
-  $("connect-form").addEventListener("submit", async event => {
+  $("connect-form").addEventListener("submit", event => {
     event.preventDefault();
     if (busy || polling) return;
+    connect($("token").value.trim());
+  });
+  // The session link connects as a pasted token does. One read while a
+  // refresh or an operation is under way waits for it, rather than being lost.
+  function connectFromLink(value) {
+    if (!value) {
+      message("This address held a session link this page cannot read. Open the link the Control Center printed again, or paste its local session token.", true);
+      return;
+    }
+    if (busy || polling) { setTimeout(() => connectFromLink(value), 250); return; }
+    connect(value);
+  }
+  async function connect(value) {
     connected = false;
     render();
-    token = $("token").value.trim();
+    token = value;
     try {
       await readCapabilities();
       const catalog = await api("/api/v1/capabilities");
@@ -1318,7 +1666,7 @@
       render();
       message("Could not connect: " + error.message, true);
     }
-  });
+  }
   $("settings-recheck").addEventListener("click", async () => {
     if (busy || !connected) return;
     busy = true; render();
@@ -1350,6 +1698,10 @@
         return;
       }
     }
+    // In flight, the outcome is unknown until answered: a reload keeps it so.
+    const earlier = pending.unknown === true;
+    pending.unknown = true;
+    try { sessionStorage.setItem(pendingKey, JSON.stringify(pending)); } catch (_) { /* the key still covers this request */ }
     busy = true; $("launch-button").disabled = true;
     try {
       const run = await api("/api/v1/runs", pending.spec, pending.key);
@@ -1358,8 +1710,24 @@
       message("Rehearsal started. These fixture steps produce no physics or mining evidence.");
       await refresh();
     } catch (error) {
-      message("Launch not confirmed: " + error.message + ". Retry keeps this request, including after reconnect. Free an active slot if required.", true);
+      if (refused(error) && !earlier) {
+        // Refused: nothing started, and no earlier attempt is outstanding.
+        forgetRehearsal();
+        message("Launch refused: " + said(error) + ". Nothing was started; change the request and launch again. Free an active slot if required.", true);
+      } else {
+        message("Launch not confirmed: " + said(error) + ". Retry sends this same request, including after reconnect: if it was recorded it is replayed, never duplicated. Or discard it.", true);
+      }
     } finally { busy = false; $("launch-button").disabled = false; render(); }
+  });
+  function forgetRehearsal() {
+    try { sessionStorage.removeItem(pendingKey); } catch (_) { /* nothing held */ }
+    pending = null;
+  }
+  $("launch-discard").addEventListener("click", () => {
+    if (busy || !pending) return;
+    forgetRehearsal();
+    message("Discarded. If the earlier launch was recorded, it is listed under Rehearsal activity.");
+    render();
   });
   for (const action of ["pause", "resume", "stop"]) {
     $(action).addEventListener("click", async () => {
@@ -1434,21 +1802,21 @@
   function renderGettingStarted() {
     const list = $("getting-started-steps");
     const primary = $("overview-primary");
+    const goTo = (text, href) => { setText(primary, text); if (primary.getAttribute("href") !== href) primary.href = href; };
     if (!connected) {
-      list.replaceChildren(el("li", "Connect this browser to see your next step.", "hint"));
-      list.dataset.key = "";
-      primary.textContent = "Get started"; primary.href = "#setup";
-      $("getting-started-progress").textContent = "";
+      rebuild(list, "disconnected", target => target.append(el("li", "Connect this browser to see your next step.", "hint")));
+      goTo("Get started", "#setup");
+      setText($("getting-started-progress"), "");
       return;
     }
     const j = journey();
     const key = JSON.stringify([j.state, j.profile, research.runs.length, setupState?.registered_hotkey ?? null, setupVersion]);
-    primary.textContent = j.current ? "Next: " + stepTitle(j.current, j) : "New campaign";
-    primary.href = j.current ? stepHref(j.current, j) : "#launch";
-    $("overview-lede").textContent = j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : "You are set up. Choose a Challenge and launch.";
-    if (list.dataset.key === key) return;
-    list.dataset.key = key;
-    list.replaceChildren();
+    goTo(j.current ? "Next: " + stepTitle(j.current, j) : "New campaign", j.current ? stepHref(j.current, j) : "#launch");
+    setText($("overview-lede"), j.current ? "Step " + (SETUP_IDS.indexOf(j.current) + 1) + " of 6 is next. Each step is checked before it counts." : "You are set up. Choose a Challenge and launch.");
+    rebuild(list, key, target => drawGettingStarted(target, j));
+    setText($("getting-started-progress"), Object.values(j.state).filter(state => state === "done").length + " of 6 done");
+  }
+  function drawGettingStarted(list, j) {
     SETUP_IDS.forEach((id, index) => {
       const state = j.state[id];
       const item = el("li", undefined, "gs-step is-" + state + (id === j.current ? " is-current" : ""));
@@ -1460,8 +1828,6 @@
       item.append(el("span", String(index + 1).padStart(2, "0"), "gs-num"), body, pill(STATE_LABEL[state], "gs-state pill-" + ({done: "done", next: "next", open: "open"}[state] || "wait")));
       list.append(item);
     });
-    const count = Object.values(j.state).filter(state => state === "done").length;
-    $("getting-started-progress").textContent = count + " of 6 done";
   }
   function prerequisites() {
     // What a launch needs, each read from the controller - never assumed met.
@@ -1537,17 +1903,68 @@
   function renderOverview() {
     renderGettingStarted();
     const list = $("overview-prerequisites");
-    if (!connected || !caps) { list.replaceChildren(el("li", "Connect to read what this controller can do.", "hint")); list.dataset.key = ""; }
+    if (!connected || !caps) rebuild(list, "disconnected", target => target.append(el("li", "Connect to read what this controller can do.", "hint")));
     else rebuild(list, "caps:" + capsVersion, target => renderReadiness(target, prerequisites()));
-    const active = $("overview-active");
-    active.replaceChildren();
-    if (!connected) { researchNote(active, "Connect to see your campaigns.", "hint"); return; }
     const live = research.runs.filter(run => !TERMINAL.includes(run.state));
-    if (!research.runs.length) {
-      researchNote(active, "No campaigns yet. They appear here once you launch.", "hint");
-      return;
+    const shown = connected ? (live.length ? live : research.runs.slice(0, 3)) : [];
+    rebuild($("overview-active"), JSON.stringify([connected, research.runs.length, shown.map(cardKey), capsVersion]), active => {
+      if (!connected) { researchNote(active, "Connect to see your campaigns.", "hint"); return; }
+      if (!research.runs.length) {
+        researchNote(active, "No campaigns yet. They appear here once you launch.", "hint");
+        return;
+      }
+      for (const run of shown) campaignCard(active, run);
+    });
+  }
+  // What a campaign card shows, as one key: it is redrawn only when this moves.
+  function cardKey(run) {
+    return [run.id, run.state, run.challenge ?? null, run.selects ?? null, run.attempted_experiments ?? 0, run.completed_experiments ?? 0, lastRefusal(run)];
+  }
+  // The campaign's last refusal (slice C's `last_refusal`): {code,
+  // next_action, at, and, when given, the operation it was for and its kind
+  // (refused, interrupted or paused)}, shown when present and well formed,
+  // ignored otherwise.
+  const REFUSAL_KINDS = {refused: "Refused", interrupted: "Interrupted", paused: "Paused"};
+  function lastRefusal(...sources) {
+    for (const source of sources) {
+      const value = source?.last_refusal ?? source?.campaign?.last_refusal;
+      if (value && typeof value === "object" && typeof value.code === "string" && value.code) {
+        return {
+          code: value.code.slice(0, 128),
+          next_action: typeof value.next_action === "string" ? value.next_action.slice(0, 2000) : null,
+          at: typeof value.at === "number" || typeof value.at === "string" ? value.at : null,
+          operation: typeof value.operation === "string" && value.operation ? value.operation.slice(0, 32) : null,
+          kind: typeof value.kind === "string" && Object.hasOwn(REFUSAL_KINDS, value.kind) ? value.kind : "refused",
+        };
+      }
     }
-    for (const run of (live.length ? live : research.runs.slice(0, 3))) campaignCard(active, run);
+    return null;
+  }
+  function when(at) {
+    if (typeof at === "number" && Number.isFinite(at)) return new Date((at > 1e12 ? at : at * 1000)).toLocaleString();
+    if (typeof at === "string" && !Number.isNaN(Date.parse(at))) return new Date(at).toLocaleString();
+    return null;
+  }
+  // Where a refusal's correction is taken, when this page has the place.
+  function refusalFix(code) {
+    if (/^signer_/.test(code)) return {label: "Check your signer", href: "#setup/signer"};
+    if (/^registration_/.test(code)) return {label: "Check your registration", href: "#setup/register"};
+    if (/^model_provider_|^model_selection_/.test(code)) return {label: "Set up inference", href: "#setup/inference"};
+    if (/^research_profile_|^runner_profile_/.test(code)) return {label: "Continue setup", href: "#setup/review"};
+    return null;
+  }
+  // The refusal as a person reads it: what was refused, when, and what to do.
+  function refusalNote(parent, refusal, compact = false) {
+    if (!refusal) return null;
+    const box = el("div", undefined, "refusal-note");
+    box.setAttribute("role", "status");
+    const at = when(refusal.at);
+    box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + words(refusal.code) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
+    if (refusal.next_action) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
+    const fix = refusalFix(refusal.code);
+    if (fix && !compact) box.append(link(fix, "button fix"));
+    parent.append(box);
+    return box;
   }
   function challengeLabel(run) {
     if (run.challenge) {
@@ -1558,12 +1975,14 @@
   }
   function campaignCard(parent, run) {
     const box = el("a", undefined, "integration card campaign-card");
-    box.href = "#campaigns/" + encodeURIComponent(run.id) + "/overview";
+    box.href = campaignHref(run.id);
+    box.dataset.campaign = run.id;
     const head = el("div", undefined, "card-head");
     head.append(el("h3", run.id.slice(0, 10)), el("span", run.state, "badge state-" + String(run.state).toLowerCase()));
     box.append(head);
     researchNote(box, challengeLabel(run));
     researchNote(box, (run.selects === "miner" ? "You select and submit" : run.selects === "agent" ? "Carbon's agent selects" : "Awaiting runtime") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0), "hint");
+    refusalNote(box, lastRefusal(run), true);
     parent.append(box);
   }
 
@@ -1572,7 +1991,7 @@
   function renderCatalogs() {
     const views = ["challenge-catalog", "agent-catalog", "compute-catalog", "connection-catalog", "wallet-profile"];
     if (!connected || !caps) {
-      for (const id of views) { $(id).replaceChildren(el("p", id === "wallet-profile" ? "" : "Connect to read this controller's capabilities.", "hint")); $(id).dataset.key = ""; }
+      for (const id of views) rebuild($(id), "disconnected", target => target.append(el("p", id === "wallet-profile" ? "" : "Connect to read this controller's capabilities.", "hint")));
       return;
     }
     const key = capsVersion + ":" + setupVersion;
@@ -1718,7 +2137,12 @@
     if (mcp) {
       const box = card(target, "Your own MCP client · stdio", ...readiness(mcp));
       box.append(el("p", "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.", "hint"));
-      copyRow(box, "Connect your client with:", mcp.command);
+      copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
+      // The command names this controller's own runner profile when it has
+      // one (LP-PROD-F); otherwise it says where that path comes from.
+      if (mcp.profile_path) researchNote(box, "Your runner profile: " + mcp.profile_path + ". The command above names it; your client starts the server with it.", "hint");
+      else researchNote(box, "Replace <your runner profile> with your runner profile's path: Set up writes it, and this page shows it here once a profile is loaded.", "hint");
+      if (mcp.client_configuration) details(box, "Client configuration (JSON)", [el("pre", JSON.stringify(mcp.client_configuration, null, 2))]);
       if (mcp.availability !== "available") unavailableNote(box, mcp);
     }
     for (const item of caps.connections) unavailableNote(card(target, words(item.id), "Not offered", "pill-wait"), item);
@@ -1752,18 +2176,21 @@
     const run = current.view === "campaigns" && current.id ? research.runs.find(r => r.id === current.id) : null;
     list.hidden = Boolean(run);
     detail.hidden = !run && !(current.view === "campaigns" && current.id);
-    if (!(list.contains(document.activeElement))) {
-      list.replaceChildren();
-      if (!connected) researchNote(list, "Reconnect to reconcile research state. Controls are disabled.", "hint");
+    rebuild(list, JSON.stringify([connected, research.runs.map(cardKey), capsVersion]), target => {
+      if (!connected) researchNote(target, "Reconnect to reconcile research state. Controls are disabled.", "hint");
       else if (!research.runs.length) {
         const empty = el("div", undefined, "empty");
         empty.append(el("h3", "No campaign yet."), el("p", "New campaign walks you through Challenge, agent, model, compute, tools and limits."));
-        list.append(empty);
+        target.append(empty);
       }
-      for (const item of research.runs) campaignCard(list, item);
-    }
+      for (const item of research.runs) campaignCard(target, item);
+    });
     if (current.view === "campaigns" && current.id && !run) {
-      detail.replaceChildren(el("p", connected ? "No campaign " + current.id + " on this controller." : "Reconnect to open this campaign.", "hint"));
+      rebuild(detail, "missing|" + current.id + "|" + connected, target => {
+        // The research surface's campaign frame is gone with it.
+        delete target.dataset.frame;
+        target.append(el("p", connected ? "No campaign " + current.id + " on this controller." : "Reconnect to open this campaign.", "hint"));
+      });
       return;
     }
     if (!run) return;
@@ -1844,19 +2271,27 @@
     experiments.forEach((experiment, index) => renderPractice(panel, experiment, index));
     if (!experiments.length) missing(panel, "no practice experiment has completed in this campaign.");
   }
-  function tabMetrics(panel, run) {
-    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+  // A campaign's ledger usage, every column in the unit its limit is set in
+  // (USD, minutes, MB; counts as counts), so spend reads beside its limit
+  // (LP-PROD-F). Shared by this page and the research surface's Logs tab.
+  function usageTable(parent, usage) {
     const table = el("table", undefined, "metrics-table");
     const header = el("tr"); for (const name of ["Resource", "Your limit", "Reported", "Reserved", "Uncertain"]) header.append(el("th", name));
     table.append(header);
-    const budget = run.usage.budget || {};
-    for (const name of Object.keys(run.usage.reported || {})) {
+    const budget = usage.budget || {};
+    const amount = (name, value) => typeof value === "number" ? resourceValue(name, value) : "–";
+    for (const name of Object.keys(usage.reported || {})) {
       const row = el("tr");
       const cap = budget.ceilings ? budget.ceilings[name] : budget[name];
-      row.append(el("td", words(name)), el("td", cap === undefined || cap === null ? "No limit" : String(cap)), el("td", String(run.usage.reported[name])), el("td", String(run.usage.reserved?.[name] ?? "")), el("td", String(run.usage.uncertain?.[name] ?? "")));
+      row.append(el("td", resourceName(name)), el("td", cap === undefined || cap === null ? "No limit" : resourceValue(name, cap)), el("td", amount(name, usage.reported[name])), el("td", amount(name, usage.reserved?.[name])), el("td", amount(name, usage.uncertain?.[name])));
       table.append(row);
     }
-    const wrap = el("div", undefined, "table-wrap"); wrap.append(table); panel.append(wrap);
+    const wrap = el("div", undefined, "table-wrap"); wrap.append(table); parent.append(wrap);
+    researchNote(parent, "Shown in USD, minutes and MB; the ledger counts whole nanodollars, milliseconds and bytes.", "hint");
+  }
+  function tabMetrics(panel, run) {
+    if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
+    usageTable(panel, run.usage);
     const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable"));
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
   }
@@ -1993,6 +2428,8 @@
     const label = document.createElement("label"); label.textContent = labelText;
     element.id = "journey-" + field + "-" + id; label.htmlFor = element.id;
     element.value = draft(id, field, fallback);
+    // Kept as a draft across reloads and redraws, so it never holds its region.
+    element.dataset.draft = "1";
     element.addEventListener("input", () => { journeyDrafts[id + ":" + field] = element.value; store(draftKey, journeyDrafts); });
     parent.append(label, element);
     return element;
@@ -2043,6 +2480,7 @@
       operate("practice", {campaign: run.id, strategy, hypothesis: hypothesis.value || "practice"}, "Practice trial started. Its result appears under Experiments when training finishes.");
     });
     buttons.append(practice); box.append(buttons);
+    operationLine(box, run, ["practice"]);
     if (launchOptions) {
       // Each family's true availability now, by its registry verdict.
       const byVerdict = {};
@@ -2066,11 +2504,38 @@
     const second = document.createElement("div"); second.className = "controls";
     const freeze = document.createElement("button"); freeze.type = "button"; freeze.id = "journey-freeze-" + run.id; freeze.textContent = "Freeze candidate";
     freeze.disabled = !connected || busy || !ready || !practiced.length || frozen || exhausted;
-    freeze.addEventListener("click", () => operate("freeze_candidate", {campaign: run.id, strategy: JSON.parse(choose.value), reason: reason.value || "practiced"}, "Candidate frozen for this epoch."));
+    // Said as started, not as done: the record says when it is done.
+    freeze.addEventListener("click", () => operate("freeze_candidate", {campaign: run.id, strategy: JSON.parse(choose.value), reason: reason.value || "practiced"}, "Freezing your candidate. It shows here once the campaign records it."));
     const submit = document.createElement("button"); submit.type = "button"; submit.id = "journey-submit-" + run.id; submit.textContent = "Submit frozen candidate";
     submit.disabled = !connected || busy || !ready || !frozen;
-    submit.addEventListener("click", () => operate("submit", {campaign: run.id}, "Submitted for the DEVELOPMENT comparison. The independent result appears below."));
+    submit.addEventListener("click", () => operate("submit", {campaign: run.id}, "Submit started: your registration is read, then your frozen candidate is sent for the DEVELOPMENT comparison. Whether it was admitted shows here."));
     second.append(freeze, submit); box.append(second);
+    operationLine(box, run, ["freeze_candidate", "submit"]);
+    parent.append(box);
+  }
+  // The line under a journey's buttons: what the last operation is doing, or
+  // how it ended, from the campaign's own record.
+  function operationLine(parent, run, names) {
+    const entry = watches.get(run.id);
+    const status = entry && names.includes(entry.name) ? watchStatus(run) : null;
+    if (status) {
+      const line = el("p", status.text, status.kind === "refused" ? "reason" : "status-line");
+      line.dataset.operation = status.kind;
+      line.setAttribute("role", "status");
+      parent.append(line);
+    }
+    // A request whose answer was lost is held under its key until the record
+    // shows how it ended; the miner can let it go (LP-PROD-F).
+    const held = heldOperation(run.id, names);
+    if (!held) return;
+    const box = el("div", undefined, "held-operation");
+    box.dataset.held = held.name;
+    box.append(el("p", "Your last " + OPERATION_NAMES[held.name] + " request was not confirmed. Trying again with the same values replays it under its key, never runs it twice; the page lets it go once the campaign's record shows how it ended.", "hint"));
+    const discard = el("button", "Discard the unconfirmed " + OPERATION_NAMES[held.name], undefined);
+    discard.type = "button"; discard.id = "journey-discard-" + held.name + "-" + run.id;
+    discard.disabled = busy;
+    discard.addEventListener("click", () => { discardOperation(run.id, [held.name]); message("Discarded. The next " + OPERATION_NAMES[held.name] + " is a new request, under a new key."); });
+    box.append(discard);
     parent.append(box);
   }
 
@@ -2079,12 +2544,16 @@
     wizard = {...wizard, challenge: {id: entry.challenge_id, version: entry.version}};
     saveWizard(); render();
   }
-  function describeComposition(value) {
-    const budget = value.budget || {};
+  // A budget in the units a person reads: dollars, minutes, megabytes.
+  function budgetParts(budget = {}) {
     const parts = [];
-    if ("elapsed_seconds" in budget) parts.push(budget.elapsed_seconds + " s elapsed");
+    if ("elapsed_seconds" in budget) parts.push(budget.elapsed_seconds + " s elapsed" + longer(budget.elapsed_seconds));
     if (budget.final_reserve) parts.push("final phase held back");
-    for (const [name, cap] of Object.entries(budget.ceilings || {})) parts.push(words(name) + " ≤ " + cap);
+    for (const [name, cap] of Object.entries(budget.ceilings || {})) parts.push(resourceShort(name) + " ≤ " + resourceValue(name, cap));
+    return parts;
+  }
+  function describeComposition(value) {
+    const parts = budgetParts(value.budget || {});
     const agent = agentEntry(wizard.agentChoice);
     return "Launches with " + (value.agent ? (agent ? agent.label : value.agent) : "no choice yet") + " · budget: " + (parts.length ? parts.join(", ") : "none, no cap");
   }
@@ -2104,7 +2573,8 @@
     if ("final_reserve" in budget && typeof budget.final_reserve !== "boolean") return "the final reserve is on or off";
     for (const [name, cap] of Object.entries(budget.ceilings || {})) {
       if (!vocabulary.ceilings.includes(name)) return "no resource is called " + name;
-      if (!(Number.isInteger(cap) && cap >= 0)) return "the " + words(name) + " ceiling must be a whole number, 0 or more";
+      if (cap === Infinity) return "the " + resourceShort(name) + " ceiling is too large to count exactly";
+      if (!(Number.isInteger(cap) && cap >= 0)) return "the " + resourceShort(name) + " ceiling must be " + (UNITS[name] ? "an amount in " + UNITS[name].unit : "a whole number") + ", 0 or more";
     }
     return null;
   }
@@ -2125,9 +2595,19 @@
       const agent = agentEntry(wizard.agentChoice);
       if (agent?.uses_model) {
         const provider = selectedProvider();
-        if (!provider) return "Choose a model provider.";
+        // With nothing chosen here, a launch runs with the model chosen in
+        // setup: the controller falls back to the profile's model_selection.
+        if (!provider) {
+          const setup = setupModel();
+          if (!setup) return "Choose a model provider.";
+          const row = caps.model.providers.find(item => item.id === setup.provider_id);
+          if (row && row.availability !== "available") return row.provider + " (your setup's choice) is unavailable: " + words(row.reason) + ". Next: " + row.next_action;
+          return null;
+        }
         if (provider.availability !== "available") return provider.provider + " is unavailable: " + words(provider.reason) + ". Next: " + provider.next_action;
-        if (!provider.models.some(model => model.id === wizard.model)) return "Choose a model.";
+        if (!provider.models.some(model => model.id === wizard.model)) {
+          return provider.models.length ? "Choose a model." : provider.provider + " lists no models here. Choose it with your model under Set up, Inference: that model is then offered here.";
+        }
       }
     }
     if (step === "compute") {
@@ -2149,22 +2629,29 @@
   function renderWizard() {
     const index = Math.max(0, STEPS.findIndex(([name]) => name === wizard.step));
     const list = $("wizard-steps");
-    list.replaceChildren();
-    STEPS.forEach(([name, label], position) => {
-      const item = el("li");
-      const button = el("button", (position + 1) + " · " + label); button.type = "button";
-      if (position === index) button.setAttribute("aria-current", "step");
+    // Built once; each step button is patched in place, so it is the same
+    // element from one refresh to the next and a click on it always lands.
+    if (list.children.length !== STEPS.length) {
+      list.replaceChildren();
+      STEPS.forEach(([name, label], position) => {
+        const item = el("li");
+        const button = el("button", (position + 1) + " · " + label); button.type = "button"; button.dataset.wizardStep = name;
+        button.addEventListener("click", () => { wizard.step = name; saveWizard(); render(); });
+        item.append(button); list.append(item);
+      });
+    }
+    STEPS.forEach((_, position) => {
+      const button = list.children[position].firstChild;
+      if (position === index) button.setAttribute("aria-current", "step"); else button.removeAttribute("aria-current");
       // A later step opens only once every step before it can be passed.
       button.disabled = position > index && STEPS.slice(0, position).some(([earlier]) => stepProblem(earlier));
-      button.addEventListener("click", () => { wizard.step = name; saveWizard(); render(); });
-      item.append(button); list.append(item);
     });
     for (const section of document.querySelectorAll("#launch .step")) section.hidden = section.dataset.step !== STEPS[index][0];
     const problem = stepProblem(STEPS[index][0]);
     $("wizard-back").disabled = index === 0;
     $("wizard-next").hidden = index === STEPS.length - 1;
     $("wizard-next").disabled = Boolean(problem);
-    $("wizard-next-reason").textContent = problem && index < STEPS.length - 1 ? problem : "";
+    setText($("wizard-next-reason"), problem && index < STEPS.length - 1 ? problem : "");
     renderWizardChallenges();
     renderWizardAgents();
     renderWizardModel();
@@ -2175,31 +2662,53 @@
     renderResearchPreflight();
     const blocked = stepProblem("review");
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available || Boolean(blocked);
-    $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch research";
+    setText($("research-launch"), pendingResearch ? "Retry the launch with these choices" : "Launch research");
     const chosen = challengeEntry(wizard.challenge);
-    $("wizard-launch-summary").textContent = chosen ? chosen.title + " \u00b7 version " + chosen.version + " \u00b7 " + describeComposition(composition) : "";
-    $("wizard-launch-reason").textContent = blocked ? blocked : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : "";
+    setText($("wizard-launch-summary"), chosen ? chosen.title + " \u00b7 version " + chosen.version + " \u00b7 " + describeComposition(composition) : "");
+    setText($("wizard-launch-reason"), blocked ? blocked : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : "");
+    renderPendingLaunch();
   }
+  // A launch sent and not answered (LP-PROD-F): said once, with its retry and
+  // a way to let it go. Its key is kept, so a retry is replayed if the first
+  // was recorded, never run twice; the retry carries the current choices.
+  function renderPendingLaunch() {
+    const note = $("research-pending");
+    const text = pendingResearch ? "Your last launch was not confirmed: the controller did not answer, or answered with an error that does not say whether it was recorded. Retry sends your current choices under the same request key: if the first was recorded, it is replayed or refused as a conflict, never launched twice. If it was recorded, it is listed under My Campaigns." : "";
+    setText(note, text);
+    note.hidden = !pendingResearch;
+    $("research-discard").hidden = !pendingResearch;
+    $("research-discard").disabled = busy;
+  }
+  function discardLaunch() {
+    if (busy || !pendingResearch) return;
+    try { sessionStorage.removeItem(researchKey); } catch (_) { /* nothing held */ }
+    pendingResearch = null;
+    message("Discarded. Check My Campaigns: if the earlier launch was recorded, it is there. A new launch now gets a new key.");
+    render();
+  }
+  $("research-discard").addEventListener("click", discardLaunch);
   $("wizard-back").addEventListener("click", () => { const index = STEPS.findIndex(([name]) => name === wizard.step); if (index > 0) { wizard.step = STEPS[index - 1][0]; saveWizard(); render(); } });
   $("wizard-next").addEventListener("click", () => { const index = STEPS.findIndex(([name]) => name === wizard.step); if (index < STEPS.length - 1 && !stepProblem(wizard.step)) { wizard.step = STEPS[index + 1][0]; saveWizard(); render(); } });
   function renderWizardChallenges() {
     const target = $("wizard-challenges");
-    if (!caps) { target.replaceChildren(el("p", "Connect to read the Challenge registry.", "hint")); $("wizard-challenge-description").replaceChildren(); return; }
-    if (target.dataset.built !== JSON.stringify([wizard.challenge, caps.challenges.map(entry => entry.selectable), connected])) {
-      target.replaceChildren();
+    if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
+    rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
       for (const entry of caps.challenges) {
         const label = el("label", undefined, "choice" + (entry.selectable ? "" : " unavailable"));
         const input = el("input"); input.type = "radio"; input.name = "wizard-challenge"; input.value = entry.challenge_id;
-        input.checked = Boolean(wizard.challenge && wizard.challenge.id === entry.challenge_id && wizard.challenge.version === entry.version);
+        input.dataset.version = entry.version || "";
         // Unimplemented Challenges are shown, never offered as working choices.
         input.disabled = !entry.implemented;
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
         text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : ""), "small-tag"));
         if (!entry.selectable) text.append(el("span", "Unavailable: " + words(entry.reason) + " · Next: " + entry.next_action, "reason"));
-        label.append(input, text); target.append(label);
+        label.append(input, text); node.append(label);
       }
-      target.dataset.built = JSON.stringify([wizard.challenge, caps.challenges.map(entry => entry.selectable), connected]);
+    });
+    // The choice is patched in place: choosing never redraws the list.
+    for (const input of target.querySelectorAll("input[name=wizard-challenge]")) {
+      input.checked = Boolean(wizard.challenge && wizard.challenge.id === input.value && (wizard.challenge.version || "") === input.dataset.version);
     }
     const description = $("wizard-challenge-description");
     const entry = challengeEntry(wizard.challenge);
@@ -2212,65 +2721,75 @@
   function renderWizardAgents() {
     const box = $("research-selects");
     const notes = $("wizard-agent-notes");
-    const key = JSON.stringify([caps?.agents.choices.map(choice => [choice.id, choice.availability]), wizard.agentChoice]);
-    if (box.dataset.built === key) return;
-    box.replaceChildren(el("legend", "Who selects and submits"));
-    notes.replaceChildren();
-    if (!caps) { box.dataset.built = key; return; }
-    for (const choice of caps.agents.choices) {
-      const label = el("label", undefined, "choice" + (choice.availability === "available" ? "" : " unavailable"));
-      const input = el("input"); input.type = "radio"; input.name = "research-agent"; input.value = choice.id;
-      input.checked = wizard.agentChoice === choice.id;
-      input.disabled = choice.availability !== "available";
-      input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
-      const text = el("span");
-      text.append(el("strong", choice.label), el("span", " " + choice.summary, "hint"));
-      if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
-      label.append(input, text); box.append(label);
-    }
+    const choices = caps ? caps.agents.choices.map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null]) : null;
+    rebuild(box, JSON.stringify([capsVersion, choices]), node => {
+      node.append(el("legend", "Who selects and submits"));
+      if (!caps) return;
+      for (const choice of caps.agents.choices) {
+        const label = el("label", undefined, "choice" + (choice.availability === "available" ? "" : " unavailable"));
+        const input = el("input"); input.type = "radio"; input.name = "research-agent"; input.value = choice.id;
+        input.disabled = choice.availability !== "available";
+        input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
+        const text = el("span");
+        text.append(el("strong", choice.label), el("span", " " + choice.summary, "hint"));
+        if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
+        label.append(input, text); node.append(label);
+      }
+    });
+    for (const input of box.querySelectorAll("input[name=research-agent]")) input.checked = wizard.agentChoice === input.value;
     const external = agentEntry("external_mcp");
-    if (wizard.agentChoice === "external_mcp" && external) researchNote(notes, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
-    for (const item of caps.agents.unavailable) researchNote(notes, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
-    box.dataset.built = key;
+    rebuild(notes, JSON.stringify([capsVersion, Boolean(caps), wizard.agentChoice]), node => {
+      if (!caps) return;
+      if (wizard.agentChoice === "external_mcp" && external) researchNote(node, "After launch, connect your client with: " + external.command + ". It sees this campaign and calls the same practice, freeze and submit operations.", "code");
+      for (const item of caps.agents.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+    });
   }
   function renderWizardModel() {
     const target = $("wizard-model");
-    target.replaceChildren();
-    if (!caps) return;
     const agent = agentEntry(wizard.agentChoice);
-    if (agent && !agent.uses_model) {
-      researchNote(target, agent.label + " calls no model: nothing to choose here, and no credential is needed.");
-      return;
-    }
-    researchNote(target, "You choose the provider and model and supply your own credential. " + caps.model.selection, "hint");
-    for (const provider of caps.model.providers) {
-      const group = el("fieldset", undefined, "selects");
-      group.append(el("legend", provider.provider));
-      for (const model of provider.models) {
-        const label = el("label", undefined, "choice" + (provider.availability === "available" ? "" : " unavailable"));
-        const input = el("input"); input.type = "radio"; input.name = "wizard-model"; input.value = provider.id + "/" + model.id;
-        input.checked = wizard.provider === provider.id && wizard.model === model.id;
-        input.disabled = provider.availability !== "available";
-        input.addEventListener("change", () => { wizard.provider = provider.id; wizard.model = model.id; saveWizard(); render(); });
-        label.append(input, el("span", model.id)); group.append(label);
+    const usesModel = !(agent && !agent.uses_model);
+    rebuild(target, JSON.stringify([capsVersion, Boolean(caps), usesModel, agent?.label ?? null]), node => {
+      if (!caps) return;
+      if (!usesModel) {
+        researchNote(node, agent.label + " calls no model: nothing to choose here, and no credential is needed.");
+        return;
       }
-      researchNote(group, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured"), "hint");
-      if (provider.availability !== "available") unavailableNote(group, provider);
-      target.append(group);
-    }
-    for (const item of caps.model.unavailable) researchNote(target, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+      researchNote(node, "You choose the provider and model and supply your own credential. " + caps.model.selection, "hint");
+      const setup = setupModel();
+      if (setup) researchNote(node, "Your setup chose " + setup.model_id + " (" + ((caps.model.providers.find(row => row.id === setup.provider_id) || {}).provider || setup.provider_id) + "). It is selected below; a launch with nothing chosen here runs with it too.", "status-line");
+      for (const provider of caps.model.providers) {
+        const group = el("fieldset", undefined, "selects");
+        group.append(el("legend", provider.provider));
+        for (const model of provider.models) {
+          const label = el("label", undefined, "choice" + (provider.availability === "available" ? "" : " unavailable"));
+          const input = el("input"); input.type = "radio"; input.name = "wizard-model"; input.value = provider.id + "/" + model.id;
+          input.disabled = provider.availability !== "available";
+          input.addEventListener("change", () => { wizard.provider = provider.id; wizard.model = model.id; saveWizard(); render(); });
+          label.append(input, el("span", model.id + (model.from_setup ? " · your setup choice" : "")));
+          group.append(label);
+        }
+        // A provider whose adapter lists no models is chosen with its model
+        // in setup; a launch never names a model this page has not listed.
+        if (!provider.models.length) researchNote(group, "No model is listed for this provider here. Choose it with your model under Set up, Inference, and that model is offered here.", "hint");
+        researchNote(group, "Credential: " + provider.credential.reference + " · " + (provider.credential.configured === null ? provider.credential.basis : provider.credential.configured ? "configured" : "not configured"), "hint");
+        if (provider.availability !== "available") unavailableNote(group, provider);
+        node.append(group);
+      }
+      for (const item of caps.model.unavailable) researchNote(node, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+    });
+    for (const input of target.querySelectorAll("input[name=wizard-model]")) input.checked = input.value === wizard.provider + "/" + wizard.model;
   }
   function renderWizardCompute() {
-    const target = $("wizard-compute");
-    target.replaceChildren();
-    if (!caps) return;
-    researchNote(target, caps.compute.selection, "hint");
-    for (const choice of caps.compute.choices) {
-      const box = card(target, choice.label, ...readiness(choice));
-      researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
-      if (choice.availability !== "available") unavailableNote(box, choice);
-    }
-    for (const item of caps.compute.unavailable) researchNote(target, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+    rebuild($("wizard-compute"), JSON.stringify([capsVersion, Boolean(caps)]), target => {
+      if (!caps) return;
+      researchNote(target, caps.compute.selection, "hint");
+      for (const choice of caps.compute.choices) {
+        const box = card(target, choice.label, ...readiness(choice));
+        researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
+        if (choice.availability !== "available") unavailableNote(box, choice);
+      }
+      for (const item of caps.compute.unavailable) researchNote(target, item.id + " · unavailable: " + words(item.reason) + " · Next: " + item.next_action, "reason");
+    });
   }
   function renderWizardTools() {
     const target = $("wizard-tools");
@@ -2302,12 +2821,14 @@
   function renderResearchPreflight() {
     const guidance = research.preflight.research_guidance;
     $("research-guidance-review").hidden = !connected || !guidance;
-    $("research-guidance").value = connected && guidance ? guidance.text : "";
-    $("research-runtime").textContent = connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "";
-    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your subnet registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.";
-    const reviewPanel = $("research-review"); reviewPanel.replaceChildren();
+    const task = connected && guidance ? guidance.text : "";
+    if ($("research-guidance").value !== task) $("research-guidance").value = task;
+    setText($("research-runtime"), connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "");
+    setText($("research-preflight"), connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your subnet registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.");
     const review = connected && research.preflight.review;
-    if (!review) return;
+    rebuild($("research-review"), JSON.stringify(review || null), reviewPanel => { if (review) drawReview(reviewPanel, review); });
+  }
+  function drawReview(reviewPanel, review) {
     researchNote(reviewPanel, "Experiment pause: " + review.experiment_pause);
     if (review.blockers?.length) researchNote(reviewPanel, "Launch unavailable: " + review.blockers.map(value => value.replaceAll("_", " ")).join("; "));
     researchNote(reviewPanel, "Your research runs on: " + review.execution.profile + " · Backend: " + review.execution.backend + " · Lane: " + review.execution.lane + " · " + review.execution.basis);
@@ -2335,50 +2856,60 @@
     details.append(label, data); reviewPanel.append(details);
   }
   function renderWizardReview() {
-    const grid = $("wizard-review");
-    grid.replaceChildren();
-    const missingList = $("wizard-missing");
-    missingList.replaceChildren();
-    if (!caps) return;
-    const row = (label, value) => grid.append(el("dt", label), el("dd", value));
-    const entry = challengeEntry(wizard.challenge);
-    const agent = agentEntry(wizard.agentChoice);
-    const provider = selectedProvider();
-    const compute = computeChoice();
-    const budget = composition.budget || {};
-    row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered hotkey read from it at launch" : "No runner profile");
-    row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Subnet registration, read at launch · see Wallet & Identity");
-    row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
-    row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");
-    row("Model", agent && !agent.uses_model ? "None: this agent calls no model" : provider && wizard.model ? provider.provider + " · " + wizard.model + " · credential " + (provider.credential.configured ? "configured" : "not configured") + ". " + caps.model.selection : "Not chosen");
-    row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
-    row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
-    const limits = [];
-    limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" : "no limit"));
-    limits.push("final reserve: " + (budget.final_reserve ? "on" : "off"));
-    for (const name of caps.budget.ceilings) limits.push(words(name) + ": " + (budget.ceilings && name in budget.ceilings ? budget.ceilings[name] : "no limit"));
-    row("Your limits", limits.join(" · "));
-    row("Unset limits", "An unset limit means no limit. Carbon sets none for you.");
+    const rows = [];
     const problems = [];
-    for (const [name, label] of STEPS.slice(0, 5)) { const problem = stepProblem(name); if (problem) problems.push({ok: false, text: label + ": " + problem}); }
-    if (!research.preflight.available) problems.push({ok: false, text: "Research launch: " + words(research.preflight.reason || research.preflight.status)});
-    problems.push({ok: null, text: "Subnet registration is read at launch, before anything is recorded.", href: "#wallet"});
-    renderChecklist(missingList, problems);
+    if (caps) {
+      const row = (label, value) => rows.push([label, value]);
+      const entry = challengeEntry(wizard.challenge);
+      const agent = agentEntry(wizard.agentChoice);
+      const provider = selectedProvider();
+      const compute = computeChoice();
+      const budget = composition.budget || {};
+      const setup = setupModel();
+      row("Identity", caps.profile.configured ? "Runner profile " + caps.profile.profile_id + " · registered hotkey read from it at launch" : "No runner profile");
+      row("Network", research.preflight.review?.admission?.gate ? words(research.preflight.review.admission.gate).toLowerCase() + " · see Wallet & Identity for the network and netuid" : "Subnet registration, read at launch · see Wallet & Identity");
+      row("Challenge", entry ? entry.title + " · " + entry.challenge_id + " · version " + entry.version + (entry.description?.contract_digest ? " · contract " + entry.description.contract_digest : "") : "Not chosen");
+      row("Agent", agent ? agent.label + " (launch agent: " + agent.launch_agent + ")" : "Not chosen");
+      row("Model", agent && !agent.uses_model ? "None: this agent calls no model"
+        : provider && wizard.model ? provider.provider + " · " + wizard.model + " · credential " + (provider.credential.configured ? "configured" : "not configured") + ". " + caps.model.selection
+        : setup ? "Your setup's choice: " + setup.model_id + " (" + setup.provider_id + ")" : "Not chosen");
+      row("Compute", compute ? compute.label + " · " + compute.lane + " lane · " + compute.availability : "Unavailable");
+      row("Tools", entry ? Object.keys(entry.tools?.workflow || {}).join(", ") || "none listed" : "Choose a Challenge");
+      const limits = [];
+      limits.push("elapsed: " + ("elapsed_seconds" in budget ? budget.elapsed_seconds + " s" + longer(budget.elapsed_seconds) : "no limit"));
+      limits.push("final reserve: " + (budget.final_reserve ? "on" : "off"));
+      for (const name of caps.budget.ceilings) limits.push(resourceShort(name) + ": " + resourceValue(name, budget.ceilings && name in budget.ceilings ? budget.ceilings[name] : null));
+      row("Your limits", limits.join(" · "));
+      row("Unset limits", "An unset limit means no limit. Carbon sets none for you.");
+      for (const [name, label] of STEPS.slice(0, 5)) { const problem = stepProblem(name); if (problem) problems.push({ok: false, text: label + ": " + problem}); }
+      if (!research.preflight.available) problems.push({ok: false, text: "Research launch: " + words(research.preflight.reason || research.preflight.status)});
+      problems.push({ok: null, text: "Subnet registration is read at launch, before anything is recorded.", href: "#wallet"});
+    }
+    rebuild($("wizard-review"), JSON.stringify(rows), grid => { for (const [label, value] of rows) grid.append(el("dt", label), el("dd", value)); });
+    rebuild($("wizard-missing"), JSON.stringify(problems), list => renderChecklist(list, problems));
   }
   function buildCeilings() {
     const box = $("budget-ceilings");
     const vocabulary = caps?.budget || launchOptions?.budget;
     if (!vocabulary || box.dataset.built) return;
+    // Each ceiling is typed in the unit a person thinks in (dollars, minutes,
+    // megabytes) and sent as the ledger's whole number (LP-PROD-F).
     for (const name of vocabulary.ceilings) {
       const wrap = document.createElement("div");
-      const label = document.createElement("label"); label.htmlFor = "ceiling-" + name; label.textContent = words(name);
-      const input = document.createElement("input"); input.id = "ceiling-" + name; input.type = "number"; input.min = "0"; input.step = "1"; input.placeholder = "No limit"; input.dataset.ceiling = name;
+      const label = document.createElement("label"); label.htmlFor = "ceiling-" + name; label.textContent = resourceName(name);
+      const input = document.createElement("input"); input.id = "ceiling-" + name; input.type = "number"; input.min = "0"; input.step = UNITS[name]?.step || "1"; input.placeholder = "No limit"; input.dataset.ceiling = name;
+      input.dataset.draft = "1";
+      if (UNITS[name]) input.dataset.unit = UNITS[name].unit;
       input.addEventListener("input", readAdvanced);
       wrap.append(label, input); box.append(wrap);
     }
     box.dataset.built = "1";
     writeAdvanced();
   }
+  // What each ceiling field was last filled with, and the ledger whole number
+  // it stands for: a field not typed into since keeps that exact number, so
+  // editing one limit never rewrites another (LP-PROD-F).
+  const ceilingsWritten = new Map();
   // Advanced inputs write into the composition; a blank field removes its key.
   function readAdvanced() {
     const budget = {};
@@ -2388,8 +2919,11 @@
     if ($("budget-final-reserve").checked) budget.final_reserve = true;
     const ceilings = {};
     for (const input of document.querySelectorAll("[data-ceiling]")) {
-      const cap = whole(input.value);
-      if (cap !== undefined) ceilings[input.dataset.ceiling] = cap;
+      const name = input.dataset.ceiling;
+      const written = ceilingsWritten.get(name);
+      const kept = written && written.text === input.value && Number.isSafeInteger(written.ledger) && written.ledger >= 0;
+      const cap = kept ? written.ledger : toLedger(name, input.value);
+      if (cap !== undefined) ceilings[name] = cap;
     }
     if (Object.keys(ceilings).length) budget.ceilings = ceilings;
     composition = {...composition, budget};
@@ -2400,7 +2934,12 @@
     const budget = composition.budget || {};
     $("budget-elapsed").value = budget.elapsed_seconds ?? "";
     $("budget-final-reserve").checked = budget.final_reserve === true;
-    for (const input of document.querySelectorAll("[data-ceiling]")) input.value = budget.ceilings?.[input.dataset.ceiling] ?? "";
+    for (const input of document.querySelectorAll("[data-ceiling]")) {
+      const name = input.dataset.ceiling;
+      const ledger = budget.ceilings?.[name];
+      input.value = fromLedger(name, ledger);
+      ceilingsWritten.set(name, {text: input.value, ledger});
+    }
   }
   function renderLaunchComposition() {
     buildCeilings();
@@ -2418,7 +2957,7 @@
       availability.dataset.built = chosen;
     }
     const problem = compositionProblem(composition);
-    $("composition-summary").textContent = describeComposition(composition) + (problem ? " · cannot launch: " + problem : "");
+    setText($("composition-summary"), describeComposition(composition) + (problem ? " · cannot launch: " + problem : ""));
     renderTemplates();
     return problem;
   }
@@ -2430,15 +2969,15 @@
     const templates = readTemplates();
     const pick = $("template-pick");
     const disabled = templates === null || !connected;
-    for (const id of ["template-name", "template-save", "template-pick", "template-load", "template-delete"]) $(id).disabled = disabled;
-    if (templates === null) { $("template-note").textContent = "Templates are unavailable: this browser refused its storage."; return; }
-    const names = Object.keys(templates).sort();
-    if (pick.dataset.names !== names.join("\n")) {
+    const names = templates === null ? [] : Object.keys(templates).sort();
+    // Each control set once per render, to its final state: no flicker.
+    for (const id of ["template-name", "template-save", "template-pick"]) $(id).disabled = disabled;
+    for (const id of ["template-load", "template-delete"]) $(id).disabled = disabled || !names.length;
+    if (templates === null) { setText($("template-note"), "Templates are unavailable: this browser refused its storage."); return; }
+    if (pick.dataset.names !== names.join("\n") && !held(pick)) {
       pick.replaceChildren(...names.map(name => { const option = document.createElement("option"); option.value = name; option.textContent = name; return option; }));
       pick.dataset.names = names.join("\n");
     }
-    $("template-load").disabled = disabled || !names.length;
-    $("template-delete").disabled = disabled || !names.length;
   }
   // A template is a launch composition and nothing else: closed against the
   // launch operation's own fields, and checked against what is available now,
@@ -2491,22 +3030,224 @@
     message("Template “" + name + "” deleted.");
     render();
   });
-  async function operate(name, body, done) {
+  // ---- Keyed operations (LP-PROD-F): practice, freeze and submit. One
+  // idempotency key per request, held until its outcome is known: a retry
+  // after a lost answer or a reload replays the request rather than starting
+  // it twice (or meeting campaign_busy from its own first attempt). Both the
+  // journey and the Tools tab send through here.
+  //
+  // A held key is released when the controller answers it; on a refusal
+  // with no earlier attempt under it outstanding; on
+  // operation_replay_conflict (the key is spent); by Discard; and when the
+  // campaign's record shows how the request ended (its effect, a refusal
+  // recorded since, an interruption, the campaign ending) or that it no
+  // longer applies (a submit with its frozen candidate gone). A held key is
+  // never carried into the next epoch's request: a submit whose answer was
+  // lost but which ran is released by its submitted epoch, so the next
+  // candidate's submit is a new request, not a replay of the old one.
+  const operationKey = "carbon.launchpad.pending-operation.v1";
+  // Slots whose request is in flight from this page: only its answer
+  // releases those.
+  const inFlight = new Set();
+  function heldOperations() {
+    let value = null;
+    try { value = JSON.parse(sessionStorage.getItem(operationKey) || "null"); } catch (_) { value = null; }
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    // The page before LP-PROD-F held one request, not one per campaign.
+    if (typeof value.name === "string") return {[value.name + ":" + (value.body?.campaign || "")]: {...value, unknown: true}};
+    return value;
+  }
+  function writeHeld(all) {
+    try { sessionStorage.setItem(operationKey, JSON.stringify(all)); } catch (_) { /* the key still covers this request */ }
+  }
+  function holdOperation(slot, action) {
+    const all = heldOperations();
+    if (action) all[slot] = action; else delete all[slot];
+    writeHeld(all);
+  }
+  // What the campaign's record showed when a request was first sent: the
+  // mark its outcome is read against, on a retry as on the first answer.
+  function recordMark(campaign) {
+    const run = research.runs.find(item => item.id === campaign) || {};
+    return {
+      state: run.state || null,
+      submitted: (run.journey?.submitted_epochs || []).length,
+      frozen: run.journey?.frozen_awaiting_submission === true,
+      experiments: (run.experiments || []).length,
+      refusals: (run.refusals || []).length,
+      refusal: JSON.stringify(lastRefusal(run)),
+    };
+  }
+  // A refusal that may be this operation's: slice C names the operation a
+  // refusal was for; one naming another operation is not this one's.
+  function refusalOf(name, refusal) { return Boolean(refusal) && (!refusal.operation || refusal.operation === name); }
+  // Whether the record shows how a held request ended, or that it no longer
+  // applies, since its mark.
+  // A record that could not be read (READBACK_UNAVAILABLE, or one without
+  // its journey) shows nothing either way, and releases nothing.
+  function heldSettled(name, mark, run) {
+    if (["COMPLETED", "STOPPED", "EXPIRED"].includes(run.state)) return true;
+    if (["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state) && run.state !== mark.state) return true;
+    const refusal = lastRefusal(run);
+    if (refusal && JSON.stringify(refusal) !== mark.refusal && refusalOf(name, refusal)) return true;
+    if ((run.refusals || []).length > mark.refusals) return true;
+    if (name === "practice") return (run.experiments || []).length > mark.experiments;
+    const journey = run.journey;
+    if (!journey || typeof journey !== "object") return false;
+    const submitted = (journey.submitted_epochs || []).length > mark.submitted;
+    const frozen = journey.frozen_awaiting_submission === true;
+    if (name === "submit") return submitted || (mark.frozen && !frozen);
+    if (name === "freeze_candidate") return submitted || (!mark.frozen && frozen);
+    return false;
+  }
+  // Each refresh: a held request the record shows ended lets its key go.
+  function settleHeld() {
+    const all = heldOperations();
+    let changed = false;
+    for (const [slot, action] of Object.entries(all)) {
+      if (inFlight.has(slot) || !action || typeof action !== "object" || !action.mark) continue;
+      const run = research.runs.find(item => item.id === action.body?.campaign);
+      if (run && heldSettled(action.name, action.mark, run)) { delete all[slot]; changed = true; }
+    }
+    if (changed) writeHeld(all);
+  }
+  // The held request among `names` for a campaign, when one is waiting on a
+  // retry or a discard (not while it is in flight), or null.
+  function heldOperation(campaign, names) {
+    const all = heldOperations();
+    for (const name of names) {
+      const slot = name + ":" + campaign;
+      if (all[slot] && all[slot].unknown === true && !inFlight.has(slot)) return {name, key: all[slot].key};
+    }
+    return null;
+  }
+  function discardOperation(campaign, names) {
+    const all = heldOperations();
+    for (const name of names) if (!inFlight.has(name + ":" + campaign)) delete all[name + ":" + campaign];
+    writeHeld(all);
+    render();
+  }
+  async function keyedOperation(name, body, timeout = 20000) {
+    const slot = name + ":" + (body.campaign || "");
+    let kept = heldOperations()[slot];
+    if (!kept || typeof kept !== "object" || typeof kept.key !== "string") kept = null;
+    // Held, but the record shows it ended: its key is spent, and this is a
+    // new request.
+    const run = research.runs.find(item => item.id === body.campaign);
+    if (kept && kept.mark && run && heldSettled(name, kept.mark, run)) kept = null;
+    const same = Boolean(kept) && JSON.stringify(kept.body) === JSON.stringify(body);
+    // A different request while an earlier one is unknown: sent as a new
+    // request under a new key, and said so; the earlier one's key is let go.
+    const replaced = Boolean(kept) && kept.unknown === true && !same;
+    const action = same ? {...kept, mark: kept.mark || recordMark(body.campaign)} : {name, body, key: crypto.randomUUID(), unknown: false, mark: recordMark(body.campaign)};
+    const earlier = action.unknown === true;
+    holdOperation(slot, {...action, unknown: true});
+    inFlight.add(slot);
+    try {
+      const value = await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, timeout);
+      holdOperation(slot, null);
+      // A retry answered: its outcome is read against the record when it was
+      // first sent, which a replay of finished work already includes.
+      return {ok: true, value, mark: earlier ? action.mark : null, replaced};
+    } catch (error) {
+      // The key already named another request: it is spent, nothing new ran.
+      const spent = error.code === "operation_replay_conflict";
+      const release = spent || (refused(error) && !earlier);
+      if (release) holdOperation(slot, null);
+      return {ok: false, error, refused: refused(error), kept: !release, spent, replaced};
+    } finally { inFlight.delete(slot); }
+  }
+  const REPLACED = "This differs from your earlier request, whose outcome is unknown, so it went as a new request under a new key; if the earlier one started, it ran too.";
+  // Why an operation is not done, as a person reads it. `text` is the
+  // caller's wording of the error, when it has its own.
+  function notDone(outcome, text = said(outcome.error)) {
+    if (outcome.spent) return "Not sent again: an earlier request under this key was recorded with other values, so nothing new started. See the campaign's record.";
+    const head = (outcome.refused ? "Refused: " : "Not confirmed: ") + text.replace(/\.$/, "");
+    return head + (outcome.kept ? ". Trying again with the same values sends it under the same key: if it started, it is replayed, never run twice. Or discard it." : ".") + (outcome.replaced ? " " + REPLACED : "");
+  }
+  async function operate(name, body, started) {
     if (!connected || busy) return;
-    // One idempotency key per action, kept until answered: a retry of the
-    // same request (a lost response, a reload) replays it, never repeats it.
-    const operationKey = "carbon.launchpad.pending-operation.v1";
-    let held = null;
-    try { held = JSON.parse(sessionStorage.getItem(operationKey) || "null"); } catch (_) { held = null; }
-    const action = held && held.name === name && JSON.stringify(held.body) === JSON.stringify(body) ? held : {name, body, key: crypto.randomUUID()};
-    try { sessionStorage.setItem(operationKey, JSON.stringify(action)); } catch (_) { /* the key still covers this request */ }
     busy = true; render();
     try {
-      await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, 20000);
-      try { sessionStorage.removeItem(operationKey); } catch (_) { /* nothing held */ }
-      message(done);
-    } catch (error) { message("Not done: " + error.message.replaceAll("_", " "), true); }
-    finally { busy = false; await refresh(); render(); }
+      const outcome = await keyedOperation(name, body);
+      if (outcome.ok) { watch(name, body.campaign, outcome.value, outcome); message(started + (outcome.replaced ? " " + REPLACED : "")); }
+      else message(notDone(outcome), true);
+    } finally { busy = false; await refresh(); render(); }
+  }
+  // ---- What a started operation shows (LP-PROD-F). The controller answers
+  // practice, freeze and submit once the work has started, not once it was
+  // admitted or finished. The page says it started, and says it was done
+  // only when the campaign's own record shows it; a refusal recorded since
+  // is shown with what to do.
+  const WORKING = {PRACTICING: "practice", FREEZING: "freeze_candidate", SUBMITTING: "submit"};
+  const watches = new Map();
+  // `sent` is keyedOperation's outcome: on a retry, the mark from its first
+  // send is the baseline, so a replay of work that already finished reads as
+  // done, not as "ended without the change it was for".
+  function watch(name, campaign, answered, sent = {}) {
+    if (!campaign) return;
+    const before = research.runs.find(run => run.id === campaign) || {};
+    const mark = sent.mark;
+    watches.set(campaign, {
+      name, since: Date.now(), settled: null, replaced: Boolean(sent.replaced),
+      submitted: mark ? mark.submitted : (before.journey?.submitted_epochs || []).length,
+      experiments: mark ? mark.experiments : (before.experiments || []).length,
+      refusals: mark ? mark.refusals : (before.refusals || []).length,
+      refusal: mark ? mark.refusal : JSON.stringify(lastRefusal(answered, before)),
+    });
+  }
+  // Back to READY with no change of record: the projection can lag the
+  // operation's thread by a refresh, so this waits before saying so.
+  const SETTLE_MS = 60000;
+  function watchStatus(run) {
+    const entry = run && watches.get(run.id);
+    if (!entry) return null;
+    if (entry.settled) return entry.settled;
+    // A start time, not a running clock: the line changes only when the
+    // operation's state does, so it never redraws its form.
+    const elapsed = "started " + new Date(entry.since).toLocaleTimeString();
+    if (WORKING[run.state]) {
+      const doing = {practice: "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
+      return {kind: "working", text: doing + " · " + elapsed + "." + (entry.replaced ? " " + REPLACED : "")};
+    }
+    const refusal = lastRefusal(run);
+    if (refusal && JSON.stringify(refusal) !== entry.refusal && refusalOf(entry.name, refusal)) {
+      return {kind: "refused", text: "Not done: " + words(refusal.code) + "." + (refusal.next_action ? " " + refusal.next_action : ""), refusal};
+    }
+    const recorded = run.refusals || [];
+    if (recorded.length > entry.refusals) {
+      const last = recorded[recorded.length - 1] || {};
+      return {kind: "refused", text: "Not done: " + words(last.reason || last.status || "refused") + "." + (last.detail ? " " + last.detail : "")};
+    }
+    if (entry.name === "submit" && (run.journey?.submitted_epochs || []).length > entry.submitted) {
+      return {kind: "done", text: "Submitted for the DEVELOPMENT comparison. The independent result appears below."};
+    }
+    if (entry.name === "freeze_candidate" && run.journey?.frozen_awaiting_submission === true) {
+      return {kind: "done", text: "Candidate frozen for this epoch. Submit it under Submission."};
+    }
+    if (entry.name === "practice" && (run.experiments || []).length > entry.experiments) {
+      return {kind: "done", text: "Practice trial finished. Its result is under Experiments."};
+    }
+    if (["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state)) {
+      return {kind: "refused", text: "Interrupted before it finished (" + words(run.state).toLowerCase() + "). Reconcile the campaign, then try again."};
+    }
+    if (Date.now() - entry.since < SETTLE_MS) return {kind: "working", text: "Finishing: waiting for the campaign's record · " + elapsed + "."};
+    return {kind: "unclear", text: "It ended without the change it was for (" + words(run.state).toLowerCase() + "). Any reason is in the campaign's Logs and journal."};
+  }
+  // Each refresh: an operation that ended says so once, in the page's message.
+  function settleWatches() {
+    for (const [id, entry] of watches) {
+      if (entry.settled) continue;
+      const run = research.runs.find(item => item.id === id);
+      if (!run) continue;
+      const status = watchStatus(run);
+      if (status && status.kind !== "working") {
+        entry.settled = status;
+        message(status.text, status.kind === "refused");
+      } else if (Date.now() - entry.since > 2 * 3600 * 1000) {
+        entry.settled = {kind: "unclear", text: "No change of record two hours after it started: see the campaign's Logs."};
+      }
+    }
   }
   async function researchAction(id, action) {
     if (!connected || busy) return;
@@ -2515,42 +3256,68 @@
       if (action === "export") download(await api("/api/v1/research/" + id), "carbon-research-" + id + ".json");
       else await api("/api/v1/research/" + id + "/" + action, {});
       message("Research request acknowledged. Check observed state and cleanup in the campaign.");
-    } catch (error) { message("Research request unresolved: " + error.message, true); }
+    } catch (error) {
+      // The controller's next step when it gives one: for a Reconcile, A's
+      // step for a model call it would not settle (LP-PROD-W2).
+      message("Research request unresolved: " + error.message + (error.nextStep ? ". Next: " + error.nextStep.replace(/\.$/, "") + "." : ""), true);
+    }
     finally { busy = false; await refresh(); render(); }
   }
   $("research-launch").addEventListener("click", () => launchResearch());
   // The one launch: the wizard's button and the Launchpad's both call it.
   async function launchResearch() {
     if (!connected || busy || storageError || !research.preflight.available) return;
-    if (!pendingResearch) {
-      const problem = stepProblem("review");
-      if (problem) { message("Not launched: " + problem, true); return; }
-      const entry = challengeEntry(wizard.challenge);
-      // The Challenge is always sent, exactly: there is no default Challenge.
-      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
-      if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
-      // A feedback mode only when the Challenge offers it and it is not FULL.
-      if (wizard.feedbackMode && wizard.feedbackMode !== "FULL" && (entry.setup_offers?.feedback_modes || []).includes(wizard.feedbackMode)) pendingResearch.body.feedback_mode = wizard.feedbackMode;
-      // The chosen provider and model, when the agent calls one and the launch
-      // carries them; the key file stays in the runner profile.
-      const provider = selectedProvider();
-      if (agentEntry(wizard.agentChoice)?.uses_model && caps.model.launch_field && provider?.availability === "available" && wizard.model) {
-        pendingResearch.body.model_provider = provider.id;
-        pendingResearch.body.model = wizard.model;
-      }
-      if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
-      try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
-      catch (_) { storageError = true; render(); return; }
+    const problem = stepProblem("review");
+    if (problem) { message("Not launched: " + problem, true); return; }
+    const entry = challengeEntry(wizard.challenge);
+    // The body is always the wizard's current choices, with the review the
+    // controller states now. The key is kept from an attempt whose outcome is
+    // unknown, so the controller replays (or refuses as a conflict) a launch
+    // it already recorded instead of starting a second one (LP-PROD-F).
+    const earlier = Boolean(pendingResearch?.unknown);
+    // The Challenge is always sent, exactly: there is no default Challenge.
+    pendingResearch = {key: pendingResearch?.key || crypto.randomUUID(), unknown: true, body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
+    if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
+    // A feedback mode only when the Challenge offers it and it is not FULL.
+    if (wizard.feedbackMode && wizard.feedbackMode !== "FULL" && (entry.setup_offers?.feedback_modes || []).includes(wizard.feedbackMode)) pendingResearch.body.feedback_mode = wizard.feedbackMode;
+    // The chosen provider and model, when the agent calls one and the launch
+    // carries them; the key file stays in the runner profile. With none
+    // chosen here, the controller runs the model chosen in setup.
+    const provider = selectedProvider();
+    if (agentEntry(wizard.agentChoice)?.uses_model && caps.model.launch_field && provider?.availability === "available" && wizard.model && provider.models.some(model => model.id === wizard.model)) {
+      pendingResearch.body.model_provider = provider.id;
+      pendingResearch.body.model = wizard.model;
     }
+    if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
+    // Held before it is sent: in flight, its outcome is unknown until answered.
+    try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
+    catch (_) { storageError = true; pendingResearch = null; render(); return; }
     busy = true; render();
     try {
       const run = await api("/api/v1/research", pendingResearch.body, pendingResearch.key);
-      sessionStorage.removeItem(researchKey); pendingResearch = null;
+      forgetLaunch();
       message("Research launch recorded. Runtime preflight and actual outcome appear in the campaign.");
       wizard.step = "challenge"; saveWizard();
-      if (run && run.id) location.hash = "#campaigns/" + encodeURIComponent(run.id) + "/overview";
-    } catch (error) { message("Research launch not confirmed: " + error.message + ". Retry retains the same request.", true); }
+      if (run && run.id) location.hash = campaignHref(run.id);
+    } catch (error) {
+      if (error.code === "research_launch_replay_conflict") {
+        // The key already started a campaign, with other choices: that one
+        // stands, and is listed. The key is spent.
+        forgetLaunch();
+        message("Your earlier launch was recorded, with the choices it had then: it is listed under My Campaigns. Nothing new was launched.", true);
+      } else if (refused(error) && !earlier) {
+        // Refused: nothing was recorded, and no earlier attempt is outstanding.
+        forgetLaunch();
+        message("Research launch refused: " + said(error) + ". Nothing was recorded. Fix it and launch again.", true);
+      } else {
+        message((refused(error) ? "Research launch refused: " + said(error) + ". An earlier attempt may still have been recorded, so its key is kept" : "Research launch not confirmed: " + said(error) + ". It may have been recorded, so its key is kept") + ": retry sends your current choices under it, never a second campaign. Or discard it.", true);
+      }
+    }
     finally { busy = false; await refresh(); render(); }
+  }
+  function forgetLaunch() {
+    try { sessionStorage.removeItem(researchKey); } catch (_) { /* nothing held */ }
+    pendingResearch = null;
   }
   // The research surface (research_view.js) reads this page's state and
   // calls its operations through this one bridge; it holds none of its own.
@@ -2558,13 +3325,19 @@
     api, el, pill, details, link, message,
     state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch}),
     challengeEntry, agentEntry, selectedProvider, describeComposition, journey,
-    launch: launchResearch,
+    launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
     researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission,
+    // Live regions, refusals and keyed operations (LP-PROD-F), shared with
+    // the research surface and its Tools tab so all three behave alike.
+    held, rebuild, quietly, setText, sent, refused,
+    keyedOperation, heldOperation, discardOperation, watch, watchStatus, notDone,
+    lastRefusal, refusalNote, campaignHref, budgetParts, resourceShort, resourceValue, usageTable,
     onRender(hook) { renderHooks.push(hook); },
   };
   buildNavigation();
   show();
   setInterval(refresh, 1500);
+  if (linkToken !== null) connectFromLink(linkToken);
 })();

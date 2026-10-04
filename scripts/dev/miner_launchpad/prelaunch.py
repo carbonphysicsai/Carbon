@@ -4,6 +4,12 @@ Admission is subnet registration, read at launch (C-MLP-02-D11). This review
 reports that it will be read; it does not read it, and a clean review is not a
 registration.
 
+Where a frozen candidate is evaluated is stated before launch (LP-PROD-E): for
+each Challenge submitted through an intake, the profile's intake and whether
+it is the endpoint Carbon publishes, or plainly that none is published yet.
+Only a published endpoint's URL is shown; a miner's own intake and validator
+paths stay private.
+
 No backend initialization, key access, ledger creation or task execution occurs.
 Expected dependencies and configured identities are not observations or evidence.
 """
@@ -17,6 +23,74 @@ from scripts.dev.miner_launchpad.runner import (
     REQUIRED_RUNTIME_KEYS,
     SUPPORTED_RUNTIME_KEYS,
 )
+
+#: Each Challenge's evaluation endpoint, as the review states it.
+ENDPOINT_STATES = (
+    "INTAKE_CONFIGURED",
+    "VALIDATOR_ON_THIS_MACHINE",
+    "PUBLISHED_REVIEW_AGAIN",
+    "NONE_PUBLISHED",
+)
+
+
+def evaluation(cfg):
+    """Where a frozen candidate of each Challenge is evaluated, from the
+    profile's intakes and validators and the endpoints Carbon publishes
+    (LP-PROD-E). Configuration only: an endpoint is reached when a candidate
+    is submitted, never here."""
+    from scripts.dev.miner_launchpad.environment_setup import (
+        NO_ENDPOINT,
+        intake_challenges,
+        published_endpoints,
+    )
+    from scripts.dev.miner_launchpad.runner import intakes, validators
+
+    published = published_endpoints()["endpoints"]
+    configured = intakes(cfg)
+    local = validators(cfg) if type(cfg.get("paths")) is dict else {}
+    challenges = []
+    for challenge in intake_challenges():
+        entry = published.get(challenge["id"])
+        url = configured.get(challenge["id"])
+        item = {"challenge_id": challenge["id"], "title": challenge["title"]}
+        if type(url) is str:
+            mine = not (entry and entry["intake_url"] == url)
+            item.update(
+                status="INTAKE_CONFIGURED",
+                source="YOURS" if mine else "PUBLISHED",
+                **({} if mine else {"intake": url}),
+            )
+        elif challenge["id"] in local:
+            item.update(status="VALIDATOR_ON_THIS_MACHINE", source="YOURS")
+        elif entry is not None:
+            item.update(
+                status="PUBLISHED_REVIEW_AGAIN",
+                source="PUBLISHED",
+                intake=entry["intake_url"],
+                next_step="Carbon has published an evaluation endpoint for "
+                + challenge["title"]
+                + " since this profile was written: review again in setup "
+                "to add it.",
+            )
+        else:
+            item.update(
+                status="NONE_PUBLISHED",
+                source=None,
+                next_step=NO_ENDPOINT.format(title=challenge["title"]),
+            )
+        challenges.append(item)
+    ready = [item["status"] in ENDPOINT_STATES[:2] for item in challenges]
+    if not ready:
+        summary = "NO_CHALLENGE_SUBMITS_THROUGH_AN_INTAKE"
+    elif all(ready):
+        summary = "CONFIGURED_FOR_ALL"
+    else:
+        summary = "CONFIGURED_FOR_SOME" if any(ready) else "NOT_CONFIGURED"
+    return {
+        "challenges": challenges,
+        "configured": summary,
+        "basis": "CONFIGURATION_ONLY; an evaluation endpoint is reached when you submit a frozen candidate, never by this review. Practice and freezing need none.",
+    }
 
 
 def review(cfg):
@@ -51,6 +125,15 @@ def review(cfg):
         and all(c in "0123456789abcdef" for c in v[7:])
     ]
     catalog = public_catalog()
+    try:
+        endpoints = evaluation(cfg)
+    except (ValueError, TypeError, LookupError, AttributeError, OSError):
+        # A profile whose intakes cannot be read states that, never a guess.
+        endpoints = {
+            "challenges": [],
+            "configured": "NOT_READABLE",
+            "basis": "CONFIGURATION_ONLY; this profile's intakes could not be read.",
+        }
     blockers = []
     if cfg.get("disabled_reason") == "OWNER_EXPERIMENT_PAUSE":
         blockers.append("OWNER_EXPERIMENT_PAUSE")
@@ -184,10 +267,15 @@ def review(cfg):
             "device_execution_observed": False,
             "task_completed": False,
             "cleanup_verified": False,
-            "independent_development_evaluation_available": "RESOLVED_AT_FINAL_PHASE",
+            # Configuration only (LP-PROD-E): which Challenges this profile
+            # can submit to, stated before launch rather than learnt at
+            # submit. Whether the endpoint answers is observed at submit.
+            "independent_development_evaluation_available": endpoints["configured"],
             "official_qualification": False,
             "basis": "Each state is established by its own evidence. Personal research does not require official qualification; a missing runtime does prevent a managed job from executing.",
         },
+        # Where a frozen candidate of each Challenge is evaluated (LP-PROD-E).
+        "evaluation_endpoints": endpoints,
         "expected_dependencies": [
             {"name": name, "version": version, "identity": identity}
             for name, version, identity in DEPENDENCY_SPECS

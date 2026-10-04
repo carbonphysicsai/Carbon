@@ -25,6 +25,7 @@ from scripts.dev.miner_launchpad.operations import (
     Operation,
     describe,
 )
+from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
 
 SAMPLE = {"string": "value-0123456789abcdef", "boolean": False, "object": {"k": 1}}
 
@@ -131,7 +132,15 @@ def test_an_unregistered_miner_is_refused_new_work_on_both_doors(browser, name):
     if op.admits_work:
         from mcp.server.mcpserver.exceptions import ToolError
 
-        assert (code, body) == (403, {"error": "registration_required"})
+        # The browser's refusal carries the catalog's next step (LP-PROD-C
+        # D8, review repair); the MCP door's refusal names the same code.
+        assert (code, body) == (
+            403,
+            {
+                "error": "registration_required",
+                "next_step": NEXT_ACTIONS["registration_required"],
+            },
+        )
         with pytest.raises(ToolError, match="registration_required"):
             through_mcp(via_mcp, name, sample(op))
         for calls in (via_browser.calls, via_mcp.calls):
@@ -153,12 +162,158 @@ def test_a_request_outside_the_table_is_refused_on_both_doors(browser):
     op = OPERATIONS["freeze_candidate"]
     extra = {**sample(op), "official": True}
     code, body = through_browser(browser, SpyHost(), op.name, extra)
-    assert (code, body) == (400, {"error": "closed_request_required"})
+    # The catalog's step, as the MCP door gives it for the same code (W1).
+    assert (code, body) == (
+        400,
+        {
+            "error": "closed_request_required",
+            "next_step": NEXT_ACTIONS["closed_request_required"],
+        },
+    )
     code, body = through_browser(browser, SpyHost(), "official_submit", {})
     assert (code, body) == (404, {"error": "unknown_operation"})
     assert PREFIX + "official_submit" not in {
         t.name for t in make_operation_tools(SpyHost())
     }
+
+
+def test_a_path_the_controller_does_not_serve_carries_no_intake_step(browser):
+    """Review repair: the router answered an unknown path `not_found`, the
+    code a validator intake answers for a submission it does not hold, so the
+    404 came with that intake's step ("Submit again; the frozen candidate is
+    kept"). It has its own code now, left unnamed, as `unknown_operation` is."""
+    from scripts.dev.miner_launchpad.controller import ROUTE_NOT_FOUND, error_body
+
+    server = browser(SpyHost())
+    for method, path, body in (
+        ("GET", "/api/v1/nowhere", None),
+        ("GET", "/api/v1/tools/campaign/state/extra", None),
+        ("POST", "/api/v1/nowhere/at/all", {}),
+        ("POST", "/api/v1/tools/campaign/state", {}),
+        ("POST", "/api/v1/tools/campaign", {}),
+    ):
+        code, _, content = request(server, path, method, body, auth())
+        assert (code, json.loads(content)) == (404, {"error": ROUTE_NOT_FOUND}), path
+    assert ROUTE_NOT_FOUND not in NEXT_ACTIONS
+    assert error_body(ROUTE_NOT_FOUND) == {"error": ROUTE_NOT_FOUND}
+    # The intake's own `not_found` keeps its step wherever a submission meets it.
+    assert error_body("not_found")["next_step"] == NEXT_ACTIONS["not_found"]
+
+
+class RefusingHost(SpyHost):
+    """A host whose operation bodies refuse with one closed code."""
+
+    def __init__(self, code):
+        super().__init__()
+        self.code = code
+
+    def __getattr__(self, name):
+        if not name.endswith("_admitted"):
+            raise AttributeError(name)
+
+        def body(admitted, request):
+            raise launchpad.Rejected(self.code, 409)
+
+        return body
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        # C's catalog codes the MCP door used to answer with a generic step.
+        "evaluation_unavailable",
+        "candidate_awaits_submission",
+        "practice_result_required",
+        # B's codes the browser's door used to answer with no step at all.
+        "challenge_required",
+        "invalid_budget",
+        # LP-PROD-G's intake codes, wherever a door meets one.
+        "intake_mismatch",
+        "AUTH_STALE",
+    ],
+)
+def test_a_refusal_reads_the_same_next_step_at_both_doors(browser, code):
+    """W1: one catalog of next steps (`supervisor.NEXT_ACTIONS`) for both
+    doors. The MCP door adds only the field to correct."""
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from scripts.dev.miner_launchpad.operations import REFUSAL_FIELDS
+
+    op = OPERATIONS["submit"]
+    status, body = through_browser(browser, RefusingHost(code), op.name, sample(op))
+    assert (status, body) == (409, {"error": code, "next_step": NEXT_ACTIONS[code]})
+    with pytest.raises(ToolError) as refused:
+        through_mcp(RefusingHost(code), op.name, sample(op))
+    answered = json.loads(str(refused.value))
+    assert answered["error"] == code
+    assert answered["next_step"] == NEXT_ACTIONS[code]
+    assert answered.get("field") == REFUSAL_FIELDS.get(code)
+
+
+class SteppedHost(SpyHost):
+    """A host whose operation bodies refuse with a code and its own next step
+    (`runner.stepped`), as the reconcile action's settlement refusal and the
+    stale-profile refusal do."""
+
+    def __init__(self, code, step):
+        super().__init__()
+        self.code, self.step = code, step
+
+    def __getattr__(self, name):
+        if not name.endswith("_admitted"):
+            raise AttributeError(name)
+
+        def body(admitted, request):
+            from scripts.dev.miner_launchpad.runner import stepped
+
+            raise stepped(self.code, self.step)
+
+        return body
+
+
+def _stepped_cases():
+    from carbon.development_session.research_agent import SETTLEMENT_REFUSALS
+    from scripts.dev.miner_launchpad.runner import CARBON_UPDATED
+
+    return [
+        *SETTLEMENT_REFUSALS.items(),
+        # What `install_refusal` computes: the step that clears it, and why.
+        (
+            CARBON_UPDATED,
+            (
+                "check Compute again in setup, then review to write your "
+                "profile again: the worker image was rebuilt since this "
+                "profile was written"
+            ),
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("code", "step"), _stepped_cases(), ids=[code for code, _ in _stepped_cases()]
+)
+def test_a_refusal_with_its_own_step_reads_the_same_at_both_doors(browser, code, step):
+    """Review repair: the browser's door sent a refusal's own step
+    (`controller.error_body` reads `next_step`); the MCP door read only the
+    catalog, so a settlement refusal over `carbon_halt action=reconcile` read
+    the fallback and a stale profile read "re-run the installer". Both doors
+    now send the refusal's own step."""
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    from scripts.dev.miner_launchpad.operations import REFUSAL_FIELDS
+
+    body = {"campaign": SAMPLE["string"], "action": "reconcile"}
+    status, answered = through_browser(browser, SteppedHost(code, step), "halt", body)
+    assert (status, answered) == (409, {"error": code, "next_step": step})
+    with pytest.raises(ToolError) as refused:
+        through_mcp(SteppedHost(code, step), "halt", body)
+    assert json.loads(str(refused.value)) == {
+        "error": code,
+        "next_step": step,
+        **({"field": REFUSAL_FIELDS[code]} if code in REFUSAL_FIELDS else {}),
+    }
+    # The step is the refusal's, not the catalog's for its code.
+    assert step != NEXT_ACTIONS[code]
 
 
 def test_an_operation_that_admits_work_cannot_skip_registration():

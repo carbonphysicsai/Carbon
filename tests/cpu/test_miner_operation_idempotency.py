@@ -200,7 +200,18 @@ def test_a_double_clicked_submit_evaluates_the_candidate_once(campaign, monkeypa
             target=click, args=({**submit, "idempotency_key": "submit-key-0000002"},)
         )
     )
-    for thread in clicks:
+    # The first click is admitted before the others race it: its key is
+    # claimed in the critical section that dispatches its thread. Started
+    # together, the keyless-retry click could win the campaign first, and
+    # every same-key click would then rightly be busy - a different action
+    # holds the campaign - which says nothing about replay.
+    clicks[0].start()
+    for _ in range(300):
+        if counted.dispatches:
+            break
+        threading.Event().wait(0.05)
+    assert counted.dispatches == [identity]
+    for thread in clicks[1:]:
         thread.start()
     for thread in clicks:
         thread.join(timeout=30)

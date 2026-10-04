@@ -7,6 +7,7 @@ requires-python = ">=3.11,<3.12"
 dependencies = []
 
 [project.scripts]
+carbon-control-center = "carbon_control_center:main"
 carbon-mcp = "carbon.miner_mcp.standard_cli:main"
 carbon-miner-signer = "carbon_miner_signer:main"
 

@@ -188,7 +188,10 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
             conflict["strategy"] = {"parameters": {"steps": 1024}}
             result = await client.call_tool(PREFIX + "start_research_task", conflict)
             assert result.is_error
-            assert "OPERATIONAL_STOP" in str(result.content)
+            # A changed request under a used operation_id: its own code, and
+            # nothing started (LP-PROD-B; was OPERATIONAL_STOP, may dispatch).
+            assert "OPERATION_ID_REUSED" in str(result.content)
+            assert "dispatch_may_have_occurred=false" in str(result.content)
 
     asyncio.run(exercise())
 

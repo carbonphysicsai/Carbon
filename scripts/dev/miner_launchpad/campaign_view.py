@@ -577,6 +577,11 @@ def stages(own):
         "candidate": "Candidate frozen",
         "submit": "DEVELOPMENT submit",
     }
+    # The stage whose last attempt was refused or interrupted where no caller
+    # saw it says so (LP-PROD-C D11): before 2026-10-03 a submit refused on
+    # its thread left this stage reading as if it had been submitted.
+    refused = last_refusal(own)
+    refused_stage = STAGE_OF_OPERATION.get(refused["operation"]) if refused else None
     out = []
     for key in ("research", "practice", "candidate", "submit"):
         if key == current:
@@ -585,20 +590,46 @@ def stages(own):
             status = "done"
         else:
             status = "not_reached" if terminal else "waiting"
-        out.append(
-            {
-                "id": key,
-                "label": labels[key],
-                "state": status,
-                "detail": details[key],
-                **({"count": len(experiments)} if key == "practice" else {}),
+        stage = {
+            "id": key,
+            "label": labels[key],
+            "state": status,
+            "detail": details[key],
+            **({"count": len(experiments)} if key == "practice" else {}),
+        }
+        if key == refused_stage:
+            stage["detail"] += (
+                " · last attempt " + refused["kind"] + ": " + refused["code"]
+            )
+            stage["refusal"] = {
+                "code": refused["code"],
+                "next_action": refused["next_action"],
+                "kind": refused["kind"],
             }
-        )
+        out.append(stage)
     return out
+
+
+#: The stage each operation's refusal belongs to.
+STAGE_OF_OPERATION = {
+    "run": "research",
+    "practice": "practice",
+    "freeze_candidate": "candidate",
+    "submit": "submit",
+}
+
+
+#: States Resume acts on. PAUSE_REQUESTED too: resuming cancels a pause that
+#: has not settled yet, and before 2026-10-03 an idle campaign could sit in
+#: it with Resume disabled (LP-PROD-C).
+RESUMABLE = frozenset({"PAUSED", "PAUSE_REQUESTED", "INTERRUPTED"})
 
 
 def controls(own, *, fixture):
     state = str(own.get("state") or "UNKNOWN")
+    # A launch admitted and carried out by nothing (no supervisor took it):
+    # Resume dispatches it again from its record.
+    stranded = state == "QUEUED" and own.get("in_flight") is None
     actions = []
     for action, label in (
         ("pause", "Pause"),
@@ -611,7 +642,7 @@ def controls(own, *, fixture):
             reason = "A fixture runs nothing: controls are shown, not active."
         elif state in TERMINAL:
             reason = "This campaign is " + state + "; export still gives its record."
-        elif action == "resume" and state not in {"PAUSED", "INTERRUPTED"}:
+        elif action == "resume" and state not in RESUMABLE and not stranded:
             reason = "Resume continues a paused or interrupted campaign."
         elif action == "pause" and state in {"PAUSED", "PAUSE_REQUESTED"}:
             reason = "Already paused."
@@ -625,6 +656,101 @@ def controls(own, *, fixture):
             }
         )
     return actions
+
+
+_REFUSAL_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
+
+
+def last_refusal(own):
+    """The campaign's `last_refusal` in its closed shape - {code,
+    next_action, at, operation, kind} - or None. Anything else is withheld."""
+    value = own.get("last_refusal")
+    if (
+        type(value) is not dict
+        or type(value.get("code")) is not str
+        or not _REFUSAL_CODE.fullmatch(value["code"])
+        or not isinstance(value.get("at"), (int, float))
+        or isinstance(value.get("at"), bool)
+    ):
+        return None
+    return {
+        "code": value["code"],
+        "next_action": clean_text(value.get("next_action"), 512),
+        "at": value["at"],
+        "operation": _str(value.get("operation"), 32),
+        "kind": (
+            value.get("kind")
+            if value.get("kind") in ("refused", "interrupted", "paused")
+            else "refused"
+        ),
+    }
+
+
+def in_flight(own):
+    """The dispatch admitted for the campaign and not yet done, or None."""
+    value = own.get("in_flight")
+    if type(value) is not dict or value.get("state") not in ("QUEUED", "RUNNING"):
+        return None
+    since = value.get("since")
+    return {
+        "operation": _str(value.get("operation"), 32),
+        "state": value["state"],
+        "since": since if isinstance(since, (int, float)) else None,
+        "supervisor_running": value.get("supervisor_running") is True,
+    }
+
+
+def recovery(own):
+    """What gets the campaign moving again: [{action, operation}]."""
+    allowed = {("resume", "resume"), ("stop", "halt"), ("reconcile", "halt")}
+    return [
+        {"action": item["action"], "operation": item["operation"]}
+        for item in (own.get("recovery") or [])
+        if type(item) is dict and (item.get("action"), item.get("operation")) in allowed
+    ][:4]
+
+
+def reconciliation(own):
+    """The model calls whose outcome was unknown (LP-PROD-W2): what the
+    miner's Reconcile settled - each call, why, the charge booked (its full
+    reservation) and any caveat - and, while the campaign awaits
+    reconciliation, what is still unresolved and what settling it would
+    book; None for a campaign with neither. Closed shapes only."""
+    value = own.get("unknown_outcome_calls")
+    if type(value) is not dict:
+        return None
+
+    def charge(amount):
+        return amount if type(amount) is int and amount >= 0 else None
+
+    settled = [
+        {
+            "identity": _str(item.get("identity")),
+            "reason": _str(item.get("reason"), 64),
+            "booked_nanodollars": charge(item.get("booked_nanodollars")),
+            "caveat": clean_text(item.get("caveat"), 512),
+        }
+        for item in (value.get("settled") or [])[:EVENTS_MAX]
+        if type(item) is dict
+    ]
+    awaiting = [
+        {
+            "identity": _str(item.get("identity")),
+            "booked_on_settlement_nanodollars": charge(
+                item.get("booked_on_settlement_nanodollars")
+            ),
+        }
+        for item in (value.get("awaiting_settlement") or [])[:EVENTS_MAX]
+        if type(item) is dict
+    ]
+    if not settled and not awaiting:
+        return None
+    return {
+        "settled": settled,
+        "booked_nanodollars": sum(c["booked_nanodollars"] or 0 for c in settled),
+        "awaiting_settlement": awaiting,
+        "accounting": clean_text(value.get("accounting"), 1024),
+    }
 
 
 def tiles(own, rows, now):
@@ -1190,6 +1316,15 @@ def build(
         "fixture": bool(fixture),
         "stages": stages(own),
         "controls": controls(own, fixture=fixture),
+        # Why the last attempt no caller saw was refused or interrupted, and
+        # what to do; the work admitted and not yet done; and what gets the
+        # campaign moving again (LP-PROD-C). Null or empty when there is none.
+        "last_refusal": last_refusal(own),
+        "in_flight": in_flight(own),
+        "recovery": recovery(own),
+        # Model calls whose outcome was unknown: what Reconcile settled at
+        # the full reservation and what still awaits it (LP-PROD-W2).
+        "reconciliation": reconciliation(own),
         "tiles": tiles(own, rows, now),
         "current_operation": next(
             (

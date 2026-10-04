@@ -8,10 +8,18 @@ No caller chooses a principal, grant, filesystem root, or internal session here.
 Operation IDs are durable business keys supplied again on retry/reconnect. The
 existing SDK, gateway, task provider and campaign ledger retain all execution,
 ownership, idempotency and accounting authority. This adapter has no task store.
+
+Every failure is a closed code with an honest `dispatch_may_have_occurred`.
+"Nothing was dispatched" is reported only where it is a fact: a typed
+pre-dispatch refusal, a signer failure before any signature, or a refusal
+raised at one of the two SDK sites that run before anything is signed (the
+operation-id binding and the campaign's admission check; `_pre_dispatch_stop`).
+Everything else keeps the conservative answer (LP-PROD-B).
 """
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 import re
@@ -22,19 +30,38 @@ from enum import Enum
 from carbon import research
 from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
+from carbon.development_session.research_control import DispatchStopped
 from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
     TASK_CORRECTIONS,
     PreDispatchRefusal,
     ResearchMinerTools,
+    correction_parts,
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
 # Leave room for the SDK's ledger identity prefixes ("trial-attempt-", "task-request-").
-_TOKEN = re.compile(r"[A-Za-z0-9._:-]{16,114}\Z", re.ASCII)
+OPERATION_ID_PATTERN = r"[A-Za-z0-9._:-]{16,114}"
+_TOKEN = re.compile(OPERATION_ID_PATTERN + r"\Z", re.ASCII)
 _ARGUMENT_BYTES = 32768
+#: What one research result may occupy on the wire. A larger result is cut to
+#: fit, with an explicit record of what was cut (`_fit`), never refused: the
+#: work it reports has already happened.
 _RESULT_BYTES = 1024 * 1024
+#: A controller value beyond this is not a result this server forwards at all.
+_RESULT_HARD_BYTES = 16 * 1024 * 1024
+#: Strings and lists at or below these sizes are never cut: identities, states
+#: and codes are short, so only bulk content is ever shortened.
+_KEEP_STRING = 1024
+_KEEP_LIST = 16
+#: Room kept for the truncation record itself (`_truncation`): at most 16
+#: notes, each a printable-ASCII path of at most 160 characters and three
+#: integers, plus fixed text - about 4.5 KiB at most.
+_RECORD_BYTES = 8192
+#: Passes `_fit` makes. Each cuts every node it needs that is not inside one
+#: it already cut, so a further pass is only for content nested in a cut.
+_FIT_PASSES = 8
 _STRATEGY_OPERATIONS = frozenset(
     {
         "dry_validate",
@@ -64,6 +91,24 @@ class AdapterCode(str, Enum):
     SIGNER_TIMEOUT = "SIGNER_TIMEOUT"
     SIGNER_INVALID_SIGNATURE = "SIGNER_INVALID_SIGNATURE"
     SIGNER_PROTOCOL = "SIGNER_PROTOCOL"
+    # Refused before anything was signed (LP-PROD-B), each its own code so a
+    # client is told which limit stopped it and that nothing started - never
+    # folded into OPERATIONAL_STOP, whose guidance is "do not retry".
+    #: The campaign's time limit is reached: the elapsed budget its miner set,
+    #: or a development grant's expiry (or the host clock moved backwards).
+    CAMPAIGN_ELAPSED_BUDGET_REACHED = "CAMPAIGN_ELAPSED_BUDGET_REACHED"
+    #: The campaign is paused, stopping, stopped, completed or awaiting
+    #: reconciliation, or another holder took its control generation.
+    CAMPAIGN_ADMISSION_STOPPED = "CAMPAIGN_ADMISSION_STOPPED"
+    #: This operation_id already names a different request in this campaign.
+    OPERATION_ID_REUSED = "OPERATION_ID_REUSED"
+    #: tasks/get or tasks/cancel named a task this campaign does not hold:
+    #: unknown, or another miner's - the two are indistinguishable by design.
+    TASK_NOT_FOUND = "TASK_NOT_FOUND"
+    #: tasks/get on a task already observed the most times the task provider
+    #: allows (its typed BOUND_EXCEEDED): a permanent answer for that task,
+    #: never a transient one a client should retry.
+    OBSERVATION_LIMIT_REACHED = "OBSERVATION_LIMIT_REACHED"
 
 
 class AdapterFailure(ValueError):
@@ -97,6 +142,79 @@ def _refused_before_dispatch(refusal):
         else AdapterCode.OPERATIONAL_STOP
     )
     return AdapterFailure(code, dispatch_may_have_occurred=False)
+
+
+#: The SDK's two sites that run before anything is signed, identified by code
+#: object rather than by name, so a lookalike elsewhere cannot qualify:
+#: `call` binds the operation id to its request (`ledger.reserve`), and `_call`
+#: runs the campaign's admission check (`check_registration`) before it signs.
+_SDK_ENTRY = ResearchMinerTools.call.__code__
+_SDK_BODY = ResearchMinerTools._call.__code__
+_ADMISSION_CHECKS = frozenset({"check_registration", "check_cleanup_registration"})
+#: The admission check's own refusals (the attached campaign's connection),
+#: by the exact text its raising site uses.
+_ADMISSION_STOPS = {
+    "campaign elapsed budget reached": AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED,
+    "campaign admission stopped": AdapterCode.CAMPAIGN_ADMISSION_STOPPED,
+}
+#: The binding reservation's own refusals (`CampaignLedger._reserve`).
+_BINDING_STOPS = {
+    "operation replay conflict": AdapterCode.OPERATION_ID_REUSED,
+    "campaign elapsed-time exhausted or clock regressed": (
+        AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED
+    ),
+}
+#: Campaign control's own refusals at the binding. On a controlled campaign -
+#: every product and development grant campaign - `ledger.reserve` runs
+#: `CampaignControl.checkpoint` before `_reserve`, so a spent time limit is
+#: refused there first, as this deadline; any other fence (stop, a lost
+#: generation, reconciliation) is admission stopped. Without this a numerical
+#: start and a read on the same expired campaign reported two different codes.
+_CONTROL_STOPS = {
+    "original campaign deadline reached": AdapterCode.CAMPAIGN_ELAPSED_BUDGET_REACHED,
+}
+
+
+def _pre_dispatch_stop(exc):
+    """The closed code for a failure raised before anything was signed, or None.
+
+    Decided by where the exception was raised, read from its own traceback:
+    inside the operation-id binding that `ResearchMinerTools.call` makes before
+    `_call`, or inside the admission check `_call` makes before it signs. A
+    failure at either site is a fact that no signed request exists, so nothing
+    can have been dispatched. The message then only picks which closed code -
+    a limit the miner can act on - and any other failure there is still an
+    OPERATIONAL_STOP that started nothing. A failure anywhere else, including
+    the same text raised deeper in a dispatch, is not matched here and keeps
+    the conservative answer.
+    """
+    codes = []
+    trace = exc.__traceback__
+    while trace is not None:
+        codes.append(trace.tb_frame.f_code)
+        trace = trace.tb_next
+    message = str(exc) if type(exc) is ValueError else None
+    for outer, inner in itertools.pairwise(codes):
+        if outer is _SDK_BODY and inner.co_name in _ADMISSION_CHECKS:
+            return _ADMISSION_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
+        if outer is _SDK_ENTRY and inner.co_name == "reserve":
+            if isinstance(exc, DispatchStopped):
+                return _CONTROL_STOPS.get(
+                    str(exc), AdapterCode.CAMPAIGN_ADMISSION_STOPPED
+                )
+            return _BINDING_STOPS.get(message, AdapterCode.OPERATIONAL_STOP)
+    return None
+
+
+def _operational(exc):
+    """An unexpected controller failure as a closed code: pre-dispatch when its
+    raising site proves it (`_pre_dispatch_stop`), otherwise conservative."""
+    code = _pre_dispatch_stop(exc)
+    if code is not None:
+        return AdapterFailure(code, dispatch_may_have_occurred=False)
+    # The controller retains ambiguous reservations and dispatch intents.
+    # Never label an authentication/execution failure as candidate failure.
+    return AdapterFailure(AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True)
 
 
 @dataclass(frozen=True)
@@ -224,14 +342,183 @@ def _arguments(operation, supplied):
     return args
 
 
+#: Corrections whose registered text describes the SDK's JSON-string wire and
+#: would be wrong guidance on this object-valued one.
+_OBJECT_CORRECTIONS = {
+    "json_string_required": (
+        "This field takes a JSON object (or null where the description allows "
+        "it), not a string, list or number."
+    ),
+    "json_object_required": (
+        "This field takes one JSON object (not a list or a number), with no "
+        "repeated keys and finite numbers, at most 16384 bytes once encoded."
+    ),
+}
+
+
+def object_wording(text):
+    """The SDK's JSON-string field names in this wire's object-valued terms."""
+    return (
+        text.replace("recipe JSON string", "recipe object")
+        .replace("strategy_json", "strategy")
+        .replace("arguments_json", "arguments")
+    )
+
+
+def _correction(operation, value):
+    """A registered correction for the object-valued wire, or a refusal.
+
+    The SDK builds every correction with one registered builder
+    (`research_tools.task_correction`): a closed code, the field that broke
+    the contract, the tool, and any values it lists, each drawn from a closed
+    public list - or, on an older shape, the registered text alone. This door
+    verifies a record with that builder's own rule
+    (`research_tools.correction_parts`) and forwards only what it rebuilds
+    exactly, for any research operation (W1: named and listed corrections
+    were refused here as INVALID_RESULT). So no solver message, exception text
+    or private value can ride along, whatever the shape; and a correction
+    naming another tool than the one called is refused.
+    """
+    parts = correction_parts(value)
+    if parts is None or parts.tool not in (None, operation):
+        _invalid()
+    text = value["correction"]
+    if parts.code in _OBJECT_CORRECTIONS:
+        text = text.replace(
+            TASK_CORRECTIONS[parts.code], _OBJECT_CORRECTIONS[parts.code]
+        )
+    projected = {"correction_code": parts.code, "correction": object_wording(text)}
+    if parts.field is not None:
+        projected["field"] = object_wording(parts.field)
+    return projected
+
+
+def _cut(path, node, size, excess):
+    """Shorten one string or list in place by about `excess` bytes; a note.
+
+    A string keeps its head and says how much was cut, inside itself; a list
+    keeps a prefix of whole elements. Never below `_KEEP_STRING`/`_KEEP_LIST`.
+    """
+    container, key = path[-1]
+    if type(node) is str:
+        keep = max(_KEEP_STRING, len(node) - excess - 64)
+        if keep >= len(node):
+            return None
+        container[key] = (
+            node[:keep] + f" [{len(node) - keep} characters truncated by Carbon MCP]"
+        )
+        return {"kind": "string", "kept": keep, "original": len(node)}
+    budget, kept = size - excess, 0
+    for child in node:
+        budget -= len(canonical(child)) + 1
+        if budget < 0:
+            break
+        kept += 1
+    kept = max(_KEEP_LIST, kept)
+    if kept >= len(node):
+        return None
+    container[key] = node[:kept]
+    return {"kind": "list", "kept": kept, "original": len(node)}
+
+
+def _long(value):
+    """Every string longer than `_KEEP_STRING` and list longer than
+    `_KEEP_LIST` in `value`: (encoded size, path, node). A path is the
+    (container, key) pairs from the root, so a cut can replace in place."""
+    found = []
+    pending = [(value, ())]
+    while pending:
+        node, path = pending.pop()
+        if type(node) is str and len(node) > _KEEP_STRING:
+            found.append((len(canonical(node)), path, node))
+        elif type(node) is list:
+            if len(node) > _KEEP_LIST:
+                found.append((len(canonical(node)), path, node))
+            pending.extend(
+                (child, (*path, (node, index))) for index, child in enumerate(node)
+            )
+        elif type(node) is dict:
+            pending.extend((child, (*path, (node, key))) for key, child in node.items())
+    return found
+
+
+def _path_text(path):
+    """A cut's path for the record: printable ASCII only, at most 160
+    characters, so each note's encoded size is bounded by its length."""
+    text = ".".join(str(key) for _, key in path)
+    return "".join(c if " " <= c <= "~" and c not in '"\\' else "?" for c in text[:160])
+
+
+def _fit(value, limit):
+    """Cut bulk content until the canonical encoding fits; what was cut.
+
+    Each pass shortens the largest strings and lists, largest first, until the
+    bytes it has saved cover the excess; content nested inside something cut
+    in this pass waits for the next pass, which measures again. Protocol fields
+    - identities, states, statuses, flags - are short and so are never
+    touched. A few passes at most, and a pass that cuts nothing ends the
+    attempt, so a value that cannot fit is refused without re-encoding it over
+    and over. Returns the notes (`path`, `kind`, `kept`, `original`), or None
+    when nothing was cut; raises INVALID_RESULT only when cutting cannot make
+    the value fit.
+    """
+    notes = []
+    for _ in range(_FIT_PASSES):
+        size = len(canonical(value))
+        if size <= limit:
+            return notes or None
+        excess = size - limit
+        cut = []
+        for node_size, path, node in sorted(
+            _long(value), key=lambda item: item[0], reverse=True
+        ):
+            if excess <= 0:
+                break
+            if any(container is done for container, _ in path for done in cut):
+                continue
+            note = _cut(path, node, node_size, excess)
+            if note is None:
+                continue
+            cut.append(node)
+            container, key = path[-1]
+            excess -= node_size - len(canonical(container[key]))
+            note["path"] = _path_text(path)
+            notes.append(note)
+        if not cut:
+            break
+    _invalid()
+
+
+def _truncation(notes):
+    """The record a cut result carries: what was cut, bounded in size
+    (`_RECORD_BYTES` holds it), so a client can tell partial content."""
+    return {
+        "marker": "truncated by Carbon MCP",
+        "limit_bytes": _RESULT_BYTES,
+        "cut": notes[:16],
+        "cut_total": len(notes),
+        "note": (
+            "This result exceeded the wire limit, so its largest strings and "
+            "lists were shortened: each path names one, with how much was "
+            "kept (the first 16 cuts are listed; cut_total counts them all). "
+            "Read the full content in smaller pieces (read_file takes offset "
+            "and count)."
+        ),
+    }
+
+
 def _result(operation, value):
     try:
-        value = _snapshot(value, limit=_RESULT_BYTES)
+        value = _snapshot(value, limit=_RESULT_HARD_BYTES)
         if type(value) is not dict:
             _invalid()
         if value.get("status") == "REJECTED_BEFORE_DISPATCH":
             fields = {"status", "reason", "detail", "authority_granted"}
-            if set(value) not in (fields, fields | {"correction_code", "correction"}):
+            if set(value) not in (
+                fields,
+                fields | {"correction_code", "correction"},
+                fields | {"correction_code", "field", "correction"},
+            ):
                 _invalid()
             if (
                 value["authority_granted"] is not False
@@ -240,22 +527,11 @@ def _result(operation, value):
             ):
                 _invalid()
             if "correction_code" in value:
-                code = value["correction_code"]
-                if (
-                    operation != "start_research_task"
-                    or type(code) is not str
-                    or code not in TASK_CORRECTIONS
-                    or value["correction"] != TASK_CORRECTIONS[code]
-                ):
-                    _invalid()
                 # Translate only registered guidance, never arbitrary solver or
                 # exception text. External clients use objects at this boundary.
-                value["correction"] = (
-                    TASK_CORRECTIONS[code]
-                    .replace("recipe JSON string", "recipe object")
-                    .replace("strategy_json", "strategy")
-                    .replace("arguments_json", "arguments")
-                )
+                value.update(_correction(operation, value))
+            if len(canonical(value)) > _RESULT_BYTES:
+                _invalid()
             return value, False
         if value.get("status") == "UNAVAILABLE":
             if set(value) != {
@@ -269,6 +545,7 @@ def _result(operation, value):
             if (
                 value["operation"] != operation
                 or value["authority_granted"] is not False
+                or len(canonical(value)) > _RESULT_BYTES
             ):
                 _invalid()
             return value, False
@@ -286,6 +563,16 @@ def _result(operation, value):
             or type(value["requires_reconciliation"]) is not bool
         ):
             _invalid()
+        # A large result is cut to fit and says so, rather than refused: the
+        # work it reports has happened, and refusing it would leave the miner
+        # with an INVALID_RESULT and nothing to retry.
+        notes = _fit(value, _RESULT_BYTES - _RECORD_BYTES)
+        if notes is not None:
+            value["truncation"] = _truncation(notes)
+            # The record's room is sized from its bounds; checked anyway, so a
+            # cut result can never leave this server over the wire limit.
+            if len(canonical(value)) > _RESULT_BYTES:
+                _invalid()
         return value, value["requires_reconciliation"]
     except AdapterFailure:
         raise AdapterFailure(
@@ -359,6 +646,30 @@ class ResearchToolAdapter:
         return True
 
     @property
+    def sdk_tools(self):
+        """The SDK's own tool list for this campaign, for descriptions only:
+        the tools of the rule the campaign froze (`campaign_tools_rule`: the
+        historical `TOOLS`, or `TOOLS_V2` for a campaign that froze the v2
+        rule), with run_julia only when authored Julia is admitted.
+        Discovery; execution rechecks everything.
+
+        Until the review repair, a campaign without Julia was always described
+        by `TOOLS`, so an MCP session attached to a new battery campaign of
+        Carbon's agent (which freezes v2) read v1 descriptions (read_file
+        count up to 4096, base64) beside v2 results (content_utf8, up to
+        8192)."""
+        from carbon.development_session.research_tools import (
+            TOOLS,
+            TOOLS_V2,
+            campaign_tools_rule,
+            tools_for_sdk,
+        )
+
+        if self.authored_julia_available:
+            return tools_for_sdk(self._sdk)
+        return TOOLS if campaign_tools_rule(self._sdk.ledger) is None else TOOLS_V2
+
+    @property
     def gpu_lane(self):
         """The campaign's GPU lane for the code cell (RSURF-D20), described,
         or None. Discovery only: execution rechecks it before dispatch."""
@@ -396,12 +707,10 @@ class ResearchToolAdapter:
             raise _refused_before_dispatch(refusal) from None
         except SignerFailure as failure:
             raise _signer_failure(failure, issued_before, key) from None
-        except Exception:  # noqa: BLE001
-            # The controller retains ambiguous reservations and dispatch intents.
-            # Never label an authentication/execution failure as candidate failure.
-            raise AdapterFailure(
-                AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True
-            ) from None
+        except Exception as exc:  # noqa: BLE001
+            # Pre-dispatch only where the raising site proves it; otherwise the
+            # controller retains ambiguous reservations and dispatch intents.
+            raise _operational(exc) from None
         payload, reconcile = _result(request.operation, value)
         return ResearchToolResult(
             request.operation, request.operation_id, payload, reconcile
@@ -444,10 +753,30 @@ class ResearchToolAdapter:
             raise _refused_before_dispatch(refusal) from None
         except SignerFailure as failure:
             raise _signer_failure(failure, issued_before, key) from None
-        except Exception:  # noqa: BLE001
-            raise AdapterFailure(
-                AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True
-            ) from None
+        except research.ResearchTaskProviderError as failure:
+            if (
+                mode != "start"
+                and failure.code is research.ResearchServiceErrorCode.TASK_NOT_FOUND
+            ):
+                # The campaign's own task provider holds no such task: unknown,
+                # or another miner's, which this composition cannot see either.
+                # An observation or cancellation of nothing dispatched nothing.
+                raise AdapterFailure(
+                    AdapterCode.TASK_NOT_FOUND, dispatch_may_have_occurred=False
+                ) from None
+            if (
+                mode == "observe"
+                and failure.code is research.ResearchServiceErrorCode.BOUND_EXCEEDED
+            ):
+                # The provider's bound on observing one task: permanent for
+                # that task, so it is never reported as a retryable stop.
+                raise AdapterFailure(
+                    AdapterCode.OBSERVATION_LIMIT_REACHED,
+                    dispatch_may_have_occurred=False,
+                ) from None
+            raise _operational(failure) from None
+        except Exception as exc:  # noqa: BLE001
+            raise _operational(exc) from None
         if mode != "start":
             if (
                 type(value) is not dict

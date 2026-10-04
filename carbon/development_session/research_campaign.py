@@ -2,6 +2,8 @@
 
 run creates one new campaign; resume reuses its exact immutable inputs. Unknown
 side effects stop, and completed source handoffs are resolved without rerunning.
+reconcile settles a model call whose outcome is unknown at its full
+reservation, so a later resume sends it again under a fresh identity.
 """
 
 from __future__ import annotations
@@ -31,6 +33,8 @@ from .data import write_once
 from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .model_provider import (
     MODEL,
+    OUTPUT_DEFAULT_V2,
+    OUTPUT_DEFAULTS,
     SelectionTransport,
     check_budget,
     select,
@@ -757,11 +761,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
 
 
-def supplied_selection(args):
+def supplied_selection(args, *, output_default=None):
     """The miner's `args.model_selection` ({provider_id, model_id, settings?,
     endpoint?, declared_pricing?, credential?}), or the pinned default when
     none is given. A file credential is the `--api-key-file` supplied at run
-    time; its path is never recorded."""
+    time; its path is never recorded. `output_default` is how an unset
+    output cap is chosen (`model_provider.select`)."""
     supplied = getattr(args, "model_selection", None)
     path = getattr(args, "api_key_file", None)
     spec = (
@@ -772,19 +777,34 @@ def supplied_selection(args):
     if type(spec) is not dict:
         raise ValueError("model selection must be an object")
     credential = {"kind": "file", "reference": "unset" if path is None else str(path)}
-    return select(**{"credential": credential, **spec})
+    return select(
+        **{"credential": credential, **spec, "output_default": output_default}
+    )
+
+
+def new_plan_output_default(args):
+    """How a new campaign's agent output cap is chosen when the miner sets
+    none. A product campaign is the miner's own, on the miner's own budget,
+    so its agent may use the selected model's own maximum output
+    (`OUTPUT_DEFAULT_V2`, OWNER-LAUNCHPAD-PROD-02). A campaign admitted by a
+    development grant keeps the historical default its grant was sized for."""
+    return OUTPUT_DEFAULT_V2 if getattr(args, "product", None) is not None else None
 
 
 def resolve_selection(args, record):
     """A frozen campaign's selection from its recorded block; a differing
-    `model_selection` supplied on resume is refused."""
+    `model_selection` supplied on resume is refused.
+
+    A supplied choice that sets no output cap names the frozen one under
+    either output default: the plan recorded the cap its own rule chose, and
+    resolving it again under today's rule must not refuse an earlier plan."""
     path = getattr(args, "api_key_file", None)
     chosen = selection_from_record(
         record, credential_file=None if path is None else str(path)
     )
-    if (
-        getattr(args, "model_selection", None) is not None
-        and supplied_selection(args).record() != chosen.record()
+    if getattr(args, "model_selection", None) is not None and all(
+        supplied_selection(args, output_default=rule).record() != chosen.record()
+        for rule in OUTPUT_DEFAULTS
     ):
         raise ValueError("model selection differs from the frozen campaign's")
     return chosen
@@ -793,12 +813,13 @@ def resolve_selection(args, record):
 def campaign_selection(args):
     """The campaign's model selection (`model_provider`). A frozen campaign's
     is the one its manifest records - every campaign frozen before selection
-    existed resolves to the pinned default - otherwise the miner's."""
+    existed resolves to the pinned default - otherwise the miner's, with a new
+    plan's output default (`new_plan_output_default`)."""
     manifest_path = args.root / "campaign-manifest.json"
     if manifest_path.exists():
         frozen = json.loads(manifest_path.read_bytes())
         return resolve_selection(args, frozen["provider"])
-    return supplied_selection(args)
+    return supplied_selection(args, output_default=new_plan_output_default(args))
 
 
 @dataclasses.dataclass
@@ -947,7 +968,12 @@ async def run_agent(prepared, *, transport=None):
 
     `transport` replaces the model provider for deterministic acceptance
     only; every campaign door passes none, so a real campaign calls the
-    pinned provider with the recorded credential."""
+    pinned provider with the recorded credential.
+
+    Returns None, or - when the validator did not evaluate a selected
+    candidate and the Challenge keeps it - that refusal's closed code, so the
+    campaign's supervisor can tell its miner why it stopped (LP-PROD-C). The
+    decision note it writes is unchanged."""
     ledger, owner, manifest = prepared.ledger, prepared.owner, prepared.manifest
     grant, task = prepared.grant, prepared.task
     feedback = None
@@ -1019,10 +1045,11 @@ async def run_agent(prepared, *, transport=None):
                 },
             )
             report(ledger, owner=owner)
-            return
+            return refused.code
         if feedback is None:
             break
     _complete(prepared)
+    return None
 
 
 def _open_epoch(prepared):
@@ -1152,26 +1179,157 @@ async def submit_frozen(prepared):
     return {"epoch": epoch, "feedback": feedback}
 
 
+#: What a reconcile reports about the model calls whose outcome was unknown
+#: (LP-PROD-A's settlement, reached from the reconcile action: LP-PROD-W2).
+MODEL_CALL_RECONCILIATION = "carbon.autoresearch.model-call-reconciliation.v1"
+
+
+def settled_call(settlement):
+    """One settled model call as its miner sees it: which call, why its
+    outcome was unknown, the charge booked for it - its full reservation, in
+    integer nanodollars, or None where the selection was unpriced and money
+    is not metered - and any caveat (`research_agent.MODEL_CAVEAT`). Read
+    from the settlement `settle_uncertain_call` journals and books, so a
+    reconcile's answer and the campaign's later readback are one record."""
+    booked = settlement.get("booked") if type(settlement) is dict else None
+    booked = booked if type(booked) is dict else {}
+    charge = booked.get("provider_nanodollars")
+    return {
+        "identity": settlement.get("identity"),
+        "reason": settlement.get("reason"),
+        "booked_nanodollars": charge if type(charge) is int else None,
+        "caveat": settlement.get("caveat"),
+    }
+
+
+def unknown_outcome_calls(operations, *, awaiting=True):
+    """A campaign's model calls whose outcome was unknown, from its ledger
+    operations (`CampaignLedger.status`) alone - no lease, no change: those a
+    reconcile settled (`settled`, each as `settled_call`), and with
+    `awaiting` those still unresolved (`awaiting_settlement`: each call and
+    what settling it would book), with the accounting rule when there are
+    any. A caller passes `awaiting=False` while the campaign runs: a call in
+    flight is unresolved too, and awaits nothing."""
+    from .research_agent import SETTLEMENT_ACCOUNTING
+
+    settled, pending = [], []
+    for op in operations:
+        result = op.get("result")
+        reservation = op.get("reservation") or {}
+        if type(result) is dict and type(result.get("provider_settlement")) is dict:
+            settled.append(settled_call(result["provider_settlement"]))
+        elif (
+            awaiting
+            and op.get("state") == "RESERVED"
+            # What `research_agent.settle_uncertain_calls` settles: a model
+            # call is its one provider attempt.
+            and reservation.get("provider_attempts") == 1
+        ):
+            charge = reservation.get("provider_nanodollars")
+            pending.append(
+                {
+                    "identity": op.get("id"),
+                    "booked_on_settlement_nanodollars": (
+                        charge if type(charge) is int else None
+                    ),
+                }
+            )
+    return {
+        "settled": settled,
+        "awaiting_settlement": pending,
+        "accounting": SETTLEMENT_ACCOUNTING if settled or pending else None,
+    }
+
+
+def reconcile_model_calls(ledger, *, owner):
+    """Settle every model call of `owner` whose outcome is unknown, as the
+    campaign's reconcile action (`research_agent.settle_uncertain_calls`):
+    each is booked at its full reservation and journalled beside it, and the
+    next resume sends the same request under a fresh identity. Nothing is
+    resent here, and nothing settles a call automatically.
+
+    A controlled campaign's caller holds the campaign's owner lock and has
+    just taken a control generation (`CampaignControl.acquire`), as the
+    Launchpad's reconcile does; A's fences refuse anything else
+    (`control_fenced`), and any call in flight (`call_in_flight`).
+
+    Returns what was settled - each call, the charge booked and any caveat,
+    and their total - and each call refused, with its closed code and next
+    step (`SETTLEMENT_REFUSALS`); a refused call stays unresolved."""
+    from .research_agent import (
+        SETTLEMENT_ACCOUNTING,
+        SETTLEMENT_REFUSALS,
+        SETTLEMENT_RESEND,
+        settle_uncertain_calls,
+    )
+
+    outcome = settle_uncertain_calls(ledger, owner=owner)
+    settled = [settled_call(settlement) for settlement in outcome["settled"]]
+    return {
+        "schema": MODEL_CALL_RECONCILIATION,
+        "settled": settled,
+        "booked_nanodollars": sum(call["booked_nanodollars"] or 0 for call in settled),
+        "refused": [
+            {
+                "identity": refused["identity"],
+                "code": refused["code"],
+                "next_step": SETTLEMENT_REFUSALS.get(refused["code"]),
+            }
+            for refused in outcome["refused"]
+        ],
+        "accounting": SETTLEMENT_ACCOUNTING if settled else None,
+        "resend": SETTLEMENT_RESEND if settled else None,
+    }
+
+
+def reconcile_command(root):
+    """The development CLI's `reconcile`: settle the model calls of the
+    campaign at `root` whose outcome is unknown (`reconcile_model_calls`).
+    Returns (report, ok).
+
+    Only the CLI's own campaign (no control surface) is reconciled here. A
+    controlled campaign - a Launchpad product campaign, or one launched under
+    a development grant - is reconciled only by its own reconcile action,
+    under its owner lock and control generation, which this process does not
+    hold: refused `control_fenced`, nothing settled."""
+    from .research_agent import SETTLEMENT_REFUSALS
+
+    manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+    if CampaignLedger.controlled(manifest):
+        return {
+            "error": "control_fenced",
+            "next_step": SETTLEMENT_REFUSALS["control_fenced"],
+        }, False
+    report = reconcile_model_calls(CampaignLedger(root), owner=manifest["owner"])
+    return report, not report["refused"]
+
+
 async def execute(args, *, ledger=None):
     """Prepare a campaign, then let whoever selects in it work.
 
     With the autonomous agent, Carbon's agent runs the epochs. With no agent,
     the campaign is left prepared: the miner practices through the research
     tools and freezes and submits through the same operations.
+
+    Returns what `run_agent` returns (a retained candidate's refusal code),
+    otherwise None.
     """
     prepared = await prepare(args, ledger=ledger)
     if prepared is None:
-        return
+        return None
     try:
         if prepared.agent != "none":
-            await run_agent(prepared)
+            return await run_agent(prepared)
+        return None
     finally:
         prepared.close()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run", "resume", "status", "report"))
+    parser.add_argument(
+        "command", choices=("run", "resume", "status", "report", "reconcile")
+    )
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--accepted-revision")
     parser.add_argument("--agent-policy", choices=(LEGACY, AUTONOMOUS), default=LEGACY)
@@ -1205,6 +1363,15 @@ def main():
                 report(CampaignLedger(args.root), owner=manifest["owner"]), indent=2
             )
         )
+        return
+    if args.command == "reconcile":
+        # Settles model calls whose outcome is unknown at their full
+        # reservation; a later resume sends each again under a fresh
+        # identity. Never automatic: only this command does it here.
+        outcome, ok = reconcile_command(args.root)
+        print(json.dumps(outcome, indent=2))
+        if not ok:
+            raise SystemExit(1)
         return
     if any(
         getattr(args, n) is None
