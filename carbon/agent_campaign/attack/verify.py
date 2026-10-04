@@ -4,7 +4,10 @@ Challenge-neutral (OWNER-GRAPHITE-ATTACKER-01 §1, §3). An attempt's claims are
 data; Carbon re-checks each one outside the agent:
 
 1. **Exposure.** A result that named protected material (`analysis`
-   withheld it) is an exposure: `BREACHED`, condition `OTHER_SIGNAL`.
+   withheld it) is an exposure: `BREACHED`, condition `OTHER_SIGNAL`. A
+   loop-local echo of the agent's own protected words is the same finding
+   with its own reason (`protected_named_by_agent`): a development finding
+   that names a protected case is itself `OTHER_SIGNAL`.
 2. **Graphite's own refusal** (nothing dispatched) is `HELD` with
    `refused_by: graphite`, never counted as the path's defense.
 3. **Infrastructure.** An attempt that ended `FAILED_INFRA`, timed out, left
@@ -19,9 +22,20 @@ data; Carbon re-checks each one outside the agent:
 5. **Pod rebuild.** A rebuilt construction that ran on a phase-3 pod is
    compared field by field with what the pod reports it built
    (`experiment.rebuild_differences`, or the adapter's own). Any difference
-   is a `FAILING_TRIGGER` and the attempt is not scored.
+   is a `FAILING_TRIGGER` and the attempt is not scored. A pod-scored
+   attempt whose build record was not supplied is `UNDETERMINED`
+   (`pod_build_record_not_supplied`): Carbon's own evidence is missing, which
+   is neither a breach nor a score. A crash in the comparison is `INFRA`.
 6. **Oracle.** Only then does the adapter's oracle judge the attempt
-   (`HELD`/`BREACHED`, a near miss, a condition).
+   (`HELD`/`BREACHED`, a near miss, a condition). It is handed an
+   `OracleAttempt` view: `name`, `arguments`, `tool`, `path_accepted` (what
+   the path did) and, unless the adapter derives its own input per family
+   (`attempt_input`), `value` (the construction, else the arguments).
+   An oracle `EXPOSURE` is `BREACHED` with `OTHER_SIGNAL`; one that did not
+   answer (`FAILED_INFRA`, `TIMEOUT`, `CRASHED`) is `INFRA`; `NOT_RUN` (a
+   seam) is `NOT_APPLICABLE`; `INCONCLUSIVE` (a hold the detector cannot
+   vouch for, or a path answer that is not plain) is `UNDETERMINED`. Only a
+   `HELD` or `BREACHED` judgement is scored.
 7. **Specimen.** A breached attempt with a rebuilt construction is bundled
    and re-checked from the bundle alone (`delivery.clean_rebuild`, or the
    adapter's own); a mismatch adds `FAILING_TRIGGER`.
@@ -62,6 +76,15 @@ FAILING_TRIGGER = "FAILING_TRIGGER"
 OTHER_SIGNAL = "OTHER_SIGNAL"
 #: A phase-3 feedback status saying the construction ran and was scored on a pod.
 POD_SCORED = "SCORED"
+#: Oracle verdicts that answered nothing (the engine's NO_ANSWER): INFRA.
+ORACLE_NO_ANSWER = frozenset({"FAILED_INFRA", "TIMEOUT", "CRASHED"})
+#: An oracle's exposure verdict: BREACHED with OTHER_SIGNAL.
+ORACLE_EXPOSURE = "EXPOSURE"
+#: A seam's oracle verdict: nothing judged.
+ORACLE_NOT_RUN = "NOT_RUN"
+#: A hold the oracle's detector cannot vouch for (its specimen did not fire),
+#: or a path answer that is not plain: no evidence, UNDETERMINED.
+ORACLE_INCONCLUSIVE = "INCONCLUSIVE"
 
 
 def check_conditions(conditions):
@@ -142,33 +165,53 @@ def is_unrebuildable(value):
 
 #: Where a `Rebuilt` carries Carbon's rebuilt record, in the order read.
 RECORD_FIELDS = ("record", "built", "expected")
+#: A digest-only `Rebuilt` (the engine adapter's): its digests and `detail`.
+DIGEST_FIELDS = ("construction_digest", "rebuilt_digest")
+
+
+def record_of(rebuilt):
+    """Carbon's rebuilt record, as a dict, from what an adapter's `rebuild`
+    returned: a mapping; an object whose `record`, `built` or `expected` is
+    one; the engine adapter's `Rebuilt(construction_digest, rebuilt_digest,
+    detail)` whose `detail["record"]` is one (battery's); or, without such a
+    record, that `Rebuilt` read as its digests plus its detail. Anything else
+    is a TypeError (a crash)."""
+    if isinstance(rebuilt, Mapping):
+        return dict(rebuilt)
+    for name in RECORD_FIELDS:
+        record = getattr(rebuilt, name, None)
+        if isinstance(record, Mapping):
+            return dict(record)
+    detail = getattr(rebuilt, "detail", None)
+    detail = dict(detail) if isinstance(detail, Mapping) else {}
+    if isinstance(detail.get("record"), Mapping):
+        return dict(detail["record"])
+    digests = {name: getattr(rebuilt, name, None) for name in DIGEST_FIELDS}
+    if all(type(value) is str for value in digests.values()):
+        return {**detail, **digests}
+    raise TypeError("adapter_rebuild_returned_no_record")
 
 
 def _rebuild(adapter, construction):
-    """`(record, code, issues)`: Carbon's rebuilt record, or the typed code
-    it cannot rebuild under. Any other failure propagates as a crash."""
+    """`(rebuilt, record, code, issues)`: what the adapter returned and
+    Carbon's rebuilt record, or the typed code it cannot rebuild under. Any
+    other failure propagates as a crash."""
     if construction is analysis.UNPARSEABLE:
-        return None, CONSTRUCTION_UNPARSEABLE, ()
+        return None, None, CONSTRUCTION_UNPARSEABLE, ()
     try:
         out = adapter.rebuild(construction)
     except Exception as refused:
         if is_unrebuildable(refused):
             return (
                 None,
+                None,
                 str(getattr(refused, "code", "unrebuildable")),
                 _issues(refused),
             )
         raise
     if is_unrebuildable(out):
-        return None, str(getattr(out, "code", "unrebuildable")), _issues(out)
-    record = out if isinstance(out, Mapping) else None
-    for name in RECORD_FIELDS if record is None else ():
-        record = getattr(out, name, None)
-        if isinstance(record, Mapping):
-            break
-    if not isinstance(record, Mapping):
-        raise TypeError("adapter_rebuild_returned_no_record")
-    return dict(record), None, ()
+        return None, None, str(getattr(out, "code", "unrebuildable")), _issues(out)
+    return out, record_of(out), None, ()
 
 
 def _issues(value):
@@ -197,18 +240,80 @@ def _pod_scored(result):
     return type(result) is dict and result.get("status") == POD_SCORED
 
 
-def _differences(adapter, expected, built):
+def _differences(adapter, rebuilt, record, built):
+    """The fields on which a pod's build differs from Carbon's. An adapter's
+    own `rebuild_differences(rebuilt, built)` is handed exactly what its
+    `rebuild` returned; the default (`experiment.rebuild_differences`)
+    compares Carbon's rebuilt record."""
     own = getattr(adapter, "rebuild_differences", None)
     if callable(own):
-        return list(own(expected, built))
+        return list(own(rebuilt, built))
     from carbon.agent_campaign.graphite.experiment import rebuild_differences
 
-    return rebuild_differences(expected, built)
+    return rebuild_differences(record, built)
+
+
+#: An `OracleAttempt` carrying no `value`: the adapter derives its own input.
+NO_VALUE = object()
+
+
+@dataclass(frozen=True)
+class OracleAttempt:
+    """What the adapter's oracle is handed for one session attempt.
+
+    `name` is the journal identity; `arguments` and `tool` the call;
+    `path_accepted` what the path did (True, False, or None when its answer is
+    not plain). `value` is the input the attempt submits (its construction
+    when it carries one, else its arguments), for an oracle that re-runs it
+    against the real boundary (`attack.adapter.family_oracle`). For an adapter
+    that derives its own input per family (`attempt_input(family, attempt)`,
+    battery's) the view carries no `value` at all, so the adapter's own
+    derivation is never overridden. The attempt's content was already checked
+    for protected material."""
+
+    name: str
+    arguments: dict = field(compare=False)
+    tool: str
+    path_accepted: bool | None
+    refused_by: str | None = None
+    given: object = field(default=NO_VALUE, compare=False, repr=False)
+
+    @property
+    def value(self):
+        if self.given is NO_VALUE:
+            raise AttributeError("value")  # `hasattr`/`getattr` read: absent
+        return self.given
+
+    @property
+    def identity(self):
+        return self.name
+
+    @property
+    def operation(self):
+        return self.tool.removeprefix(analysis.PREFIX)
+
+
+def oracle_attempt(attempt, construction=None, *, adapter=None):
+    """The `OracleAttempt` view of an `analysis.Attempt` (see the class)."""
+    if callable(getattr(adapter, "attempt_input", None)):
+        given = NO_VALUE
+    elif construction is not None:
+        given = construction
+    else:
+        given = dict(attempt.arguments)
+    return OracleAttempt(
+        name=attempt.identity,
+        arguments=dict(attempt.arguments),
+        tool=attempt.tool,
+        path_accepted=attempt.accepted,
+        refused_by=attempt.refused_by,
+        given=given,
+    )
 
 
 def _oracle(adapter, family, attempt):
-    """`(outcome, condition, near_miss, evidence)` from the adapter's
-    oracle result, an object or a mapping."""
+    """`(outcome, condition, near_miss, evidence, reason)` from the adapter's
+    oracle result, an object or a mapping (module docstring, step 6)."""
     result = adapter.oracle(family, attempt)
 
     def get(name, default=None):
@@ -222,11 +327,22 @@ def _oracle(adapter, family, attempt):
     if outcome is None and type(get("held")) is bool:
         outcome = HELD if get("held") else BREACHED
     outcome = getattr(outcome, "value", outcome)  # an enum member reads as its value
-    if outcome not in (HELD, BREACHED, UNDETERMINED, NOT_APPLICABLE):
-        raise ValueError("oracle_outcome_unknown: " + str(outcome))
     condition = get("condition")
     condition = getattr(condition, "value", condition)
-    return outcome, condition, bool(get("near_miss", False)), get("evidence")
+    evidence = get("evidence", get("evidence_digest"))
+    reason = None
+    if outcome == ORACLE_EXPOSURE:
+        outcome, condition = BREACHED, condition or OTHER_SIGNAL
+        reason = "oracle_exposure"
+    elif outcome in ORACLE_NO_ANSWER:
+        outcome, condition, reason = INFRA, None, "oracle_no_answer:" + outcome
+    elif outcome == ORACLE_NOT_RUN:
+        outcome, condition, reason = NOT_APPLICABLE, None, "oracle_not_run"
+    elif outcome == ORACLE_INCONCLUSIVE:
+        outcome, condition, reason = UNDETERMINED, None, "oracle_inconclusive"
+    if outcome not in (HELD, BREACHED, UNDETERMINED, NOT_APPLICABLE, INFRA):
+        raise ValueError("oracle_outcome_unknown: " + str(outcome))
+    return outcome, condition, bool(get("near_miss", False)), evidence, reason
 
 
 def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
@@ -250,6 +366,10 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
             **rest,
         )
 
+    if attempt.withheld == analysis.WITHHELD_ECHO:
+        return verdict(
+            BREACHED, conditions=(OTHER_SIGNAL,), reason="protected_named_by_agent"
+        )
     if attempt.withheld in (analysis.WITHHELD_RESULT, analysis.WITHHELD_JOURNAL):
         return verdict(
             BREACHED, conditions=(OTHER_SIGNAL,), reason="exposure:" + attempt.withheld
@@ -263,7 +383,7 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
     if construction is not None:
         evidence["construction"] = _digest_of(construction)
         try:
-            record, code, issues = _rebuild(adapter, construction)
+            rebuilt, record, code, issues = _rebuild(adapter, construction)
         except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
             return verdict(INFRA, reason="rebuild_crashed:" + type(crashed).__name__)
         if code is not None:
@@ -271,9 +391,25 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         rebuild = REBUILT
         evidence["rebuilt"] = _digest_of(record)
         built = _pod_built(pods, attempt)
-        if built is not None or _pod_scored(attempt.result):
-            differences = _differences(adapter, record, built)
-            evidence["pod_built"] = None if built is None else _digest_of(built)
+        if built is None and _pod_scored(attempt.result):
+            # The pod scored it and Carbon was not handed its build record:
+            # Carbon's own evidence is missing. Neither a breach nor a score.
+            return verdict(
+                UNDETERMINED,
+                rebuild,
+                reason="pod_build_record_not_supplied",
+                refused_by=attempt.refused_by,
+            )
+        if built is not None:
+            evidence["pod_built"] = _digest_of(built)
+            try:
+                differences = _differences(adapter, rebuilt, record, built)
+            except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
+                return verdict(
+                    INFRA,
+                    rebuild,
+                    reason="rebuild_compare_crashed:" + type(crashed).__name__,
+                )
             if differences:
                 evidence["differences"] = list(differences)
                 return verdict(
@@ -285,13 +421,18 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                 )
     if family == analysis.UNASSIGNED:
         return verdict(NOT_APPLICABLE, rebuild, reason="no_family_takes_this_attempt")
+    view = oracle_attempt(attempt, construction, adapter=adapter)
     try:
-        outcome, condition, near_miss, said = _oracle(adapter, family, attempt)
+        outcome, condition, near_miss, said, why = _oracle(adapter, family, view)
     except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
         return verdict(
             INFRA, rebuild, reason="oracle_crashed:" + type(crashed).__name__
         )
     evidence["oracle"] = _digest_of(said)
+    if outcome in (INFRA, NOT_APPLICABLE, UNDETERMINED):
+        # The oracle answered nothing, judged nothing, or the family is a
+        # seam: never scored. Only HELD or BREACHED is a scored judgement.
+        return verdict(outcome, rebuild, reason=why, refused_by=attempt.refused_by)
     conditions = ()
     if outcome == BREACHED:
         conditions = (condition or FAILING_TRIGGER,)
@@ -312,6 +453,7 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         scored=True,
         near_miss=near_miss,
         refused_by=attempt.refused_by,
+        reason=why,
         specimen=specimen,
     )
 

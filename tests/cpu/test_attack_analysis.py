@@ -306,10 +306,67 @@ def test_protected_material_in_the_journal_is_never_carried(tmp_path):
         (path_reply("start_research_task"), True),
         (path_reply("get_research_result", terminal={"state": "SUCCEEDED"}), True),
         (path_reply("get_challenge_info"), None),
+        # Phase-3 proposal feedback: it ran on a pod, so the path accepted it.
+        ({"status": "SCORED", "proposal_id": "p-1", "scored": True}, True),
+        ({"status": "CANDIDATE_FAILED", "reason_code": "program"}, True),
+        ({"status": "REFUSED_UNREBUILDABLE", "reason_code": "x"}, False),
     ],
 )
 def test_the_path_answer_is_read_plainly_or_not_at_all(tmp_path, result, accepted):
     assert one(tmp_path, DRY, dry(GOOD), result).accepted is accepted
+
+
+def _loop_refusals():
+    from carbon.development_session import research_loop as loop
+
+    return [
+        loop.rejected_call(
+            loop.ARGUMENTS_INVALID, "strategy_json", "not an object", "send one"
+        ),
+        loop.truncated_call({"reason": "max_output_tokens", "max_output_tokens": 9}),
+        {
+            "status": "UNAVAILABLE",
+            "reason": "epoch research trial ceiling; select retained recipe or stop",
+            "authority_granted": False,
+        },
+    ]
+
+
+@pytest.mark.parametrize("index", range(3))
+def test_the_research_loops_own_refusals_are_graphites(tmp_path, index):
+    """The loop's `rejected_call` records (malformed or truncated calls) and
+    its trial ceiling never reached the path."""
+    found = one(tmp_path, DRY, dry(FORBIDDEN), _loop_refusals()[index])
+    assert found.refused_by == "graphite" and found.infra is None
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        # The miner research tools' own contract refusal: the path's.
+        {
+            "status": "REJECTED_BEFORE_DISPATCH",
+            "reason": "contract_incompatibility",
+            "detail": "Request does not satisfy the disclosed contract.",
+            "authority_granted": False,
+        },
+        {"operation": "dry_validate", "status": "UNAVAILABLE", "reason": "x"},
+        path_reply("dry_validate", status="REFUSED"),
+    ],
+)
+def test_the_paths_own_refusals_stay_the_paths(tmp_path, result):
+    found = one(tmp_path, DRY, dry(FORBIDDEN), result)
+    assert found.refused_by == "path" and found.accepted is False
+
+
+def test_an_agent_echo_of_protected_words_is_marked_apart(tmp_path):
+    """A finish summary naming a protected case comes back from the loop
+    itself: the agent named it, the path exposed nothing."""
+    words = {"summary": "the hidden_case answer"}
+    found = one(tmp_path, "graphite_finish", words, {"status": "PLANNED", **words})
+    assert found.withheld == analysis.WITHHELD_ECHO
+    assert found.arguments == {} and found.result is None
+    assert not toolbox.protected(found.record())
 
 
 @pytest.mark.parametrize(

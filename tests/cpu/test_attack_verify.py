@@ -73,6 +73,47 @@ def test_an_unrebuildable_construction_the_path_accepted_is_a_fail_open(tmp_path
     assert adapter.rebuild_calls == [FORBIDDEN]
 
 
+class RecordedUnrebuildable:
+    """A typed refusal that still carries a record (as a refusal's detail may):
+    only the refusal type keeps it from being read as rebuilt."""
+
+    code = "pretrained_payload_refused"
+    issues = ()
+
+    def __init__(self):
+        self.record = {"recipe": FORBIDDEN, "recipe_digest": "sha256:" + "7" * 64}
+
+
+def test_a_refusal_carrying_a_record_is_still_never_scored(tmp_path):
+    class Refusing(StubAdapter):
+        def rebuild(self, construction):
+            self.rebuild_calls.append(construction)
+            return RecordedUnrebuildable()
+
+    adapter = Refusing(oracle=breaching())
+    found = attempt_of(tmp_path, arguments=dry(FORBIDDEN))
+    verdict = verify.verify(found, adapter)
+    assert adapter.oracle_calls == []  # never scored
+    assert verdict.rebuild == verify.UNREBUILDABLE and not verdict.scored
+    assert verdict.unrebuildable == "pretrained_payload_refused"
+
+
+def test_the_unrebuildable_guard_is_what_keeps_the_oracle_away(tmp_path, monkeypatch):
+    """The mutation reaches the oracle: with the refusal type no longer
+    recognised, the refused construction is rebuilt from its record and
+    scored, so the guard above fails for the named reason."""
+    monkeypatch.setattr(verify, "is_unrebuildable", lambda value: False)
+
+    class Refusing(StubAdapter):
+        def rebuild(self, construction):
+            return RecordedUnrebuildable()
+
+    adapter = Refusing(oracle=breaching())
+    verdict = verify.verify(attempt_of(tmp_path, arguments=dry(FORBIDDEN)), adapter)
+    assert adapter.oracle_calls == [("artifact_family", "epoch-1-tool-000")]
+    assert verdict.scored and verdict.rebuild == verify.REBUILT
+
+
 @pytest.mark.parametrize(
     ("result", "outcome", "refused_by"),
     [
@@ -167,6 +208,93 @@ def test_other_adapter_result_shapes_read_the_same(tmp_path):
     assert (verdict.outcome, verdict.reason) == ("INFRA", "oracle_crashed:ValueError")
 
 
+@pytest.mark.parametrize(
+    ("said", "outcome", "conditions", "reason", "scored"),
+    [
+        ({"verdict": "EXPOSURE"}, "BREACHED", ("OTHER_SIGNAL",), "oracle_exposure", 1),
+        (
+            {"verdict": "EXPOSURE", "condition": "OTHER_SIGNAL"},
+            "BREACHED",
+            ("OTHER_SIGNAL",),
+            "oracle_exposure",
+            1,
+        ),
+        ({"verdict": "TIMEOUT"}, "INFRA", (), "oracle_no_answer:TIMEOUT", 0),
+        ({"verdict": "FAILED_INFRA"}, "INFRA", (), "oracle_no_answer:FAILED_INFRA", 0),
+        ({"verdict": "CRASHED"}, "INFRA", (), "oracle_no_answer:CRASHED", 0),
+        ({"verdict": "NOT_RUN"}, "NOT_APPLICABLE", (), "oracle_not_run", 0),
+        ({"verdict": "INCONCLUSIVE"}, "UNDETERMINED", (), "oracle_inconclusive", 0),
+        ({"outcome": "UNDETERMINED"}, "UNDETERMINED", (), None, 0),
+    ],
+)
+def test_every_oracle_verdict_the_adapters_speak_is_read(
+    tmp_path, said, outcome, conditions, reason, scored
+):
+    """The engine adapter's NO_ANSWER, INCONCLUSIVE and NOT_RUN, and
+    battery's EXPOSURE. Only HELD or BREACHED is scored."""
+    adapter = StubAdapter(oracle=lambda family, attempt: said)
+    verdict = verify.verify(attempt_of(tmp_path), adapter)
+    assert (verdict.outcome, verdict.conditions, verdict.reason) == (
+        outcome,
+        conditions,
+        reason,
+    )
+    assert verdict.scored is bool(scored)
+
+
+def test_the_oracle_is_handed_what_the_path_did(tmp_path):
+    seen = []
+    adapter = StubAdapter(oracle=lambda f, a: seen.append(a) or OracleResult("HELD"))
+    verify.verify(attempt_of(tmp_path), adapter)
+    verify.verify(attempt_of(tmp_path / "b", result=REFUSED), adapter)
+    accepted, refused = seen
+    assert isinstance(accepted, verify.OracleAttempt)
+    assert (accepted.name, accepted.identity) == ("epoch-1-tool-000",) * 2
+    assert accepted.value == GOOD and accepted.arguments == dry(GOOD)
+    assert accepted.tool == DRY and accepted.operation == "dry_validate"
+    assert (accepted.path_accepted, refused.path_accepted) == (True, False)
+    # Without a construction, the value is the call's arguments.
+    verify.verify(attempt_of(tmp_path / "c", INFO, {"topic": "x"}), adapter)
+    assert seen[-1].value == {"topic": "x"}
+
+    class Derives(StubAdapter):
+        def attempt_input(self, family, attempt):
+            return None
+
+    # An adapter that derives its own input is never handed a `value`.
+    verify.verify(attempt_of(tmp_path / "d"), Derives(oracle=adapter._oracle))
+    assert not hasattr(seen[-1], "value") and seen[-1].arguments == dry(GOOD)
+    assert getattr(seen[-1], "value", "absent") == "absent"
+
+
+def test_a_digest_only_rebuilt_reads_as_its_digests_and_detail(tmp_path):
+    """The engine adapter's `Rebuilt(construction_digest, rebuilt_digest,
+    detail)`: rebuilt, then judged."""
+
+    class Rebuilt:
+        def __init__(self, detail):
+            self.construction_digest = "sha256:" + "a" * 64
+            self.rebuilt_digest = "sha256:" + "b" * 64
+            self.detail = detail
+
+    class Digests(StubAdapter):
+        def rebuild(self, construction):
+            return Rebuilt({"recipe": construction})
+
+    adapter = Digests()
+    verdict = verify.verify(attempt_of(tmp_path), adapter)
+    assert verdict.rebuild == verify.REBUILT and verdict.scored
+    assert verify.record_of(Rebuilt({})) == {
+        "construction_digest": "sha256:" + "a" * 64,
+        "rebuilt_digest": "sha256:" + "b" * 64,
+    }
+    # Battery's: the record Carbon built sits in `detail["record"]`.
+    inner = {"recipe_digest": "sha256:" + "c" * 64}
+    assert verify.record_of(Rebuilt({"record": inner, "seed": 0})) == inner
+    with pytest.raises(TypeError, match="adapter_rebuild_returned_no_record"):
+        verify.record_of(object())
+
+
 def test_verification_never_reads_held_out_controls(tmp_path):
     adapter = StubAdapter(oracle=breaching())
     for n, arguments in enumerate((dry(GOOD), dry(FORBIDDEN))):
@@ -193,12 +321,63 @@ def test_a_pod_build_that_differs_from_carbons_is_a_finding_and_never_scored(tmp
     assert adapter.oracle_calls == []
 
 
-def test_a_pod_scored_attempt_without_its_build_record_is_a_mismatch(tmp_path):
-    scored = {"status": "SCORED", "proposal_id": "p-1", "authority_granted": False}
-    found = attempt_of(tmp_path, result=scored)
-    verdict = verify.verify(found, StubAdapter(), pods={})
-    assert verdict.evidence["differences"] == ["built_record_missing"]
-    assert verdict.condition == "FAILING_TRIGGER"
+SCORED = {"status": "SCORED", "proposal_id": "p-1", "authority_granted": False}
+
+
+@pytest.mark.parametrize("pods", [None, {}])
+def test_a_pod_scored_attempt_without_its_build_record_is_undetermined(tmp_path, pods):
+    """Carbon's own missing evidence is neither a breach nor a score."""
+    adapter = StubAdapter()
+    found = attempt_of(tmp_path, result=SCORED)
+    verdict = verify.verify(found, adapter, pods=pods)
+    assert verdict.outcome == verify.UNDETERMINED and not verdict.finding
+    assert verdict.reason == "pod_build_record_not_supplied"
+    assert verdict.scored is False and adapter.oracle_calls == []
+    # With the record supplied, it is compared and then judged.
+    built = adapter.rebuild(GOOD).record
+    verdict = verify.verify(found, adapter, pods={found.identity: dict(built)})
+    assert verdict.outcome == verify.HELD and verdict.scored
+
+
+def test_an_unrebuildable_construction_a_pod_scored_is_a_fail_open(tmp_path):
+    adapter = StubAdapter()
+    found = attempt_of(tmp_path, arguments=dry(FORBIDDEN), result=SCORED)
+    assert found.accepted is True
+    verdict = verify.verify(found, adapter)
+    assert verdict.rebuild == verify.UNREBUILDABLE and verdict.outcome == "BREACHED"
+    assert verdict.conditions == ("FAILING_TRIGGER",) and not verdict.scored
+    assert adapter.oracle_calls == []
+
+
+def test_a_crash_comparing_the_pod_build_is_infrastructure(tmp_path):
+    class Raising(StubAdapter):
+        def rebuild_differences(self, rebuilt, built):
+            raise AttributeError("'dict' object has no attribute 'record'")
+
+    adapter = Raising()
+    found = attempt_of(tmp_path, result=SCORED)
+    verdicts = verify.verify_all([found], adapter, pods={found.identity: {}})
+    assert [(v.outcome, v.reason) for v in verdicts] == [
+        ("INFRA", "rebuild_compare_crashed:AttributeError")
+    ]
+    assert not verdicts[0].scored and adapter.oracle_calls == []
+
+
+def test_an_adapters_own_comparison_gets_what_its_rebuild_returned(tmp_path):
+    seen = []
+
+    class Own(StubAdapter):
+        def rebuild_differences(self, rebuilt, built):
+            seen.append(rebuilt)
+            return [] if rebuilt.record == built else ["recipe"]
+
+    adapter = Own()
+    found = attempt_of(tmp_path)
+    same = adapter.rebuild(GOOD).record
+    assert verify.verify(found, adapter, pods={found.identity: same}).scored
+    assert type(seen[0]).__name__ == "Rebuilt" and seen[0].record == same
+    verdict = verify.verify(found, adapter, pods={found.identity: {"x": 1}})
+    assert verdict.conditions == ("FAILING_TRIGGER",)
 
 
 # -- exposure, Graphite's refusals, infrastructure ------------------------------------------
@@ -224,6 +403,28 @@ def test_graphites_own_refusal_is_never_the_paths_defense(tmp_path):
     verdict = verify.verify(attempt_of(tmp_path / "b", DRY, asked, protected), adapter)
     assert (verdict.outcome, verdict.refused_by) == ("HELD", "graphite")
     assert adapter.rebuild_calls == [] and adapter.oracle_calls == []
+
+
+def test_the_loops_own_refusals_are_never_the_paths_defense(tmp_path):
+    from test_attack_analysis import _loop_refusals
+
+    adapter = StubAdapter()
+    for n, refusal in enumerate(_loop_refusals()):
+        found = attempt_of(tmp_path / str(n), arguments=dry(FORBIDDEN), result=refusal)
+        verdict = verify.verify(found, adapter)
+        assert (verdict.outcome, verdict.refused_by) == ("HELD", "graphite")
+        assert not verdict.scored
+    assert adapter.rebuild_calls == [] and adapter.oracle_calls == []
+
+
+def test_an_agent_naming_a_protected_case_is_other_signal_with_its_own_reason(
+    tmp_path,
+):
+    words = {"summary": "the hidden_case answer"}
+    found = attempt_of(tmp_path, "graphite_finish", words, {"status": "OK", **words})
+    verdict = verify.verify(found, StubAdapter())
+    assert verdict.conditions == ("OTHER_SIGNAL",)
+    assert verdict.reason == "protected_named_by_agent"
 
 
 @pytest.mark.parametrize(
@@ -406,6 +607,139 @@ def test_evidence_that_would_name_protected_material_is_redacted_not_dropped(tmp
     controller.close()
 
 
+# -- the sibling slices' real adapters (run once they are present) ----------------------------
+def _engine_adapter(*, weak=False, slow=False, lax_rebuild=False):
+    """A synthetic heat-sink Challenge built from the engine's own adapter
+    parts (`attack.adapter.DeclaredAdapter`): one run family, the other seven
+    checks declared seams. `weak` lets the real boundary through;
+    `lax_rebuild` rebuilds every construction."""
+    adapters = pytest.importorskip("carbon.agent_campaign.attack.adapter")
+    engine = pytest.importorskip("carbon.agent_campaign.attack.engine")
+
+    def real(value):
+        if slow:
+            raise TimeoutError("boundary")
+        payload = "pretrained_weights" in value
+        return {"accepted": not payload, "payload": payload}
+
+    def lax(value):
+        return {"accepted": True, "payload": "pretrained_weights" in value}
+
+    family = engine.Family(
+        "weights_field",
+        "artifact_and_dependency_attacks",
+        lax if weak else real,
+        lambda: (("weights", FORBIDDEN),),
+        lax,
+        lambda result: result["accepted"] and result["payload"],
+        lambda: True,
+    )
+
+    def rebuild(construction):
+        if "pretrained_weights" in construction and not (weak or lax_rebuild):
+            return adapters.Unrebuildable("refused_by_contract", "pretrained_weights")
+        return adapters.Rebuilt(
+            engine.digest(construction),
+            engine.digest({"built": construction}),
+            {"recipe": construction},
+        )
+
+    return adapters.validate(
+        adapters.DeclaredAdapter(
+            challenge_id="synthetic-heat-sink-v1",
+            level=0,
+            contract_digest="sha256:" + "5" * 64,
+            family_defs=(
+                adapters.FamilyDef(
+                    "weights_field",
+                    family.check,
+                    "the recipe's field allow-list",
+                    FORBIDDEN,
+                    GOOD,
+                    family=family,
+                ),
+            ),
+            control_set=(
+                adapters.Control("good", "weights_field", "trained", "v1", GOOD),
+                adapters.Control("good_too", "weights_field", "held_out", "v1", GOOD),
+            ),
+            seams=tuple(
+                adapters.SeamFamily(check, check, 0, "declared for this test")
+                for check in adapters.TRACK_A_CHECKS
+                if check != family.check
+            ),
+            rebuilder=rebuild,
+        )
+    )
+
+
+def test_the_engine_adapters_real_shapes_verify(tmp_path):
+    adapter = _engine_adapter()
+    # A valid construction its specimen cannot fire on: the hold is no
+    # evidence (the engine oracle's INCONCLUSIVE), never scored.
+    blind = verify.verify(attempt_of(tmp_path / "a"), adapter)
+    assert (blind.family, blind.rebuild, blind.outcome, blind.reason) == (
+        "weights_field",
+        "REBUILT",
+        "UNDETERMINED",
+        "oracle_inconclusive",
+    )
+    assert not blind.scored and not blind.finding
+    held = verify.verify(
+        attempt_of(tmp_path / "h", arguments=dry(FORBIDDEN)),
+        _engine_adapter(lax_rebuild=True),
+    )
+    assert (held.rebuild, held.outcome, held.scored) == ("REBUILT", "HELD", True)
+    fail_open = verify.verify(
+        attempt_of(tmp_path / "b", arguments=dry(FORBIDDEN)), adapter
+    )
+    assert fail_open.unrebuildable == "refused_by_contract"
+    assert fail_open.conditions == ("FAILING_TRIGGER",) and not fail_open.scored
+    breach = verify.verify(
+        attempt_of(tmp_path / "c", arguments=dry(FORBIDDEN)), _engine_adapter(weak=True)
+    )
+    assert (breach.rebuild, breach.outcome, breach.conditions) == (
+        "REBUILT",
+        "BREACHED",
+        ("FAILING_TRIGGER",),
+    )
+    slow = verify.verify(attempt_of(tmp_path / "d"), _engine_adapter(slow=True))
+    assert (slow.outcome, slow.reason) == ("INFRA", "oracle_no_answer:TIMEOUT")
+    assert not slow.scored and not slow.finding
+
+
+def test_the_battery_adapters_real_shapes_verify(tmp_path):
+    battery = pytest.importorskip("carbon.agent_campaign.attack.adapters.battery")
+    from carbon.battery.research import SCAFFOLD
+
+    adapter = battery.ADAPTER
+    found = attempt_of(tmp_path / "a", arguments=dry(SCAFFOLD))
+    assert analysis.family_of(found, adapter) == "recipe_surface"
+    held = verify.verify(found, adapter)
+    assert (held.rebuild, held.outcome, held.scored) == ("REBUILT", "HELD", True)
+    forged = {**SCAFFOLD, "pretrained_weights": "https://x/w.bin"}
+    fail_open = verify.verify(
+        attempt_of(tmp_path / "b", arguments=dry(forged)), adapter
+    )
+    assert fail_open.rebuild == "UNREBUILDABLE" and not fail_open.scored
+    assert fail_open.conditions == ("FAILING_TRIGGER",)
+    unclear = verify.verify(
+        attempt_of(tmp_path / "u", arguments=dry(SCAFFOLD), result=path_reply("x")),
+        adapter,
+    )
+    assert (unclear.outcome, unclear.reason) == ("UNDETERMINED", "oracle_inconclusive")
+    assert not unclear.finding and not unclear.scored
+    record = verify.record_of(adapter.rebuild(SCAFFOLD))
+    assert {"recipe_digest", "contract_digest", "record_sequence"} <= set(record)
+    scored = attempt_of(tmp_path / "c", arguments=dry(SCAFFOLD), result=SCORED)
+    same = verify.verify(scored, adapter, pods={scored.identity: dict(record)})
+    assert same.scored and not same.finding
+    tampered = {**record, "program": "sha256:" + "0" * 64}
+    bad = verify.verify(scored, adapter, pods={scored.identity: tampered})
+    assert (bad.reason, bad.conditions) == ("rebuild_mismatch", ("FAILING_TRIGGER",))
+    assert bad.evidence["differences"] == ["program"]
+
+
 # -- mutations: each protection, switched off, turns its guarding test red -------------------
 def _guard(test, *args):
     return lambda tmp: (tmp.mkdir(parents=True), test(tmp, *args))
@@ -414,7 +748,15 @@ def _guard(test, *args):
 MUTATIONS = {
     "unrebuildable_is_never_scored": (
         lambda m: m.setattr(verify, "is_unrebuildable", lambda value: False),
-        _guard(test_an_unrebuildable_construction_the_path_accepted_is_a_fail_open),
+        _guard(test_a_refusal_carrying_a_record_is_still_never_scored),
+    ),
+    "pod_scored_without_a_record_is_undetermined": (
+        lambda m: m.setattr(verify, "_pod_scored", lambda result: False),
+        _guard(test_a_pod_scored_attempt_without_its_build_record_is_undetermined, {}),
+    ),
+    "the_loops_refusals_are_graphites": (
+        lambda m: m.setattr(analysis, "REFUSAL_CODES", ()),
+        _guard(test_the_loops_own_refusals_are_never_the_paths_defense),
     ),
     "failed_infra_is_never_a_pass": (
         lambda m: m.setattr(analysis, "INFRA_STATES", frozenset()),
@@ -437,7 +779,7 @@ MUTATIONS = {
     ),
     "pod_rebuild_is_compared": (
         lambda m: m.setattr(
-            verify, "_differences", lambda adapter, expected, built: []
+            verify, "_differences", lambda adapter, rebuilt, record, built: []
         ),
         _guard(
             test_a_pod_build_that_differs_from_carbons_is_a_finding_and_never_scored

@@ -10,8 +10,11 @@ controls), so a timeout is never a pass and no finding reads as attempted
 coverage, never as a bound.
 
 B2 is recorded per attack-knowledge store snapshot: the store digest the
-Attacker ran under is part of the record, so a later store is a later B2.
-A comparison, never a grade: which side found more is descriptive.
+Attacker ran under is part of the record, so a later store is a later B2. A
+record made without one says `store_snapshot_missing`. An engine side's family
+state is recomputed from its records within the budget; controls are engine
+diagnostics, never budgeted. A comparison, never a grade: which side found
+more is descriptive.
 """
 
 from __future__ import annotations
@@ -23,6 +26,8 @@ from carbon.agent_campaign.attack import report
 
 SCHEMA = "carbon.attack.b2.v1"
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+#: Whether a B2 record names the attack-knowledge store snapshot it ran under.
+SNAPSHOT_PINNED, SNAPSHOT_MISSING = "PINNED", "store_snapshot_missing"
 
 
 def _budget_for(budget, family):
@@ -33,11 +38,24 @@ def _budget_for(budget, family):
 
 
 def _within(run, budget):
-    """The run with only its first `budget` attempts: the equal budget."""
+    """The run with only its first `budget` attempts: the equal budget.
+
+    For an engine run the family state is recomputed from the records left:
+    the cut attacks and their specimens. Controls are kept whole: in the
+    engine a control is a detector diagnostic, not an attempt, so it is never
+    budgeted (`attack.engine.run_family`), and a wrongly refused control is a
+    finding at any budget. An attacker run has no engine state."""
     if run is None:
         return None
     taken = run["attempts"][:budget]
-    return {**run, "attempts": taken, "budget_used": len(taken)}
+    out = {**run, "attempts": taken, "budget_used": len(taken)}
+    records = run.get("records")
+    if records is not None:
+        names = {a["attempt"] for a in taken}
+        kept = [r for r in records if r["role"] == "control" or r["attempt"] in names]
+        out["records"] = kept
+        out["engine_state"] = report.engine_state(kept)
+    return out
 
 
 def _side(run, budget, held_out, not_run):
@@ -86,6 +104,10 @@ def b2(
     return {
         "schema": SCHEMA,
         "store_snapshot": store_snapshot,
+        # B2 is recorded per store snapshot; one without it says so plainly.
+        "store_snapshot_status": (
+            SNAPSHOT_MISSING if store_snapshot is None else SNAPSHOT_PINNED
+        ),
         "budget": budget if isinstance(budget, int) else dict(budget),
         "families": families,
         "zero_findings_reads_as": report.ATTEMPTED_COVERAGE,

@@ -6,9 +6,12 @@ real deterministic harness (`carbon.battery.track_a.run`):
 - per family: attempts, budget used, verified findings, near misses,
   timeouts and crashes, NOT_RUN, and wrongful rejection on held-out
   controls;
-- a timeout or crash is never a pass: counted apart, never completed or held;
+- a timeout or crash (the engine's FAILED_INFRA, TIMEOUT, CRASHED too) is
+  never a pass: counted apart, never completed or held; Graphite's own
+  refusals are counted apart, never as the path's defense;
 - a family with no finding is ATTEMPTED_COVERAGE, never an exploit-free
-  bound; a declared seam is NOT_RUN;
+  bound, only when an attempt was judged HELD and its detector could fire;
+  otherwise INCONCLUSIVE; a declared seam is NOT_RUN;
 - a breach or a wrongly refused control is a FAILING_TRIGGER; any condition
   outside the admission CONDITIONS is refused;
 - engine records keep the engine's own state (a silent specimen is
@@ -127,7 +130,10 @@ def test_a_timeout_is_never_a_pass():
     line = full_report()["families"]["feedback_probe"]
     assert line["attempts"] == 2 and line["timeouts_crashes"] == 2
     assert line["completed"] == 0 and line["held"] == 0
-    assert line["status"] == "ATTEMPTED_COVERAGE" and line["bound"] is None
+    # Nothing completed: no evidence, never coverage.
+    assert line["status"] == "INCONCLUSIVE" and line["bound"] is None
+    assert line["inconclusive"] == "no_attempt_judged"
+    assert full_report()["inconclusive"] == ["feedback_probe"]
     quiet = full_report()["families"]["quiet_family"]
     # An infrastructure-failed held-out control is neither passed nor refused.
     assert quiet["wrongful_rejection_held_out"] == {
@@ -226,6 +232,96 @@ def test_engine_records_keep_the_engines_own_state():
     assert only_silent[0]["engine_state"] == "INCONCLUSIVE"
 
 
+def test_a_silent_specimen_is_inconclusive_never_coverage():
+    records = [
+        _record("silent", "attack", "b1", "HELD"),
+        _record("silent", "specimen", "b1", "SILENT"),
+        _record("silent", "control", "valid_control", "PASSED"),
+    ]
+    out = report.family_report(report.runs_from_records(records), controls_held_out=())
+    line = out["families"]["silent"]
+    assert line["held"] == 1 and line["engine_state"] == "INCONCLUSIVE"
+    assert line["status"] == "INCONCLUSIVE"
+    assert line["inconclusive"] == "engine_state_inconclusive"
+
+
+NO_ANSWER = ("FAILED_INFRA", "TIMEOUT", "CRASHED")
+
+
+@pytest.mark.parametrize("verdict", NO_ANSWER)
+def test_an_engine_boundary_that_did_not_answer_is_never_a_pass(verdict):
+    """The engine's NO_ANSWER verdicts, on attacks and on controls."""
+    records = [
+        _record("slow", "attack", "a1", verdict),
+        _record("slow", "specimen", "a1", "FIRED"),
+        _record("slow", "attack", "a2", "HELD"),
+        _record("slow", "specimen", "a2", "FIRED"),
+        _record("slow", "control", "valid_control", verdict),
+    ]
+    held_out = [{"family": "slow", "control": "h", "outcome": verdict}]
+    out = report.family_report(
+        report.runs_from_records(records), controls_held_out=held_out
+    )
+    line = out["families"]["slow"]
+    assert line["attempts"] == 2 and line["timeouts_crashes"] == 1
+    assert line["completed"] == 1 and line["held"] == 1
+    assert line["engine_state"] == "INCONCLUSIVE" and line["status"] == "INCONCLUSIVE"
+    unanswered = {"controls": 1, "completed": 0, "wrongly_refused": 0}
+    assert line["wrongful_rejection_trained"] == unanswered
+    assert line["wrongful_rejection_held_out"] == unanswered
+    assert line["findings"] == [] and out["findings"] == []
+
+
+def test_the_engines_own_unanswered_runs_report_as_timeouts():
+    """With the extracted engine present, its FamilyRun reads the same."""
+    engine = pytest.importorskip("carbon.agent_campaign.attack.engine")
+
+    def boundary(value):
+        if value == "slow":
+            raise TimeoutError(value)
+        return {"weak": False}
+
+    family = engine.Family(
+        "slow_family",
+        ARTIFACT,
+        boundary,
+        lambda: (("slow", "slow"), ("fast", "fast")),
+        lambda value: {"weak": True},
+        lambda result: result["weak"],
+        lambda: True,
+    )
+    run = engine.run_family(family)
+    line = report.family_report([run], controls_held_out=())["families"]["slow_family"]
+    assert line["timeouts_crashes"] == 1 and line["held"] == 1
+    assert line["engine_state"] == engine.family_state(run) == "INCONCLUSIVE"
+    assert line["status"] == "INCONCLUSIVE"
+
+
+def test_graphites_refusals_are_never_the_paths_defense():
+    def refused(attempt):
+        return verify.Verdict(
+            attempt,
+            "recipe_surface",
+            verify.NO_CONSTRUCTION,
+            verify.HELD,
+            refused_by="graphite",
+        )
+
+    verdicts = [refused("t-0"), refused("t-1")]
+    line = report.family_report(report.attacker_runs(verdicts), controls_held_out=())[
+        "families"
+    ]["recipe_surface"]
+    assert line["refused_by_graphite"] == 2
+    assert line["held"] == 0 and line["completed"] == 0
+    assert line["status"] == "INCONCLUSIVE"
+    verdicts.append(v("t-2", "recipe_surface", "HELD"))
+    line = report.family_report(report.attacker_runs(verdicts), controls_held_out=())[
+        "families"
+    ]["recipe_surface"]
+    assert (line["held"], line["completed"], line["refused_by_graphite"]) == (1, 1, 2)
+    assert line["status"] == "ATTEMPTED_COVERAGE"
+
+
 def test_an_engine_family_run_object_reads_like_its_records():
     class FamilyRun:
         family = StubFamily("loud", ARTIFACT)
@@ -257,6 +353,22 @@ MUTATIONS = {
     "timeouts_never_complete": (
         lambda m: m.setattr(report, "NOT_COMPLETED", frozenset()),
         test_a_timeout_is_never_a_pass,
+    ),
+    "engine_timeouts_never_complete": (
+        lambda m: m.setattr(report, "NOT_COMPLETED", frozenset()),
+        lambda: test_an_engine_boundary_that_did_not_answer_is_never_a_pass("TIMEOUT"),
+    ),
+    "engine_no_answer_is_infrastructure": (
+        lambda m: m.setattr(
+            report,
+            "_ENGINE_ATTACK",
+            {**report._ENGINE_ATTACK, **{verdict: "HELD" for verdict in NO_ANSWER}},
+        ),
+        lambda: test_an_engine_boundary_that_did_not_answer_is_never_a_pass("CRASHED"),
+    ),
+    "silent_specimen_is_inconclusive": (
+        lambda m: m.setattr(report, "engine_state", lambda records: "IN_PROGRESS"),
+        test_a_silent_specimen_is_inconclusive_never_coverage,
     ),
     "findings_only_in_conditions": (
         lambda m: m.setattr(

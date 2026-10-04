@@ -13,7 +13,16 @@ session's research loop journalled, never from the model's prose:
   identity and digests but carries none of the content (`withheld`), so
   nothing downstream holds it. A *result* that names it is an exposure, which
   `verify` records as `OTHER_SIGNAL`; a *request* that names it was refused by
-  Graphite's own harness before anything reached the path.
+  Graphite's own harness before anything reached the path. A loop-local
+  result that only echoes the agent's own protected words (a finish summary
+  naming a protected case) is marked apart (`WITHHELD_ECHO`): the agent named
+  it, the path exposed nothing.
+- **Graphite's own refusals** (`refused_by == "graphite"`) are told apart from
+  the path's: Graphite's toolbox and the phase-3 experiment say
+  `dispatched: False`; the research loop's own refusals are its
+  `rejected_call` records (`REJECTED_BEFORE_DISPATCH` with a loop refusal
+  `code` and a `fix`) and its trial-ceiling `UNAVAILABLE`, which carries no
+  path `operation` envelope.
 - **`map_to_families(attempts, adapter)`** assigns each attempt to one of the
   adapter's families: the adapter's own `family_of(attempt)` when it has one,
   else a family's `matches(attempt)`, else the neutral default below, which
@@ -37,7 +46,11 @@ from pathlib import Path
 from carbon.agent_campaign.graphite import literature as _literature  # noqa: F401
 from carbon.agent_campaign.graphite import tools as toolbox
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_loop import check_stage, tool_identity
+from carbon.development_session.research_loop import (
+    REFUSAL_CODES,
+    check_stage,
+    tool_identity,
+)
 from carbon.development_session.research_tools import PREFIX
 
 SCHEMA = "carbon.attack.attempt.v1"
@@ -59,11 +72,18 @@ INFRA_STATES = frozenset({"FAILED_INFRA", "TIMED_OUT", "TIMEOUT", "CRASHED"})
 _ACCEPT_KEYS = ("ok", "accepted", "valid")
 #: Statuses that refuse a request, besides any `REFUSED*` or `REJECTED*`.
 _REFUSALS = frozenset({"INVALID", "UNAVAILABLE", "MINER_PATH_REFUSED", "ERROR"})
+#: Phase-3 proposal feedback statuses saying the construction ran on a pod:
+#: the path accepted it (`graphite.experiment`).
+POD_RAN = frozenset({"SCORED", "CANDIDATE_FAILED"})
+#: The research loop's own refusal before dispatch (`research_loop.rejected_call`).
+LOOP_REJECTED = "REJECTED_BEFORE_DISPATCH"
 
 #: Why an attempt carries no content.
 WITHHELD_REQUEST = "protected_material_in_request"
 WITHHELD_RESULT = "protected_material_in_result"
 WITHHELD_JOURNAL = "protected_material_in_journal"
+#: A loop-local result echoing the agent's own protected request.
+WITHHELD_ECHO = "protected_material_named_by_agent"
 
 #: The neutral default: which shared Track A check a miner-SDK operation
 #: probes. An adapter that knows its Challenge better overrides it with
@@ -116,7 +136,7 @@ class Attempt:
             return "graphite"
         if type(self.result) is not dict:
             return None
-        return "graphite" if self.result.get("dispatched") is False else "path"
+        return "graphite" if graphite_refusal(self.result) else "path"
 
     @property
     def infra(self):
@@ -170,6 +190,22 @@ def _scopes(result):
     return out
 
 
+def graphite_refusal(result):
+    """True when Graphite's own harness or research loop answered and nothing
+    reached the path: `dispatched: False` (Graphite's toolbox, the phase-3
+    experiment), the loop's `rejected_call` record (a loop refusal `code` and
+    a `fix`), or the loop's trial-ceiling `UNAVAILABLE` (no path `operation`
+    envelope). The path's own contract refusals carry neither."""
+    if type(result) is not dict:
+        return False
+    if result.get("dispatched") is False:
+        return True
+    status = result.get("status")
+    if status == LOOP_REJECTED:
+        return result.get("code") in REFUSAL_CODES and "fix" in result
+    return status == "UNAVAILABLE" and "operation" not in result
+
+
 def _refusal(status):
     text = str(status or "").upper()
     return text.startswith(("REFUSED", "REJECTED")) or text in _REFUSALS
@@ -181,6 +217,8 @@ def _accepted(result):
     reply = result.get("reply") if type(result.get("reply")) is dict else {}
     if _refusal(result.get("status")) or _refusal(reply.get("status")):
         return False
+    if result.get("status") in POD_RAN:
+        return True  # the construction ran on a phase-3 pod
     for scope in (result, result.get("result"), reply.get("result")):
         if type(scope) is dict:
             for key in _ACCEPT_KEYS:
@@ -274,12 +312,15 @@ def _attempt(intent_path, identity, parsed):
         withheld = WITHHELD_RESULT
     elif result is not None and toolbox.protected(result):
         # The harness withholds such results; one in the journal is itself
-        # an exposure, read no further.
-        withheld = WITHHELD_JOURNAL
+        # an exposure, read no further. When the request already named it,
+        # Graphite dispatched nothing (it refuses such requests), so the
+        # result is the loop echoing the agent's own words: marked apart.
+        withheld = WITHHELD_ECHO if withheld == WITHHELD_REQUEST else WITHHELD_JOURNAL
     if result is not None and type(result) is not dict:
         result = {"status": "MALFORMED_RESULT"}
     if withheld is not None:
-        arguments, result = {}, (None if withheld == WITHHELD_JOURNAL else result)
+        dropped = withheld in (WITHHELD_JOURNAL, WITHHELD_ECHO)
+        arguments, result = {}, (None if dropped else result)
         if withheld == WITHHELD_REQUEST and type(result) is dict:
             result = {
                 k: result[k]
@@ -346,12 +387,19 @@ def family_check(family):
 
 
 def family_of(attempt, adapter):
-    """The name of the adapter family an attempt probes, or `UNASSIGNED`."""
+    """The name of the adapter family an attempt probes, or `UNASSIGNED`.
+
+    The adapter decides first: `family_of(attempt)`, or
+    `family_for(tool, arguments)` (battery's shape); None is `UNASSIGNED`."""
     families = tuple(adapter.families())
     names = {family_name(f) for f in families}
     own = getattr(adapter, "family_of", None)
-    if callable(own):
-        chosen = own(attempt)
+    by_tool = getattr(adapter, "family_for", None)
+    if callable(own) or callable(by_tool):
+        if callable(own):
+            chosen = own(attempt)
+        else:
+            chosen = by_tool(attempt.tool, attempt.arguments)
         if chosen is None:
             return UNASSIGNED
         chosen = family_name(chosen)

@@ -14,10 +14,18 @@ the verified findings, the near misses, the timeouts and crashes, whether it
 was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
 (the engine never reads those; only this report does). The rules:
 
-- a timeout or crash (`INFRA`) is never a pass: it is counted apart and never
-  as an attempt that completed or held;
-- a family with no finding is `ATTEMPTED_COVERAGE`: what was tried, never an
-  exploit-free bound;
+- a timeout or crash (`INFRA`; the engine's `FAILED_INFRA`, `TIMEOUT` and
+  `CRASHED`) is never a pass: it is counted apart and never as an attempt
+  that completed or held;
+- Graphite's own refusals (`refused_by: graphite`) never reached the path:
+  they are counted apart (`refused_by_graphite`), never as completed or held;
+- a family with no finding is `ATTEMPTED_COVERAGE` only when at least one
+  attempt reached the path and was judged `HELD` and, for an engine run, its
+  detector could fire. A family whose detector stayed silent or did not
+  answer (engine state `INCONCLUSIVE`), or where nothing was judged (every
+  attempt infrastructure, refused by Graphite, undetermined or not
+  applicable), is `INCONCLUSIVE`: no evidence, never coverage or a pass.
+  `ATTEMPTED_COVERAGE` is what was tried, never an exploit-free bound;
 - a higher-level family declared a seam is `NOT_RUN`, never a pass;
 - findings use only the admission `CONDITIONS` vocabulary: a breached attempt
   carries its condition, and a valid control the boundary wrongly refused is a
@@ -35,12 +43,21 @@ from carbon.agent_campaign.attack import analysis, verify
 
 SCHEMA = "carbon.attack.family-report.v1"
 FINDING, ATTEMPTED_COVERAGE, NOT_RUN = "FINDING", "ATTEMPTED_COVERAGE", "NOT_RUN"
+INCONCLUSIVE = "INCONCLUSIVE"
 HELD, BREACHED, INFRA = verify.HELD, verify.BREACHED, verify.INFRA
 #: Outcomes that did not complete an attempt: never a pass.
 NOT_COMPLETED = frozenset({INFRA})
-#: Engine record verdicts (`carbon.battery.track_a`).
-_ENGINE_ATTACK = {"HELD": HELD, "BREACHED": BREACHED}
+#: The engine's verdicts for a boundary that did not answer
+#: (`attack.engine.NO_ANSWER`): never a pass, never a finding.
+ENGINE_NO_ANSWER = frozenset({"FAILED_INFRA", "TIMEOUT", "CRASHED"})
+#: Engine record verdicts (`attack.engine`, `carbon.battery.track_a`).
+_ENGINE_ATTACK = {
+    "HELD": HELD,
+    "BREACHED": BREACHED,
+    **{verdict: INFRA for verdict in ENGINE_NO_ANSWER},
+}
 _CONTROL_PASSED, _CONTROL_REFUSED = "PASSED", "WRONGLY_REFUSED"
+_FIRED = "FIRED"
 CLAIMS = {
     "exploit_free_bound": False,
     "security_acceptance": False,
@@ -70,6 +87,7 @@ def attacker_runs(verdicts, *, families=()):
                 "outcome": v.outcome,
                 "conditions": list(v.conditions),
                 "near_miss": v.near_miss,
+                "refused_by": v.refused_by,
                 "evidence": v.evidence.get("result"),
             }
         )
@@ -95,13 +113,22 @@ def runs_from_records(records):
     return [normalize({"records": rows}) for rows in grouped.values()]
 
 
-def _engine_state(records):
-    """The engine's own family state: a silent specimen is INCONCLUSIVE
-    (the detector could not fire), never a pass."""
+def engine_state(records):
+    """The engine's own family state (`attack.engine.family_state`): FINDING
+    on a breach or a wrongly refused control; INCONCLUSIVE with no evidence
+    (no attack, no control, a specimen missing, silent or unanswered, or any
+    boundary that did not answer), never a pass; otherwise IN_PROGRESS."""
     if any(r["verdict"] in ("BREACHED", _CONTROL_REFUSED) for r in records):
         return "FINDING"
-    if any(r["role"] == "specimen" and r["verdict"] == "SILENT" for r in records):
-        return "INCONCLUSIVE"
+    attacks = [r for r in records if r["role"] == "attack"]
+    specimens = [r for r in records if r["role"] == "specimen"]
+    controls = [r for r in records if r["role"] == "control"]
+    if not attacks or not controls or len(specimens) != len(attacks):
+        return INCONCLUSIVE
+    if any(r["verdict"] in ENGINE_NO_ANSWER for r in records):
+        return INCONCLUSIVE
+    if any(r["verdict"] != _FIRED for r in specimens):
+        return INCONCLUSIVE  # the detector could not fire: no evidence
     return "IN_PROGRESS"
 
 
@@ -144,7 +171,9 @@ def normalize(run):
                         "outcome": _control_outcome(r["verdict"]),
                     }
                 )
-        out["engine_state"] = _engine_state(records)
+        out["engine_state"] = engine_state(records)
+        # Kept so an equal-budget cut (benchmark B2) recomputes the state.
+        out["records"] = records
     else:
         name = analysis.family_name(_get(run, "family"))
         out = _run(name, _get(run, "check"), _get(run, "source", "attacker"))
@@ -170,8 +199,8 @@ def _control_outcome(value):
         return _CONTROL_PASSED
     if value is False or value == _CONTROL_REFUSED:
         return _CONTROL_REFUSED
-    if value == INFRA:
-        return INFRA
+    if value == INFRA or value in ENGINE_NO_ANSWER:
+        return INFRA  # did not answer: neither passed nor refused
     raise ValueError("control_outcome_unknown: " + str(value))
 
 
@@ -235,14 +264,26 @@ def summarize(run, held_out=(), not_run=None):
                 }
             )
     verify.check_conditions(f["condition"] for f in findings)
-    completed = [a for a in attempts if a["outcome"] not in NOT_COMPLETED]
+    graphite = [a for a in attempts if a.get("refused_by") == "graphite"]
+    completed = [
+        a
+        for a in attempts
+        if a["outcome"] not in NOT_COMPLETED and a.get("refused_by") != "graphite"
+    ]
+    held = sum(a["outcome"] == HELD for a in completed)
     not_run = not_run or (run or {}).get("not_run")
     if not_run is None and not attempts:
         not_run = "no_attempts_recorded"
+    state = (run or {}).get("engine_state")
+    inconclusive = None
     if findings:
         status = FINDING
     elif not_run is not None:
         status = NOT_RUN
+    elif state == INCONCLUSIVE:
+        status, inconclusive = INCONCLUSIVE, "engine_state_inconclusive"
+    elif held == 0:
+        status, inconclusive = INCONCLUSIVE, "no_attempt_judged"
     else:
         status = ATTEMPTED_COVERAGE
     return {
@@ -251,16 +292,18 @@ def summarize(run, held_out=(), not_run=None):
         "attempts": len(attempts),
         "budget_used": (run or {}).get("budget_used", 0),
         "completed": len(completed),
-        "held": sum(a["outcome"] == HELD for a in completed),
+        "held": held,
         "undetermined": sum(a["outcome"] == verify.UNDETERMINED for a in completed),
+        "refused_by_graphite": len(graphite),
         "verified": sum(a["outcome"] == BREACHED for a in attempts),
         "findings": findings,
         "near_misses": sum(bool(a.get("near_miss")) for a in attempts),
         "timeouts_crashes": sum(a["outcome"] in NOT_COMPLETED for a in attempts),
         "not_run": not_run,
+        "inconclusive": inconclusive,
         "wrongful_rejection_trained": _rejection(trained),
         "wrongful_rejection_held_out": _rejection(list(held_out)),
-        "engine_state": (run or {}).get("engine_state"),
+        "engine_state": state,
         "bound": None,
     }
 
@@ -304,6 +347,9 @@ def family_report(runs, *, controls_held_out, seams=()):
         },
         "not_run": sorted(
             n for n, line in families.items() if line["status"] == NOT_RUN
+        ),
+        "inconclusive": sorted(
+            n for n, line in families.items() if line["status"] == INCONCLUSIVE
         ),
         "zero_findings_reads_as": ATTEMPTED_COVERAGE,
         "claims": dict(CLAIMS),

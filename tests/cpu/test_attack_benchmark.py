@@ -80,6 +80,7 @@ def test_both_sides_are_compared_at_an_equal_attempt_budget():
     assert theirs["verified"] == 0 and theirs["status"] == "ATTEMPTED_COVERAGE"
     assert line["verified_difference"] == 1
     assert out["store_snapshot"] == SNAPSHOT
+    assert out["store_snapshot_status"] == "PINNED"
     assert out["claims"]["comparison_is_descriptive"] is True
     assert out["claims"]["exploit_free_bound"] is False
 
@@ -99,6 +100,8 @@ def test_a_budget_per_family_covers_every_family():
     assert out["families"]["recipe_surface"]["attacker"]["attempts"] == 1
     assert out["families"]["mandatory_failure"]["attacker"]["attempts"] == 0
     assert out["budget"] == budget and out["store_snapshot"] is None
+    # Recorded per store snapshot: one made without it says so plainly.
+    assert out["store_snapshot_status"] == "store_snapshot_missing"
     for bad in ({"recipe_surface": 1}, -1, True, 1.5):
         with pytest.raises(ValueError, match="b2_budget"):
             benchmark.b2(attacker(), baseline(), budget=bad)
@@ -129,8 +132,55 @@ def test_b2_against_the_battery_harness_at_equal_budget():
         mine = [r for r in attacks if r["family"] == family.family_id][:budget]
         assert theirs["attempts"] == len(mine)
         assert theirs["verified"] == sum(r["verdict"] == "BREACHED" for r in mine)
-        assert theirs["engine_state"] == coverage["families"][family.family_id]
     assert out["families"]["recipe_surface"]["attacker"]["verified"] == 0
+    # At a budget covering every attack, the engine state is track_a's own.
+    whole = benchmark.b2(attacker(), base, budget=len(attacks), store_snapshot=SNAPSHOT)
+    for family in track_a.FAMILIES:
+        theirs = whole["families"][family.family_id]["baseline"]
+        assert theirs["engine_state"] == coverage["families"][family.family_id]
+
+
+def _record(role, attempt, verdict):
+    return {
+        "family": "late",
+        "check": "artifact_and_dependency_attacks",
+        "role": role,
+        "attempt": attempt,
+        "verdict": verdict,
+        "result_digest": "sha256:" + "2" * 64,
+    }
+
+
+def test_the_engine_state_is_recomputed_within_the_budget():
+    """A breach past the budget is neither counted nor the cut side's state;
+    controls are engine diagnostics, never budgeted."""
+    late = report.runs_from_records(
+        [
+            _record("attack", "a1", "HELD"),
+            _record("specimen", "a1", "FIRED"),
+            _record("attack", "a2", "BREACHED"),
+            _record("specimen", "a2", "FIRED"),
+            _record("control", "valid_control", "PASSED"),
+        ]
+    )
+    cut = benchmark.b2([], late, budget=1)["families"]["late"]["baseline"]
+    assert (cut["verified"], cut["engine_state"], cut["status"]) == (
+        0,
+        "IN_PROGRESS",
+        "ATTEMPTED_COVERAGE",
+    )
+    whole = benchmark.b2([], late, budget=2)["families"]["late"]["baseline"]
+    assert (whole["verified"], whole["engine_state"]) == (1, "FINDING")
+    refused = report.runs_from_records(
+        [
+            _record("attack", "a1", "HELD"),
+            _record("specimen", "a1", "FIRED"),
+            _record("control", "valid_control", "WRONGLY_REFUSED"),
+        ]
+    )
+    none = benchmark.b2([], refused, budget=0)["families"]["late"]["baseline"]
+    assert none["attempts"] == 0 and none["status"] == "FINDING"
+    assert none["findings"][0]["role"] == "trained_control"
 
 
 # -- mutation ---------------------------------------------------------------------------------
