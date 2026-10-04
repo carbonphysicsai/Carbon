@@ -83,6 +83,10 @@ class ChallengeCampaign:
     #: (`research_view.ResearchView`): its outputs by kind, practice
     #: components and per-case disclosure. None: aggregates only.
     research_view: Callable | None = None
+    #: Public practice provenance emitted by this campaign, if any.
+    practice_provenance: str | None = None
+    #: Reconstruction backends this campaign may name in corrective feedback.
+    backends: tuple = ()
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -143,6 +147,7 @@ def _battery():
     from carbon.battery import campaign as battery
     from carbon.battery import research_view as battery_view
     from carbon.development_session import battery_gpu
+    from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
 
     return ChallengeCampaign(
         key=battery.CHALLENGE,
@@ -161,13 +166,56 @@ def _battery():
         declared_gpu=battery_gpu.declared_scope,
         remote_worker=battery_gpu.remote_worker,
         research_view=battery_view.research_view,
+        practice_provenance="BATTERY_PUBLIC_PRACTICE",
+        backends=tuple(BATTERY_BACKENDS),
+    )
+
+
+def _cold_plate():
+    from carbon.cold_plate import campaign as cold_plate
+    from carbon.cold_plate import research_view as cold_plate_view
+
+    return ChallengeCampaign(
+        key=cold_plate.CHALLENGE,
+        prepare=cold_plate.prepare_cold_plate,
+        evaluate=cold_plate.evaluate_frozen,
+        observation=cold_plate.agent_observation,
+        refusal_retains_candidate=True,
+        check_attached=cold_plate.check_attached,
+        compose=cold_plate.compose,
+        feedback_modes=cold_plate.FEEDBACK_MODES,
+        feedback_schema=None,
+        research_view=cold_plate_view.research_view,
+        practice_provenance=cold_plate.PRACTICE_PROVENANCE,
+        backends=cold_plate.BACKENDS,
     )
 
 
 def _campaigns():
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+    from carbon.reconstruction.capability_registry import (
+        BATTERY_CHALLENGE,
+        COLD_PLATE_CHALLENGE,
+    )
 
-    return {BATTERY_CHALLENGE: _battery}
+    return {BATTERY_CHALLENGE: _battery, COLD_PLATE_CHALLENGE: _cold_plate}
+
+
+def practice_provenances():
+    """Every registered campaign's public-practice result provenance."""
+    values = []
+    for build in _campaigns().values():
+        provenance = build().practice_provenance
+        if provenance is not None:
+            values.append(provenance)
+    return frozenset(values)
+
+
+def implemented_backends():
+    """Every reconstruction backend a registered campaign may name."""
+    values = []
+    for build in _campaigns().values():
+        values.extend(build().backends)
+    return frozenset(values)
 
 
 def campaign_for(challenge):

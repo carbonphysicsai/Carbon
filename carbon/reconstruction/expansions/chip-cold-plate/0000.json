@@ -1,0 +1,157 @@
+{
+ "authority": "OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01) section 6.1",
+ "catalog_version": "carbon.chip-cold-plate-recipes.v1",
+ "challenge": "chip-cold-plate",
+ "contract_digest": "sha256:ec1066170b3b5a1cd7515418dbe95691c1d2949b7137df4ad740f5861bcfe1c9",
+ "contract_document": {
+  "capabilities": [
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.kernel_ridge",
+    "lab_kind": "cold_plate_kernel_ridge",
+    "realizes": [],
+    "selector": "kernel_ridge",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "kernel_ridge"
+    ],
+    "blocker": "none",
+    "id": "architecture.length",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "length_0p25",
+      "length_0p5",
+      "length_1",
+      "length_2",
+      "length_4",
+      "length_8",
+      "length_16"
+     ],
+     null,
+     "length_8"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "kernel_ridge"
+    ],
+    "blocker": "none",
+    "id": "architecture.ridge",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "ridge_1e_8",
+      "ridge_1e_6",
+      "ridge_1e_4",
+      "ridge_1e_2",
+      "ridge_1e_1",
+      "ridge_1"
+     ],
+     null,
+     "ridge_1e_6"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.neural_operator",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.learned_optimizer",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "model_family.pretrained_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "objective.loss_expressions",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "hybrid.reference_solver_reuse",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   }
+  ],
+  "catalog_version": "carbon.chip-cold-plate-recipes.v1",
+  "challenge": {
+   "id": "chip-cold-plate",
+   "version": "1.0"
+  },
+  "envelope": {
+   "batching": "closed_form_full_train",
+   "precision": "float64",
+   "train_cases": 400,
+   "worker_cpu": 2,
+   "worker_deadline_seconds": 600,
+   "worker_memory_bytes": 4294967296,
+   "worker_swap_bytes": 0
+  },
+  "identity": "carbon.chip-cold-plate-development.v1",
+  "lanes": {
+   "session": [
+    "kernel_ridge"
+   ]
+  },
+  "registry_schema": "carbon.construction-capability-registry.v1",
+  "schema": "carbon.challenge-construction-contract.v1"
+ },
+ "contract_identity": "carbon.chip-cold-plate-development.v1",
+ "contract_version": "1.0",
+ "recorded_on": "2026-10-04",
+ "schema": "carbon.construction-expansion-record.v1",
+ "sequence": 0,
+ "what": "CHALLENGE-AI-COOLING-06 (decision CHALLENGE-AI-COOLING-L0-06): chip-cold-plate v1.0 gains its first construction contract, Level 0 only. The only rebuildable family is the existing public Gaussian kernel-ridge reconstruction (kernel_ridge); its length and ridge are choices from the published calibration grid only (defaults length_8 and ridge_1e_6), fitted in closed form at float64 from the digest-pinned public 400-record TRAIN artifact on the existing pinned CPU isolated carrier, with no GPU lane. A cold-plate neural operator and learned optimizer are not implemented; pretrained weights, loss expressions and reference-solver or counted-CFD reuse are excluded. DEVELOPMENT only: official evaluation stays fail closed (cooling_validator_not_served), and the attack budget and fresh confirmation population remain human input."
+}

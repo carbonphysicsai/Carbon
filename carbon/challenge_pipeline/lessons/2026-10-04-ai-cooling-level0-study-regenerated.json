@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-study-regenerated",
+  "recorded_at": "2026-10-04T20:16:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "docs/development/cold_plate/level0",
+    "description": "Regenerated the draft admission artifacts after binding the actual float64 KRR envelope and deterministic clean-worker rebuild policy."
+  },
+  "expected": "The checked-in draft should describe the implementation exactly and remain blocked on the same owner-held pins.",
+  "observed": "The construction, environment and permission pins changed prospectively to the exact float64 implementation. The sheet now states deterministic refit with no fresh-seed claim. Budget and confirmation population remain null, so freezable remains false and no admission run was dispatched.",
+  "keep": [
+    "Describe deterministic reconstruction as deterministic rather than inheriting a seeded-training sentence.",
+    "Keep the generated artifacts tied to the live contract digest."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "challenge-admission-study",
+    "implementation-accurate-envelope"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

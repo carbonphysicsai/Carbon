@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-contract-diagnostic",
+  "recorded_at": "2026-10-04T19:32:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 contract and campaign diagnostic",
+    "description": "Ran the new cooling contract tests with campaign and capability-registry regressions."
+  },
+  "expected": "The authored contract should compile a guarded KRR recipe, stage only public inputs, and leave evaluation fail closed.",
+  "observed": "Thirty-four tests passed. The diagnostic found two implementation defects before any worker dispatch: assumptions were supplied as owner references where the authoring schema requires AssumptionClause values, and the material constants represented checkout bytes rather than the repository's canonical LF bytes. One Windows-only test also reached the already-recorded missing cryptography dependency. No model worker, CFD solver, pod or paid service ran.",
+  "keep": [
+    "Validate new Challenge contracts through the existing nominal authoring types.",
+    "Pin canonical repository bytes so Windows and Linux checkouts verify identically."
+  ],
+  "change": [
+    "Represent the two cooling assumptions in existing semantic clauses while leaving the typed assumptions tuple empty.",
+    "Use the canonical LF digests already recorded by the frozen development study."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "authoring-contract-nominal-types",
+    "cross-platform-material-pins"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

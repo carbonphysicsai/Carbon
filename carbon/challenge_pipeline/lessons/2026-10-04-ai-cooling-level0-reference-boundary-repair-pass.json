@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-reference-boundary-repair-pass",
+  "recorded_at": "2026-10-04T21:12:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 focused reference-boundary repair pass",
+    "description": "Ran the exact B-04 boundary, cooling contract, B-05 public export and challenge-pipeline policy checks after the CI repair."
+  },
+  "expected": "The repair should preserve the protected evaluation boundary and the closed public measurement-authoring surface.",
+  "observed": "60 tests passed and two platform-marked tests skipped. No worker, solver, pod or paid scientific execution ran.",
+  "keep": [
+    "Consume ReferencePolicyRef through carbon.measurement in Challenge research adapters."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "reference-boundary",
+    "repair-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

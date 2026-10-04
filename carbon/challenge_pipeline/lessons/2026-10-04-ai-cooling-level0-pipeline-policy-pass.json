@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-pipeline-policy-pass",
+  "recorded_at": "2026-10-04T20:52:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 challenge-pipeline policy pass",
+    "description": "Repeated the focused challenge-pipeline policy suite after normalizing the lesson records and enabling UTF-8 decoding."
+  },
+  "expected": "The registered lesson vocabulary, rendered pipeline state and ladder policy should validate together.",
+  "observed": "27 tests passed and one platform-marked test skipped. No worker, solver, pod or paid service ran.",
+  "keep": [
+    "Use only the registered execution kinds in future challenge lesson records.",
+    "Keep UTF-8 mode explicit for this repository's Unicode documents on Windows."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "execution-lessons",
+    "challenge-pipeline-policy"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

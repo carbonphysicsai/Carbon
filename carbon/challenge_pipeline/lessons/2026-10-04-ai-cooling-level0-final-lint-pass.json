@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-final-lint-pass",
+  "recorded_at": "2026-10-04T20:47:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Ruff final exact changed-file pass",
+    "description": "Ran final lint over every changed Python source and test after the last adapter edit."
+  },
+  "expected": "The final working tree should have zero lint findings.",
+  "observed": "Ruff reported all checks passed.",
+  "keep": [
+    "Carry the zero-finding changed-file lint state into PR CI."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

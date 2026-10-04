@@ -95,6 +95,11 @@ class ChallengeStudy:
     attacker_feedback: str
     #: The hardware a reconstruction may use.
     permitted_hardware: str
+    #: Exact reconstruction repeat policy stated in the study sheet.
+    rebuild_policy: str = (
+        "a second operator rebuilds from the delivery package on a clean "
+        "worker with fresh seeds; continued training where promised"
+    )
 
     def __post_init__(self):
         object.__setattr__(self, "ladder", MappingProxyType(dict(self.ladder)))
@@ -109,7 +114,14 @@ def _studies():
 
         return STUDY
 
-    return {BATTERY_CHALLENGE: battery}
+    def cold_plate():
+        from carbon.cold_plate.admission_study import STUDY
+
+        return STUDY
+
+    from carbon.reconstruction.capability_registry import COLD_PLATE_CHALLENGE
+
+    return {BATTERY_CHALLENGE: battery, COLD_PLATE_CHALLENGE: cold_plate}
 
 
 def _text(value):
@@ -208,9 +220,13 @@ def permission_inventory(challenge=CHALLENGE):
             c["id"] for c in document["capabilities"] if c["status"] != rebuildable
         ),
         "recorded_difference_from_ladder": (
-            "the pinned Level-0 implementation already admits declarative surfaces "
-            f"the planning ladder places at levels {above}; they are part of the "
-            "baseline, not an expansion"
+            (
+                "the pinned Level-0 implementation already admits declarative "
+                f"surfaces the planning ladder places at levels {above}; they are "
+                "part of the baseline, not an expansion"
+            )
+            if above
+            else "every permitted capability is placed at planning level 0"
         ),
     }
 
@@ -269,10 +285,7 @@ def study_sheet(repository=".", challenge=CHALLENGE):
         "reconstruction": {
             "tolerances": HUMAN,
             "permitted_hardware": study.permitted_hardware,
-            "customer_rebuild": (
-                "a second operator rebuilds from the delivery package on a clean "
-                "worker with fresh seeds; continued training where promised"
-            ),
+            "customer_rebuild": study.rebuild_policy,
         },
         "mandatory_failures": {
             "structural": [
