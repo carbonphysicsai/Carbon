@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-attacker-prelive-real-path-gate",
+ "recorded_at": "2026-10-04T23:55:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "follow-up to carbonphysicsai/Carbon#563 (branch claude/attack-engine-prelive); .agent/decisions/2026-10-04-GRAPHITE-ATTACKER-AT-E.md",
+  "description": "Built the phase-4 pre-live gate: the live run's own code paths up to the network boundary with fakes only at that boundary, under the live run's threading, with a sqlite thread guard and a network guard; made the grant check read the committed blob; scoped short sealed condition ids; and closed the engine review's follow-ups."
+ },
+ "expected": "A scripted dry run that passes shows the live run's code works, and a grant equal to the working-tree file is the owner's grant.",
+ "observed": "The scripted dry run replaces the very code whose threading failed in phase-3 session 3. Driving the real RunPodPods path the way phase 3 does (built on the main thread, used through asyncio.to_thread) reproduced the defect at once: the operator ComputeStore's sqlite connection refused use from the worker thread. Phase 4's live path does not use that store (it launches no pod) and passed. The gate also showed that the live runner must start from the repository root, since the pod pricing it reads lives in the scripts package. The grant check compared two files the operator controls; short cooling condition ids matched ordinary text such as 'boundary 01'.",
+ "keep": [
+  "Before a first live run, run the live run's own builders end to end with a fake only at the network boundary, under the same threading, never a scripted backend in their place.",
+  "Guard sqlite by recording the opening thread and any use from another one, so a caught error still fails the check.",
+  "Pin money to a committed, pushed blob read from git, never to a working-tree file.",
+  "Register short identifiers only qualified by their study or inside a record of their study."
+ ],
+ "change": [
+  "A path the live run does not use is still exercised and reported, and a failure there is a blocking finding for whatever does use it, routed to its owner rather than fixed in passing.",
+  "A dry run asserts it spent exactly zero and ran under a network guard, not that it spent little."
+ ],
+ "protocol_elements": [
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
