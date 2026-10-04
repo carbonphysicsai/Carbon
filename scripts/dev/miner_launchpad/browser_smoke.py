@@ -1281,9 +1281,16 @@ def journey():
                         },
                     )
                     response = connection.getresponse()
+                    # The refusal carries the catalog's next step, the same
+                    # text the MCP door sends for this code (LP-PROD-C D8).
+                    from scripts.dev.miner_launchpad.supervisor import NEXT_ACTIONS
+
                     assert (response.status, json.loads(response.read())) == (
                         409,
-                        {"error": "freeze_a_candidate_first"},
+                        {
+                            "error": "freeze_a_candidate_first",
+                            "next_step": NEXT_ACTIONS["freeze_a_candidate_first"],
+                        },
                     )
                     connection.close()
                     wait(

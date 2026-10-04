@@ -22,8 +22,16 @@ const REFUSAL_SLUG =
   /([A-Z][A-Z_]{3,39}); ?dispatch_may_have_occurred=(true|false)(?:; ?next_action=([^"\\]*))?/g;
 const OPERATION_ID_PATTERN = /^[A-Za-z0-9._:-]{16,114}$/;
 const TASK_ID_PATTERN = /^rtsk_[a-f0-9]{64}$/;
+// Any coded failure, whatever its code: the server's own catalogue says which
+// codes it may emit (checked below), so this runner asks only that a coded
+// failure carries an explicit dispatch flag. A fixed list here would judge a
+// server that adds a precise code (for example a pre-dispatch refusal that
+// says dispatch did not happen) as having emitted no coded failure at all.
+// Observed errors are JSON-stringified tool content, so a coded failure is a
+// text block that starts with its code.
+const CODED_FAILURE = /"text":"([A-Z][A-Z_]{3,39});/;
 const ERROR_PATTERN =
-  /(INVALID_ARGUMENT|OWNER_BINDING|OPERATIONAL_STOP|INVALID_RESULT);\s*dispatch_may_have_occurred=(true|false)/;
+  /\b([A-Z][A-Z_]{3,39});\s*dispatch_may_have_occurred=(true|false)/;
 // A leaked absolute path, home directory or bearer-shaped secret in an error.
 const LEAK_PATTERNS = [
   /\/(home|Users|root|private|var\/folders)\//,
@@ -431,7 +439,7 @@ export async function run(target) {
     async () => {
       const vocabulary = mutating("impossible_code")
         ? /(NEVER_A_REAL_CARBON_CODE)/
-        : /(INVALID_ARGUMENT|OWNER_BINDING|OPERATIONAL_STOP|INVALID_RESULT)/;
+        : CODED_FAILURE;
       const coded = observedErrors.filter((text) => vocabulary.test(text));
       if (mutating("impossible_code"))
         assert(coded.length > 0, "no refusal carried the impossible code");
