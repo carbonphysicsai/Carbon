@@ -10,6 +10,7 @@ export const sources = {
   cooling: { label: "Cold-plate development examination", url: repo(".agent/tickets/CHALLENGE-COLD-PLATE-01_development_exam.md") },
   optics: { label: "Existing photonic reference and its limits", url: repo(".agent/tickets/CHALLENGE-PHOTONIC-01_repair_and_reference.md") },
   battery: { label: "Battery reference contract", url: repo("carbon/battery/domain.py") },
+  batteryCost: { label: "Historical battery reference cost", url: repo("docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md") },
   batteryValue: { label: "Battery decision-value study", url: repo("docs/development/BATTERY_ENGINEERING_VALUE_EV4.md") },
   motor: { label: "Full motor development examination", url: repo(".agent/tickets/CHALLENGE-MOTOR-01_development_exam.md") },
   science: { label: "Scientific evidence and claim boundaries", url: repo("docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md") },

@@ -11,6 +11,7 @@ const args = process.argv.slice(2);
 const option = (name) => args.includes(name) ? args[args.indexOf(name) + 1] : null;
 const destination = option("--out");
 const singleFile = option("--single-file");
+const localAssets = option("--assets-from");
 if (!destination || !singleFile) throw new Error("Usage: node portfolio/preview.mjs --out <new preview directory> --single-file <new HTML path>");
 const out = resolve(destination);
 const manifest = await loadBaselineManifest();
@@ -19,9 +20,14 @@ const verified = new Map();
 for (const path of publicAssets) {
   const expected = manifest.assets.find((item) => item.path === path);
   if (!expected) throw new Error(`Not a reviewed asset: ${path}`);
-  const response = await fetch(`https://carbonphysics.ai/${path}`, { signal: AbortSignal.timeout(20000) });
-  if (!response.ok) throw new Error(`Asset ${path}: HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
+  let bytes;
+  if (localAssets) {
+    bytes = await readFile(resolve(localAssets, path));
+  } else {
+    const response = await fetch(`https://carbonphysics.ai/${path}`, { signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`Asset ${path}: HTTP ${response.status}`);
+    bytes = Buffer.from(await response.arrayBuffer());
+  }
   if (bytes.length !== expected.bytes || createHash("sha256").update(bytes).digest("hex") !== expected.sha256) throw new Error(`Live brand asset changed: ${path}; review before previewing.`);
   verified.set(path, bytes);
 }
@@ -48,7 +54,7 @@ for (const name of ["neue-0.otf", "neue-1.otf"]) css = css.replaceAll(`../assets
 html = html.replace('<link rel="stylesheet" href="./portfolio.css">', `<style>${css}</style>`).replace('<script type="module" src="./portfolio.js"></script>', `<script type="module">${js}</script>`);
 html = html.replaceAll("../assets/brand-2.svg", `data:image/svg+xml;base64,${verified.get("assets/brand-2.svg").toString("base64")}`);
 html = html.replace("../favicon.svg", `data:image/svg+xml;base64,${verified.get("favicon.svg").toString("base64")}`);
-html = html.replace(/<link rel="preload"[^>]+>\n/g, "");
+html = html.replace(/<link rel="preload"[^>]+>\s*/g, "");
 html = html.replace("Carbon / Research portfolio", "Carbon / Portfolio review · not published");
 await writeFile(resolve(singleFile), html, { flag: refresh ? "w" : "wx" });
 console.log(`Local preview: ${join(out, "portfolio/index.html")}\nSelf-contained shareable preview: ${resolve(singleFile)}\n4 brand assets matched their recorded hashes; no production change.`);

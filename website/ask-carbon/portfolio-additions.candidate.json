@@ -6,21 +6,21 @@
     {
       "path": "portfolio/index.html",
       "source": "site/portfolio/index.html",
-      "sha256": "cfe3621e0302a2c5be8066b448251a0dc678cb46e8a2450ae8134594d5d2ed3a",
+      "sha256": "1282982537d5a538c9b6947d63bfbac47fe4a5f562fa3c440e728c5f103feca2",
       "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
       "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
     },
     {
       "path": "portfolio/portfolio.css",
       "source": "site/portfolio/portfolio.css",
-      "sha256": "4a39892bb56f660b42bf51519397821b0e6cd44396127cd0f11fb1629278a810",
+      "sha256": "bd0d1adea2016e521504fc13bb781795b7bc3848c57479c4dea00f4be58952bf",
       "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
       "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
     },
     {
       "path": "portfolio/portfolio.js",
       "source": "site/portfolio/portfolio.js",
-      "sha256": "5171d4b9620dfc9845eeddfa6cd82a95983a3cd6e79d818eb7bc3a183ca54319",
+      "sha256": "3228c37060254ea435ba3b0ac6b48402a92bd97c5ff2962e96636c81ea2522e7",
       "decision": "WEB-PORTFOLIO-01 local implementation; publication not authorized",
       "reason": "Proposed investor-facing research portfolio addition. It neither replaces the live baseline nor changes challenge or reward policy."
     },

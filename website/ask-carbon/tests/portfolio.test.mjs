@@ -5,6 +5,8 @@ import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { programs, sources, evidenceRevision } from "../portfolio/content.mjs";
+import { highlights, screeningImpact, screeningScenario } from "../portfolio/highlights.mjs";
+import { visual } from "../portfolio/visuals.mjs";
 import { renderPortfolio } from "../portfolio/render.mjs";
 import { calculateEconomics } from "../portfolio/economics.mjs";
 import { loadBaselineManifest, loadSiteAdditions } from "../tools/integrate-static.mjs";
@@ -36,24 +38,66 @@ test("public source links name real files at the stated immutable revision", () 
   }
 });
 
-test("HTML is static, source-synchronized, and complete without JavaScript", async () => {
+test("eight concise cards contain the requested fields and distinct concept visuals", () => {
+  assert.deepEqual(highlights.map((p) => p.id), programs.map((p) => p.id));
+  for (const p of highlights) {
+    for (const key of ["title", "highlight", "industry", "customers", "baseline", "basis", "state"]) assert.ok(typeof p[key] === "string" && p[key].length > 5, `${p.id}: missing ${key}`);
+    assert.ok(sources[p.source]);
+    assert.ok(p.basis.includes("Illustrative") || p.basis.includes("Historical"));
+    assert.match(visual(p.id, p.title), /<svg[^>]+role="img"/);
+    assert.ok(visual(p.id, p.title).includes(`<title>${p.title}</title>`));
+  }
+});
+
+test("HTML is a compact static page, source-synchronized and complete without JavaScript", async () => {
   const html = await readFile(resolve(root, "site/portfolio/index.html"), "utf8");
   assert.equal(html, renderPortfolio());
   assert.equal((html.match(/<article class="pf-card"/g) ?? []).length, 8);
-  assert.equal((html.match(/<details class="pf-dossier"/g) ?? []).length, 8);
+  assert.equal((html.match(/<svg /g) ?? []).length, 8);
+  assert.equal((html.match(/<h3>Industrial use<\/h3>/g) ?? []).length, 8);
+  assert.equal((html.match(/<h3>Customer targets<\/h3>/g) ?? []).length, 8);
+  assert.equal((html.match(/simulation time avoided/g) ?? []).length, 8);
+  assert.equal((html.match(/compute cost avoided/g) ?? []).length, 8);
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(ids).size, ids.length, "duplicate ID");
   for (const target of [...html.matchAll(/href="#([^"]+)"/g)].map((match) => match[1])) assert.ok(ids.includes(target), `missing anchor ${target}`);
-  assert.ok(html.includes("25% planning weight"));
-  assert.ok(html.includes("75% is commercial and technical judgment"));
-  assert.ok(html.includes("not eight live products"));
-  assert.ok(html.includes("No matched-resource portfolio competition results"));
-  assert.ok(html.includes("Harder to game, not declared ungameable"));
-  assert.ok(html.includes("No prices, ROI, emissions allocation or returns are promised"));
-  assert.ok(html.includes("All default numbers are illustrative"));
-  assert.ok(html.includes("Battery remains the protocol-development lead"));
-  assert.equal((html.match(/Not yet measured/g) ?? []).length, 5);
+  assert.ok(html.includes("25% Bittensor investor fit"));
+  assert.ok(html.includes("not an emissions allocation or launch approval"));
+  assert.ok(html.includes("not measured Carbon results or total ROI"));
+  assert.ok(html.includes("already-trained model, not elapsed project time"));
+  assert.ok(html.includes("Build, data, training, calibration and upkeep costs are excluded"));
+  assert.ok(html.includes("Customer types are targets, not clients"));
+  assert.ok(!/<details|<input|pf-filter|pf-calculator/.test(html));
+  const visibleCopy = html.replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<head>[\s\S]*?<\/head>/g, "").replace(/<[^>]*>/g, " ");
+  assert.ok(visibleCopy.trim().split(/\s+/).length < 1000, "Keep the page concise");
   assert.ok(!/fetch\(|<iframe|gtag|analytics|localStorage|api\/ask-carbon/.test(html));
+});
+
+test("screening savings include surrogate time and final solver checks", () => {
+  const result = screeningImpact(1200);
+  assert.equal(result.baselineSeconds, 1200000);
+  assert.equal(result.surrogateSeconds, 24100);
+  assert.equal(result.runHoursSaved, 1175900 / 3600);
+  assert.equal(result.dollarsSaved, result.runHoursSaved * 5);
+  assert.deepEqual(screeningScenario, { designs: 1000, solverChecks: 20, predictionSeconds: 0.1, dollarsPerRunHour: 5 });
+  assert.ok(screeningImpact(0.01).runHoursSaved < 0, "A cheap solver must be allowed to win");
+  assert.equal(screeningImpact(1200, { ...screeningScenario, dollarsPerRunHour: 0 }).dollarsSaved, 0);
+});
+
+test("screening rejects invalid cases and does not upgrade estimates into measurements", async () => {
+  for (const bad of [0, -1, NaN, Infinity, "1200", null]) assert.throws(() => screeningImpact(bad), RangeError);
+  for (const [key, bad] of [["designs", 0], ["designs", 1.5], ["solverChecks", -1], ["solverChecks", 1001], ["solverChecks", 1.5], ["predictionSeconds", -1], ["predictionSeconds", Infinity], ["dollarsPerRunHour", NaN], ["dollarsPerRunHour", "5"]]) assert.throws(() => screeningImpact(1200, { ...screeningScenario, [key]: bad }), RangeError);
+  const families = JSON.parse(await readFile(resolve(repo, "carbon/challenge_pipeline/families.json"), "utf8"));
+  const list = Array.isArray(families) ? families : families.families;
+  const mapping = { cooling: "f04", thermal: "f02", photonics: "f06", vibration: "f08", acoustics: "f13", mixing: "f17" };
+  for (const [id, family] of Object.entries(mapping)) {
+    const entry = list.find((item) => item.id === family || item.family_id === family);
+    assert.ok(entry, `missing ${family}`);
+    assert.ok(highlights.find((p) => p.id === id).basis.includes(family));
+    assert.equal(highlights.find((p) => p.id === id).solverSeconds, entry.est.typ);
+  }
+  assert.equal(highlights.find((p) => p.id === "motors").solverSeconds, 60 * list.find((p) => p.id === "f09").est.typ);
+  assert.equal(highlights.find((p) => p.id === "battery").source, "batteryCost");
 });
 
 test("economics includes fixed build, upkeep and recurring full-workflow costs", () => {

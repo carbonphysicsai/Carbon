@@ -5,9 +5,13 @@ webpage for carbonphysics.ai explaining the selected eight research programs,
 economics, expansions, industry opportunities, future fixed-resource design
 competitions and rationale for company/miner resources.
 
+Latest owner revision: "there's too much there. One page. Each problem. The
+highlight. The industrial use case. The impact (saved $ and time of a surrogate).
+The customers. The visual". This supersedes the long-form page presentation.
+
 Scope: a local, reviewable static `/portfolio/` implementation in the existing
-website, source-linked proposed commercial content, progressive disclosures,
-client-only assumption explorer, deterministic additions candidate and tests.
+website, eight compact visual cards, source-linked proposed commercial content,
+explicit illustrative screening assumptions, deterministic additions and tests.
 The source basis is `59d0fd589895557db607d228689010e65b6a33b5`; the new
 commercial portfolio is a proposal and does not amend scientific sequencing,
 the battery protocol lock, production economics or the adopted GTM canon.
@@ -20,13 +24,15 @@ emission allocation. Production authority is a distinct owner decision.
 Acceptance:
 
 - Eight programs distinguish existing bounded evidence from new task proposals.
-- Each records customer hypothesis, finite entry engagement, repeat-work thesis,
-  strong alternative, cost drivers, design test, reference path, exclusions,
-  evidence gap, next milestone, stop condition and future measurement path.
+- Each card presents the problem, highlight, industrial use, time and dollar
+  impact scenario, customer target categories and its own concept illustration.
+- No long dossiers, filters, strategy sections, expansions or calculator UI.
 - 25% investor-fit planning factor does not become science or emissions policy.
 - No fabricated prices, market size, traction, speedup, live result or returns.
-- Calculator includes build, upkeep and complete recurring workflow cost;
-  refuses invalid assumptions and handles parity/no break-even correctly.
+- The trained-model screening scenario counts prediction cost and final solver
+  checks; explicitly excludes construction/upkeep and is not measured ROI.
+- Solver timings are source-linked estimates or labelled historical evidence;
+  a cheaper optimized/reduced baseline can legitimately erase the advantage.
 - Semantic HTML is complete without JS; responsive browser/keyboard checks.
 - New bytes are additions only; approved release and baseline remain unchanged.
 - Focused tests plus existing website regression/knowledge checks.
