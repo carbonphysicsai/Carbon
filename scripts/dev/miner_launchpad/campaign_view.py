@@ -656,9 +656,7 @@ def graphite_section(own):
         ),
         "plan_digest": _str(value.get("plan_digest")),
         "research_share": (
-            share
-            if isinstance(share, (int, float)) and not isinstance(share, bool)
-            else None
+            share if type(share) in (int, float) and finite(share) is not None else None
         ),
         "research_spent": {
             key: count(spent.get(key))
