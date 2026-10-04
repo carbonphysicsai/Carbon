@@ -1,10 +1,13 @@
 """The pod worker-timeout rule (OWNER-GRAPHITE-TEST-WAVE-02 §3, VALIDATOR-01 slice 2).
 
-Attribution depends on the session's recorded construction level (the Test
-Lead's VAL-D13 refinement). At Levels 0-3 only Carbon's own trainer writes the
-pod's claims, so a program failure stays the candidate's. At Levels 4-5 on an
-image without a separation record, the claim is evidence only. Timeouts follow
-the retry rule at every level.
+Attribution is a versioned, registered policy (`pod_outcome`,
+`attribution_policies/`). The current one is pod-attribution-v1, the Test Lead's
+VAL-D13 ruling, and the classification tests are parametrised by policy version.
+Under v1, attribution depends on the session's recorded construction level. At
+Levels 0-3 only Carbon's own trainer writes the pod's claims, so a program
+failure stays the candidate's. At Levels 4-5 on an image without a separation
+record, the claim is evidence only. Timeouts follow the retry rule at every
+level.
 
 A worker timeout is never a scientific failure. A first one is FAILED_INFRA,
 retried once on a fresh pod under the same declared budget. Only a second
@@ -33,7 +36,8 @@ from carbon.agent_campaign.graphite.pods import ScriptedPods, Step, synthetic_ou
 REPOSITORY = Path(__file__).resolve().parents[2]
 #: Level 0: Carbon's own trainer on a declarative recipe. Level 4: participant
 #: code in the pod (the strict case these tests default to).
-L0, L4 = 0, pod_outcome.PARTICIPANT_CODE_LEVEL
+L0, L4 = 0, 4
+V1 = "pod-attribution-v1"
 WORK = pods.contract_work_seconds()  # battery's declared 600 s
 #: Host readings confirming a timeout: the phase was seen running for more
 #: than the declared worker seconds.
@@ -144,6 +148,11 @@ def test_a_timeout_then_success_is_failed_infra_then_scored_once(tmp_path, level
         "worker_timeout_retried",
     )
     assert first["attempt"] == 0 and first["claimed_stage"] == "timeout"
+    policy = pod_outcome.load_policy()
+    assert first["attribution_policy"] == policy.record()
+    assert record["attribution_policy"] == {"version": V1, "digest": policy.digest}
+    assert first["claim"] == {"parsed": {"stage": "timeout", "error": "claimed"}}
+    assert first["host_timing"]["phase_min_s"] == CONFIRMED["last_running"] - 15.0
     # Two pods, two distinct intents, both reserved against the run.
     assert len(backend.launched) == 2
     assert intents(run) == [first["intent_id"], ex.retry_intent(first["intent_id"])]
@@ -354,9 +363,10 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
 # --- the classification itself ------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    ("claim", "admissible", "timing", "attempt", "level", "expected"),
-    [
+#: Expected outcomes per registered policy version. A new version must add
+#: its own expectations (`test_every_registered_policy_has_expectations`).
+EXPECTED = {
+    V1: [
         (
             "timeout",
             None,
@@ -508,8 +518,20 @@ def test_a_restart_after_the_first_attempt_never_reruns(tmp_path):
             ("FAILED_INFRA", "candidate_failure_unattributed", False, False),
         ),
     ],
+}
+
+
+def test_every_registered_policy_has_expectations():
+    assert set(EXPECTED) == set(pod_outcome.registered_policies())
+
+
+@pytest.mark.parametrize(
+    ("version", "claim", "admissible", "timing", "attempt", "level", "expected"),
+    [(version, *row) for version, rows in EXPECTED.items() for row in rows],
 )
-def test_the_order_of_authority(claim, admissible, timing, attempt, level, expected):
+def test_the_order_of_authority(
+    version, claim, admissible, timing, attempt, level, expected
+):
     verdict = pod_outcome.classify(
         claim=claim,
         admissible=admissible,
@@ -517,6 +539,7 @@ def test_the_order_of_authority(claim, admissible, timing, attempt, level, expec
         work_seconds=WORK,
         attempt=attempt,
         level=level,
+        policy=pod_outcome.load_policy(version),
     )
     assert (verdict.status, verdict.reason_code, verdict.retry, verdict.signal) == (
         expected
@@ -588,3 +611,151 @@ def test_the_level_comes_from_the_runs_recorded_permission_profile():
     assert phase3.recorded_level({"task": {"profile_digest": other}}) is None
     assert phase3.recorded_level({"task": {}}) is None
     assert phase3.recorded_level({}) is None
+
+
+# --- the registered policy ------------------------------------------------------
+
+
+def _copy_registry(tmp_path):
+    import shutil
+
+    target = tmp_path / "policies"
+    shutil.copytree(pod_outcome.POLICY_DIR, target)
+    return target
+
+
+def _register(directory, document, *, current=False):
+    import json
+
+    from carbon.agent_campaign.graphite.pod_outcome import _digest
+
+    (directory / (document["version"] + ".json")).write_text(json.dumps(document))
+    registry = json.loads((directory / "registry.json").read_text())
+    registry["versions"][document["version"]] = _digest(document)
+    if current:
+        registry["current"] = document["version"]
+    (directory / "registry.json").write_text(json.dumps(registry))
+
+
+def _v1_document():
+    import json
+
+    return json.loads((pod_outcome.POLICY_DIR / (V1 + ".json")).read_text())
+
+
+def test_v1_is_the_registered_current_policy():
+    policy = pod_outcome.load_policy()
+    assert policy.version == V1 and policy.retries == 1
+    assert policy.trusted_writer_levels == frozenset({0, 1, 2, 3})
+    assert pod_outcome.registered_policies() == [V1]
+
+
+def test_an_altered_or_unregistered_policy_is_refused(tmp_path):
+    import json
+
+    directory = _copy_registry(tmp_path)
+    document = _v1_document()
+    document["trusted_writer_levels"] = [0, 1, 2, 3, 4, 5]
+    (directory / (V1 + ".json")).write_text(json.dumps(document))
+    with pytest.raises(pod_outcome.PolicyRefused, match="altered"):
+        pod_outcome.load_policy(directory=directory)
+    with pytest.raises(pod_outcome.PolicyRefused, match="not registered"):
+        pod_outcome.load_policy("pod-attribution-v9")
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {
+            "evidence_only": {
+                "program": ["CANDIDATE_FAILED", "x"],
+                "compile": ["FAILED_INFRA", "x"],
+            }
+        },
+        {"no_claim": ["CANDIDATE_FAILED", "pod"]},
+        {"admissible": {"program": ["SCORED", "x"], "compile": ["FAILED_INFRA", "x"]}},
+        {"trusted_writer_levels": ["0"]},
+        {"trusted_writer_levels": [-1]},
+        {"extra": True},
+    ],
+)
+def test_a_policy_cannot_blame_on_ambiguity_or_score_an_unfinished_run(
+    tmp_path, change
+):
+    directory = _copy_registry(tmp_path)
+    document = {**_v1_document(), **change, "version": "pod-attribution-unsafe"}
+    _register(directory, document)
+    with pytest.raises(pod_outcome.PolicyRefused):
+        pod_outcome.load_policy("pod-attribution-unsafe", directory=directory)
+
+
+@pytest.mark.parametrize(
+    "timeout_change",
+    [
+        {"unconfirmed": ["CANDIDATE_RESOURCE_EXCEEDED", "x"]},
+        {"contradicted": ["CANDIDATE_FAILED", "x"]},
+        {"retried": ["CANDIDATE_FAILED", "x"]},
+        {"confirm": "pod_says_so"},
+        {"retries": -1},
+    ],
+)
+def test_a_policy_cannot_loosen_the_timeout_invariants(tmp_path, timeout_change):
+    directory = _copy_registry(tmp_path)
+    base = _v1_document()
+    document = {
+        **base,
+        "version": "pod-attribution-unsafe",
+        "timeout": {**base["timeout"], **timeout_change},
+    }
+    _register(directory, document)
+    with pytest.raises(pod_outcome.PolicyRefused):
+        pod_outcome.load_policy("pod-attribution-unsafe", directory=directory)
+
+
+def test_swapping_the_policy_is_a_registered_change_not_a_code_edit(
+    tmp_path, monkeypatch
+):
+    """A registered v2 that trusts no level's pod claim and allows no retry
+    changes the outcome of the same pod runs, through the same code."""
+    directory = _copy_registry(tmp_path)
+    base = _v1_document()
+    v2 = {
+        **base,
+        "version": "pod-attribution-test-v2",
+        "trusted_writer_levels": [],
+        "timeout": {**base["timeout"], "retries": 0},
+    }
+    _register(directory, v2, current=True)
+    monkeypatch.setattr(pod_outcome, "POLICY_DIR", directory)
+    run, backend = experiment(
+        tmp_path / "a",
+        [Step(outcome="failed", outputs=ended("program"), timing=CONFIRMED)],
+        level=L0,
+    )
+    record = run_baseline(run)
+    assert (record["status"], record["reason_code"]) == (
+        "FAILED_INFRA",
+        "candidate_failure_unattributed",
+    )
+    assert record["attribution_policy"]["version"] == "pod-attribution-test-v2"
+    run, backend = experiment(tmp_path / "b", [timed_out(), scored()], level=L0)
+    record = run_baseline(run)
+    assert record["status"] == "CANDIDATE_RESOURCE_EXCEEDED"  # no retry under v2
+    assert len(backend.launched) == 1
+
+
+def test_a_large_raw_claim_is_kept_by_digest_only(tmp_path):
+    big = {"stage": "program", "error": "x" * 5000}
+    honest = synthetic_outputs(0.2)
+
+    def outputs(job):
+        return {
+            "built.json": honest(job)["built.json"],
+            "failure.json": json.dumps(big).encode(),
+        }
+
+    run, _ = experiment(
+        tmp_path, [Step(outcome="failed", outputs=outputs, timing=CONFIRMED)]
+    )
+    claim = run_baseline(run)["attempts"][0]["claim"]
+    assert set(claim) == {"bytes", "digest"} and claim["digest"].startswith("sha256:")

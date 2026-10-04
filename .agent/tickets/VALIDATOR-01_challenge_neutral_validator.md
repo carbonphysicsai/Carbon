@@ -244,9 +244,27 @@ as sealed outside the pool is refused.
     the claim's digest and the host readings.
   - **Unconfirmed:** anything else. On a first attempt it still earns the
     retry, because the retry blames no one. On the second it is FAILED_INFRA.
-- **VAL-D13 — program-failure attribution depends on the construction level**
-  (the Test Lead's ruling, 2026-10-04, refining a first draft that made every
-  pod program claim unattributed).
+- **VAL-D13 — attribution is a versioned, registered policy; v1 depends on
+  the construction level.** This follows the Test Lead's ruling of 2026-10-04,
+  amended the same day at the owner's direction that test rules must not
+  hard-code what is still to be discovered.
+  - **Where the policy lives.** It is a data document,
+    `graphite/attribution_policies/pod-attribution-v1.json`. Its digest is
+    pinned in `registry.json`, which also names the current version.
+    `pod_outcome` only interprets it.
+  - **Changing it.** A change is a new document plus a registry entry, never
+    an edit to scoring code. An altered or unregistered document is refused.
+  - **Invariants a policy cannot loosen** (checked at load): an unfinished run
+    is never `SCORED`, and evidence-only claims, unconfirmed or contradicted
+    timeouts, a retried first timeout and a missing claim are always
+    `FAILED_INFRA`.
+  - **What each typed attempt records:** the policy's version and digest, the
+    raw pod claim (verbatim up to 1 KiB, otherwise size and digest), the
+    host's timing and the construction level. The Attacker's resource and
+    accounting families can then test whether v1 is exploitable, and a policy
+    changes from that evidence.
+
+  v1, the level-dependent rule:
   - **The level's source.** It comes from the run's recorded permission
     profile: `phase3.recorded_level`, which uses the profile's level only when
     the run's recorded profile digest matches. It is never taken from the

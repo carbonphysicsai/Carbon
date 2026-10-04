@@ -1,78 +1,97 @@
 """How a pod run that did not finish is typed (OWNER-GRAPHITE-TEST-WAVE-02 §3).
 
-A pod runs Carbon's supervisor (`pod_phase`) and a program under one user and
-one filesystem. The pinned study image gives the supervisor no separate uid.
-What runs as that program depends on the construction level, which comes from
-the session's recorded permission profile and never from the submission:
-- **Levels 0-3:** the program is Carbon's own trainer, rebuilt from a
-  declarative recipe. No participant code runs in the pod.
-- **Levels 4-5:** participant code runs in the pod. That code could write
-  `failure.json`, serve a forged `/status` or kill the supervisor.
+Attribution is a **versioned, registered policy**, not fixed logic. Each
+policy is a data document in `attribution_policies/`. The registry
+(`attribution_policies/registry.json`) pins every version's digest and names
+the current one. Swapping the policy is a registered change: a new document
+and a registry entry, never an edit to this module or to scoring code. Every
+typed outcome records the policy version and digest, the raw pod claim and
+the host's timing, so a policy can be judged from evidence, for example by the
+Attacker's resource and accounting families (selective crash and retry, forged
+classification).
 
-The outcome is typed by an order of authority:
+What a policy may not change (checked when it loads; it fails closed):
+- an unfinished run is never `SCORED`;
+- evidence-only claims, unconfirmed timeouts, a timeout claim the host's timing
+  contradicts, a first (retried) timeout and a missing claim are all
+  `FAILED_INFRA`. The candidate is never blamed on ambiguous evidence.
 
-1. **Authority: what Carbon's host observes.** The pod lifecycle (launch,
-   the pod's own deadline, loss, cancellation) and the host's own clock
-   readings of the pod's phase (`HostTiming`).
+The order of authority the policy works within:
+1. **Authority: what Carbon's host observes.** The pod lifecycle (launch, the
+   pod's own deadline, loss, cancellation) and the host's own clock readings
+   of the pod's phase (`HostTiming`).
 2. **Admissible evidence.** Two sources qualify:
-   - the pod's stage claim at Levels 0-3, which only Carbon's own code
-     writes;
-   - at any level, a supervisor report from an image that a host-side record
-     (`SEPARATED_IMAGES`) says runs the supervisor apart from the program.
-     The pod's own claim never makes it so, and no image has such a record
-     yet.
-3. **Evidence only.** At Levels 4-5 without a separation record, or at an
-   unknown level, anything in the shared uid or filesystem (`failure.json`,
-   `/status` stages, exit codes) is recorded but never blames the candidate.
+   - a supervisor report, from an image that a host-side record
+     (`SEPARATED_IMAGES`) says runs the supervisor apart from the program
+     (the pod's own claim never makes it so, and no image has such a record
+     yet);
+   - the pod's own stage claim at a level where the policy says only Carbon's
+     code writes it (`trusted_writer_levels`; v1: Levels 0-3, where Carbon's
+     trainer runs a declarative recipe).
+3. **Evidence only.** Anything else in the pod's shared uid or filesystem
+   (`failure.json`, `/status` stages, exit codes), including at an unknown
+   level. It is recorded and never blames the candidate.
 
-The rules:
-- **Timeouts, at every level** (host contention can cause one whoever wrote
-  the claim):
-  - A worker timeout is never a scientific failure. A first one is
-    `FAILED_INFRA` and the proposal is retried once, on a fresh pod, under
-    the same declared budget.
-  - Only a second timeout that the host's timing confirms counts as the
-    candidate exceeding its declared budget: `CANDIDATE_RESOURCE_EXCEEDED`,
-    never scored and never a physics failure. The host confirms a timeout
-    when its own readings show the phase ran at least the declared worker
-    seconds. That span includes Carbon's own compile and pin check, which run
-    before the program starts.
-  - When the host's timing makes a claimed timeout impossible, the result is
-    `FAILED_INFRA` plus an `OTHER_SIGNAL` finding, because it could be
-    tampering. Any other unconfirmed second timeout is `FAILED_INFRA`.
-- **Program failures:**
-  - On admissible evidence, a program failure is the candidate's:
-    `CANDIDATE_FAILED`, `program`. That is the typing before this rule, kept
-    so a recipe that crashes Carbon's trainer cannot buy infrastructure
-    semantics (Track A, selective crash and retry).
-  - Otherwise it is `FAILED_INFRA`, `candidate_failure_unattributed`, with
-    the claim kept as evidence.
-- **Compile failures** stay `FAILED_INFRA` (`compile`), as before. The pod's
-  compile ran after Carbon's host compiled the same recipe, so a failure there
-  points at the pod's environment.
-- The pod's own lifetime deadline, a launch failure and a lost pod stay
-  `FAILED_INFRA`, as before.
+Timeouts confirm on the host's own readings: the phase's lower bound is at
+least the declared worker seconds, and a contradiction is an upper bound below
+them. That span includes Carbon's own compile and pin check, which run before
+the program.
 
-At Levels 4-5 this mirrors `research_carrier._observed_miner_failure`: a
-failure is the candidate's only on observed evidence, and never on an
-ambiguous one.
+The construction level comes from the session's recorded permission profile,
+never from a submission.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
+from pathlib import Path
 
 #: Pinned images whose supervisor runs apart from the candidate (separate uid
 #: or unwritable report path), each by a verification record. None yet: the
 #: EV4 study image runs the supervisor and the program as one non-root user.
 SEPARATED_IMAGES = {}
-#: The first construction level at which participant code runs in the pod
-#: (Challenge_Admission's construction ladder: Levels 4-5 are code).
-PARTICIPANT_CODE_LEVEL = 4
 
 FAILED_INFRA = "FAILED_INFRA"
 CANDIDATE_FAILED = "CANDIDATE_FAILED"
 CANDIDATE_RESOURCE_EXCEEDED = "CANDIDATE_RESOURCE_EXCEEDED"
+#: Statuses a policy may assign to an unfinished pod run. Never `SCORED`.
+STATUSES = frozenset({FAILED_INFRA, CANDIDATE_FAILED, CANDIDATE_RESOURCE_EXCEEDED})
+STAGES = ("timeout", "program", "compile")
+
+POLICY_DIR = Path(__file__).with_name("attribution_policies")
+POLICY_SCHEMA = "carbon.graphite.pod-attribution-policy.v1"
+REGISTRY_SCHEMA = "carbon.graphite.pod-attribution-registry.v1"
+_KEYS = {
+    "schema",
+    "version",
+    "authority",
+    "status",
+    "trusted_writer_levels",
+    "timeout",
+    "admissible",
+    "evidence_only",
+    "no_claim",
+    "notes",
+}
+_TIMEOUT_KEYS = {
+    "retries",
+    "confirm",
+    "contradict",
+    "repeated_confirmed",
+    "retried",
+    "unconfirmed",
+    "contradicted",
+}
+#: The only host-timing tests this module implements; a policy naming another
+#: is refused rather than reinterpreted.
+CONFIRM = "host_phase_min_at_least_work_seconds"
+CONTRADICT = "host_phase_max_below_work_seconds"
+
+
+class PolicyRefused(ValueError):
+    """An attribution policy that is unregistered, altered or unsafe."""
 
 
 @dataclass(frozen=True)
@@ -121,10 +140,139 @@ class HostTiming:
 class Verdict:
     status: str
     reason_code: str
-    #: Whether this attempt asks for the one retry.
+    #: Whether this attempt asks for a retry.
     retry: bool = False
     #: Whether the host timing contradicts the pod's claim (an OTHER_SIGNAL).
     signal: bool = False
+
+
+def _digest(document):
+    body = json.dumps(document, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(body.encode()).hexdigest()
+
+
+def _outcome(value, where):
+    if (
+        type(value) is not list
+        or len(value) != 2
+        or value[0] not in STATUSES
+        or type(value[1]) is not str
+        or not value[1]
+    ):
+        raise PolicyRefused(where + " is [status, reason_code]")
+    return value[0], value[1]
+
+
+@dataclass(frozen=True)
+class AttributionPolicy:
+    """One registered attribution policy, as loaded and checked."""
+
+    version: str
+    digest: str
+    trusted_writer_levels: frozenset
+    retries: int
+    timeout: dict
+    admissible: dict
+    evidence_only: dict
+    no_claim: tuple
+
+    @staticmethod
+    def from_document(document, digest):
+        if type(document) is not dict or set(document) != _KEYS:
+            raise PolicyRefused("policy fields")
+        if document["schema"] != POLICY_SCHEMA:
+            raise PolicyRefused("policy schema")
+        levels = document["trusted_writer_levels"]
+        if type(levels) is not list or not all(
+            type(level) is int and level >= 0 for level in levels
+        ):
+            raise PolicyRefused("trusted_writer_levels are non-negative integers")
+        timeout = document["timeout"]
+        if type(timeout) is not dict or set(timeout) != _TIMEOUT_KEYS:
+            raise PolicyRefused("timeout fields")
+        if (timeout["confirm"], timeout["contradict"]) != (CONFIRM, CONTRADICT):
+            raise PolicyRefused("timeout tests this module does not implement")
+        retries = timeout["retries"]
+        if type(retries) is not int or retries < 0:
+            raise PolicyRefused("timeout retries is a non-negative integer")
+        outcomes = {
+            name: _outcome(timeout[name], "timeout." + name)
+            for name in ("repeated_confirmed", "retried", "unconfirmed", "contradicted")
+        }
+        admissible, evidence_only = {}, {}
+        for table, target, name in (
+            (document["admissible"], admissible, "admissible"),
+            (document["evidence_only"], evidence_only, "evidence_only"),
+        ):
+            if type(table) is not dict or set(table) != {"program", "compile"}:
+                raise PolicyRefused(name + " covers program and compile")
+            for stage, value in table.items():
+                target[stage] = _outcome(value, f"{name}.{stage}")
+        no_claim = _outcome(document["no_claim"], "no_claim")
+        # What no policy may change: ambiguity is never the candidate's.
+        never_blamed = [
+            outcomes["retried"],
+            outcomes["unconfirmed"],
+            outcomes["contradicted"],
+            no_claim,
+            *evidence_only.values(),
+        ]
+        if any(status != FAILED_INFRA for status, _ in never_blamed):
+            raise PolicyRefused("ambiguous or evidence-only outcomes are FAILED_INFRA")
+        return AttributionPolicy(
+            version=document["version"],
+            digest=digest,
+            trusted_writer_levels=frozenset(levels),
+            retries=retries,
+            timeout=outcomes,
+            admissible=admissible,
+            evidence_only=evidence_only,
+            no_claim=no_claim,
+        )
+
+    def record(self):
+        return {"version": self.version, "digest": self.digest}
+
+
+def _registry(directory):
+    try:
+        registry = json.loads((Path(directory) / "registry.json").read_text())
+    except (OSError, ValueError):
+        raise PolicyRefused("attribution policy registry unreadable") from None
+    if (
+        type(registry) is not dict
+        or registry.get("schema") != REGISTRY_SCHEMA
+        or type(registry.get("versions")) is not dict
+        or registry.get("current") not in registry["versions"]
+    ):
+        raise PolicyRefused("attribution policy registry malformed")
+    return registry
+
+
+def registered_policies(directory=None):
+    """Every registered policy version, in registry order."""
+    return list(_registry(POLICY_DIR if directory is None else directory)["versions"])
+
+
+def load_policy(version=None, directory=None):
+    """The registered policy `version` (the registry's current one when None).
+    Refused unless its document's digest is the one the registry pins."""
+    directory = POLICY_DIR if directory is None else directory
+    registry = _registry(directory)
+    version = registry["current"] if version is None else version
+    pinned = registry["versions"].get(version)
+    if pinned is None:
+        raise PolicyRefused("attribution policy not registered: " + str(version))
+    try:
+        document = json.loads((Path(directory) / f"{version}.json").read_text())
+    except (OSError, ValueError):
+        raise PolicyRefused("attribution policy unreadable: " + version) from None
+    digest = _digest(document)
+    if digest != pinned:
+        raise PolicyRefused("attribution policy altered: " + version)
+    if document.get("version") != version:
+        raise PolicyRefused("attribution policy names another version")
+    return AttributionPolicy.from_document(document, digest)
 
 
 def timeout_check(timing, work_seconds):
@@ -139,41 +287,37 @@ def timeout_check(timing, work_seconds):
     return "unconfirmed"
 
 
-def trusted_writer(level):
-    """Whether only Carbon's own code writes the pod's claims at `level`:
-    Levels 0-3. An unknown level is not trusted."""
-    return type(level) is int and 0 <= level < PARTICIPANT_CODE_LEVEL
+def trusted_writer(level, policy):
+    """Whether, under `policy`, only Carbon's own code writes the pod's claims
+    at `level`. An unknown or malformed level is never trusted."""
+    return type(level) is int and level in policy.trusted_writer_levels
 
 
-def classify(*, claim, admissible, timing, work_seconds, attempt, level):
-    """Type one ended-but-not-done pod run.
+def classify(*, claim, admissible, timing, work_seconds, attempt, level, policy):
+    """Type one ended-but-not-done pod run under `policy`.
 
     `claim` is the failure stage the pod reported; `admissible` is a stage
-    from a separated supervisor report, or None; `attempt` is 0 for the first
-    pod and 1 for the retry; `level` is the session's recorded construction
-    level, or None when it is unknown.
+    from a separated supervisor report, or None; `attempt` counts from 0;
+    `level` is the session's recorded construction level, or None.
     """
-    if admissible is None and trusted_writer(level):
-        admissible = claim if claim in ("timeout", "program", "compile") else None
+    if type(policy) is not AttributionPolicy:
+        raise TypeError("a registered AttributionPolicy is required")
+    if admissible is None and trusted_writer(level, policy):
+        admissible = claim if claim in STAGES else None
     stage = admissible if admissible is not None else claim
     if stage == "timeout":
         check = timeout_check(timing, work_seconds)
         if check == "contradicted":
-            return Verdict(
-                FAILED_INFRA, "timeout_claim_contradicts_host_timing", signal=True
-            )
-        if attempt == 0:
-            return Verdict(FAILED_INFRA, "worker_timeout_retried", retry=True)
+            return Verdict(*policy.timeout["contradicted"], signal=True)
+        if attempt < policy.retries:
+            return Verdict(*policy.timeout["retried"], retry=True)
         if check == "confirmed":
-            return Verdict(CANDIDATE_RESOURCE_EXCEEDED, "worker_timeout_repeated")
-        return Verdict(FAILED_INFRA, "worker_timeout_unconfirmed")
-    if stage == "program" and admissible == "program":
-        return Verdict(CANDIDATE_FAILED, "program")
-    if stage == "compile" and admissible == "compile":
-        return Verdict(FAILED_INFRA, "compile")
+            return Verdict(*policy.timeout["repeated_confirmed"])
+        return Verdict(*policy.timeout["unconfirmed"])
     if stage in ("program", "compile"):
-        return Verdict(FAILED_INFRA, "candidate_failure_unattributed")
-    return Verdict(FAILED_INFRA, "pod")
+        table = policy.admissible if admissible == stage else policy.evidence_only
+        return Verdict(*table[stage])
+    return Verdict(*policy.no_claim)
 
 
 def admissible_stage(report, image):
@@ -182,19 +326,23 @@ def admissible_stage(report, image):
     if image not in SEPARATED_IMAGES or type(report) is not dict:
         return None
     stage = report.get("stage")
-    return stage if stage in ("timeout", "program", "compile") else None
+    return stage if stage in STAGES else None
 
 
 __all__ = [
     "CANDIDATE_FAILED",
     "CANDIDATE_RESOURCE_EXCEEDED",
     "FAILED_INFRA",
-    "PARTICIPANT_CODE_LEVEL",
+    "POLICY_DIR",
     "SEPARATED_IMAGES",
+    "AttributionPolicy",
     "HostTiming",
+    "PolicyRefused",
     "Verdict",
     "admissible_stage",
     "classify",
+    "load_policy",
+    "registered_policies",
     "timeout_check",
     "trusted_writer",
 ]

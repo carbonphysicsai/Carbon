@@ -310,7 +310,8 @@ class Experiment:
     recorded construction level (its permission profile), never the
     submission's; it decides whose claims a pod's files carry
     (`pod_outcome`). None means unknown, and then no pod claim blames the
-    candidate.
+    candidate. `attribution_policy` names a registered attribution policy
+    version; None is the registry's current one.
     """
 
     def __init__(
@@ -331,6 +332,7 @@ class Experiment:
         randomness=os.urandom,
         scoring=None,
         construction_level=None,
+        attribution_policy=None,
     ):
         from .provider import RunCancelled
 
@@ -346,6 +348,13 @@ class Experiment:
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
+        # The registered attribution policy (`pod_outcome`): the registry's
+        # current version unless one is named.
+        self.attribution = (
+            pod_outcome.load_policy()
+            if attribution_policy is None
+            else pod_outcome.load_policy(attribution_policy)
+        )
 
     # -- records ---------------------------------------------------------------------------
     def _dir(self, pid):
@@ -698,10 +707,11 @@ class Experiment:
             )
         common = {**base, "recipe_digest": expected["recipe_digest"]}
         attempts = []
-        for attempt in (0, 1):
+        for attempt in range(self.attribution.retries + 1):
             if attempt:
-                # One retry after a worker timeout, on a fresh pod under the
-                # same declared budget (OWNER-GRAPHITE-TEST-WAVE-02 §3). It is
+                # A retry after a worker timeout, on a fresh pod under the
+                # same declared budget, as many as the registered attribution
+                # policy allows (OWNER-GRAPHITE-TEST-WAVE-02 §3: one). It is
                 # charged to the run like any pod.
                 try:
                     reservation = self._admit_pod()
@@ -718,7 +728,7 @@ class Experiment:
                             "pods_left": self.pods_left(),
                         },
                     )
-            job_intent = intent_id if not attempt else retry_intent(intent_id)
+            job_intent = intent_id if not attempt else retry_intent(intent_id, attempt)
             outcome, files, timing = self._attempt(
                 pid, job_intent, reservation, strategy, expected, seed
             )
@@ -872,9 +882,11 @@ class Experiment:
         return self._pod(pid, job)
 
     def _type_unfinished(self, pid, intent_id, attempt, files, failure, timing):
-        """Type a pod run that ended without finishing
-        (`pod_outcome.classify`): host timing and lifecycle decide, and the
-        construction level decides whose claims the pod's files carry."""
+        """Type a pod run that ended without finishing under the registered
+        attribution policy (`pod_outcome.classify`): host timing and lifecycle
+        decide, and the construction level decides whose claims the pod's
+        files carry. The evidence keeps the raw claim, the host's timing and
+        the policy, so the policy can be judged from it."""
         image = (self.pods.describe() or {}).get("image")
         report = _json(files.get("supervisor.json"))
         verdict = pod_outcome.classify(
@@ -884,14 +896,17 @@ class Experiment:
             work_seconds=podlib.contract_work_seconds(self.scoring),
             attempt=attempt,
             level=self.construction_level,
+            policy=self.attribution,
         )
         evidence = {
             "intent_id": intent_id,
             "attempt": attempt,
             "construction_level": self.construction_level,
+            "attribution_policy": self.attribution.record(),
             "status": verdict.status,
             "reason_code": verdict.reason_code,
             "claimed_stage": (failure or {}).get("stage"),
+            "claim": _raw_claim(files.get("failure.json")),
             "failure_digest": (
                 digest(files["failure.json"]) if "failure.json" in files else None
             ),
@@ -1093,13 +1108,35 @@ class Experiment:
         }
 
 
-def retry_intent(intent_id):
-    """The retry's own pod intent: distinct, never a resend of the first."""
-    return intent_id[:117] + "-r1"
+def retry_intent(intent_id, attempt=1):
+    """A retry's own pod intent: distinct, never a resend of an earlier one."""
+    suffix = "-r" + str(attempt)
+    return intent_id[: 120 - len(suffix)] + suffix
 
 
 def _attempts(attempts):
-    return {"attempts": attempts} if attempts else {}
+    if not attempts:
+        return {}
+    return {
+        "attempts": attempts,
+        "attribution_policy": attempts[-1]["attribution_policy"],
+    }
+
+
+#: The most of a pod's raw failure claim kept verbatim; a larger one is kept
+#: by digest only (it is the pod's own text, and at Levels 4-5 hostile).
+MAX_RAW_CLAIM = 1024
+
+
+def _raw_claim(body):
+    """The pod's raw failure claim as recorded evidence: the parsed object
+    when it is small JSON, else only its size and digest."""
+    if body is None:
+        return None
+    parsed = _json(body)
+    if parsed is not None and len(body) <= MAX_RAW_CLAIM:
+        return {"parsed": parsed}
+    return {"bytes": len(body), "digest": digest(body)}
 
 
 def _json(body):
