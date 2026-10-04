@@ -105,16 +105,21 @@ MUTATIONS = {
             tmp
         ),
     ),
-    # A Constructor session gets its own 150-call cap (GRAPHITE-D26); without
-    # it the session falls back to the shared 48.
+    # A v1 Constructor session keeps its own 150-call cap (GRAPHITE-D26);
+    # without it the historical session falls back to the shared 48. A new
+    # session has no call cap (`test_graphite_internal_limits_mutations`).
     "constructor_session_turns": (
-        lambda m: m.setattr(phase3, "CONSTRUCTOR_SESSION_TURNS", None),
-        lambda tmp: t3.test_a_constructor_session_makes_up_to_150_model_calls(tmp),
+        lambda m: m.setattr(phase3.Phase3Provider, "HISTORICAL_SESSION_TURNS", None),
+        lambda tmp: t3.test_a_historical_constructor_session_makes_up_to_150_model_calls(
+            tmp
+        ),
     ),
-    # The 150-call cap bounds the session; it does not run past it.
+    # The 150-call cap bounds a v1 session; it does not run past it.
     "constructor_session_turns_bound": (
-        lambda m: m.setattr(phase3, "CONSTRUCTOR_SESSION_TURNS", 151),
-        lambda tmp: t3.test_a_constructor_session_makes_up_to_150_model_calls(tmp),
+        lambda m: m.setattr(phase3.Phase3Provider, "HISTORICAL_SESSION_TURNS", 151),
+        lambda tmp: t3.test_a_historical_constructor_session_makes_up_to_150_model_calls(
+            tmp
+        ),
     ),
     # A turn with several tool calls runs every call in order (LP-PROD-A);
     # without the rule it ends the run harness_error.

@@ -84,7 +84,7 @@ MUTATIONS = {
         lambda m: m.setattr(
             gp.GraphiteProvider,
             "caps",
-            lambda self: {**_CAPS(self), "provider_nanodollars": None},
+            lambda self, rule=None: {**_CAPS(self, rule), "provider_nanodollars": None},
         ),
         lambda tmp: th.test_the_per_run_money_cap_is_the_controllers_reservation(tmp),
     ),

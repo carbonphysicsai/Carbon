@@ -69,7 +69,18 @@ bundle and clean rebuild are real; the predictions are SYNTHETIC. Its first
 turn returns three tool calls at once, as live session 1's model did, so the
 parallel-call rule runs before any spend: under `PARALLEL_CALLS_V2`
 (LP-PROD-A) all three run, and the dry run reports how many calls of
-several-call turns ran and how many did not.
+several-call turns ran and how many did not. It also reports the session's
+limits: no model-call cap, the run's money cap and its elapsed limit.
+
+**Session limits** (OWNER-GRAPHITE-MINER-01 §6, 2026-10-03). A new session
+runs under `provider.SESSION_LIMITS_V2`: no session-turn cap (the 150 of
+GRAPHITE-D26 is historical) and no per-role call cap. The grant's
+`worst_case_run_cost`, the controller's reservation for the run and the cap
+every model call and pod is admitted against, is the hard bound, with the
+grant's `max_runtime_s`: a model call is admitted only when its timeout fits
+the remaining time, and a pod only when it can finish within it. The grant
+arithmetic is unchanged. Stall detection and its one-rung escalation stay. A
+session recorded under the old cap resumes under it, byte-identically.
 """
 
 from __future__ import annotations
@@ -90,6 +101,7 @@ from pathlib import Path
 
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_loop import parallel_call_counts, run_epoch
 
 from .. import boundaries
@@ -109,10 +121,13 @@ from .provider import (
     EPOCH,
     NANO_PER_USD,
     OWNER,
+    SESSION_LIMITS_V1,
+    SESSION_LIMITS_V2,
     GraphiteLedger,
     GraphiteProvider,
     RunCapReached,
     SessionBrief,
+    limit_dimension,
 )
 from .roles import (
     CONSTRUCTOR_SESSION_TURNS,
@@ -133,15 +148,38 @@ _TERMINAL = ("succeeded", "failed", "cancelled")
 
 
 # -- the Constructor's tools ---------------------------------------------------------------
+#: Under the v2 session-limits rule, a proposal whose pods cannot finish within
+#: the run's remaining elapsed time is refused before anything starts.
+PROPOSAL_NO_TIME = "proposal_cannot_fit_remaining_time"
+#: Under v2, an ablation whose pod cannot finish within the run's remaining
+#: elapsed time is not run (delivery's other such status is
+#: `NOT_RUN_NO_PODS_LEFT`).
+ABLATION_NO_TIME = "NOT_RUN_NO_TIME"
+
+
+def pod_seconds(budget):
+    """One pod's full lifetime, its deadline from launch (`Phase3Budget`)."""
+    return budget.pod_minutes * 60
+
+
 class Phase3Tools:
     """What the Constructor's toolbox delegates to: the proposal tool goes to
-    Carbon's runner; every miner SDK tool goes to the real miner path."""
+    Carbon's runner; every miner SDK tool goes to the real miner path.
 
-    def __init__(self, *, experiment, miner):
+    `seconds_left` reads the run's remaining elapsed time under the v2
+    session-limits rule (None under v1, which has no such gate): a proposal
+    starts only when its pod, and the baseline's when the baseline has not
+    run, can finish within it."""
+
+    def __init__(self, *, experiment, miner, seconds_left=None):
         self.experiment, self.miner = experiment, miner
+        self.seconds_left = seconds_left
 
     async def call(self, name, arguments, identity):
         if name == PROPOSE:
+            late = self._no_time()
+            if late is not None:
+                return late
             # A pod runs for minutes: off the event loop, so the miner path's
             # own tasks keep running. A process death still propagates.
             return await asyncio.to_thread(
@@ -154,6 +192,61 @@ class Phase3Tools:
                 reason="This session has no miner campaign attached; nothing ran.",
             )
         return await self.miner.call(name, arguments, identity)
+
+    def _no_time(self):
+        """The typed refusal of a proposal whose pods cannot finish within the
+        run's remaining elapsed time, or None. The loop journals the answer, so
+        a replay reads it and never re-decides."""
+        if self.seconds_left is None:
+            return None
+        left = self.seconds_left()
+        pods = 1 if self.experiment.baseline_record() is not None else 2
+        needed = pods * pod_seconds(self.experiment.budget)
+        if left is None or needed <= left:
+            return None
+        return toolbox.refusal(
+            "REJECTED_BEFORE_DISPATCH",
+            PROPOSAL_NO_TIME,
+            reason=(
+                "The run's remaining time cannot hold this proposal's pod"
+                + (" and the baseline's" if pods == 2 else "")
+                + "; nothing ran. Select a practised recipe or stop."
+            ),
+            pods_needed=pods,
+            seconds_needed=needed,
+            seconds_left=max(0, int(left)),
+        )
+
+
+class TimeBoundExperiment:
+    """The experiment as a v2 session's delivery sees it: an ablation that has
+    not begun, and whose pod cannot finish within the run's remaining elapsed
+    time, is not run and is answered `NOT_RUN_NO_TIME`; everything else is the
+    experiment's own. One that began before a restart is the experiment's to
+    close (it never reruns one), so it is passed through."""
+
+    def __init__(self, experiment, seconds_left):
+        self._experiment, self._seconds_left = experiment, seconds_left
+
+    def __getattr__(self, name):
+        return getattr(self._experiment, name)
+
+    def run(self, pid, kind, strategy, *, why, parent=None):
+        begun = (self._experiment.root / "proposals" / pid / "intent.json").exists()
+        left = self._seconds_left()
+        if (
+            not begun
+            and left is not None
+            and pod_seconds(self._experiment.budget) > left
+        ):
+            return {
+                "proposal_id": pid,
+                "kind": kind,
+                "status": ABLATION_NO_TIME,
+                "strategy_digest": digest(canonical(strategy)),
+                "scored": False,
+            }
+        return self._experiment.run(pid, kind, strategy, why=why, parent=parent)
 
 
 # -- the provider --------------------------------------------------------------------------
@@ -180,7 +273,21 @@ class Phase3Provider(GraphiteProvider):
     Adds, per run: the pod runner and its ledger, the real miner path, the
     combined token-and-pod spend, pod termination on cancellation and after a
     crash, delivery, and the stall rule's escalation.
+
+    A session under the v2 limits rule has no call cap, so the run's money cap
+    or its elapsed limit is what ends a session the agent does not end. Its
+    pods stay inside both: a pod starts only when the run cap holds its
+    reservation and it can finish within the run's remaining elapsed time (a
+    proposal that cannot is refused `proposal_cannot_fit_remaining_time`; an
+    ablation that cannot is recorded `NOT_RUN_NO_TIME`). A limit stop still
+    closes the session's work: the best improvement is bundled, with the
+    ablations that fit, and the stall rule's escalation applies. The session
+    still ends `failed` with `run_cap_reached` and the dimension, as a capped
+    run always has.
     """
+
+    #: A v1 Constructor session's call cap (GRAPHITE-D26); see `roles`.
+    HISTORICAL_SESSION_TURNS = CONSTRUCTOR_SESSION_TURNS
 
     def __init__(
         self,
@@ -202,7 +309,6 @@ class Phase3Provider(GraphiteProvider):
             self.budget = ex.phase3_budget(grant)
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
-        kwargs.setdefault("max_calls_per_run", CONSTRUCTOR_SESSION_TURNS)
         super().__init__(
             root=root, grant=grant, model=model, miner_tools=miner_tools, **kwargs
         )
@@ -210,13 +316,60 @@ class Phase3Provider(GraphiteProvider):
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
 
     # -- configuration ---------------------------------------------------------------------
-    def caps(self):
-        caps = super().caps()
+    def caps(self, rule=None):
+        caps = super().caps(rule)
         caps["provider_nanodollars"] = ex.usd_to_nano(self.budget.token_allowance_usd)
         return caps
 
     def _grant_record(self):
         return {**super()._grant_record(), "phase3_budget": self.budget.record()}
+
+    def session_limits_record(self, task):
+        """The v2 record, with the run's whole cap (tokens and pods together,
+        the controller's reservation), the pod limit, the pod admission rule
+        that keeps every pod inside the elapsed limit, the stall rule that
+        stays, and what a session a limit stopped still does."""
+        return {
+            **super().session_limits_record(task),
+            "money_cap_covers": "model_calls_and_pods",
+            "pods_per_session": self.budget.max_pods,
+            "pod_seconds": pod_seconds(self.budget),
+            # A pod starts only when it fits the run cap and can finish within
+            # the run's remaining elapsed time (a proposal also counts the
+            # baseline's pod when the baseline has not run).
+            "pod_admission": "money_cap_and_remaining_elapsed_seconds",
+            "stall_attempts": CONSTRUCTOR_STALL_ATTEMPTS,
+            "stall_escalation": "one_rung",
+            "on_limit_stop": "bundle_best_improvement_and_escalate_on_stall",
+        }
+
+    def _seconds_left(self, run_id):
+        """The run's remaining elapsed time by its research ledger, the bound
+        every model call is admitted against: from the ledger's first
+        reservation, `max_runtime_s` long. None when the ledger has no limit."""
+        status = CampaignLedger(self._dir(run_id) / "ledger", clock=self.clock).status(
+            owner=OWNER
+        )
+        limit = status["elapsed_limit_seconds"]
+        if limit is None:
+            return None
+        started = status["started_unix"]
+        if started is None:
+            return limit
+        return started + limit - self.clock()
+
+    def _time_gate(self, run_id, opened):
+        """The remaining-time reader the pod gates use under the v2 rule; None
+        under v1, which starts pods as it always did."""
+        if self.rule_of(opened) != SESSION_LIMITS_V2:
+            return None
+        return lambda: self._seconds_left(run_id)
+
+    def _delivery_view(self, run_id, experiment):
+        """What delivery runs its ablations through: under v2, the experiment
+        bounded by the run's remaining elapsed time; under v1, the experiment."""
+        gate = self._time_gate(run_id, self._opened(run_id))
+        return experiment if gate is None else TimeBoundExperiment(experiment, gate)
 
     def _manifest(self, opened):
         return {**super()._manifest(opened), "implementation": "graphite-phase3"}
@@ -351,44 +504,68 @@ class Phase3Provider(GraphiteProvider):
 
     async def _epoch(self, run_id, ledger, role, brief, selection):
         experiment = self.experiment(run_id)
-        async with self._attached(run_id) as miner:
-            sdk = toolbox.GraphiteToolbox(
-                role=role,
-                literature_index=self.literature,
-                emit=lambda event_id, body: self._emit(run_id, event_id, body),
-                miner_tools=Phase3Tools(experiment=experiment, miner=miner),
-                next_level=self._next_level(run_id, role),
-            )
-            report = await run_epoch(
-                ledger,
-                owner=OWNER,
-                epoch=EPOCH,
-                sdk=sdk,
-                credential_file=None,
-                initial_observation=brief["initial_observation"],
-                transport=self.model.transport_for(selection),
-                provider=selection,
-                instructions=role.prompt,
-                tools=role.tool_schemas(),
-                max_provider_calls=CONSTRUCTOR_SESSION_TURNS,
-                # Every tool call of a turn runs, in the model's order
-                # (LP-PROD-A, superseding GRAPHITE-D33's first-call rule).
-                parallel_calls=PARALLEL_RULES.get(role.name),
-            )
+        opened = self._opened(run_id)
+        try:
+            async with self._attached(run_id) as miner:
+                sdk = toolbox.GraphiteToolbox(
+                    role=role,
+                    literature_index=self.literature,
+                    emit=lambda event_id, body: self._emit(run_id, event_id, body),
+                    miner_tools=Phase3Tools(
+                        experiment=experiment,
+                        miner=miner,
+                        seconds_left=self._time_gate(run_id, opened),
+                    ),
+                    next_level=self._next_level(run_id, role),
+                )
+                report = await run_epoch(
+                    ledger,
+                    owner=OWNER,
+                    epoch=EPOCH,
+                    sdk=sdk,
+                    credential_file=None,
+                    initial_observation=brief["initial_observation"],
+                    transport=self.model.transport_for(selection),
+                    provider=selection,
+                    instructions=role.prompt,
+                    tools=role.tool_schemas(),
+                    # Every tool call of a turn runs, in the model's order
+                    # (LP-PROD-A, superseding GRAPHITE-D33's first-call rule).
+                    parallel_calls=PARALLEL_RULES.get(role.name),
+                    # v2: no call cap, count-free limits and compaction; v1:
+                    # the historical 150-call cap (`_loop_limits`).
+                    **self._loop_limits(opened),
+                )
+        except ValueError as error:
+            if (
+                limit_dimension(error) is not None
+                and self.rule_of(opened) == SESSION_LIMITS_V2
+            ):
+                self._close_at_limit(run_id, experiment)
+            raise
         if report["status"] != "RECONCILIATION_REQUIRED":
             self._deliver(run_id, experiment, report)
         self._escalate_on_stall(run_id, experiment)
         return report
+
+    def _close_at_limit(self, run_id, experiment):
+        """A v2 session stopped by a run limit (money, an operator's call cap
+        or elapsed time), not by the agent: bundle its best improvement, its
+        ablations bounded by the run cap and the remaining time like every v2
+        delivery, and apply the stall rule's escalation. The limit stop itself
+        is re-raised by the caller and recorded as `run_cap_reached`."""
+        self._deliver(run_id, experiment, None)
+        self._escalate_on_stall(run_id, experiment)
 
     def _deliver(self, run_id, experiment, report):
         path = self._dir(run_id) / "delivery.json"
         if path.exists():
             return json.loads(path.read_bytes())
         selection = None
-        if report.get("status") == "SELECTED":
+        if report is not None and report.get("status") == "SELECTED":
             selection = {"strategy_digest": digest(canonical(report["strategy"]))}
         outcome = deliver_.deliver(
-            experiment,
+            self._delivery_view(run_id, experiment),
             self._dir(run_id) / "delivery",
             selection=selection,
             proposals=next_level.ProposalStore(self._dir(run_id)).proposals(),
@@ -649,6 +826,7 @@ def run_session(control, provider, brief, number):
         "summary": provider.experiment(run_id).summary() if final else None,
         "delivery": _read(provider._dir(run_id) / "delivery.json"),
         "literature": _literature_of(provider._dir(run_id)),
+        "session_limits": session_limits_of(provider._dir(run_id)),
         "next_level_proposals": [
             p["proposal_id"]
             for p in next_level.ProposalStore(provider._dir(run_id)).proposals()
@@ -659,6 +837,34 @@ def run_session(control, provider, brief, number):
 def _literature_of(run_dir):
     opened = _read(Path(run_dir) / "session-open.json")
     return None if opened is None else opened["literature"]
+
+
+def session_limits_of(run_dir):
+    """What bounds a session, read from its record: the v2 block as frozen,
+    or, for a record without one, the historical rule it runs under."""
+    opened = _read(Path(run_dir) / "session-open.json")
+    if opened is None:
+        return None
+    if opened.get("session_limits") is not None:
+        return opened["session_limits"]
+    return {
+        "schema": SESSION_LIMITS_V1,
+        "session_turns": Phase3Provider.HISTORICAL_SESSION_TURNS,
+        "provider_attempts": opened["caps"]["provider_attempts"],
+        "note": "opened under the historical rule; it resumes under its own cap",
+    }
+
+
+def model_call_cap(limits):
+    """The model-call cap in force for a session's limits (`session_limits_of`),
+    or None when only money and time bind: under v1 the run ledger's
+    `provider_attempts`; under v2 an operator's own cap, else the loop's
+    per-epoch count."""
+    if limits["schema"] == SESSION_LIMITS_V1:
+        return limits["provider_attempts"]
+    if limits["operator_call_cap"] is not None:
+        return limits["operator_call_cap"]
+    return limits["loop_limits"]["calls_per_epoch"]
 
 
 def _read(path):
@@ -907,6 +1113,7 @@ def command_status(args):
             "delivery": _read(run / "delivery.json"),
             "escalation": _read(run / "escalation.json"),
             "literature": _literature_of(run),
+            "session_limits": session_limits_of(run),
             "next_level_proposals": [
                 p["proposal_id"] for p in next_level.ProposalStore(run).proposals()
             ],
@@ -1042,6 +1249,7 @@ def dry_run(root, literature=None):
         result = run_session(control, provider, brief, 1)
     finally:
         control.close()
+    limits = result["session_limits"]
     result["dry_run"] = {
         "synthetic": True,
         "note": "scripted model, scripted pods and SYNTHETIC predictions; "
@@ -1051,6 +1259,12 @@ def dry_run(root, literature=None):
         **parallel_call_counts(
             provider._dir(result["run_id"]) / "ledger" / f"epoch-{EPOCH}"
         ),
+        # The session's bounds (OWNER-GRAPHITE-MINER-01 §6): no call cap; the
+        # run's money cap and its elapsed limit.
+        "session_limits_rule": limits["schema"],
+        "model_call_cap": model_call_cap(limits),
+        "money_cap_usd": str(Decimal(limits["money_cap_nanodollars"]) / NANO_PER_USD),
+        "elapsed_limit_s": limits["elapsed_seconds"],
     }
     print(json.dumps(result, indent=1, default=str))
     return 0 if result["provider_state"] == "succeeded" else 4

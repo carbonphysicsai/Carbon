@@ -32,7 +32,7 @@ from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, RunState
 from carbon.development_session.model_provider import ENGY_MODELS, select
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_agent_policy import AUTONOMOUS
+from carbon.development_session.research_agent_policy import AUTONOMOUS, COMPACT
 from carbon.development_session.research_agent_policy import PROMPT as BURGERS_PROMPT
 from carbon.development_session.research_loop import SELECTION_TOOL, run_epoch
 from carbon.development_session.research_tools import TOOLS as MINER_TOOLS
@@ -62,11 +62,13 @@ def test_a_reader_session_runs_behind_the_campaign_controller(tmp_path):
     assert graphite.run(run_id) == "succeeded"
     assert control.poll("k1") == "completed"
 
-    # Each request carried exactly the role's prompt, tools and starting rung.
+    # Each request carried exactly the role's prompt, tools and starting rung:
+    # the closed manifest, then the engine's compaction tool the v2 limits
+    # rule adds (OWNER-GRAPHITE-MINER-01 §6), the same on every turn.
     assert len(model.requests) == 3
     for request in model.requests:
         assert request["instructions"] == READER.prompt
-        assert [t["name"] for t in request["tools"]] == list(READER.tools)
+        assert [t["name"] for t in request["tools"]] == [*READER.tools, COMPACT]
         assert request["model"] == READER.start_model
     # Usage is the ledger's settled charge: three synthetic 100-micro calls.
     assert graphite.usage(run_id).settled == Decimal("0.0003")
