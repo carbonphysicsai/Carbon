@@ -51,6 +51,12 @@ STATIC = {
     "/fonts/neue-0.otf": ("fonts/neue-0.otf", "font/otf"),
     "/fonts/neue-1.otf": ("fonts/neue-1.otf", "font/otf"),
 }
+#: A path this controller does not serve, answered 404. Its own code, left
+#: unnamed in the refusal catalog as `unknown_operation` is: until the review
+#: repair it was `not_found`, which the catalog names for a validator intake's
+#: answer ("the validator holds no submission of this candidate"), so a
+#: mistyped API path came back with that step.
+ROUTE_NOT_FOUND = "route_not_found"
 
 
 class Rejected(Exception):
@@ -873,7 +879,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise Rejected("research_admission_unavailable", 409)
                 parts = self.path.split("/")
                 if len(parts) != 5:
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 self.reply(200, route(runner, parts[4], "state", None))
             elif self.path.startswith("/api/v1/development/"):
                 sources = self.server.development_sources
@@ -887,7 +893,7 @@ class Handler(BaseHTTPRequestHandler):
             elif self.path.startswith("/api/v1/runs/"):
                 self.reply(200, self.server.controller.get(self.path[13:]))
             else:
-                raise Rejected("not_found", 404)
+                raise Rejected(ROUTE_NOT_FOUND, 404)
         except Rejected as exc:
             self.reply(exc.status, error_body(exc.code, exc))
         except (OSError, sqlite3.Error):
@@ -977,7 +983,7 @@ class Handler(BaseHTTPRequestHandler):
                     raise Rejected("research_admission_unavailable", 409)
                 parts = self.path.split("/")
                 if len(parts) != 6 or parts[5] == "state":
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 result = route(runner, parts[4], parts[5], value)
             elif self.path.startswith("/api/v1/conversation/"):
                 # The miner's message to their own agent, from this page
@@ -1016,7 +1022,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 parts = self.path.split("/")
                 if len(parts) != 6 or parts[1:4] != ["api", "v1", "runs"]:
-                    raise Rejected("not_found", 404)
+                    raise Rejected(ROUTE_NOT_FOUND, 404)
                 if value != {} or type(value) is not dict:
                     raise Rejected("control_body_must_be_empty_object")
                 result = self.server.controller.control(parts[4], parts[5])

@@ -54,7 +54,7 @@ function world(overrides = {}) {
     if (/^\/api\/v1\/tools\/[^/]+\/open$/.test(url)) { state.tools = {...state.tools, open: true}; return {body: state.tools}; }
     if (/^\/api\/v1\/research\/[^/]+\/[a-z]+$/.test(url)) return {body: state.runs[0] || {}};
     if (/^\/api\/v1\/research\/[^/]+$/.test(url)) return {body: state.runs[0] || {}};
-    return {status: 404, body: {error: "not_found"}};
+    return {status: 404, body: {error: "route_not_found"}};
   };
   return state;
 }

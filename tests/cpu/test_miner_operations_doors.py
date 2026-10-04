@@ -177,6 +177,29 @@ def test_a_request_outside_the_table_is_refused_on_both_doors(browser):
     }
 
 
+def test_a_path_the_controller_does_not_serve_carries_no_intake_step(browser):
+    """Review repair: the router answered an unknown path `not_found`, the
+    code a validator intake answers for a submission it does not hold, so the
+    404 came with that intake's step ("Submit again; the frozen candidate is
+    kept"). It has its own code now, left unnamed, as `unknown_operation` is."""
+    from scripts.dev.miner_launchpad.controller import ROUTE_NOT_FOUND, error_body
+
+    server = browser(SpyHost())
+    for method, path, body in (
+        ("GET", "/api/v1/nowhere", None),
+        ("GET", "/api/v1/tools/campaign/state/extra", None),
+        ("POST", "/api/v1/nowhere/at/all", {}),
+        ("POST", "/api/v1/tools/campaign/state", {}),
+        ("POST", "/api/v1/tools/campaign", {}),
+    ):
+        code, _, content = request(server, path, method, body, auth())
+        assert (code, json.loads(content)) == (404, {"error": ROUTE_NOT_FOUND}), path
+    assert ROUTE_NOT_FOUND not in NEXT_ACTIONS
+    assert error_body(ROUTE_NOT_FOUND) == {"error": ROUTE_NOT_FOUND}
+    # The intake's own `not_found` keeps its step wherever a submission meets it.
+    assert error_body("not_found")["next_step"] == NEXT_ACTIONS["not_found"]
+
+
 class RefusingHost(SpyHost):
     """A host whose operation bodies refuse with one closed code."""
 
