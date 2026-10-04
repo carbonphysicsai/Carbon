@@ -343,8 +343,12 @@ if sys.argv[1] == "own":
     package = types.ModuleType("carbon.agent_campaign.graphite")
     package.__path__ = [sys.argv[2]]
     sys.modules[package.__name__] = package
-for name in ("pack", "library", "hunt", "imports", "focus"):
-    importlib.import_module("carbon.agent_campaign.graphite.miner." + name)
+if sys.argv[1] == "init":
+    # The graphite package alone, its __init__ included.
+    importlib.import_module("carbon.agent_campaign.graphite")
+else:
+    for name in ("pack", "library", "hunt", "imports", "focus"):
+        importlib.import_module("carbon.agent_campaign.graphite.miner." + name)
 print(json.dumps(sorted(m for m in sys.modules if m.startswith("carbon."))))
 """
 
@@ -375,17 +379,124 @@ def test_the_literature_modules_load_no_internal_only_module():
     assert not _loaded("own") & NEVER_LOADED
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "carbon/agent_campaign/graphite/__init__.py (not S2's) eagerly imports "
-        "provider, which loads grant, controller, ladder and next_level; handed "
-        "off to make it lazy. Remove this mark when it is."
-    ),
-)
 def test_importing_the_miner_literature_loads_no_internal_only_module():
-    assert not _loaded("package") & NEVER_LOADED
+    """The whole import, the graphite package's `__init__` included. That
+    `__init__` is not S2's. While it imports `provider` eagerly (loading the
+    grant, controller, ladder and next-level modules), this test is an
+    expected failure for exactly what the package alone loads; anything more
+    the literature modules load fails it. Once the `__init__` is lazy, the
+    test passes with no edit here."""
+    loaded = _loaded("package") & NEVER_LOADED
+    by_package = _loaded("init") & NEVER_LOADED
+    assert loaded <= by_package, sorted(loaded - by_package)
+    if loaded:
+        pytest.xfail(
+            "carbon/agent_campaign/graphite/__init__.py (not S2's) eagerly loads "
+            + ", ".join(sorted(loaded))
+        )
+
+
+def _no_key_scan():
+    """The product invariant's own import walk and key-material scanner,
+    loaded from tests/invariants/test_product_process_holds_no_key.py."""
+    import importlib.util
+
+    path = REPOSITORY / "tests/invariants/test_product_process_holds_no_key.py"
+    spec = importlib.util.spec_from_file_location("_graphite_s2_no_key_scan", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+#: Parent packages Python runs for the literature modules that are not S2's.
+#: The walk below reaches them but does not follow their imports.
+NOT_S2_PACKAGES = (
+    "carbon/agent_campaign/graphite/__init__.py",
+    "carbon/agent_campaign/graphite/miner/__init__.py",
+)
+#: The internal edition's files, which the literature never reaches.
+INTERNAL_ONLY_FILES = frozenset(
+    {
+        f"carbon/agent_campaign/graphite/{name}.py"
+        for name in INTERNAL_ONLY | {"provider", "model"}
+    }
+    | {
+        "carbon/agent_campaign/grant.py",
+        "carbon/agent_campaign/controller.py",
+        "carbon/agent_campaign/provider.py",
+    }
+)
+LITERATURE_FILES = tuple(
+    REPOSITORY / "carbon/agent_campaign/graphite/miner" / (name + ".py")
+    for name in ("pack", "library", "hunt", "imports", "focus")
+)
+
+
+def _static_closure(scan, starts, *, boundary=()):
+    """The invariant's closure walk from `starts`: every repository file an
+    import statement anywhere in a reached file names (function-local imports
+    included), with its parent packages. Files in `boundary` are reached but
+    their imports are not followed."""
+    stop = {REPOSITORY / name for name in boundary}
+    todo, seen = list(starts), set()
+    while todo:
+        path = todo.pop()
+        if path in seen:
+            continue
+        seen.add(path)
+        if path in stop:
+            continue
+        for module in scan.imported_names(path, REPOSITORY):
+            parts = module.split(".")
+            if parts[0] not in {"carbon", "scripts", scan.SIGNER_PACKAGE}:
+                continue
+            for depth in range(1, len(parts) + 1):
+                found = scan._module_path(".".join(parts[:depth]), REPOSITORY)
+                if found is not None:
+                    todo.append(found)
+    return seen
+
+
+def _relative(paths):
+    return {path.relative_to(REPOSITORY).as_posix() for path in paths}
+
+
+def test_the_literature_static_closure_reaches_no_pod_or_key_material():
+    """The product invariant (`test_product_process_holds_no_key`) walks every
+    import statement the product can reach, however lazily, and scans each
+    file for key material. The literature modules' share of that walk - S2's
+    files and everything they name, up to the parent packages that are not
+    S2's - reaches no internal-only Graphite file (pods, experiment,
+    next-level, ladder, provider, model, grant, controller), none of the
+    RunPod tooling, and no key-material construct."""
+    scan = _no_key_scan()
+    closure = _static_closure(scan, LITERATURE_FILES, boundary=NOT_S2_PACKAGES)
+    names = _relative(closure)
+    # Specimen for reach: the walk follows the literature's own imports.
+    assert {
+        "carbon/agent_campaign/graphite/literature.py",
+        "carbon/agent_campaign/graphite/literature_fetch.py",
+        "carbon/agent_campaign/graphite/method_cards.py",
+        "carbon/agent_campaign/graphite/tools.py",
+    } <= names
+    assert not names & INTERNAL_ONLY_FILES, sorted(names & INTERNAL_ONLY_FILES)
+    runpod = sorted(name for name in names if "runpod" in name)
+    assert not runpod, runpod
+    found = scan.scan(sorted(closure), REPOSITORY)
+    assert found <= scan.PERMITTED, sorted(found - scan.PERMITTED)
+
+
+def test_the_static_walk_finds_the_pod_key_construct_where_there_is_one():
+    """Specimen: from the internal edition's provider, the same walk reaches
+    the pods and the scan finds their key-file construct, so the clean result
+    above is not a walk or a scan that finds nothing."""
+    scan = _no_key_scan()
+    provider = REPOSITORY / "carbon/agent_campaign/graphite/provider.py"
+    closure = _static_closure(scan, [provider])
+    pods = "carbon/agent_campaign/graphite/pods.py"
+    assert pods in _relative(closure)
+    found = scan.scan(sorted(closure), REPOSITORY)
+    assert any(label == pods for label, _, _ in found - scan.PERMITTED)
 
 
 def test_paper_keys_drop_the_version():

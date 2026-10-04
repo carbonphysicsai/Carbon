@@ -186,13 +186,22 @@ default and no authority boundary changes.
 
 **Imports.** The literature modules, and everything they import, load no
 grant, pod, experiment, delivery, triage, next-level, ladder, controller,
-provider or model module (a subprocess test checks `sys.modules`). Importing
-them through the package today also runs
-`carbon/agent_campaign/graphite/__init__.py`, which is not S2's: it imports
-`provider` eagerly, which loads `grant`, `controller`, `ladder` and
-`next_level` (loaded, never called). A strict expected-failure test records
-this gap; making that `__init__` lazy is handed off, and the mark comes off
-when it is.
+provider or model module (a subprocess test checks `sys.modules`). The same
+holds statically: the product invariant's own walk
+(`tests/invariants/test_product_process_holds_no_key.py`, which follows
+every import statement, function-local ones included), run from the
+literature modules up to the parent packages that are not S2's, reaches no
+internal-only Graphite file, no RunPod tooling and no key-material
+construct. A specimen shows the same walk reaching the pods' key-file
+construct from the internal provider. Importing the literature through the
+package also runs `carbon/agent_campaign/graphite/__init__.py`, which is not
+S2's. That `__init__` imports `provider` eagerly, which loads `grant`,
+`controller`, `ladder` and `next_level` (loaded, never called) and statically
+reaches `pods`. Once Launchpad imports the miner package, the pods' RunPod
+`key_file` therefore fails the product invariant (integration round 1). The
+package-level test is an expected failure for exactly what that `__init__`
+alone loads, fails on anything more, and passes with no edit once the
+`__init__` is lazy. Making it lazy is handed off.
 
 **Unchanged.** Every internal Graphite module, prompt and digest
 (`method_cards`, `literature_fetch`, `literature`, `tools`); the phase-2
