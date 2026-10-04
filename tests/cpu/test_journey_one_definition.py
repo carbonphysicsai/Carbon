@@ -316,17 +316,29 @@ def test_both_doors_run_one_journey_to_the_same_decisions_and_records(journeys):
 def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
     """The definition covers the table: an operation added to the table and
     left out of the journey fails here until someone decides where it goes."""
-    from scripts.dev.miner_launchpad.operations import OPERATIONS
+    from scripts.dev.miner_launchpad.operations import (
+        LIBRARY_READS,
+        LIBRARY_WRITES,
+        OPERATIONS,
+    )
 
     # The research view, the toolbox, the miner's messages and a run's own
-    # output are reads, as observe is (RSURF-D1, D11, D12, D17).
-    covered = {step.operation for step in JOURNEY} | {
-        "observe",
-        "campaign_view",
-        "toolbox",
-        "messages",
-        "run_output",
-    }
+    # output are reads, as observe is (RSURF-D1, D11, D12, D17). The Graphite
+    # library and plans are the miner's own curation, outside any campaign,
+    # and admit no work: pinned through both doors by
+    # tests/cpu/test_launchpad_graphite_library.py (OWNER-GRAPHITE-MINER-01).
+    covered = (
+        {step.operation for step in JOURNEY}
+        | {
+            "observe",
+            "campaign_view",
+            "toolbox",
+            "messages",
+            "run_output",
+        }
+        | set(LIBRARY_READS)
+        | set(LIBRARY_WRITES)
+    )
     # Halt and resume are the lifecycle controls, pinned by the door-parity
     # test through both doors; the journey has no pause in it. A journal note
     # starts no work and is pinned by tests/cpu/test_research_surface.py.

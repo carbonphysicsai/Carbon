@@ -62,7 +62,7 @@ from carbon.reconstruction.worker.model import (
 )
 from scripts.dev.miner_launchpad import runner
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     LOCAL_CPU,
     LOCAL_GPU,
     EnvironmentSetup,
@@ -507,7 +507,7 @@ def test_setup_on_this_machine_s_gpu_carries_the_scope_to_the_profile(tmp_path):
     check = state["steps"]["compute"]["check"]
     assert check["gpu"] == "NVIDIA GeForce RTX 4090"
     assert "speed only" in check["note"]
-    setup.agent({"choice": AUTONOMOUS, "operator_config": str(home / "operator.json")})
+    setup.agent({"choice": GRAPHITE, "operator_config": str(home / "operator.json")})
     setup.review({"confirm": True})
     cfg = runner.validated_profile(json.loads(setup.profile_path.read_bytes()))
     assert cfg["gpu_image"] == str(home / "gpu.json")

@@ -56,7 +56,7 @@ from scripts.dev.miner_launchpad import environment_setup as environment
 from scripts.dev.miner_launchpad.campaign_view import reconciliation
 from scripts.dev.miner_launchpad.controller import Rejected, error_body, owner_lock
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     INSTALLATION_SCHEMA,
     LOCAL_CPU,
     PROFILE_RECHECK_STEP,
@@ -428,7 +428,7 @@ def installed(tmp_path, *, worker_path=None):
             "analysis_image_manifest": str(analysis),
         }
     )
-    setup.agent({"choice": AUTONOMOUS, "operator_config": str(operator)})
+    setup.agent({"choice": GRAPHITE, "operator_config": str(operator)})
     setup.review({"confirm": True})
     record(setup, REVISION, worker=worker_path or worker, analysis=analysis)
     return setup, worker

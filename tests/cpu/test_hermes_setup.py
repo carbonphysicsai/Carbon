@@ -28,7 +28,7 @@ from test_miner_inference_providers import (
 
 from scripts.dev.miner_launchpad import hermes_setup
 from scripts.dev.miner_launchpad.environment_setup import (
-    AUTONOMOUS,
+    GRAPHITE,
     HERMES,
     LOCAL_CPU,
     EnvironmentSetup,
@@ -216,7 +216,7 @@ def test_carbon_s_own_agent_takes_no_consent(tmp_path):
     with pytest.raises(SetupRefused, match="nothing_to_consent_to"):
         setup.agent(
             {
-                "choice": AUTONOMOUS,
+                "choice": GRAPHITE,
                 "operator_config": str(home / "operator.json"),
                 "consent": {"writes": []},
             }

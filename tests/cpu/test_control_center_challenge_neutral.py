@@ -77,6 +77,9 @@ def test_every_challenge_reports_its_provisions_and_offers_alike():
                 "remote_gpu": False,
                 "intake": False,
                 "feedback_modes": [],
+                # Graphite runs only where a campaign is registered
+                # (OWNER-GRAPHITE-MINER-01).
+                "graphite": False,
             }
         else:
             assert offers["feedback_modes"][0] == "FULL"

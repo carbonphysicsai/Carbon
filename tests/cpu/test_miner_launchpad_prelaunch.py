@@ -16,6 +16,7 @@ from test_miner_launchpad_runner import (
     RUNTIME,
     Chain,
     adapter,
+    launches_name_no_agent_as_none,
     product_campaign,
     run_id,
 )
@@ -486,3 +487,5 @@ def _launches_name_a_challenge(monkeypatch):
     )
 
     launch_with_fixture_challenge(monkeypatch.setattr)
+    # A body naming no agent means agent=none here (OWNER-GRAPHITE-MINER-01).
+    launches_name_no_agent_as_none(monkeypatch)
