@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-isolation-readiness-l4-l5",
+ "recorded_at": "2026-10-04T21:08:30Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "stage_gate",
+  "ref": "docs/development/graphite/ISOLATION_READINESS_L4_L5.md (W3 of OWNER-GRAPHITE-TEST-WAVE-03, read-only at origin/main 992d046b6)",
+  "description": "Read C-03 (spec, ticket, OWNER-C03-DEV-ISOLATION-01, docker_runtime create_arguments and its checks, profile, scripts and tests), the research carrier and its miner lane, and Graphite's pod path (pods, pod_phase, bootstrap, the RunPod adapter). Recorded what each enforces against what Levels 4-5 need, across thirteen dimensions, and checked the Carbon Validator's provider-credential item against the code. Nothing was executed."
+ },
+ "expected": "C-03 and the research carrier, which already runs miner Python, are close to running participant code for Graphite's internal campaigns, and the pod credential gap has a small fix inside the bootstrap.",
+ "observed": "No Graphite path runs participant executables today, and C-03 excludes them as inputs. run_script does not use C-03's create_arguments: miner-authored code takes the unlimited miner lane (miner_container.py), with no CPU, memory, task, descriptor or deadline limit and executable host-disk scratch. Only Carbon's fixed programs use C-03's limits. On a pod the program shares uid 65532, the PID namespace, a writable filesystem and open egress with the bootstrap, and the provider credential is reachable by it; the obvious in-process fix does not close it (detail held privately while the repository is public). The credential's injection and scope are asserted in the repository but not verified. Level 4's constrained inference interface and Level 5's isolated inference stage do not exist.",
+ "keep": [
+  "Check which code path a caller actually takes before reusing its guarantees: the carrier's two lanes share an entry point but not an argument builder.",
+  "Mark every provider behaviour that was not verified, and keep it separate from what the code shows."
+ ],
+ "change": [
+  "Verify a secret boundary against how the platform exposes a process's state, not against what the process removes from itself; prove it with a canary on the real platform.",
+  "A Graphite hostile-code lane uses C-03's limits and kernel-side checks and refuses the unlimited miner lane.",
+  "Kill the whole process group on a pod timeout; subprocess.run's timeout kills only the direct child."
+ ],
+ "protocol_elements": [
+  "isolation.c03",
+  "isolation.pod",
+  "ladder.level-4",
+  "ladder.level-5",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
