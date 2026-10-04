@@ -372,8 +372,10 @@
   function graphiteKey(doc) {
     const g = doc.graphite || null;
     const plan = g && typeof g.plan_digest === "string" && g.plan_digest && window.CarbonLibrary ? window.CarbonLibrary.planKey(g.plan_digest) : null;
-    return JSON.stringify([g, doc.tiles.spend || null, plan]);
+    return JSON.stringify([g, doc.tiles.spend || null, doc.campaign?.state ?? null, plan]);
   }
+  const STAGE_NOUNS = {hunt: "Hunt", plan: "Plan", build: "Build"};
+  const STAGE_STATES = {DONE: "done", RUNNING: "running", PENDING: "waiting", STOPPED: "stopped"};
   function nano(value, name = "provider_nanodollars") {
     if (typeof value === "number") return value;
     return value && typeof value === "object" && typeof value[name] === "number" ? value[name] : null;
@@ -382,20 +384,29 @@
     const g = doc.graphite;
     const G = CC.graphite;
     head(box, "Graphite · " + G.modeLabel(g.mode) + " mode", "Carbon's agent");
-    para(box, "Now: " + G.stageLabel(g.stage), "status-line rs-graphite-stage");
+    para(box, "Now: " + G.now(g.stage, doc.campaign?.state), "status-line rs-graphite-stage");
     const grid = el("dl", undefined, "review-grid rs-graphite");
     const row = (label, value) => { const dd = el("dd"); if (typeof value === "string") dd.textContent = value; else dd.append(...value); grid.append(el("dt", label), dd); return dd; };
     const digest = typeof g.plan_digest === "string" && g.plan_digest ? g.plan_digest : null;
     row("Plan", digest ? [el("code", digest.slice(0, 12) + "…"), " ", anchor("Open the plan", "#library/plans/" + encodeURIComponent(digest))] : g.mode === "RESEARCH" ? "Not written yet: this campaign's Planner writes it" : "None yet: Graphite's Planner writes one first");
+    // Each stage the campaign runs, in order, with its state and the code it
+    // ended on (a research stage stopped at its share says so).
+    const stages = Array.isArray(g.stages) ? g.stages.filter(item => item && typeof item.stage === "string") : [];
+    if (stages.length) row("Stages", stages.map(item => (STAGE_NOUNS[item.stage] || words(item.stage)) + ": " + (STAGE_STATES[item.state] || "unknown") + (typeof item.code === "string" && item.code ? " (" + words(item.code) + ")" : "")).join(" · "));
     // Research spend against its share; build spend is the rest of the
-    // campaign's model spend.
+    // campaign's model spend. The share narrows only the model ceilings the
+    // miner set: with none, it does not bind, and that is said.
     const used = doc.tiles.spend ? doc.tiles.spend.used_nanodollars : null;
     const ceiling = doc.tiles.spend ? doc.tiles.spend.ceiling_nanodollars : null;
     const research = nano(g.research_spent);
     const share = typeof g.research_share === "number" ? g.research_share : null;
-    const cap = share !== null && typeof ceiling === "number" && ceiling > 0 ? Math.floor(ceiling * share) : null;
-    const shareText = share === null ? "" : " · its share " + Math.round(share * 10000) / 100 + "%" + (cap !== null ? " (" + G.usd(cap) + " of your " + G.usd(ceiling) + ")" : "");
-    row("Research spend", (research === null ? "unavailable" : G.usd(research)) + (g.mode === "BUILD" && !share ? "" : shareText));
+    // The cap the share sets, as the campaign states it (research_cap: only
+    // the dimensions the miner capped); from the spend ceiling otherwise.
+    const stated = g.research_cap && typeof g.research_cap === "object" ? g.research_cap : null;
+    const caps = stated ? [nano(stated) !== null ? "up to " + G.usd(nano(stated)) + (typeof ceiling === "number" ? " of your " + G.usd(ceiling) : "") : null, nano(stated, "provider_attempts") !== null ? "up to " + nano(stated, "provider_attempts") + " model calls" : null].filter(Boolean)
+      : share !== null && typeof ceiling === "number" && ceiling > 0 ? [G.usd(Math.floor(ceiling * share)) + " of your " + G.usd(ceiling)] : [];
+    const shareText = share === null ? "" : " · its share " + Math.round(share * 10000) / 100 + "%" + (caps.length ? " (" + caps.join(" and ") + ")" : " (it narrows only a model-spend or model-call ceiling you set; with neither, it does not bind)");
+    row("Research spend", (research === null ? "unavailable" : G.usd(research)) + shareText);
     if (g.mode !== "RESEARCH") row("Build spend", typeof used === "number" && research !== null && used >= research ? G.usd(used - research) : "unavailable");
     const attempts = nano(g.research_spent, "provider_attempts");
     if (attempts !== null) row("Research model calls", String(attempts));
@@ -406,9 +417,15 @@
       if (typeof hunt.deduped === "number") parts.push(hunt.deduped + " already known, not paid for again");
       if (typeof hunt.triaged_out === "number") parts.push(hunt.triaged_out + " set aside at first reading");
       if (typeof hunt.extracted === "number") parts.push(hunt.extracted + " read into your Library");
-      if (typeof hunt.failed_infra === "number" && hunt.failed_infra) parts.push("arXiv unavailable " + hunt.failed_infra + " time" + (hunt.failed_infra === 1 ? "" : "s") + " (the Planner went on)");
+      if (typeof hunt.reader_calls === "number") parts.push(hunt.reader_calls + " Reader call" + (hunt.reader_calls === 1 ? "" : "s"));
       parts.push("cost " + (typeof hunt.cost_nanodollars === "number" ? G.usd(hunt.cost_nanodollars) : "unavailable"));
       row("Hunt", parts.join(" · "));
+      // arXiv unreachable (FAILED_INFRA: the hunt report's boolean, or a
+      // count): an infrastructure failure, never a verdict on any paper.
+      if (hunt.failed_infra === true || (typeof hunt.failed_infra === "number" && hunt.failed_infra > 0)) {
+        const failed = row("arXiv", "Could not be reached, so the hunt ended where it was (literature fetch failed). That is not a verdict on any paper; the Planner went on with the cards you have. Next: hunt again in a later campaign.");
+        failed.className = "reason"; failed.dataset.code = "literature_fetch_failed";
+      }
     } else row("Hunt", "No hunt in this campaign: it reads the shared pack and your Library.");
     box.append(grid);
     if (digest && window.CarbonLibrary) {
