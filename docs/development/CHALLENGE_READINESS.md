@@ -14,9 +14,12 @@ qualification/activation path remains separate.
 Every record starts `NOT_STARTED`. The spec is
 `docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`.
 
-The portfolio is battery, AI-chip cold plates, electric motors and silicon
-photonics (OWNER-LAUNCH-PORTFOLIO-01). The records make them comparable for
-readiness and cost. **They grade nothing.** Each Challenge keeps its own
+The launch portfolio is the eight challenges of OWNER-LAUNCH-PORTFOLIO-02
+(`Design_Specs/Eight_Challenge_Foundation_Plan.md`, §4). It replaced
+OWNER-LAUNCH-PORTFOLIO-01's four on 2026-10-04. Records exist so far for the
+four carried over: battery, AI-chip cold plates, electric motors and silicon
+photonics. The other four get records when they are mapped to registry IDs
+(the plan's F0). The records make them comparable for readiness and cost. **They grade nothing.** Each Challenge keeps its own
 scientific ruler.
 
 **Status.** Every record is a `PROPOSED_DEVELOPMENT_DESIGN`.
