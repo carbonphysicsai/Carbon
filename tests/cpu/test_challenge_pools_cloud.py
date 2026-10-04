@@ -169,3 +169,68 @@ def test_disagreeing_ok_records_are_refused_not_chosen_between(tmp_path):
     )
     with pytest.raises(ValueError, match="disagree"):
         assemble.assemble(plan, 1, [a, b])
+
+
+def test_the_motor_timing_campaign_rents_cpu5c_alone_under_a_lower_rate_guard(
+    monkeypatch,
+):
+    pod_control = _load(
+        "pod_control_timing", "scripts/dev/exam_design/runpod/pod_control.py"
+    )
+    monkeypatch.setattr(pod_control, "CAMPAIGN", "motor-timing")
+    flavors, rate = pod_control.cpu_policy()
+    # The approved CPU reference timing route: cpu5c, with no fallback flavor.
+    assert flavors == ["cpu5c"] and 0 < rate < pod_control.MAX_CPU_RATE
+    assert "ceiling_usd" not in pod_control.CAMPAIGNS["motor-timing"]
+    monkeypatch.setattr(pod_control, "CAMPAIGN", "challenge-pools")
+    assert pod_control.cpu_policy() == (
+        pod_control.CPU_FLAVORS,
+        pod_control.MAX_CPU_RATE,
+    )
+    # A campaign may narrow the flavors and the rate guard, never widen them.
+    for widened in (
+        {"cpu_flavors": ["cpu5c", "gpu"]},
+        {"cpu_flavors": []},
+        {"max_cpu_rate": pod_control.MAX_CPU_RATE * 2},
+        {"max_cpu_rate": 0},
+    ):
+        spec = {**pod_control.CAMPAIGNS["motor-timing"], **widened}
+        monkeypatch.setitem(pod_control.CAMPAIGNS, "motor-timing", spec)
+        monkeypatch.setattr(pod_control, "CAMPAIGN", "motor-timing")
+        with pytest.raises(SystemExit, match="invalid CPU policy"):
+            pod_control.cpu_policy()
+
+
+def test_the_motor_timing_plan_is_public_train_geometry_only():
+    phase = _load("pod_phase_timing", "scripts/dev/challenge_pools/pod_phase.py")
+    evidence = REPOSITORY / "docs/development/evidence/motor-timing-2026-10-04"
+    plan = phase.public_plan(evidence / "plans/motor-timing-calibration.json")
+    study = json.loads(
+        (
+            REPOSITORY / "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V1.json"
+        ).read_text()
+    )
+    train = {
+        json.loads(line)["case_id"]: json.loads(line)["inputs"]
+        for line in (
+            REPOSITORY / "docs/development/evidence/motor-pools-v1/train.jsonl"
+        )
+        .read_text()
+        .splitlines()
+        if line.strip()
+    }
+    geometry = [k for k in study["designs"][0]["values"]]
+    designs = [tuple(d["values"][k] for k in geometry) for d in study["designs"]]
+    conditions = {
+        c["condition_id"]: c["values"]
+        for c in study["conditions"]
+        if c["condition_id"] in ("b01", "b02")
+    }
+    assert len(plan["cases"]) == 12
+    for case in plan["cases"]:
+        # cal-<TRAIN case id>-<condition id>
+        source, condition = case["case_id"][len("cal-") :].rsplit("-", 1)
+        inputs = case["inputs"]
+        assert tuple(inputs[k] for k in geometry) not in designs
+        assert all(inputs[k] == train[source][k] for k in geometry)
+        assert all(inputs[k] == v for k, v in conditions[condition].items())
