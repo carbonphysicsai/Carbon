@@ -60,6 +60,14 @@ Loop until launch:
    says whether carbon_launch is in this session. If it is not, follow
    `next.call.note`: call `next.call.fix` (review again) when the written
    profile did not load, otherwise reconnect with `next.call.reconnect`.
+6. A compute check that no longer matches this install comes with
+   `next.stale` (why) and `next.next_step` (what clears it: checking again,
+   or the installer's update, which the miner runs). `evaluation` says, per
+   Challenge, where a frozen candidate is evaluated: Carbon's published
+   endpoint, the miner's own intake, or none yet, with a `note` saying what
+   to do. At review, `next.options.name_again` maps each Challenge whose own
+   intake an update set aside to that intake: send it as `intakes` to keep
+   it. Review's result lists `warnings`; tell the miner each one.
 
 Order: start your signer, register on the subnet, who researches, inference
 (skipped for your own agent: it uses its own model), compute, review and
