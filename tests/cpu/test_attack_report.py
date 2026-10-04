@@ -167,6 +167,43 @@ def test_seams_and_untried_families_are_not_run():
     assert out["not_run"] == ["never_tried", "participant_code"]
 
 
+def test_a_seam_names_the_check_it_stands_in_for():
+    seams = (
+        Seam("ablation_rerun", check="baseline_and_permission_ablation"),
+        Seam("level_2", check=ARTIFACT),
+        Seam("unlabelled"),
+    )
+    runs = report.attacker_runs(VERDICTS, families=FAMILIES)
+    out = report.family_report(runs, controls_held_out=HELD_OUT, seams=seams)
+    line = out["families"]["ablation_rerun"]
+    assert line["status"] == "NOT_RUN"
+    assert line["check"] == "baseline_and_permission_ablation"
+    assert out["families"]["level_2"]["check"] == ARTIFACT
+    assert out["families"]["unlabelled"]["check"] is None
+    # A check covered only by a seam is still named once in the per-check view.
+    assert out["checks"]["baseline_and_permission_ablation"] == ["ablation_rerun"]
+    assert out["checks"][ARTIFACT] == ["recipe_surface", "level_2"]
+    assert all(None not in names for names in out["checks"].values())
+    # A seam's check never overrides a run's own.
+    clash = report.family_report(
+        runs, controls_held_out=HELD_OUT, seams=(Seam(FAMILIES[0].name, check="x"),)
+    )
+    assert clash["families"][FAMILIES[0].name]["check"] == FAMILIES[0].check
+
+
+def test_every_track_a_check_is_named_with_the_battery_seams():
+    """With AT-B's real adapter present, each of the eight checks appears."""
+    battery = pytest.importorskip("carbon.agent_campaign.attack.adapters.battery")
+    adapter = pytest.importorskip("carbon.agent_campaign.attack.adapter")
+    seams = battery.ADAPTER.level_families()
+    only_seams = report.family_report([], controls_held_out=(), seams=seams)
+    for seam in seams:
+        assert only_seams["families"][seam.name]["check"] == seam.check
+    runs = report.attacker_runs([], families=battery.ADAPTER.families())
+    out = report.family_report(runs, controls_held_out=(), seams=seams)
+    assert set(out["checks"]) == set(adapter.TRACK_A_CHECKS)
+
+
 def test_held_out_controls_are_required():
     with pytest.raises(TypeError):
         report.family_report([])
@@ -369,6 +406,10 @@ MUTATIONS = {
     "silent_specimen_is_inconclusive": (
         lambda m: m.setattr(report, "engine_state", lambda records: "IN_PROGRESS"),
         test_a_silent_specimen_is_inconclusive_never_coverage,
+    ),
+    "seams_name_their_check": (
+        lambda m: m.setattr(report, "seam_checks", lambda seams: {}),
+        test_a_seam_names_the_check_it_stands_in_for,
     ),
     "findings_only_in_conditions": (
         lambda m: m.setattr(

@@ -58,8 +58,8 @@ def _within(run, budget):
     return out
 
 
-def _side(run, budget, held_out, not_run):
-    line = report.summarize(_within(run, budget), held_out, not_run)
+def _side(run, budget, held_out, not_run, check=None):
+    line = report.summarize(_within(run, budget), held_out, not_run, check)
     line["budget"] = budget
     return line
 
@@ -86,14 +86,16 @@ def b2(
     baseline = _by_family(baseline_runs)
     held_out = report.held_out_controls(controls_held_out)
     seam = report.seam_names(seams)
+    seam_check = report.seam_checks(seams)
     names = [*attacker, *(n for n in baseline if n not in attacker)]
     names += [n for n in seam if n not in names]
     families = {}
     for name in names:
         n = _budget_for(budget, name)
         controls = held_out.get(name, ())
-        mine = _side(attacker.get(name), n, controls, seam.get(name))
-        theirs = _side(baseline.get(name), n, controls, seam.get(name))
+        check = seam_check.get(name)
+        mine = _side(attacker.get(name), n, controls, seam.get(name), check)
+        theirs = _side(baseline.get(name), n, controls, seam.get(name), check)
         families[name] = {
             "check": mine["check"] or theirs["check"],
             "budget": n,
@@ -110,6 +112,7 @@ def b2(
         ),
         "budget": budget if isinstance(budget, int) else dict(budget),
         "families": families,
+        "checks": report.checks_view(families),
         "zero_findings_reads_as": report.ATTEMPTED_COVERAGE,
         "claims": {**report.CLAIMS, "comparison_is_descriptive": True},
     }

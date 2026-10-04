@@ -154,6 +154,14 @@ coverage are not carried (the brief is phase 4's, the suite is AT-A's).
     Integration tests run against AT-A's real `DeclaredAdapter` and AT-B's real
     battery adapter when those modules are present (`pytest.importorskip`);
     on this branch alone they skip.
+16. **A seam names its check.** (Integration round 1.) A declared seam's
+    report and B2 lines carry the Track A check the seam stands in for
+    (`SeamFamily.check`, read by `report.seam_checks`), never `null`; a run's
+    own check is kept when a seam shares its name. The report and B2 gain a
+    top-level `checks` view (`{check: [family, ...]}` in line order) so a
+    check covered only by a seam, such as battery's
+    `fresh_attack_confirmation`, is still named and all eight Track A checks
+    are visible. The seam stays `NOT_RUN`; naming its check is not coverage.
 
 ### Mutations covered
 
@@ -168,8 +176,8 @@ construction (`verify.is_unrebuildable`, with a refusal that carries a record,
 so the mutation reaches the oracle); skipping the pod rebuild comparison
 (`verify._differences`); a pod-scored attempt without its record treated as
 unscored-by-a-pod (`verify._pod_scored`); the loop's refusals read as the
-path's (`analysis.REFUSAL_CODES`); comparing past the B2 budget
-(`benchmark._within`).
+path's (`analysis.REFUSAL_CODES`); a seam reported without its check
+(`report.seam_checks`); comparing past the B2 budget (`benchmark._within`).
 
 ### Not decided here
 

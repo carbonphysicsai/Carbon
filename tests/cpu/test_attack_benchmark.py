@@ -94,6 +94,16 @@ def test_a_side_without_the_family_is_not_run_never_a_pass():
     assert seam["attacker"]["status"] == seam["baseline"]["status"] == "NOT_RUN"
 
 
+def test_a_seam_keeps_its_check_on_both_sides():
+    seams = (Seam("fresh_cases_rerun", check="fresh_attack_confirmation"),)
+    out = benchmark.b2(attacker(), baseline(), budget=2, seams=seams)
+    line = out["families"]["fresh_cases_rerun"]
+    assert line["check"] == "fresh_attack_confirmation"
+    assert line["attacker"]["check"] == line["baseline"]["check"] == line["check"]
+    assert out["checks"]["fresh_attack_confirmation"] == ["fresh_cases_rerun"]
+    assert out["checks"]["construction_evaluation_isolation"] == ["staged_bytes"]
+
+
 def test_a_budget_per_family_covers_every_family():
     budget = {"recipe_surface": 1, "staged_bytes": 1, "mandatory_failure": 0}
     out = benchmark.b2(attacker(), baseline(), budget=budget)

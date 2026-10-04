@@ -64,6 +64,7 @@ class StubFamily:
 class Seam:
     name: str
     reason: str = "participant code: a declared seam, NOT_RUN"
+    check: str | None = None
 
 
 class Unrebuildable(ValueError):

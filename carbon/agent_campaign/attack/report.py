@@ -26,7 +26,10 @@ was NOT_RUN, and the wrongful-rejection count on **held-out** valid controls
   attempt infrastructure, refused by Graphite, undetermined or not
   applicable), is `INCONCLUSIVE`: no evidence, never coverage or a pass.
   `ATTEMPTED_COVERAGE` is what was tried, never an exploit-free bound;
-- a higher-level family declared a seam is `NOT_RUN`, never a pass;
+- a higher-level family declared a seam is `NOT_RUN`, never a pass, and its
+  line names the Track A check the seam stands in for (`SeamFamily.check`);
+  the top-level `checks` view lists every check a family or seam names, so a
+  check covered only by a seam is still visible;
 - findings use only the admission `CONDITIONS` vocabulary: a breached attempt
   carries its condition, and a valid control the boundary wrongly refused is a
   `FAILING_TRIGGER`. Any other condition is refused.
@@ -234,6 +237,24 @@ def seam_names(seams):
     return out
 
 
+def seam_checks(seams):
+    """`{name: check}` for the adapter's NOT_RUN seam families: the Track A
+    check each seam stands in for (`SeamFamily.check`), so a check covered
+    only by a seam is still named in the report. A seam without one reads
+    None."""
+    return {analysis.family_name(seam): _get(seam, "check") for seam in seams}
+
+
+def checks_view(families):
+    """`{check: [family, ...]}` over the report's lines, in first-seen order,
+    so every check a family or a seam stands for appears once."""
+    out = {}
+    for name, line in families.items():
+        if line.get("check") is not None:
+            out.setdefault(line["check"], []).append(name)
+    return out
+
+
 # -- the report -------------------------------------------------------------------------------
 def _rejection(controls):
     done = [c for c in controls if c["outcome"] != INFRA]
@@ -244,8 +265,9 @@ def _rejection(controls):
     }
 
 
-def summarize(run, held_out=(), not_run=None):
-    """One family's line of the report, from a normalized run."""
+def summarize(run, held_out=(), not_run=None, check=None):
+    """One family's line of the report, from a normalized run. `check` is
+    the Track A check to name when the run does not carry one (a seam's)."""
     attempts = run["attempts"] if run is not None else []
     trained = run["controls"] if run is not None else []
     findings = [
@@ -287,7 +309,7 @@ def summarize(run, held_out=(), not_run=None):
     else:
         status = ATTEMPTED_COVERAGE
     return {
-        "check": (run or {}).get("check"),
+        "check": (run or {}).get("check") or check,
         "status": status,
         "attempts": len(attempts),
         "budget_used": (run or {}).get("budget_used", 0),
@@ -320,10 +342,16 @@ def family_report(runs, *, controls_held_out, seams=()):
         normalized[run["family"]] = run
     held_out = held_out_controls(controls_held_out)
     seam = seam_names(seams)
+    seam_check = seam_checks(seams)
     names = [*normalized, *(n for n in held_out if n not in normalized)]
     names += [n for n in seam if n not in names]
     families = {
-        name: summarize(normalized.get(name), held_out.get(name, ()), seam.get(name))
+        name: summarize(
+            normalized.get(name),
+            held_out.get(name, ()),
+            seam.get(name),
+            seam_check.get(name),
+        )
         for name in names
     }
     findings = [
@@ -334,6 +362,7 @@ def family_report(runs, *, controls_held_out, seams=()):
     return {
         "schema": SCHEMA,
         "families": families,
+        "checks": checks_view(families),
         "findings": findings,
         "totals": {
             key: sum(line[key] for line in families.values())
