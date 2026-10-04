@@ -22,10 +22,22 @@ import this package (`tests/invariants/test_attack_store_unreachable.py`).
 from __future__ import annotations
 
 import importlib
+import importlib.util
 
-try:
+
+def _core_present():
+    try:
+        spec = importlib.util.find_spec("carbon.agent_campaign.attack.adapter")
+    except ModuleNotFoundError:
+        return False
+    return spec is not None
+
+
+# Only an absent core is tolerated (before the neutral core merges). A core
+# that is present but fails to import raises here instead of being skipped.
+if _core_present():
     from carbon.agent_campaign.attack import adapter as _core
-except ImportError:  # pragma: no cover - only before the neutral core merges
+else:  # pragma: no cover - only before the neutral core merges
     _core = None
 
 #: Every adapter Carbon ships, by `(challenge_id, construction level)`.

@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-attack-battery-adapter-review-repair",
+  "recorded_at": "2026-10-04T18:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "tests/cpu/test_attack_battery_adapter.py after the independent review of slice AT-B, on WSL, JAX CPU, alone and in a preview tree with the neutral core, analysis and knowledge slices merged",
+    "description": "Repairing the review findings on battery's Level 0 attack adapter: a gate crash read as a refusal, a path refusal read as agreement, a timeout claim tested on a stand-in, the Attacker code-run rule applied to the miner lane, and protected-material probes counted as exposures."
+  },
+  "expected": "Narrowing each claim would leave every declared attack HELD with its specimen firing, and a second partial-prediction attack (half the PRACTICE cases) would hold like the empty one.",
+  "observed": "The half-prediction attack breached the old detector: FrozenRule.score gives a set that predicts 100 of the 200 PRACTICE cases eligible, scored over the 100 it has, with the other 100 typed FAILED_INFRA. The empty set is ineligible only because nothing is scored. The old claim 'a timed-out run is never a pass' held only for the empty stand-in. This is the omitted-case exclusion already recorded with the Level 5 seam as a scientific question, so the detector now holds a partial set only to typing (every omitted case FAILED_INFRA, never a gate failure) and to 'nothing scored is never eligible'. The real pod path types a timeout CANDIDATE_FAILED, which is now a NOT_RUN seam for the owner. Separately, a gate wrapper that turned TypeError, ValueError, KeyError and AttributeError into REFUSED made a crashing gate read as a hold; the gate's typed refusals already cover malformed input, so nothing else needed catching.",
+  "keep": [
+    "Run every stand-in claim against a second, less extreme input before calling it held: the empty case often holds for a reason the claim does not state.",
+    "Catch only a boundary's typed refusals; let every other exception reach the engine as CRASHED.",
+    "Judge an observed attempt only on the lane whose rule the adapter owns, and say so in the attempt (lane)."
+  ],
+  "change": [
+    "When a path and Carbon's gate disagree in either direction, report the disagreement, never 'agrees'.",
+    "Keep protected material that was refused apart from protected material that got through: only the second is an exposure."
+  ],
+  "protocol_elements": [
+    "a crash is never a pass",
+    "a wrongly refused valid input is FAILING_TRIGGER",
+    "open scientific typing questions are declared NOT_RUN seams, not held claims"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

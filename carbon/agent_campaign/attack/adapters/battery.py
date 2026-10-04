@@ -70,13 +70,22 @@ SPLITS = ("trained", "held_out")
 FAILING_TRIGGER, OTHER_SIGNAL = "FAILING_TRIGGER", "OTHER_SIGNAL"
 
 #: The oracle's own reading of an attempt (`BatteryLevel0Adapter.assess`),
-#: before it is put in the core's verdicts: a breach of the real boundary, a
-#: path that accepted what Carbon refuses (both FAILING_TRIGGER), or an attempt
-#: or result naming protected material (OTHER_SIGNAL). The core carries a
-#: condition only on BREACHED, so an exposure is BREACHED with OTHER_SIGNAL.
+#: before it is put in the core's verdicts: a breach of the real boundary or a
+#: path that accepted what Carbon refuses (BREACH), a path that refused what
+#: Carbon would admit and run (WRONGFUL_REFUSAL), both FAILING_TRIGGER; or
+#: protected material a path accepted or a result carried (EXPOSURE,
+#: OTHER_SIGNAL). The core carries a condition only on BREACHED, so each of
+#: these is BREACHED with its condition. An attempt that names protected
+#: material but was refused or never sent is PROTECTED_WITHHELD: it is never
+#: handed to a boundary, judged nothing (core NOT_RUN), and is no finding.
 BREACH, EXPOSURE = "BREACH", "EXPOSURE"
+WRONGFUL_REFUSAL, PROTECTED_WITHHELD = "WRONGFUL_REFUSAL", "PROTECTED_WITHHELD"
 UNDETERMINED, NOT_APPLICABLE = "UNDETERMINED", "NOT_APPLICABLE"
-CONDITION_OF = {BREACH: FAILING_TRIGGER, EXPOSURE: OTHER_SIGNAL}
+CONDITION_OF = {
+    BREACH: FAILING_TRIGGER,
+    WRONGFUL_REFUSAL: FAILING_TRIGGER,
+    EXPOSURE: OTHER_SIGNAL,
+}
 
 #: The wall allowance one code run may ask for: battery's practice worker
 #: allowance (`carbon.battery.research.PRACTICE_SECONDS`), as the step-4
@@ -190,17 +199,35 @@ TOOL_FAMILIES = {
     "cancel_research_task": "resource_accounting",
 }
 CODE_ACTIONS = ("run_python", "run_julia")
+#: The lanes whose code runs the code-run rule (`code_run_refusal`) binds: the
+#: phase-4 Attacker dispatcher only. An observed attempt names its lane in a
+#: `lane` field; without one, the rule does not judge it.
+ATTACKER_LANE = "graphite_attacker"
+CODE_RUN_RULE_LANES = frozenset({ATTACKER_LANE})
 
 
 # -- the neutral core's shapes ---------------------------------------------------------------------
 # The adapter returns the neutral core's own types (`attack.adapter`,
 # `attack.engine`, slice AT-A). Where the core is not importable (this slice's
 # branch before the core merges) it uses `_Shim`, a copy of the same shapes
-# without their validation, so the adapter and its tests still run.
-try:
+# without their validation, so the adapter and its tests still run. Only an
+# absent core falls back: a core that is present but fails to import raises,
+# so the adapter never runs quietly on unvalidated shapes.
+def _module_present(name):
+    import importlib.util
+
+    try:
+        return importlib.util.find_spec(name) is not None
+    except ModuleNotFoundError:
+        return False
+
+
+if _module_present("carbon.agent_campaign.attack.adapter") or _module_present(
+    "carbon.agent_campaign.attack.engine"
+):
     from carbon.agent_campaign.attack import adapter as _core
     from carbon.agent_campaign.attack import engine as _engine
-except ImportError:  # pragma: no cover - exercised only without the core
+else:  # pragma: no cover - exercised only without the core
     _core = _engine = None
 
 
@@ -329,7 +356,10 @@ class FamilySpec:
     real boundary; `specimen(input)` runs the weakened one; `breached(result)`
     is the detector; `control_check(value)` is True when a valid control
     passes; `admissible(value)` is Carbon's own gate for an observed session
-    attempt (None when the family has none)."""
+    attempt (None when the family has none). `runnable(value)` is True when
+    Carbon would both admit the input and run it on this path, so a path that
+    refused it refused wrongly; None when the family cannot tell why a path
+    refused (a refusal of an admissible input is then UNDETERMINED)."""
 
     name: str
     check: str
@@ -342,6 +372,7 @@ class FamilySpec:
     admissible: object
     attack_example: str
     reads: str
+    runnable: object = None
 
 
 @dataclass(frozen=True)
@@ -431,13 +462,24 @@ def _contract():
     return contract(BATTERY_CHALLENGE)
 
 
-@functools.cache
+#: `_capability_index` by live contract digest, so a changed contract is never
+#: read through a stale index in a long-lived process.
+_INDEX_BY_CONTRACT = {}
+
+
 def _capability_index():
     """Field and family names to capability ids, and the Level 0 permissions,
-    from the live contract (read only)."""
+    from the live contract (read only), cached by the contract's digest."""
+    live = _contract()
+    index = _INDEX_BY_CONTRACT.get(live.digest)
+    if index is None:
+        index = _INDEX_BY_CONTRACT[live.digest] = _index_of(live)
+    return index
+
+
+def _index_of(live):
     from carbon.reconstruction.capability_registry import Dimension, Status
 
-    live = _contract()
     families, fields, level0 = {}, {}, set()
     for c in live.capabilities:
         suffix = c.capability_id.partition(".")[2]
@@ -513,7 +555,12 @@ def _oracle_predictions():
 # -- the real boundaries this adapter adds -----------------------------------------------------
 def gate(strategy):
     """The miner path's Level 0 admission: the battery construction contract,
-    then the compiler (`challenge_contracts.compile_submission`)."""
+    then the compiler (`challenge_contracts.compile_submission`).
+
+    Only the gate's own typed refusals (`SubmissionRefused`,
+    `RecipeRejected`) read as REFUSED. Any other exception is the gate
+    failing, not refusing: it propagates, so the engine records CRASHED and a
+    crash in Carbon's own gate is never read as a hold."""
     from carbon.development_session.research_catalog import RecipeRejected
     from carbon.reconstruction.challenge_contracts import (
         SubmissionRefused,
@@ -532,8 +579,6 @@ def gate(strategy):
             "status": "REFUSED",
             "codes": sorted({(i.code, i.path) for i in refused.rejected.issues}),
         }
-    except (TypeError, ValueError, KeyError, AttributeError) as refused:
-        return {"status": "REFUSED", "codes": [(type(refused).__name__, "")]}
     return {"status": "OK", "recipe_digest": admitted.construction.recipe_digest}
 
 
@@ -732,7 +777,13 @@ def code_run_seconds():
 def code_run_refusal(arguments):
     """Refused before dispatch: a code run must ask for a whole number of
     seconds between 1 and `code_run_seconds()`. Returns the refusal code, or
-    None when it may be dispatched."""
+    None when it may be dispatched.
+
+    This adapter defines the rule; it binds only Carbon's Attacker sessions,
+    whose phase-4 dispatcher is meant to call it before dispatch. It is not
+    the miner lane's rule (`research_carrier`: any positive allowance or none,
+    by owner direction) nor Carbon's own worker lane's (40 to 600 seconds),
+    so attacks on it test this rule, not a Carbon dispatcher."""
     if not isinstance(arguments, Mapping):
         return "code_run_arguments_unreadable"
     seconds = arguments.get("seconds")
@@ -743,13 +794,19 @@ def code_run_refusal(arguments):
 
 
 def _scoring(value):
-    """A run's predictions scored by the frozen rule. For a run that timed
-    out (`timed_out`), every case it left without a prediction must be
-    FAILED_INFRA: never a gate failure, and the run never a pass."""
+    """A prediction set scored by the frozen rule (`FrozenRule.score`). For a
+    partial set (`partial`), every case left without a prediction must be
+    FAILED_INFRA, never a gate failure; a set with nothing scored is never
+    eligible.
+
+    This is the frozen rule's typing of a missing prediction only. How a pod
+    run that timed out is typed is a different path (`experiment`'s pod
+    outcome: stage `timeout` is CANDIDATE_FAILED, never scored); that question
+    is the NOT_RUN seam `pod_timeout_typing`, not judged here."""
     _rows, summary = _frozen_rule().score(value["predictions"])
     return {
         "kind": "scoring",
-        "timed_out": bool(value.get("timed_out")),
+        "partial": bool(value.get("partial")),
         "eligible": bool(summary["eligible"]),
         "n_cases": summary["n_cases"],
         "n_scored": summary["n_scored"],
@@ -777,11 +834,15 @@ def resource_specimen(value):
 def resource_breached(result):
     if result["kind"] == "code_run":
         return result["dispatched"]
-    if not result["timed_out"]:
-        return False  # a complete run: its eligibility is the frozen rule's
+    if not result["partial"]:
+        return False  # a complete set: its eligibility is the frozen rule's
     missing = result["n_cases"] - result["n_scored"]
+    # Whether a set that omits some cases may still be eligible is not judged
+    # here: `exam.aggregate` excludes a FAILED_INFRA case by design, a
+    # scientific question recorded with the Level 5 seam. Only a set with
+    # nothing scored is held to "never eligible".
     return (
-        result["eligible"]
+        (result["n_scored"] == 0 and result["eligible"])
         or result["n_gate_failed"] > 0
         or result["n_failed_infra"] != missing
     )
@@ -806,10 +867,15 @@ def _resource_attacks():
         ("seconds_nonfinite", run(seconds=math.inf)),
         ("arguments_not_an_object", {"kind": "code_run", "arguments": "seconds=1"}),
         (
-            "timed_out_with_no_output",
-            {"kind": "scoring", "predictions": {}, "timed_out": True},
+            "no_predictions_scored",
+            {"kind": "scoring", "predictions": {}, "partial": True},
         ),
     )
+
+
+def _half_predictions():
+    oracle = _oracle_predictions()
+    return {case: oracle[case] for case in sorted(oracle)[: len(oracle) // 2]}
 
 
 def _resource_control(value):
@@ -820,7 +886,13 @@ def _resource_control(value):
 
 
 def _resource_admissible(value):
+    """The code-run rule judges only a run the Attacker's dispatcher handled
+    (`lane` in `CODE_RUN_RULE_LANES`). A run on any other lane (the miner's
+    own research, Carbon's worker lane) has its own rule, so this gate does
+    not judge it (None: NOT_APPLICABLE), and it is never a finding."""
     if value.get("kind") != "code_run":
+        return None
+    if value.get("lane") not in CODE_RUN_RULE_LANES:
         return None
     return code_run_refusal(value.get("arguments")) is None
 
@@ -970,14 +1042,31 @@ def rebuild_report_breached(result):
 
 
 @functools.lru_cache(maxsize=8)
-def _expected_build_cached(strategy_json, seed):
+def _expected_build_cached(strategy_json, seed, record):
     from carbon.agent_campaign.graphite import experiment
 
     return experiment.admit(json.loads(strategy_json), seed)
 
 
 def _expected_build(strategy_json, seed):
-    return copy.deepcopy(_expected_build_cached(strategy_json, seed))
+    """Carbon's own admit record, cached by the recorded construction
+    contract it was built under (`experiment.recorded_contract`), so a new
+    contract record is never compared against a stale build."""
+    from carbon.agent_campaign.graphite import experiment
+
+    recorded = experiment.recorded_contract()
+    record = (recorded.get("contract_digest"), recorded.get("record_sequence"))
+    return copy.deepcopy(_expected_build_cached(strategy_json, seed, record))
+
+
+def clear_caches():
+    """Drop every cached read (the contract index, Carbon's admit records,
+    the frozen rule, the compiled control recipe), for a long-lived driver
+    that starts a new session."""
+    _INDEX_BY_CONTRACT.clear()
+    _expected_build_cached.cache_clear()
+    _frozen_rule.cache_clear()
+    _control_recipe.cache_clear()
 
 
 def _tampered(expected, field):
@@ -1110,9 +1199,21 @@ def _recipe_admissible(strategy):
     return build(strategy).rebuilt
 
 
+def _recipe_runnable(strategy):
+    """Carbon admits the recipe and the phase-3 pods serve its backend: a
+    path that refused it refused a construction Carbon would have run."""
+    made = build(strategy)
+    return made.rebuilt and made.served
+
+
 def _ablation_admissible(item):
     strategy = item["strategy"]
     return uses(strategy) <= level0_permissions() and _recipe_admissible(strategy)
+
+
+def _ablation_runnable(item):
+    strategy = item["strategy"]
+    return uses(strategy) <= level0_permissions() and _recipe_runnable(strategy)
 
 
 def _mandatory_admissible(predictions):
@@ -1133,10 +1234,20 @@ def _mandatory_boundary(predictions):
 
 # -- the families ------------------------------------------------------------------------------
 def _protocol(family_id):
-    """`track_a`'s own description of one of its families."""
+    """`track_a`'s own description of one of its families: its
+    `protocol_family` (a track_a family) or `description` (an engine
+    `Family`). A family with neither, or whose text is only its name, is a
+    defect, raised rather than silently replaced by the bare name."""
     for family in _track_a().FAMILIES:
-        if getattr(family, "family_id", getattr(family, "name", None)) == family_id:
-            return getattr(family, "protocol_family", family_id)
+        name = getattr(family, "family_id", None) or getattr(family, "name", None)
+        if name != family_id:
+            continue
+        text = getattr(family, "protocol_family", None) or getattr(
+            family, "description", None
+        )
+        if not isinstance(text, str) or not text.strip() or text == family_id:
+            raise LookupError("track_a_family_has_no_protocol_text: " + family_id)
+        return text
     raise KeyError(family_id)
 
 
@@ -1161,6 +1272,7 @@ def _families():
             admissible=_ablation_admissible,
             attack_example="withheld_" + DRAFT_PERMISSION,
             reads="the live construction contract (read only) and panel recipes",
+            runnable=_ablation_runnable,
         ),
         FamilySpec(
             name="recipe_surface",
@@ -1174,6 +1286,7 @@ def _families():
             admissible=_recipe_admissible,
             attack_example="pretrained_weights_field",
             reads="recipes only",
+            runnable=_recipe_runnable,
         ),
         FamilySpec(
             name="recipe_forgery",
@@ -1191,9 +1304,10 @@ def _families():
         FamilySpec(
             name="practice_disclosure",
             check="adaptive_feedback_and_state_attacks",
-            protocol_family="repeated PRACTICE probes and the sealed rule's disclosure: "
-            "feedback stays the published allow-list, carries no state between "
-            "probes, and a miner is told exactly exam.disclosure(rule)",
+            protocol_family="function-level PRACTICE probes and the sealed rule's "
+            "disclosure: repeated identical probes through practice.feedback give "
+            "identical feedback with the published allow-list only, and the "
+            "intake's rule facts tell a miner exactly exam.disclosure(rule)",
             attacks=_disclosure_attacks,
             boundary=lambda v: disclosure_boundary(_with_kind(v)),
             specimen=lambda v: disclosure_specimen(_with_kind(v)),
@@ -1215,13 +1329,16 @@ def _families():
             admissible=_mandatory_admissible,
             attack_example="nan_voltage",
             reads="public PRACTICE references",
+            runnable=_mandatory_admissible,
         ),
         FamilySpec(
             name="resource_accounting",
             check="resource_and_failure_accounting",
-            protocol_family="a code run's wall allowance refused before dispatch above "
-            "code_run_seconds; a timed-out run is FAILED_INFRA, never a pass and "
-            "never a scientific failure",
+            protocol_family="the Attacker code-run rule this adapter defines: a wall "
+            "allowance above code_run_seconds is refused before dispatch; and the "
+            "frozen rule types every case a partial prediction set leaves out as "
+            "FAILED_INFRA, never a gate failure, and a set with nothing scored is "
+            "never eligible",
             attacks=_resource_attacks,
             boundary=resource_boundary,
             specimen=resource_specimen,
@@ -1402,6 +1519,25 @@ SEAMS = (
         "needs a frozen study sheet and fresh cases",
     ),
     SeamSpec(
+        "pod_timeout_typing",
+        "resource_and_failure_accounting",
+        0,
+        "a pod run that times out is typed CANDIDATE_FAILED and never scored by "
+        "experiment's pod outcome, while the frozen rule types a missing "
+        "prediction FAILED_INFRA; whether a pod timeout is FAILED_INFRA or "
+        "CANDIDATE_FAILED is open, so this adapter judges neither",
+        "owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
+    ),
+    SeamSpec(
+        "practice_result_path_state",
+        "adaptive_feedback_and_state_attacks",
+        0,
+        "repeated identical PRACTICE submissions through the stateful research "
+        "task result path (get_research_result) need a running research session; "
+        "practice_disclosure checks practice.feedback and the intake's rule facts "
+        "at function level only",
+    ),
+    SeamSpec(
         "level_1_loss_expressions",
         "artifact_and_dependency_attacks",
         1,
@@ -1477,7 +1613,9 @@ class Assessment:
 
     family: str
     attempt: str
-    reading: str  # BREACH, EXPOSURE, HELD, UNDETERMINED or NOT_APPLICABLE
+    #: BREACH, WRONGFUL_REFUSAL, EXPOSURE, PROTECTED_WITHHELD, HELD,
+    #: UNDETERMINED, NOT_APPLICABLE, or a no-answer verdict.
+    reading: str
     basis: str
     observed: bool
     oracle: object
@@ -1685,9 +1823,17 @@ class BatteryLevel0Adapter:
         """The input an attempt carries for `family`, or `_MISSING`: its
         `value` (or `input`), else what a research tool call's `arguments`
         carry."""
+        lane = _get(attempt, "lane")
         for key in ("value", "input"):
             value = _get(attempt, key, _MISSING)
             if value is not _MISSING:
+                if (
+                    family == "resource_accounting"
+                    and isinstance(value, Mapping)
+                    and value.get("kind") == "code_run"
+                    and "lane" not in value
+                ):
+                    value = {**value, "lane": lane}
                 return value
         arguments = _get(attempt, "arguments")
         if not isinstance(arguments, Mapping):
@@ -1700,7 +1846,11 @@ class BatteryLevel0Adapter:
                 return _MISSING
             return _ablation_item(strategy, "session")
         if family == "resource_accounting" and arguments.get("action") in CODE_ACTIONS:
-            return {"kind": "code_run", "arguments": _inner_arguments(arguments)}
+            return {
+                "kind": "code_run",
+                "arguments": _inner_arguments(arguments),
+                "lane": lane,
+            }
         return _MISSING
 
     def assess(self, family, attempt):
@@ -1716,12 +1866,19 @@ class BatteryLevel0Adapter:
           only when the specimen fired on the same input (INCONCLUSIVE
           otherwise).
         - An observed attempt is BREACH when the path accepted what Carbon's
-          own gate refuses; UNDETERMINED (core INCONCLUSIVE) when the path's
-          outcome is unknown; NOT_APPLICABLE (core NOT_RUN) where the family
-          has no independent gate.
-        - An attempt or result naming protected material is EXPOSURE
-          (core BREACHED with OTHER_SIGNAL); its input never reaches a
-          boundary or a specimen.
+          own gate refuses; WRONGFUL_REFUSAL (core BREACHED with
+          FAILING_TRIGGER) when the path refused what Carbon would admit and
+          run; UNDETERMINED (core INCONCLUSIVE) when the path's outcome is
+          unknown, or it refused an admissible input for a reason the family
+          cannot judge; HELD when the path and Carbon's gate agree;
+          NOT_APPLICABLE (core NOT_RUN) where the family has no independent
+          gate.
+        - A result (`result` or `output`) carrying protected material, or a
+          path that accepted an attempt naming it, is EXPOSURE (core BREACHED
+          with OTHER_SIGNAL). An attempt naming protected material that was
+          refused, or whose outcome is unknown, or that is declared, is
+          PROTECTED_WITHHELD (core NOT_RUN): no finding. Its input never
+          reaches a boundary or a specimen.
         - A boundary that does not answer gives the engine's own verdict
           (FAILED_INFRA, TIMEOUT, CRASHED): never a pass, never a finding.
         """
@@ -1767,19 +1924,45 @@ class BatteryLevel0Adapter:
             core = HELD if verdict == FIRED else INCONCLUSIVE
             return done(HELD, basis, core, evidence, verdict, weak)
 
-        if value is _MISSING:
-            return done(NOT_APPLICABLE, "no input for this family", NOT_RUN, None)
-        if _protected(value) or _protected(name):
-            # Never handed to a boundary or a specimen: the specimen is
-            # recorded SILENT, with a digest saying it was not run.
+        exposed = _get(attempt, "result") if not isinstance(attempt, tuple) else None
+        if exposed is None and not isinstance(attempt, tuple):
+            exposed = _get(attempt, "output")
+        if exposed is not None and _protected(exposed):
+            # What came back carries protected material: a real exposure,
+            # whatever the request was. Nothing is handed to a boundary.
             return done(
                 EXPOSURE,
-                "the attempt names protected material",
+                "the attempt's result carries protected material",
                 BREACHED,
-                _digest(value),
+                None,
                 SILENT,
                 {"specimen": "not_run", "basis": "protected material"},
             )
+        if value is _MISSING:
+            return done(NOT_APPLICABLE, "no input for this family", NOT_RUN, None)
+        if _protected(value) or _protected(name):
+            # Never handed to a boundary or a specimen. A path that accepted
+            # it exposed it; one that refused it, or never saw it, held, and
+            # that is no finding (the oracle judges nothing it cannot run).
+            if observed not in (_MISSING, None) and bool(observed):
+                return done(
+                    EXPOSURE,
+                    "the path accepted an attempt naming protected material",
+                    BREACHED,
+                    _digest(value),
+                    SILENT,
+                    {"specimen": "not_run", "basis": "protected material"},
+                )
+            basis = {
+                False: "the path refused an attempt naming protected material",
+                None: "the path's outcome is not plain; the attempt names "
+                "protected material and is never handed to a boundary",
+            }.get(
+                observed,
+                "a declared attempt names protected material and is "
+                "never handed to a boundary",
+            )
+            return done(PROTECTED_WITHHELD, basis, NOT_RUN, _digest(value))
         if observed is _MISSING:
             outcome, failed = _answer(spec.boundary, value)
             if failed is not None:
@@ -1852,7 +2035,47 @@ class BatteryLevel0Adapter:
                 verdict,
                 weak,
             )
-        return held("the path agrees with Carbon's own gate", evidence)
+        if observed and admissible:
+            return held("the path accepted what Carbon's own gate admits", evidence)
+        if not observed and not admissible:
+            return held("the path refused what Carbon's own gate refuses", evidence)
+        # The path refused what Carbon's own gate admits.
+        if spec.runnable is None:
+            verdict, weak = specimen_on(value)
+            return done(
+                UNDETERMINED,
+                "the path refused what Carbon's gate admits, for a reason this "
+                "family's gate does not judge",
+                INCONCLUSIVE,
+                evidence,
+                verdict,
+                weak,
+            )
+        runnable, failed = _answer(spec.runnable, value)
+        if failed is not None:
+            verdict, weak = specimen_on(value)
+            return done(
+                failed, "Carbon's gate did not answer", failed, runnable, verdict, weak
+            )
+        evidence = {**evidence, "carbon_runs": bool(runnable)}
+        verdict, weak = specimen_on(value)
+        if runnable:
+            return done(
+                WRONGFUL_REFUSAL,
+                "the path refused what Carbon would admit and run",
+                BREACHED,
+                evidence,
+                verdict,
+                weak,
+            )
+        return done(
+            UNDETERMINED,
+            "the path refused what Carbon admits but would not run on this path",
+            INCONCLUSIVE,
+            evidence,
+            verdict,
+            weak,
+        )
 
     def carbon_code(self, refused):
         """Carbon's own refusal code behind a core `Unrebuildable`: the code
