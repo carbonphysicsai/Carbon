@@ -787,7 +787,6 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
 #: no credential: nothing it is sent to leaves the process.
 CHECK_KEY = "graphite-real-path-check-no-key"
 CHECK_SCHEMA = "carbon.graphite.pod-real-path-check.v1"
-_REST_PODS = "https://rest.runpod.io/v1/pods"
 _CHECK_FILES = {
     "DONE.json": b'{"exit": 0, "synthetic": true}',
     "check.json": b'{"real_path_check": true, "synthetic": true}',
@@ -817,12 +816,18 @@ class InMemoryRunPod:
         return {key: pod[key] for key in ("id", "name", "desiredStatus", "costPerHr")}
 
     def _answer(self, method, url, body):
-        if url == "https://api.runpod.io/graphql":
+        # The endpoints as the operator adapter names them, so this answers
+        # exactly what `RunPodAdapter` sends, and nothing under `carbon/`
+        # names a provider host (`test_rented_compute_retired`).
+        from scripts.dev.exam_design.runpod.operator_compute import runpod
+
+        rest_pods, billing = runpod.REST + "/pods", runpod.REST + "/billing/pods?"
+        if url == runpod.GRAPHQL:
             if "clientBalance" in json.loads(body)["query"]:
                 return 200, {"data": {"myself": {"clientBalance": self.balance}}}
             price = {"uninterruptablePrice": self.rate, "stockStatus": "High"}
             return 200, {"data": {"gpuTypes": [{"lowestPrice": price}]}}
-        if url == _REST_PODS and method == "POST":
+        if url == rest_pods and method == "POST":
             request = json.loads(body)
             pod_id = f"inmemory{len(self.creates):04d}"
             self.creates.append(pod_id)
@@ -834,10 +839,10 @@ class InMemoryRunPod:
                 "env": request["env"],
             }
             return 200, self._view(self.pods[pod_id])
-        if url == _REST_PODS and method == "GET":
+        if url == rest_pods and method == "GET":
             return 200, [self._view(pod) for pod in self.pods.values()]
-        if url.startswith(_REST_PODS + "/"):
-            pod = self.pods.get(url[len(_REST_PODS) + 1 :])
+        if url.startswith(rest_pods + "/"):
+            pod = self.pods.get(url[len(rest_pods) + 1 :])
             if pod is None:
                 return 404, {"error": "not found"}
             if method == "GET":
@@ -845,7 +850,7 @@ class InMemoryRunPod:
             if method == "DELETE":
                 del self.pods[pod["id"]]
                 return 200, {}
-        if url.startswith("https://rest.runpod.io/v1/billing/pods?"):
+        if url.startswith(billing):
             query = urllib.parse.parse_qs(url.split("?", 1)[1])
             return 200, [{"podId": query["podId"][0], "amount": self.charge}]
         return 404, {"error": "not modelled"}
