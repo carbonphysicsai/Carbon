@@ -609,7 +609,7 @@ The checked-in
 unauthorized plan bound to the tracked fixture-v2 construction identity; it is
 not the executed plan. Heavy solver artifacts and the durable ledger are
 retained read-only at
-`/home/carbon/shared/evidence/ai-cooling-counted-v1/` in `Ubuntu-24.04` WSL.
+`~carbon/shared/evidence/ai-cooling-counted-v1/` in `Ubuntu-24.04` WSL.
 The copy was verified file-for-file against the original and against the
 completion-manifest anchors. The original worktree copy remains until a
 separate off-machine replica is confirmed. The committed closeout package

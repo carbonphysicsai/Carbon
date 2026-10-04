@@ -22,7 +22,7 @@ outcomes; finite-set comparator result; query and reference accounting;
 measured wall/resource facts; claim ceiling; and the known generated-report
 limitations. The 2.935 GiB raw Docker/OpenFOAM campaign and SQLite ledger are
 retained read-only outside Git at
-`/home/carbon/shared/evidence/ai-cooling-counted-v1/`. All 6,259 retained files
+`~carbon/shared/evidence/ai-cooling-counted-v1/`. All 6,259 retained files
 match the original by checksum and every completion-manifest anchor matches.
 The original worktree copy remains only until an off-machine replica is
 confirmed. The lightweight package is an index and integrity record, not a

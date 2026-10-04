@@ -91,7 +91,7 @@ ai-cooling-campaign-completion.json
 ```
 
 The durable host location is
-`/home/carbon/shared/evidence/ai-cooling-counted-v1/` in the
+`~carbon/shared/evidence/ai-cooling-counted-v1/` in the
 `Ubuntu-24.04` WSL distribution. It is owned by `carbon:carbon`; directories
 are mode `0550` and files mode `0440`.
 

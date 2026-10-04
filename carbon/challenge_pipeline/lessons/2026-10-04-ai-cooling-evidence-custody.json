@@ -7,7 +7,7 @@
   "execution": {
     "kind": "stage_gate",
     "ref": "CHALLENGE-AI-COOLING-CLOSEOUT-05 evidence-custody transfer",
-    "description": "Copied the completed counted CFD campaign out of a disposable Codex worktree into /home/carbon/shared/evidence/ai-cooling-counted-v1/ in Ubuntu-24.04 WSL, then checked the complete source and destination trees with rsync checksum comparison and checked every completion-manifest anchor directly."
+    "description": "Copied the completed counted CFD campaign out of a disposable Codex worktree into ~carbon/shared/evidence/ai-cooling-counted-v1/ in Ubuntu-24.04 WSL, then checked the complete source and destination trees with rsync checksum comparison and checked every completion-manifest anchor directly."
   },
   "expected": "The durable copy contains all retained campaign files byte-for-byte, retains the registered identities and hashes, becomes read-only, and does not authorize deletion of the original before a separate off-machine replica is confirmed.",
   "observed": "All 6,259 files matched the original by checksum. The approval, construction, plan, imported records, campaign-ledger snapshot, counted result, report and completion-manifest hashes matched. Directories are mode 0550 and files mode 0440 under carbon:carbon. The original remains intact because the off-machine replica is still pending.",
