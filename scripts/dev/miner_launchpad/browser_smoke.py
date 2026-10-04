@@ -156,11 +156,12 @@ class ReadbackFixture:
 
 
 LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
-#: Graphite's choices as the wizard starts them (GRAPHITE-MINER-S5).
+#: Graphite's choices as the wizard starts them (GRAPHITE-MINER-S5): Full,
+#: a 10% research share, and no hunt (it spends the miner's money, so it is
+#: off until they turn it on).
 GRAPHITE_DEFAULTS = {
     "graphite_mode": "FULL",
     "research_share": 0.1,
-    "hunt": {"max_records": 200},
 }
 #: The Carbon agent a launch picks: Graphite where the controller offers it,
 #: the autonomous agent on a controller that predates it.
@@ -306,8 +307,8 @@ class ResearchFixture:
         # And the model provider and model the person chose for the agent,
         # named on the launch; the credential stays in the runner profile.
         # Graphite's launch also carries its default choices (Full, a 10%
-        # research share, a hunt of 200 papers), each only as the launch
-        # operation declares it.
+        # research share; no hunt), each only as the launch operation
+        # declares it.
         expected = {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
