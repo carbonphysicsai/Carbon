@@ -1,0 +1,34 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-validator-01-neutral-validator",
+  "recorded_at": "2026-10-04T16:05:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-01 slice 1, branch claude/validator-core. Canonical (groups chain archive science-jax science-torch mcp): 276 passed, pytest exit 0, across tests/cpu/test_challenge_validator_contract.py and test_challenge_validator_battery.py plus battery's validator daemon, deployment, intake, validator service, rule v2, carry-over, remote submission and intake end-to-end suites. scripts/check_quality.py --base origin/main passed.",
+    "description": "The challenge-neutral validator (carbon/challenge_validator) with battery as its first adapter. It covers dispatch by construction-contract digest, strict strategy parsing, the miner outcome contract, pinned identities, reserved and sealed seed roles, an owner-only attempt ledger and separate miner-facing and operator surfaces."
+  },
+  "expected": "Battery behaves exactly as before through the neutral validator, and the interface is small enough for cooling and motor adapters to be written against it without reading battery's code.",
+  "observed": "Battery wrapped without a single battery edit. Twin validators sharing one private root, fed the same sequence through deployment.evaluate and through the neutral Validator, gave byte-identical outcomes. Every stored row matched once the wall-clock columns (created, updated, since) were set aside: submissions, scores, finals, predictions, models, batches, pool and incumbent. Four things surfaced only by building. First, carbon/validator is a retired legacy namespace, so the brief's package name could not be used. Second, one battery evaluate spends two infrastructure attempts (process, then run_pending), so a test expecting one failure to persist saw a retried score; exhaustion needs a third pass. Third, the canonical wrapper's --focused mode runs with the base groups only unless CARBON_UV_GROUPS is set, so battery suites fail at import without it. Fourth, a pipeline's exit code was tail's, not pytest's: one run showed 276 dots and no summary, and was rerun with pytest's own exit code recorded before it was counted. The Test Lead's review added the attempt ledger, the operator-only score record, general sealed-role detection, pinned identities and more hostile inputs. Each fitted the interface without reshaping it.",
+  "keep": [
+    "Wrap a working Challenge path by calling its own entry points, and prove it with twin stores on one private root compared row by row.",
+    "Refuse before dispatch, by typed code, and record every refusal operator-side, so a later move of an entry point changes where a refusal is recorded, not whether.",
+    "Make an operator score record re-derive its per-case rows and refuse unless they reproduce the stored score.",
+    "Keep the miner-facing and operator surfaces as separate classes, and test the miner class's public method set."
+  ],
+  "change": [
+    "Check .agent/CODE_AUTHORITY.toml's retired paths before naming a new package in a brief.",
+    "Pass CARBON_UV_GROUPS to canonical.sh --focused for any suite that imports numpy, JAX or bittensor.",
+    "Record pytest's own exit code in a canonical log; never read a pipeline's status as the test result.",
+    "Count a Challenge's infrastructure attempts per call before writing a retry test."
+  ],
+  "protocol_elements": [
+    "one validator serves every Challenge through one adapter per registered construction contract",
+    "a refusal is typed, recorded operator-side, never scored and never echoes submitted content",
+    "every result binds the adapter's pinned contract, rule and implementation digests",
+    "sealed confirmation roles are refused for every Challenge, by list and by journal"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
