@@ -35,6 +35,8 @@ from dataclasses import dataclass
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_tools import STRING, _schema
 
+from .protected_material import protected
+
 INDEX_SCHEMA = "carbon.graphite.literature-index.v1"
 SEARCH = "lit_search"
 CARD = "lit_card"
@@ -83,8 +85,6 @@ class LiteratureError(ValueError):
 
 
 def _check_cards(cards):
-    from .tools import protected
-
     seen = set()
     for card in cards:
         if type(card) is not dict or tuple(sorted(card)) != tuple(sorted(CARD_FIELDS)):
