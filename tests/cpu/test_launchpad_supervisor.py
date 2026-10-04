@@ -773,9 +773,9 @@ def test_a_retained_candidate_waits_ready_through_tools_and_restarts(
             "evaluation_unavailable",
             "submit",
         )
-        assert refusal["next_action"] == supervision.NEXT_ACTIONS[
-            "evaluation_unavailable"
-        ]
+        assert (
+            refusal["next_action"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+        )
         assert (root / "epoch-1" / "selected-recipe.json").exists()
         assert not (root / "epoch-1" / "permitted-final-feedback.json").exists()
         assert not (root / "interruptions.jsonl").exists()

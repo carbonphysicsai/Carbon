@@ -1591,7 +1591,7 @@ def null_strategy(action, arguments):
 
 
 def test_a_workspace_null_string_runs_under_the_frozen_rule(tmp_path):
-    sdk, meter, composition = sdk_for(tmp_path, provider=NORMALISING)
+    sdk, _meter, composition = sdk_for(tmp_path, provider=NORMALISING)
     try:
         sent = null_strategy("inventory", {})
         identity = "lp-prod-fix-null-0001"
@@ -1609,9 +1609,7 @@ def test_a_workspace_null_string_runs_under_the_frozen_rule(tmp_path):
 
 
 @pytest.mark.parametrize("provider", [None, "test-only", FROZEN_BEFORE])
-def test_a_campaign_frozen_before_the_rule_refuses_null_as_before(
-    tmp_path, provider
-):
+def test_a_campaign_frozen_before_the_rule_refuses_null_as_before(tmp_path, provider):
     """No plan, a plan that is not an object, and a v2 plan frozen before
     the rule: each refuses as the historical code did, the same record."""
     sdk, meter, composition = sdk_for(tmp_path, provider=provider)

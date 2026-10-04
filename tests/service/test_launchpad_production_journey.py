@@ -932,7 +932,7 @@ class BatteryLaunchpad:
 
         self.root = shared_root(tmp_path)
         self.patch = monkeypatch.setattr
-        install = self.install = install_journey(self.root, monkeypatch.setattr)
+        self.install = install_journey(self.root, monkeypatch.setattr)
         self.ticks = battery_prepare(monkeypatch.setattr, miner_key=miner_key)
         monkeypatch.setattr(RunnerAdapter, "spawn", staticmethod(lambda _: None))
         # Retries wait no wall time here; the waits asked for are recorded.
@@ -1137,9 +1137,9 @@ def waits_ready_with_its_candidate(launchpad, campaign):
             "evaluation_unavailable",
             "submit",
         )
-        assert refused["next_action"] == supervision.NEXT_ACTIONS[
-            "evaluation_unavailable"
-        ]
+        assert (
+            refused["next_action"] == supervision.NEXT_ACTIONS["evaluation_unavailable"]
+        )
         assert view["journey"]["frozen_awaiting_submission"] is True
         assert ledger_status(launchpad.root, campaign) == ("RUN", "READY")
         assert not (root / "interruptions.jsonl").exists()
