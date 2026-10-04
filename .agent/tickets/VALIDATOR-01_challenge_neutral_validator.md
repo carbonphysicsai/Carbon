@@ -250,7 +250,11 @@ as sealed outside the pool is refused.
   - `Unavailable` recording nothing in battery;
   - infrastructure exhaustion and a retried infrastructure failure.
 - Battery's own suites run unchanged.
-- `scripts/check_quality.py --base origin/main`.
+- `scripts/check_quality.py --base origin/main`: passed.
+- Canonical, slice 1 (`CARBON_UV_GROUPS="chain archive science-jax science-torch mcp"
+  ./scripts/dev/canonical.sh --focused` over both new suites and battery's
+  validator daemon, deployment, intake, validator service, rule v2, carry-over,
+  remote submission and intake end-to-end suites): 276 passed, pytest exit 0.
 
 ## Invariants exercised
 
