@@ -13,7 +13,15 @@ reserved or sent. A replayed identity - one the ledger already holds - is
 never refused, so a resume replays every recorded call exactly. What the
 stages spent is read from the ledger itself, by identity namespace, so it
 survives restarts: the hunt's Reader calls are `graphite-reader-*` and the
-Planner's are `epoch-1-plan-*` (the research loop's stage identities).
+Planner's are `epoch-1-plan-*` (the research loop's stage identities,
+compaction calls included). In FULL the hunt has its own, smaller cap over
+its own namespace (`edition.HUNT_PART_OF_SHARE`), and the Planner the whole
+share over both.
+
+`ResearchShareReached` is the engine's typed ceiling refusal
+(`research_loop.CeilingReached`) where the engine defines it, so a research
+loop session it stops ends STOPPED with its code, journalled; the hunt's
+Reader turns it into the hunt's own not-sent stop (`hunt.ReaderNotSent`).
 
 The campaign ledger's own ceilings still bind every call: the share only
 narrows them. A campaign holds one owner lock and its stages run one at a
@@ -25,24 +33,36 @@ from __future__ import annotations
 import json
 import math
 
+from carbon.development_session import research_loop
+
 #: The provider dimensions a research share narrows.
 SHARE_DIMENSIONS = ("provider_nanodollars", "provider_attempts")
-#: The identity prefixes of the research stages' operations.
+#: The identity prefixes of the research stages' operations: the hunt's
+#: Reader calls (as the Launchpad's view reads them) and the Planner stage.
 READER_PREFIX = "graphite-reader-"
 PLAN_PREFIX = "epoch-1-plan-"
+HUNT_NAMESPACE = (READER_PREFIX,)
 RESEARCH_NAMESPACE = (READER_PREFIX, PLAN_PREFIX)
 RESEARCH_SHARE_REACHED = "research_share_reached"
+#: The engine's typed ceiling refusal, where it defines one.
+_CEILING = getattr(research_loop, "CeilingReached", None)
 
 
-class ResearchShareReached(RuntimeError):
+class ResearchShareReached(_CEILING or RuntimeError):
     """A research stage reached the miner's research share; nothing was
-    reserved or sent. Not a ValueError, so no stage mistakes it for a
-    malformed request it may answer and continue past."""
+    reserved or sent. The engine's `CeilingReached` where it defines one,
+    so the research loop ends the session STOPPED with this code; otherwise
+    a RuntimeError, so no stage mistakes it for a malformed request it may
+    answer and continue past."""
 
     code = RESEARCH_SHARE_REACHED
 
     def __init__(self, dimension, spent, want, cap):
-        super().__init__(RESEARCH_SHARE_REACHED)
+        if _CEILING is not None:
+            super().__init__(RESEARCH_SHARE_REACHED, dimension=dimension)
+        else:
+            super().__init__(RESEARCH_SHARE_REACHED)
+        self.code = RESEARCH_SHARE_REACHED
         self.dimension, self.spent, self.want, self.cap = dimension, spent, want, cap
 
     def record(self):

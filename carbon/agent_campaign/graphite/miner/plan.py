@@ -427,7 +427,9 @@ def validate_plan(plan, *, library, curation):
 def new_version(plan, *, parent, created_by="miner", **changes):
     """A miner's edit of `plan`: a new plan with `parent` (the edited plan's
     digest) and `created_by`, with `changes` (hypotheses, pins_considered)
-    applied. The edited plan itself is never changed."""
+    applied. Edited hypotheses are listed best first and ranked by their
+    place in that list (a `rank` they carry is replaced). The edited plan
+    itself is never changed."""
     if set(changes) - {"hypotheses", "pins_considered"}:
         raise PlanInvalid(
             PLAN_INVALID,
@@ -436,9 +438,14 @@ def new_version(plan, *, parent, created_by="miner", **changes):
             "edit only those fields",
         )
     check_shape(plan)
+    hypotheses = changes.get("hypotheses", plan["hypotheses"])
+    if type(hypotheses) is list and all(type(item) is dict for item in hypotheses):
+        hypotheses = [
+            {**item, "rank": index + 1} for index, item in enumerate(hypotheses)
+        ]
     return document(
         challenge=plan["challenge"],
-        hypotheses=changes.get("hypotheses", plan["hypotheses"]),
+        hypotheses=hypotheses,
         pins_considered=changes.get("pins_considered", plan["pins_considered"]),
         parent=parent,
         created_by=created_by,

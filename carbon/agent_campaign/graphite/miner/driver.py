@@ -13,35 +13,41 @@ reconcile, `last_refusal` and the campaign's own submit.
   miner's library by digest. Nothing is practised for selection, frozen or
   submitted; the campaign completes.
 - BUILD: the plan the miner chose (frozen at launch by digest), or none - then
-  the Planner runs first - and then the Constructor's epochs, whose selection
-  goes through `research_campaign.submit_candidate` to the Challenge's
-  validator, as Carbon's autonomous agent's does.
+  an optional hunt and the Planner run first - and then the Constructor's
+  epochs, whose selection goes through `research_campaign.submit_candidate`
+  to the Challenge's validator, as Carbon's autonomous agent's does.
 - FULL (the default): RESEARCH's stages under the miner's research share of
-  the provider ceilings (`budget.StageLedger`; a stage that reaches it stops
+  the provider ceilings (`budget.StageLedger`: the hunt within its part of
+  the share, the Planner within the rest; a stage that reaches its cap stops
   typed `research_share_reached`), then BUILD.
 
 **Stages** are recorded write-once under `<campaign>/graphite/stages/`; a
 finished stage is never run again, so a resume makes no hunt, no arXiv and no
-model call for it. The Planner runs as the research loop's stage `plan` of
-epoch 1 (`epoch-1/plan/`, identities `epoch-1-plan-*`); the Constructor runs
-the campaign's epochs as the autonomous agent does (`epoch-N/`), which the
-campaign's submit reads. Every role runs under `edition.agent_policy()` with
-its frozen prompt and its stage's tools, the campaign's frozen parallel-call,
-miner-guidance and research-tools rules, its frozen limits
-(`LIMITS_V2`) and compaction rule, and the miner's model selection and key.
+model call for it. The hunt runs under one hunt id per campaign, so a resumed
+hunt continues where it stopped; its stage record keeps its report's counts.
+The Planner runs as the research loop's stage
+`plan` of epoch 1 (`epoch-1/plan/`, identities `epoch-1-plan-*`); the
+Constructor runs the campaign's epochs as the autonomous agent does
+(`epoch-N/`), which the campaign's submit reads. Every role runs under
+`edition.agent_policy()` with its frozen prompt and its stage's tools, the
+campaign's frozen parallel-call, miner-guidance and research-tools rules, its
+frozen limits (`LIMITS_V2`) and compaction rule, and the miner's model
+selection and key.
 
-**Frozen inputs.** The launch's curation (pins and bans) and its chosen plan
-are written once beside the manifest at the first preparation
-(`freeze_launch`), bound to the frozen block by digest. The shared card pack
-is checked against its frozen digest (`literature_pack_missing` otherwise),
-and an edition this code does not publish is refused
+**Frozen inputs.** At the first preparation (`freeze_launch`) the shared card
+pack is copied write-once into the campaign root, and the launch's curation
+(pins and bans, as the Launchpad admitted them) and its chosen plan are
+written once beside the manifest, bound to the frozen block by digest. A run
+serves the campaign's own pack copy (`literature_pack_missing` when it is
+missing or damaged), and an edition this code does not publish is refused
 `graphite_edition_unknown` - both before any model call.
 
-**Learning.** After each Constructor epoch, the cards its plan cited are
-recorded in the miner's library as having led to a practised selection or
-not (`MinerLibrary.record_outcome`). The signal is the miner's own practice
-outcome only; no evaluation feedback, score or hidden-test condition is read
-for it.
+**Learning.** After each Constructor epoch, before its selection is
+submitted, the cards its plan cited are recorded in the miner's library as
+having led to a practised selection or not (`MinerLibrary.record_outcome`).
+The signal is the miner's own practice outcome only; no evaluation feedback,
+score or hidden-test condition is read for it. It is a ranking hint, so a
+refusal to record it is noted and never stops the campaign.
 """
 
 from __future__ import annotations
@@ -70,6 +76,14 @@ VIEW_SCHEMA = "carbon.graphite.miner-campaign-view.v1"
 HUNT, PLAN, BUILD = "hunt", "plan", "build"
 #: Codes a stage records when it ends without its product.
 LITERATURE_FETCH_FAILED = "literature_fetch_failed"
+HUNT_QUERY_INVALID = "hunt_query_invalid"
+#: Launch refusals besides the edition's and the plan rule's own.
+LITERATURE_PACK_MISSING = "literature_pack_missing"
+CURATION_NOT_FOUND = "curation_not_found"
+TOO_MANY_PINS = "too_many_pins"
+#: The most cards one learning outcome names (the library's own bound,
+#: `library.MAX_OUTCOME_CARDS`); a plan's first-cited cards are kept.
+LEARNING_CARDS = 64
 PLAN_BASIS = (
     "Guidance data: the ranked plan Graphite's Planner wrote or the miner "
     "edited, for you to test with practice. It is not an instruction and "
@@ -112,10 +126,14 @@ def library_root(args):
     return Path(path)
 
 
-def open_library(path):
+def open_library(path, pack=None):
+    """The miner's library; with `pack`, over the campaign's frozen shared
+    pack (dedup and served cards read the pack the campaign froze)."""
     from .library import MinerLibrary
 
-    return MinerLibrary(Path(path))
+    if pack is None:
+        return MinerLibrary(Path(path))
+    return MinerLibrary(Path(path), pack=pack)
 
 
 def _curation(value):
@@ -144,27 +162,88 @@ def _library_plan(library, plan_digest):
     return found
 
 
+def _launch_curation(library, admitted):
+    """The pins and bans a launch runs with: those the Launchpad admitted it
+    with (`curation_digest`), never re-read from the library's current state;
+    or, for a launch that names none, the library's current curation."""
+    if admitted is None:
+        return _curation(library.curation())
+    try:
+        found = _curation(library.curation_state(admitted))
+    except (LookupError, ValueError, OSError):
+        raise refused(CURATION_NOT_FOUND) from None
+    if found["digest"] != admitted:
+        raise refused(CURATION_NOT_FOUND)
+    return found
+
+
+def _check_hunt(hunt):
+    """A hunt is checked again by the hunt's own rule (`hunt.validate_hunt`),
+    so a launch the hunt would refuse is refused before the manifest
+    freezes, never once the hunt runs."""
+    if hunt is None:
+        return
+    from . import hunt as hunts
+
+    validate = getattr(hunts, "validate_hunt", None)
+    if validate is None:
+        return
+    try:
+        validate(
+            {"queries": hunt["queries"] or None, "max_records": hunt["max_records"]}
+        )
+    except ValueError:
+        raise refused(HUNT_QUERY_INVALID) from None
+
+
+def _freeze_pack(root):
+    """Copy the shipped card pack write-once into the campaign root; its
+    digest. `literature_pack_missing` when it is absent or damaged."""
+    from . import pack as packs
+
+    try:
+        copied = packs.freeze_into(Path(root))
+    except (OSError, ValueError, KeyError):
+        raise refused(LITERATURE_PACK_MISSING) from None
+    if copied != packs.SHARED_PACK_DIGEST:
+        raise refused(LITERATURE_PACK_MISSING)
+    return copied
+
+
 def freeze_launch(args, root, *, challenge):
     """At a Graphite campaign's first preparation: the `graphite` block its
     provider plan freezes (`edition.graphite_block`).
 
-    Validates the miner's launch fields (`args.graphite`), reads the miner's
-    library once - its curation, its private snapshot and the chosen plan,
-    which must be this Challenge's and pass `plan.validate_plan` - and writes
-    that curation and plan once beside the manifest (`launch.json`), bound to
-    the block by digest. Refused by closed code (`OperationRefused`)."""
-    from .pack import SHARED_PACK_DIGEST
-
+    Validates the launch fields the Launchpad admitted (`args.graphite`, with
+    `args.graphite_curation_digest` beside them; the hunt also by the hunt's
+    own rule), copies the shared card pack into
+    the campaign root, reads the miner's library once - the curation the
+    launch was admitted with (or, for none, the current one), its private
+    snapshot and the chosen plan, which must be this Challenge's and pass
+    `plan.validate_plan` against that curation - and writes that curation
+    and plan once beside the manifest (`launch.json`), bound to the block by
+    digest. A launch whose Planner would have to consider more pins than a
+    plan can name is refused `too_many_pins`. Refused by closed code
+    (`OperationRefused`) before the manifest freezes."""
     try:
-        fields = editions.launch_fields(getattr(args, "graphite", None))
+        fields = editions.launch_fields(
+            getattr(args, "graphite", None),
+            curation_digest=getattr(args, "graphite_curation_digest", None),
+        )
     except editions.LaunchRefused as refusal:
         raise refused(refusal.code) from None
+    _check_hunt(fields["hunt"])
     library = open_library(library_root(args))
-    curation = _curation(library.curation())
+    curation = _launch_curation(library, fields["curation_digest"])
+    if editions.plans_first(fields) and len(curation["pins"]) > plans.MAX_PINS:
+        raise refused(TOO_MANY_PINS)
     plan_doc = None
     if fields["plan"] is not None:
         plan_doc = _library_plan(library, fields["plan"])
-        if (plan_doc.get("challenge") or {}).get("id") != challenge["id"]:
+        if plan_doc.get("challenge") != {
+            "id": challenge["id"],
+            "version": challenge["version"],
+        }:
             raise refused(plans.PLAN_INVALID)
         ok, refusal = plans.validate_plan(plan_doc, library=library, curation=curation)
         if not ok:
@@ -172,7 +251,7 @@ def freeze_launch(args, root, *, challenge):
     block = editions.graphite_block(
         fields,
         curation_digest=curation["digest"],
-        pack_digest=SHARED_PACK_DIGEST,
+        pack_digest=_freeze_pack(root),
         private_snapshot_digest=library.snapshot(),
     )
     record = {
@@ -215,22 +294,50 @@ def frozen_launch(root, block):
 
 
 def frozen_pack(root, block):
-    """The shared card pack, frozen into the campaign root and checked against
-    the digest the campaign froze; `literature_pack_missing` otherwise."""
+    """The shared card pack this campaign froze, from its own copy in the
+    campaign root (`pack.load_frozen`), so a Carbon update that ships another
+    pack never changes it. A missing copy is made again only from the very
+    pack the campaign froze; a missing or damaged pack is refused
+    `literature_pack_missing`."""
     from . import pack as packs
 
     want = block["literature"]["pack_digest"]
+    root = Path(root)
+    shared = None
     try:
-        copied = packs.freeze_into(Path(root))
-        shared = packs.load_shared_pack()
+        shared = packs.load_frozen(root, want)
     except (OSError, ValueError, KeyError):
-        raise refused("literature_pack_missing") from None
-    if copied != want or getattr(shared, "digest", None) != want:
-        raise refused("literature_pack_missing")
+        shared = None
+    if shared is None and want == packs.SHARED_PACK_DIGEST:
+        try:
+            if not packs.frozen_path(root, want).exists():
+                packs.freeze_into(root)
+                shared = packs.load_frozen(root, want)
+        except (OSError, ValueError, KeyError):
+            shared = None
+    if shared is None or getattr(shared, "digest", None) != want:
+        raise refused(LITERATURE_PACK_MISSING)
     return shared
 
 
 # --- stage records -----------------------------------------------------------
+
+
+def _note_stage_end(run, stage, body):
+    """A research stage that ended without its product (stopped at the
+    research share, refused, arXiv failed) is noted in the campaign ledger,
+    where the miner's campaign view and agent read it. Noted before the
+    stage record is written, so a resume never loses it."""
+    if body.get("code") is not None:
+        run.ledger.note(
+            owner=run.owner,
+            kind="decision",
+            body={
+                "graphite_stage": stage,
+                "status": body["status"],
+                "stop": body["code"],
+            },
+        )
 
 
 class Stages:
@@ -266,12 +373,12 @@ class Stages:
 
 def stage_sequence(block):
     """The stages a frozen block runs, in order."""
-    hunt = [HUNT] if block["hunt"] is not None else []
+    research = []
+    if editions.plans_first(block):
+        research = ([HUNT] if block["hunt"] is not None else []) + [PLAN]
     if block["mode"] == editions.RESEARCH_MODE:
-        return [*hunt, PLAN]
-    if block["mode"] == editions.FULL_MODE:
-        return [*hunt, PLAN, BUILD]
-    return ([] if block["plan_digest"] is not None else [PLAN]) + [BUILD]
+        return research
+    return [*research, BUILD]
 
 
 # --- the Reader --------------------------------------------------------------
@@ -296,17 +403,23 @@ _CLOSED_REQUEST = (
 
 
 class MinerReader:
-    """The hunt's `reader`: one closed, tool-less extraction or triage call
-    on the miner's model selection, metered against the campaign ledger
-    (the research share's, in FULL).
+    """The hunt's `reader`: one closed, tool-less extraction call on the
+    miner's model selection, metered against the campaign ledger (the hunt's
+    part of the research share, in FULL).
 
-    `prompts` are the edition's Reader prompts (`extract`, `triage`), the
-    only instructions a Reader call may carry. A request is the closed
-    research request (`research_agent.request_model`), or a part of one -
-    `{input, instructions?, task?}` - which `complete` fills from the
-    selection. Its identity is `graphite-reader-` and its digest, so the same
-    paper's request is one call: a resume, or a hunt that meets it again,
-    replays the journalled reply and never pays twice."""
+    `prompts` are the edition's Reader prompts (`extract`), the only
+    instructions a Reader call may carry: the hunt's requests carry exactly
+    that prompt. A request is the closed research request
+    (`research_agent.request_model`), or a part of one - `{input,
+    instructions?, task?}` - which `complete` fills from the selection. Its
+    identity is `graphite-reader-` and its digest, so the same paper's request
+    is one call: a resume, or a hunt that meets it again, replays the
+    journalled reply and never pays twice.
+
+    A call refused before anything is sent - the research share reached, or
+    a request this Reader will not send - raises the hunt's own
+    `hunt.ReaderNotSent` with that code, so the hunt releases the paper's
+    claim (a later hunt may read it) and stops typed."""
 
     def __init__(self, *, ledger, owner, selection, credential_file, transport, role):
         self.ledger, self.owner = ledger, owner
@@ -359,17 +472,26 @@ class MinerReader:
     def __call__(self, request):
         from carbon.development_session.research_agent import request_model
 
-        closed = self.complete(request)
-        return request_model(
-            self.ledger,
-            owner=self.owner,
-            identity=self.identity(closed),
-            request=closed,
-            credential_file=self.credential_file,
-            phase="research",
-            transport=self.transport,
-            provider=self.selection,
-        )
+        from .hunt import ReaderNotSent
+
+        try:
+            closed = self.complete(request)
+        except ReaderRefused as refusal:
+            raise ReaderNotSent(refusal.code) from None
+        try:
+            return request_model(
+                self.ledger,
+                owner=self.owner,
+                identity=self.identity(closed),
+                request=closed,
+                credential_file=self.credential_file,
+                phase="research",
+                transport=self.transport,
+                provider=self.selection,
+            )
+        except budget.ResearchShareReached as reached:
+            # Refused by the share before anything was reserved or sent.
+            raise ReaderNotSent(reached.code) from None
 
 
 # --- the run -----------------------------------------------------------------
@@ -454,14 +576,19 @@ class _Run:
         return self.block["literature"]["private_snapshot_digest"]
 
     def literature(self):
+        """The literature this campaign's stages serve: its frozen pack, the
+        private snapshot, the launch's curation and - as focus terms that
+        steer the ranking - the miner's own hunt queries."""
         from .library import MinerLiterature
 
+        focus = list((self.block["hunt"] or {}).get("queries") or [])
         return MinerLiterature(
             self.pack,
             self.library,
             challenge=self.challenge,
             private_snapshot_digest=self.snapshot(),
             curation=self.curation,
+            **({"focus_terms": focus} if focus else {}),
         )
 
     def tools(self, role):
@@ -523,6 +650,15 @@ class _Run:
             )
         return observation
 
+    def hunt_id(self):
+        """This campaign's one hunt id: stable across a resume (the hunt
+        keeps the queries it started with), distinct across campaigns."""
+        bound = {
+            "campaign_id": self.manifest.get("campaign_id"),
+            "graphite": self.block,
+        }
+        return "campaign-" + digest(canonical(bound))[7:47]
+
     def graphite_context(self, role):
         return {
             "edition": self.edition.edition_id,
@@ -537,26 +673,60 @@ class _Run:
         }
 
 
-def _share_ledger(run):
-    """The research stages' ledger: FULL's share of the provider ceilings,
-    or - in RESEARCH, and for a BUILD whose Planner runs first - the campaign
-    ledger's own ceilings alone."""
+def _research_ledger(run, stage):
+    """A research stage's ledger. In FULL, the share of the provider
+    ceilings: the hunt's part of it over the hunt's own calls, the whole
+    share over every research call for the Planner. In RESEARCH, and for a
+    BUILD whose Planner runs first, the campaign ledger's own ceilings
+    alone."""
     if run.block["mode"] != editions.FULL_MODE:
         return budget.StageLedger(run.ledger, owner=run.owner, caps={})
-    caps = budget.share_caps(
-        run.manifest.get("ceilings") or {}, editions.share_fraction(run.block)
+    fraction = editions.share_fraction(run.block)
+    namespace = budget.RESEARCH_NAMESPACE
+    if stage == HUNT:
+        fraction *= editions.HUNT_PART_OF_SHARE
+        namespace = budget.HUNT_NAMESPACE
+    caps = budget.share_caps(run.manifest.get("ceilings") or {}, fraction)
+    return budget.StageLedger(
+        run.ledger, owner=run.owner, caps=caps, namespace=namespace
     )
-    return budget.StageLedger(run.ledger, owner=run.owner, caps=caps)
+
+
+#: What a hunt stage keeps of the hunt's report.
+REPORT_KEYS = (
+    "hunt_id",
+    "status",
+    "stop_code",
+    "fetched",
+    "deduped",
+    "triaged_out",
+    "withheld_protected",
+    "extracted",
+    "not_relevant",
+    "rejected",
+    "failed_infra",
+    "cards",
+    "reader_calls",
+    "arxiv_pages",
+)
 
 
 def _report(report):
     if type(report) is not dict:
         return None
-    keys = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra", "cards")
-    return {key: report.get(key) for key in keys if key in report}
+    return {key: report.get(key) for key in REPORT_KEYS if key in report}
+
+
+class _NoRefusal(Exception):
+    """Stands in for a hunt module that types no refusal of its own."""
 
 
 async def _hunt(run, ledger):
+    """The hunt, under this campaign's one hunt id. It ends recorded: DONE,
+    DONE with `literature_fetch_failed` (arXiv failed; the Planner proceeds),
+    or STOPPED with the code that stopped it (the research share, a refusal
+    of the hunt's own). A pause, a stop, a provider failure or an unknown
+    outcome propagates, and a resume continues the same hunt."""
     done = run.stages.finished(HUNT)
     if done is not None:
         return done
@@ -585,32 +755,38 @@ async def _hunt(run, ledger):
         "arxiv_opener": run.arxiv_opener,
         "clock": run.clock,
         "checkpoint": run.ledger.checkpoint,
+        "hunt_id": run.hunt_id(),
     }
-    report = None
+    report, code = None, None
     try:
         if inspect.iscoroutinefunction(hunts.run_hunt):
             report = await hunts.run_hunt(run.library, **keywords)
         else:
             report = await asyncio.to_thread(hunts.run_hunt, run.library, **keywords)
-    except budget.ResearchShareReached:
-        pass
+    except getattr(hunts, "HuntRefused", _NoRefusal) as refusal:
+        # The hunt refused to start; nothing was fetched or sent.
+        code = getattr(refusal, "code", None) or HUNT_QUERY_INVALID
     reached = getattr(ledger, "reached", None)
-    if reached is not None:
+    if code is not None:
+        status = "STOPPED"
+    elif reached is not None:
         status, code = "STOPPED", budget.RESEARCH_SHARE_REACHED
     elif type(report) is dict and report.get("failed_infra"):
         status, code = "DONE", LITERATURE_FETCH_FAILED
+    elif type(report) is dict and report.get("status") == "STOPPED":
+        status = "STOPPED"
+        code = report.get("stop_code") or "hunt_stopped"
     else:
-        status, code = "DONE", None
-    return run.stages.finish(
-        HUNT,
-        {
-            "status": status,
-            "code": code,
-            "share": reached,
-            "report": _report(report),
-            "private_snapshot_digest": run.library.snapshot(),
-        },
-    )
+        status = "DONE"
+    body = {
+        "status": status,
+        "code": code,
+        "share": reached,
+        "report": _report(report),
+        "private_snapshot_digest": run.library.snapshot(),
+    }
+    _note_stage_end(run, HUNT, body)
+    return run.stages.finish(HUNT, body)
 
 
 def _finish_arguments(outcome, folder):
@@ -635,24 +811,15 @@ def _finish_arguments(outcome, folder):
 
 
 async def _plan(run, ledger):
-    """The Planner, as the research loop's stage `plan` of epoch 1."""
+    """The Planner, as the research loop's stage `plan` of epoch 1. In FULL
+    it spends what is left of the research share after the hunt; when
+    nothing is left, its first model call is refused and it stops typed
+    `research_share_reached`, having sent nothing."""
     done = run.stages.finished(PLAN)
     if done is not None:
         return done
     run.stages.start(PLAN)
     hunted = run.stages.finished(HUNT)
-    if hunted is not None and hunted.get("code") == budget.RESEARCH_SHARE_REACHED:
-        # The share is spent: the Planner's first call would be refused too.
-        return run.stages.finish(
-            PLAN,
-            {
-                "status": "STOPPED",
-                "code": budget.RESEARCH_SHARE_REACHED,
-                "share": hunted.get("share"),
-                "plan_digest": None,
-                "plan": None,
-            },
-        )
     role = run.edition.role("planner")
     toolbox = run.toolbox(role, PLAN)
     cards = _LiteratureCards(toolbox.literature)
@@ -727,18 +894,31 @@ async def _plan(run, ledger):
         }
     from carbon.development_session.research_report import report
 
+    _note_stage_end(run, PLAN, body)
     report(run.ledger, owner=run.owner)
     return run.stages.finish(PLAN, body)
 
 
+def _cited(plan_doc):
+    """The cards a plan cites, best-ranked hypothesis first, each once, at
+    most `LEARNING_CARDS` of them."""
+    cards = []
+    for item in plan_doc["hypotheses"]:
+        for cite in item["cites"]:
+            if cite["card_id"] not in cards:
+                cards.append(cite["card_id"])
+    return cards[:LEARNING_CARDS]
+
+
 def _learn(run, plan_doc, plan_digest, epoch, result):
     """Record whether the plan's cited cards led to a practised selection in
-    this epoch - the miner's own practice outcome, nothing else."""
+    this epoch - the miner's own practice outcome, nothing else. Recorded
+    once per epoch; a library that refuses the record (a card it no longer
+    serves, an outcome it cannot hold) is noted as SKIPPED with its code and
+    never stops the campaign: a ranking hint must not hold a submit."""
     if plan_doc is None:
         return
-    cards = sorted(
-        {cite["card_id"] for item in plan_doc["hypotheses"] for cite in item["cites"]}
-    )
+    cards = _cited(plan_doc)
     marker = f"learning-epoch-{epoch}"
     if not cards or run.stages.finished(marker) is not None:
         return
@@ -754,15 +934,20 @@ def _learn(run, plan_doc, plan_digest, epoch, result):
         "basis": "PRACTISED_SELECTION" if improved else "NO_PRACTISED_SELECTION",
         "signal": "the miner's own practice outcome only",
     }
-    run.library.record_outcome(cards, improved, evidence)
+    body = {"status": "RECORDED", "code": None}
+    try:
+        # Bound to this Challenge and version: the ranking reads a practice
+        # outcome only for the Challenge it was practised on.
+        run.library.record_outcome(cards, improved, evidence, challenge=run.challenge)
+    except (ValueError, LookupError, OSError) as refusal:
+        code = getattr(refusal, "code", None)
+        body = {
+            "status": "SKIPPED",
+            "code": code if type(code) is str else "learning_not_recorded",
+        }
     run.stages.finish(
         marker,
-        {
-            "status": "RECORDED",
-            "cards": cards,
-            "improved": improved,
-            "evidence": evidence,
-        },
+        {**body, "cards": cards, "improved": improved, "evidence": evidence},
     )
 
 
@@ -860,26 +1045,21 @@ async def run(prepared, *, transport=None, arxiv_opener=None, clock=None):
         block=block,
         launch=launch,
         pack=pack,
-        library=open_library(library_root(prepared.args)),
+        library=open_library(library_root(prepared.args), pack=pack),
         transport=transport,
         arxiv_opener=arxiv_opener,
         clock=clock,
     )
     prepared.ledger.checkpoint()
-    mode = block["mode"]
     plan_doc, plan_digest = launch["plan"], launch["plan_digest"]
-    if mode in (editions.RESEARCH_MODE, editions.FULL_MODE):
-        research = _share_ledger(graphite)
+    if editions.plans_first(block):
         if block["hunt"] is not None:
-            await _hunt(graphite, research)
-        planned = await _plan(graphite, research)
+            await _hunt(graphite, _research_ledger(graphite, HUNT))
+        planned = await _plan(graphite, _research_ledger(graphite, PLAN))
         plan_doc, plan_digest = planned.get("plan"), planned.get("plan_digest")
-        if mode == editions.RESEARCH_MODE:
-            campaigns._complete(prepared)
-            return None
-    elif plan_doc is None:
-        planned = await _plan(graphite, _share_ledger(graphite))
-        plan_doc, plan_digest = planned.get("plan"), planned.get("plan_digest")
+    if block["mode"] == editions.RESEARCH_MODE:
+        campaigns._complete(prepared)
+        return None
     return await _build(graphite, plan_doc, plan_digest)
 
 

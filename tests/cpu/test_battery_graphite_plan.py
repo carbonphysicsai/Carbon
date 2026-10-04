@@ -56,7 +56,7 @@ AUTONOMOUS_PLAN_DIGEST = (
 
 def block(**fields):
     return editions.graphite_block(
-        editions.launch_fields(fields),
+        editions.launch_fields(fields, curation_digest="sha256:" + "c" * 64),
         curation_digest="sha256:" + "c" * 64,
         pack_digest=PACK_DIGEST,
         private_snapshot_digest="sha256:" + "d" * 64,
@@ -310,8 +310,9 @@ def host(tmp_path, monkeypatch):
         "images": ["sha256:" + "a" * 64, "sha256:" + "b" * 64],
     }
 
-    def args(command, agent="graphite", policy=AUTONOMOUS, graphite=None):
+    def args(command, agent="graphite", policy=AUTONOMOUS, graphite=None, **beside):
         return SimpleNamespace(
+            **beside,
             root=root,
             command=command,
             accepted_revision="fixture",
@@ -371,6 +372,31 @@ def test_a_graphite_launch_is_refused_by_code_before_its_manifest(host):
         host.prepare("run", graphite={"mode": "BUILD", "plan": "sha256:" + "9" * 64})
     assert refused.value.code == "plan_not_found"
     assert not (host.root / "campaign-manifest.json").exists()
+
+
+def test_the_launchpads_choice_prepares_a_graphite_campaign(host):
+    """`args.graphite` and `args.graphite_curation_digest` exactly as the
+    Launchpad's `LaunchChoice.apply` sets them (S4): the campaign prepares,
+    freezing what admission captured."""
+    library = driver.open_library(host.root.parent / "graphite-library")
+    admitted = library.curation()["digest"]
+    prepared = host.prepare(
+        "run",
+        graphite={
+            "mode": "FULL",
+            "research_share": 0.25,
+            "plan": None,
+            "hunt": {"queries": ["fast charge ageing"], "max_records": 50},
+            "limits": {"calls_per_epoch": 90},
+        },
+        graphite_curation_digest=admitted,
+    )
+    block = prepared.manifest["provider"]["graphite"]
+    assert (block["mode"], block["research_share"]) == ("FULL", 0.25)
+    assert block["hunt"] == {"queries": ["fast charge ageing"], "max_records": 50}
+    assert block["curation_digest"] == admitted
+    assert prepared.manifest["provider"]["limits"]["build"]["calls_per_epoch"] == 90
+    assert host.literature.pack_copies == [host.root]
 
 
 def test_an_autonomous_campaign_prepares_as_it_did(host):

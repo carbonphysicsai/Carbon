@@ -20,6 +20,11 @@ import asyncio
 import dataclasses
 import inspect
 import json
+import os
+import re
+import subprocess
+import sys
+import textwrap
 from fractions import Fraction
 from pathlib import Path
 from types import SimpleNamespace
@@ -27,6 +32,7 @@ from types import SimpleNamespace
 import pytest
 from test_graphite_miner_driver import (
     CHALLENGE_REF,
+    ENGINE_SLICE,
     FEED,
     HUNTED,
     PLANNER_TURN,
@@ -48,7 +54,7 @@ from carbon.agent_campaign.graphite import roles as internal_roles
 from carbon.agent_campaign.graphite.miner import budget, driver, toolbox
 from carbon.agent_campaign.graphite.miner import edition as editions
 from carbon.agent_campaign.graphite.miner import plan as plans
-from carbon.development_session import research_tools
+from carbon.development_session import research_loop, research_tools
 from carbon.development_session.model_provider import DEFAULT_SELECTION
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_agent_policy import PARALLEL_CALLS_V2
@@ -72,7 +78,7 @@ DRIVER_FILES = tuple(
 #: tool schema or the plan schema changes it: that is a new edition id, never
 #: an edit of this one.
 EDITION_V1_DIGEST = (
-    "sha256:11126857b3f6a9715bb724f7f17b7bf24150cc2528ba0e078335a714fd49142a"
+    "sha256:8423465214e6e368d30673442287b00483c3a341a3c990734c615c8b6fb4f90c"
 )
 
 
@@ -298,9 +304,9 @@ def test_a_known_paper_is_never_paid_for_twice(world):
     w.engine.scripts = {("plan", 1): [STOP_TURN]}
     transport = Transport()
     w.run(transport)
-    # Two pack/library hits and one repeat: one Reader call in all.
+    # A pack hit, and a paper met again in the same hunt: one Reader call.
     assert len(transport.reader_calls) == 1
-    assert w.stage("hunt")["report"]["deduped"] == 3
+    assert w.stage("hunt")["report"]["deduped"] == 1
     reader = driver.MinerReader(
         ledger=w.prepared.ledger,
         owner="alice",
@@ -311,12 +317,15 @@ def test_a_known_paper_is_never_paid_for_twice(world):
     )
     one = reader.request("extract", {"paper": {"arxiv_id": "1"}})
     other = reader.request("extract", {"paper": {"arxiv_id": "2"}})
-    triage = reader.request("triage", {"paper": {"arxiv_id": "1"}})
-    identities = {reader.identity(r) for r in (one, other, triage)}
-    assert len(identities) == 3
+    assert reader.identity(one) != reader.identity(other)
+    # The same paper's request is one identity: a resume or a hunt that meets
+    # it again replays the journalled reply, never a second paid call.
     assert reader.identity(one) == reader.identity(
         reader.request("extract", {"paper": {"arxiv_id": "1"}})
     )
+    before = len(transport.requests)
+    assert reader(one) == reader(dict(one))
+    assert len(transport.requests) == before + 1
 
 
 def test_arxiv_is_reached_only_through_the_hunt_and_never_on_resume(world):
@@ -385,7 +394,7 @@ def test_the_share_caps_research_and_never_refuses_a_replay(tmp_path):
         )
 
     reserve(share, "epoch-1-plan-provider-000")
-    reserve(share, "graphite-reader-" + "a" * 40)
+    reserve(share, budget.READER_PREFIX + "a" * 40)
     with pytest.raises(budget.ResearchShareReached) as reached:
         reserve(share, "epoch-1-plan-provider-001")
     assert reached.value.code == "research_share_reached"
@@ -412,14 +421,35 @@ def test_the_share_caps_research_and_never_refuses_a_replay(tmp_path):
     assert budget.share_caps({"provider_attempts": 7}, Fraction(1, 2)) == {
         "provider_attempts": 3
     }
-    # The share is a RuntimeError: a stage cannot mistake it for a request
-    # it may answer and continue past.
-    assert not issubclass(budget.ResearchShareReached, ValueError)
+    # The share is the engine's typed ceiling refusal where the engine has
+    # one (the loop ends the session STOPPED with its code), else a
+    # RuntimeError no stage mistakes for a request it may answer.
+    engine = getattr(research_loop, "CeilingReached", None)
+    if engine is not None:
+        assert issubclass(budget.ResearchShareReached, engine)
+        assert reached.value.outcome()["code"] == "research_share_reached"
+    else:
+        assert issubclass(budget.ResearchShareReached, RuntimeError)
+        assert not issubclass(budget.ResearchShareReached, ValueError)
+    # The hunt's own part: a smaller cap over the hunt's calls alone.
+    hunt = budget.StageLedger(
+        ledger,
+        owner="alice",
+        caps={"provider_attempts": 1},
+        namespace=(budget.HUNT_NAMESPACE),
+    )
+    assert hunt.spent()["provider_attempts"] == 1
+    with pytest.raises(budget.ResearchShareReached):
+        reserve(hunt, budget.READER_PREFIX + "b" * 40)
 
 
 def test_the_stage_namespace_is_the_planner_stage_and_the_reader():
     assert budget.PLAN_PREFIX == "epoch-1-" + driver.PLAN + "-"
-    inside = ("epoch-1-plan-provider-000", "epoch-1-plan-tool-003-01")
+    inside = (
+        "epoch-1-plan-provider-000",
+        "epoch-1-plan-tool-003-01",
+        "epoch-1-plan-compact-004",
+    )
     outside = (
         "epoch-1-provider-000",
         "epoch-2-provider-000",
@@ -427,7 +457,12 @@ def test_the_stage_namespace_is_the_planner_stage_and_the_reader():
         "research-epoch-1",
         "research-epoch-1-plan",
     )
-    for identity in inside + ("graphite-reader-" + "f" * 40,):
+    reader = budget.READER_PREFIX + "f" * 40
+    # The Launchpad's view reads a hunt's Reader calls by this name.
+    assert budget.READER_PREFIX == "graphite-reader-"
+    assert re.fullmatch(r"graphite-reader-[0-9a-f]{40}", reader)
+    assert budget.HUNT_NAMESPACE == (budget.READER_PREFIX,)
+    for identity in inside + (reader,):
         assert identity.startswith(budget.RESEARCH_NAMESPACE)
     for identity in outside:
         assert not identity.startswith(budget.RESEARCH_NAMESPACE)
@@ -526,6 +561,77 @@ def test_no_miner_module_imports_a_grant_pods_engy_or_internal_module():
     } <= specimen
 
 
+#: What the miner edition's own import closure may never load: the design's
+#: list and the internal edition's runner, model access and controller.
+LOADED_FORBIDDEN = DESIGN_FORBIDDEN | {
+    "carbon.agent_campaign.controller",
+    "carbon.agent_campaign.provider",
+    "carbon.agent_campaign.mira",
+    "carbon.agent_campaign.graphite.model",
+    "carbon.agent_campaign.graphite.provider",
+    "carbon.agent_campaign.graphite.phase2",
+    "carbon.agent_campaign.graphite.phase3",
+    "carbon.agent_campaign.graphite.level_planner",
+    "carbon.agent_campaign.graphite.optimizer_research",
+}
+
+
+def test_the_miner_editions_import_closure_loads_no_internal_module():
+    """Every miner module, imported in a fresh interpreter, loads none of the
+    internal edition's modules. The internal package's own `__init__`
+    eagerly imports its provider (and with it the grant, ladder and model),
+    so this run does not execute that `__init__` - it names the package by
+    its path only - and sees exactly what the miner edition itself imports.
+    (Making that `__init__` lazy is an integration follow-up; see the S3
+    decision record.)"""
+    modules = sorted(
+        "carbon.agent_campaign.graphite.miner." + path.stem
+        for path in MINER.glob("*.py")
+        if path.stem != "__init__"
+    )
+    script = textwrap.dedent("""
+        import importlib, json, sys, types
+        from pathlib import Path
+
+        import carbon.agent_campaign as parent
+
+        stub = types.ModuleType("carbon.agent_campaign.graphite")
+        stub.__path__ = [str(Path(parent.__file__).with_name("graphite"))]
+        sys.modules["carbon.agent_campaign.graphite"] = stub
+        for name in json.loads(sys.argv[1]):
+            importlib.import_module(name)
+        print(json.dumps(sorted(sys.modules)))
+        """)
+    environment = {**os.environ, "JAX_PLATFORMS": "cpu"}
+    done = subprocess.run(
+        [sys.executable, "-c", script, json.dumps(modules)],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=environment,
+        timeout=300,
+    )
+    loaded = set(json.loads(done.stdout.strip().splitlines()[-1]))
+    assert set(modules) <= loaded
+    assert not loaded & LOADED_FORBIDDEN, sorted(loaded & LOADED_FORBIDDEN)
+    # The specimen: the internal package's own __init__ loads them.
+    probe = (
+        "import json, sys, carbon.agent_campaign.graphite; "
+        "print(json.dumps(sorted(sys.modules)))"
+    )
+    specimen = subprocess.run(
+        [sys.executable, "-c", probe],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=environment,
+        timeout=300,
+    )
+    assert set(json.loads(specimen.stdout.strip().splitlines()[-1])) & (
+        LOADED_FORBIDDEN
+    )
+
+
 def test_a_campaign_runs_with_every_grant_engy_and_pod_path_broken(world, monkeypatch):
     from carbon.agent_campaign import grant
     from carbon.agent_campaign.graphite import ladder, model, pods
@@ -571,10 +677,13 @@ def test_every_role_call_runs_with_its_challenge_so_the_model_sees_the_model_vie
         assert call_["parallel_calls"] == PARALLEL_CALLS_V2
 
 
-def test_practice_holds_at_selection_and_at_submit(world):
-    """The engine applies `practice_check` to a miner-edition selection; the
-    campaign's submit applies the same predicate again, so even a selection
-    the engine (mutated here) let through is never evaluated unpractised."""
+def test_the_submit_refuses_an_unpractised_selection_the_engine_let_through(world):
+    """The campaign's submit applies the practice predicate itself, so even a
+    selection the engine let through - this fixture engine applies no
+    `practice_check` - is never evaluated unpractised. The engine's own
+    check under the miner policy is `test_graphite_miner_driver.
+    test_the_engine_holds_practice_before_a_miner_selection`, which runs the
+    real research loop."""
     w = world(mode="BUILD")
     w.engine.scripts = {
         ("plan", 1): [STOP_TURN],
@@ -620,37 +729,57 @@ def test_the_published_edition_is_frozen_by_digest():
 
 
 def test_the_engine_rules_a_plan_freezes_are_the_agreed_interface():
-    """The edition names the engine slice's constants by value
-    (`research_agent_policy.GRAPHITE_MINER`, `LIMITS_V2`, `COMPACTION_V1`);
-    wherever the engine defines them, they must be those values."""
-    from carbon.development_session import research_agent_policy as policy
-
+    """The edition names the engine slice's constants by the agreed values;
+    the frozen records carry exactly those values."""
     assert (
         editions.agent_policy()
         == editions.AGENT_POLICY
         == ("carbon.autoresearch.agent-policy.graphite-miner.v1")
     )
-    if hasattr(policy, "GRAPHITE_MINER"):
-        assert policy.GRAPHITE_MINER == editions.AGENT_POLICY
-    if hasattr(policy, "COMPACTION_V1"):
-        assert policy.COMPACTION_V1 == editions.COMPACTION_V1
-    if hasattr(policy, "LIMITS_V2"):
-        assert policy.LIMITS_V2 == {
-            "schema": editions.LIMITS_SCHEMA,
-            "calls_per_epoch": None,
-            "trials_per_epoch": None,
-        }
+    assert editions.compaction_rule() == {
+        "schema": "carbon.autoresearch.compaction.v1",
+        "trigger_fraction": 0.85,
+        "keep_last_turns": 6,
+    }
     assert editions.limits_rule(None, 3) == {
         "schema": editions.LIMITS_SCHEMA,
         "calls_per_epoch": None,
         "trials_per_epoch": 3,
     }
+    assert editions.max_limit() == editions.MAX_LIMIT == 100000
+
+
+@pytest.mark.skipif(
+    not ENGINE_SLICE,
+    reason="the engine slice (S1) is not in this tree; runs at integration",
+)
+def test_the_engine_defines_the_rules_the_edition_names():
+    from carbon.development_session import research_agent_policy as policy
+
+    assert policy.GRAPHITE_MINER == editions.AGENT_POLICY
+    assert policy.COMPACTION_V1 == editions.COMPACTION_V1
+    assert policy.LIMITS_V2 == {
+        "schema": editions.LIMITS_SCHEMA,
+        "calls_per_epoch": None,
+        "trials_per_epoch": None,
+    }
+    assert policy.MAX_TUNABLE_CAP == editions.MAX_LIMIT
+    policy.check_limits(editions.limits_rule(editions.MAX_LIMIT, None))
+    # The finish tool the Planner offers is the one the loop runs.
+    tools = research_loop.session_tools(
+        [editions.FINISH_TOOL], finish_tool=editions.FINISH_TOOL
+    )
+    assert [tool["name"] for tool in tools] == [editions.FINISH]
 
 
 def test_the_miner_prompts_describe_graphite_running_for_the_miner():
     for role in editions.EDITION.roles:
         for _, text in role.prompts:
-            assert "running for the miner" in text
+            assert (
+                "running for the miner" in text
+                if role.name != "reader"
+                else "You run for a miner, on the miner's own model and budget" in text
+            )
             assert "Carbon's internal" not in text
             assert "testing agent" not in text
             assert "Engy" not in text and "pod" not in text.lower().split()
@@ -693,12 +822,74 @@ def test_learning_reads_only_the_miners_own_practice_outcome(world):
         for word in ("score", "screening", "feedback", "SCORED", "eligible"):
             assert word not in text
     assert [o[1] for o in w.library.outcomes] == [True, False]
+    # Bound to this Challenge and version: it never steers another's ranking.
+    assert w.library.outcome_challenges == [CHALLENGE_REF, CHALLENGE_REF]
     # The learning step is given the epoch's own outcome, never feedback.
     assert "feedback" not in inspect.signature(driver._learn).parameters
     # Recorded once per epoch: a resume does not record it again.
     (w.root / "campaign-complete.json").unlink()
     w.run(Transport(forbid=True))
     assert len(w.library.outcomes) == 2
+
+
+#: A plan citing more cards than one learning outcome holds (8 x 9 = 72).
+MANY_CITED = [f"arxiv-2403.{n:05d}" for n in range(plans.MAX_HYPOTHESES * 9)]
+
+
+def _many_cited_plan(w):
+    for card_id in MANY_CITED:
+        w.library.add(make_card(card_id, "miner_hunt"))
+    hypotheses = [
+        {
+            "hypothesis": f"hypothesis {n}",
+            "expected_effect": "lower practice error",
+            "stopping_rule": "two practices without improvement",
+            "recipe_json": None,
+            "cites": [
+                {"card_id": c, "origin": "miner_hunt"}
+                for c in MANY_CITED[n * 9 : n * 9 + 9]
+            ],
+        }
+        for n in range(plans.MAX_HYPOTHESES)
+    ]
+    plan = plans.from_arguments(
+        {"hypotheses": hypotheses, "pins_considered": []}, challenge=CHALLENGE_REF
+    )
+    w.graphite["plan"] = w.library.save_plan(plan)
+    w.engine.scripts = {
+        (None, 1): [[practice(RECIPE)], [select(RECIPE)]],
+        (None, 2): [[practice(RECIPE)], [select(RECIPE)]],
+    }
+
+
+def test_learning_records_at_most_the_librarys_bound_best_ranked_first(world):
+    w = world(mode="BUILD")
+    _many_cited_plan(w)
+    w.run(Transport())
+    for epoch in (1, 2):
+        learned = w.stage(f"learning-epoch-{epoch}")
+        assert learned["status"] == "RECORDED"
+        assert learned["cards"] == MANY_CITED[: driver.LEARNING_CARDS]
+    assert w.campaign.evaluated == [(1, RECIPE), (2, RECIPE)]
+
+
+def test_a_learning_record_the_library_refuses_never_holds_the_submit(world):
+    """A card the library no longer serves (here removed after launch): the
+    hint is noted SKIPPED with the library's code, and the practised
+    selection is still submitted; a resume does not try it again."""
+    w = world(mode="BUILD")
+    _many_cited_plan(w)
+    w.prepare()
+    del w.library.private[MANY_CITED[0]]
+    w.run(Transport())
+    for epoch in (1, 2):
+        skipped = w.stage(f"learning-epoch-{epoch}")
+        assert (skipped["status"], skipped["code"]) == ("SKIPPED", "card_not_found")
+    assert w.library.outcomes == []
+    assert w.campaign.evaluated == [(1, RECIPE), (2, RECIPE)]
+    (w.root / "campaign-complete.json").unlink()
+    w.run(Transport(forbid=True))
+    assert w.campaign.evaluated == [(1, RECIPE), (2, RECIPE)]
 
 
 def test_the_driver_holds_no_hidden_or_evaluation_reader():
