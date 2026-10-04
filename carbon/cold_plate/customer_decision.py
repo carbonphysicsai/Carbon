@@ -18,6 +18,7 @@ qualified product recommendation or a global optimum.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -39,7 +40,7 @@ MODE = "PB-INV"
 CONTRACT_SCHEMA = "carbon.cold-plate.customer-decision-contract.v2"
 REQUEST_SCHEMA = "carbon.cold-plate.design-search-request.v2"
 COMMITMENT_SCHEMA = "carbon.cold-plate.design-search-commitment.v2"
-RESULT_SCHEMA = "carbon.cold-plate.design-search-result.v2"
+RESULT_SCHEMA = "carbon.cold-plate.design-search-result.v3"
 
 DESIGN_VARIABLES = (
     "channel_width_mm",
@@ -56,6 +57,12 @@ CONDITION_VARIABLES = (
 )
 MODES = (MODE,)
 VERDICTS = ("FEASIBLE", "INFEASIBLE", "REFERENCE_UNAVAILABLE")
+PROPOSAL_OUTCOMES = (
+    "CONFIRMED_INFEASIBLE",
+    "CONFIRMED_FEASIBLE",
+    "UNRESOLVED",
+    "ABSTAIN",
+)
 REFERENCE_CLASSES = ("ANALYTICAL_FIXTURE", "COUNTED_CFD")
 DUPLICATE_QUERY_POLICY = "FORBID_WITHIN_AND_ACROSS_CALLS"
 QUERY_ACCOUNTING_UNIT = "ATTEMPTED_MODEL_POINT"
@@ -74,6 +81,7 @@ CODE_PATHS = (
     "carbon/cold_plate/analysis.py",
     "carbon/cold_plate/openfoam.py",
     "carbon/cold_plate/population.py",
+    "carbon/cold_plate/reference_campaign.py",
     "carbon/learned_baseline.py",
     "scripts/dev/cold_plate/decision_study.py",
     "scripts/dev/cold_plate/reference/run_batch.py",
@@ -759,6 +767,38 @@ def _load_commitment(commitment):
     return on_disk
 
 
+def _restore_commitment(path, *, expected_digest, expected_file_sha256):
+    """Restore a construction-stage commitment under its frozen manifest.
+
+    Evaluation uses this only after the construction manifest has been fully
+    validated.  The exact bytes and semantic commitment digest are both bound,
+    so evaluation cannot regenerate or silently replace a proposal after
+    reference evidence exists.
+    """
+
+    path = Path(path)
+    try:
+        encoded = path.read_bytes()
+    except OSError as error:
+        raise DecisionError("committed_proposal_unavailable", str(path)) from error
+    actual_sha256 = "sha256:" + hashlib.sha256(encoded).hexdigest()
+    if actual_sha256 != expected_file_sha256:
+        raise DecisionError("committed_proposal_file_digest_mismatch", str(path))
+    try:
+        document = json.loads(encoded)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise DecisionError("committed_proposal_invalid_json", str(path)) from error
+    if document.get("schema") != COMMITMENT_SCHEMA:
+        raise DecisionError("committed_proposal_schema", str(path))
+    body = {key: value for key, value in document.items() if key != "commitment_digest"}
+    actual_digest = digest(body)
+    if actual_digest != document.get("commitment_digest"):
+        raise DecisionError("commitment_digest_mismatch")
+    if actual_digest != expected_digest:
+        raise DecisionError("construction_commitment_digest_mismatch", str(path))
+    return Commitment(_COMMITMENT_TOKEN, path, encoded)
+
+
 def _case_id(case):
     return "cold-plate-decision:" + digest(case).removeprefix("sha256:")
 
@@ -878,6 +918,7 @@ class ReferenceSession:
         condition_budget,
         session_id,
         campaign_wall_s=0.0,
+        construction_identity_digest=None,
     ):
         if token is not _REFERENCE_SESSION_TOKEN:
             raise DecisionError("reference_session_from_factory_only")
@@ -894,6 +935,9 @@ class ReferenceSession:
         self.campaign_wall_s = _number(campaign_wall_s, "campaign_wall_s")
         if self.campaign_wall_s < 0:
             raise DecisionError("reference_campaign_wall_time")
+        if construction_identity_digest is not None:
+            _tagged_digest(construction_identity_digest, "construction_identity_digest")
+        self.construction_identity_digest = construction_identity_digest
         self.used = 0
         self.cache: dict[str, dict[str, object]] = {}
         self._verification_keys: set[str] = set()
@@ -1008,7 +1052,12 @@ def analytical_fixture_reference(source, *, condition_budget, session_id):
 
 
 def counted_cfd_reference(
-    records, *, condition_budget, session_id, campaign_wall_s=0.0
+    records,
+    *,
+    condition_budget,
+    session_id,
+    construction_identity_digest,
+    campaign_wall_s=0.0,
 ):
     """Build a counted session from records already sealed by the importer."""
 
@@ -1031,6 +1080,7 @@ def counted_cfd_reference(
         condition_budget=condition_budget,
         session_id=session_id,
         campaign_wall_s=campaign_wall_s,
+        construction_identity_digest=construction_identity_digest,
     )
 
 
@@ -1092,6 +1142,22 @@ def verify(decision_contract, commitment, reference):
             }
         )
     false_feasible = counts["INFEASIBLE"] > 0
+    if document["status"] == "ABSTAIN":
+        proposal_outcome = "ABSTAIN"
+    elif false_feasible:
+        # A known constraint violation remains decisive even when another
+        # required condition has unavailable reference evidence.
+        proposal_outcome = "CONFIRMED_INFEASIBLE"
+    elif jobs and counts["FEASIBLE"] == len(jobs):
+        proposal_outcome = "CONFIRMED_FEASIBLE"
+    else:
+        proposal_outcome = "UNRESOLVED"
+    reference_availability = {
+        "required_conditions": len(jobs),
+        "usable_conditions": counts["FEASIBLE"] + counts["INFEASIBLE"],
+        "unavailable_conditions": counts["REFERENCE_UNAVAILABLE"],
+        "complete": counts["REFERENCE_UNAVAILABLE"] == 0,
+    }
     return {
         "schema": RESULT_SCHEMA,
         "challenge": CHALLENGE,
@@ -1101,11 +1167,13 @@ def verify(decision_contract, commitment, reference):
         "request_digest": document["request"]["request_digest"],
         "commitment_digest": document["commitment_digest"],
         "status": document["status"],
+        "proposal_outcome": proposal_outcome,
         "reference_evidence_class": reference.evidence_class,
         "counted_cfd_evidence": reference.evidence_class == "COUNTED_CFD",
         "verification_accounting": accounting,
         "reference_jobs": len(jobs),
         "verdicts": counts,
+        "reference_availability": reference_availability,
         "false_feasible": false_feasible,
         "rows": rows,
         "reference_session_metrics": reference.metrics(),

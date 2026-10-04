@@ -1,6 +1,7 @@
 # CHALLENGE-AI-COOLING-FOUNDATION-01 — customer-bound cooling design foundation
 
-**Status:** engineering candidate complete; counted CFD owner-blocked; exact-head PR automation pending
+**Status:** focused repair implemented; validation/PR automation pending;
+counted CFD owner-blocked on corrected science and compute envelope
 
 **Authority:** OWNER-CHALLENGE-FOUNDATION-01
 
@@ -81,6 +82,16 @@ making the full-manifold, transient and experimental gaps impossible to miss.
     groups separate.
 13. The fixture smoke is labelled as a fixture. Counted CFD is either run under
     the exact owner-approved cap or handed off as an exact ready-to-run plan.
+14. Fixed-pilot metrics separate six unique selected reference cases from four-
+    arm evidence reuse and make no population reliability claim.
+15. Proposal outcome preserves a confirmed violation despite other unavailable
+    conditions, and comparator/regret semantics remain unresolved while a
+    potentially competitive design lacks usable evidence.
+16. All proposal commitments exist in a construction artifact before reference
+    acquisition; counted plans and evaluation bind that exact identity.
+17. A durable pre-dispatch campaign ledger enforces 48 initial executions plus
+    at most 12 eligible one-per-case retries across restarts and concurrent
+    launchers, with output-directory binding.
 
 ## Out of scope
 
@@ -93,6 +104,8 @@ LIVE, production, reward, frontier, settlement or chain behavior.
 
 Science-owner approval of the frozen synthetic assumptions/comparison policy and
 compute/spend-owner approval of 48 initial runs, 12 reserved retries, 60 hard
-cap, 2 CPUs per case, 6 parallel and 3600 seconds per case. Customer
+cap, 2 CPUs per case, 6 parallel, 3600 seconds per case, and the resulting 96
+initial / 120 hard-cap allocated core-hour ceilings. The planning estimates
+remain 19.2 / 24.0 core-hours and are not caps. Customer
 requirements/rights, acceptance thresholds, full-manifold and LIVE decisions
 remain out of scope and fail closed.

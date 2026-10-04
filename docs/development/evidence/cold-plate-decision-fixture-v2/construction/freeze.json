@@ -1,0 +1,323 @@
+{
+  "analysis": {
+    "combined_weighting": null,
+    "group_policy": "REPORT_REPRESENTATIVE_AND_BOUNDARY_STRESS_SEPARATELY",
+    "pass_threshold": null,
+    "regret_policy": {
+      "abstention": "numeric regret unavailable; classify ABSTAIN",
+      "reference_feasible_selection": "exact selected-minus-comparator regret only when the complete registered set is sufficiently resolved; otherwise report a labelled difference from the best observed feasible design",
+      "reference_infeasible_selection": "numeric regret unavailable; classify INFEASIBLE_SELECTION",
+      "unresolved_reference": "numeric exact regret unavailable; classify the selected proposal or comparator as unresolved without treating missing evidence as feasibility"
+    },
+    "regret_quantity": "worst-case reference hydraulic power in W",
+    "statistical_interpretation": {
+      "future_uncertainty_requirement": "approved sampling design and justified unit of independent observation",
+      "independent_observation_unit": null,
+      "mode": "DESCRIPTIVE_FIXED_PILOT",
+      "population_reliability_claim": false
+    }
+  },
+  "budgets": {
+    "comparator_condition_evaluations": 48,
+    "configured_hard_cap_allocated_core_hour_ceiling": 120.0,
+    "configured_initial_allocated_core_hour_ceiling": 96.0,
+    "cpus_per_solver_execution": 2,
+    "estimated_core_hours_per_case": 0.4,
+    "estimated_hard_cap_core_hours": 24.0,
+    "estimated_initial_core_hours": 19.2,
+    "hard_solver_execution_cap": 60,
+    "initial_solver_executions": 48,
+    "max_retries_per_case": 1,
+    "model_query_points_per_arm": 48,
+    "parallel_solver_executions": 6,
+    "reference_session_condition_evaluations": 72,
+    "retry_eligible_statuses": [
+      "FAILED_INFRA",
+      "REFERENCE_SOLVER_FAILED",
+      "REFERENCE_TIMEOUT"
+    ],
+    "retry_reserve": 12,
+    "solver_timeout_seconds": 3600,
+    "verification_condition_evaluations_per_arm": 6
+  },
+  "case_roles": {
+    "final_cases_used_for_training_or_tuning": false,
+    "final_decision_evaluation": [
+      "rep-01",
+      "rep-02",
+      "rep-03",
+      "rep-04",
+      "boundary-01",
+      "boundary-02"
+    ],
+    "prior_calibration_report": "docs/development/evidence/cold-plate-pools-v1/baselines.json",
+    "training_and_prior_tuning": "docs/development/evidence/cold-plate-pools-v1/train.jsonl"
+  },
+  "claims": {
+    "customer_acceptance": false,
+    "global_optimum": false,
+    "live_authority": false,
+    "production_qualification": false,
+    "scientific_qualification": false,
+    "synthetic_customer_requirement": true
+  },
+  "comparisons": {
+    "model_value": [
+      "analytic-v1/fixed_grid",
+      "learned-krr-v1/fixed_grid"
+    ],
+    "reference_comparator": "best observed reference-feasible design; exact finite-set best and regret only when every potentially competitive design is sufficiently resolved in the declared eight-design by six-condition comparison set",
+    "search_method_value": [
+      "learned-krr-v1/fixed_grid",
+      "learned-krr-v1/screen_then_confirm"
+    ]
+  },
+  "compute_accounting": {
+    "actual_cpu_use_limitation": "The CPU flag is an allocation limit, not a measurement of CPU time consumed; actual CPU use requires host or container accounting and is reported only when measured.",
+    "configured_ceiling_basis": "Allocation ceiling equals executions multiplied by 2 CPUs and 3600 seconds: 96 allocated core-hours initially and 120 allocated core-hours including the retry reserve.",
+    "estimate_basis": "Planning estimate of 0.4 core-hours per solver execution: 19.2 core-hours for 48 initial executions and 24.0 core-hours at the 60-execution hard cap.",
+    "overhead_limitation": "Orchestration, container startup, storage, artifact processing and host overhead are outside the per-execution solver CPU allocation and must be reported separately when measured."
+  },
+  "condition_groups": {
+    "boundary-01": "BOUNDARY_STRESS",
+    "boundary-02": "BOUNDARY_STRESS",
+    "rep-01": "REPRESENTATIVE",
+    "rep-02": "REPRESENTATIVE",
+    "rep-03": "REPRESENTATIVE",
+    "rep-04": "REPRESENTATIVE"
+  },
+  "config_digest": "sha256:7e872810a2676dd2950653cd8978e9099f8f452fd889513f55dc33b8db32c213",
+  "control_policy": {
+    "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
+    "equation": "total_flow_lpm = flow_lpm_per_kw * heat_load_w / 1000",
+    "name": "steady-state-feed-forward-flow-per-heat",
+    "not_demonstrated": [
+      "transient response",
+      "sensor error or latency",
+      "pump and actuator dynamics",
+      "manifold flow distribution",
+      "controller safety qualification"
+    ],
+    "required_limits": [
+      "declared flow_lpm_per_kw design bounds",
+      "synthetic hydraulic-power constraint",
+      "PG25 reference property applicability",
+      "reference laminar Reynolds applicability",
+      "future owner-approved pump flow, pressure and slew limits"
+    ]
+  },
+  "decision_contract": {
+    "challenge": "chip-cold-plate",
+    "claims": {
+      "customer_acceptance": false,
+      "global_optimum": false,
+      "production_qualification": false,
+      "scientific_qualification": false
+    },
+    "constraints": {
+      "die_peak_c_max": 100.0,
+      "hydraulic_power_w_max": 0.25
+    },
+    "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+    "contract_id": "ai-accelerator-cooling-synthetic-v1",
+    "customer_requirement_ref": "synthetic:ai-accelerator-cooling-v1",
+    "decision": "choose straight-channel geometry and flow control that minimize worst-case hydraulic power while meeting the supplied die and hydraulic limits at every declared operating condition",
+    "material": "DEVELOPMENT",
+    "objective": {
+      "direction": "MINIMIZE",
+      "quantity": "worst_case_hydraulic_power",
+      "unit": "W"
+    },
+    "query_policy": {
+      "accounting_unit": "ATTEMPTED_MODEL_POINT",
+      "duplicate_policy": "FORBID_WITHIN_AND_ACROSS_CALLS",
+      "retry_policy": {
+        "continuation_after_failure": false,
+        "max_retries_per_point": 0,
+        "new_oracle_required": true
+      }
+    },
+    "reference": {
+      "counted_evidence_class": "COUNTED_CFD",
+      "credibility": "NUMERICAL_VERIFICATION_ONLY",
+      "fixture_evidence_class": "ANALYTICAL_FIXTURE",
+      "physical_scope": "periodic-straight-channel-cell-v1",
+      "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+    },
+    "schema": "carbon.cold-plate.customer-decision-contract.v2",
+    "scope": "periodic-straight-channel-cell-v1",
+    "tie_policy": "lowest worst-case predicted hydraulic power among designs predicted to meet every customer-supplied limit at every declared condition; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, then flow_lpm_per_kw",
+    "verification_policy": {
+      "accounting_unit": "CONDITION_EVIDENCE_EVALUATION",
+      "cache_policy": "CONDITION_EVIDENCE_COUNTS;SOLVER_EXECUTION_DOES_NOT_REPEAT",
+      "repeated_commitment": "FORBIDDEN"
+    }
+  },
+  "freeze_digest": "sha256:6ea66ba95f91fbd293ac7973cbb8b81c32a5069a7027414712da52ddd92837a2",
+  "reference_scope": {
+    "comparison_set": "all declared design-condition pairs",
+    "global_optimality_claim": false,
+    "physical_scope": "periodic-straight-channel-cell-v1",
+    "solver_image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+  },
+  "schema": "carbon.cold-plate.decision-study-freeze.v2",
+  "search_freeze": {
+    "challenge": "chip-cold-plate",
+    "code": {
+      "carbon/cold_plate/analysis.py": "sha256:0f42b8b224c318e232edfb7f4d2ca3449fb22239cebeaaaab61e08f984f877cb",
+      "carbon/cold_plate/analytic.py": "sha256:0851499dfefe5d7c23bb99346ab98fd1593b6b91d346af907dedbdec67c24034",
+      "carbon/cold_plate/customer_decision.py": "sha256:a34bcf658b0c8dc1f27714d8687b14c6f164d758568bdc65802b0bfe8f8646e9",
+      "carbon/cold_plate/decision_study.py": "sha256:9bbf6e42c7d163cc579e653ca68a3c61c85f323f078dbb4038f409e8c9783e0b",
+      "carbon/cold_plate/domain.py": "sha256:63104d66d3e32be7a35d65483a9535845569b13d56d7a76f7e18c503d9a055ee",
+      "carbon/cold_plate/exam.py": "sha256:ffb9e94ae17a8b403c5d95f4e4985ef989a81d7ed35c2a45af062cff6cac17be",
+      "carbon/cold_plate/openfoam.py": "sha256:e531c7c8c4e241775d94acff1c7caab42198cb97d10a33149be08bfe2805a444",
+      "carbon/cold_plate/population.py": "sha256:27e7601d10ba69d87c2724ea95185a053f63d64edd0332eea9f44edda82059b2",
+      "carbon/cold_plate/reference_campaign.py": "sha256:b4bdbea654376e6fe6a48caa51024a564ab2c5c8c8c2492131a07d089c30e32c",
+      "carbon/design_search/experiment.py": "sha256:30c3dcc89fa88615c24a2b78bb8ad7556cda581bc0d7fed544c713ef7ec0adb9",
+      "carbon/design_search/methods.py": "sha256:98b1f9f812fcba2b50ba463cc1f9e7f3eef5d932502d5b775aa329498f24f8d5",
+      "carbon/learned_baseline.py": "sha256:b99f986c7576951ef645f1f4660fd04a45bd7a88399499748c22b126ae682926",
+      "scripts/dev/cold_plate/decision_study.py": "sha256:0734cff1de2106392de9e66a8931e4556bf8af95cdfc3cc8298e9e52499d7c58",
+      "scripts/dev/cold_plate/reference/run_batch.py": "sha256:016581131fa6cc6aa0bb6b40767d550b378d2ad5d364446e5b1382aa052bc7d9"
+    },
+    "conditions": [
+      {
+        "heat_load_w": 800.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      {
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 15.0,
+        "hotspot_ratio": 1.5,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      {
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 35.0
+      },
+      {
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      {
+        "heat_load_w": 1200.0,
+        "hotspot_center_mm": 12.0,
+        "hotspot_ratio": 2.0,
+        "hotspot_width_mm": 2.5,
+        "inlet_c": 40.0
+      },
+      {
+        "heat_load_w": 1000.0,
+        "hotspot_center_mm": 6.0,
+        "hotspot_ratio": 2.5,
+        "hotspot_width_mm": 1.75,
+        "inlet_c": 45.0
+      }
+    ],
+    "decision_contract": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
+    "dependencies": {
+      "uv.lock": "sha256:5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4"
+    },
+    "designs": [
+      {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25
+      },
+      {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75
+      },
+      {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25
+      },
+      {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.25,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75
+      },
+      {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25
+      },
+      {
+        "channel_depth_mm": 1.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75
+      },
+      {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.25
+      },
+      {
+        "channel_depth_mm": 2.5,
+        "channel_width_mm": 0.4,
+        "fin_width_mm": 0.3,
+        "flow_lpm_per_kw": 1.75
+      }
+    ],
+    "failure_handling": "an unavailable or unresolved reference result stays exactly that; a model or oracle failure ends that run and is recorded",
+    "freeze_digest": "sha256:4cbfadef4c6c3c4a288e86fc6fa24375472476bd5fae7da3c3c1ef790c2a6196",
+    "initialization": "deterministic; no method draws a random number",
+    "material": "DEVELOPMENT",
+    "methods": {
+      "fixed_grid": {
+        "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
+        "method": "fixed_grid",
+        "parameters": {}
+      },
+      "screen_then_confirm": {
+        "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
+        "method": "screen_then_confirm",
+        "parameters": {
+          "screen_condition": 4
+        }
+      }
+    },
+    "mode": "PB-INV",
+    "objective_and_constraints": "the decision contract's, pinned above",
+    "panel": [
+      {
+        "material": "DEVELOPMENT",
+        "member": "analytic-v1",
+        "recipe_digest": "sha256:0c4271a20efd1ad23fe33ae5114e4cf48a98461f789e395a037a946d3aac9783",
+        "seed": 0
+      },
+      {
+        "material": "DEVELOPMENT",
+        "member": "learned-krr-v1",
+        "recipe_digest": "sha256:e48b053989d08c9b2ade07d92f13c1efee188e9bad01d899c169c8f2e0cf92fb",
+        "seed": 0
+      }
+    ],
+    "query_budget": 48,
+    "reference_allocation": "the verification budget per method and member, committed before any reference access",
+    "schema": "carbon.design-search.freeze.v1",
+    "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
+    "stopping": "a method stops by its own rule or when its next query would exceed the query budget, and selects from what it queried",
+    "tie_policy": "lowest worst-case predicted hydraulic power among designs predicted to meet every customer-supplied limit at every declared condition; exact ties use channel_width_mm, fin_width_mm, channel_depth_mm, then flow_lpm_per_kw",
+    "verification_budget": 6
+  },
+  "study_id": "ai-accelerator-cooling-synthetic-v1"
+}

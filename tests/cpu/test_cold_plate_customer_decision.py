@@ -326,6 +326,13 @@ def test_reference_failure_is_not_a_design_failure_and_false_feasible_is_visible
         "REFERENCE_UNAVAILABLE": 1,
     }
     assert result["false_feasible"] is True
+    assert result["proposal_outcome"] == "CONFIRMED_INFEASIBLE"
+    assert result["reference_availability"] == {
+        "required_conditions": 2,
+        "usable_conditions": 1,
+        "unavailable_conditions": 1,
+        "complete": False,
+    }
     assert result["claims"]["unavailable_counted_as_feasible_or_infeasible"] is False
     assert result["rows"][0]["reference_status"] == "REFERENCE_TIMEOUT"
     assert result["rows"][1]["reference_status"] == "OK"

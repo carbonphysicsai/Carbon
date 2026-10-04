@@ -1,5 +1,5 @@
 {
-  "schema": "carbon.cold-plate.decision-study-config.v1",
+  "schema": "carbon.cold-plate.decision-study-config.v2",
   "study_id": "ai-accelerator-cooling-synthetic-v1",
   "material": "DEVELOPMENT",
   "scope": "periodic-straight-channel-cell-v1",
@@ -66,7 +66,7 @@
   "comparisons": {
     "model_value": ["analytic-v1/fixed_grid", "learned-krr-v1/fixed_grid"],
     "search_method_value": ["learned-krr-v1/fixed_grid", "learned-krr-v1/screen_then_confirm"],
-    "reference_comparator": "best reference-feasible design in the declared eight-design by six-condition comparison set"
+    "reference_comparator": "best observed reference-feasible design; exact finite-set best and regret only when every potentially competitive design is sufficiently resolved in the declared eight-design by six-condition comparison set"
   },
   "budgets": {
     "model_query_points_per_arm": 48,
@@ -82,17 +82,35 @@
     "parallel_solver_executions": 6,
     "estimated_core_hours_per_case": 0.4,
     "estimated_initial_core_hours": 19.2,
-    "estimated_hard_cap_core_hours": 24.0
+    "estimated_hard_cap_core_hours": 24.0,
+    "configured_initial_allocated_core_hour_ceiling": 96.0,
+    "configured_hard_cap_allocated_core_hour_ceiling": 120.0,
+    "retry_eligible_statuses": [
+      "FAILED_INFRA",
+      "REFERENCE_SOLVER_FAILED",
+      "REFERENCE_TIMEOUT"
+    ]
+  },
+  "compute_accounting": {
+    "estimate_basis": "Planning estimate of 0.4 core-hours per solver execution: 19.2 core-hours for 48 initial executions and 24.0 core-hours at the 60-execution hard cap.",
+    "configured_ceiling_basis": "Allocation ceiling equals executions multiplied by 2 CPUs and 3600 seconds: 96 allocated core-hours initially and 120 allocated core-hours including the retry reserve.",
+    "actual_cpu_use_limitation": "The CPU flag is an allocation limit, not a measurement of CPU time consumed; actual CPU use requires host or container accounting and is reported only when measured.",
+    "overhead_limitation": "Orchestration, container startup, storage, artifact processing and host overhead are outside the per-execution solver CPU allocation and must be reported separately when measured."
   },
   "analysis": {
-    "confidence_interval": "Wilson 95% binomial interval",
+    "statistical_interpretation": {
+      "mode": "DESCRIPTIVE_FIXED_PILOT",
+      "population_reliability_claim": false,
+      "independent_observation_unit": null,
+      "future_uncertainty_requirement": "approved sampling design and justified unit of independent observation"
+    },
     "group_policy": "REPORT_REPRESENTATIVE_AND_BOUNDARY_STRESS_SEPARATELY",
     "combined_weighting": null,
     "regret_quantity": "worst-case reference hydraulic power in W",
     "regret_policy": {
-      "reference_feasible_selection": "selected minus finite-set comparator; lower is better",
+      "reference_feasible_selection": "exact selected-minus-comparator regret only when the complete registered set is sufficiently resolved; otherwise report a labelled difference from the best observed feasible design",
       "reference_infeasible_selection": "numeric regret unavailable; classify INFEASIBLE_SELECTION",
-      "unresolved_reference": "numeric regret unavailable; classify REFERENCE_UNRESOLVED",
+      "unresolved_reference": "numeric exact regret unavailable; classify the selected proposal or comparator as unresolved without treating missing evidence as feasibility",
       "abstention": "numeric regret unavailable; classify ABSTAIN"
     },
     "pass_threshold": null
