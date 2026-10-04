@@ -24,22 +24,21 @@ from graphite_fixtures import (
 
 from carbon.agent_campaign import boundaries
 from carbon.agent_campaign.grant import GrantError, SpendingGrant, template
-from carbon.agent_campaign.graphite import (
-    FIXTURE_INDEX,
-    LiteratureIndex,
-    LiveModel,
-    ScriptedModel,
-    SessionBrief,
-)
 from carbon.agent_campaign.graphite import tools as gt
-from carbon.agent_campaign.graphite.literature import LiteratureError
+from carbon.agent_campaign.graphite.literature import (
+    FIXTURE_INDEX,
+    LiteratureError,
+    LiteratureIndex,
+)
 from carbon.agent_campaign.graphite.model import (
+    LiveModel,
     ModelAccessRefused,
+    ScriptedModel,
     text,
     tool,
     tools,
 )
-from carbon.agent_campaign.graphite.provider import GraphiteProvider
+from carbon.agent_campaign.graphite.provider import GraphiteProvider, SessionBrief
 from carbon.agent_campaign.graphite.roles import (
     ROLES,
     TOOL_REGISTRY,

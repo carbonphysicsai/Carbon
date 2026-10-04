@@ -24,12 +24,13 @@ from graphite_phase2_fixtures import (
 
 from carbon.agent_campaign import grant as grants
 from carbon.agent_campaign.controller import SimulatedCrash
-from carbon.agent_campaign.graphite import GraphiteProvider, LiveModel, triage
 from carbon.agent_campaign.graphite import literature as lit
 from carbon.agent_campaign.graphite import method_cards as mc
 from carbon.agent_campaign.graphite import tools as gt
+from carbon.agent_campaign.graphite import triage
 from carbon.agent_campaign.graphite.literature_fetch import QUERY_SET
-from carbon.agent_campaign.graphite.model import crash, fail
+from carbon.agent_campaign.graphite.model import LiveModel, crash, fail
+from carbon.agent_campaign.graphite.provider import GraphiteProvider
 from carbon.agent_campaign.graphite.roles import (
     ROLES,
     TOOL_REGISTRY,

@@ -25,9 +25,8 @@ from graphite_fixtures import (
 )
 
 from carbon.agent_campaign import controller as ctl
-from carbon.agent_campaign.graphite import ScriptedModel
 from carbon.agent_campaign.graphite import provider as gp
-from carbon.agent_campaign.graphite.model import crash, fail, text, tool
+from carbon.agent_campaign.graphite.model import ScriptedModel, crash, fail, text, tool
 from carbon.agent_campaign.graphite.roles import ROLES, RoleName
 from carbon.agent_campaign.provider import ProviderUnavailable, RunState
 from carbon.development_session.model_provider import ENGY_MODELS, select
