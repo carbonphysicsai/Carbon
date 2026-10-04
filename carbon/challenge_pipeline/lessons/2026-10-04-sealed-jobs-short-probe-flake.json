@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-04-sealed-jobs-short-probe-flake",
+ "recorded_at": "2026-10-04T19:28:29Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "test_run",
+  "ref": "tests/cpu/test_exam_design_machinery.py::test_sealed_private_jobs_round_trip_and_hide_plaintext; failed shard 2 of #561's first CI run, passed on re-run; fixed on claude/fix-exam-design-flake",
+  "description": "Ran the real private_cases.seal 200,000 times with fresh keys and counted how often the old probes appeared in the ciphertext, then looped the fixed test 20,000 times in process and 500 times under pytest."
+ },
+ "expected": "A check that sealed private jobs hide their plaintext passes on every run.",
+ "observed": "The test asserted b\"c1\" not in the ciphertext. A 2-byte probe sits in 88 random bytes with probability 87 * 2**-16, about 1 in 754; 246 of 200,000 seals held it (1 in 813). The encryption was sound; the probe was too short. The 7-byte b\"pscreen\" probe (about 1e-15) never hit.",
+ "keep": [
+  "Test that ciphertext hides plaintext with probes long enough that random bytes cannot hold them: 16 bytes gives about len**2 * 2**-128.",
+  "Bind the probe to what was actually encrypted (the recorded plaintext digest), so the absence check is not vacuous."
+ ],
+ "change": [
+  "The test now checks that no 16-byte run of the plaintext appears in the ciphertext, that the plaintext digest and length match seal's record, that the right key round-trips and that a wrong key does not decode; production code is unchanged."
+ ],
+ "protocol_elements": [
+  "exam-design.private-cases",
+  "test.flake"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
