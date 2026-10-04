@@ -47,11 +47,19 @@ No scientific value, threshold or gate is set or changed here.
    - A plan is named by its digest as the library and S3 name it,
      `sha256:` and 64 hex digits; anything else is `plan_not_found`.
    - Shapes: a share in [0, 1], never a boolean or NaN; up to 8 hunt queries
-     of 1 to 6 terms of `[A-Za-z0-9-]` (raw query syntax is refused
-     `hunt_query_invalid`); `max_records` 1 to 10000; limits only
-     `calls_per_epoch`, `trials_per_epoch` and `planner_calls`, each 1 to
-     1000000 (`graphite_limits_invalid`). The shapes are refused by name at
-     the replay gate, before the request is digested.
+     of 1 to 6 terms of `[A-Za-z0-9-]`, each starting with a letter or digit
+     and none of them an arXiv operator word (`and`, `or`, `not`, `andnot`,
+     in any case), so raw query syntax is refused `hunt_query_invalid`;
+     `max_records` 1 to 5000; limits only `calls_per_epoch`,
+     `trials_per_epoch` and `planner_calls`, each 1 to 100000
+     (`graphite_limits_invalid`). These are S2's hunt grammar and the arXiv
+     client's record bound, and the engine's tunable bound as S3's launch
+     fields read it, so a launch the campaign's preparation would refuse is
+     refused before it is created; a test pins them equal at integration.
+     The door may be narrower than S2 (a query of at most 128 characters,
+     single spaces, at least one query when `queries` is sent), never wider.
+     The shapes are refused by name at the replay gate, before the request
+     is digested.
    - A model selection is for an agent that calls one: `MODEL_AGENTS` is
      autonomous and graphite. The refusal for `agent=none` keeps its
      historical code, `model_selection_needs_the_autonomous_agent`, with a
@@ -62,6 +70,9 @@ No scientific value, threshold or gate is set or changed here.
      (`graphite_not_offered_for_challenge`).
    - The shared card pack loads (`literature_pack_missing`).
    - The miner's library opens (`library_unavailable`).
+   - A launch whose Planner runs first (RESEARCH, FULL, or BUILD without a
+     plan) has at most 64 pins (`too_many_pins`, S3's `plan.MAX_PINS`): its
+     Planner must consider every pin, and a plan names at most 64.
    - A BUILD plan exists in the library (`plan_not_found`), is the launch's
      own Challenge's (`plan_invalid`, reason `plan_for_another_challenge`),
      and passes S3's plan rule against the current pins and bans
@@ -225,14 +236,18 @@ slice's.
   driver's (S1, S3). Today the campaign ledger refuses past a ceiling with a
   bare error, which interrupts the campaign; S4 adds a catalog step for the
   typed stop it proposes (`miner_ceiling_reached`).
-- Whether a FULL launch whose research share holds less than one model
-  call's reservation is refused at admission or only explained. With no
+- Whether the door, as well as S3's preparation, refuses a FULL launch whose
+  research share holds less than one model call's reservation. With no
   Carbon output cap, the default share of 0.10 needs a money ceiling of at
   least ten full-output reservations (about USD 2.72 on gpt-5-mini) before
-  research can make one call; below that the research stage stops
-  `research_share_reached` before any call and the build goes on. The share
-  arithmetic is S3's (`budget.share_caps`), so S4 does not copy it into
-  admission. A check S3 publishes could be called at admission.
+  research can make one call. S3 refuses such a launch
+  `research_share_too_small` before its manifest freezes, and S4's catalog
+  gives the miner its next step. S3 publishes the check
+  (`driver.research_share_shortfall`) for a door to call. The door does not
+  call it yet: it needs the selection a new plan freezes, whose output
+  default is the base's (OWNER-LAUNCHPAD-PROD-02, d55c16ba2), and this
+  slice's base predates that rule, so a door check here would judge another
+  reservation than the campaign's.
 - Contributing cards back to the shared pack, and PDF import, are deferred
   by the owner decision.
 

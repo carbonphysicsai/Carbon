@@ -605,12 +605,21 @@ def test_a_recorded_graphite_launch_without_its_admission_is_refused(graphite):
         ({"hunt": {"queries": ["battery"] * 9}}, "hunt_query_invalid"),
         ({"hunt": {"queries": []}}, "hunt_query_invalid"),
         ({"hunt": {"queries": ["battery  charge"]}}, "hunt_query_invalid"),
+        # S2's hunt grammar: a term starts with a letter or digit, and no
+        # term is an arXiv operator word, in any case.
+        ({"hunt": {"queries": ["-battery charge"]}}, "hunt_query_invalid"),
+        ({"hunt": {"queries": ["battery AND charge"]}}, "hunt_query_invalid"),
+        ({"hunt": {"queries": ["battery andNot ageing"]}}, "hunt_query_invalid"),
+        ({"hunt": {"queries": ["not battery"]}}, "hunt_query_invalid"),
         ({"hunt": {"max_records": 0}}, "hunt_query_invalid"),
-        ({"hunt": {"max_records": 10001}}, "hunt_query_invalid"),
+        # The arXiv client's own bound (S2's `hunt.MAX_RECORDS`).
+        ({"hunt": {"max_records": 5001}}, "hunt_query_invalid"),
         ({"hunt": {"pages": 3}}, "hunt_query_invalid"),
         ({"limits": {"calls_per_epoch": 0}}, "graphite_limits_invalid"),
         ({"limits": {"calls_per_epoch": True}}, "graphite_limits_invalid"),
         ({"limits": {"provider_nanodollars": 5}}, "graphite_limits_invalid"),
+        # The engine's own tunable bound (S1's `MAX_TUNABLE_CAP`).
+        ({"limits": {"planner_calls": 100001}}, "graphite_limits_invalid"),
     ],
 )
 def test_a_graphite_choice_that_cannot_run_is_refused_before_the_chain(
@@ -620,6 +629,114 @@ def test_a_graphite_choice_that_cannot_run_is_refused_before_the_chain(
         perform(graphite, "launch", launch_request(graphite, **fields))
     assert refused.value.code == code
     assert graphite.chain.reads == 0 and graphite.host.recent() == []
+
+
+def test_the_bounds_themselves_are_admitted():
+    from scripts.dev.miner_launchpad.runner import graphite_launch
+
+    choice = graphite_launch(
+        {
+            "agent": "graphite",
+            "graphite_mode": "RESEARCH",
+            "hunt": {
+                "queries": ["Li-ion fast-charge 2C", "battery ageing"],
+                "max_records": 5000,
+            },
+            "limits": {"planner_calls": 100000, "trials_per_epoch": 1},
+        }
+    )
+    assert choice["hunt"]["max_records"] == 5000
+    assert choice["limits"]["planner_calls"] == 100000
+
+
+#: Queries S2's hunt grammar accepts, and queries it refuses: the door
+#: admits every one of the first kind and refuses every one of the second.
+S2_ACCEPTS = ("battery", "Li-ion fast-charge 2C", "a b c d e f", "Andes ordinal")
+S2_REFUSES = (
+    "-battery",
+    "battery AND charge",
+    "or",
+    "battery NOT",
+    "andnot ageing",
+    "ti:battery",
+    'battery "charge"',
+    "a b c d e f g",
+)
+
+
+def test_the_door_bounds_are_the_hunts_and_the_editions():
+    """At integration: the door's hunt grammar, record and limit bounds and
+    pin bound are S2's and S3's own, so nothing the door admits is refused
+    by the campaign's preparation after it was created."""
+    hunt = pytest.importorskip("carbon.agent_campaign.graphite.miner.hunt")
+    focus = pytest.importorskip("carbon.agent_campaign.graphite.miner.focus")
+    edition = pytest.importorskip("carbon.agent_campaign.graphite.miner.edition")
+    plan = pytest.importorskip("carbon.agent_campaign.graphite.miner.plan")
+    from scripts.dev.miner_launchpad import runner
+
+    assert runner.HUNT_DEFAULT_RECORDS == hunt.DEFAULT_MAX_RECORDS
+    assert runner.HUNT_MAX_RECORDS == hunt.MAX_RECORDS
+    assert runner.HUNT_MAX_QUERIES == focus.MAX_MINER_QUERIES
+    assert runner.HUNT_MAX_TERMS == focus.MAX_TERMS
+    assert runner.HUNT_QUERY_CHARS <= focus.MAX_QUERY_CHARS
+    assert runner.HUNT_OPERATORS == focus.OPERATORS
+    assert runner.LIMIT_MAX == edition.max_limit()
+    assert runner.MAX_PINS == plan.MAX_PINS
+    for query in S2_ACCEPTS:
+        assert focus.parse_miner_queries([query]), query
+        assert runner.hunt_value({"queries": [query]})["queries"] == [query]
+    for query in S2_REFUSES:
+        with pytest.raises(focus.QueryRefused):
+            focus.parse_miner_queries([query])
+        with pytest.raises(Rejected) as refused:
+            runner.hunt_value({"queries": [query]})
+        assert refused.value.code == "hunt_query_invalid", query
+
+
+def pin_many(library, count):
+    """`count` pins in the miner's curation (S2 keeps pins by card id)."""
+    library.pins.extend(f"arxiv-2101.{n:05d}v1" for n in range(count))
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [{}, {"graphite_mode": "RESEARCH"}, {"graphite_mode": "BUILD"}],
+)
+def test_more_pins_than_a_plan_holds_are_refused_where_the_planner_runs_first(
+    graphite, fields
+):
+    """S3 refuses `too_many_pins` before it freezes a launch whose Planner
+    must consider every pin; the door refuses it before it is created."""
+    from scripts.dev.miner_launchpad.runner import MAX_PINS
+
+    pin_many(graphite.library, MAX_PINS + 1)
+    with pytest.raises(Rejected) as refused:
+        perform(graphite, "launch", launch_request(graphite, **fields))
+    assert refused.value.code == "too_many_pins"
+    assert graphite.chain.reads == 0 and graphite.host.recent() == []
+
+
+def test_a_build_with_a_plan_runs_no_planner_so_its_pins_are_not_counted(graphite):
+    from scripts.dev.miner_launchpad.runner import MAX_PINS
+
+    address = graphite.library.save_plan(plan_document())
+    pin_many(graphite.library, MAX_PINS + 1)
+    perform(
+        graphite,
+        "launch",
+        launch_request(graphite, graphite_mode="BUILD", plan=address),
+    )
+    join(graphite.host)
+    assert graphite.chain.reads == 1 and len(graphite.launched) == 1
+
+
+def test_as_many_pins_as_a_plan_holds_are_admitted(graphite):
+    from scripts.dev.miner_launchpad.runner import MAX_PINS
+
+    pin_many(graphite.library, MAX_PINS)
+    perform(graphite, "launch", launch_request(graphite, graphite_mode="RESEARCH"))
+    join(graphite.host)
+    assert graphite.chain.reads == 1 and len(graphite.launched) == 1
 
 
 @pytest.mark.parametrize(
@@ -978,6 +1095,8 @@ def test_every_new_code_has_its_own_next_step():
         "graphite_launch_invalid",
         "curation_not_found",
         "miner_ceiling_reached",
+        "research_share_too_small",
+        "too_many_pins",
     )
     for code in (*DESIGN_CODES, *REFUSAL_FIELDS, *campaign_codes):
         assert next_action(code) != FALLBACK_ACTION, code

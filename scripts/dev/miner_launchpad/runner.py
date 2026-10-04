@@ -786,16 +786,26 @@ GRAPHITE_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
 #: `edition.launch_fields` reads (`LAUNCH_FIELDS`), which refuses any other
 #: (`graphite_launch_invalid`). The edition is the campaign's to name.
 GRAPHITE_LAUNCH_KEYS = ("mode", "research_share", "plan", "hunt", "limits")
-#: A hunt's shape: at most 8 queries of at most 6 terms of [A-Za-z0-9-], and
-#: a record count (default 200). Raw arXiv query syntax is never accepted;
-#: Carbon composes the query (S2's hunt checks it again).
+#: A hunt's shape: at most 8 queries of at most 6 terms, each starting with
+#: a letter or digit and holding only letters, digits and -, never an arXiv
+#: operator word; and a record count (default 200, at most the arXiv client's
+#: 5,000). Raw arXiv query syntax is never accepted; Carbon composes the
+#: query. These are S2's own bounds (`focus.parse_miner_queries`,
+#: `hunt.MAX_RECORDS`), checked here first so a launch S2's hunt would refuse
+#: is refused before its campaign exists; a test pins them equal.
 HUNT_MAX_QUERIES, HUNT_MAX_TERMS, HUNT_QUERY_CHARS = 8, 6, 128
-HUNT_DEFAULT_RECORDS, HUNT_MAX_RECORDS = 200, 10000
-_HUNT_TERM = re.compile(r"[A-Za-z0-9-]{1,40}")
+HUNT_DEFAULT_RECORDS, HUNT_MAX_RECORDS = 200, 5000
+_HUNT_TERM = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,39}")
+HUNT_OPERATORS = frozenset({"and", "or", "not", "andnot"})
 #: Optional per-epoch and per-stage caps (owner: "generous and tunable
-#: limits"); unset, only the campaign's own ceilings bind.
+#: limits"); unset, only the campaign's own ceilings bind. At most the
+#: engine's own tunable bound (S1's `MAX_TUNABLE_CAP`, as S3's launch fields
+#: read it); a test pins them equal.
 LIMIT_KEYS = ("calls_per_epoch", "trials_per_epoch", "planner_calls")
-LIMIT_MAX = 1_000_000
+LIMIT_MAX = 100_000
+#: The most pinned cards one plan can consider (S3's `plan.MAX_PINS`): a
+#: launch whose Planner runs first must name every pin in its plan.
+MAX_PINS = 64
 #: A plan's digest, as the library and S3's launch fields name it.
 _PLAN_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 #: Where the miner's private Graphite library lives: beside their runner
@@ -826,6 +836,7 @@ def hunt_value(value):
                 or len(query) > HUNT_QUERY_CHARS
                 or not 1 <= len(terms) <= HUNT_MAX_TERMS
                 or not all(_HUNT_TERM.fullmatch(term) for term in terms)
+                or any(term.lower() in HUNT_OPERATORS for term in terms)
             ):
                 raise Rejected("hunt_query_invalid")
         queries = list(queries)
@@ -2532,6 +2543,15 @@ class RunnerAdapter:
             curation, digest_value = None, admitted.get("curation_digest")
             if type(digest_value) is not str:
                 raise Rejected("launch_record_differs", 409)
+        if (
+            curation is not None
+            and choice["plan"] is None
+            and len(curation.get("pins") or ()) > MAX_PINS
+        ):
+            # A Planner that runs first must name every pin in its plan, and
+            # a plan names at most MAX_PINS: S3 refuses this launch before it
+            # freezes, so admission refuses it before it is created.
+            raise Rejected("too_many_pins", 409)
         if choice["plan"] is not None:
             plan = self._plan(library, choice["plan"])
             planned_for = plan.get("challenge")

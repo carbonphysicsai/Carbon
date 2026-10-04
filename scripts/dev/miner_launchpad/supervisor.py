@@ -809,13 +809,27 @@ NEXT_ACTIONS = {
     "research_share_invalid": "Send research_share as a number from 0 to 1, or omit it for 0.10.",
     "graphite_limits_invalid": (
         "Send limits with only calls_per_epoch, trials_per_epoch and "
-        "planner_calls, each a whole number from 1 to 1000000, or omit them: "
+        "planner_calls, each a whole number from 1 to 100000, or omit them: "
         "your campaign ceilings still bind."
     ),
     "hunt_query_invalid": (
         "Send hunt as {queries?, max_records?}: up to 8 queries of 1 to 6 "
-        "terms each (letters, digits and -), and max_records from 1 to "
-        "10000. Raw arXiv query syntax is not accepted."
+        "terms each (letters, digits and -, starting with a letter or digit; "
+        "not and, or or not), and max_records from 1 to 5000. Raw arXiv "
+        "query syntax is not accepted."
+    ),
+    "research_share_too_small": (
+        "Your research share cannot pay for one model call: each call reserves "
+        "its most possible cost (the model's whole output unless you cap "
+        "max_output_tokens in model_settings) before it is sent, so this "
+        "research would send nothing. Raise your provider_nanodollars or "
+        "provider_attempts ceiling, raise research_share, cap the model's "
+        "output, or launch BUILD."
+    ),
+    "too_many_pins": (
+        "You pinned more cards than one plan can consider (64), and the "
+        "Planner must consider each pin. Unpin some (carbon_library_unpin), "
+        "or launch BUILD with a plan from your library, then launch again."
     ),
     # The typed stop S4 proposes to S1/S3 for a session the miner's own
     # ceiling ends (money, attempts, trials or time): Graphite's limits.

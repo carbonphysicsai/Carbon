@@ -196,8 +196,9 @@ FIELDS = {
             "planning, on your model and budget, at most one request every "
             "3 s, and read your queued imports: {queries?, "
             "max_records?}. queries: up to 8, each 1 to 6 terms of letters, "
-            "digits and -, added to those Carbon derives from the Challenge's "
-            "public description; max_records: 1 to 10000, default 200. A paper "
+            "digits and - (starting with a letter or digit; never and, or or "
+            "not), added to those Carbon derives from the Challenge's "
+            "public description; max_records: 1 to 5000, default 200. A paper "
             "already in the pack or your library is never read twice. "
             "Omitted: no hunt; the shared pack and your library still serve."
         ),
@@ -206,7 +207,8 @@ FIELDS = {
         "object",
         (
             "Graphite only, optional caps you may tune: {calls_per_epoch?, "
-            "trials_per_epoch?, planner_calls?}, each a whole number from 1. "
+            "trials_per_epoch?, planner_calls?}, each a whole number from 1 "
+            "to 100000. "
             "Omitted: only your campaign ceilings (money, attempts, trials, "
             "time) bind."
         ),
