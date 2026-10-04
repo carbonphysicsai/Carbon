@@ -20,9 +20,9 @@
     {
       "arm_id": "analytic-v1:fixed_grid",
       "commitment": {
-        "commitment_digest": "sha256:b379a263e27a6aaa1b83d6d2cd4f9ab5aa6290b05435cc0d448b741474fb974b",
-        "file_sha256": "sha256:aec5fc5dd55839c3a6c224cbd2f54786ae2b5c2173096ac5e2d5f492bc3b4abd",
-        "relative_path": "commitments/analytic-v1/fixed_grid/37b4923e9ff634064b32e02a44073fe5f05955a4b93958a7f6b865741e045e5c.commitment.json",
+        "commitment_digest": "sha256:b557a20db58480e764231582bea24e2082300b6c105e1a5defac5cdbca2315f1",
+        "file_sha256": "sha256:6af7a999314d239d7dc852eefbbbbdd5da6cfbb424eeac6505aa6d4c78440dde",
+        "relative_path": "commitments/analytic-v1/fixed_grid/45c484ceb8bafd5e2d3d4eb714b5917e73a8f2ab45e5beb6afa1f1fe644f9422.commitment.json",
         "status": "PROPOSAL"
       },
       "conditions": [
@@ -226,11 +226,11 @@
         }
       ],
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.002679100027307868,
-      "evaluation_wall_s": 0.0009728000150062144,
+      "end_to_end_wall_s": 0.0036252540012355894,
+      "evaluation_wall_s": 0.0008567629993194714,
       "method": "fixed_grid",
       "model": "analytic-v1",
-      "model_wall_s": 0.0005930999759584665,
+      "model_wall_s": 0.001041425988660194,
       "predicted_conditions": [
         {
           "case_id": "motor-decision:3d976ea59a8844530b7c",
@@ -351,7 +351,7 @@
         "status": "DEFINED_FINITE_SET",
         "value_fraction": 0.0
       },
-      "search_wall_s": 0.0017063000123016536,
+      "search_wall_s": 0.002768491001916118,
       "selection": {
         "airgap_mm": 0.4,
         "embrace": 0.85,
@@ -390,7 +390,7 @@
           "thermal_or_efficiency_performance": false,
           "three_dimensional_motor_performance": false
         },
-        "commitment_digest": "sha256:b379a263e27a6aaa1b83d6d2cd4f9ab5aa6290b05435cc0d448b741474fb974b",
+        "commitment_digest": "sha256:b557a20db58480e764231582bea24e2082300b6c105e1a5defac5cdbca2315f1",
         "proposal_outcome": "CONFIRMED_FEASIBLE",
         "reference_availability": {
           "available": 6,
@@ -579,9 +579,9 @@
     {
       "arm_id": "analytic-v1:screen_then_confirm",
       "commitment": {
-        "commitment_digest": "sha256:e398065dcac8fbb91c57fdcbab5ccebf92cc2a3eae65493e89026c8254d41d68",
-        "file_sha256": "sha256:ec045d49e96d7ace456ea2476958c7af52e55d57963c09f86f055d7b2b354dd7",
-        "relative_path": "commitments/analytic-v1/screen_then_confirm/c5335be406a386eef94d73e52224ec7de9674d9a7750deda60eb9308b1a34ca7.commitment.json",
+        "commitment_digest": "sha256:839d39be845c6918c767bbd654348fd4ff631a1583b43d4aa364299ef9a03a33",
+        "file_sha256": "sha256:f093bd8cc8e977e9f8dfceb5cece3e33687a22506117c23ceadffef2c96822c5",
+        "relative_path": "commitments/analytic-v1/screen_then_confirm/b47d28a70a3e40655ca3891740b619cb4df8708e2a23b6e3a1c4378b452f63d9.commitment.json",
         "status": "PROPOSAL"
       },
       "conditions": [
@@ -785,11 +785,11 @@
         }
       ],
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.0027623000787571073,
-      "evaluation_wall_s": 0.0008841000380925834,
+      "end_to_end_wall_s": 0.0037714469945058227,
+      "evaluation_wall_s": 0.0006122399936430156,
       "method": "screen_then_confirm",
       "model": "analytic-v1",
-      "model_wall_s": 0.0006562000489793718,
+      "model_wall_s": 0.001161128020612523,
       "predicted_conditions": [
         {
           "case_id": "motor-decision:3d976ea59a8844530b7c",
@@ -910,7 +910,7 @@
         "status": "DEFINED_FINITE_SET",
         "value_fraction": 0.0
       },
-      "search_wall_s": 0.0018782000406645238,
+      "search_wall_s": 0.003159207000862807,
       "selection": {
         "airgap_mm": 0.4,
         "embrace": 0.85,
@@ -949,7 +949,7 @@
           "thermal_or_efficiency_performance": false,
           "three_dimensional_motor_performance": false
         },
-        "commitment_digest": "sha256:e398065dcac8fbb91c57fdcbab5ccebf92cc2a3eae65493e89026c8254d41d68",
+        "commitment_digest": "sha256:839d39be845c6918c767bbd654348fd4ff631a1583b43d4aa364299ef9a03a33",
         "proposal_outcome": "CONFIRMED_FEASIBLE",
         "reference_availability": {
           "available": 6,
@@ -1138,9 +1138,9 @@
     {
       "arm_id": "learned-krr-v1:fixed_grid",
       "commitment": {
-        "commitment_digest": "sha256:e863aa8c6617c0952ba4393d8b6e70a8aa1853f56f63d8ef9e97177de94ad401",
-        "file_sha256": "sha256:5530b29dd494f5d53e68f78231ca96681ecac86823c31b8dad96631560876822",
-        "relative_path": "commitments/learned-krr-v1/fixed_grid/e1f76423bc009fd938d023e35d2c746cdcf725e1fb4e2dc9b5409db169a91d89.commitment.json",
+        "commitment_digest": "sha256:a6cd6d63d8885a4c92b738c4ab59ed9794df2ac054e27444452cb01b738f4550",
+        "file_sha256": "sha256:2fadb05cc31c3f92df96f6b048ed6db58d82858420ece067f6ad6fa8293cd6f7",
+        "relative_path": "commitments/learned-krr-v1/fixed_grid/59f2aa3b417fec3d419daf276ce09f44f4ce02a657034721a5ed343d862b2f0a.commitment.json",
         "status": "PROPOSAL"
       },
       "conditions": [
@@ -1150,16 +1150,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 4.569080982768196,
-            "mean_torque_margin_nm": 0.5690809827681962,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.1875037453114754,
-            "ripple_fraction_margin": 0.11249625468852459,
-            "ripple_pk_pk_nm": 0.8567197969004736
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
           },
           "reference": {
             "feasible": true,
@@ -1183,16 +1183,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.69807774849786,
-            "mean_torque_margin_nm": 1.6980777484978598,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.18104836846517852,
-            "ripple_fraction_margin": 0.11895163153482147,
-            "ripple_pk_pk_nm": 1.0316276797532753
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
           },
           "reference": {
             "feasible": true,
@@ -1216,16 +1216,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 6.799730408497657,
-            "mean_torque_margin_nm": 2.7997304084976573,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17883727228994623,
-            "ripple_fraction_margin": 0.12116272771005376,
-            "ripple_pk_pk_nm": 1.2160452385627227
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
           },
           "reference": {
             "feasible": true,
@@ -1249,16 +1249,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.442553890410778,
-            "mean_torque_margin_nm": 1.4425538904107782,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.19592277284823068,
-            "ripple_fraction_margin": 0.10407722715176931,
-            "ripple_pk_pk_nm": 1.066320249585205
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
           },
           "reference": {
             "feasible": true,
@@ -1282,16 +1282,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 8.381511377690215,
-            "mean_torque_margin_nm": 4.381511377690215,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17859029666446705,
-            "ripple_fraction_margin": 0.12140970333553294,
-            "ripple_pk_pk_nm": 1.4968566034383013
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
           },
           "reference": {
             "feasible": true,
@@ -1315,16 +1315,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.824151377203013,
-            "mean_torque_margin_nm": 1.8241513772030133,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.23466704613481332,
-            "ripple_fraction_margin": 0.06533295386518667,
-            "ripple_pk_pk_nm": 1.366736399930236
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
           },
           "reference": {
             "feasible": true,
@@ -1344,11 +1344,11 @@
         }
       ],
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.0035960000241175294,
-      "evaluation_wall_s": 0.0009276000200770795,
+      "end_to_end_wall_s": 0.01428879400191363,
+      "evaluation_wall_s": 0.0006301090033957735,
       "method": "fixed_grid",
       "model": "learned-krr-v1",
-      "model_wall_s": 0.0015313000185415149,
+      "model_wall_s": 0.011939496995182708,
       "predicted_conditions": [
         {
           "case_id": "motor-decision:278fa508bda40e05ec80",
@@ -1356,16 +1356,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 4.569080982768196,
-            "mean_torque_margin_nm": 0.5690809827681962,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.1875037453114754,
-            "ripple_fraction_margin": 0.11249625468852459,
-            "ripple_pk_pk_nm": 0.8567197969004736
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
           }
         },
         {
@@ -1374,16 +1374,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.69807774849786,
-            "mean_torque_margin_nm": 1.6980777484978598,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.18104836846517852,
-            "ripple_fraction_margin": 0.11895163153482147,
-            "ripple_pk_pk_nm": 1.0316276797532753
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
           }
         },
         {
@@ -1392,16 +1392,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 6.799730408497657,
-            "mean_torque_margin_nm": 2.7997304084976573,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17883727228994623,
-            "ripple_fraction_margin": 0.12116272771005376,
-            "ripple_pk_pk_nm": 1.2160452385627227
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
           }
         },
         {
@@ -1410,16 +1410,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.442553890410778,
-            "mean_torque_margin_nm": 1.4425538904107782,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.19592277284823068,
-            "ripple_fraction_margin": 0.10407722715176931,
-            "ripple_pk_pk_nm": 1.066320249585205
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
           }
         },
         {
@@ -1428,16 +1428,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 8.381511377690215,
-            "mean_torque_margin_nm": 4.381511377690215,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17859029666446705,
-            "ripple_fraction_margin": 0.12140970333553294,
-            "ripple_pk_pk_nm": 1.4968566034383013
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
           }
         },
         {
@@ -1446,16 +1446,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.824151377203013,
-            "mean_torque_margin_nm": 1.8241513772030133,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.23466704613481332,
-            "ripple_fraction_margin": 0.06533295386518667,
-            "ripple_pk_pk_nm": 1.366736399930236
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
           }
         }
       ],
@@ -1469,13 +1469,13 @@
         "status": "DEFINED_FINITE_SET",
         "value_fraction": 0.0
       },
-      "search_wall_s": 0.00266840000404045,
+      "search_wall_s": 0.013658684998517856,
       "selection": {
         "airgap_mm": 0.8,
         "embrace": 0.65,
         "magnet_mm": 3.5,
-        "predicted_worst_condition_mean_torque_nm": 4.569080982768196,
-        "predicted_worst_ripple_fraction": 0.23466704613481332,
+        "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+        "predicted_worst_ripple_fraction": 0.23466704613405165,
         "slot_bottom_mm": 38.16,
         "slot_open_deg": 3.7,
         "tooth_mm": 3.5
@@ -1485,8 +1485,8 @@
           "airgap_mm": 0.8,
           "embrace": 0.65,
           "magnet_mm": 3.5,
-          "predicted_worst_condition_mean_torque_nm": 4.569080982768196,
-          "predicted_worst_ripple_fraction": 0.23466704613481332,
+          "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+          "predicted_worst_ripple_fraction": 0.23466704613405165,
           "slot_bottom_mm": 38.16,
           "slot_open_deg": 3.7,
           "tooth_mm": 3.5
@@ -1508,7 +1508,7 @@
           "thermal_or_efficiency_performance": false,
           "three_dimensional_motor_performance": false
         },
-        "commitment_digest": "sha256:e863aa8c6617c0952ba4393d8b6e70a8aa1853f56f63d8ef9e97177de94ad401",
+        "commitment_digest": "sha256:a6cd6d63d8885a4c92b738c4ab59ed9794df2ac054e27444452cb01b738f4550",
         "proposal_outcome": "CONFIRMED_FEASIBLE",
         "reference_availability": {
           "available": 6,
@@ -1697,9 +1697,9 @@
     {
       "arm_id": "learned-krr-v1:screen_then_confirm",
       "commitment": {
-        "commitment_digest": "sha256:6a155c18ebe43d08d42637c155ccb960a2abe5ae90ae53ad4e26f5f4caf1f676",
-        "file_sha256": "sha256:a35ba13a2a4a838079ddcb6d570c0f578ad48257d29282a72189f67235ad80ad",
-        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/027d9102753593314be3e207412bd91dfe77bdc0a62b6662786ee8c8253a948b.commitment.json",
+        "commitment_digest": "sha256:f497a936ef973143545981f3d219e4bf5791f41268daf4253673c8c357c273e2",
+        "file_sha256": "sha256:628255fc12996d4024d90b1a0d7ec0b727c6de419c4f60c17b608ed36ba64162",
+        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/af3b8823ebac6f70868744198e366be7ff447a61cc8dba5d564be5ab19b7c53b.commitment.json",
         "status": "PROPOSAL"
       },
       "conditions": [
@@ -1709,16 +1709,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 4.569080982768196,
-            "mean_torque_margin_nm": 0.5690809827681962,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.1875037453114754,
-            "ripple_fraction_margin": 0.11249625468852459,
-            "ripple_pk_pk_nm": 0.8567197969004736
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
           },
           "reference": {
             "feasible": true,
@@ -1742,16 +1742,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.69807774849786,
-            "mean_torque_margin_nm": 1.6980777484978598,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.18104836846517852,
-            "ripple_fraction_margin": 0.11895163153482147,
-            "ripple_pk_pk_nm": 1.0316276797532753
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
           },
           "reference": {
             "feasible": true,
@@ -1775,16 +1775,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 6.799730408497657,
-            "mean_torque_margin_nm": 2.7997304084976573,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17883727228994623,
-            "ripple_fraction_margin": 0.12116272771005376,
-            "ripple_pk_pk_nm": 1.2160452385627227
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
           },
           "reference": {
             "feasible": true,
@@ -1808,16 +1808,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.442553890410778,
-            "mean_torque_margin_nm": 1.4425538904107782,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.19592277284823068,
-            "ripple_fraction_margin": 0.10407722715176931,
-            "ripple_pk_pk_nm": 1.066320249585205
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
           },
           "reference": {
             "feasible": true,
@@ -1841,16 +1841,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 8.381511377690215,
-            "mean_torque_margin_nm": 4.381511377690215,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17859029666446705,
-            "ripple_fraction_margin": 0.12140970333553294,
-            "ripple_pk_pk_nm": 1.4968566034383013
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
           },
           "reference": {
             "feasible": true,
@@ -1874,16 +1874,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.824151377203013,
-            "mean_torque_margin_nm": 1.8241513772030133,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.23466704613481332,
-            "ripple_fraction_margin": 0.06533295386518667,
-            "ripple_pk_pk_nm": 1.366736399930236
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
           },
           "reference": {
             "feasible": true,
@@ -1903,11 +1903,11 @@
         }
       ],
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.003225900058168918,
-      "evaluation_wall_s": 0.000819200009573251,
+      "end_to_end_wall_s": 0.01527411601273343,
+      "evaluation_wall_s": 0.000565843001822941,
       "method": "screen_then_confirm",
       "model": "learned-krr-v1",
-      "model_wall_s": 0.0013669999898411334,
+      "model_wall_s": 0.012558566973893903,
       "predicted_conditions": [
         {
           "case_id": "motor-decision:278fa508bda40e05ec80",
@@ -1915,16 +1915,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 4.569080982768196,
-            "mean_torque_margin_nm": 0.5690809827681962,
+            "mean_nm": 4.569080982768109,
+            "mean_torque_margin_nm": 0.5690809827681091,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.1875037453114754,
-            "ripple_fraction_margin": 0.11249625468852459,
-            "ripple_pk_pk_nm": 0.8567197969004736
+            "ripple_fraction": 0.18750374531055933,
+            "ripple_fraction_margin": 0.11249625468944066,
+            "ripple_pk_pk_nm": 0.8567197968962716
           }
         },
         {
@@ -1933,16 +1933,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.69807774849786,
-            "mean_torque_margin_nm": 1.6980777484978598,
+            "mean_nm": 5.698077748498352,
+            "mean_torque_margin_nm": 1.6980777484983518,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.18104836846517852,
-            "ripple_fraction_margin": 0.11895163153482147,
-            "ripple_pk_pk_nm": 1.0316276797532753
+            "ripple_fraction": 0.18104836846511627,
+            "ripple_fraction_margin": 0.11895163153488372,
+            "ripple_pk_pk_nm": 1.0316276797530097
           }
         },
         {
@@ -1951,16 +1951,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 6.799730408497657,
-            "mean_torque_margin_nm": 2.7997304084976573,
+            "mean_nm": 6.799730408499121,
+            "mean_torque_margin_nm": 2.799730408499121,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17883727228994623,
-            "ripple_fraction_margin": 0.12116272771005376,
-            "ripple_pk_pk_nm": 1.2160452385627227
+            "ripple_fraction": 0.17883727229050791,
+            "ripple_fraction_margin": 0.12116272770949207,
+            "ripple_pk_pk_nm": 1.216045238566804
           }
         },
         {
@@ -1969,16 +1969,16 @@
           "group": "REPRESENTATIVE",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.442553890410778,
-            "mean_torque_margin_nm": 1.4425538904107782,
+            "mean_nm": 5.442553890411228,
+            "mean_torque_margin_nm": 1.4425538904112276,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.19592277284823068,
-            "ripple_fraction_margin": 0.10407722715176931,
-            "ripple_pk_pk_nm": 1.066320249585205
+            "ripple_fraction": 0.19592277284753792,
+            "ripple_fraction_margin": 0.10407722715246207,
+            "ripple_pk_pk_nm": 1.0663202495815227
           }
         },
         {
@@ -1987,16 +1987,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 8.381511377690215,
-            "mean_torque_margin_nm": 4.381511377690215,
+            "mean_nm": 8.381511377692705,
+            "mean_torque_margin_nm": 4.381511377692705,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.17859029666446705,
-            "ripple_fraction_margin": 0.12140970333553294,
-            "ripple_pk_pk_nm": 1.4968566034383013
+            "ripple_fraction": 0.17859029666422344,
+            "ripple_fraction_margin": 0.12140970333577655,
+            "ripple_pk_pk_nm": 1.4968566034367043
           }
         },
         {
@@ -2005,16 +2005,16 @@
           "group": "BOUNDARY_STRESS",
           "predicted": {
             "feasible": true,
-            "mean_nm": 5.824151377203013,
-            "mean_torque_margin_nm": 1.8241513772030133,
+            "mean_nm": 5.824151377203549,
+            "mean_torque_margin_nm": 1.824151377203549,
             "prediction_validity_gates": {
               "motoring_mean_nonnegative": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
               "schema_finite": "PASS"
             },
-            "ripple_fraction": 0.23466704613481332,
-            "ripple_fraction_margin": 0.06533295386518667,
-            "ripple_pk_pk_nm": 1.366736399930236
+            "ripple_fraction": 0.23466704613405165,
+            "ripple_fraction_margin": 0.06533295386594834,
+            "ripple_pk_pk_nm": 1.3667363999259257
           }
         }
       ],
@@ -2028,13 +2028,13 @@
         "status": "DEFINED_FINITE_SET",
         "value_fraction": 0.0
       },
-      "search_wall_s": 0.002406700048595667,
+      "search_wall_s": 0.014708273010910489,
       "selection": {
         "airgap_mm": 0.8,
         "embrace": 0.65,
         "magnet_mm": 3.5,
-        "predicted_worst_condition_mean_torque_nm": 4.569080982768196,
-        "predicted_worst_ripple_fraction": 0.23466704613481332,
+        "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+        "predicted_worst_ripple_fraction": 0.23466704613405165,
         "slot_bottom_mm": 38.16,
         "slot_open_deg": 3.7,
         "tooth_mm": 3.5
@@ -2044,8 +2044,8 @@
           "airgap_mm": 0.8,
           "embrace": 0.65,
           "magnet_mm": 3.5,
-          "predicted_worst_condition_mean_torque_nm": 4.569080982768196,
-          "predicted_worst_ripple_fraction": 0.23466704613481332,
+          "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+          "predicted_worst_ripple_fraction": 0.23466704613405165,
           "slot_bottom_mm": 38.16,
           "slot_open_deg": 3.7,
           "tooth_mm": 3.5
@@ -2067,7 +2067,7 @@
           "thermal_or_efficiency_performance": false,
           "three_dimensional_motor_performance": false
         },
-        "commitment_digest": "sha256:6a155c18ebe43d08d42637c155ccb960a2abe5ae90ae53ad4e26f5f4caf1f676",
+        "commitment_digest": "sha256:f497a936ef973143545981f3d219e4bf5791f41268daf4253673c8c357c273e2",
         "proposal_outcome": "CONFIRMED_FEASIBLE",
         "reference_availability": {
           "available": 6,
@@ -4101,8 +4101,8 @@
     "establishes": "Only the observed DEVELOPMENT outcomes for the frozen finite set, models, methods, budgets and admitted evidence class.",
     "observed_outcome": "The registered model/search arms selected different geometries."
   },
-  "construction_digest": "sha256:9ddb8385800c2cbba561e34b1684ddad862b042145c40c2253619aa5ab75ad1f",
-  "construction_identity_digest": "sha256:921a19d5368c001a52f230999999fc3b31761d207acb7f43d133d5c49e641cab",
+  "construction_digest": "sha256:055b797a63ef2377580bee3c3b61552d56e68208c056d2f2b11839a4f6f0b75f",
+  "construction_identity_digest": "sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
   "cost": {
     "compute_envelope": {
       "configured_hard_cap_allocated_core_hour_ceiling": 120.0,
@@ -4116,44 +4116,44 @@
       "retry_reserve": 12,
       "solver_timeout_seconds": 3600
     },
-    "construction_search_wall_s": 0.008659600105602294,
-    "construction_wall_s": 0.23941219999687746,
-    "evaluation_wall_s": 0.03350349998800084,
-    "model_inference_wall_s": 0.0041476000333204865,
+    "construction_search_wall_s": 0.03429465601220727,
+    "construction_wall_s": 0.495204451988684,
+    "evaluation_wall_s": 0.007309731998248026,
+    "model_inference_wall_s": 0.026700617978349328,
     "model_query_attempts": 187,
     "monetary_cost_status": "NO_APPROVED_OR_RECORDED_RESOURCE_RATE",
     "monetary_cost_usd": null,
     "per_arm_search_plus_evaluation_wall_s": {
-      "analytic-v1:fixed_grid": 0.002679100027307868,
-      "analytic-v1:screen_then_confirm": 0.0027623000787571073,
-      "learned-krr-v1:fixed_grid": 0.0035960000241175294,
-      "learned-krr-v1:screen_then_confirm": 0.003225900058168918
+      "analytic-v1:fixed_grid": 0.0036252540012355894,
+      "analytic-v1:screen_then_confirm": 0.0037714469945058227,
+      "learned-krr-v1:fixed_grid": 0.01428879400191363,
+      "learned-krr-v1:screen_then_confirm": 0.01527411601273343
     },
     "reference_campaign_wall_s": 0.0,
     "reference_condition_evaluations": 72,
     "reference_executions": 0,
     "reference_retries": 0,
     "reference_solver_wall_s": 0.0,
-    "study_end_to_end_wall_s": 0.2729156999848783,
+    "study_end_to_end_wall_s": 0.502514183986932,
     "training_and_reconstruction": {
       "analytic-v1": {
         "kind": "ANALYTICAL_BASELINE"
       },
       "learned-krr-v1": {
-        "cpu_s": 2.71875,
+        "cpu_s": 8.048508288,
         "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
         "historical_training_and_tuning_cost": null,
         "kind": "LEARNED_RECONSTRUCTION",
         "length": 4.0,
         "ridge": 0.0001,
         "training_records": 150,
-        "wall_s": 0.19178749999264255
+        "wall_s": 0.4237721390090883
       }
     }
   },
   "evidence_class": "ANALYTICAL_FIXTURE",
   "evidence_label": "ANALYTICAL_FIXTURE_NOT_GETDP_EVIDENCE",
-  "freeze_digest": "sha256:b55510b3cc8200d502f36d9c9b5701850b57bf0cb8cb19601e7d2c7f5ecf3903",
+  "freeze_digest": "sha256:b54016b315e34ad273bad3a6006fae5ff6457d5ba2562074bc2fb2bd6125b511",
   "metrics": {
     "abstention_rate": 0.0,
     "arm_condition_uses": 24,

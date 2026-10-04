@@ -171,38 +171,38 @@ Status: **COMPLETE_FINITE_SET**.
     "retry_reserve": 12,
     "solver_timeout_seconds": 3600
   },
-  "construction_search_wall_s": 0.008659600105602294,
-  "construction_wall_s": 0.23941219999687746,
-  "evaluation_wall_s": 0.03350349998800084,
-  "model_inference_wall_s": 0.0041476000333204865,
+  "construction_search_wall_s": 0.03429465601220727,
+  "construction_wall_s": 0.495204451988684,
+  "evaluation_wall_s": 0.007309731998248026,
+  "model_inference_wall_s": 0.026700617978349328,
   "model_query_attempts": 187,
   "monetary_cost_status": "NO_APPROVED_OR_RECORDED_RESOURCE_RATE",
   "monetary_cost_usd": null,
   "per_arm_search_plus_evaluation_wall_s": {
-    "analytic-v1:fixed_grid": 0.002679100027307868,
-    "analytic-v1:screen_then_confirm": 0.0027623000787571073,
-    "learned-krr-v1:fixed_grid": 0.0035960000241175294,
-    "learned-krr-v1:screen_then_confirm": 0.003225900058168918
+    "analytic-v1:fixed_grid": 0.0036252540012355894,
+    "analytic-v1:screen_then_confirm": 0.0037714469945058227,
+    "learned-krr-v1:fixed_grid": 0.01428879400191363,
+    "learned-krr-v1:screen_then_confirm": 0.01527411601273343
   },
   "reference_campaign_wall_s": 0.0,
   "reference_condition_evaluations": 72,
   "reference_executions": 0,
   "reference_retries": 0,
   "reference_solver_wall_s": 0.0,
-  "study_end_to_end_wall_s": 0.2729156999848783,
+  "study_end_to_end_wall_s": 0.502514183986932,
   "training_and_reconstruction": {
     "analytic-v1": {
       "kind": "ANALYTICAL_BASELINE"
     },
     "learned-krr-v1": {
-      "cpu_s": 2.71875,
+      "cpu_s": 8.048508288,
       "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
       "historical_training_and_tuning_cost": null,
       "kind": "LEARNED_RECONSTRUCTION",
       "length": 4.0,
       "ridge": 0.0001,
       "training_records": 150,
-      "wall_s": 0.19178749999264255
+      "wall_s": 0.4237721390090883
     }
   }
 }

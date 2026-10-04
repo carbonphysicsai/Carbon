@@ -1,5 +1,5 @@
 {
- "commitment_digest": "sha256:b379a263e27a6aaa1b83d6d2cd4f9ab5aa6290b05435cc0d448b741474fb974b",
+ "commitment_digest": "sha256:b557a20db58480e764231582bea24e2082300b6c105e1a5defac5cdbca2315f1",
  "queries_attempted": 48,
  "queries_successful": 48,
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
@@ -103,7 +103,7 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:917e4ef06fae25c32239e909f96615e48d70c6e65cdb367f6d7194b5976e3b82",
+   "code_digest": "sha256:ae8ee4e6d088ee9ae99bdd2a9057d4bd26eb8da152e7963e750c88d4e752b7e9",
    "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
    "name": "fixed_grid"
   },
@@ -123,7 +123,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:37b4923e9ff634064b32e02a44073fe5f05955a4b93958a7f6b865741e045e5c",
+  "request_digest": "sha256:45c484ceb8bafd5e2d3d4eb714b5917e73a8f2ab45e5beb6afa1f1fe644f9422",
   "schema": "carbon.motor.design-search-request.v1",
   "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
   "seed_policy": "deterministic registered DEVELOPMENT baselines; no random draw",

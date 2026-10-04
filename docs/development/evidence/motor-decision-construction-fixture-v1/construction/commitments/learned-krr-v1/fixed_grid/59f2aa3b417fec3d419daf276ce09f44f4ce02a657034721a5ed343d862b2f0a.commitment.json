@@ -1,9 +1,9 @@
 {
- "commitment_digest": "sha256:e398065dcac8fbb91c57fdcbab5ccebf92cc2a3eae65493e89026c8254d41d68",
+ "commitment_digest": "sha256:a6cd6d63d8885a4c92b738c4ab59ed9794df2ac054e27444452cb01b738f4550",
  "queries_attempted": 48,
  "queries_successful": 48,
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
- "query_log_digest": "sha256:aa0a796d1f90d974b690ecf28804ebc4c10042b254be3ea58e62b9a8215fa38a",
+ "query_log_digest": "sha256:aaebbb399318edca8aa6dc26eb4144c9091149cc26d47b448bfc2586775b7b48",
  "request": {
   "candidate_space_digest": "sha256:c4c2aebf93746c07bc09a14680fadf9c57407e0976521703b4296a2181f08a38",
   "challenge": "electric-motor-magnetics",
@@ -103,14 +103,14 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:917e4ef06fae25c32239e909f96615e48d70c6e65cdb367f6d7194b5976e3b82",
-   "configuration_digest": "sha256:fb53292cf2a30acc758e73580f2c39655d4363f0f538c15ec1fe9006f78c1f57",
-   "name": "screen_then_confirm"
+   "code_digest": "sha256:ae8ee4e6d088ee9ae99bdd2a9057d4bd26eb8da152e7963e750c88d4e752b7e9",
+   "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
+   "name": "fixed_grid"
   },
   "mode": "PB-INV",
   "model": {
-   "member": "analytic-v1",
-   "recipe_digest": "sha256:e5acdcec9d360ed8a33a68b00f9f33cd59cd0181921c7ee48dc1fc60565acee6",
+   "member": "learned-krr-v1",
+   "recipe_digest": "sha256:41d2e4d7ee42d12c4582326140dea88d2d471637bda506449a6bcee13aee06ef",
    "seed": 0
   },
   "query_budget": 48,
@@ -123,7 +123,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:c5335be406a386eef94d73e52224ec7de9674d9a7750deda60eb9308b1a34ca7",
+  "request_digest": "sha256:59f2aa3b417fec3d419daf276ce09f44f4ce02a657034721a5ed343d862b2f0a",
   "schema": "carbon.motor.design-search-request.v1",
   "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
   "seed_policy": "deterministic registered DEVELOPMENT baselines; no random draw",
@@ -141,11 +141,11 @@
  "schema": "carbon.motor.design-search-commitment.v1",
  "selections": [
   {
-   "airgap_mm": 0.4,
-   "embrace": 0.85,
+   "airgap_mm": 0.8,
+   "embrace": 0.65,
    "magnet_mm": 3.5,
-   "predicted_worst_condition_mean_torque_nm": 6.373984158763663,
-   "predicted_worst_ripple_fraction": 0.0,
+   "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+   "predicted_worst_ripple_fraction": 0.23466704613405165,
    "slot_bottom_mm": 38.16,
    "slot_open_deg": 3.7,
    "tooth_mm": 3.5

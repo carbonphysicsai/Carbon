@@ -1,9 +1,9 @@
 {
- "commitment_digest": "sha256:e863aa8c6617c0952ba4393d8b6e70a8aa1853f56f63d8ef9e97177de94ad401",
- "queries_attempted": 48,
- "queries_successful": 48,
+ "commitment_digest": "sha256:f497a936ef973143545981f3d219e4bf5791f41268daf4253673c8c357c273e2",
+ "queries_attempted": 43,
+ "queries_successful": 43,
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
- "query_log_digest": "sha256:14aa99ed3ab90728862b3496509206619302513a76fd02a5999578dc4183f644",
+ "query_log_digest": "sha256:9b5b3a50a1d9ea70999c0e2a91b87ba2730f59f0457b6cd2c027a1486a04d2c9",
  "request": {
   "candidate_space_digest": "sha256:c4c2aebf93746c07bc09a14680fadf9c57407e0976521703b4296a2181f08a38",
   "challenge": "electric-motor-magnetics",
@@ -103,9 +103,9 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:917e4ef06fae25c32239e909f96615e48d70c6e65cdb367f6d7194b5976e3b82",
-   "configuration_digest": "sha256:4b1fa1bccdd7c385c93ab9392f3f14efddb15d81ddbcca4f0342007a0d47f709",
-   "name": "fixed_grid"
+   "code_digest": "sha256:ae8ee4e6d088ee9ae99bdd2a9057d4bd26eb8da152e7963e750c88d4e752b7e9",
+   "configuration_digest": "sha256:fb53292cf2a30acc758e73580f2c39655d4363f0f538c15ec1fe9006f78c1f57",
+   "name": "screen_then_confirm"
   },
   "mode": "PB-INV",
   "model": {
@@ -123,7 +123,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:e1f76423bc009fd938d023e35d2c746cdcf725e1fb4e2dc9b5409db169a91d89",
+  "request_digest": "sha256:af3b8823ebac6f70868744198e366be7ff447a61cc8dba5d564be5ab19b7c53b",
   "schema": "carbon.motor.design-search-request.v1",
   "scope": "2d-8-pole-24-slot-periodic-cross-section-v1",
   "seed_policy": "deterministic registered DEVELOPMENT baselines; no random draw",
@@ -144,8 +144,8 @@
    "airgap_mm": 0.8,
    "embrace": 0.65,
    "magnet_mm": 3.5,
-   "predicted_worst_condition_mean_torque_nm": 4.569080982768196,
-   "predicted_worst_ripple_fraction": 0.23466704613481332,
+   "predicted_worst_condition_mean_torque_nm": 4.569080982768109,
+   "predicted_worst_ripple_fraction": 0.23466704613405165,
    "slot_bottom_mm": 38.16,
    "slot_open_deg": 3.7,
    "tooth_mm": 3.5

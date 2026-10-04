@@ -85,27 +85,27 @@
       "repeated_commitment": "FORBIDDEN"
     }
   },
-  "freeze_digest": "sha256:b55510b3cc8200d502f36d9c9b5701850b57bf0cb8cb19601e7d2c7f5ecf3903",
+  "freeze_digest": "sha256:b54016b315e34ad273bad3a6006fae5ff6457d5ba2562074bc2fb2bd6125b511",
   "schema": "carbon.motor.decision-study-freeze.v1",
   "search_freeze": {
     "challenge": "electric-motor-magnetics",
     "code": {
       "carbon/design_search/aggregate_methods.py": "sha256:24829a30b3b6ec8deb409734ec439987d069cf4d3e4e64f5ef555416d4cd2e2d",
       "carbon/design_search/campaign.py": "sha256:2b774040c8712196ef5c25f35b83dcbf2ae715f4eb2f6b2d2972c08f6201902c",
-      "carbon/design_search/experiment.py": "sha256:4aea5e7c30ba51238d38f7de8a9e70351d47ce5f6b0cb72c58724696c8c8af65",
+      "carbon/design_search/experiment.py": "sha256:30c3dcc89fa88615c24a2b78bb8ad7556cda581bc0d7fed544c713ef7ec0adb9",
       "carbon/design_search/methods.py": "sha256:98b1f9f812fcba2b50ba463cc1f9e7f3eef5d932502d5b775aa329498f24f8d5",
       "carbon/design_search/reference_comparison.py": "sha256:d9b22928c9cdd45ce039c4f04e87218b0cdd032fd444d696b7b4705a9e8c0caa",
-      "carbon/learned_baseline.py": "sha256:aae179d44f35dad1acacd8399f930f9945a6e35fa88c8a7394028ad86e20eb53",
-      "carbon/motor/analytic.py": "sha256:241d05dbe38632148e9b6f07884f3e34f2d952a766246f62b188c879b3659d3d",
+      "carbon/learned_baseline.py": "sha256:b99f986c7576951ef645f1f4660fd04a45bd7a88399499748c22b126ae682926",
+      "carbon/motor/analytic.py": "sha256:2d3ac42a0b84ea8c0f0a46ce97cd2c601eb1b4f2d912e7f10b3ac8372b40e474",
       "carbon/motor/customer_decision.py": "sha256:d3fa8ba83ccc0e6bbeb19c8c50ec2699385ad9741f019e38c8ac13e4d1884c43",
       "carbon/motor/decision_study.py": "sha256:1c66a126218c08938b1072ea885c1143db9550184db5df81e82b7cd1ae8529b8",
-      "carbon/motor/domain.py": "sha256:eecbb841d5b0470fa2a8fefd43b517f6c393c302365d57e45db2ec5c0255a286",
-      "carbon/motor/exam.py": "sha256:a26139a1eee9d42fdcd8cc532f7992cc945fc1285836dffb0b23abce35f9f89c",
-      "carbon/motor/getdp.py": "sha256:0a0ca14f82f8e34673a61d023d026e1d0d2348411315d07c3306049e54a6ceb4",
-      "carbon/motor/mesh.py": "sha256:79c00b4f3a5796aa13293950937698aec2670e8b9ddadf6f242809efd550ffcf",
+      "carbon/motor/domain.py": "sha256:a73f116042ae6392b32e88c33412737d6c488d1a41a803b1bc9cd7c52299d59b",
+      "carbon/motor/exam.py": "sha256:d663ce2e78a2664cc7725908385b516418a83c635bccff4288b6da63a8eef8c9",
+      "carbon/motor/getdp.py": "sha256:4b1ac790524bd66484247e6ffd40fe86eee9475cb862e044eb10485fbd7a8136",
+      "carbon/motor/mesh.py": "sha256:38d42fbe144a919187525180d47c2392123bec31c5301aef2e1e02cdd2fb62a7",
       "carbon/motor/reference_campaign.py": "sha256:f4d88a2000f69edf3fe4f477d7ffbc05124bda026c39ac1db64d9b1773144800",
       "scripts/dev/motor/decision_study.py": "sha256:cd88910bdcf9c3966e2147d75636bd593073e1fa501a812f2af98fe11abc3caa",
-      "scripts/dev/motor/reference/run_batch.py": "sha256:e254a49162d65cfc8c90eff3d3ef0840fbf1ea82f52ca2f3dad906d2fc572cf8"
+      "scripts/dev/motor/reference/run_batch.py": "sha256:b9bdb9b3c1fca7b1d5e328be99a08f603fbd9d95788281792a9bde226070508d"
     },
     "conditions": [
       {
@@ -135,7 +135,7 @@
     ],
     "decision_contract": "sha256:3fc9c6bb77523486d4b68611134c5d54074137f429b82a1c7a0e4a6fb53b64a8",
     "dependencies": {
-      "uv.lock": "sha256:773046a67a730f0aee0f38741f902aeebd8c0494ca8404584874f93da3331035"
+      "uv.lock": "sha256:5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4"
     },
     "designs": [
       {
@@ -204,7 +204,7 @@
       }
     ],
     "failure_handling": "an unavailable or unresolved reference result stays exactly that; a model or oracle failure ends that run and is recorded",
-    "freeze_digest": "sha256:517306a191727a47b3e6b26bb607f364ae31521596a07581ec37deb7452cebe6",
+    "freeze_digest": "sha256:948424b4be49f94a829ac35000a4eb77e0202b6390cf2e5a6861608dd41bf558",
     "initialization": "deterministic; no method draws a random number",
     "material": "DEVELOPMENT",
     "methods": {

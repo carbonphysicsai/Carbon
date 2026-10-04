@@ -17,9 +17,9 @@ It binds the exact `MOTOR_SYNTHETIC_DECISION_V1.json` scenario, the registered
 analytical and learned-model identities, the two search methods, their budgets,
 the analysis policy and all four persisted proposal commitments. The exact
 construction identity is
-`sha256:921a19d5368c001a52f230999999fc3b31761d207acb7f43d133d5c49e641cab`;
+`sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc`;
 the freeze digest is
-`sha256:b55510b3cc8200d502f36d9c9b5701850b57bf0cb8cb19601e7d2c7f5ecf3903`.
+`sha256:b54016b315e34ad273bad3a6006fae5ff6457d5ba2562074bc2fb2bd6125b511`.
 
 ## Construction outcome
 
@@ -43,9 +43,9 @@ computational cost, including reconstruction and inference, as registered by
 `OWNER-GRAPHITE-TEST-WAVE-01` section 3.
 
 The learned reconstruction used all 150 retained public TRAIN records at the
-already selected length 4.0 and ridge 0.0001. This fixture recorded 0.1918 s
-wall time and 2.7188 CPU seconds for reconstruction on the Windows development
-host. Historical training-data generation and tuning cost remains unavailable
+already selected length 4.0 and ridge 0.0001. This fixture recorded 0.4238 s
+wall time and 8.0485 CPU seconds for reconstruction on a Linux (WSL Ubuntu
+24.04) development host. Historical training-data generation and tuning cost remains unavailable
 and is not treated as zero.
 
 ## Analytical-fixture evaluation

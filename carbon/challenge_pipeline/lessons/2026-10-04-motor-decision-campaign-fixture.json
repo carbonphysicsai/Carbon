@@ -6,7 +6,7 @@
   "stage": "design",
   "execution": {
     "kind": "optimizer_pilot",
-    "ref": "motor-decision-construction-fixture-v1 construction identity sha256:921a19d5368c001a52f230999999fc3b31761d207acb7f43d133d5c49e641cab",
+    "ref": "motor-decision-construction-fixture-v1 construction identity sha256:81e76d3997d47be89abf3c1c63da4415cc492cfb24c921238df6f1c1c78ac0fc",
     "description": "Reconstructed and committed all four section 6 proposals without reference access, then exercised the finite-comparator and report path with explicitly non-counted analytical fixture evidence. No GetDP process was launched."
   },
   "expected": "The registered campaign must remain unavailable until every commitment is present and a digest-pinned Docker image is supplied; fixture evaluation must remain descriptive and report zero solver executions.",
