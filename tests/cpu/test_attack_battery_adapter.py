@@ -431,6 +431,21 @@ def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code():
     assert A.rebuild_differences(rebuilt, dict(rebuilt.detail["record"])) == []
 
 
+def test_a_stale_contract_record_is_carbons_side_never_the_constructions(monkeypatch):
+    from carbon.agent_campaign.graphite import experiment
+
+    def unrecorded():
+        raise experiment.Unrebuildable("construction_contract_unrecorded")
+
+    monkeypatch.setattr(experiment, "recorded_contract", unrecorded)
+    refused = A.rebuild(track_a.RECIPE_CONTROL)
+    assert refused.code == "rebuild_failed_infra"
+    assert A.carbon_code(refused) == "construction_contract_unrecorded"
+    assert A.admission_refusals(track_a.RECIPE_CONTROL)[0] == (
+        "construction_contract_unrecorded"
+    )
+
+
 # -- seams ----------------------------------------------------------------------------------------
 def test_higher_level_families_are_not_run_seams_with_nothing_to_execute():
     from carbon.challenge_pipeline.ladder import LEVELS

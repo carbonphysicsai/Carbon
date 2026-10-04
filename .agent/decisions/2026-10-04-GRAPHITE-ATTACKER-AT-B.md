@@ -127,6 +127,11 @@ own code (`REFUSAL_CODES`): admit's five codes, plus `strategy_too_large`
 contract refusal for a permission Level 0 withholds (`*.not_rebuildable`)
 becomes `outside_level`.
 
+`construction_contract_unrecorded` maps to `rebuild_failed_infra`. It means
+Carbon's own record is not current: a fault on Carbon's side, never the
+construction's, so Carbon can check nothing. `carbon_code(refused)` reads
+Carbon's code back out of the detail.
+
 `admission_refusals` returns Carbon's code and the issue codes, and is empty
 when Carbon would rebuild the recipe. This is the step-4 adapter's semantics.
 

@@ -154,7 +154,9 @@ REFUSAL_CODES = {
     "strategy_not_json": "not_declarative",
     "not_the_battery_development_challenge": "unknown_construction",
     "seed_invalid": "unknown_construction",
-    "construction_contract_unrecorded": "refused_by_contract",
+    # Carbon's own contract record is not current: Carbon's side, never the
+    # construction's, so Carbon can check nothing (`rebuild_failed_infra`).
+    "construction_contract_unrecorded": "rebuild_failed_infra",
     "contract_refused": "refused_by_contract",
     "recipe_rejected": "refused_by_contract",
     "strategy_too_large": "refused_by_contract",
@@ -1851,6 +1853,11 @@ class BatteryLevel0Adapter:
                 weak,
             )
         return held("the path agrees with Carbon's own gate", evidence)
+
+    def carbon_code(self, refused):
+        """Carbon's own refusal code behind a core `Unrebuildable`: the code
+        its `detail` leads with (for example `construction_contract_unrecorded`)."""
+        return str(getattr(refused, "detail", "")).split(":", 1)[0]
 
     def rebuild_differences(self, rebuilt, built):
         """The fields on which a reported build differs from Carbon's
