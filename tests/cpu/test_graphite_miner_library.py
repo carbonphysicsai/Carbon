@@ -499,6 +499,100 @@ def test_the_static_walk_finds_the_pod_key_construct_where_there_is_one():
     assert any(label == pods for label, _, _ in found - scan.PERMITTED)
 
 
+GRAPHITE_PACKAGE = "carbon.agent_campaign.graphite"
+
+
+def _package_names(scan, source, module_name, *, is_package=False):
+    """Every name a file takes from the graphite package object itself rather
+    than from one of its submodules: `from <graphite> import X` where X is not
+    a submodule, and a binding of the package (`import <graphite>`,
+    `from carbon.agent_campaign import graphite`) whose attributes reach the
+    package's re-exports. The invariant's walk follows import statements, so
+    a name the package serves lazily is invisible to it; this finds where one
+    would be taken."""
+    import ast
+
+    package = module_name if is_package else module_name.rpartition(".")[0]
+    found = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found.update(
+                "import " + alias.name
+                for alias in node.names
+                if alias.name == GRAPHITE_PACKAGE
+            )
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if node.level:
+                parts = package.split(".")
+                base = parts[: len(parts) - node.level + 1]
+                module = ".".join([*base, module] if module else base)
+            for alias in node.names:
+                if module + "." + alias.name == GRAPHITE_PACKAGE:
+                    found.add("import " + GRAPHITE_PACKAGE)
+                elif module == GRAPHITE_PACKAGE and (
+                    alias.name == "*"
+                    or scan._module_path(module + "." + alias.name, REPOSITORY) is None
+                ):
+                    found.add(alias.name)
+    return found
+
+
+def test_the_product_takes_only_submodules_from_the_graphite_package():
+    """Guard for making the graphite package `__init__` (not S2's) lazy. The
+    product invariant walks import statements; a re-export served on first
+    use (PEP 562) would load its module without the walk seeing it. So no
+    file the product reaches, with that `__init__` reached but not followed,
+    takes a name from the package itself: every graphite import names a
+    submodule, which the walk does follow. If the re-exports are dropped
+    instead, such an import fails outright, and this guard still holds."""
+    scan = _no_key_scan()
+    starts = [
+        path for entry in scan.PRODUCT_ENTRIES for path in sorted(entry.glob("*.py"))
+    ]
+    closure = _static_closure(scan, starts, boundary=NOT_S2_PACKAGES[:1])
+    # Specimen for reach: the walk covers the product, signer client included.
+    assert {
+        "scripts/dev/miner_launchpad/runner.py",
+        "carbon/chain/external_signer.py",
+    } <= _relative(closure)
+    taken = {}
+    for path in sorted(closure):
+        if path == REPOSITORY / NOT_S2_PACKAGES[0]:
+            continue
+        names = _package_names(
+            scan,
+            path.read_text(encoding="utf-8"),
+            scan._module_name(path, REPOSITORY),
+            is_package=path.name == "__init__.py",
+        )
+        if names:
+            taken[path.relative_to(REPOSITORY).as_posix()] = sorted(names)
+    assert not taken, taken
+
+
+def test_the_package_name_check_finds_each_way_a_re_export_is_taken():
+    """Specimen: re-exported names and package bindings are found, absolute
+    and relative; submodules are not."""
+    scan = _no_key_scan()
+    source = (
+        "from carbon.agent_campaign.graphite import GraphiteProvider, tools\n"
+        "from carbon.agent_campaign.graphite.miner import pack\n"
+        "from carbon.agent_campaign import graphite\n"
+        "import carbon.agent_campaign.graphite.literature\n"
+        "def later():\n"
+        "    from .. import PROVIDER, ladder\n"
+        "    from ..literature import LiteratureIndex\n"
+        "    import carbon.agent_campaign.graphite as g\n"
+        "    return g\n"
+    )
+    found = _package_names(scan, source, GRAPHITE_PACKAGE + ".miner.door")
+    assert found == {"GraphiteProvider", "PROVIDER", "import " + GRAPHITE_PACKAGE}
+    assert _package_names(scan, "from . import roles\n", GRAPHITE_PACKAGE + ".x") == (
+        set()
+    )
+
+
 def test_paper_keys_drop_the_version():
     assert pack.paper_key("2401.12345v2") == pack.paper_key("2401.12345v1")
     assert pack.paper_key("cond-mat/0601001v3") == "cond-mat-0601001"

@@ -203,6 +203,19 @@ package-level test is an expected failure for exactly what that `__init__`
 alone loads, fails on anything more, and passes with no edit once the
 `__init__` is lazy. Making it lazy is handed off.
 
+Integration round 2 found the same failure, since that `__init__` is still
+unowned and eager. S2's recommended working decision, an engineering choice
+for whoever takes the file: empty the `__init__` (drop the re-exports and
+point the six internal test files that use them at submodules, S3's diff
+with its import order fixed). The alternative, re-exports served lazily on
+first use (PEP 562), works but loads modules the invariant's
+import-statement walk cannot see. A guard test covers either choice: no file
+the product reaches (with the `__init__` reached but not followed) takes a
+name from the graphite package itself rather than from a submodule, with a
+specimen that finds each way a re-export can be taken. Both choices were
+checked on a copy of the round-2 integration tree: the invariant passes, and
+S2's import tests pass with no expected failure left.
+
 **Unchanged.** Every internal Graphite module, prompt and digest
 (`method_cards`, `literature_fetch`, `literature`, `tools`); the phase-2
 snapshot, read only; every frozen plan, prompt, digest and journal. Every
