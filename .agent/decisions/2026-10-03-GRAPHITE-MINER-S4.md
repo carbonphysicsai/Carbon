@@ -86,10 +86,9 @@ No scientific value, threshold or gate is set or changed here.
    {queries, max_records} | None, limits}` - and, beside it,
    `args.graphite_curation_digest`, the curation digest admission captured.
    The edition is the campaign's to name (S3 freezes its own published
-   edition and digest). S3 should freeze the curation recorded under that
-   digest (`MinerLibrary.curation_state`), so a queued launch runs with the
-   pins and bans its miner launched with; until it does, it freezes the
-   library's curation at preparation. On every run, resume and operation of
+   edition and digest). S3 freezes the curation recorded under that digest
+   (`MinerLibrary.curation_state`), so a queued launch runs with the pins and
+   bans its miner launched with. On every run, resume and operation of
    a Graphite campaign, `args.graphite_library` is the library's path. It is
    never frozen, since a path is private and may move. The library root is
    absolute: the profile path a host is built on is already absolute and
@@ -187,9 +186,27 @@ No scientific value, threshold or gate is set or changed here.
     identity, the compaction is recognised by the engine's own note and its
     `-compact-` identity and its summary by its `SUMMARY` label, the FULL
     stop by its stage code, and the limits scenario runs until the miner's
-    own ceiling stops it. Each scenario ran green over the 2026-10-03 heads
-    of S1 to S3, with four S2/S3 seams bridged outside the repository (see
-    the slice report); 8d needs none.
+    own ceiling stops it. A launch's money ceiling is its attempts times
+    what one call of a new plan reserves under the base's own rule: the
+    model's full output once new plans default to it
+    (OWNER-LAUNCHPAD-PROD-02), the historical reservation before. A
+    research share is a share of that money as well as of attempts, and a
+    share smaller than one call's reservation admits no research call.
+
+16. **The Launchpad reaches Graphite's package, so the package must not
+    reach the internal edition.** S2's and S3's modules live inside
+    `carbon.agent_campaign.graphite`, so importing any of them runs that
+    package's `__init__` in the product process. Today that file eagerly
+    imports the internal edition (`provider`, which reaches `next_level`,
+    `experiment` and `pods`), and the key-material invariant
+    (`tests/invariants/test_product_process_holds_no_key.py`) refuses the
+    product closure on `pods.py`'s `key_file`. That boundary also says the
+    miner edition never uses pods. S4 does not route around it: importing by
+    a computed name would only hide the reach from the invariant's closure
+    walk. The repair is a package `__init__` that imports nothing eagerly.
+    That file has no slice owner, so the lead owns the fix. With it, S4's
+    own reach is clean on this branch and on the merged tree, as a scratch
+    walk of the invariant's own closure showed.
 
 **The OWNER-LAUNCHPAD-PROD-02 smoke test.** Item 12 approves one live smoke
 test before Graphite's remaining phase-3 runs: a single-epoch autonomous
@@ -208,6 +225,14 @@ slice's.
   driver's (S1, S3). Today the campaign ledger refuses past a ceiling with a
   bare error, which interrupts the campaign; S4 adds a catalog step for the
   typed stop it proposes (`miner_ceiling_reached`).
+- Whether a FULL launch whose research share holds less than one model
+  call's reservation is refused at admission or only explained. With no
+  Carbon output cap, the default share of 0.10 needs a money ceiling of at
+  least ten full-output reservations (about USD 2.72 on gpt-5-mini) before
+  research can make one call; below that the research stage stops
+  `research_share_reached` before any call and the build goes on. The share
+  arithmetic is S3's (`budget.share_caps`), so S4 does not copy it into
+  admission. A check S3 publishes could be called at admission.
 - Contributing cards back to the shared pack, and PDF import, are deferred
   by the owner decision.
 

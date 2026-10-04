@@ -1920,15 +1920,14 @@ class GraphiteLaunchpad(BatteryLaunchpad):
 
     def launch_graphite(self, key, *, attempts=24, epochs=None, **fields):
         """A Graphite launch through the shared operation, on the miner's
-        own ceilings: `attempts` provider attempts (and their reservation's
-        worth of money), four practice trials and, when given, `epochs`
-        committed final epochs."""
+        own ceilings: `attempts` provider attempts (and the money for that
+        many calls' reservations, `graphite_call_reservation`), four practice
+        trials and, when given, `epochs` committed final epochs."""
         from carbon.battery.challenge import CHALLENGE
-        from carbon.development_session.research_agent import RESERVATION_NANO
 
         ceilings = {
             "provider_attempts": attempts,
-            "provider_nanodollars": attempts * RESERVATION_NANO,
+            "provider_nanodollars": attempts * graphite_call_reservation(),
             "research_trials": 4,
             **({} if epochs is None else {"epochs": epochs}),
         }
@@ -1948,6 +1947,37 @@ class GraphiteLaunchpad(BatteryLaunchpad):
         return self.perform("campaign_view", {"campaign": campaign})["graphite"]
 
 
+def graphite_call_reservation():
+    """What each model call of a new Graphite plan on the pinned model
+    reserves before it is sent. Where new plans default the agent's output
+    cap to the model's own maximum (`model_provider.OUTPUT_DEFAULT_V2`,
+    OWNER-LAUNCHPAD-PROD-02), that is the cost of its whole input and that
+    full output; before that rule, the historical 2,048-token reservation.
+    A research share is a share of money too, so a launch whose share holds
+    less than one reservation makes no research call at all."""
+    from carbon.development_session import model_provider
+    from carbon.development_session.research_agent import RESERVATION_NANO
+
+    rule = getattr(model_provider, "OUTPUT_DEFAULT_V2", None)
+    if rule is None:
+        return RESERVATION_NANO
+    return model_provider.select(
+        provider_id="openai-responses",
+        model_id=model_provider.GPT5_MINI,
+        credential={"kind": "file", "reference": "unset"},
+        output_default=rule,
+    ).reservation_nano
+
+
+def shared_pack():
+    """The card pack Carbon ships (S2's `pack.load_shared_pack`). Read by
+    module path rather than by an import statement, so the import order this
+    file is checked against is the same with or without S2's package."""
+    return pytest.importorskip(
+        "carbon.agent_campaign.graphite.miner.pack"
+    ).load_shared_pack()
+
+
 @pytest.fixture
 def graphite(tmp_path, monkeypatch):
     launchpad = GraphiteLaunchpad(tmp_path, monkeypatch)
@@ -1958,9 +1988,7 @@ def graphite(tmp_path, monkeypatch):
 def pack_paper():
     """A paper the shared pack already holds, as arXiv would list it again
     (a later version): the hunt must not pay to read it twice."""
-    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
-
-    card_id = load_shared_pack().cards[0]["card_id"]
+    card_id = shared_pack().cards[0]["card_id"]
     arxiv_id = card_id.removeprefix("arxiv-").rsplit("v", 1)[0]
     return {
         "arxiv_id": arxiv_id + "v9",
@@ -2061,7 +2089,6 @@ def test_8a_a_research_campaign_hunts_reads_once_and_plans(graphite):
 
 def edited(graphite):
     """8b: the miner curates through both doors; returns the edited plan."""
-    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
     from mcp.server.mcpserver.exceptions import ToolError
 
     from carbon.miner_mcp.mcp_operations import make_operation_tools
@@ -2069,7 +2096,7 @@ def edited(graphite):
     researched(graphite)
     plan_digest = graphite.perform("plan_list", {})["plans"][0]["digest"]
     plan = graphite.perform("plan_get", {"plan": plan_digest})["plan"]
-    pinned, banned = (c["card_id"] for c in load_shared_pack().cards[1:3])
+    pinned, banned = (c["card_id"] for c in shared_pack().cards[1:3])
     server, token = graphite.http()
     # The browser's door pins; the MCP door bans; both are one table.
     status, body = post(server, token, "/api/v1/library/pin", {"card_id": pinned})
@@ -2319,11 +2346,9 @@ NO_CARD = "arxiv-0000.00000v1"
 def shared_plan(graphite):
     """A plan the miner wrote through the plan door, citing a card of the
     shared pack: a BUILD needs no hunt for it."""
-    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
-
     from carbon.battery.challenge import CHALLENGE
 
-    card = load_shared_pack().cards[0]
+    card = shared_pack().cards[0]
     document = {
         "schema": "carbon.graphite.miner-plan.v1",
         "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
