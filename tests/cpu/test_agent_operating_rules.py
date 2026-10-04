@@ -18,10 +18,14 @@ from carbon.development_session.research_agent_policy import (
     AUTONOMOUS_PROMPT,
     CHALLENGE_PROMPT,
     CHALLENGE_PROMPT_V2,
+    COMPACTION_ATTEMPTS,
+    COMPACTION_SUMMARY_CHARACTERS,
+    COMPACTION_V1,
     CONTEXT_RESERVE_TOKENS,
     FINISH_NOTICE_CALLS,
     FREE_TEXT_RULE,
     LEGACY,
+    LIMITS_V2,
     MAX_PROVIDER_CALLS,
     MAX_RESEARCH_TRIALS,
     MAX_TOOL_ARGUMENT_BYTES,
@@ -29,13 +33,23 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS,
     PARALLEL_CALLS_V2,
     PROMPT,
+    REMINDER,
     SELECTION_RULE,
+    STOP_TOOL,
+    argument_limits,
     binding,
     burgers_v2_rules,
+    capture_limits_rule,
+    context_rule,
     every_call_per_turn,
+    free_text_rule,
+    graphite_miner_reminder,
+    graphite_miner_rules,
+    limits_v2,
     one_call_per_turn,
     operating_rules,
     prompt_for,
+    selection_rule,
 )
 
 
@@ -79,6 +93,116 @@ def test_v1_and_historical_prompts_replay_byte_identically():
             ((AUTONOMOUS, None), "autonomous_binding"),
         ):
             assert digest(canonical(binding(policy, challenge, rule))) == FROZEN[name]
+
+
+#: The v2 texts campaigns froze from LP-PROD-A, computed on the Launchpad
+#: wiring head (9bfd9add) before the Graphite miner edition's rules existed
+#: (OWNER-GRAPHITE-MINER-01). A campaign frozen under `PARALLEL_CALLS_V2`
+#: replays byte-identically, so these never change either.
+FROZEN_V2 = {
+    "challenge_prompt": "sha256:ea70ce29c34597f4c7241a139bfdcc472be1814ae72117ce98e89295a57fe063",
+    "autonomous_prompt": "sha256:fcbc0e12f6563f9c10f1126fa238fcd7efd36a92f729b3f2b2ece77962296b8c",
+    "legacy_prompt": "sha256:a06eb1cd82b7b62a36c2acaa619c027c7ef5c303fff4da0ef4fc29a04b07cbc8",
+    "operating_rules": "sha256:37bd698263a7591515182a2e1d298d963068e3f1d729d0e3ab353031b04d332a",
+    "battery_binding": "sha256:3e5586b54d55212e55b9300ce334cf2ec31af6da52897a5382a53c89a5027e64",
+    "legacy_binding": "sha256:1993331332b6366f5f0034132814056b4da6466901b52152938d34adb6ee7ec7",
+    "autonomous_binding": "sha256:2831ad2e60aaac253a6e35bbd38f6fb4d804150c440b880e4d6717ebc1b47519",
+    "burgers_rules_legacy": "sha256:fcd1c26c83ce7fca54b482809e81ae143ad044d78cd19c61cc7fe30f475cabb3",
+    "burgers_rules_autonomous": "sha256:eaeed773e3f15ddf0bf1f0bccf7e11ba8e1f42acc418d6271857709f71c15602",
+    "argument_limits": "sha256:c6839bccb5107312ca776e1dc3af37975eb3887e48c7d73d33345c52e36e9371",
+    "selection_rule": "sha256:5494a5a8db2dd70d82b7d1430facaf60b787cd1e29d1d1a5ba97904f090082b4",
+    "free_text_rule": "sha256:629c5a4d7037e4c26714473f5c66dae89d155cb8f64e957da0cf16a768989cfa",
+    "reminder": "sha256:2437805dc97bcfa6b8fb5bdd5a45e604d4a5a765371211c1436dff90f2db12cd",
+}
+
+
+def test_v2_texts_replay_byte_identically():
+    from carbon.battery.challenge import CHALLENGE
+
+    def text(value):
+        return digest(value.encode())
+
+    v2 = PARALLEL_CALLS_V2
+    assert text(prompt_for(AUTONOMOUS, CHALLENGE, v2)) == FROZEN_V2["challenge_prompt"]
+    assert text(prompt_for(AUTONOMOUS, None, v2)) == FROZEN_V2["autonomous_prompt"]
+    assert text(prompt_for(LEGACY, None, v2)) == FROZEN_V2["legacy_prompt"]
+    assert text(operating_rules(v2)) == FROZEN_V2["operating_rules"]
+    for (policy, challenge), name in (
+        ((AUTONOMOUS, CHALLENGE), "battery_binding"),
+        ((LEGACY, None), "legacy_binding"),
+        ((AUTONOMOUS, None), "autonomous_binding"),
+    ):
+        assert digest(canonical(binding(policy, challenge, v2))) == FROZEN_V2[name]
+    assert text(burgers_v2_rules(LEGACY)) == FROZEN_V2["burgers_rules_legacy"]
+    assert text(burgers_v2_rules(AUTONOMOUS)) == FROZEN_V2["burgers_rules_autonomous"]
+    assert text(argument_limits()) == FROZEN_V2["argument_limits"]
+    assert text(SELECTION_RULE) == FROZEN_V2["selection_rule"]
+    assert text(FREE_TEXT_RULE) == FROZEN_V2["free_text_rule"]
+    assert text(REMINDER) == FROZEN_V2["reminder"]
+    # The epoch is the default unit: the shared texts are the historical ones.
+    assert selection_rule() == SELECTION_RULE and free_text_rule() == FREE_TEXT_RULE
+    assert context_rule() in operating_rules() and capture_limits_rule() in (
+        operating_rules()
+    )
+
+
+def test_every_number_a_miner_role_is_told_is_the_enforced_one():
+    """OWNER-GRAPHITE-MINER-01: a miner role is told every rule the loop
+    enforces on it, from the values that enforce each."""
+    limits = strategy_limits()
+    rules = graphite_miner_rules(
+        limits=limits_v2(calls_per_epoch=60, trials_per_epoch=4),
+        compaction=COMPACTION_V1,
+        select=True,
+        stop=True,
+        finish="graphite_record_plan",
+    )
+    percent = round(COMPACTION_V1["trigger_fraction"] * 100)
+    kept = COMPACTION_V1["keep_last_turns"]
+    for phrase in (
+        every_call_per_turn("session"),
+        "This session also allows at most 60 model calls",
+        "at most 4 research-trial slots",
+        "and so does each compaction request",
+        f"when at most {FINISH_NOTICE_CALLS} model calls are left",
+        f"max_input_tokens minus {CONTEXT_RESERVE_TOKENS} tokens",
+        f"would pass {percent}% of that ceiling",
+        f"holds more than {kept} turns",
+        f"the last {kept} turns unchanged",
+        f"at most {COMPACTION_SUMMARY_CHARACTERS} characters in all",
+        f"after {COMPACTION_ATTEMPTS} requests",
+        f"at most {MAX_TOOL_ARGUMENT_BYTES} bytes of JSON",
+        f"arguments_json at most {MAX_WORKSPACE_ARGUMENT_BYTES} bytes",
+        "and the session goes on.",
+        selection_rule("session"),
+        free_text_rule("session"),
+        (
+            "select a practiced recipe, finish with graphite_record_plan or stop "
+            "with carbon_autoresearch_stop"
+        ),
+        f"{limits.max_strategy_identity_bytes} bytes of canonical strategy",
+    ):
+        assert phrase in rules, phrase
+    # Unset caps leave only the campaign's ceilings, and say so.
+    generous = graphite_miner_rules(limits=LIMITS_V2)
+    assert (
+        "There is no separate per-session model-call cap and no separate "
+        "per-session research-trial cap." in generous
+    )
+    assert context_rule("session") in generous
+    assert "Past the ceiling the session stops" in generous
+    assert selection_rule("session") not in generous
+    # No limits rule: the historical caps, stated as such.
+    historical = graphite_miner_rules()
+    assert (
+        f"This session allows {MAX_PROVIDER_CALLS} model calls and "
+        f"{MAX_RESEARCH_TRIALS} research-trial slots" in historical
+    )
+    reminder = graphite_miner_reminder(select=True, stop=True)
+    assert "select a practiced recipe" in reminder
+    assert "carbon_autoresearch_stop" in reminder
+    assert _exam_markers(rules) == set() and _exam_markers(reminder) == set()
+    assert STOP_TOOL["name"] == "carbon_autoresearch_stop"
 
 
 def test_a_v2_plan_states_the_v2_rules():
@@ -168,6 +292,12 @@ def test_the_loop_enforces_the_stated_call_and_trial_counts():
     assert "range(call_limit)" in source
     assert '"max_provider_calls": call_limit' in source
     assert "min(MAX_RESEARCH_TRIALS," in source
+    # A limits rule (OWNER-GRAPHITE-MINER-01) replaces both caps with its own,
+    # where None leaves only the ledger's ceilings.
+    assert 'call_limit = limits["calls_per_epoch"]' in source
+    assert 'MAX_RESEARCH_TRIALS if limits is None else limits["trials_per_epoch"]' in (
+        " ".join(source.split())
+    )
     # Specimen: the literals the constants replaced are gone.
     assert not re.search(r"range\(48\)|min\(8,", source)
 

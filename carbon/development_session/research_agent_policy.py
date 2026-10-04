@@ -9,6 +9,16 @@ from .research_tools import _schema
 
 LEGACY = "carbon.autoresearch.agent-policy.v1"
 AUTONOMOUS = "carbon.autoresearch.agent-policy.v2"
+#: The Graphite miner edition's policy (OWNER-GRAPHITE-MINER-01): a closed
+#: role's own instructions and tools, which may run with a Challenge, under
+#: `PARALLEL_CALLS_V2`. As for Carbon's autonomous agent, a Challenge result
+#: reaches the model as `research_loop.model_view` shows it, a selection needs
+#: a completed practice (`research_loop.practice_check`), the stop tool ends
+#: the session, one free-text reminder is given (renewed by any tool call) and
+#: the miner's messages are read (`miner_guidance`). The loop states its
+#: operating rules after the role's instructions (`graphite_miner_rules`).
+GRAPHITE_MINER = "carbon.autoresearch.agent-policy.graphite-miner.v1"
+POLICIES = (LEGACY, AUTONOMOUS, GRAPHITE_MINER)
 STOP = "carbon_autoresearch_stop"
 REASONS = (
     "budget",
@@ -63,6 +73,115 @@ MAX_WORKSPACE_ARGUMENT_BYTES = 12288
 #: finish (OWNER-LAUNCHPAD-PROD-01: it should be able to select or stop
 #: rather than run out).
 FINISH_NOTICE_CALLS = 2
+
+#: Tunable limits (OWNER-GRAPHITE-MINER-01, item 6: "generous and tunable
+#: limits"; money and time are the limits, not call counts). A session that
+#: freezes this rule has no per-epoch model-call or research-trial cap unless
+#: one is set here; `None` means only the campaign ledger's own ceilings bind
+#: (provider spend, provider calls, research trials, elapsed time). The loop
+#: stays finite through the ledger: a session with no per-epoch call cap
+#: needs a finite provider_attempts ceiling, or a provider_nanodollars one
+#: with a priced selection, and refuses to start otherwise. A plan frozen
+#: without the rule keeps `MAX_PROVIDER_CALLS` and `MAX_RESEARCH_TRIALS`
+#: exactly. This is the generous default; `limits_v2` sets the optional caps.
+LIMITS_V2 = {
+    "schema": "carbon.autoresearch.limits.v2",
+    "calls_per_epoch": None,
+    "trials_per_epoch": None,
+}
+#: The largest optional cap a limits rule takes; a cap is a bound, not a
+#: target, so this only refuses nonsense.
+MAX_TUNABLE_CAP = 100000
+
+
+def limits_v2(calls_per_epoch=None, trials_per_epoch=None):
+    """A `LIMITS_V2` rule with the optional per-epoch caps set."""
+    return check_limits(
+        {
+            **LIMITS_V2,
+            "calls_per_epoch": calls_per_epoch,
+            "trials_per_epoch": trials_per_epoch,
+        }
+    )
+
+
+def check_limits(limits):
+    """A frozen limits rule: `LIMITS_V2`'s schema, a model-call cap that is
+    None or 1 to `MAX_TUNABLE_CAP`, and a trial cap that is None or 0 to
+    `MAX_TUNABLE_CAP`."""
+    if (
+        type(limits) is not dict
+        or set(limits) != set(LIMITS_V2)
+        or limits["schema"] != LIMITS_V2["schema"]
+    ):
+        raise ValueError("unknown limits rule")
+    for key, low in (("calls_per_epoch", 1), ("trials_per_epoch", 0)):
+        value = limits[key]
+        if value is not None and (
+            type(value) is not int or not low <= value <= MAX_TUNABLE_CAP
+        ):
+            raise ValueError(
+                f"{key} is null or a whole number from {low} to {MAX_TUNABLE_CAP}"
+            )
+    return limits
+
+
+#: Explicit, recorded context compaction (OWNER-GRAPHITE-MINER-01, item 6), a
+#: versioned rule for new runs; a plan without it keeps the historical stop at
+#: the context ceiling. When a turn's request would pass `trigger_fraction` of
+#: the admission ceiling (the model's max_input_tokens minus
+#: `CONTEXT_RESERVE_TOKENS`) while the conversation holds more than
+#: `keep_last_turns` turns, the loop makes one journalled model call asking
+#: for a summary in a closed schema (`COMPACTION_TOOL`), then continues with
+#: the initial observation, that summary - labelled as the model's own
+#: summary - and the last `keep_last_turns` turns. The compaction call is
+#: metered and replayed like any model call, its record names what left the
+#: context, and nothing is dropped silently.
+COMPACTION_V1 = {
+    "schema": "carbon.autoresearch.compaction.v1",
+    "trigger_fraction": 0.85,
+    "keep_last_turns": 6,
+}
+COMPACTION_RULES = (COMPACTION_V1,)
+COMPACT = "carbon_autoresearch_compact_context"
+#: The closed summary schema: every field is text.
+COMPACTION_FIELDS = (
+    "findings",
+    "open_hypotheses",
+    "best_recipes",
+    "constraints",
+    "next_steps",
+)
+#: The most a summary holds, in characters over all fields: a summary has to
+#: fit the context headroom the trigger leaves.
+COMPACTION_SUMMARY_CHARACTERS = 12000
+#: Compaction calls per compaction: the request, and one firmer request when
+#: the first reply recorded no valid summary. Then the session stops typed.
+COMPACTION_ATTEMPTS = 2
+COMPACTION_TOOL = {
+    "type": "function",
+    "name": COMPACT,
+    "strict": True,
+    "description": (
+        "Only when Carbon asks you to compact the context: record your own "
+        "summary of the conversation so far - findings, open hypotheses, best "
+        "recipes (exact JSON where you have them), constraints and next steps - "
+        f"at most {COMPACTION_SUMMARY_CHARACTERS} characters in all. Carbon then "
+        "continues with the initial observation, this summary and your last "
+        "turns. At any other time it is refused and nothing happens."
+    ),
+    "parameters": _schema({field: {"type": "string"} for field in COMPACTION_FIELDS}),
+}
+
+
+def check_compaction(rule):
+    """A frozen compaction rule is one of `COMPACTION_RULES`, exactly: the
+    same canonical bytes, so 6.0 is not 6."""
+    if type(rule) is not dict or canonical(rule) not in {
+        canonical(known) for known in COMPACTION_RULES
+    }:
+        raise ValueError("unknown context compaction rule")
+    return rule
 
 
 def check_parallel_rule(rule):
@@ -127,31 +246,138 @@ _ARGUMENTS = (
 )
 
 
-def argument_limits():
+def argument_limits(unit="epoch"):
     """The v2 statement of the argument bounds and of what a malformed call
-    gets back (a typed refusal, never a stopped epoch)."""
+    gets back (a typed refusal, never a stopped epoch). `unit` names what
+    goes on: the epoch, or a role's session."""
     return (
         f"A tool call's arguments are at most {MAX_TOOL_ARGUMENT_BYTES} bytes of "
         "JSON, and a workspace task's arguments_json at most "
         f"{MAX_WORKSPACE_ARGUMENT_BYTES} bytes. A tool that takes no arguments "
         "takes {}. A malformed call is answered REJECTED_BEFORE_DISPATCH with the "
-        "field and the fix; nothing ran, no slot was spent and the epoch goes on."
+        f"field and the fix; nothing ran, no slot was spent and the {unit} goes on."
     )
 
 
-#: The v2 selection rule (LP-PROD-A): Carbon's own agent selects only a
-#: recipe that has a completed practice, the same predicate the trusted
-#: controller applies before it submits one.
-SELECTION_RULE = (
-    "Selection. carbon_autoresearch_select_recipe accepts only a recipe you "
-    "practiced to completion in this campaign, exactly as practiced. Any other "
-    "is refused with your practiced recipes listed, and the epoch goes on."
-)
-FREE_TEXT_RULE = (
-    "Free text. A turn with no tool call is answered once with a reminder; a "
-    "second such turn in a row stops the epoch. Any tool call renews the "
-    "reminder."
-)
+def selection_rule(unit="epoch"):
+    """The v2 selection rule (LP-PROD-A): the agent selects only a recipe
+    that has a completed practice, the same predicate the trusted controller
+    applies before it submits one."""
+    return (
+        "Selection. carbon_autoresearch_select_recipe accepts only a recipe you "
+        "practiced to completion in this campaign, exactly as practiced. Any other "
+        f"is refused with your practiced recipes listed, and the {unit} goes on."
+    )
+
+
+def free_text_rule(unit="epoch"):
+    """The renewed free-text reminder, as the agent is told it."""
+    return (
+        "Free text. A turn with no tool call is answered once with a reminder; a "
+        f"second such turn in a row stops the {unit}. Any tool call renews the "
+        "reminder."
+    )
+
+
+SELECTION_RULE = selection_rule()
+FREE_TEXT_RULE = free_text_rule()
+
+
+def capture_limits_rule():
+    """The strategy capture limits, from the values that enforce them."""
+    limits = strategy_limits()
+    return (
+        "Strategy capture limits. A recipe beyond any of these is refused with "
+        "strategy.identity_invalid, and check_design names the limit: at most "
+        f"{limits.max_object_members} members in any JSON object, "
+        f"{limits.max_list_items} items in any list, "
+        f"{limits.max_total_value_nodes} values in total, "
+        f"{limits.max_string_utf8_bytes} UTF-8 bytes in any string, "
+        f"{limits.max_object_key_utf8_bytes} UTF-8 bytes in any object key, and "
+        f"{limits.max_strategy_identity_bytes} bytes of canonical strategy "
+        "identity."
+    )
+
+
+def context_rule(unit="epoch"):
+    """The context admission ceiling with no compaction rule: past it the
+    epoch (or session) stops."""
+    default = DEFAULT_SELECTION.settings.max_input_tokens
+    return (
+        "Context ceiling. A request is admitted only while its input stays under "
+        f"your model's max_input_tokens minus {CONTEXT_RESERVE_TOKENS} tokens "
+        f"({default - CONTEXT_RESERVE_TOKENS} tokens at the default {default}). "
+        "After the first turn it is measured with the provider's reported input "
+        f"tokens plus what was added since. Past the ceiling the {unit} stops; "
+        "history is never silently dropped."
+    )
+
+
+def compaction_rule(compaction, unit="session"):
+    """`COMPACTION_V1` as the agent is told it, from the values that enforce
+    it."""
+    check_compaction(compaction)
+    percent = round(compaction["trigger_fraction"] * 100)
+    kept = compaction["keep_last_turns"]
+    return (
+        "Context and compaction. A request is admitted only while its input stays "
+        f"under your model's max_input_tokens minus {CONTEXT_RESERVE_TOKENS} tokens, "
+        "measured after the first turn with the provider's reported input tokens "
+        f"plus what was added since. When a request would pass {percent}% of that "
+        f"ceiling while the conversation holds more than {kept} turns, Carbon asks "
+        f"you to compact: call {COMPACT}, and only it, with your summary "
+        "of findings, open hypotheses, best recipes, constraints and next steps, at "
+        f"most {COMPACTION_SUMMARY_CHARACTERS} characters in all. That call is one "
+        "model call. Carbon then continues with the initial observation, your "
+        f"summary, labelled as your summary, and the last {kept} turns unchanged; "
+        "the earlier turns leave your context but stay in Carbon's record. Call "
+        f"{COMPACT} only when asked; at any other time it is refused and nothing "
+        f"happens. If no valid summary is recorded after {COMPACTION_ATTEMPTS} "
+        f"requests, or a request cannot fit under the ceiling, the {unit} stops; "
+        "history is never silently dropped."
+    )
+
+
+def limits_rule(limits, unit="session", *, compaction=False):
+    """The budget an agent is told under a limits rule (`LIMITS_V2`), or the
+    historical per-epoch caps when `limits` is None, from the values that
+    enforce it."""
+    if limits is None:
+        calls, trials = MAX_PROVIDER_CALLS, MAX_RESEARCH_TRIALS
+        lead = (
+            f"Budget. This {unit} allows {calls} model calls and {trials} "
+            "research-trial slots (fewer if the miner set a lower budget), "
+            "within the miner's own campaign ceilings."
+        )
+    else:
+        check_limits(limits)
+        calls, trials = limits["calls_per_epoch"], limits["trials_per_epoch"]
+        lead = (
+            "Budget. Money and time are your limits: the miner's own campaign "
+            "ceilings on provider spend, provider calls, research trials and "
+            f"elapsed time bind this {unit}. "
+            + (
+                f"There is no separate per-{unit} model-call cap"
+                if calls is None
+                else f"This {unit} also allows at most {calls} model calls"
+            )
+            + (
+                f" and no separate per-{unit} research-trial cap."
+                if trials is None
+                else f" and at most {trials} research-trial slots."
+            )
+        )
+    return lead + (
+        " Every turn spends one model call, whatever it does and however many "
+        "tool calls it carries"
+        + (", and so does each compaction request" if compaction else "")
+        + ". Starting a practice, run_python or run_julia task spends one "
+        "research trial. A request refused before any task starts spends no "
+        "trial. Before every turn Carbon tells you what is left; when at most "
+        f"{FINISH_NOTICE_CALLS} model calls are left, or the campaign budget "
+        f"guarantees at most {FINISH_NOTICE_CALLS} more, it says so, so you can "
+        "finish before they run out."
+    )
 
 
 def operating_rules(parallel_calls=None):
@@ -166,32 +392,13 @@ def operating_rules(parallel_calls=None):
     `PARALLEL_CALLS` or no rule the text is the historical one, byte for byte.
     """
     v2 = check_parallel_rule(parallel_calls) == PARALLEL_CALLS_V2
-    limits = strategy_limits()
-    default = DEFAULT_SELECTION.settings.max_input_tokens
     rules = (
         every_call_per_turn() if v2 else one_call_per_turn(),
         _budget_rule(parallel_calls),
-        (
-            "Context ceiling. A request is admitted only while its input stays under "
-            f"your model's max_input_tokens minus {CONTEXT_RESERVE_TOKENS} tokens "
-            f"({default - CONTEXT_RESERVE_TOKENS} tokens at the default {default}). "
-            "After the first turn it is measured with the provider's reported input "
-            "tokens plus what was added since. Past the ceiling the epoch stops; "
-            "history is never silently dropped."
-        ),
+        context_rule(),
         _ARGUMENTS + (" " + argument_limits() if v2 else ""),
         *((SELECTION_RULE, FREE_TEXT_RULE) if v2 else ()),
-        (
-            "Strategy capture limits. A recipe beyond any of these is refused with "
-            "strategy.identity_invalid, and check_design names the limit: at most "
-            f"{limits.max_object_members} members in any JSON object, "
-            f"{limits.max_list_items} items in any list, "
-            f"{limits.max_total_value_nodes} values in total, "
-            f"{limits.max_string_utf8_bytes} UTF-8 bytes in any string, "
-            f"{limits.max_object_key_utf8_bytes} UTF-8 bytes in any object key, and "
-            f"{limits.max_strategy_identity_bytes} bytes of canonical strategy "
-            "identity."
-        ),
+        capture_limits_rule(),
         (
             "Priors. No prior pack is registered in this profile. get_prior takes no "
             "selector and returns no prior, and inspect_prior_alignment has nothing "
@@ -346,19 +553,127 @@ def prompt_for(policy, challenge=None, parallel_calls=None):
     return CHALLENGE_PROMPT_V2 if v2 else CHALLENGE_PROMPT
 
 
-def binding(policy, challenge=None, parallel_calls=None):
-    prompt = prompt_for(policy, challenge, parallel_calls)
-    challenge_fields = (
+def _challenge_fields(challenge):
+    return (
         {}
         if challenge is None
         else {"challenge": {"id": challenge.challenge_id, "version": challenge.version}}
     )
+
+
+def binding(policy, challenge=None, parallel_calls=None):
+    prompt = prompt_for(policy, challenge, parallel_calls)
+    challenge_fields = _challenge_fields(challenge)
     return {
         **challenge_fields,
         "version": policy,
         "prompt_digest": digest(prompt.encode()),
         "stop_tool_digest": None if policy == LEGACY else digest(canonical(STOP_TOOL)),
         "free_text_reminders": 0 if policy == LEGACY else 1,
+        "changed_scientific_rule": False,
+    }
+
+
+# -- the Graphite miner edition's policy (OWNER-GRAPHITE-MINER-01) ------------
+
+
+def _either(items, word):
+    """A list in prose: one item, "a or b", or "a, b or c"."""
+    if len(items) == 1:
+        return items[0]
+    return ", ".join(items[:-1]) + f" {word} " + items[-1]
+
+
+def graphite_miner_rules(
+    *, limits=None, compaction=None, select=False, stop=False, finish=None
+):
+    """The operating rules the loop states after a Graphite miner role's own
+    instructions, built from the values that enforce each one, as
+    `operating_rules` does for Carbon's autonomous agent. Every miner role
+    runs under `PARALLEL_CALLS_V2` and its unit is the session.
+
+    `select`, `stop` and `finish` (a finish tool's name, or None) say which
+    ways to end the session the role offers."""
+    unit = "session"
+    ways = [
+        *(("select a practiced recipe",) if select else ()),
+        *((f"finish with {finish}",) if finish else ()),
+        *((f"stop with {STOP}",) if stop else ()),
+    ]
+    rules = (
+        every_call_per_turn(unit),
+        limits_rule(limits, unit, compaction=compaction is not None),
+        context_rule(unit) if compaction is None else compaction_rule(compaction),
+        _ARGUMENTS + " " + argument_limits(unit),
+        *((selection_rule(unit),) if select else ()),
+        free_text_rule(unit),
+        *(
+            (
+                "Ending. The session ends when you "
+                + _either(ways, "or")
+                + "; a malformed ending call is refused and the session goes on.",
+            )
+            if ways
+            else ()
+        ),
+        capture_limits_rule(),
+    )
+    return (
+        "\nOperating rules. These are all of Carbon's rules for this session, "
+        "stated so you never have to discover one by breaking it.\n"
+        + "".join("- " + rule + "\n" for rule in rules)
+    )
+
+
+def graphite_miner_prompt(
+    instructions,
+    *,
+    limits=None,
+    compaction=None,
+    select=False,
+    stop=False,
+    finish=None,
+):
+    """The prompt a Graphite miner role runs with: the role's own
+    instructions, then `graphite_miner_rules`. The plan records it and its
+    policy binding records both digests (`graphite_miner_binding`)."""
+    if type(instructions) is not str or not instructions:
+        raise ValueError("role instructions are a non-empty string")
+    return instructions + graphite_miner_rules(
+        limits=limits, compaction=compaction, select=select, stop=stop, finish=finish
+    )
+
+
+def graphite_miner_reminder(*, select=False, stop=False, finish=None):
+    """The one free-text reminder of a Graphite miner role, naming only the
+    ways to continue or end that the role offers."""
+    ways = [
+        "Continue with a feasible tool call",
+        *(("select a practiced recipe",) if select else ()),
+        *((f"finish with {finish}",) if finish else ()),
+        *((f"call {STOP} with the observed reason and evidence",) if stop else ()),
+    ]
+    return (
+        "This is a campaign the miner already authorized and launched, not an "
+        f"interactive consultation. {_either(ways, 'or')}. No additional permission for an "
+        "in-scope step is needed. You may end without a trial or an improvement; "
+        "do not invent results. This is the only reminder until your next tool "
+        "call; another turn with no tool call ends the session."
+    )
+
+
+def graphite_miner_binding(prompt, instructions, reminder, challenge=None):
+    """The policy record a Graphite miner role's epoch plan carries: the full
+    prompt's digest, the role instructions' own digest, the stop tool, the
+    one reminder and its digest, and the Challenge when there is one."""
+    return {
+        **_challenge_fields(challenge),
+        "version": GRAPHITE_MINER,
+        "prompt_digest": digest(prompt.encode()),
+        "instructions_digest": digest(instructions.encode()),
+        "stop_tool_digest": digest(canonical(STOP_TOOL)),
+        "free_text_reminders": 1,
+        "reminder_digest": digest(reminder.encode()),
         "changed_scientific_rule": False,
     }
 
