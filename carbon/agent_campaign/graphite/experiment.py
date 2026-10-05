@@ -1621,10 +1621,19 @@ class Experiment:
         stalled = count >= CONSTRUCTOR_STALL_ATTEMPTS
         observation = self.root / "stall-observation.json"
         if stalled and not observation.exists():
+            # A proposal id is a run-local label (it is derived from the tool
+            # call's journal identity, so every run reuses it): the evidence
+            # binds the run and what each proposal built, never the bare ids
+            # (OWNER-GRAPHITE-TEST-WAVE-04 §1).
             evidence = digest(
                 canonical(
-                    [r["proposal_id"] for r in self.records("proposal")]
-                    + [record["proposal_id"]]
+                    {
+                        "run_id": self.run_id,
+                        "proposals": [
+                            [r["proposal_id"], r.get("recipe_digest")]
+                            for r in [*self.records("proposal"), record]
+                        ],
+                    }
                 )
             )
             failure_id = self.ladder.record_failure(
