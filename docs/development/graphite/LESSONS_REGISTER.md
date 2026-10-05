@@ -69,7 +69,7 @@ before, and that none is as messy as this first wave.
 
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
-| N1 | Battery-only literals were spread through "shared" code: scoring calls, pod data, writeups, tool text, published-material lists, literature topics, the dry run | 12 blocking gaps before cooling could run | A **neutrality audit** when a second challenge registers: an unnamed scoring call refuses; tests run the full Graphite path per registered challenge | ENFORCED: `--challenge` required, unnamed refusal (#584); IN PR: per-challenge plumbing (#606), tool text v2 (#610); GATED (P1–P4) |
+| N1 | Battery-only literals were spread through "shared" code: scoring calls, pod data, writeups, tool text, published-material lists, literature topics, the dry run | 12 blocking gaps before cooling could run | A **neutrality audit** when a second challenge registers: an unnamed scoring call refuses; tests run the full Graphite path per registered challenge | ENFORCED: `--challenge` required, unnamed refusal (#584); versioned neutral tool text v2 (#610); IN PR: per-challenge plumbing (#606); GATED (P1–P4) |
 | N2 | Frozen study manifests pin shared modules, so an innocent edit invalidates a freeze | Coordination overhead; risk to the counted motor campaign | A **pinned-file registry**, with CI refusing edits to files a live freeze pins unless the PR declares a new study version | OPEN → PR Head and the Test Engineer (CI check) |
 | N3 | A freeze manifest pinned a cutoff value but not the module computing it (EV5 `admissibility.py`) | A silent drift risk to a one-shot confirmation | Freeze manifests pin **every imported module**, and analysis re-hashes them before running | ENFORCED for EV5 (EV5-RUN-01 pin step); GATED (D6) |
 
@@ -77,7 +77,7 @@ before, and that none is as messy as this first wave.
 
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
-| I1 | Proposal ids repeat across runs; a "no-op" recipe flag was really a default; a KNN digest ignored k | Wrong cross-run identity; aliased and merged constructions | Identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1), plus a standing no-op audit | IN PR: `test_construction_noop_audit.py` (#619); OPEN: KNN versioned digest (Test Engineer) |
+| I1 | Proposal ids repeat across runs; a "no-op" recipe flag was really a default; a KNN digest ignored k | Wrong cross-run identity; aliased and merged constructions | Identity by rebuilt artifact (OWNER-GRAPHITE-TEST-WAVE-04 §1), plus a standing no-op audit | ENFORCED: `test_construction_noop_audit.py` (#619); OPEN: KNN versioned digest (Test Engineer) |
 | I2 | The controller counts every run and binds one grant document | Refund grants needed (R2, R3) | Price runs with lost-run headroom, use per-challenge grants, and bind grants to main's blob and the named challenge | ENFORCED: grant bound to main's blob (#569); IN PR: per-challenge binding (#612); DOCUMENTED: headroom |
 | I3 | Admission findings lived in per-run controllers, so no record was canonical | The LOCK check could look at the wrong root | One designated admission controller per (challenge, level) | IN PR (#615) |
 
@@ -85,10 +85,10 @@ before, and that none is as messy as this first wave.
 
 | # | Lesson | Cost | Prevention | Disposition |
 |---|---|---|---|---|
-| G1 | Hard-coded attribution assumptions (crash = candidate, timeout = candidate) | Mis-typed outcomes; dodge vectors | Every attribution rule is a **registered, versioned policy** with its raw evidence kept, and the Attacker tests it | ENFORCED: pod-attribution v1/v2, baseline-retry, cooling candidate-fault v2 |
+| G1 | Hard-coded attribution assumptions (crash = candidate, timeout = candidate) | Mis-typed outcomes; dodge vectors | Every attribution rule is a **registered, versioned policy** with its raw evidence kept, and the Attacker tests it | ENFORCED: pod-attribution v1/v2, baseline-retry, cooling candidate-fault v1 (#620, no charge to the candidate; replay baseline). OPEN: cooling candidate-fault v2, which charges the candidate, is a follow-up and a condition for any live cooling Graphite or Attacker run (readiness A5 condition) |
 | G2 | Failure-stage claims were written where the candidate could write | A forgery vector at Levels 4–5 | Host-observed timing is the authority; candidate-writable files are evidence only | ENFORCED (#573) |
 | G3 | Missing predictions were excluded instead of charged | An omission dodge | Every host refuses incomplete prediction sets | IN PR (#613, WAVE-07 §1) |
-| G4 | A gate helper returned 0.0 on FAIL, so a failure ranked first under a negative-error score | A wrong τ in #609 | Admissibility before ranking: gate failures rank last, tested | IN PR (#617); EV5-RUN-01 ruling |
+| G4 | A gate helper returned 0.0 on FAIL, so a failure ranked first under a negative-error score | A wrong τ in #609 | Admissibility before ranking: gate failures rank last, tested | ENFORCED (#617); EV5-RUN-01 ruling |
 | G5 | A gate tolerance sat 0.0006 K inside the references | Live false-rejection risk | A **margin study for every gate** at onboarding | GATED (S3); cooling v2 at 0.1 K |
 | G6 | A case-insensitive role guard could be bypassed | Possible recall of a sealed batch | Security review of every guard; case-folded comparison | ENFORCED (#583) |
 
@@ -112,6 +112,22 @@ before, and that none is as messy as this first wave.
 | S6 | Seed-noise margins don't exist for deterministic models (KRR) | A method decision mid-wave | Define each family's noise source at onboarding (seed, bootstrap or both) | GATED (S4) |
 | S7 | A model with no information ties every candidate, so the selection is a tie-break artifact | A misleading "choice" | TIE_DETERMINED flag | ENFORCED (#601) |
 | S8 | Graphite's own rationale credited a parameter that did nothing | Plausible but false explanations | Never accept agent explanations as evidence; ablate | DOCUMENTED |
+
+## 7a. Added after the first gate runs and reviews
+
+Owners are the sessions the Test Lead named. A proposal for a gate item is made
+in the PR that adds the lesson and is approved by the Test Lead; it is not a
+change to the gate tables.
+
+| # | Lesson | Cost | Prevention | Disposition |
+|---|---|---|---|---|
+| X1 | Construction boundary behaviour was checked piecemeal, so a boundary could disagree between the contract, the compiler and the validator | Hidden inconsistencies found late | A standing construction-boundary consistency test over every registered contract | ENFORCED: `test_challenge_validator_boundary_consistency.py` (#624, VALIDATOR-10); owner Carbon Validator. Gate item proposed: P7 [auto] |
+| X2 | Two attack vectors were identical in effect (`group_sacrifice` = `cooling_optimism`), so coverage counted one vector twice | Overstated attack coverage | A no-identical-vectors test across a challenge's families | IN PR: cooling adapter `cooling-l0.v3` with its no-identical-vectors test (Test Engineer; PR number to confirm, not on main at 2026-10-05); then fold into gate item A2 |
+| X3 | A new compute lane (the CPU carrier) borrowed the GPU pod's attribution policy, whose probe does not apply to a CPU lane | The carrier's environment failures would have been mis-typed | Every compute lane registers its own attribution policy and environment probe; the gate never borrows one | ENFORCED: R3 refuses a lane with no policy of its own; the carrier policy `carrier-lane-v1` is in #630 (open, VALIDATOR-11). Owner Carbon Validator. GATED (R3) |
+| X4 | An empty value (`strata: []`) was used to mean "intentionally none", so a missing value and a deliberate one looked the same | Battery D7 read as a gap that was a decision | A deliberate "none" is an explicit named value; an empty one is refused | ENFORCED: `NONE_UNIFORM_LAW` (#627, VALIDATOR-03), and gate D7 refuses an empty list. Owner Carbon Validator. GATED (D7) |
+| X5 | Agent session restarts change the session's message address, so messages to the old address were lost | Resends and stalled work | Keep pins and the board current: list sessions before sending; PR Head keeps the board | DOCUMENTED (extends C2 and C3); owner Test Lead and PR Head. Not enforceable in code: it depends on the host's session manager |
+| X6 | The gate wrote its runtime history under `carbon/`, so a gate run left shipped code dirty and the pre-live check (R1) then refused it | R1 failed on the second run of the gate; found in the Linux shakedown | Runtime outputs (history, reports) live outside shipped code, under `docs/development/challenge_pipeline/readiness/` | ENFORCED: `test_a_gate_run_leaves_carbon_clean` and the history-path test (readiness runner PR); owner Graphite Testing Manager. No gate item needed: it is a property of the gate itself |
+| X7 | A gate check ran on another challenge's resource: cooling passed R1 on battery's phase-4 grant, which hid the missing per-challenge grant | A false PASS for a challenge with no grant | A check uses the challenge's own resources and fails closed when it has none; it never falls back to another challenge's | ENFORCED: R1 reads `grants.phase4` per challenge and `test_r1_never_passes_on_another_challenges_grant`; owner Graphite Testing Manager. Per-challenge grant binding is #612 (open). R5 (grants) is the gate item for it |
 
 ## 8. Metrics recorded per challenge onboarding
 
