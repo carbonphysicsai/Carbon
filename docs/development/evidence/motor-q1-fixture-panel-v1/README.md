@@ -23,6 +23,18 @@ Reproduce with `python -m scripts.dev.motor.q1_panel --out result.json`. It runs
 
 **Decision.** Track B Q1 on the counted GetDP replay (study V2): fixed grid, 48 queries, with one-time costs excluded.
 
+## Finding
+
+**This is an alignment finding about the frozen motor scoring rule, not a defect in any model.** On this panel, the rule's ranking has zero rank agreement with decision quality: Kendall τ-b = 0.0 and Spearman ρ = 0.0.
+- It gives its **worst** score (0.583) to the phase-shifted control. That control makes exactly the best model's decision: d06, feasible, regret 0.0192.
+- It scores three members that make **unsafe** decisions better than that control:
+  - saturation-blind, 0.248;
+  - flat, 0.417;
+  - textbook, 0.500.
+- The rule's pointwise ripple-shape error dominates. Errors in ripple amplitude and saturation, which decide feasibility, are under-weighted.
+
+Descriptive only (n = 5). Candidate rule changes are studied separately, as SR-M1, and are not adopted here.
+
 ## Result
 
 | Member | Practice score | Selection | Reference outcome | Exact regret |
