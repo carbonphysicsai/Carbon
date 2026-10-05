@@ -1,0 +1,4640 @@
+{
+ "adversarial_score": {
+  "constructions": [
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_backbone_a-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 26,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 6,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_backbone_b-s0",
+    "scenarios": [
+     "D-T26-S0.10",
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 67,
+     "top_half": false
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 47,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_optimizer_a-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 26,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 6,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "FAIL",
+    "member": "attack_rebuild_identity_optimizer_b-s0",
+    "scenarios": [
+     "D-T16-S0.10",
+     "D-T16-S0.46",
+     "D-T26-S0.10",
+     "D-T6-S0.10",
+     "D-T6-S0.30",
+     "D-T6-S0.46",
+     "V-T10-S0.24",
+     "V-T20-S0.07",
+     "V-T30-S0.07",
+     "V-T39-S0.38"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 100,
+     "top_half": false
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_steps_a-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 26,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 6,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_steps_b-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 28,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 8,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_train_fraction_a-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 26,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 6,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_train_fraction_b-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T10-S0.38",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 86,
+     "top_half": false
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 66,
+     "top_half": false
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_width_a-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 26,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 6,
+     "top_half": true
+    }
+   },
+   {
+    "gate": "PASS",
+    "member": "attack_rebuild_identity_width_b-s0",
+    "scenarios": [
+     "D-T6-S0.30",
+     "V-T39-S0.24"
+    ],
+    "sensitivity_literal_zero": {
+     "of": 100,
+     "rank": 33,
+     "top_half": true
+    },
+    "source": "track_a",
+    "verdict": {
+     "of": 100,
+     "rank": 13,
+     "top_half": true
+    }
+   },
+   {
+    "design": "c1=1.7,c2=0.7",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 25.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.5,c2=0.65",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 15.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=2,c2=1",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.6,c2=0.675",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 25.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=2,c2=0.975",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.45,c2=0.475",
+    "gate": "PASS",
+    "member": "mlp_t1500_w128_d3_wd1em4-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 70,
+     "top_half": false
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 50,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=1.35,c2=0.5",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=1.75,c2=0.6",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.95,c2=0.425",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 25.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=0.8,c2=1",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.5,c2=0.85",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.75,c2=0.575",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 25.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=0.6,c2=0.925",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.8,c2=0.95",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.5,c2=0.9",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.15,c2=0.375",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=1.4,c2=0.975",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 15.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.15,c2=0.6",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 35.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.35,c2=0.9",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.75,c2=0.925",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.1,c2=0.9",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 20.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.55,c2=0.4",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 25.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=1.35,c2=0.725",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.75,c2=0.65",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 30.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.6,c2=0.425",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 35.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/in_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=0.95,c2=0.65",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.55,c2=0.525",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.75,c2=0.625",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.9,c2=0.6",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.8,c2=0.65",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1,c2=0.65",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.9,c2=0.625",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.9,c2=0.5",
+    "gate": "FAIL",
+    "member": "knn-s0",
+    "operating_condition": {
+     "soc0": 0.36,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.8,c2=0.725",
+    "gate": "PASS",
+    "member": "mlp_t1500_w128_d3_wd1em4-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 40.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 70,
+     "top_half": false
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 50,
+     "top_half": false
+    },
+    "violated": [
+     "peak_temperature"
+    ]
+   },
+   {
+    "design": "c1=1.15,c2=0.6",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.2,c2=0.775",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.05,c2=0.375",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 40.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=1.2,c2=0.4",
+    "gate": "FAIL",
+    "member": "mlp_t500_w64_d3-s0",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 40.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 99,
+     "top_half": false
+    },
+    "violated": [
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=0.9,c2=0.45",
+    "gate": "PASS",
+    "member": "mlp_t6000_w256_d3_ens2-s0",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 21,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 1,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1.4,c2=0.525",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.85,c2=0.475",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=1,c2=0.625",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.75,c2=0.45",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset",
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=0.95,c2=0.55",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.495,
+     "t_amb_c": 10.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   },
+   {
+    "design": "c1=0.95,c2=0.525",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.055,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset",
+     "reach_cv_in_window"
+    ]
+   },
+   {
+    "design": "c1=0.9,c2=0.475",
+    "gate": "PASS",
+    "member": "mlp_t6000_w512_d3-s1",
+    "operating_condition": {
+     "soc0": 0.21,
+     "t_amb_c": 5.0
+    },
+    "sensitivity_literal_zero": {
+     "of": 99,
+     "rank": 43,
+     "top_half": true
+    },
+    "source": "mode_x/out_of_band",
+    "verdict": {
+     "of": 99,
+     "rank": 23,
+     "top_half": true
+    },
+    "violated": [
+     "no_plating_onset"
+    ]
+   }
+  ],
+  "counted": {
+   "mode_x_in_band": 25,
+   "mode_x_out_of_band": 21,
+   "track_a": 10
+  },
+  "cut": "2 x rank <= n (divergence.verified_violation)",
+  "in_top_half": [
+   "attack_rebuild_identity_backbone_a-s0",
+   "attack_rebuild_identity_backbone_b-s0",
+   "attack_rebuild_identity_optimizer_a-s0",
+   "attack_rebuild_identity_steps_a-s0",
+   "attack_rebuild_identity_steps_b-s0",
+   "attack_rebuild_identity_train_fraction_a-s0",
+   "attack_rebuild_identity_width_a-s0",
+   "attack_rebuild_identity_width_b-s0",
+   "mlp_t6000_w256_d3_ens2-s0",
+   "mlp_t6000_w512_d3-s1"
+  ],
+  "rule": "control-exam-v1 plus the gate, failures ranked last",
+  "sensitivity_literal_zero": {
+   "enters_verdict": false,
+   "in_top_half": [
+    "attack_rebuild_identity_backbone_a-s0",
+    "attack_rebuild_identity_optimizer_a-s0",
+    "attack_rebuild_identity_optimizer_b-s0",
+    "attack_rebuild_identity_steps_a-s0",
+    "attack_rebuild_identity_steps_b-s0",
+    "attack_rebuild_identity_train_fraction_a-s0",
+    "attack_rebuild_identity_width_a-s0",
+    "attack_rebuild_identity_width_b-s0",
+    "knn-s0",
+    "mlp_t500_w64_d3-s0",
+    "mlp_t6000_w256_d3_ens2-s0",
+    "mlp_t6000_w512_d3-s1"
+   ],
+   "ruling": "Test Lead 2026-10-05, interpretation choice 2"
+  },
+  "verdict": "FAIL"
+ },
+ "blended": false,
+ "checkout_head": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+ "claims": {
+  "chain": false,
+  "changes_testnet_rule": false,
+  "level_above_0_opened": false,
+  "qualification": false,
+  "reward": false
+ },
+ "construction_integrity": {
+  "families": {
+   "mandatory_failure": "IN_PROGRESS",
+   "rebuild_identity": "IN_PROGRESS",
+   "recipe_forgery": "IN_PROGRESS",
+   "recipe_surface": "IN_PROGRESS",
+   "staged_bytes": "IN_PROGRESS"
+  },
+  "families_not_in_progress": [],
+  "findings": [],
+  "rebuilds_matched": 110,
+  "rebuilds_mismatched": [],
+  "rebuilds_missing_untyped": [],
+  "rebuilds_refused_typed": [],
+  "refusals_match_freeze": true,
+  "verdict": "PASS",
+  "worker_boundary_scan": {
+   "evidence": {
+    "conclusion": "success",
+    "head_sha": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+    "result": "2 passed",
+    "ruling": "Test Lead 2026-10-05, ruling 11 evidence source amended to (d): the scan at the exact checkout",
+    "run_id": "operator-host canonical service lane; output sha256:d5709d56c1d21f842fe8c4e4dbf30112323e5884df87c59c9bb9edcbce6e7b88",
+    "runner": "scripts/dev/c03_worker_image.sh + scripts/dev/c03_worker_service.sh, as CI's c03-worker lane, Linux x86-64 with Docker",
+    "test": "tests/service/test_battery_track_a_service.py",
+    "worker_image_id": "sha256:427997a044bc6fd04c46d4261bcabc7078733a66b702a686503bfa2498fe0b6f"
+   },
+   "required_head": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+   "state": "PASS"
+  }
+ },
+ "contract_digest": "sha256:bb08f9794fcd24afc70764fd953c8828e31dad49445ddbbeedc548cc5640fc31",
+ "gate": {
+  "cutoff_bands": 2.0,
+  "members": {
+   "attack_rebuild_identity_backbone_a-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_backbone_b-s0": {
+    "near_optimism_bands": 1.4706093568942096,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_optimizer_a-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_optimizer_b-s0": {
+    "near_optimism_bands": 3.3507898824757056,
+    "verdict": "FAIL"
+   },
+   "attack_rebuild_identity_steps_a-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_steps_b-s0": {
+    "near_optimism_bands": 0.6342559192710044,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_train_fraction_a-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_train_fraction_b-s0": {
+    "near_optimism_bands": 0.5850941183719515,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_width_a-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "attack_rebuild_identity_width_b-s0": {
+    "near_optimism_bands": 0.6923246585695,
+    "verdict": "PASS"
+   },
+   "control-boundary_optimist": {
+    "near_optimism_bands": 2.4110401595023374,
+    "verdict": "FAIL"
+   },
+   "control-conservative": {
+    "near_optimism_bands": 0.0,
+    "verdict": "PASS"
+   },
+   "control-localized_sign_error": {
+    "near_optimism_bands": 0.45671990180313565,
+    "verdict": "PASS"
+   },
+   "control-oracle": {
+    "near_optimism_bands": 0.0,
+    "verdict": "PASS"
+   },
+   "control-rank_preserving_delay": {
+    "near_optimism_bands": 0.0,
+    "verdict": "PASS"
+   },
+   "deeponet-s0": {
+    "near_optimism_bands": 1.2994049617175036,
+    "verdict": "PASS"
+   },
+   "deeponet-s1": {
+    "near_optimism_bands": 1.308300678373853,
+    "verdict": "PASS"
+   },
+   "deeponet_t1500_w128_d2-s0": {
+    "near_optimism_bands": 2.732818286467301,
+    "verdict": "FAIL"
+   },
+   "deeponet_t1500_w256_d3-s0": {
+    "near_optimism_bands": 2.5028091234417893,
+    "verdict": "FAIL"
+   },
+   "deeponet_t1500_w256_d3-s1": {
+    "near_optimism_bands": 2.2270477264133612,
+    "verdict": "FAIL"
+   },
+   "deeponet_t1500_w512_d3-s0": {
+    "near_optimism_bands": 2.8810020644345204,
+    "verdict": "FAIL"
+   },
+   "deeponet_t3000_w128_d3-s0": {
+    "near_optimism_bands": 1.7071388825586262,
+    "verdict": "PASS"
+   },
+   "deeponet_t3000_w256_d2-s0": {
+    "near_optimism_bands": 2.3269939838873634,
+    "verdict": "FAIL"
+   },
+   "deeponet_t3000_w256_d2-s1": {
+    "near_optimism_bands": 2.163860663369485,
+    "verdict": "FAIL"
+   },
+   "deeponet_t3000_w512_d3-s0": {
+    "near_optimism_bands": 2.092775823631168,
+    "verdict": "FAIL"
+   },
+   "deeponet_t500_w128_d2-s0": {
+    "near_optimism_bands": 3.5045013512294347,
+    "verdict": "FAIL"
+   },
+   "deeponet_t6000_w128_d2-s0": {
+    "near_optimism_bands": 1.4522416643926568,
+    "verdict": "PASS"
+   },
+   "deeponet_t6000_w256_d2-s0": {
+    "near_optimism_bands": 1.4706093568942096,
+    "verdict": "PASS"
+   },
+   "deeponet_t6000_w512_d2-s0": {
+    "near_optimism_bands": 2.317382291084464,
+    "verdict": "FAIL"
+   },
+   "deeponet_t6000_w512_d3-s0": {
+    "near_optimism_bands": 1.57483841771469,
+    "verdict": "PASS"
+   },
+   "deeponet_t6000_w512_d3-s1": {
+    "near_optimism_bands": 1.727707258295106,
+    "verdict": "PASS"
+   },
+   "knn-s0": {
+    "near_optimism_bands": 3.134803314565268,
+    "verdict": "FAIL"
+   },
+   "knn1-s0": {
+    "near_optimism_bands": 2.4727961566354857,
+    "verdict": "FAIL"
+   },
+   "knn10-s0": {
+    "near_optimism_bands": 3.730773285955698,
+    "verdict": "FAIL"
+   },
+   "knn15-s0": {
+    "near_optimism_bands": 4.159109679820344,
+    "verdict": "FAIL"
+   },
+   "knn25-s0": {
+    "near_optimism_bands": 5.055791408261594,
+    "verdict": "FAIL"
+   },
+   "knn3-s0": {
+    "near_optimism_bands": 2.757146981202503,
+    "verdict": "FAIL"
+   },
+   "knn40-s0": {
+    "near_optimism_bands": 5.8797099842907,
+    "verdict": "FAIL"
+   },
+   "mlp-s0": {
+    "near_optimism_bands": 0.5868802693431211,
+    "verdict": "PASS"
+   },
+   "mlp-s1": {
+    "near_optimism_bands": 0.6525624863280742,
+    "verdict": "PASS"
+   },
+   "mlp-s2": {
+    "near_optimism_bands": 0.6755303438261252,
+    "verdict": "PASS"
+   },
+   "mlp_ens3-s0": {
+    "near_optimism_bands": 0.7967268130328773,
+    "verdict": "PASS"
+   },
+   "mlp_half-s0": {
+    "near_optimism_bands": 0.5850941183719515,
+    "verdict": "PASS"
+   },
+   "mlp_half-s1": {
+    "near_optimism_bands": 0.766226898598686,
+    "verdict": "PASS"
+   },
+   "mlp_localized-s0": {
+    "near_optimism_bands": 0.6185414055326371,
+    "verdict": "PASS"
+   },
+   "mlp_localized-s1": {
+    "near_optimism_bands": 0.6864110876035663,
+    "verdict": "PASS"
+   },
+   "mlp_plus-s0": {
+    "near_optimism_bands": 0.9620347032187904,
+    "verdict": "PASS"
+   },
+   "mlp_raw-s0": {
+    "near_optimism_bands": 0.5987693309721861,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d2-s0": {
+    "near_optimism_bands": 1.3283935744699256,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d2_f25-s0": {
+    "near_optimism_bands": 1.5694034979421871,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d2_f50-s0": {
+    "near_optimism_bands": 1.3645621821938203,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d3-s0": {
+    "near_optimism_bands": 1.0268717233894635,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d3-s1": {
+    "near_optimism_bands": 0.8604820894919125,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w128_d3_wd1em4-s0": {
+    "near_optimism_bands": 1.0288723114548655,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w256_d2-s0": {
+    "near_optimism_bands": 1.0435796612677901,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w256_d2_arr-s0": {
+    "near_optimism_bands": 0.9526574268535422,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w256_d3-s0": {
+    "near_optimism_bands": 0.7553301465202414,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w512_d2-s0": {
+    "near_optimism_bands": 1.0410156591018818,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w512_d2-s1": {
+    "near_optimism_bands": 1.0446541088860328,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w512_d3-s0": {
+    "near_optimism_bands": 0.7396264842189011,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w64_d2-s0": {
+    "near_optimism_bands": 1.6974005530408367,
+    "verdict": "PASS"
+   },
+   "mlp_t1500_w64_d3-s0": {
+    "near_optimism_bands": 1.3142765719783458,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w128_d2-s0": {
+    "near_optimism_bands": 1.0021986053884286,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w128_d2_ens3-s0": {
+    "near_optimism_bands": 1.917177169655403,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w128_d2_irw01-s0": {
+    "near_optimism_bands": 1.0781358658644489,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w128_d3-s0": {
+    "near_optimism_bands": 0.8063834830155614,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d2-s0": {
+    "near_optimism_bands": 0.8254396560666685,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d2-s1": {
+    "near_optimism_bands": 0.8263275227753574,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d3-s0": {
+    "near_optimism_bands": 0.6342559192710044,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d3_arr_pca16-s0": {
+    "near_optimism_bands": 1.0052797537854683,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d3_f25-s0": {
+    "near_optimism_bands": 1.0374719278650397,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d3_f25-s1": {
+    "near_optimism_bands": 0.9861342560077216,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w256_d3_f50-s0": {
+    "near_optimism_bands": 0.6628732731298983,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w512_d2-s0": {
+    "near_optimism_bands": 0.8699464514911582,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w512_d2_wd1em4-s0": {
+    "near_optimism_bands": 0.8703990480579217,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w512_d3-s0": {
+    "near_optimism_bands": 0.6349317981564163,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w512_d3_f25-s0": {
+    "near_optimism_bands": 1.1657357909381625,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w64_d2-s0": {
+    "near_optimism_bands": 1.1944791651459594,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w64_d3-s0": {
+    "near_optimism_bands": 1.1424273058291368,
+    "verdict": "PASS"
+   },
+   "mlp_t3000_w64_d3-s1": {
+    "near_optimism_bands": 0.9688086903461121,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w128_d2-s0": {
+    "near_optimism_bands": 2.1754374919166817,
+    "verdict": "FAIL"
+   },
+   "mlp_t500_w128_d3-s0": {
+    "near_optimism_bands": 1.7539724651147262,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w128_d3_f50-s0": {
+    "near_optimism_bands": 1.7691432867952597,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w256_d2-s0": {
+    "near_optimism_bands": 1.8816448118437525,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w256_d3-s0": {
+    "near_optimism_bands": 1.413008467368859,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w256_d3-s1": {
+    "near_optimism_bands": 1.2666094905986003,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w512_d2-s0": {
+    "near_optimism_bands": 1.8965872390796494,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w512_d3-s0": {
+    "near_optimism_bands": 1.2877479120543933,
+    "verdict": "PASS"
+   },
+   "mlp_t500_w64_d2-s0": {
+    "near_optimism_bands": 2.658050374766498,
+    "verdict": "FAIL"
+   },
+   "mlp_t500_w64_d2-s1": {
+    "near_optimism_bands": 2.67130296905713,
+    "verdict": "FAIL"
+   },
+   "mlp_t500_w64_d3-s0": {
+    "near_optimism_bands": 2.1479190796981014,
+    "verdict": "FAIL"
+   },
+   "mlp_t6000_w128_d2-s0": {
+    "near_optimism_bands": 0.9587148349778932,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w128_d3-s0": {
+    "near_optimism_bands": 0.6923246585695,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w128_d3-s1": {
+    "near_optimism_bands": 0.6450967298422993,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d2-s0": {
+    "near_optimism_bands": 0.6820809067996864,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_arr-s0": {
+    "near_optimism_bands": 0.6167072482197218,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_ens2-s0": {
+    "near_optimism_bands": 0.6984678617578096,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_ens4-s0": {
+    "near_optimism_bands": 0.896889643082569,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_f25-s0": {
+    "near_optimism_bands": 1.0478189504019906,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_irw003-s0": {
+    "near_optimism_bands": 0.6833046306348052,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_irw03-s0": {
+    "near_optimism_bands": 0.6181413998768347,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_irw03-s1": {
+    "near_optimism_bands": 0.6143527631138948,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_irw3-s0": {
+    "near_optimism_bands": 0.6244057871976857,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_pca8-s0": {
+    "near_optimism_bands": 1.1054078158739173,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_wd1em3-s0": {
+    "near_optimism_bands": 0.5883432058810449,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_wd1em3-s1": {
+    "near_optimism_bands": 0.6544362857613146,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w256_d3_wd1em5-s0": {
+    "near_optimism_bands": 0.5871386140108215,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w512_d2_f25-s0": {
+    "near_optimism_bands": 1.1015490571007527,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w512_d2_f50-s0": {
+    "near_optimism_bands": 0.7674572707245062,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w512_d3-s0": {
+    "near_optimism_bands": 0.5365364820905572,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w512_d3-s1": {
+    "near_optimism_bands": 0.5674877009132375,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w64_d2-s0": {
+    "near_optimism_bands": 1.0505858235379917,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w64_d2-s1": {
+    "near_optimism_bands": 1.1677660288179352,
+    "verdict": "PASS"
+   },
+   "mlp_t6000_w64_d3-s0": {
+    "near_optimism_bands": 0.8743907878064902,
+    "verdict": "PASS"
+   },
+   "mlp_wide-s0": {
+    "near_optimism_bands": 0.6917767541724555,
+    "verdict": "PASS"
+   }
+  }
+ },
+ "interpretation": ".agent/tickets/EV5-RUN-01_analysis_and_confirmation.md",
+ "optimizer_results_sha256": "sha256:59145507a316d1446e0bdde4f7a23535d4e10cb81253d94cf5d68dca7554d6cf",
+ "results_sha256": "sha256:60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+ "schema": "carbon.battery.ev5.analysis.v1",
+ "study": "EV5",
+ "value": {
+  "H1": {
+   "conditions": {
+    "across_family_divergence_not_higher": false,
+    "delta_tau_exceeds_noise_band": false,
+    "interval_lower_bound_above_zero": false
+   },
+   "excluded_not_numeric": [],
+   "outcome": "DECIDING_CONFIRMED",
+   "paired_bootstrap": {
+    "conditions": 12,
+    "decision": "UNRESOLVED",
+    "delta_tau": -0.029401402283340095,
+    "interval": [
+     -0.13234155551398227,
+     0.07357910682388652
+    ],
+    "level": 0.95,
+    "members": 99,
+    "replicates": 10000,
+    "replicates_skipped": 0,
+    "rng_seed": 20261001,
+    "tau_deciding": 0.40237919124913996,
+    "tau_proposed": 0.37297778896579986
+   },
+   "pool": "eligible RECONSTRUCTED members, numeric under both rules",
+   "real_divergence_verification": {
+    "control-exam-v1": {
+     "across_families": 10,
+     "control": 2,
+     "within_family": 8
+    },
+    "sr2-a0-r0.3-g0.6-m0.1": {
+     "across_families": 12,
+     "control": 2,
+     "within_family": 8
+    }
+   },
+   "secondary_gated": {
+    "enters_promotion": false,
+    "paired_bootstrap": {
+     "conditions": 12,
+     "decision": "UNRESOLVED",
+     "delta_tau": -0.02185326168343199,
+     "interval": [
+      -0.09588604607891671,
+      0.05361691121754545
+     ],
+     "level": 0.95,
+     "members": 99,
+     "replicates": 10000,
+     "replicates_skipped": 0,
+     "rng_seed": 20261001,
+     "tau_deciding": 0.3997861402086672,
+     "tau_proposed": 0.3779328785252352
+    },
+    "rules": "both rules plus the gate, failures ranked last"
+   },
+   "split": "verification",
+   "statistic": "tau(sr2-a0-r0.3-g0.6-m0.1) - tau(control-exam-v1)",
+   "tau_noise_band": {
+    "band": 0.0995032108547057,
+    "panels": 786432,
+    "tau_max": 0.4561997181078996,
+    "tau_min": 0.3566965072531939
+   }
+  },
+  "H2": {
+   "controls": {
+    "control-boundary_optimist": {
+     "expected": "FAIL",
+     "verdict": "FAIL"
+    },
+    "control-conservative": {
+     "expected": "PASS",
+     "verdict": "PASS"
+    },
+    "control-oracle": {
+     "expected": "PASS",
+     "verdict": "PASS"
+    },
+    "control-rank_preserving_delay": {
+     "expected": "PASS",
+     "verdict": "PASS"
+    }
+   },
+   "controls_hold": true,
+   "cutoff_bands": 2.0,
+   "failed_members": [
+    "deeponet_t1500_w128_d2-s0",
+    "deeponet_t1500_w256_d3-s0",
+    "deeponet_t1500_w256_d3-s1",
+    "deeponet_t1500_w512_d3-s0",
+    "deeponet_t3000_w256_d2-s0",
+    "deeponet_t3000_w256_d2-s1",
+    "deeponet_t3000_w512_d3-s0",
+    "deeponet_t500_w128_d2-s0",
+    "deeponet_t6000_w512_d2-s0",
+    "knn-s0",
+    "knn1-s0",
+    "knn10-s0",
+    "knn15-s0",
+    "knn25-s0",
+    "knn3-s0",
+    "knn40-s0",
+    "mlp_t500_w128_d2-s0",
+    "mlp_t500_w64_d2-s0",
+    "mlp_t500_w64_d2-s1",
+    "mlp_t500_w64_d3-s0"
+   ],
+   "fails_more_than_half": false,
+   "group_difference": {
+    "difference": 0.8036753192890789,
+    "excludes_zero": false,
+    "interval": [
+     -0.7912073277759678,
+     2.3342796501674035
+    ],
+    "level": 0.95,
+    "members_failed": 20,
+    "members_passed": 79,
+    "replicates": 10000,
+    "replicates_skipped": 0,
+    "rng_seed": 20261001
+   },
+   "outcome": "DOES_NOT_HOLD",
+   "real_member_difference": "DOES_NOT_HOLD",
+   "real_members": 99,
+   "real_members_failed": 20
+  },
+  "H3": {
+   "caught": {
+    "by_gate": false,
+    "by_measurement": true,
+    "by_rule": []
+   },
+   "eligible_real_unmeasured": [],
+   "report": {
+    "controls": {
+     "control-boundary_optimist": {
+      "constraints": {
+       "no_plating_onset": {
+        "false_acceptance": 74,
+        "false_acceptance_rate": 1.0,
+        "false_rejection": 0,
+        "reference_fail": 74,
+        "reference_pass": 160
+       },
+       "peak_temperature": {
+        "false_acceptance": 16,
+        "false_acceptance_rate": 0.23880597014925373,
+        "false_rejection": 0,
+        "reference_fail": 67,
+        "reference_pass": 244
+       }
+      },
+      "worst_constraint": "no_plating_onset",
+      "worst_false_acceptance_rate": 1.0
+     },
+     "control-conservative": {
+      "constraints": {
+       "no_plating_onset": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 80,
+        "reference_fail": 74,
+        "reference_pass": 160
+       },
+       "peak_temperature": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 10,
+        "reference_fail": 67,
+        "reference_pass": 244
+       }
+      },
+      "worst_constraint": "peak_temperature",
+      "worst_false_acceptance_rate": 0.0
+     },
+     "control-localized_sign_error": {
+      "constraints": {
+       "no_plating_onset": {
+        "false_acceptance": 70,
+        "false_acceptance_rate": 0.9459459459459459,
+        "false_rejection": 74,
+        "reference_fail": 74,
+        "reference_pass": 160
+       },
+       "peak_temperature": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 0,
+        "reference_fail": 67,
+        "reference_pass": 244
+       }
+      },
+      "worst_constraint": "no_plating_onset",
+      "worst_false_acceptance_rate": 0.9459459459459459
+     },
+     "control-oracle": {
+      "constraints": {
+       "no_plating_onset": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 0,
+        "reference_fail": 74,
+        "reference_pass": 160
+       },
+       "peak_temperature": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 0,
+        "reference_fail": 67,
+        "reference_pass": 244
+       }
+      },
+      "worst_constraint": "peak_temperature",
+      "worst_false_acceptance_rate": 0.0
+     },
+     "control-rank_preserving_delay": {
+      "constraints": {
+       "no_plating_onset": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 0,
+        "reference_fail": 74,
+        "reference_pass": 160
+       },
+       "peak_temperature": {
+        "false_acceptance": 0,
+        "false_acceptance_rate": 0.0,
+        "false_rejection": 0,
+        "reference_fail": 67,
+        "reference_pass": 244
+       }
+      },
+      "worst_constraint": "peak_temperature",
+      "worst_false_acceptance_rate": 0.0
+     }
+    },
+    "cutoff": null,
+    "important_cases": 311,
+    "measurement": {
+     "amendable_before_freeze_by": "the SciML/technical lead (\u00a78 item 3)",
+     "cutoff": null,
+     "module": "carbon/battery/value/false_acceptance.py",
+     "quantity": "the worst constraint's near-limit false-acceptance rate: of the cases the reference resolves as FAIL (with the contract's bands), the share the model calls PASS (without bands)",
+     "region": "the scoring set's published important region (near.near_cases)",
+     "schema": "carbon.battery.near-false-acceptance.v1",
+     "state": "DESCRIPTIVE",
+     "unmeasured": "a member missing any important case is None, never clean"
+    },
+    "members": {
+     "attack_rebuild_identity_backbone_a-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_backbone_b-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "attack_rebuild_identity_optimizer_a-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_optimizer_b-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 24,
+         "false_acceptance_rate": 0.32432432432432434,
+         "false_rejection": 32,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 19,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.32432432432432434
+      }
+     },
+     "attack_rebuild_identity_steps_a-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_steps_b-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "attack_rebuild_identity_train_fraction_a-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_train_fraction_b-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 13,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_width_a-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "attack_rebuild_identity_width_b-s0": {
+      "kind": "ATTACK_CONSTRUCTION",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "deeponet-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 0,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "deeponet-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 0,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "deeponet_t1500_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 7,
+         "false_acceptance_rate": 0.0945945945945946,
+         "false_rejection": 10,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.0945945945945946
+      }
+     },
+     "deeponet_t1500_w256_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.029850746268656716
+      }
+     },
+     "deeponet_t1500_w256_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.04477611940298507
+      }
+     },
+     "deeponet_t1500_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 5,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.04477611940298507
+      }
+     },
+     "deeponet_t3000_w128_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.029850746268656716
+      }
+     },
+     "deeponet_t3000_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.04477611940298507
+      }
+     },
+     "deeponet_t3000_w256_d2-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.04477611940298507
+      }
+     },
+     "deeponet_t3000_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.04477611940298507
+      }
+     },
+     "deeponet_t500_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 15,
+         "false_acceptance_rate": 0.20270270270270271,
+         "false_rejection": 20,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 4,
+         "false_acceptance_rate": 0.05970149253731343,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.20270270270270271
+      }
+     },
+     "deeponet_t6000_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "deeponet_t6000_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "deeponet_t6000_w512_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "deeponet_t6000_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "deeponet_t6000_w512_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.029850746268656716
+      }
+     },
+     "knn-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 20,
+         "false_acceptance_rate": 0.2702702702702703,
+         "false_rejection": 13,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.2702702702702703
+      }
+     },
+     "knn1-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 23,
+         "false_acceptance_rate": 0.3108108108108108,
+         "false_rejection": 21,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 8,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.3108108108108108
+      }
+     },
+     "knn10-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 20,
+         "false_acceptance_rate": 0.2702702702702703,
+         "false_rejection": 17,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.2702702702702703
+      }
+     },
+     "knn15-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 19,
+         "false_acceptance_rate": 0.25675675675675674,
+         "false_rejection": 17,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.25675675675675674
+      }
+     },
+     "knn25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 26,
+         "false_acceptance_rate": 0.35135135135135137,
+         "false_rejection": 14,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 4,
+         "false_acceptance_rate": 0.05970149253731343,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.35135135135135137
+      }
+     },
+     "knn3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 17,
+         "false_acceptance_rate": 0.22972972972972974,
+         "false_rejection": 22,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.22972972972972974
+      }
+     },
+     "knn40-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 32,
+         "false_acceptance_rate": 0.43243243243243246,
+         "false_rejection": 11,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.43243243243243246
+      }
+     },
+     "mlp-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "mlp-s2": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "mlp_ens3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_half-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 13,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_half-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_localized-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_localized-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 0,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_plus-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 12,
+         "false_acceptance_rate": 0.16216216216216217,
+         "false_rejection": 6,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.16216216216216217
+      }
+     },
+     "mlp_raw-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t1500_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t1500_w128_d2_f25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 4,
+         "false_acceptance_rate": 0.05405405405405406,
+         "false_rejection": 11,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.05405405405405406
+      }
+     },
+     "mlp_t1500_w128_d2_f50-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 5,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t1500_w128_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t1500_w128_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t1500_w128_d3_wd1em4-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t1500_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t1500_w256_d2_arr-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t1500_w256_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t1500_w512_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t1500_w512_d2-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t1500_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 4,
+         "false_acceptance_rate": 0.05405405405405406,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.05405405405405406
+      }
+     },
+     "mlp_t1500_w64_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 4,
+         "false_acceptance_rate": 0.05405405405405406,
+         "false_rejection": 6,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.05405405405405406
+      }
+     },
+     "mlp_t1500_w64_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 6,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.029850746268656716
+      }
+     },
+     "mlp_t3000_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t3000_w128_d2_ens3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.029850746268656716
+      }
+     },
+     "mlp_t3000_w128_d2_irw01-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w128_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t3000_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w256_d2-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t3000_w256_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t3000_w256_d3_arr_pca16-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 12,
+         "false_acceptance_rate": 0.16216216216216217,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.16216216216216217
+      }
+     },
+     "mlp_t3000_w256_d3_f25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 5,
+         "false_acceptance_rate": 0.06756756756756757,
+         "false_rejection": 16,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.06756756756756757
+      }
+     },
+     "mlp_t3000_w256_d3_f25-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 7,
+         "false_acceptance_rate": 0.0945945945945946,
+         "false_rejection": 10,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.0945945945945946
+      }
+     },
+     "mlp_t3000_w256_d3_f50-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 10,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w512_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w512_d2_wd1em4-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t3000_w512_d3_f25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 8,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t3000_w64_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t3000_w64_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 4,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t3000_w64_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t500_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 8,
+         "false_acceptance_rate": 0.10810810810810811,
+         "false_rejection": 9,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.10810810810810811
+      }
+     },
+     "mlp_t500_w128_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 7,
+         "false_acceptance_rate": 0.0945945945945946,
+         "false_rejection": 8,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.0945945945945946
+      }
+     },
+     "mlp_t500_w128_d3_f50-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 5,
+         "false_acceptance_rate": 0.06756756756756757,
+         "false_rejection": 7,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.06756756756756757
+      }
+     },
+     "mlp_t500_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 10,
+         "false_acceptance_rate": 0.13513513513513514,
+         "false_rejection": 9,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.13513513513513514
+      }
+     },
+     "mlp_t500_w256_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "mlp_t500_w256_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t500_w512_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 8,
+         "false_acceptance_rate": 0.10810810810810811,
+         "false_rejection": 12,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.10810810810810811
+      }
+     },
+     "mlp_t500_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t500_w64_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 11,
+         "false_acceptance_rate": 0.14864864864864866,
+         "false_rejection": 17,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 8,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.14864864864864866
+      }
+     },
+     "mlp_t500_w64_d2-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 15,
+         "false_acceptance_rate": 0.20270270270270271,
+         "false_rejection": 23,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04477611940298507,
+         "false_rejection": 2,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.20270270270270271
+      }
+     },
+     "mlp_t500_w64_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 14,
+         "false_acceptance_rate": 0.1891891891891892,
+         "false_rejection": 15,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.029850746268656716,
+         "false_rejection": 3,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.1891891891891892
+      }
+     },
+     "mlp_t6000_w128_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w128_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t6000_w128_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t6000_w256_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t6000_w256_d3_arr-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t6000_w256_d3_ens2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t6000_w256_d3_ens4-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t6000_w256_d3_f25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 5,
+         "false_acceptance_rate": 0.06756756756756757,
+         "false_rejection": 16,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.06756756756756757
+      }
+     },
+     "mlp_t6000_w256_d3_irw003-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w256_d3_irw03-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t6000_w256_d3_irw03-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.013513513513513514,
+         "false_rejection": 0,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.013513513513513514
+      }
+     },
+     "mlp_t6000_w256_d3_irw3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w256_d3_pca8-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "mlp_t6000_w256_d3_wd1em3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w256_d3_wd1em3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w256_d3_wd1em5-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w512_d2_f25-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 5,
+         "false_acceptance_rate": 0.06756756756756757,
+         "false_rejection": 11,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 1,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.06756756756756757
+      }
+     },
+     "mlp_t6000_w512_d2_f50-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 4,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w512_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_t6000_w512_d3-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     },
+     "mlp_t6000_w64_d2-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.014925373134328358
+      }
+     },
+     "mlp_t6000_w64_d2-s1": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 3,
+         "false_acceptance_rate": 0.04054054054054054,
+         "false_rejection": 1,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 1,
+         "false_acceptance_rate": 0.014925373134328358,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.04054054054054054
+      }
+     },
+     "mlp_t6000_w64_d3-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 2,
+         "false_acceptance_rate": 0.02702702702702703,
+         "false_rejection": 2,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "no_plating_onset",
+       "worst_false_acceptance_rate": 0.02702702702702703
+      }
+     },
+     "mlp_wide-s0": {
+      "kind": "RECONSTRUCTED",
+      "measurement": {
+       "constraints": {
+        "no_plating_onset": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 3,
+         "reference_fail": 74,
+         "reference_pass": 160
+        },
+        "peak_temperature": {
+         "false_acceptance": 0,
+         "false_acceptance_rate": 0.0,
+         "false_rejection": 0,
+         "reference_fail": 67,
+         "reference_pass": 244
+        }
+       },
+       "worst_constraint": "peak_temperature",
+       "worst_false_acceptance_rate": 0.0
+      }
+     }
+    },
+    "schema": "carbon.battery.ev5.h3-report.v1",
+    "scoring_set": {
+     "cases": 1588,
+     "note": "hidden duplicates are not in this set, so the paired_repeat gate is not exercised here",
+     "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+     "sha256": "88df01aacec5222fabd0c6dada9d7f414662534997f22addd5a40352b4d730c6"
+    },
+    "state": "DESCRIPTIVE"
+   },
+   "separation": "HOLDS",
+   "sign_error_control_rate": 0.9459459459459459,
+   "sign_error_gate": {
+    "near_optimism_bands": 0.45671990180313565,
+    "verdict": "PASS"
+   },
+   "sign_error_rank": {
+    "control-exam-v1/gated_failures_last": {
+     "below_every_eligible_real_member": false,
+     "of": 100,
+     "rank": 1
+    },
+    "control-exam-v1/ungated": {
+     "below_every_eligible_real_member": false,
+     "of": 100,
+     "rank": 1
+    },
+    "sr2-a0-r0.3-g0.6-m0.1/gated_failures_last": {
+     "below_every_eligible_real_member": false,
+     "of": 100,
+     "rank": 1
+    },
+    "sr2-a0-r0.3-g0.6-m0.1/ungated": {
+     "below_every_eligible_real_member": false,
+     "of": 100,
+     "rank": 1
+    }
+   }
+  },
+  "graded": false,
+  "rung": "the owner's signed lock decides the rung (OWNER-TRACK-A-L0-02)"
+ }
+}
