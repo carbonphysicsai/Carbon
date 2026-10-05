@@ -1,8 +1,10 @@
 """The pod worker-timeout rule (OWNER-GRAPHITE-TEST-WAVE-02 §3, VALIDATOR-01 slice 2).
 
 Attribution is a versioned, registered policy (`pod_outcome`,
-`attribution_policies/`). The current one is pod-attribution-v1, the Test Lead's
-VAL-D13 ruling, and the classification tests are parametrised by policy version.
+`attribution_policies/`). pod-attribution-v1 is the Test Lead's VAL-D13 ruling;
+the current one is pod-attribution-v2, which keeps every v1 outcome below and
+adds the GPU probe's `environment` stage (`test_graphite_pod_gpu_probe`). The
+classification tests are parametrised by policy version.
 Under v1, attribution depends on the session's recorded construction level. At
 Levels 0-3 only Carbon's own trainer writes the pod's claims, so a program
 failure stays the candidate's. At Levels 4-5 on an image without a separation
@@ -38,6 +40,8 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 #: code in the pod (the strict case these tests default to).
 L0, L4 = 0, 4
 V1 = "pod-attribution-v1"
+V2 = "pod-attribution-v2"
+CURRENT = V2
 WORK = pods.contract_work_seconds(SCORING)  # battery's declared 600 s
 #: Host readings confirming a timeout: the phase was seen running for more
 #: than the declared worker seconds.
@@ -152,7 +156,10 @@ def test_a_timeout_then_success_is_failed_infra_then_scored_once(tmp_path, level
     assert first["attempt"] == 0 and first["claimed_stage"] == "timeout"
     policy = pod_outcome.load_policy()
     assert first["attribution_policy"] == policy.record()
-    assert record["attribution_policy"] == {"version": V1, "digest": policy.digest}
+    assert record["attribution_policy"] == {
+        "version": CURRENT,
+        "digest": policy.digest,
+    }
     assert first["claim"] == {"parsed": {"stage": "timeout", "error": "claimed"}}
     assert first["host_timing"]["phase_min_s"] == CONFIRMED["last_running"] - 15.0
     # Two pods, two distinct intents, both reserved against the run.
@@ -521,6 +528,9 @@ EXPECTED = {
         ),
     ],
 }
+#: v2 keeps every v1 outcome (its `environment` rows are in
+#: `test_graphite_pod_gpu_probe`).
+EXPECTED[V2] = list(EXPECTED[V1])
 
 
 def test_every_registered_policy_has_expectations():
@@ -542,6 +552,9 @@ def test_the_order_of_authority(
         attempt=attempt,
         level=level,
         policy=pod_outcome.load_policy(version),
+        # The history the experiment passes: each earlier attempt here was a
+        # retried timeout (v1 reads only `attempt`).
+        earlier=("worker_timeout_retried",) * attempt,
     )
     assert (verdict.status, verdict.reason_code, verdict.retry, verdict.signal) == (
         expected
@@ -645,11 +658,14 @@ def _v1_document():
     return json.loads((pod_outcome.POLICY_DIR / (V1 + ".json")).read_text())
 
 
-def test_v1_is_the_registered_current_policy():
+def test_v2_is_current_and_v1_stays_registered_for_replay():
     policy = pod_outcome.load_policy()
-    assert policy.version == V1 and policy.retries == 1
+    assert policy.version == CURRENT and policy.retries == 1
     assert policy.trusted_writer_levels == frozenset({0, 1, 2, 3})
-    assert pod_outcome.registered_policies() == [V1]
+    assert pod_outcome.registered_policies() == [V1, V2]
+    v1 = pod_outcome.load_policy(V1)
+    assert v1.retries == 1 and v1.environment is None
+    assert v1.trusted_writer_levels == frozenset({0, 1, 2, 3})
 
 
 def test_an_altered_or_unregistered_policy_is_refused(tmp_path):
@@ -660,7 +676,7 @@ def test_an_altered_or_unregistered_policy_is_refused(tmp_path):
     document["trusted_writer_levels"] = [0, 1, 2, 3, 4, 5]
     (directory / (V1 + ".json")).write_text(json.dumps(document))
     with pytest.raises(pod_outcome.PolicyRefused, match="altered"):
-        pod_outcome.load_policy(directory=directory)
+        pod_outcome.load_policy(V1, directory=directory)
     with pytest.raises(pod_outcome.PolicyRefused, match="not registered"):
         pod_outcome.load_policy("pod-attribution-v9")
 

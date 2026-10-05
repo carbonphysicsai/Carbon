@@ -84,6 +84,9 @@ def problem(config):
             passes=lambda q: bool(q["feasible"]),
             objective=lambda q: float(q["ripple_fraction"]),
             host_route=HOST_ROUTE,
+            # The registered study's tie rule, reported beside Track B's.
+            tie_break=lambda q: -float(q["mean_nm"]),
+            tie_break_rule="registered study: higher worst-condition mean torque",
         ),
         contract,
     )
