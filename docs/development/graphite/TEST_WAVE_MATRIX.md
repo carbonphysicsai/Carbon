@@ -160,7 +160,24 @@ Three studies per challenge, at each level that reaches them:
    - **Three views:** equal cost (deciding), equal query count (diagnostic)
      and the amortized break-even decision count.
 
-**Score-to-value per level.** For every eligible panel member, take its
+**Two questions, two views.** This is a working refinement of §5, made by the
+Test Lead under delegation.
+
+- **Q1, alignment.** Does the score rank models by decision quality? Models
+  are compared at an equal *search* budget, with one-time training and data
+  costs excluded, so model quality is not swamped by training cost.
+- **Q2, economic value against solvers.** Is a fast model worth it? Arms are
+  compared at equal *total* cost, one-time costs included.
+  - The view covers a registered decision-count ladder, N ∈ {1, 10, 100,
+    1000}, with one-time costs amortized over N, and the computed break-even
+    N.
+  - `OVER_BUDGET_BEFORE_SEARCH` is a typed outcome.
+  - Cost is USD only at an approved hardware rate. Otherwise it is
+    core-seconds, and conversions between hardware routes are labelled.
+  - Per-challenge budget ladders are proposed from measured solve costs, and
+    the Test Lead confirms them.
+
+**Score-to-value per level (Q1).** For every eligible panel member, take its
 challenge score and its EV decision quality, then report:
 - τ and ρ, with the seed-noise band (progress only beyond the band);
 - `SCORE_VALUE_DIVERGENCE` conditions;
