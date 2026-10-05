@@ -299,13 +299,74 @@ def onboarding_decisions(item, ctx):
     )
 
 
+def _lane_probe(lane):
+    """Run a lane's own read-only environment probe, when it names one
+    (`probe_cli` with `{input}` filled from the env var `probe_input_env`).
+    Returns `(problem, evidence)`; a probe that cannot run fails closed."""
+    cli = lane.get("probe_cli")
+    if not cli:
+        return None, []
+    variable = lane.get("probe_input_env")
+    value = os.environ.get(variable) if variable else None
+    if not value:
+        return (
+            (
+                f"{lane['lane']}: probe input not supplied (set {variable} to the "
+                "host's pinned image manifest); cannot verify the environment"
+            ),
+            [],
+        )
+    command = [
+        sys.executable if c == "{python}" else c.replace("{input}", value) for c in cli
+    ]
+    try:
+        done = subprocess.run(
+            command,
+            cwd=REPOSITORY,
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"{lane['lane']}: probe could not run ({type(error).__name__})", []
+    try:
+        report = json.loads(done.stdout)
+    except ValueError:
+        report = {}
+    if done.returncode == 2:
+        return (
+            f"{lane['lane']}: the lane policy was refused ({report.get('refused')})",
+            [],
+        )
+    if done.returncode != 0 or report.get("eligible") is not True:
+        return (
+            (
+                f"{lane['lane']}: environment not eligible here "
+                f"(doctor {report.get('doctor_code')}, image_present "
+                f"{report.get('image_present')}, exit {done.returncode}); run on the "
+                "host with Docker and the pinned image"
+            ),
+            [],
+        )
+    return (
+        None,
+        [
+            f"{lane['lane']}:probe:eligible",
+            f"{lane['lane']}:probe_policy:{report.get('lane_policy')}:{report.get('lane_policy_digest')}",
+        ],
+        report,
+    )
+
+
 def compute_lanes(item, ctx):
     """Every compute lane the challenge uses names its own environment check
-    (`probe`) and a registered, current attribution policy in the registry the
-    lane names. A lane marked TBD, with no policy, or with a policy its
-    registry does not hold or no longer calls current, fails: the gate never
-    assumes a lane is covered. A lane's policy is never borrowed from another
-    lane (a GPU probe's rules do not apply to a CPU carrier)."""
+    (`probe`) and a registered, current policy in the registry the lane names;
+    a lane that names a runnable probe (`probe_cli`) must also pass it on this
+    host. A lane marked TBD, with no policy, or with a policy its registry does
+    not hold or no longer calls current, fails: the gate never assumes a lane is
+    covered. A lane's policy is never borrowed from another lane (a GPU probe's
+    rules do not apply to a CPU carrier)."""
     record, path = _record(ctx, "lanes.json")
     if record is None:
         return recorded_tests(item, ctx)
@@ -338,10 +399,26 @@ def compute_lanes(item, ctx):
         except (OSError, ValueError, KeyError):
             problems.append(f"{name}: policy {policy} is not in its registry")
             continue
-        if registry.get("current") != policy:
+        current = registry.get("current")
+        if isinstance(current, dict):
+            current = current.get(lane.get("registry_key", name))
+        if current != policy:
             problems.append(f"{name}: policy {policy} is not the current version")
             continue
+        outcome = _lane_probe(lane)
+        if outcome[0]:
+            problems.append(outcome[0])
+            continue
+        if len(outcome) == 3 and (
+            outcome[2].get("lane_policy") != policy
+            or outcome[2].get("lane_policy_digest") != digest
+        ):
+            problems.append(
+                f"{name}: the probe reports a different policy than the registry"
+            )
+            continue
         evidence.append(f"{name}:{lane['probe']}:{policy}:{digest}")
+        evidence.extend(outcome[1])
     if problems:
         return Result(FAIL, "; ".join(problems), tuple(evidence))
     return Result(

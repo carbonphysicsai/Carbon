@@ -133,7 +133,7 @@ def test_green_only_when_every_item_passes(monkeypatch, tmp_path):
     def ok(item, ctx):
         return model.Result(model.PASS, "ok", ("e",))
 
-    for ref in set(i["check"] for i in model.load_items()):
+    for ref in {i["check"] for i in model.load_items()}:
         monkeypatch.setitem(checks.CHECKS, ref, ok)
     monkeypatch.setattr(runner, "load_conditions", lambda challenge: [])
     report = runner.run_gate(CHALLENGE, 0, root=tmp_path)
@@ -471,10 +471,118 @@ def test_o2_flags_only_a_name_on_origin_under_another_owner(monkeypatch, tmp_pat
     assert checks.branch_plan({}, _ctx()).status == model.FAIL
 
 
-def test_carrier_lane_never_borrows_the_gpu_probe_policy():
+def test_carrier_lane_references_its_own_registered_policy_not_the_gpu_probe():
     for challenge in ("chip-cold-plate", "electric-motor-magnetics"):
         lanes = json.loads(
             (model.PACKAGE / challenge / "lanes.json").read_text(encoding="utf-8")
         )["lanes"]
         carrier = next(x for x in lanes if x["lane"] == "cpu-carrier")
-        assert carrier["policy"] is None
+        assert carrier["policy"] == "carrier-lane-v1"
+        assert carrier["registry"].endswith("compute_lanes/registry.json")
+        assert carrier["policy"] != "pod-attribution-v2"
+
+
+def _lane(**over):
+    lane = {
+        "lane": "c",
+        "state": "DECLARED",
+        "probe": "p",
+        "policy": "lane-v1",
+        "registry": "reg.json",
+        "registry_key": "c",
+    }
+    lane.update(over)
+    return lane
+
+
+def _lane_tree(monkeypatch, tmp_path, lane, registry=None):
+    directory = tmp_path / "carbon/challenge_pipeline/readiness" / CHALLENGE
+    directory.mkdir(parents=True)
+    (directory / "lanes.json").write_text(
+        json.dumps({"lanes": [lane]}), encoding="utf-8"
+    )
+    (tmp_path / "reg.json").write_text(
+        json.dumps(
+            registry
+            or {
+                "current": {"c": "lane-v1"},
+                "versions": {"lane-v1": "sha256:" + "1" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(checks, "PACKAGE", directory.parent)
+    monkeypatch.setattr(checks, "REPOSITORY", tmp_path)
+
+
+def test_lane_with_dict_registry_current_passes_and_stale_fails(monkeypatch, tmp_path):
+    _lane_tree(monkeypatch, tmp_path, _lane())
+    assert checks.compute_lanes({}, _ctx()).status == model.PASS
+    _lane_tree(
+        monkeypatch,
+        tmp_path / "b",
+        _lane(),
+        {"current": {"c": "lane-v2"}, "versions": {"lane-v1": "sha256:" + "1" * 64}},
+    )
+    assert checks.compute_lanes({}, _ctx()).status == model.FAIL
+
+
+class _Done:
+    def __init__(self, code, body):
+        self.returncode, self.stdout, self.stderr = code, json.dumps(body), ""
+
+
+def _probe_lane(**over):
+    return _lane(
+        probe_cli=["{python}", "-m", "x", "--m", "{input}"],
+        probe_input_env="X_MANIFEST",
+        **over,
+    )
+
+
+def test_lane_probe_without_input_fails_closed_and_says_why(monkeypatch, tmp_path):
+    monkeypatch.delenv("X_MANIFEST", raising=False)
+    _lane_tree(monkeypatch, tmp_path, _probe_lane())
+    result = checks.compute_lanes({}, _ctx())
+    assert result.status == model.FAIL and "X_MANIFEST" in result.detail
+
+
+@pytest.mark.parametrize(
+    "code, body, ok",
+    [
+        (
+            0,
+            {
+                "eligible": True,
+                "lane_policy": "lane-v1",
+                "lane_policy_digest": "sha256:" + "1" * 64,
+            },
+            True,
+        ),
+        (
+            0,
+            {
+                "eligible": True,
+                "lane_policy": "lane-v1",
+                "lane_policy_digest": "sha256:" + "2" * 64,
+            },
+            False,
+        ),
+        (
+            1,
+            {
+                "eligible": False,
+                "doctor_code": "worker.doctor.image_unavailable",
+                "image_present": False,
+            },
+            False,
+        ),
+        (2, {"refused": "lane.policy_altered"}, False),
+        (0, {"eligible": False}, False),
+    ],
+)
+def test_lane_probe_outcomes(monkeypatch, tmp_path, code, body, ok):
+    monkeypatch.setenv("X_MANIFEST", "m.json")
+    _lane_tree(monkeypatch, tmp_path, _probe_lane())
+    monkeypatch.setattr(checks.subprocess, "run", lambda *a, **k: _Done(code, body))
+    assert (checks.compute_lanes({}, _ctx()).status == model.PASS) is ok

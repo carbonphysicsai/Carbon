@@ -311,8 +311,10 @@ def history_metrics(challenge, root=PACKAGE):
 
 def render_text(report):
     lines = [
-        f"readiness: {report['challenge']} level {report['level']} "
-        f"@ {report['git']['sha'][:12]}{' (dirty)' if report['git']['dirty'] else ''}"
+        (
+            f"readiness: {report['challenge']} level {report['level']} "
+            f"@ {report['git']['sha'][:12]}{' (dirty)' if report['git']['dirty'] else ''}"
+        )
     ]
     for row in report["items"]:
         lines.append(
