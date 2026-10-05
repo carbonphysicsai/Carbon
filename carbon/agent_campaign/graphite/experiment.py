@@ -124,13 +124,17 @@ class Phase3Budget:
 SESSION_POD_MINUTES = 360
 
 
-def phase3_budget(grant, scoring=None):
+def phase3_budget(grant, scoring=None, hourly_usd=None):
+    """One run's budget. `hourly_usd` is the compute backend's own rate when
+    it declares one (the CPU carrier lane: 0, so the whole run cap goes to
+    tokens); otherwise the RunPod rate ceiling (`pods.prices`)."""
     scoring = challenge_scoring.resolve(scoring)
-    economics = podlib.prices()
+    if hourly_usd is None:
+        hourly_usd = podlib.prices()["hourly_usd"]
     minutes = podlib.proposal_minutes(scoring)
     budget = Phase3Budget(
         run_cap_usd=grant.worst_case_run_cost,
-        hourly_usd=economics["hourly_usd"],
+        hourly_usd=hourly_usd,
         pod_minutes=minutes,
         max_pods=SESSION_POD_MINUTES // minutes,
         challenge_id=scoring.challenge_id,
@@ -1115,11 +1119,12 @@ class Experiment:
         image = (self.pods.describe() or {}).get("image")
         report = _object(files.get("supervisor.json"))
         claim = _stage(failure)
+        deadline = self._program_deadline()
         verdict = pod_outcome.classify(
             claim=claim,
             admissible=pod_outcome.admissible_stage(report, image),
             timing=timing,
-            work_seconds=podlib.contract_work_seconds(self.scoring),
+            work_seconds=deadline,
             attempt=attempt,
             level=self.construction_level,
             policy=self.attribution,
@@ -1137,6 +1142,9 @@ class Experiment:
                 digest(files["failure.json"]) if "failure.json" in files else None
             ),
             "host_timing": None if timing is None else timing.record(),
+            # What host timing is compared with: the contract's deadline, or
+            # the backend's declared effective program deadline.
+            "program_deadline_seconds": deadline,
         }
         self.ledger.append(
             "pod_attempt_typed",
@@ -1154,10 +1162,20 @@ class Experiment:
                     "claimed_stage": evidence["claimed_stage"],
                     "failure_digest": evidence["failure_digest"],
                     "host_timing": evidence["host_timing"],
-                    "work_seconds": podlib.contract_work_seconds(self.scoring),
+                    "work_seconds": deadline,
                 },
             )
         return verdict, evidence
+
+    def _program_deadline(self):
+        """The deadline a program actually had: the contract's work seconds,
+        or the backend's declared effective deadline when it stops a program
+        earlier (the CPU carrier lane's setup margin). Host-observed timing is
+        compared with this, so a backend's own stop is never read as a
+        forged claim, and every lane attributes timeouts by the same rule."""
+        work = podlib.contract_work_seconds(self.scoring)
+        declared = getattr(self.pods, "effective_work_seconds", None)
+        return work if declared is None else declared(work)
 
     def _timing(self, handle):
         read = getattr(self.pods, "timing", None)
