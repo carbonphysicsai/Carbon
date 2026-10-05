@@ -6,7 +6,7 @@
         (--runpod-key-file PATH | --runpod-key-env RUNPOD_API_KEY) \
         --miner-profile PROFILE.json --miner-campaign ID --code-ref SHA \
         --literature-snapshot SNAPSHOT.json [--allow-unchecked-cards] [--session N] \
-        [--level N]
+        [--level N] [--compute carrier --image-manifest C03_IMAGE.json]
     python -m carbon.agent_campaign.graphite.phase3 run --root DIR --challenge TOKEN --dry-run \
         [--literature-snapshot SNAPSHOT.json [--allow-unchecked-cards]] [--level N]
     python -m carbon.agent_campaign.graphite.phase3 cancel --root DIR --session N
@@ -15,6 +15,11 @@
     python -m carbon.agent_campaign.graphite.phase3 status --root DIR
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
     python -m carbon.agent_campaign.graphite.phase3 proposals --root DIR
+
+`--compute carrier` runs proposals in the isolated C-03 carrier on this
+operator host instead of RunPod (`carrier_pods`, VALIDATOR-06): no RunPod
+key, no provider money, Levels 0-3 only, and the lane's declared program
+deadline. A tokens-only grant (`TOKENS_ONLY_GRANTS`) runs only there.
 
 One session is one run of the Constructor behind the #475 campaign controller,
 under one owner grant that covers both its model calls and its pods
@@ -363,7 +368,11 @@ class Phase3Provider(GraphiteProvider):
         except challenge_scoring.ScoringUnavailable as refused:
             raise ProviderUnavailable(refused.code) from None
         try:
-            self.budget = ex.phase3_budget(grant, self.scoring)
+            # The backend's own rate when it declares one (the CPU carrier
+            # lane costs no provider money); otherwise RunPod's.
+            self.budget = ex.phase3_budget(
+                grant, self.scoring, getattr(pods, "hourly_usd", None)
+            )
         except ex.BudgetRefused as refused:
             raise ProviderUnavailable(refused.code) from None
         super().__init__(
@@ -1256,6 +1265,47 @@ def _literature_from(args):
     )
 
 
+#: The compute lanes a live phase-3 run may use (`--compute`).
+COMPUTE_LANES = ("runpod", "carrier")
+#: Grants that pay for tokens only: their runs use the CPU carrier lane, and
+#: a RunPod launch under one is refused. The cooling CPU grant's id is the
+#: Test Lead's (2026-10-05); its file ships in its own PR.
+TOKENS_ONLY_GRANTS = frozenset({"GRAPHITE-GRANT-PHASE3-COOLING-CPU"})
+
+
+def compute_lane(args, grant):
+    """The run's compute lane, checked before anything is read or spent."""
+    compute = getattr(args, "compute", "runpod")
+    if compute not in COMPUTE_LANES:
+        raise RunnerRefused("compute_lane_unknown")
+    if compute == "runpod":
+        if grant.grant_id in TOKENS_ONLY_GRANTS:
+            raise RunnerRefused("grant_is_tokens_only_use_the_carrier_lane")
+        return compute
+    if getattr(args, "level", 0) not in (0, 1, 2, 3):
+        # Levels 4-5 run participant code: never in the operator's carrier.
+        raise RunnerRefused("carrier_lane_refuses_levels_4_5")
+    if not getattr(args, "image_manifest", None):
+        raise RunnerRefused("required: --image-manifest")
+    return compute
+
+
+def carrier_pods(root, manifest):
+    """The CPU carrier backend on this (operator) host: the pinned C-03 worker
+    image, refused unless the host doctor finds this host eligible."""
+    from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
+
+    from .carrier_pods import CarrierPods
+
+    try:
+        image = load_image_identity(manifest)
+    except (OSError, ValueError, TypeError):
+        raise RunnerRefused("carrier_image_manifest_unreadable") from None
+    if not doctor(image_id=image.image_id, image_identity=image).eligible:
+        raise RunnerRefused("carrier_host_not_eligible")
+    return CarrierPods(root, image=image)
+
+
 def command_run(args):
     try:
         scoring = challenge_scoring.scoring_for(args.challenge)
@@ -1279,6 +1329,7 @@ def command_run(args):
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")
     literature = _literature_from(args)
+    compute = compute_lane(args, grant)
     from . import miner_path
     from .model import LiveModel, ModelAccessRefused
     from .phase2 import credential_file
@@ -1288,26 +1339,30 @@ def command_run(args):
         engy = stack.enter_context(
             credential_file(path=args.credential_file, env=args.credential_env)
         )
-        runpod = stack.enter_context(
-            secret_file(
-                path=args.runpod_key_file,
-                env=args.runpod_key_env,
-                names=("RUNPOD_API_KEY",),
+        if compute == "runpod":
+            runpod = stack.enter_context(
+                secret_file(
+                    path=args.runpod_key_file,
+                    env=args.runpod_key_env,
+                    names=("RUNPOD_API_KEY",),
+                )
             )
-        )
-        if not runpod_key_status(runpod):
-            raise RunnerRefused("runpod_key_file_must_be_owner_only")
+            if not runpod_key_status(runpod):
+                raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:
             raise RunnerRefused(refused.code) from None
-        pods = RunPodPods(
-            root=root / "pods",
-            key_file=runpod,
-            code_ref=args.code_ref,
-            scoring=scoring,
-        )
+        if compute == "runpod":
+            pods = RunPodPods(
+                root=root / "pods",
+                key_file=runpod,
+                code_ref=args.code_ref,
+                scoring=scoring,
+            )
+        else:
+            pods = carrier_pods(root / "carrier", args.image_manifest)
 
         def attach(*, session):
             return miner_path.attach(
@@ -1626,6 +1681,16 @@ def main(argv=None):
     runpod = run.add_mutually_exclusive_group()
     runpod.add_argument("--runpod-key-file")
     runpod.add_argument("--runpod-key-env")
+    run.add_argument(
+        "--compute",
+        choices=COMPUTE_LANES,
+        default="runpod",
+        help="where proposals run: RunPod GPU pods, or the CPU carrier "
+        "(C-03, this operator host, Levels 0-3 only)",
+    )
+    run.add_argument(
+        "--image-manifest", help="the pinned C-03 worker image (--compute carrier)"
+    )
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--code-ref")
@@ -1662,7 +1727,13 @@ def main(argv=None):
                 ),
                 (
                     "--runpod-key-file or --runpod-key-env",
-                    args.runpod_key_file or args.runpod_key_env,
+                    args.compute != "runpod"
+                    or args.runpod_key_file
+                    or args.runpod_key_env,
+                ),
+                (
+                    "--image-manifest",
+                    args.compute != "carrier" or args.image_manifest,
                 ),
                 ("--code-ref", args.code_ref),
             )
