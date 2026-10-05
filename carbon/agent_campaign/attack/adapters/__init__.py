@@ -46,6 +46,7 @@ BUILTIN = {
         "battery-fastcharge-ageing-development-v1",
         0,
     ): "carbon.agent_campaign.attack.adapters.battery",
+    ("chip-cold-plate", 0): "carbon.agent_campaign.attack.adapters.cooling",
 }
 
 

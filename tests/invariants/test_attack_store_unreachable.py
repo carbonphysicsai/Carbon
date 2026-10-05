@@ -490,6 +490,60 @@ def test_a_planted_import_of_the_store_from_a_miner_path_fails_the_check(tmp_pat
                 assert alone, surface
 
 
+#: The built-in attack adapters' registry (`BUILTIN`), read from its source.
+ADAPTERS_FILE = ATTACK_PATH + "/adapters/__init__.py"
+
+
+def builtin_adapter_modules(path=ROOT / ADAPTERS_FILE):
+    """`BUILTIN`'s literal value, `{(challenge, level): module}`, read from
+    the registry's source without importing it (no numerical stack needed).
+    It must be bound once, at module level, to a literal."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    found = [
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == "BUILTIN"
+    ]
+    assert len(found) == 1, "BUILTIN must be bound once, at module level"
+    return ast.literal_eval(found[0])
+
+
+def test_every_builtin_adapter_lives_inside_the_checked_attack_package(tmp_path):
+    """Each Challenge's attack adapter (battery's, cooling's) is a module of
+    the attack package, so every check above covers it; and a miner path
+    that imports one, here cooling's, is reached and fails the check."""
+    builtin = builtin_adapter_modules()
+    assert ("battery-fastcharge-ageing-development-v1", 0) in builtin
+    assert ("chip-cold-plate", 0) in builtin
+    for key, module in builtin.items():
+        assert _attack_import(module), key
+        path = SCAN._module_path(module, ROOT)
+        assert path is not None, module
+        assert path.relative_to(ROOT).as_posix().startswith(ATTACK_PATH + "/"), key
+    root = _plant(tmp_path)
+    (root / "carbon/agent_campaign/attack/adapters").mkdir()
+    (root / "carbon/agent_campaign/attack/adapters/__init__.py").write_text("")
+    (root / "carbon/agent_campaign/attack/adapters/cooling.py").write_text("")
+    probe = root / "carbon/agent_campaign/graphite/miner/cooling_probe.py"
+    probe.write_text(
+        "def hint():\n"
+        "    from carbon.agent_campaign.attack.adapters import cooling\n"
+        "    return cooling\n",
+        encoding="utf-8",
+    )
+    found = reach(closure(root, ("carbon/agent_campaign/graphite/miner",)), root)
+    label = "carbon/agent_campaign/graphite/miner/cooling_probe.py"
+    assert any(
+        where == label and how.startswith("imports " + ATTACK_MODULE)
+        for where, how in found
+    ), sorted(found)
+    with pytest.raises(AssertionError):
+        assert not found, sorted(found)
+
+
 def test_a_lazy_import_of_a_namespace_attack_package_fails_the_check(tmp_path):
     """Specimen for the import-name route: with no `attack/__init__.py` (an
     implicit namespace package, which resolves to no file) a lazy
