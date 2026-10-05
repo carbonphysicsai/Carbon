@@ -351,6 +351,12 @@ class Phase3Provider(GraphiteProvider):
             self.scoring = challenge_scoring.resolve(scoring)
         except challenge_scoring.ScoringUnavailable as refused:
             raise ProviderUnavailable(refused.code) from None
+        # The session reads its own Challenge's literature only.
+        check_literature_challenge(
+            kwargs.get("literature_index"),
+            self.scoring.challenge_id,
+            ProviderUnavailable,
+        )
         try:
             self.budget = ex.phase3_budget(grant, self.scoring)
         except ex.BudgetRefused as refused:
@@ -740,7 +746,10 @@ FIXTURE_NOTE = (
     "--literature-snapshot."
 )
 #: The most cards a brief lists; the rest stay readable by id (GRAPHITE-D31).
+#: A ranked snapshot lists them best first; an unranked one by card id.
 MAX_BRIEF_CARDS = 100
+#: The Challenge an unranked (phase-2 v1/v2) snapshot is for.
+BATTERY_LITERATURE = "battery-fastcharge-ageing-development-v1"
 
 
 def literature_brief(index):
@@ -1231,9 +1240,21 @@ def _literature_from(args):
         if args.allow_unchecked_cards:
             raise RunnerRefused("allow_unchecked_cards_needs_a_literature_snapshot")
         return None
-    return open_literature(
+    offered = open_literature(
         args.literature_snapshot, allow_unchecked=args.allow_unchecked_cards
     )
+    check_literature_challenge(offered, args.challenge, RunnerRefused)
+    return offered
+
+
+def check_literature_challenge(offered, challenge_id, refusal):
+    """A session reads its own Challenge's literature only: a ranked snapshot
+    names its Challenge; an unranked (v1/v2) one is battery's phase 2."""
+    if type(offered) is not lit.OfferedLiterature:
+        return
+    for_challenge = offered.challenge_id or BATTERY_LITERATURE
+    if for_challenge != challenge_id:
+        raise refusal("literature_snapshot_is_for_another_challenge")
 
 
 def command_run(args):

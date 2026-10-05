@@ -1,6 +1,7 @@
 """GRAPHITE-01 phase 2 runner: fetch, triage, snapshot, list and check cards.
 
     python -m carbon.agent_campaign.graphite.phase2 fetch    --root DIR [--max-records N]
+        [--challenge TOKEN [--pages-per-query N]]
     python -m carbon.agent_campaign.graphite.phase2 triage   --root DIR --grant GRANT.json \
         (--credential-file PATH | --credential-env ENGY_API_KEY) [--run-id ID] [--max-calls N]
     python -m carbon.agent_campaign.graphite.phase2 triage   --root DIR --dry-run
@@ -29,6 +30,14 @@ spends nothing; its cards say they are dry-run cards.
 
 `check` records a person's check of one card. It runs only on an interactive
 terminal and asks the person to type the card id back.
+
+`--challenge TOKEN` (VALIDATOR-08) runs `fetch`, `triage`, `snapshot`, `cards`
+and `check` for a Challenge with a registered literature profile
+(`challenge_literature`): its query set into the shared raw store, the
+Challenge-neutral Reader prompt into the shared v2 card store
+(`backfill-v2/`), and its ranked v3 snapshot. A live `--challenge` triage runs
+only under `LITERATURE_GRANT`. Without `--challenge`, everything is battery's
+phase 2, unchanged.
 """
 
 from __future__ import annotations
@@ -137,23 +146,52 @@ def credential_file(*, path=None, env=None, environ=os.environ):
         shutil.rmtree(directory, ignore_errors=True)
 
 
-def _stores(root, dry_run=False):
+#: The grant a live per-Challenge extraction runs under (VALIDATOR-08).
+LITERATURE_GRANT = "GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR"
+#: Pages each query of a Challenge's query set may fetch by default: a quota
+#: per topic, so early queries never use the whole record cap.
+CHALLENGE_PAGES_PER_QUERY = 3
+
+
+def _profile(args):
+    """The named Challenge's literature profile, or None (battery's phase 2)."""
+    token = getattr(args, "challenge", None)
+    if token is None:
+        return None
+    from .challenge_literature import LiteratureProfileRefused, profile_for
+
+    try:
+        return profile_for(token)
+    except LiteratureProfileRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def _stores(root, dry_run=False, profile=None):
     raw = literature_fetch.RawStore(root / "raw")
-    backfill_root = root / ("dry-run" if dry_run else "backfill")
+    name = "dry-run" if dry_run else "backfill"
+    # Neutral v2 cards live apart from battery's v1 store.
+    backfill_root = root / (name if profile is None else name + "-v2")
     return raw, backfill_root
 
 
 def fetch(args):
     root = _root(args.root)
+    profile = _profile(args)
     raw, _ = _stores(root)
     client = literature_fetch.ArxivClient()
+    options = {}
+    pages = args.pages_per_query
+    if profile is not None:
+        options["query_set"] = profile.query_set
+        pages = CHALLENGE_PAGES_PER_QUERY if pages is None else pages
     try:
         summary = literature_fetch.backfill(
             client,
             raw,
             max_records=args.max_records,
-            pages_per_query=args.pages_per_query,
+            pages_per_query=pages,
             page_size=args.page_size,
+            **options,
         )
     except literature_fetch.FetchFailed as error:
         summary = {
@@ -168,20 +206,22 @@ def fetch(args):
 
 def run_triage(args, environ=os.environ):
     root = _root(args.root)
-    raw, backfill_root = _stores(root, args.dry_run)
+    profile = _profile(args)
+    raw, backfill_root = _stores(root, args.dry_run, profile)
+    challenge = {} if profile is None else {"profile": profile}
     if args.dry_run:
         if args.grant or args.credential_file or args.credential_env:
             raise RunnerRefused("dry_run_takes_no_grant_or_credential")
         grant = SpendingGrant.from_document(DRY_RUN_GRANT)
-        pending = len(
-            [
-                a
-                for a in raw.addresses()
-                if not method_cards.CardStore(backfill_root / "cards").done(
-                    raw.record(a), a
-                )
-            ]
+        probe = triage.Backfill(
+            root=backfill_root,
+            raw=raw,
+            grant=grant,
+            model=ScriptedModel([]),
+            max_calls=args.max_calls,
+            **challenge,
         )
+        pending = len(probe.pending())
         model = ScriptedModel([text(json.dumps(DRY_RUN_REPLY))] * pending)
         backfill = triage.Backfill(
             root=backfill_root,
@@ -189,6 +229,7 @@ def run_triage(args, environ=os.environ):
             grant=grant,
             model=model,
             max_calls=args.max_calls,
+            **challenge,
         )
         summary = backfill.run(args.run_id or "dry-run")
         print(json.dumps({**summary, "dry_run": True}, indent=1, sort_keys=True))
@@ -196,6 +237,9 @@ def run_triage(args, environ=os.environ):
     if not args.grant:
         raise RunnerRefused("grant_required")
     grant = load_grant(args.grant)
+    if profile is not None and grant.grant_id != LITERATURE_GRANT:
+        # A Challenge's extraction is paid only from its approved grant.
+        raise RunnerRefused("grant_is_not_the_literature_grant")
     with credential_file(
         path=args.credential_file, env=args.credential_env, environ=environ
     ) as reference:
@@ -208,6 +252,7 @@ def run_triage(args, environ=os.environ):
                 model=model,
                 adapter_id=args.adapter,
                 max_calls=args.max_calls,
+                **challenge,
             )
             summary = backfill.run(args.run_id or "backfill-1")
         except (ModelAccessRefused, triage.BackfillRefused) as error:
@@ -218,14 +263,27 @@ def run_triage(args, environ=os.environ):
 
 def make_snapshot(args):
     root = _root(args.root)
-    raw, backfill_root = _stores(root, args.dry_run)
+    profile = _profile(args)
+    raw, backfill_root = _stores(root, args.dry_run, profile)
     store = method_cards.CardStore(backfill_root / "cards")
-    index, document = method_cards.snapshot(
-        store,
-        raw,
-        label=SNAPSHOT_LABEL + ("-dry-run" if args.dry_run else ""),
-        query_set_digest=literature_fetch.QUERY_SET.digest,
-    )
+    suffix = "-dry-run" if args.dry_run else ""
+    if profile is None:
+        index, document = method_cards.snapshot(
+            store,
+            raw,
+            label=SNAPSHOT_LABEL + suffix,
+            query_set_digest=literature_fetch.QUERY_SET.digest,
+        )
+    else:
+        try:
+            index, document = method_cards.challenge_snapshot(
+                store,
+                raw,
+                profile,
+                label="graphite-literature-" + profile.version + suffix,
+            )
+        except ValueError as error:
+            raise RunnerRefused("snapshot_refused: " + str(error)) from None
     address = method_cards.write_snapshot(store, document)
     print(
         json.dumps(
@@ -251,7 +309,7 @@ def make_snapshot(args):
 
 def list_cards(args):
     root = _root(args.root)
-    _, backfill_root = _stores(root, args.dry_run)
+    _, backfill_root = _stores(root, args.dry_run, _profile(args))
     store = method_cards.CardStore(backfill_root / "cards")
     print(json.dumps(store.listing(unchecked_only=args.unchecked), indent=1))
     return 0
@@ -261,7 +319,7 @@ def check(args, stdin=sys.stdin, confirm=input):
     if not stdin.isatty():
         raise RunnerRefused("human_check_needs_an_interactive_terminal")
     root = _root(args.root)
-    _, backfill_root = _stores(root)
+    _, backfill_root = _stores(root, profile=_profile(args))
     store = method_cards.CardStore(backfill_root / "cards")
     card = store.card(args.card)
     if card is None:
@@ -291,6 +349,8 @@ def parser():
     one.add_argument("--pages-per-query", type=int, default=None)
     one.add_argument("--page-size", type=int, default=literature_fetch.PAGE_SIZE)
     one.set_defaults(handler=fetch)
+    for command in (one,):
+        command.add_argument("--challenge")
     two = commands.add_parser("triage")
     two.add_argument("--root", required=True)
     two.add_argument("--grant")
@@ -300,15 +360,18 @@ def parser():
     two.add_argument("--run-id")
     two.add_argument("--max-calls", type=int, default=triage.MAX_CALLS_PER_RUN)
     two.add_argument("--dry-run", action="store_true")
+    two.add_argument("--challenge")
     two.set_defaults(handler=run_triage)
     three = commands.add_parser("snapshot")
     three.add_argument("--root", required=True)
     three.add_argument("--dry-run", action="store_true")
+    three.add_argument("--challenge")
     three.set_defaults(handler=make_snapshot)
     four = commands.add_parser("cards")
     four.add_argument("--root", required=True)
     four.add_argument("--unchecked", action="store_true")
     four.add_argument("--dry-run", action="store_true")
+    four.add_argument("--challenge")
     four.set_defaults(handler=list_cards)
     five = commands.add_parser("check")
     five.add_argument("--root", required=True)
@@ -316,6 +379,7 @@ def parser():
     five.add_argument("--checker", required=True)
     five.add_argument("--verdict", required=True, choices=method_cards.VERDICTS)
     five.add_argument("--note", default="")
+    five.add_argument("--challenge")
     five.set_defaults(handler=check)
     return top
 
