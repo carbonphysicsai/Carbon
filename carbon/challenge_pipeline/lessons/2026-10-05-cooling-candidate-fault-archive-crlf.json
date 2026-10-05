@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-archive-crlf",
+  "recorded_at": "2026-10-05T12:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test",
+    "ref": "focused tests in /tmp/carbon-ccfp-d735a6c6",
+    "description": "Ran the three focused modules from a Git archive of the exact ticket commit."
+  },
+  "expected": "Archive bytes are Git blob bytes, so pinned Battery material loads before Cooling tests collect.",
+  "observed": "The Windows Git archive inherited automatic CRLF conversion; Battery practice again failed its byte pin and collection stopped after 10.94 seconds.",
+  "keep": [
+    "Verify a representative pinned artifact's digest inside a materialized test tree before pytest."
+  ],
+  "change": [
+    "Create Linux-test archives with core.autocrlf=false; the corrected archive reproduced the registered Battery digest exactly."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "material.digest_pin",
+    "canonical_test_environment"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

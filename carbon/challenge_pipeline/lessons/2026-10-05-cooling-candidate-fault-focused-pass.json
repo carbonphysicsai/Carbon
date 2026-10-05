@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-focused-pass",
+  "recorded_at": "2026-10-05T12:05:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_validate",
+  "execution": {
+    "kind": "test",
+    "ref": "tests/cpu/test_cooling_candidate_fault_policy.py tests/cpu/test_challenge_validator_cooling.py tests/cpu/test_attack_cooling_adapter.py",
+    "description": "Ran the policy loader, Cooling Interface v1 and Cooling Track A adapter tests from the exact commit exported with text conversion disabled."
+  },
+  "expected": "The registered policy fails closed when altered, all three candidate faults retain FAILED_INFRA semantics, and the Attacker binds every fault to the same policy record.",
+  "observed": "All 150 focused tests passed in 62.64 seconds. The test tree's Battery practice artifact matched its registered SHA-256 before collection.",
+  "keep": [
+    "Bind validator results and attack evidence to the same version and digest.",
+    "Keep retry and refund execution outside the standalone validator."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-black-check",
+  "recorded_at": "2026-10-05T12:15:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "focused Ruff and Black check after lint repair",
+    "description": "Reran focused quality checks against the repaired worktree."
+  },
+  "expected": "Ruff and Black both accept all changed Python files.",
+  "observed": "Ruff passed. Black reported that the policy loader, Cooling adapter and policy test required formatting; the other five files were already formatted.",
+  "keep": [
+    "Run the formatter only on the files it identified."
+  ],
+  "change": [
+    "Apply Black to the three named files and rerun both focused checks."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

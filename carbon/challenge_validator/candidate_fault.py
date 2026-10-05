@@ -24,9 +24,7 @@ POLICY_DIR = (
 
 FAILED_INFRA = "FAILED_INFRA"
 ADAPTER_FAILURE = "adapter_failure"
-FAULTS = frozenset(
-    {"rebuild_exception", "predict_exception", "non_finite_score"}
-)
+FAULTS = frozenset({"rebuild_exception", "predict_exception", "non_finite_score"})
 _POLICY_KEYS = {
     "schema",
     "version",
@@ -163,8 +161,10 @@ class CandidateFaultPolicy:
                 "candidate-fault refund stays in the registered fee service"
             )
         notes = document["notes"]
-        if type(notes) is not list or not notes or not all(
-            type(note) is str and note for note in notes
+        if (
+            type(notes) is not list
+            or not notes
+            or not all(type(note) is str and note for note in notes)
         ):
             raise CandidateFaultPolicyRefused("candidate-fault policy notes")
         return CandidateFaultPolicy(
@@ -242,9 +242,7 @@ def load_policy(challenge_id, version=None, *, directory=None):
     )
     digest = _digest(document)
     if digest != pinned:
-        raise CandidateFaultPolicyRefused(
-            "candidate-fault policy altered: " + version
-        )
+        raise CandidateFaultPolicyRefused("candidate-fault policy altered: " + version)
     if document.get("version") != version:
         raise CandidateFaultPolicyRefused(
             "candidate-fault policy names another version"

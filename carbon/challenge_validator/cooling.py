@@ -468,7 +468,7 @@ class CoolingAdapter(ChallengeAdapter):
 
         try:
             model = rebuild(recipe, self.material)
-        except Exception as fault:  # noqa: BLE001 - classified by registered policy
+        except Exception as fault:
             raise self._candidate_fault("rebuild_exception") from fault
         references = self.store.references(fingerprint)
         try:
@@ -476,7 +476,7 @@ class CoolingAdapter(ChallengeAdapter):
                 case_id: model.predict(record["inputs"])
                 for case_id, record in references.items()
             }
-        except Exception as fault:  # noqa: BLE001 - classified by registered policy
+        except Exception as fault:
             raise self._candidate_fault("predict_exception") from fault
         scales = exam.scales_from_train(self.material.train)
         rows = [
@@ -485,8 +485,10 @@ class CoolingAdapter(ChallengeAdapter):
         ]
         summary = exam.aggregate(rows)
         score = summary.get("score")
-        if type(score) not in (int, float) or isinstance(score, bool) or not math.isfinite(
-            score
+        if (
+            type(score) not in (int, float)
+            or isinstance(score, bool)
+            or not math.isfinite(score)
         ):
             raise self._candidate_fault("non_finite_score")
         outcome = self._outcome(submission_id, "SCORED", summary=summary)

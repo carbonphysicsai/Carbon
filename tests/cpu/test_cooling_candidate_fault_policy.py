@@ -34,9 +34,9 @@ def _register(directory, document, *, challenge="chip-cold-plate"):
 
 def _v1():
     return json.loads(
-        (
-            candidate_fault.POLICY_DIR / "cooling-candidate-fault-v1.json"
-        ).read_text(encoding="utf-8")
+        (candidate_fault.POLICY_DIR / "cooling-candidate-fault-v1.json").read_text(
+            encoding="utf-8"
+        )
     )
 
 
@@ -111,9 +111,7 @@ def test_cross_challenge_policy_is_refused_even_when_registered(tmp_path):
     with pytest.raises(
         candidate_fault.CandidateFaultPolicyRefused, match="another challenge"
     ):
-        candidate_fault.load_policy(
-            "electric-motor-magnetics", directory=directory
-        )
+        candidate_fault.load_policy("electric-motor-magnetics", directory=directory)
 
 
 def test_a_safe_successor_is_selected_by_registry_data_without_code_edit(tmp_path):
