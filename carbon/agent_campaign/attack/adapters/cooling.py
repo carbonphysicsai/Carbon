@@ -376,6 +376,14 @@ def _scoring():
 
 
 @functools.cache
+def _candidate_fault_policy():
+    """The exact policy the Cooling validator uses for candidate faults."""
+    from carbon.challenge_validator.candidate_fault import load_policy
+
+    return load_policy(CHALLENGE_ID)
+
+
+@functools.cache
 def _frozen_rule():
     """The frozen public PRACTICE rule, as Graphite scores with it."""
     from carbon.agent_campaign.graphite.experiment import FrozenRule
@@ -1119,6 +1127,11 @@ def resource_boundary(value):
     if value["kind"] == "code_run":
         refusal = code_run_refusal(value["arguments"])
         return {"kind": "code_run", "dispatched": refusal is None, "refusal": refusal}
+    if value["kind"] == "candidate_fault":
+        return {
+            "kind": "candidate_fault",
+            **_candidate_fault_policy().record(value["fault"]),
+        }
     return _scoring_accounting(value)
 
 
@@ -1127,6 +1140,17 @@ def resource_specimen(value):
     an infrastructure failure as a pass."""
     if value["kind"] == "code_run":
         return {"kind": "code_run", "dispatched": True, "refusal": None}
+    if value["kind"] == "candidate_fault":
+        result = resource_boundary(value)
+        return {
+            **result,
+            "classification": {
+                "kind": "CANDIDATE_FAILED",
+                "code": "program",
+                "scientific_result": False,
+                "candidate_penalty": True,
+            },
+        }
     result = _scoring_accounting(value)
     return {**result, "eligible": result["n_gate_failed"] == 0}
 
@@ -1134,6 +1158,12 @@ def resource_specimen(value):
 def resource_breached(result):
     if result["kind"] == "code_run":
         return result["dispatched"]
+    if result["kind"] == "candidate_fault":
+        expected = {
+            "kind": "candidate_fault",
+            **_candidate_fault_policy().record(result.get("fault")),
+        }
+        return result != expected
     if not result["partial"]:
         return False
     missing = result["n_cases"] - result["n_scored"]
@@ -1174,6 +1204,13 @@ def _resource_attacks():
         (
             "no_predictions_scored",
             {"kind": "scoring", "predictions": {}, "partial": True},
+        ),
+        *(
+            (
+                "candidate_fault_" + fault,
+                {"kind": "candidate_fault", "fault": fault},
+            )
+            for fault in sorted(_candidate_fault_policy().faults)
         ),
     )
 
@@ -1852,7 +1889,9 @@ def _families():
             "wall allowance above code_run_seconds is refused before dispatch; "
             "and the frozen rule types every case a partial prediction set "
             "leaves out as FAILED_INFRA, never a gate failure, and a set with "
-            "nothing scored is never eligible",
+            "nothing scored is never eligible; rebuild, prediction and "
+            "non-finite-score faults use the registered candidate-fault "
+            "classification and lifecycle implications",
             attacks=_resource_attacks,
             boundary=resource_boundary,
             specimen=resource_specimen,
@@ -1860,7 +1899,7 @@ def _families():
             control_check=_resource_control,
             admissible=_resource_admissible,
             attack_example="seconds_just_over_the_allowance",
-            reads="public PRACTICE references",
+            reads="public PRACTICE references and registered attribution policy",
         ),
         FamilySpec(
             name="staged_bytes",
@@ -2405,6 +2444,7 @@ class CoolingLevel0Adapter:
             "permitted": len(inventory["permitted"]),
             "not_permitted": len(inventory["not_permitted"]),
             "adapter_version": ADAPTER_VERSION,
+            "candidate_fault_policy": _candidate_fault_policy().record(),
         }
 
     def vectors(self):

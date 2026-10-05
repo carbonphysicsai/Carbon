@@ -157,6 +157,19 @@ class OutcomeContractViolation(RuntimeError):
     """An adapter returned a miner outcome outside the outcome contract."""
 
 
+class CandidateFault(RuntimeError):
+    """A registered candidate-triggered adapter fault.
+
+    The adapter supplies the already checked policy object. Dispatch never
+    interprets exception text or invents a classification.
+    """
+
+    def __init__(self, fault, policy):
+        super().__init__(fault)
+        self.fault = fault
+        self.policy = policy
+
+
 class ChallengeAdapter(abc.ABC):
     """One registered construction contract's validator.
 
@@ -317,6 +330,7 @@ __all__ = [
     "STATES",
     "TERMINAL_STATES",
     "Admitted",
+    "CandidateFault",
     "ChallengeAdapter",
     "OutcomeContractViolation",
     "ReservedRole",
