@@ -1,0 +1,22 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-lanes.v1",
+ "challenge": "chip-cold-plate",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager from repository paths and decision records; the Test Lead reviews and approves it as a PR.",
+ "lanes": [
+  {
+   "lane": "cpu-carrier",
+   "state": "DECLARED",
+   "probe": "carrier_pods.inspect_effective_controls",
+   "policy": "pod-attribution-v2",
+   "note": "The carrier is a PodBackend typed by pod_phase claims as on pods (carrier_pods.py). Whether pod-attribution-v2's GPU probe rules apply to a CPU lane is for the Test Lead to confirm."
+  },
+  {
+   "lane": "pod",
+   "state": "DECLARED",
+   "probe": "pod_phase.probe_environment (Carbon-owned GPU probe, GRAPHITE-POD-GPU-PROBE-01)",
+   "policy": "pod-attribution-v2",
+   "note": "OWNER-GRAPHITE-TEST-WAVE-06 section 2: the GPU lane is planned, its worker declaration is not built yet."
+  }
+ ]
+}

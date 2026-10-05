@@ -13,6 +13,7 @@ import importlib
 import inspect
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,10 +33,24 @@ from .model import (
 TEST_TIMEOUT_SECONDS = 1800
 PRELIVE_TIMEOUT_SECONDS = 1800
 
-#: A lane's environment-probe / attribution policy registry (repository path).
-LANE_PROBES = {
-    "pod": "carbon/agent_campaign/graphite/attribution_policies/registry.json",
-}
+#: The one explicit value that records "no strata, on purpose" (Test Lead,
+#: citing OWNER-GRAPHITE-TEST-WAVE-05 section 4). An empty list stays a gap.
+NO_STRATA_BY_DESIGN = "NONE_UNIFORM_LAW"
+ATTRIBUTION_REGISTRY = (
+    "carbon/agent_campaign/graphite/attribution_policies/registry.json"
+)
+#: The components an ownership map names (gate item O1).
+OWNERSHIP_COMPONENTS = (
+    "contract",
+    "scorer",
+    "validator_adapter",
+    "attack_adapter",
+    "decision_study",
+    "references",
+    "gates",
+    "literature",
+    "grants",
+)
 
 
 @dataclass
@@ -45,6 +60,11 @@ class Context:
     repository: Path = REPOSITORY
     data: dict = field(default_factory=dict)
     cache: dict = field(default_factory=dict)
+
+    def data_policy(self, item_id):
+        """A registered test-side value (policies.json), never invented here."""
+        document = json.loads((PACKAGE / "policies.json").read_bytes())
+        return document["policies"][item_id]
 
 
 def load_challenge_data(challenge):
@@ -256,32 +276,104 @@ def onboarding_decisions(item, ctx):
 
 
 def compute_lanes(item, ctx):
+    """Every compute lane the challenge uses declares an environment probe and
+    a current registered attribution policy. A lane marked TBD, or naming a
+    policy that is not the registry's current one, fails: the gate never
+    assumes a lane is covered."""
     record, path = _record(ctx, "lanes.json")
     if record is None:
         return recorded_tests(item, ctx)
     lanes = record.get("lanes") if record else None
     if not (isinstance(lanes, list) and lanes):
         return Result(FAIL, "lanes.json is malformed", (path.name,))
-    unknown = [lane for lane in lanes if lane not in LANE_PROBES]
-    if unknown:
-        return Result(
-            FAIL,
-            "compute lanes with no registered environment probe policy",
-            tuple(unknown),
-        )
-    evidence = []
+    try:
+        registry = json.loads((REPOSITORY / ATTRIBUTION_REGISTRY).read_bytes())
+        current = registry["current"]
+        digest = registry["versions"][current]
+    except (OSError, ValueError, KeyError):
+        return Result(FAIL, "the attribution policy registry is unreadable")
+    evidence, problems = [], []
     for lane in lanes:
-        try:
-            registry = json.loads((REPOSITORY / LANE_PROBES[lane]).read_bytes())
-            current = registry["current"]
-            evidence.append(f"{lane}:{current}:{registry['versions'][current]}")
-        except (OSError, ValueError, KeyError):
-            return Result(FAIL, f"the {lane} lane's policy registry is unreadable")
+        name = lane.get("lane") if isinstance(lane, dict) else None
+        if not (isinstance(name, str) and name):
+            problems.append("a lane entry has no name")
+        elif lane.get("state") != "DECLARED":
+            problems.append(f"{name}: lane is {lane.get('state')!r}, not DECLARED")
+        elif not (lane.get("probe") and lane.get("policy")):
+            problems.append(f"{name}: no environment probe or policy named")
+        elif lane["policy"] != current:
+            problems.append(
+                f"{name}: policy {lane['policy']} is not current ({current})"
+            )
+        else:
+            evidence.append(f"{name}:{lane['probe']}:{current}:{digest}")
+    if problems:
+        return Result(FAIL, "; ".join(problems), tuple(evidence))
     return Result(
         PASS,
-        "each declared lane has a current registered attribution policy",
+        "each declared lane names a probe and the current registered attribution policy",
         tuple(evidence),
     )
+
+
+def ownership_map(item, ctx):
+    """O1's committed map: every component has one named owner, and an artifact
+    that exists when its state is EXISTS. The Test Lead's review decides
+    whether the map is right; this check only refuses a malformed one."""
+    record, path = _record(ctx, "ownership.json")
+    if record is None:
+        return Result(FAIL, "no ownership.json is committed for the challenge")
+    components = record.get("components") if record else None
+    if not isinstance(components, dict):
+        return Result(FAIL, "ownership.json is malformed", (path.name,))
+    problems = []
+    for name in OWNERSHIP_COMPONENTS:
+        entry = components.get(name)
+        if not isinstance(entry, dict):
+            problems.append(f"{name}: no entry")
+            continue
+        owner = entry.get("owner")
+        if not (isinstance(owner, str) and owner.strip()) or owner == "UNASSIGNED":
+            problems.append(f"{name}: no single owner named")
+        state = entry.get("state")
+        if state not in ("EXISTS", "NOT_BUILT"):
+            problems.append(f"{name}: state is not EXISTS or NOT_BUILT")
+        elif state == "EXISTS":
+            artifact = entry.get("artifact")
+            if not (isinstance(artifact, str) and (REPOSITORY / artifact).exists()):
+                problems.append(f"{name}: artifact {artifact!r} does not exist")
+        if not (isinstance(entry.get("basis"), str) and entry["basis"].strip()):
+            problems.append(f"{name}: no basis cited")
+    if problems:
+        return Result(FAIL, "; ".join(problems), (path.name,))
+    return Result(
+        PASS,
+        "every component has one named owner (the review decides the map is right)",
+        (file_digest(path),),
+    )
+
+
+def disk_free(item, ctx):
+    """R6's automated half: free space on the WSL host's C: drive against the
+    registered Test Lead threshold. A host where that drive cannot be measured
+    fails closed."""
+    policy = ctx.data_policy("R6")
+    threshold = policy["min_free_gb"] * 10**9
+    where = policy["path_windows"] if os.name == "nt" else policy["path_wsl"]
+    try:
+        free = shutil.disk_usage(where).free
+    except OSError:
+        return Result(
+            FAIL,
+            f"cannot measure the WSL host's C: drive from here ({where}); run on the host",
+        )
+    evidence = (
+        f"{where}: {free / 10**9:.1f} GB free",
+        f"threshold {policy['min_free_gb']} GB ({policy['authority']})",
+    )
+    if free >= threshold:
+        return Result(PASS, "free disk meets the registered threshold", evidence)
+    return Result(FAIL, "free disk is below the registered threshold", evidence)
 
 
 # -- runtime ------------------------------------------------------------------------------------
@@ -410,8 +502,12 @@ def confirmation_role(item, ctx):
             missing.append("size unset")
         if not (isinstance(doc.get("sampling_law"), dict) and doc["sampling_law"]):
             missing.append("sampling law unset")
-        if not (isinstance(doc.get("strata"), list) and doc["strata"]):
-            missing.append("strata empty")
+        strata = doc.get("strata")
+        if not ((isinstance(strata, list) and strata) or strata == NO_STRATA_BY_DESIGN):
+            missing.append(
+                "strata empty (an intentional none must be the explicit "
+                f"{NO_STRATA_BY_DESIGN!r})"
+            )
         if missing:
             problems.append(f"{role}: " + ", ".join(missing))
         else:
@@ -430,6 +526,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "ownership_map": ownership_map,
+    "disk_free": disk_free,
     "review_only": review_only,
     "recorded_tests": recorded_tests,
     "branch_plan": branch_plan,

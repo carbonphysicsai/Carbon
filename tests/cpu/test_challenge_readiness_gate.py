@@ -241,3 +241,164 @@ def test_cli_exits_nonzero_and_refuses(monkeypatch, tmp_path, capsys):
     written = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
     assert written["report_digest"].startswith("sha256:")
     assert "R7" in capsys.readouterr().out
+
+
+# -- D7, R6 and the onboarding records (records PR) -------------------------------------------
+CHALLENGES = (
+    "battery-fastcharge-ageing-development-v1",
+    "chip-cold-plate",
+    "electric-motor-magnetics",
+)
+
+
+def _ctx(challenge=CHALLENGE):
+    return checks.Context(challenge=challenge, level=0)
+
+
+def _confirmation_dir(monkeypatch, tmp_path, strata):
+    directory = tmp_path / "carbon/challenge_validator/confirmation_sets"
+    directory.mkdir(parents=True)
+    (directory / "registry.json").write_text(
+        json.dumps({"sets": {"role-v1": "sha256:" + "0" * 64}}), encoding="utf-8"
+    )
+    (directory / "role-v1.json").write_text(
+        json.dumps(
+            {
+                "role": "role-v1",
+                "challenge_id": CHALLENGE,
+                "sealable": True,
+                "cases": 120,
+                "sampling_law": {"id": "law"},
+                "strata": strata,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(checks, "REPOSITORY", tmp_path)
+
+
+@pytest.mark.parametrize(
+    "strata, status",
+    [
+        ([], model.FAIL),
+        ("", model.FAIL),
+        (None, model.FAIL),
+        ("NONE", model.FAIL),
+        ("NONE_UNIFORM_LAW", model.PASS),
+        ([{"id": "s"}], model.PASS),
+    ],
+)
+def test_d7_accepts_only_explicit_none_never_empty(
+    monkeypatch, tmp_path, strata, status
+):
+    _confirmation_dir(monkeypatch, tmp_path, strata)
+    assert checks.confirmation_role({}, _ctx()).status == status
+
+
+def test_r6_threshold_is_the_registered_test_lead_value():
+    policy = _ctx().data_policy("R6")
+    assert policy["min_free_gb"] == 30 and "Test Lead decision" in policy["authority"]
+
+
+def test_r6_disk_check_compares_against_the_threshold(monkeypatch):
+    from collections import namedtuple
+
+    usage = namedtuple("usage", "total used free")
+    monkeypatch.setattr(
+        checks.shutil, "disk_usage", lambda path: usage(0, 0, 29 * 10**9)
+    )
+    assert checks.disk_free({}, _ctx()).status == model.FAIL
+    monkeypatch.setattr(
+        checks.shutil, "disk_usage", lambda path: usage(0, 0, 30 * 10**9)
+    )
+    assert checks.disk_free({}, _ctx()).status == model.PASS
+
+    def unreadable(path):
+        raise OSError("no such drive")
+
+    monkeypatch.setattr(checks.shutil, "disk_usage", unreadable)
+    result = checks.disk_free({}, _ctx())
+    assert result.status == model.FAIL and "cannot measure" in result.detail
+
+
+def test_r6_needs_the_window_review_as_well(tmp_path):
+    item = next(i for i in model.load_items() if i["id"] == "R6")
+    assert item["kind"] == "auto+review" and item["check"] == "disk_free"
+
+
+@pytest.mark.parametrize("challenge", CHALLENGES)
+def test_onboarding_records_are_drafts_the_checks_can_read(challenge):
+    base = model.PACKAGE / challenge
+    for name in ("ownership", "branches", "onboarding", "lanes"):
+        record = json.loads((base / f"{name}.json").read_text(encoding="utf-8"))
+        assert record["challenge"] == challenge and record["status"] == "DRAFT"
+    ctx = _ctx(challenge)
+    item = {"id": "O3"}
+    assert checks.onboarding_decisions(item, ctx).status == model.PASS
+    assert checks.branch_plan.__name__  # O2 needs origin; the shape is tested below
+    names = json.loads((base / "branches.json").read_text(encoding="utf-8"))
+    assert names["planned_branches"] and all(
+        isinstance(n, str) for n in names["planned_branches"]
+    )
+
+
+def test_motor_pod_lane_stays_tbd_and_fails_closed():
+    result = checks.compute_lanes({}, _ctx("electric-motor-magnetics"))
+    assert result.status == model.FAIL and "TBD" in result.detail
+    assert checks.compute_lanes({}, _ctx("chip-cold-plate")).status == model.PASS
+
+
+def test_a_lane_with_a_stale_policy_fails(monkeypatch, tmp_path):
+    directory = tmp_path / "carbon/challenge_pipeline/readiness" / CHALLENGE
+    directory.mkdir(parents=True)
+    lane = {"lane": "pod", "state": "DECLARED", "probe": "p", "policy": "old-v1"}
+    (directory / "lanes.json").write_text(
+        json.dumps({"lanes": [lane]}), encoding="utf-8"
+    )
+    monkeypatch.setattr(checks, "PACKAGE", directory.parent)
+    assert checks.compute_lanes({}, _ctx()).status == model.FAIL
+
+
+def test_ownership_map_refuses_unassigned_missing_and_phantom_artifacts(
+    monkeypatch, tmp_path
+):
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    monkeypatch.setattr(checks, "PACKAGE", tmp_path)
+    good = {
+        name: {"owner": "Codex", "state": "NOT_BUILT", "artifact": None, "basis": "b"}
+        for name in checks.OWNERSHIP_COMPONENTS
+    }
+
+    def check(components):
+        (directory / "ownership.json").write_text(
+            json.dumps({"components": components}), encoding="utf-8"
+        )
+        return checks.ownership_map({}, _ctx()).status
+
+    assert check(good) == model.PASS
+    assert check({k: v for k, v in good.items() if k != "scorer"}) == model.FAIL
+    assert (
+        check({**good, "scorer": {**good["scorer"], "owner": "UNASSIGNED"}})
+        == model.FAIL
+    )
+    assert (
+        check(
+            {
+                **good,
+                "scorer": {**good["scorer"], "state": "EXISTS", "artifact": "no/such"},
+            }
+        )
+        == model.FAIL
+    )
+    assert check({**good, "scorer": {**good["scorer"], "basis": ""}}) == model.FAIL
+
+
+@pytest.mark.parametrize("challenge", CHALLENGES)
+def test_committed_ownership_maps_name_every_component(challenge):
+    ctx = _ctx(challenge)
+    result = checks.ownership_map({}, ctx)
+    if challenge.startswith("battery"):
+        assert result.status == model.FAIL and "contract" in result.detail
+    else:
+        assert result.status == model.PASS, result.detail

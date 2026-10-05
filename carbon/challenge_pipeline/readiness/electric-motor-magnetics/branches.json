@@ -1,0 +1,10 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-branches.v1",
+ "challenge": "electric-motor-magnetics",
+ "status": "DRAFT",
+ "note": "PROPOSED names for the next unbuilt onboarding work, taken from the open gaps in the gate report; none is created yet. O2 fails if any exists on origin before its owner starts it, so the Test Lead edits this list to the names the owners will really use.",
+ "planned_branches": [
+  "codex/motor-scoring-adapter",
+  "claude/motor-phase4-grant"
+ ]
+}
