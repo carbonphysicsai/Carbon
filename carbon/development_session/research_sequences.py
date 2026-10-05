@@ -12,12 +12,17 @@ from pathlib import PurePosixPath
 
 from .profile import canonical, digest
 from .research_ledger import (
+    CARBON_SERVICE_CAPACITY,
     DIMENSIONS,
+    ELAPSED_DIMENSION,
+    MINER_CEILING_REACHED,
     NO_BUDGET,
     SERVICE_LIMITS,
+    LedgerRefusal,
     _caps,
     _final_reserve,
     _vector,
+    manifest_basis,
 )
 
 SCOPE = "carbon.public-julia-envelope.scope.v2"
@@ -60,13 +65,27 @@ def _context(ledger, db, owner, scope, *, cleanup=False):
     if _elapsed(manifest) is not NO_BUDGET:
         bounds.append(started + _elapsed(manifest))
     deadline = min(bounds) if bounds else None
-    if (
-        not math.isfinite(now)
-        or now < started
-        or (deadline is not None and now >= deadline)
-    ):
+    if not math.isfinite(now) or now < started:
         raise ValueError("sequence deadline exhausted")
+    if deadline is not None and now >= deadline:
+        raise _out_of_time("sequence deadline exhausted", manifest, started, now, 0)
     return manifest, started, deadline
+
+
+def _out_of_time(message, manifest, started, now, requested):
+    """The campaign's own time refused a sequence (`LedgerRefusal`)."""
+    from .research_ledger import _elapsed
+
+    elapsed = _elapsed(manifest)
+    return LedgerRefusal(
+        message,
+        code=MINER_CEILING_REACHED,
+        dimension=ELAPSED_DIMENSION,
+        basis=manifest_basis(manifest),
+        used=math.floor(now - started),
+        requested=requested,
+        ceiling=None if elapsed is NO_BUDGET else elapsed,
+    )
 
 
 def _load(db, parent, owner):
@@ -130,14 +149,28 @@ def reserve_sequence(ledger, parent, *, owner, scope, children):
             deadline is not None
             and ledger.clock() + total["numerical_milliseconds"] / 1000 > deadline
         ):
-            raise ValueError("complete sequence cannot fit remaining time")
+            raise _out_of_time(
+                "complete sequence cannot fit remaining time",
+                manifest,
+                started,
+                ledger.clock(),
+                math.ceil(total["numerical_milliseconds"] / 1000),
+            )
         used = ledger._usage(db)
         caps, reserve = _caps(manifest), _final_reserve(manifest)
         for key in DIMENSIONS:
             want = total.get(key, 0)
             service = SERVICE_LIMITS.get(key)
             if service is not None and used[key] + want > service:
-                raise ValueError("carbon service capacity: " + key)
+                raise LedgerRefusal(
+                    "carbon service capacity: " + key,
+                    code=CARBON_SERVICE_CAPACITY,
+                    dimension=key,
+                    basis="carbon_service",
+                    used=used[key],
+                    requested=want,
+                    ceiling=service,
+                )
             cap = caps.get(key, NO_BUDGET)
             if cap is NO_BUDGET:
                 continue
@@ -147,7 +180,15 @@ def reserve_sequence(ledger, parent, *, owner, scope, children):
             if used[key] + want + headroom > cap:
                 # Names the aggregate, because a sequence can fit child by
                 # child and still not fit as a whole.
-                raise ValueError("miner budget, sequence aggregate: " + key)
+                raise LedgerRefusal(
+                    "miner budget, sequence aggregate: " + key,
+                    code=MINER_CEILING_REACHED,
+                    dimension=key,
+                    basis=manifest_basis(manifest),
+                    used=used[key],
+                    requested=want + headroom,
+                    ceiling=cap,
+                )
         now = ledger.clock()
         db.execute("UPDATE campaign SET started=? WHERE id=1", (started,))
         db.execute(
@@ -222,7 +263,7 @@ def claim_sequence_child(ledger, parent, *, owner, ordinal):
     with ledger.db() as db:
         db.execute("BEGIN IMMEDIATE")
         document = _load(db, parent, owner)
-        _manifest, _started, deadline = _context(ledger, db, owner, document["scope"])
+        manifest, started, deadline = _context(ledger, db, owner, document["scope"])
         parent_state = db.execute(
             "SELECT state FROM operations WHERE id=?", (parent,)
         ).fetchone()[0]
@@ -252,7 +293,13 @@ def claim_sequence_child(ledger, parent, *, owner, ordinal):
             and ledger.clock() + child["resources"]["numerical_milliseconds"] / 1000
             > deadline
         ):
-            raise ValueError("child cannot fit remaining time")
+            raise _out_of_time(
+                "child cannot fit remaining time",
+                manifest,
+                started,
+                ledger.clock(),
+                math.ceil(child["resources"]["numerical_milliseconds"] / 1000),
+            )
         db.execute("UPDATE operations SET state='RESERVED' WHERE id=?", (child["id"],))
         db.execute(
             "INSERT INTO operation_sequence_claims VALUES(?,?,?)",
