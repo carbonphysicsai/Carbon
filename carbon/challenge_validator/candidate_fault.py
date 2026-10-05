@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,7 +25,7 @@ POLICY_DIR = (
 
 FAILED_INFRA = "FAILED_INFRA"
 ADAPTER_FAILURE = "adapter_failure"
-FAULTS = frozenset({"rebuild_exception", "predict_exception", "non_finite_score"})
+FAULT_NAME = re.compile(r"[a-z][a-z0-9_]{0,63}")
 _POLICY_KEYS = {
     "schema",
     "version",
@@ -108,11 +109,14 @@ class CandidateFaultPolicy:
         faults = document["faults"]
         if (
             type(faults) is not list
+            or not faults
             or len(faults) != len(set(faults))
-            or frozenset(faults) != FAULTS
+            or not all(
+                type(fault) is str and FAULT_NAME.fullmatch(fault) for fault in faults
+            )
         ):
             raise CandidateFaultPolicyRefused(
-                "candidate-fault policy covers the registered v1 faults"
+                "candidate-fault policy has unique canonical fault names"
             )
         classification = document["classification"]
         if (
@@ -258,7 +262,6 @@ def load_policy(challenge_id, version=None, *, directory=None):
 __all__ = [
     "ADAPTER_FAILURE",
     "FAILED_INFRA",
-    "FAULTS",
     "CandidateFaultPolicy",
     "CandidateFaultPolicyRefused",
     "load_policy",

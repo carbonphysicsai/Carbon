@@ -3,7 +3,7 @@
   "lesson_id": "2026-10-05-cooling-candidate-fault-quality-pass",
   "recorded_at": "2026-10-05T12:20:00Z",
   "challenge": "chip-cold-plate",
-  "stage": "test_validate",
+  "stage": "test_iterate",
   "execution": {
     "kind": "build",
     "ref": "focused Ruff and Black verification",

@@ -5,7 +5,7 @@
   "challenge": "chip-cold-plate",
   "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "focused tests in /tmp/carbon-ccfp.ANGhV7/repo",
     "description": "Tried the focused policy, validator and attacker tests in a Linux clone of the local Windows repository."
   },

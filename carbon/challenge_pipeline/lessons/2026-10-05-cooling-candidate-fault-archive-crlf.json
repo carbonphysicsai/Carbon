@@ -5,7 +5,7 @@
   "challenge": "chip-cold-plate",
   "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "focused tests in /tmp/carbon-ccfp-d735a6c6",
     "description": "Ran the three focused modules from a Git archive of the exact ticket commit."
   },

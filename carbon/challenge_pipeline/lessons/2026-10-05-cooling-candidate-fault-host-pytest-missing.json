@@ -5,7 +5,7 @@
   "challenge": "chip-cold-plate",
   "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "focused candidate-fault policy, validator and attacker tests",
     "description": "Invoked the three focused CPU test modules with the available Windows Python launcher."
   },

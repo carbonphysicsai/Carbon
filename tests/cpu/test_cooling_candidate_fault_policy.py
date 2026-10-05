@@ -43,7 +43,11 @@ def _v1():
 def test_current_cooling_policy_is_registered_pinned_and_complete():
     policy = candidate_fault.load_policy("chip-cold-plate")
     assert policy.version == "cooling-candidate-fault-v1"
-    assert policy.faults == candidate_fault.FAULTS
+    assert policy.faults == {
+        "rebuild_exception",
+        "predict_exception",
+        "non_finite_score",
+    }
     assert policy.classification == {
         "kind": "FAILED_INFRA",
         "code": "adapter_failure",
@@ -90,7 +94,7 @@ def test_altered_or_unregistered_policy_fails_closed(tmp_path):
         lambda d: d["retry"].update(validator_performs=True),
         lambda d: d["retry"].update(new_charge=True),
         lambda d: d["refund"].update(validator_performs=True),
-        lambda d: d["faults"].remove("non_finite_score"),
+        lambda d: d["faults"].append(d["faults"][0]),
     ],
 )
 def test_a_digest_pinned_but_unsafe_policy_is_refused(tmp_path, change):

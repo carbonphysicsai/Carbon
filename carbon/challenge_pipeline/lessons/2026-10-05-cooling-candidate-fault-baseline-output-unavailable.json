@@ -3,9 +3,9 @@
   "lesson_id": "2026-10-05-cooling-candidate-fault-baseline-output-unavailable",
   "recorded_at": "2026-10-05T10:30:00Z",
   "challenge": "chip-cold-plate",
-  "stage": "test_baseline",
+  "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "candidate-fault-policy focused baseline, first invocation",
     "description": "Invoked the focused Cooling validator and attack tests through WSL before implementation."
   },

@@ -1,6 +1,7 @@
 # CHALLENGE-AI-COOLING-10 — registered candidate-fault policy
 
-**Status:** active implementation
+**Status:** implementation and bounded local validation complete; canonical
+repository CI and PR Lead delivery pending
 
 **Authority:** Test Lead follow-up after PR #586, `VALIDATOR-01` Interface v1,
 `CHALLENGE-AI-COOLING-08`, and Carbon invariant 7 (infrastructure failure is
@@ -76,19 +77,31 @@ Out of scope:
 
 ## Acceptance
 
-- [ ] The exact current Cooling policy is registered and digest-pinned.
-- [ ] Missing, altered, unregistered, cross-Challenge or unsafe policies fail
+- [x] The exact current Cooling policy is registered and digest-pinned.
+- [x] Missing, altered, unregistered, cross-Challenge or unsafe policies fail
       closed at load.
-- [ ] Rebuild exceptions, prediction exceptions and non-finite scores produce
+- [x] Rebuild exceptions, prediction exceptions and non-finite scores produce
       `FAILED_INFRA / adapter_failure` with the exact policy record and no
       exception text or score.
-- [ ] The policy states the retry/refund implications and the validator's
+- [x] The policy states the retry/refund implications and the validator's
       non-ownership of both actions.
-- [ ] Cooling's attacker surface exposes the policy and tests all three fault
+- [x] Cooling's attacker surface exposes the policy and tests all three fault
       kinds through resource/failure accounting.
-- [ ] Existing generic adapter-failure behavior and Battery remain unchanged.
+- [x] Existing generic adapter-failure behavior and Battery remain unchanged.
 - [ ] Focused tests, applicable subsystem checks, lessons validation, quality
       and repository CI pass at the delivered head.
+
+## Local validation evidence
+
+- The exact LF-native implementation tree passed 150 focused policy, Cooling
+  validator and Cooling attacker tests in 68.09 seconds.
+- After removing Cooling fault literals from the shared loader, the policy and
+  validator subset passed 27 tests in 27.07 seconds; the exact delivered tree
+  receives the same full 150-test pass before handoff.
+- Focused Ruff passed and Black left the changed Python set unchanged.
+- The challenge-pipeline validator accepted 7 records and 252 lessons with no
+  pending decision before the final pass records were appended; canonical CI
+  validates the delivered complete set.
 
 ## Maturity ceiling
 

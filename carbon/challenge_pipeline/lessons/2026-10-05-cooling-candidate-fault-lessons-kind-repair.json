@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-lessons-kind-repair",
+  "recorded_at": "2026-10-05T12:35:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "python -m carbon.challenge_pipeline validate",
+    "description": "Validated the complete lessons directory after appending the final focused-test record."
+  },
+  "expected": "Every ticket lesson conforms to the registered lesson schema.",
+  "observed": "Validation stopped at the first new test lesson because its execution kind was 'test'; the registered vocabulary requires 'test_run'.",
+  "keep": [
+    "Keep one lesson per attempted execution, including unavailable and failed test runs."
+  ],
+  "change": [
+    "Change each candidate-fault test execution kind to the registered test_run token and revalidate."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -3,9 +3,9 @@
   "lesson_id": "2026-10-05-cooling-candidate-fault-baseline-windows-bytes",
   "recorded_at": "2026-10-05T10:35:00Z",
   "challenge": "chip-cold-plate",
-  "stage": "test_baseline",
+  "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "tests/cpu/test_challenge_validator_cooling.py tests/cpu/test_attack_cooling_adapter.py",
     "description": "Collected the focused pre-change tests under WSL from the Windows worktree."
   },

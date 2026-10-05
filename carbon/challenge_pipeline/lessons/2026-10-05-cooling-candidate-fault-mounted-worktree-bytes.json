@@ -5,7 +5,7 @@
   "challenge": "chip-cold-plate",
   "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "three focused CPU modules from the mounted ticket worktree",
     "description": "Ran the new policy and Cooling validator/attacker tests with Linux Python against the Windows worktree."
   },

@@ -3,9 +3,9 @@
   "lesson_id": "2026-10-05-cooling-candidate-fault-focused-pass",
   "recorded_at": "2026-10-05T12:05:00Z",
   "challenge": "chip-cold-plate",
-  "stage": "test_validate",
+  "stage": "test_iterate",
   "execution": {
-    "kind": "test",
+    "kind": "test_run",
     "ref": "tests/cpu/test_cooling_candidate_fault_policy.py tests/cpu/test_challenge_validator_cooling.py tests/cpu/test_attack_cooling_adapter.py",
     "description": "Ran the policy loader, Cooling Interface v1 and Cooling Track A adapter tests from the exact commit exported with text conversion disabled."
   },
