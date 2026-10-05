@@ -1,0 +1,74 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-ownership.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "status": "DRAFT",
+ "note": "DRAFT by the Graphite Testing Manager. Two fields per component: owner = engineering, acceptance = who accepts it (Test Lead ruling 2026-10-05). The Test Lead reviews and approves it as a PR.",
+ "components": {
+  "contract": {
+   "owner": "Test Engineer",
+   "state": "EXISTS",
+   "artifact": "carbon/battery/contracts.py",
+   "basis": "Test Lead ruling 2026-10-05; Challenge Roadmap: contract code, development variants L1-L3 and the attack adapter are the Test Engineer's, accepted by Ryan",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "scorer": {
+   "owner": "Carbon Validator",
+   "state": "EXISTS",
+   "artifact": "carbon/challenge_validator/battery_scoring.py",
+   "basis": "VALIDATOR-01 (Test Lead ownership brief, 2026-10-05)",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "validator_adapter": {
+   "owner": "Carbon Validator",
+   "state": "EXISTS",
+   "artifact": "carbon/challenge_validator/battery.py",
+   "basis": "VALIDATOR-01 (Test Lead ownership brief, 2026-10-05)",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "attack_adapter": {
+   "owner": "Test Engineer",
+   "state": "EXISTS",
+   "artifact": "carbon/agent_campaign/attack/adapters/battery.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "decision_study": {
+   "owner": "Data Collection",
+   "state": "EXISTS",
+   "artifact": "docs/development/evidence/ev5-2026-10-03",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "note": "EV5 frozen on main, not run.",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "references": {
+   "owner": "Data Collection",
+   "state": "EXISTS",
+   "artifact": "carbon/battery/reference.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "gates": {
+   "owner": "Carbon Validator",
+   "state": "EXISTS",
+   "artifact": "carbon/battery/exam.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "note": "Carbon Validator owns each challenge's gates being comprehensive and optimal; adoption into frozen rules stays the owner's.",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "literature": {
+   "owner": "Carbon Validator",
+   "state": "EXISTS",
+   "artifact": "carbon/agent_campaign/graphite/literature.py",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "note": "Battery-specific literals live in the shared module; challenge-named literature is VALIDATOR-08 (#614), open.",
+   "acceptance": "Ryan (technical owner)"
+  },
+  "grants": {
+   "owner": "Test Engineer",
+   "state": "EXISTS",
+   "artifact": "docs/development/graphite/grants",
+   "basis": "Test Lead ownership brief, 2026-10-05",
+   "acceptance": "Ryan (technical owner)"
+  }
+ }
+}

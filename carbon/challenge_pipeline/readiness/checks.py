@@ -13,6 +13,7 @@ import importlib
 import inspect
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -32,10 +33,24 @@ from .model import (
 TEST_TIMEOUT_SECONDS = 1800
 PRELIVE_TIMEOUT_SECONDS = 1800
 
-#: A lane's environment-probe / attribution policy registry (repository path).
-LANE_PROBES = {
-    "pod": "carbon/agent_campaign/graphite/attribution_policies/registry.json",
-}
+#: The one explicit value that records "no strata, on purpose" (Test Lead,
+#: citing OWNER-GRAPHITE-TEST-WAVE-05 section 4). An empty list stays a gap.
+NO_STRATA_BY_DESIGN = "NONE_UNIFORM_LAW"
+ATTRIBUTION_REGISTRY = (
+    "carbon/agent_campaign/graphite/attribution_policies/registry.json"
+)
+#: The components an ownership map names (gate item O1).
+OWNERSHIP_COMPONENTS = (
+    "contract",
+    "scorer",
+    "validator_adapter",
+    "attack_adapter",
+    "decision_study",
+    "references",
+    "gates",
+    "literature",
+    "grants",
+)
 
 
 @dataclass
@@ -45,6 +60,11 @@ class Context:
     repository: Path = REPOSITORY
     data: dict = field(default_factory=dict)
     cache: dict = field(default_factory=dict)
+
+    def data_policy(self, item_id):
+        """A registered test-side value (policies.json), never invented here."""
+        document = json.loads((PACKAGE / "policies.json").read_bytes())
+        return document["policies"][item_id]
 
 
 def load_challenge_data(challenge):
@@ -203,13 +223,27 @@ def _record(ctx, name):
 
 
 def branch_plan(item, ctx):
+    """O2: no planned branch name exists on origin under a different owner.
+    Each planned entry is `{name, expected_owner, state}`. A name that exists
+    on origin passes only when its entry is STARTED, which records that its
+    expected owner opened it (PR Head tracks new branches and updates the file);
+    otherwise it exists under an owner this record does not vouch for."""
     plan, path = _record(ctx, "branches.json")
     if plan is None:
         return recorded_tests(item, ctx)
-    names = plan.get("planned_branches") if plan else None
-    if not (
-        isinstance(names, list) and names and all(isinstance(n, str) for n in names)
-    ):
+    entries = plan.get("planned_branches") if plan else None
+    valid = isinstance(entries, list) and bool(entries)
+    if valid:
+        for entry in entries:
+            valid = valid and (
+                isinstance(entry, dict)
+                and isinstance(entry.get("name"), str)
+                and bool(entry["name"])
+                and isinstance(entry.get("expected_owner"), str)
+                and bool(entry["expected_owner"].strip())
+                and entry.get("state") in ("PROPOSED", "STARTED")
+            )
+    if not valid:
         return Result(FAIL, "branches.json is malformed", (path.name,))
     try:
         done = subprocess.run(
@@ -229,12 +263,21 @@ def branch_plan(item, ctx):
         for line in done.stdout.splitlines()
         if "refs/heads/" in line
     }
-    taken = sorted(set(names) & heads)
-    if taken:
+    foreign = sorted(
+        e["name"] for e in entries if e["name"] in heads and e["state"] != "STARTED"
+    )
+    if foreign:
         return Result(
-            FAIL, "planned branch names already exist on origin", tuple(taken)
+            FAIL,
+            "planned branch names exist on origin and are not recorded as started "
+            "by their expected owner",
+            tuple(foreign),
         )
-    return Result(PASS, "no planned branch name exists on origin", (file_digest(path),))
+    return Result(
+        PASS,
+        "no planned branch name exists on origin under another owner",
+        (file_digest(path),),
+    )
 
 
 def onboarding_decisions(item, ctx):
@@ -255,33 +298,195 @@ def onboarding_decisions(item, ctx):
     )
 
 
+def _lane_probe(lane):
+    """Run a lane's own read-only environment probe, when it names one
+    (`probe_cli` with `{input}` filled from the env var `probe_input_env`).
+    Returns `(problem, evidence)`; a probe that cannot run fails closed."""
+    cli = lane.get("probe_cli")
+    if not cli:
+        return None, []
+    variable = lane.get("probe_input_env")
+    value = os.environ.get(variable) if variable else None
+    if not value:
+        return (
+            (
+                f"{lane['lane']}: probe input not supplied (set {variable} to the "
+                "host's pinned image manifest); cannot verify the environment"
+            ),
+            [],
+        )
+    command = [
+        sys.executable if c == "{python}" else c.replace("{input}", value) for c in cli
+    ]
+    try:
+        done = subprocess.run(
+            command,
+            cwd=REPOSITORY,
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"{lane['lane']}: probe could not run ({type(error).__name__})", []
+    try:
+        report = json.loads(done.stdout)
+    except ValueError:
+        report = {}
+    if done.returncode == 2:
+        return (
+            f"{lane['lane']}: the lane policy was refused ({report.get('refused')})",
+            [],
+        )
+    if done.returncode != 0 or report.get("eligible") is not True:
+        return (
+            (
+                f"{lane['lane']}: environment not eligible here "
+                f"(doctor {report.get('doctor_code')}, image_present "
+                f"{report.get('image_present')}, exit {done.returncode}); run on the "
+                "host with Docker and the pinned image"
+            ),
+            [],
+        )
+    return (
+        None,
+        [
+            f"{lane['lane']}:probe:eligible",
+            f"{lane['lane']}:probe_policy:{report.get('lane_policy')}:{report.get('lane_policy_digest')}",
+        ],
+        report,
+    )
+
+
 def compute_lanes(item, ctx):
+    """Every compute lane the challenge uses names its own environment check
+    (`probe`) and a registered, current policy in the registry the lane names;
+    a lane that names a runnable probe (`probe_cli`) must also pass it on this
+    host. A lane marked TBD, with no policy, or with a policy its registry does
+    not hold or no longer calls current, fails: the gate never assumes a lane is
+    covered. A lane's policy is never borrowed from another lane (a GPU probe's
+    rules do not apply to a CPU carrier)."""
     record, path = _record(ctx, "lanes.json")
     if record is None:
         return recorded_tests(item, ctx)
     lanes = record.get("lanes") if record else None
     if not (isinstance(lanes, list) and lanes):
         return Result(FAIL, "lanes.json is malformed", (path.name,))
-    unknown = [lane for lane in lanes if lane not in LANE_PROBES]
-    if unknown:
-        return Result(
-            FAIL,
-            "compute lanes with no registered environment probe policy",
-            tuple(unknown),
-        )
-    evidence = []
+    evidence, problems = [], []
     for lane in lanes:
+        name = lane.get("lane") if isinstance(lane, dict) else None
+        if not (isinstance(name, str) and name):
+            problems.append("a lane entry has no name")
+            continue
+        if lane.get("state") != "DECLARED":
+            problems.append(f"{name}: lane is {lane.get('state')!r}, not DECLARED")
+            continue
+        if not lane.get("probe"):
+            problems.append(f"{name}: no environment check named")
+            continue
+        policy = lane.get("policy")
+        if not policy:
+            problems.append(
+                f"{name}: no attribution policy is registered for this lane"
+            )
+            continue
         try:
-            registry = json.loads((REPOSITORY / LANE_PROBES[lane]).read_bytes())
-            current = registry["current"]
-            evidence.append(f"{lane}:{current}:{registry['versions'][current]}")
+            registry = json.loads(
+                (REPOSITORY / lane.get("registry", ATTRIBUTION_REGISTRY)).read_bytes()
+            )
+            digest = registry["versions"][policy]
         except (OSError, ValueError, KeyError):
-            return Result(FAIL, f"the {lane} lane's policy registry is unreadable")
+            problems.append(f"{name}: policy {policy} is not in its registry")
+            continue
+        current = registry.get("current")
+        if isinstance(current, dict):
+            current = current.get(lane.get("registry_key", name))
+        if current != policy:
+            problems.append(f"{name}: policy {policy} is not the current version")
+            continue
+        outcome = _lane_probe(lane)
+        if outcome[0]:
+            problems.append(outcome[0])
+            continue
+        if len(outcome) == 3 and (
+            outcome[2].get("lane_policy") != policy
+            or outcome[2].get("lane_policy_digest") != digest
+        ):
+            problems.append(
+                f"{name}: the probe reports a different policy than the registry"
+            )
+            continue
+        evidence.append(f"{name}:{lane['probe']}:{policy}:{digest}")
+        evidence.extend(outcome[1])
+    if problems:
+        return Result(FAIL, "; ".join(problems), tuple(evidence))
     return Result(
         PASS,
-        "each declared lane has a current registered attribution policy",
+        "each lane names its own environment check and a current registered policy",
         tuple(evidence),
     )
+
+
+def ownership_map(item, ctx):
+    """O1's committed map: every component names an engineering `owner` and an
+    `acceptance` authority, and an artifact
+    that exists when its state is EXISTS. The Test Lead's review decides
+    whether the map is right; this check only refuses a malformed one."""
+    record, path = _record(ctx, "ownership.json")
+    if record is None:
+        return Result(FAIL, "no ownership.json is committed for the challenge")
+    components = record.get("components") if record else None
+    if not isinstance(components, dict):
+        return Result(FAIL, "ownership.json is malformed", (path.name,))
+    problems = []
+    for name in OWNERSHIP_COMPONENTS:
+        entry = components.get(name)
+        if not isinstance(entry, dict):
+            problems.append(f"{name}: no entry")
+            continue
+        for field_name in ("owner", "acceptance"):
+            who = entry.get(field_name)
+            if not (isinstance(who, str) and who.strip()) or who == "UNASSIGNED":
+                problems.append(f"{name}: no {field_name} named")
+        state = entry.get("state")
+        if state not in ("EXISTS", "NOT_BUILT"):
+            problems.append(f"{name}: state is not EXISTS or NOT_BUILT")
+        elif state == "EXISTS":
+            artifact = entry.get("artifact")
+            if not (isinstance(artifact, str) and (REPOSITORY / artifact).exists()):
+                problems.append(f"{name}: artifact {artifact!r} does not exist")
+        if not (isinstance(entry.get("basis"), str) and entry["basis"].strip()):
+            problems.append(f"{name}: no basis cited")
+    if problems:
+        return Result(FAIL, "; ".join(problems), (path.name,))
+    return Result(
+        PASS,
+        "every component names an engineering owner and an acceptance owner (the review decides the map is right)",
+        (file_digest(path),),
+    )
+
+
+def disk_free(item, ctx):
+    """R6's automated half: free space on the WSL host's C: drive against the
+    registered Test Lead threshold. A host where that drive cannot be measured
+    fails closed."""
+    policy = ctx.data_policy("R6")
+    threshold = policy["min_free_gb"] * 10**9
+    where = policy["path_windows"] if os.name == "nt" else policy["path_wsl"]
+    try:
+        free = shutil.disk_usage(where).free
+    except OSError:
+        return Result(
+            FAIL,
+            f"cannot measure the WSL host's C: drive from here ({where}); run on the host",
+        )
+    evidence = (
+        f"{where}: {free / 10**9:.1f} GB free",
+        f"threshold {policy['min_free_gb']} GB ({policy['authority']})",
+    )
+    if free >= threshold:
+        return Result(PASS, "free disk meets the registered threshold", evidence)
+    return Result(FAIL, "free disk is below the registered threshold", evidence)
 
 
 # -- runtime ------------------------------------------------------------------------------------
@@ -410,8 +615,12 @@ def confirmation_role(item, ctx):
             missing.append("size unset")
         if not (isinstance(doc.get("sampling_law"), dict) and doc["sampling_law"]):
             missing.append("sampling law unset")
-        if not (isinstance(doc.get("strata"), list) and doc["strata"]):
-            missing.append("strata empty")
+        strata = doc.get("strata")
+        if not ((isinstance(strata, list) and strata) or strata == NO_STRATA_BY_DESIGN):
+            missing.append(
+                "strata empty (an intentional none must be the explicit "
+                f"{NO_STRATA_BY_DESIGN!r})"
+            )
         if missing:
             problems.append(f"{role}: " + ", ".join(missing))
         else:
@@ -430,6 +639,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "ownership_map": ownership_map,
+    "disk_free": disk_free,
     "review_only": review_only,
     "recorded_tests": recorded_tests,
     "branch_plan": branch_plan,

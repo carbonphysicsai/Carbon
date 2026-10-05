@@ -516,11 +516,15 @@ def test_the_oracle_speaks_only_the_conditions_vocabulary():
         b.OracleResult("f", "a", b.BREACHED, "sha256:" + "0" * 64, "EXPLOIT")
 
 
-def _observed(strategy, accepted, name="session-attempt"):
+def _observed(strategy, accepted, name="session-attempt", refusal_kind="construction"):
+    # A refused attempt defaults to a construction-level refusal (the compiler
+    # or contract refused the construction itself), the only refusal that can
+    # be a wrongful rejection; a request-level refusal is passed explicitly.
     return {
         "name": name,
         "arguments": {"strategy_json": json.dumps(strategy)},
         "path_accepted": accepted,
+        "refusal_kind": None if accepted else refusal_kind,
     }
 
 
@@ -554,8 +558,23 @@ def test_a_path_that_refuses_what_carbon_admits_and_runs_is_a_wrongful_refusal()
     assert "agrees" not in control.basis
     ablation = A.assess("permission_ablation", _observed(track_a.RECIPE_CONTROL, False))
     assert _reading(ablation) == wrongful
-    valid = {"name": "p", "value": track_a.mandatory_control(), "path_accepted": False}
+    valid = {
+        "name": "p",
+        "value": track_a.mandatory_control(),
+        "path_accepted": False,
+        "refusal_kind": "construction",
+    }
     assert _reading(A.assess("mandatory_failure", valid)) == wrongful
+    # Only a construction-level refusal is a wrongful rejection. The same valid
+    # control refused for a request-level reason (an invalid argument, a
+    # missing field) is UNDETERMINED: the family judges nothing, never a
+    # finding (OWNER-GRAPHITE triage item 5).
+    request_refused = {**valid, "refusal_kind": "request"}
+    assert _reading(A.assess("mandatory_failure", request_refused)) == (
+        b.UNDETERMINED,
+        b.INCONCLUSIVE,
+        None,
+    )
     # Carbon admits it but the pods do not serve it: the refusal may be the
     # path's own, so it is undetermined, never HELD and never a finding.
     unserved = track_a._strategy(backend="pytorch", steps=100)
