@@ -1439,6 +1439,273 @@ def command_rebuild(args):
     return 0 if result["status"] == "REBUILT" else 4
 
 
+# -- admission conditions into the root's controller (GRAPHITE-ADMISSION-CONTROLLER-01) -----
+CONDITIONS_SCHEMA = "carbon.admission-conditions.v1"
+CONDITIONS_MESSAGES = {
+    "controller_already_active": (
+        "Another process holds this root's controller lock (a running session, "
+        "reconcile or conditions command). Nothing was recorded; retry when it "
+        "has finished."
+    ),
+    "grant_provider_mismatch": (
+        "The grant's provider is not the phase-3 provider's; nothing was opened."
+    ),
+    "grant_changed_under_existing_store": (
+        "The grant is not the one this root's controller is bound to; nothing "
+        "was recorded."
+    ),
+    "controller_store_id_invalid": (
+        "The controller's store-id file is damaged; nothing was recorded."
+    ),
+    "controller_store_missing": (
+        "This root has no campaign controller store (ROOT/controller/"
+        "campaign.sqlite3). Nothing was created; check the root."
+    ),
+    "conditions_report_unreadable": "The report could not be read.",
+    "conditions_report_malformed": (
+        "The report is not a well-formed carbon.admission-conditions.v1 "
+        "document; nothing was recorded."
+    ),
+    "conditions_report_schema_unsupported": (
+        "The report's schema is not carbon.admission-conditions.v1; nothing was "
+        "recorded."
+    ),
+    "conditions_report_challenge_mismatch": (
+        "The report names a Challenge other than --challenge; nothing was recorded."
+    ),
+    "admission_controller_not_designated": (
+        "No controller is designated for this (Challenge, level) in "
+        "carbon/challenge_pipeline/admission_controllers.json. Nothing was "
+        "recorded; pass --record-also to record here anyway (not the LOCK "
+        "authority)."
+    ),
+    "admission_controller_mismatch": (
+        "This root's controller is not the one designated for this (Challenge, "
+        "level). Nothing was recorded; pass --record-also to record here anyway "
+        "(not the LOCK authority)."
+    ),
+}
+
+
+class ConditionsRefused(RunnerRefused):
+    """A typed refusal with a plain message; nothing was recorded."""
+
+    def __init__(self, code, detail=None):
+        message = CONDITIONS_MESSAGES.get(code, code)
+        out = {"status": "REFUSED", "reason_code": code, "message": message}
+        if detail:
+            out["detail"] = detail
+        print(json.dumps(out))
+        SystemExit.__init__(self, 2)
+        self.reason_code = code
+
+
+class NoPods:
+    """The pod backend of a command that never runs a pod: every call is
+    refused before anything is created. It holds no key and reads none."""
+
+    name = "no-pods"
+
+    def describe(self):
+        return {"backend": self.name, "synthetic": True, "pods": "refused"}
+
+    def _refuse(self, *_args, **_kwargs):
+        from .pods import PodFailure
+
+        raise PodFailure("launch", "no pod runs under this command", executed=False)
+
+    launch = wait = fetch = terminate = charge = recover = _refuse
+
+
+def conditions_report(path, challenge):
+    """The report's bytes, document and level, checked before anything is
+    opened: schema `carbon.admission-conditions.v1`, a list of conditions
+    each naming one admission condition, an optional `challenge` that must be
+    `challenge` and an optional `level` (default 0)."""
+    from carbon.challenge_readiness import admission
+
+    try:
+        body = Path(path).read_bytes()
+    except OSError as error:
+        raise ConditionsRefused(
+            "conditions_report_unreadable", type(error).__name__
+        ) from None
+    try:
+        report = json.loads(body)
+    except ValueError:
+        raise ConditionsRefused("conditions_report_malformed", "not JSON") from None
+    if type(report) is not dict:
+        raise ConditionsRefused("conditions_report_malformed", "not an object")
+    if report.get("schema") != CONDITIONS_SCHEMA:
+        raise ConditionsRefused("conditions_report_schema_unsupported")
+    entries = report.get("conditions")
+    if type(entries) is not list or any(
+        type(entry) is not dict or entry.get("condition") not in admission.CONDITIONS
+        for entry in entries
+    ):
+        raise ConditionsRefused(
+            "conditions_report_malformed", "conditions name admission conditions"
+        )
+    if "challenge" in report and report["challenge"] != challenge:
+        raise ConditionsRefused("conditions_report_challenge_mismatch")
+    level = report.get("level", 0)
+    if type(level) is not int or level < 0:
+        raise ConditionsRefused("conditions_report_malformed", "level")
+    return body, report, level
+
+
+def conditions_controller(root, grant, scoring):
+    """The root's own controller (`controller_for`), opened offline: a
+    scripted model with no script and `NoPods`, so no model call, pod or key
+    is reachable. The provider's capabilities must match the grant's
+    provider; another process's lock is refused."""
+    from ..controller import ControllerError
+    from .model import ScriptedModel
+
+    if not (root / "controller" / "campaign.sqlite3").is_file():
+        raise ConditionsRefused("controller_store_missing")
+    try:
+        provider = Phase3Provider(
+            root=root / "graphite",
+            grant=grant,
+            model=ScriptedModel([]),
+            pods=NoPods(),
+            scoring=scoring,
+        )
+        return controller_for(root, provider, grant)
+    except ProviderUnavailable as refused:
+        raise ConditionsRefused(str(refused)) from None
+    except ControllerError as refused:
+        raise ConditionsRefused(refused.code) from None
+
+
+def _designation(challenge, level, identity, record_also):
+    """Whether this controller may take the report for (challenge, level),
+    and what to say. Pending: allowed with a warning (the designated root is
+    the one whose identity is pending, and a finding only ever closes LOCK).
+    Not designated or another controller: refused unless `record_also`."""
+    from carbon.challenge_pipeline import admission_controllers as designations
+
+    try:
+        entry = designations.designation(challenge, level)
+    except designations.DesignationRefused as refused:
+        raise ConditionsRefused(refused.code, str(refused)) from None
+    view = {"challenge": challenge, "level": level, "entry": entry}
+    if entry is not None and designations.pending(entry):
+        view["status"] = designations.IDENTITY_PENDING
+        view["lock_authority"] = None
+        warning = (
+            f"The designation for {challenge} level {level} is pending its "
+            f"operator-reported identity ({entry['name']}). Recorded here as the "
+            "intended authority; report this controller's identity in the "
+            "follow-up that fills the designation. No LOCK passes until it does."
+        )
+        return view, [warning]
+    if entry is not None and entry["identity"] == identity:
+        view["status"], view["lock_authority"] = designations.DESIGNATED, True
+        return view, []
+    code = designations.NOT_DESIGNATED if entry is None else designations.MISMATCH
+    if not record_also:
+        raise ConditionsRefused(code, f"{challenge} level {level}")
+    view["status"], view["lock_authority"] = code, False
+    warning = (
+        f"--record-also: this root is not the LOCK authority for {challenge} "
+        f"level {level} ({code}). The findings are recorded here, and must also "
+        "be recorded on the designated controller to block its LOCK."
+    )
+    return view, [warning]
+
+
+def command_conditions(args):
+    """Record an admission-conditions report's conditions as findings on the
+    root's controller (`consume_conditions`), or print its identity only.
+
+        conditions --root ROOT --grant GRANT --challenge TOKEN --report PATH
+            [--record-also]
+        conditions --root ROOT --grant GRANT --challenge TOKEN --identity
+
+    Idempotent: the same report bytes give the same finding ids, and a repeat
+    records nothing new (a finding repaired since is reopened, as the
+    controller reopens any repaired finding recorded again)."""
+    import hashlib
+
+    from ..controller import ControllerError
+
+    root = Path(args.root).expanduser().resolve()
+    if root == REPOSITORY or REPOSITORY in root.parents:
+        raise ConditionsRefused("root_must_be_outside_the_repository")
+    grant = load_grant(args.grant)
+    try:
+        scoring = challenge_scoring.scoring_for(args.challenge)
+    except challenge_scoring.ScoringUnavailable as refused:
+        raise ConditionsRefused(refused.code) from None
+    report = None
+    if not args.identity:
+        if args.report is None:
+            raise ConditionsRefused("required: --report or --identity")
+        body, report, level = conditions_report(args.report, args.challenge)
+    control = conditions_controller(root, grant, scoring)
+    try:
+        identity = control.identity()
+        if args.identity:
+            view, _ = _designation(args.challenge, 0, identity["identity"], True)
+            print(json.dumps({"controller": identity, "designation": view}, indent=1))
+            return 0
+        view, warnings = _designation(
+            args.challenge, level, identity["identity"], args.record_also
+        )
+        recorded = {
+            e["observed_result"]["id"]
+            for e in control.ledger()
+            if e["kind"] == "finding"
+        }
+        open_before = {f["id"] for f in control.open_findings()}
+        # The bytes checked above are the bytes consumed: a private copy.
+        with tempfile.TemporaryDirectory(prefix="graphite-conditions-") as private:
+            copy = Path(private) / "report.json"
+            copy.write_bytes(body)
+            try:
+                ids = control.consume_conditions(copy)
+            except ControllerError as refused:
+                raise ConditionsRefused(refused.code) from None
+    finally:
+        control.close()
+    for warning in warnings:
+        print("WARNING: " + warning, file=sys.stderr)
+    print(
+        json.dumps(
+            {
+                "status": "CONSUMED",
+                "challenge": args.challenge,
+                "level": level,
+                "report_sha256": "sha256:" + hashlib.sha256(body).hexdigest(),
+                "conditions": len(report["conditions"]),
+                "finding_ids": ids,
+                "findings": [
+                    {
+                        "id": fid,
+                        "result": (
+                            "RECORDED"
+                            if fid not in recorded
+                            else (
+                                "ALREADY_RECORDED"
+                                if fid in open_before
+                                else "REOPENED_AFTER_REPAIR"
+                            )
+                        ),
+                    }
+                    for fid in ids
+                ],
+                "controller": identity,
+                "designation": view,
+                "warnings": warnings,
+            },
+            indent=1,
+        )
+    )
+    return 0
+
+
 # -- the dry run ---------------------------------------------------------------------------
 DRY_RUN_GRANT = {
     "schema": "carbon.agent-campaign.spending-grant.v1",
@@ -1630,6 +1897,22 @@ def main(argv=None):
     proposals = sub.add_parser("proposals")
     proposals.add_argument("--root", required=True)
     proposals.add_argument("--dry-run", action="store_true")
+    conditions = sub.add_parser("conditions")
+    conditions.add_argument("--root", required=True)
+    conditions.add_argument("--grant", required=True)
+    conditions.add_argument("--challenge", required=True)
+    mode = conditions.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--report", help="a carbon.admission-conditions.v1 report")
+    mode.add_argument(
+        "--identity",
+        action="store_true",
+        help="print the controller's identity only; nothing is consumed",
+    )
+    conditions.add_argument(
+        "--record-also",
+        action="store_true",
+        help="record into a controller that is not the designated LOCK authority",
+    )
     args = parser.parse_args(argv)
     if args.command == "run" and not args.dry_run:
         missing = [
@@ -1657,6 +1940,7 @@ def main(argv=None):
         "status": command_status,
         "rebuild": command_rebuild,
         "proposals": command_proposals,
+        "conditions": command_conditions,
     }[args.command](args)
 
 
