@@ -47,8 +47,16 @@ byte-identical `predictions.json`.
    - **No default-value refusal.** Refusing a supplied field because it equals
      its default would change admission for recipes Carbon has already
      admitted. Recipe 1 itself supplies two defaults (`bounded_voltage_head:
-     true`, `ocv_initial_voltage: true`). That is an owner decision and is not
-     made here.
+     true`, `ocv_initial_voltage: true`). **Declined by the Test Lead
+     (2026-10-05), status quo, so no owner decision is needed:** identity by
+     rebuilt artifact (WAVE-04 §1) already makes such recipes count as one, so
+     refusing them adds nothing and would narrow freedom for admitted recipes.
+     Revisit only if a real attack depends on it.
+   - **KNN state digest, queued (Test Lead, 2026-10-05).** A new versioned KNN
+     state digest covering `k`, `train_fraction`, inputs and targets, with
+     `params_sha256` kept for replay (invariant 10). It matters under §1 in the
+     opposite direction from aliasing: two genuinely different KNNs share one
+     artifact identity today. `KNOWN_NO_OPS` loses the entry when it lands.
    - **Impact.** No contract change, no expansion record, and no change in how
      any existing recipe rebuilds or is admitted.
 
