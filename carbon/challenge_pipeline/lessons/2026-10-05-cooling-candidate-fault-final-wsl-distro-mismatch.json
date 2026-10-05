@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-final-wsl-distro-mismatch",
+  "recorded_at": "2026-10-05T14:06:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "final challenge-pipeline validation attempt with docker-desktop WSL",
+    "description": "Attempted canonical validation through a previously available WSL distribution name."
+  },
+  "expected": "The named WSL distribution is installed and can run the validator.",
+  "observed": "The current host no longer had a docker-desktop distribution, so no repository validation ran.",
+  "keep": [],
+  "change": [
+    "Resolve the installed WSL distribution before retrying canonical validation."
+  ],
+  "protocol_elements": [
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

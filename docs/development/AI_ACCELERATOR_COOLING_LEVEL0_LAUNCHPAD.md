@@ -68,6 +68,13 @@ lane. This ticket builds or authorizes no new image.
   official evaluator. The separate Interface-v1 `ChallengeAdapter` now serves
   only the exact digest-pinned public PRACTICE batch through an owner-only
   DEVELOPMENT store. It creates no private or official exam.
+- A candidate-triggered reconstruction exception, prediction exception or
+  non-finite aggregate score is classified by the digest-pinned
+  `cooling-candidate-fault-v1` policy as `FAILED_INFRA / adapter_failure`.
+  The result carries the policy version, digest and fault kind but never the
+  exception text. The validator does not retry, charge or refund; the policy
+  records the existing surrounding A7 lifecycle interpretation so Track A can
+  test selective-crash/retry behavior against an inspectable rule.
 - The admission sheet remains `DRAFT_NOT_FROZEN`: attack budget and the fresh
   evaluator-held confirmation population are `HUMAN_INPUT`.
 - PB-ADV/Mode X is served by the existing Challenge-neutral design-search
@@ -119,13 +126,12 @@ literature snapshot; naming this Challenge does not authorize spend.
 ## What comes next
 
 Level-0 construction, public Graphite scoring, the public-practice
-Interface-v1 validator, the Graphite attack adapter and PB-ADV/Mode X are now
-implemented in bounded DEVELOPMENT scope. The next cooling tickets, in order,
-are:
+Interface-v1 validator, the Graphite attack adapter, its constructed Track-B
+controls and PB-ADV/Mode X are now implemented in bounded DEVELOPMENT scope.
+The remaining cooling preparation is:
 
-1. the five constructed Track-B cooling decision-value controls;
-2. owner/operator creation and sealing of a fresh confirmation set;
-3. completion and owner freeze of the attack budget and confirmation-population
+1. owner/operator creation and sealing of a fresh confirmation set;
+2. completion and owner freeze of the attack budget and confirmation-population
    pins, followed by dry run, smoke test, pod scoring and rebuild/refusal entry
    checks.
 

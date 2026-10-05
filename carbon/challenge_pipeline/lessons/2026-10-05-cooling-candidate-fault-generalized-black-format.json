@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-generalized-black-format",
+  "recorded_at": "2026-10-05T12:47:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "Black formatting of generalized candidate-fault loader",
+    "description": "Applied the repository formatter to the one loader file identified by the prior check."
+  },
+  "expected": "Black makes only mechanical layout changes.",
+  "observed": "The loader was reformatted successfully.",
+  "keep": [
+    "Preserve the Challenge-neutral fault-name rule and policy-owned inventory."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_neutrality"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

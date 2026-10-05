@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-f238-focused-pass",
+  "recorded_at": "2026-10-05T13:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "exact commit f238b23e focused candidate-fault suite",
+    "description": "Ran the policy loader, Cooling validator and Cooling attacker tests after the Challenge-neutral loader repair."
+  },
+  "expected": "All registered policy, classification and attack-binding regressions pass on the exact implementation commit.",
+  "observed": "All 150 focused tests passed in 47.12 seconds.",
+  "keep": [
+    "Keep Challenge-specific fault names out of the shared loader while binding the Cooling document exactly."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "graphite.attacker.cooling",
+    "challenge_neutrality"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

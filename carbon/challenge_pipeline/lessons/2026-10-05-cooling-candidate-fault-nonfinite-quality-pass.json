@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-nonfinite-quality-pass",
+  "recorded_at": "2026-10-05T13:35:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "non-finite score-evidence repair Ruff and Black verification",
+    "description": "Rechecked the repaired Cooling validator and selective-fault test."
+  },
+  "expected": "No lint findings and no formatter changes remain.",
+  "observed": "Ruff passed and Black would leave both files unchanged.",
+  "keep": [
+    "Validate the full score record as finite before persistence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_validator.cooling",
+    "quality_gate"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
