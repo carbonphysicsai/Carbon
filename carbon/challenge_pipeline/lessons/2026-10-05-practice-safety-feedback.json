@@ -17,7 +17,7 @@
     "A miner-facing result gains a field only under a new schema version; the function without the new input still returns exactly the old shape."
   ],
   "change": [
-    "A ruled separation written as 'at least X in a AND Y in b from every condition' is checked for feasibility against the actual protected grids before the selection rule is drawn: read literally, B4's has no solution inside the published box.",
+    "A ruled separation is checked for feasibility against the actual protected grids before the selection rule is drawn. B4's, written as 'at least 2 degC AND 0.03 from every condition', had no solution inside the published box; the Test Lead's ruling of 2026-10-05 made it an exclusion box (too close only within both bounds), which leaves 8,422 workable grid points, and a mutant restoring the old reading is killed by test.",
     "The attack adapters' practice disclosure allow-lists still name only v1 fields; they should probe the v2 safety block."
   ],
   "protocol_elements": [

@@ -61,8 +61,9 @@ CONSTRAINTS = ("no_plating_onset", "peak_temperature")
 #: The committed practice decision set for B4. None until Data Collection
 #: commits it; B4 reports BLOCKED meanwhile and nothing is fabricated.
 DECISION_SET_PATH = None
-#: The ruled minimum distance of a practice decision condition from every
-#: EV1/EV2/EV4/EV5 condition and protected grid (Test Lead, 2026-10-05).
+#: The ruled exclusion box around every EV1/EV2/EV4/EV5 condition and
+#: protected grid point (Test Lead ruling, 2026-10-05): a practice decision
+#: condition inside both bounds of one is too close (`_clear`).
 DECISION_SET_MIN_T_AMB_C = 2.0
 DECISION_SET_MIN_SOC0 = 0.03
 POSITIVE_IS_OPTIMISTIC = "predicted minus reference; positive is optimistic"
@@ -208,11 +209,13 @@ def decision_set_clear(conditions, protected):
 
 
 def _clear(condition, protected):
-    """The ruled separation as written: at least 2 degC in t_amb AND at least
-    0.03 in soc0 from the protected condition. This literal reading is the
-    stricter one, so it fails closed; whether the ruling meant an exclusion
-    box (either coordinate far enough) is an open Test Lead question."""
-    return (
-        abs(condition[0] - protected[0]) >= DECISION_SET_MIN_T_AMB_C
-        and abs(condition[1] - protected[1]) >= DECISION_SET_MIN_SOC0
+    """The ruled separation (Test Lead ruling, 2026-10-05, correcting the
+    ticket's wording): a condition is TOO CLOSE, and refused, when it is
+    within BOTH bounds of a protected condition, |dt_amb| < 2 degC AND
+    |dsoc0| < 0.03. It is clear when it is at least that far away in at
+    least one dimension."""
+    too_close = (
+        abs(condition[0] - protected[0]) < DECISION_SET_MIN_T_AMB_C
+        and abs(condition[1] - protected[1]) < DECISION_SET_MIN_SOC0
     )
+    return not too_close

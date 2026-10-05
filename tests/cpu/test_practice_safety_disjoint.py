@@ -88,15 +88,83 @@ def test_b4_is_blocked_until_its_decision_set_is_committed():
     assert document["metrics"]["B4"] == "BLOCKED: practice decision set not committed"
 
 
-def test_the_b4_separation_is_both_coordinates_from_every_protected_condition():
+#: (condition, clear?) against the protected condition (14.0, 0.33), under
+#: the Test Lead's ruling (2026-10-05): too close only inside BOTH bounds.
+SEPARATION_CASES = (
+    ((15.9, 0.35), False),  # inside both bounds
+    ((12.1, 0.301), False),  # inside both bounds, the other side
+    ((14.0, 0.33), False),  # the protected condition itself
+    ((20.0, 0.33), True),  # outside in t_amb only
+    ((14.0, 0.45), True),  # outside in soc0 only
+    ((16.0, 0.34), True),  # exactly 2 degC away in t_amb
+    ((17.0, 0.40), True),  # outside in both
+)
+
+
+def _separation_holds():
     protected = [(14.0, 0.33)]
-    assert battery_safety.decision_set_clear([(17.0, 0.40)], protected)
-    assert battery_safety.decision_set_clear([(12.0, 0.30)], protected)
-    # Far in one coordinate only is not far enough: the ruling says AND.
-    assert not battery_safety.decision_set_clear([(20.0, 0.33)], protected)
-    assert not battery_safety.decision_set_clear([(14.0, 0.45)], protected)
-    assert not battery_safety.decision_set_clear([(15.9, 0.40)], protected)
-    assert not battery_safety.decision_set_clear([(17.0, 0.35)], protected)
+    return all(
+        battery_safety.decision_set_clear([condition], protected) is clear
+        for condition, clear in SEPARATION_CASES
+    )
+
+
+def test_b4_refuses_a_point_inside_both_bounds_and_allows_one_outside_either():
+    assert _separation_holds()
+    protected = [(14.0, 0.33), (30.0, 0.10)]
+    assert battery_safety.decision_set_clear([(20.0, 0.33), (30.0, 0.20)], protected)
+    assert not battery_safety.decision_set_clear(
+        [(20.0, 0.33), (29.0, 0.11)], protected
+    )
+
+
+def _and_of_separations(condition, protected):
+    """The superseded reading: at least 2 degC in t_amb AND 0.03 in soc0."""
+    return (
+        abs(condition[0] - protected[0]) >= battery_safety.DECISION_SET_MIN_T_AMB_C
+        and abs(condition[1] - protected[1]) >= battery_safety.DECISION_SET_MIN_SOC0
+    )
+
+
+def test_the_and_of_separations_mutant_is_killed(monkeypatch):
+    monkeypatch.setattr(battery_safety, "_clear", _and_of_separations)
+    assert not _separation_holds()
+    assert _workable_grid_count() != 8422
+
+
+def _workable_grid_count():
+    """Grid points in the published box (0.1 degC x 0.001 soc0) that the
+    separation check allows against every protected condition. Vectorized
+    over t_amb; each soc0 column is decided by calling the check itself on
+    the protected conditions near it, so a mutant check changes the count."""
+    import numpy as np
+
+    protected = sorted(battery_protected_conditions())
+    t_grid = np.arange(50, 401) / 10
+    clear = battery_safety._clear
+    total = 0
+    for s_index in range(50, 501):
+        s = s_index / 1000
+        allowed = np.ones(t_grid.shape, bool)
+        for p in protected:
+            # A condition differs from p only in t_amb along this column, so
+            # the check's verdict at two t values decides the whole column:
+            # one inside 2 degC of p, and one outside it.
+            inside = clear((p[0], s), p)
+            outside = clear((p[0] + 10.0, s), p)
+            if inside and outside:
+                continue
+            near = np.abs(t_grid - p[0]) < battery_safety.DECISION_SET_MIN_T_AMB_C
+            if not inside:
+                allowed &= ~near
+            if not outside:
+                allowed &= near
+        total += int(allowed.sum())
+    return total
+
+
+def test_the_ruled_separation_leaves_8422_workable_grid_points():
+    assert _workable_grid_count() == 8422
 
 
 def _study_points(path, inputs):

@@ -70,14 +70,22 @@ references for every constructed control.
 
 `DECISION_SET_PATH` is None, and B4 reports `"BLOCKED: practice decision set
 not committed"` (the ticket's B4 section; its output example says
-"registered", and the ruled text is used). Nothing is fabricated. The
-separation check (`decision_set_clear`) is implemented as written: at least
-2 degC in t_amb AND at least 0.03 in soc0 from every protected condition.
-That literal reading fails closed. **Open question for the Test Lead:**
-inside the published box no condition meets it (EV4's optimizer grid is
-2.06 degC apart in t_amb), while an exclusion-box reading (too close only
-when within 2 degC AND within 0.03) leaves many. The set cannot pass the
-disjointness test until the reading is ruled.
+"registered", and the ruled text is used). Nothing is fabricated.
+
+**Separation (Test Lead ruling, 2026-10-05, correcting the ticket's
+wording).** A practice decision condition is TOO CLOSE, and refused, when it
+is within BOTH bounds of any EV1, EV2, EV4 or EV5 condition or point on
+EV4's protected optimizer grid: |dt_amb| < 2 degC AND |dsoc0| < 0.03. It is
+allowed when it is at least that far away in at least one dimension.
+`decision_set_clear` implements this. The ticket's literal wording (at least
+2 degC AND at least 0.03 from every condition) had no solution inside the
+published box, because EV4's optimizer grid is 2.06 degC apart in t_amb;
+the ruled reading leaves 8,422 workable points on a 0.1 degC x 0.001 grid.
+The check runs against every committed EV contract's conditions and EV4's
+and EV5's protected grids, a superset of the ruled list. Tests cover a point
+inside both bounds (refused), a point outside in one dimension only
+(allowed), the 8,422 count, and a mutant that restores the
+AND-of-separations reading (killed).
 
 ### D7. Versioning and the official path
 
