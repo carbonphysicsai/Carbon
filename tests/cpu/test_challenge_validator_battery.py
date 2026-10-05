@@ -418,7 +418,7 @@ def _coverage_rule_recorded(tmp_path, refs, backend):
     refused = direct(target, "hk2", strategy(backbone="not-a-backbone"), 2)
     assert (scored["state"], refused["state"]) == ("SCORED", "INVALID_CONSTRUCTION")
     for outcome in (scored, refused):
-        assert outcome["coverage_rule"] == identity
+        assert outcome.get("coverage_rule") == identity
     sid = scored["submission_id"]
     assert target.store.submission(sid)["binding"]["coverage_rule"] == identity
     assert target.store.score(sid)["record"]["coverage_rule"] == identity
