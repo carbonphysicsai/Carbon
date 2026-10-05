@@ -31,6 +31,17 @@ write-once under the run's private root:
    Carbon records one `BUILD_STALLED_AGAINST_BASELINE` observation on the
    ladder for the run.
 
+**Environment failures** (GRAPHITE-POD-GPU-PROBE-01, `pod-attribution-v2`).
+A pod whose GPU probe failed before any candidate code is relaunched once on
+a fresh pod, reserved and admitted like every pod (the session's pod limit,
+the run's money cap, the remaining elapsed time and the pod launch gate),
+with both attempts ledgered and typed. A proposal's infrastructure retries
+share one cap (`AttributionPolicy.infra_retry_cap`). A second environment
+failure stops the session: the stop is recorded write-once
+(`session-stop.json`), no further pod is launched, and the provider ends the
+session `FAILED_INFRA`, with no agent charge. The session's baseline gets at
+most one extra pod from the relaunch and the baseline retry together.
+
 Everything returned to the agent is data: a closed feedback document with no
 authority, scanned like every other tool result by the role's toolbox.
 """
@@ -63,6 +74,15 @@ from .roles import (
 REPOSITORY = Path(__file__).resolve().parents[3]
 PROPOSAL_SCHEMA = "carbon.graphite.phase3.proposal-result.v1"
 FEEDBACK_SCHEMA = "carbon.graphite.phase3.feedback.v1"
+STOP_SCHEMA = "carbon.graphite.phase3.session-stop.v1"
+#: A proposal refused because Carbon stopped the session as infrastructure.
+SESSION_STOPPED = "REFUSED_SESSION_STOPPED"
+#: Reason prefixes when an environment relaunch cannot run.
+RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
+#: The session baseline's retry never gets a relaunch too: the baseline gets
+#: at most one extra pod from the two rules together.
+BASELINE_RETRY_USED = "baseline_retry_used"
+RELAUNCH_NO_TIME = "relaunch_cannot_fit_remaining_time"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
 
@@ -659,6 +679,15 @@ class Experiment:
                 "authority_granted": False,
             }
         pid = "p-" + digest(identity.encode())[7:19]
+        stop = self.stopped()
+        if stop is not None and self.record(pid) is None:
+            # Carbon stopped the session as infrastructure: nothing new runs.
+            return {
+                "status": "REJECTED_BEFORE_DISPATCH",
+                "reason_code": "session_stopped:" + stop["reason_code"],
+                "dispatched": False,
+                "authority_granted": False,
+            }
         record = self.run(
             pid,
             "proposal",
@@ -721,6 +750,62 @@ class Experiment:
         left = None if self.seconds_left is None else self.seconds_left()
         return left is None or pods * self.budget.pod_minutes * 60 <= left
 
+    # -- environment relaunches and the session stop (`pod-attribution-v2`) -----------------
+    def _relaunch_refusal(self, pid):
+        """Why an environment relaunch cannot run, or None. Its pod is then
+        admitted like any pod (`_admit_pod`: the session's pod limit and the
+        run's money cap) and launched through the pod launch gate."""
+        if pid == baseline_retry.RETRY_ID:
+            return BASELINE_RETRY_USED
+        if not self._fits_time(1):
+            return RELAUNCH_NO_TIME
+        return None
+
+    def relaunched(self, pid):
+        """Whether proposal `pid` used an environment relaunch: an extra pod
+        admitted for it, as the pod ledger records."""
+        return any(
+            row["event"] == "pod_environment_relaunch" and row.get("proposal") == pid
+            for row in self.ledger.rows()
+        )
+
+    def stopped(self):
+        """The recorded session stop, or None."""
+        path = self.root / "session-stop.json"
+        return json.loads(path.read_bytes()) if path.exists() else None
+
+    def _stop_session(self, pid, verdict):
+        """Record, once, that Carbon stops the session as infrastructure: no
+        agent charge, no further pod. The provider ends the session."""
+        if self.stopped() is not None:
+            return
+        stop = {
+            "schema": STOP_SCHEMA,
+            "status": "FAILED_INFRA",
+            "reason_code": verdict.reason_code,
+            "proposal_id": pid,
+            "policy": self.attribution.record(),
+            "candidate_charged": False,
+        }
+        write_once(self.root / "session-stop.json", canonical(stop))
+        self.ledger.append(
+            "session_stopped",
+            proposal=pid,
+            status="FAILED_INFRA",
+            reason_code=verdict.reason_code,
+            policy=self.attribution.record(),
+        )
+        self.emit(
+            "session-stopped",
+            {
+                "kind": "session_stopped",
+                "status": "FAILED_INFRA",
+                "reason_code": verdict.reason_code,
+                "proposal_id": pid,
+                "policy": self.attribution.record(),
+            },
+        )
+
     def _retry_baseline(self):
         """Decide once, under the registered policy, whether the session's
         failed baseline runs once more, record the decision and run the retry.
@@ -732,7 +817,7 @@ class Experiment:
                 self._run_retry(decision)  # a process died after the decision
             return
         first = self.record("baseline")
-        if first is None or first["status"] == "SCORED":
+        if first is None or first["status"] == "SCORED" or self.stopped():
             return
         policy = self.retry_policy
         retry, reason = baseline_retry.decide(
@@ -743,6 +828,7 @@ class Experiment:
             ),
             budget_refusal=self._retry_budget(policy.pods_required),
             time_fits=self._fits_time(policy.pods_required),
+            environment_relaunched=self.relaunched("baseline"),
         )
         earlier = [
             r["proposal_id"]
@@ -905,6 +991,21 @@ class Experiment:
             self.run("baseline", "baseline", self.baseline, why=None)
         if kind != "baseline":
             self._retry_baseline()
+        stop = self.stopped()
+        if stop is not None:
+            # The session was stopped as infrastructure (here, by the
+            # baseline's repeated environment failure): no pod is launched.
+            return self._close(
+                pid,
+                {
+                    **base,
+                    "status": SESSION_STOPPED,
+                    "reason_code": stop["reason_code"],
+                    "recipe_digest": expected["recipe_digest"],
+                    "scored": False,
+                    "pods_left": self.pods_left(),
+                },
+            )
         try:
             reservation = self._admit_pod()
         except BudgetRefused as refused:
@@ -920,27 +1021,43 @@ class Experiment:
                 },
             )
         common = {**base, "recipe_digest": expected["recipe_digest"]}
-        attempts = []
-        for attempt in range(self.attribution.retries + 1):
+        attempts, verdict = [], None
+        for attempt in range(pod_attempts(self.attribution)):
             if attempt:
-                # A retry after a worker timeout, on a fresh pod under the
-                # same declared budget, as many as the registered attribution
-                # policy allows (OWNER-GRAPHITE-TEST-WAVE-02 §3: one). It is
-                # charged to the run like any pod.
-                try:
-                    reservation = self._admit_pod()
-                except BudgetRefused as refused:
+                # A retry on a fresh pod under the same declared budget: after
+                # a worker timeout, or a relaunch after an environment
+                # failure, within the proposal's one cap on infrastructure
+                # retries (`pod_attempts`). It is charged to the run like any
+                # pod and admitted by the same limits.
+                prefix = (
+                    RELAUNCH_REFUSED
+                    if verdict.relaunch
+                    else "worker_timeout_retry_refused:"
+                )
+                refusal = self._relaunch_refusal(pid) if verdict.relaunch else None
+                if refusal is None:
+                    try:
+                        reservation = self._admit_pod()
+                    except BudgetRefused as refused:
+                        refusal = refused.code
+                if refusal is not None:
                     return self._close(
                         pid,
                         {
                             **common,
                             "status": "FAILED_INFRA",
-                            "reason_code": "worker_timeout_retry_refused:"
-                            + refused.code,
+                            "reason_code": prefix + refusal,
                             **_attempts(attempts),
                             "scored": False,
                             "pods_left": self.pods_left(),
                         },
+                    )
+                if verdict.relaunch:
+                    self.ledger.append(
+                        "pod_environment_relaunch",
+                        proposal=pid,
+                        attempt=attempt,
+                        policy=self.attribution.record(),
                     )
             job_intent = intent_id if not attempt else retry_intent(intent_id, attempt)
             outcome, files, timing = self._attempt(
@@ -960,9 +1077,14 @@ class Experiment:
                 )
             built = _json(files.get("built.json"))
             failure = _object(files.get("failure.json"))
-            differences = rebuild_differences(expected, built)
-            if not differences:
-                differences = development_differences(expected, built)
+            if _stage(failure) == pod_outcome.ENVIRONMENT and "built.json" not in files:
+                # The pod stopped at the probe, before anything was built:
+                # there is no build to compare. The claim is typed below.
+                differences = []
+            else:
+                differences = rebuild_differences(expected, built)
+                if not differences:
+                    differences = development_differences(expected, built)
             if (failure or {}).get("stage") == "verification" and not differences:
                 differences = ["pod_refused_pinned_digests"]
             if differences:
@@ -984,17 +1106,39 @@ class Experiment:
             if outcome == "done":
                 break
             verdict, evidence = self._type_unfinished(
-                pid, job_intent, attempt, files, failure, timing
+                pid,
+                job_intent,
+                attempt,
+                files,
+                failure,
+                timing,
+                earlier=tuple(a["reason_code"] for a in attempts),
             )
             attempts.append(evidence)
             if verdict.retry:
                 continue
+            if verdict.stop:
+                self._stop_session(pid, verdict)
             return self._close(
                 pid,
                 {
                     **common,
                     "status": verdict.status,
                     "reason_code": verdict.reason_code,
+                    **_attempts(attempts),
+                    "scored": False,
+                    "pods_left": self.pods_left(),
+                },
+            )
+        else:
+            # Every allowed attempt asked for a retry: the cap stops it here,
+            # whatever the policy said (never a loop).
+            return self._close(
+                pid,
+                {
+                    **common,
+                    "status": "FAILED_INFRA",
+                    "reason_code": "infra_retry_cap_reached",
                     **_attempts(attempts),
                     "scored": False,
                     "pods_left": self.pods_left(),
@@ -1110,16 +1254,22 @@ class Experiment:
         )
         return self._pod(pid, job)
 
-    def _type_unfinished(self, pid, intent_id, attempt, files, failure, timing):
+    def _type_unfinished(
+        self, pid, intent_id, attempt, files, failure, timing, earlier=()
+    ):
         """Type a pod run that ended without finishing under the registered
         attribution policy (`pod_outcome.classify`): host timing and lifecycle
         decide, and the construction level decides whose claims the pod's
         files carry. The evidence keeps the raw claim, the host's timing and
-        the policy, so the policy can be judged from it."""
+        the policy, so the policy can be judged from it. `earlier` is the
+        reason codes of this proposal's earlier attempts."""
         image = (self.pods.describe() or {}).get("image")
         report = _object(files.get("supervisor.json"))
         claim = _stage(failure)
+        # The deadline host timing is compared with (the backend's declared
+        # program deadline, VALIDATOR-06) and the export v2 reads (#604).
         deadline = self._program_deadline()
+        export = pod_outcome.environment_export(files, report)
         verdict = pod_outcome.classify(
             claim=claim,
             admissible=pod_outcome.admissible_stage(report, image),
@@ -1128,6 +1278,8 @@ class Experiment:
             attempt=attempt,
             level=self.construction_level,
             policy=self.attribution,
+            export=export,
+            earlier=earlier,
         )
         evidence = {
             "intent_id": intent_id,
@@ -1146,6 +1298,11 @@ class Experiment:
             # the backend's declared effective program deadline.
             "program_deadline_seconds": deadline,
         }
+        if claim == pod_outcome.ENVIRONMENT:
+            # What the export showed against the claim (v2's consistency
+            # check). Recorded only for this claim, so every other typed
+            # outcome keeps the shape it had.
+            evidence["environment_export"] = export
         self.ledger.append(
             "pod_attempt_typed",
             intent_id=intent_id,
@@ -1153,7 +1310,21 @@ class Experiment:
             status=verdict.status,
             reason_code=verdict.reason_code,
         )
-        if verdict.signal:
+        if verdict.signal and claim == pod_outcome.ENVIRONMENT:
+            evidence["finding"] = self._finding(
+                "POD_ENVIRONMENT_CLAIM_DISAGREEMENT",
+                pid,
+                {
+                    "intent_id": intent_id,
+                    "claimed_stage": claim,
+                    "reason_code": verdict.reason_code,
+                    "failure_digest": evidence["failure_digest"],
+                    "environment_export": export,
+                    "host_timing": evidence["host_timing"],
+                    "work_seconds": deadline,
+                },
+            )
+        elif verdict.signal:
             evidence["finding"] = self._finding(
                 "POD_TIMING_DISAGREEMENT",
                 pid,
@@ -1376,7 +1547,17 @@ class Experiment:
         decision = self.baseline_retry()
         if decision is not None:
             summary["baseline_retry"] = decision
+        stop = self.stopped()
+        if stop is not None:
+            summary["session_stop"] = stop
         return summary
+
+
+def pod_attempts(policy):
+    """The most pods one proposal may use: its first, plus the policy's one
+    cap on infrastructure retries of every kind (`pod_outcome`). The loop is
+    bounded by it, whatever a verdict asks for."""
+    return 1 + min(policy.infra_retry_cap, pod_outcome.MAX_INFRA_RETRIES)
 
 
 def retry_intent(intent_id, attempt=1):
@@ -1482,6 +1663,14 @@ def failure_path_check(
        (`CANDIDATE_FAILED` at Level 0): it is retried once (the owner's
        direction, 2026-10-04), the retry scores, and a proposal is compared
        with it.
+    5. In a third run (GRAPHITE-POD-GPU-PROBE-01), the baseline's pod and a
+       proposal's pod each fail at the GPU probe (`environment`): each is
+       relaunched once on a fresh pod and scores; the baseline retry is not
+       used; both relaunches and typed attempts are ledgered.
+    6. In a fourth run, the baseline's pod fails at the probe twice: the
+       session stops `FAILED_INFRA` with no agent charge, the waiting
+       proposal is refused without a pod, a later proposal is rejected before
+       dispatch, and only two pods were launched.
     Nothing of any log reaches a result record, an event or the ledger.
 
     `root` must be new or empty. Returns a report with `status` OK or FAILED;
@@ -1606,20 +1795,100 @@ def failure_path_check(
         for pid in ("p-check-scored", baseline_retry.RETRY_ID):
             if (run.root / "proposals" / pid / "pod-logs").exists():
                 failures.append("a_scored_pods_logs_were_kept")
-        marker = b"SYNTHETIC scripted failure"
-        leaked = [
-            path.name
-            for path in root.glob("*/proposals/*/result.json")
-            if marker in path.read_bytes()
-        ]
+        # 5. GPU probe failures (GRAPHITE-POD-GPU-PROBE-01): the baseline's
+        # and a proposal's pods fail at the probe, before any candidate code;
+        # each is relaunched once and scores. The baseline retry is not used.
+        environment = podlib.environment_outputs()
+        relaunching = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(1.0)),
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        env_run = experiment("environment-relaunch", relaunching)
+        env_scored = env_run.run("p-check-environment", "proposal", baseline, why=why)
+        env_base = env_run.record("baseline")
+        env_against = env_scored.get("against_baseline") or {}
         if (
-            leaked
-            or any(
-                marker in path.read_bytes() for path in root.glob("*/pod-ledger.jsonl")
-            )
-            or any(marker in canonical(body) for _event, body in events)
+            env_base["status"] != "SCORED"
+            or [a["reason_code"] for a in env_base.get("attempts", [])]
+            != ["pod_environment"]
+            or env_scored["status"] != "SCORED"
+            or [a["reason_code"] for a in env_scored.get("attempts", [])]
+            != ["pod_environment"]
         ):
-            failures.append("log_text_left_the_pod_logs")
+            failures.append("an_environment_failure_was_not_relaunched_to_a_score")
+        if env_against.get("outcome") in (None, "NO_BASELINE"):
+            failures.append("a_relaunched_proposal_was_not_compared")
+        if env_run.baseline_retry() is not None or env_run.stopped() is not None:
+            failures.append("a_relaunch_also_used_the_baseline_retry_or_stopped")
+        if len(relaunching.launched) != 4 or relaunching.alive:
+            failures.append("the_relaunches_used_other_than_one_pod_each")
+        relaunch_rows = [
+            r
+            for r in env_run.ledger.rows()
+            if r["event"] in ("pod_environment_relaunch", "pod_attempt_typed")
+        ]
+        if len(relaunch_rows) != 4:
+            failures.append("a_relaunch_or_its_typed_attempt_was_not_ledgered")
+        # 6. The baseline's pod fails at the probe twice: the session stops as
+        # FAILED_INFRA, with no agent charge, and nothing else is launched.
+        twice = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outcome="failed", outputs=environment),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        stop_run = experiment("environment-twice", twice)
+        stop_refused = stop_run.run("p-check-stopped", "proposal", baseline, why=why)
+        stop_base = stop_run.record("baseline")
+        stop = stop_run.stopped() or {}
+        late = stop_run.propose_tool(
+            {
+                "strategy_json": json.dumps(baseline),
+                "hypothesis": "after the stop",
+                "expected_effect": "refused",
+            },
+            "failure-path-check-after-stop",
+        )
+        if (stop_base["status"], stop_base["reason_code"]) != (
+            "FAILED_INFRA",
+            "pod_environment_repeated",
+        ):
+            failures.append("a_repeated_environment_failure_was_not_failed_infra")
+        if (stop.get("status"), stop.get("candidate_charged")) != (
+            "FAILED_INFRA",
+            False,
+        ):
+            failures.append("a_repeated_environment_failure_did_not_stop_the_session")
+        if (
+            stop_refused["status"] != SESSION_STOPPED
+            or late.get("status") != "REJECTED_BEFORE_DISPATCH"
+            or late.get("dispatched") is not False
+        ):
+            failures.append("a_proposal_ran_after_the_session_stopped")
+        if stop_run.baseline_retry() is not None:
+            failures.append("the_stopped_baseline_was_retried")
+        if len(twice.launched) != 2 or twice.alive:
+            failures.append("the_stop_launched_other_than_two_pods")
+        for marker in (b"SYNTHETIC scripted failure", b"SYNTHETIC Unable"):
+            leaked = [
+                path.name
+                for path in root.glob("*/proposals/*/result.json")
+                if marker in path.read_bytes()
+            ]
+            if (
+                leaked
+                or any(
+                    marker in path.read_bytes()
+                    for path in root.glob("*/pod-ledger.jsonl")
+                )
+                or any(marker in canonical(body) for _event, body in events)
+            ):
+                failures.append("log_text_left_the_pod_logs")
         if account.alive:
             failures.append("a_pod_left_alive")
         report.update(
@@ -1658,6 +1927,40 @@ def failure_path_check(
                         ),
                     },
                     "pods_launched": len(crashing.launched),
+                },
+                "environment_relaunch": {
+                    "baseline": {
+                        "status": env_base["status"],
+                        "attempts": [
+                            a["reason_code"] for a in env_base.get("attempts", [])
+                        ],
+                    },
+                    "proposal": {
+                        "status": env_scored["status"],
+                        "attempts": [
+                            a["reason_code"] for a in env_scored.get("attempts", [])
+                        ],
+                        "compared": env_against.get("outcome"),
+                    },
+                    "baseline_retry": env_run.baseline_retry(),
+                    "pods_launched": len(relaunching.launched),
+                    "policy": env_base.get("attribution_policy"),
+                },
+                "environment_twice": {
+                    "baseline": {
+                        "status": stop_base["status"],
+                        "reason_code": stop_base["reason_code"],
+                    },
+                    "session_stop": stop,
+                    "next_proposal": {
+                        "status": stop_refused["status"],
+                        "reason_code": stop_refused.get("reason_code"),
+                    },
+                    "proposal_after_stop": {
+                        "status": late.get("status"),
+                        "reason_code": late.get("reason_code"),
+                    },
+                    "pods_launched": len(twice.launched),
                 },
                 "failed_pod": {
                     "status": failed["status"],

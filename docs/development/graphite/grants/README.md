@@ -413,6 +413,31 @@ handoff:
 - the owner confirms the REF;
 - the operator host is agreed with Data Collection.
 
+## GRAPHITE-GRANT-PHASE3-R3 (GRAPHITE-01 phase 3, a third battery grant)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-R3-01
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R3-01.md`). The owner said
+"approve new grant" on 2026-10-05, after GRAPHITE-GRANT-PHASE3 (3 of 3 runs)
+and GRAPHITE-GRANT-PHASE3-R2 (2 of 2 runs) were used up.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `15.00` USD | the proposal the owner approved; at least 3 × 4.91 + 0.25 = 14.98 |
+| `permitted_runs` | `3` | the proposal |
+| `max_submissions` | `3` | one per run |
+| everything else | as GRAPHITE-GRANT-PHASE3-R2 | unchanged |
+
+### Arithmetic
+
+    validator:   cleanup + worst case          = 0.25 + 4.91         = 5.16   ≤ 15.00
+    run 3 gate:  runs 1-2 (≤ 2 × 4.91) + 4.91 + 0.25                 = 14.98  ≤ 15.00
+
+Measured runs cost about USD 3. Run 5 spent USD 0.018 in tokens and booked
+USD 2.96 for 12 pods at USD 0.246 each, because RunPod reports no charge.
+
+**Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
+checklist, with pod-attribution-v2 on main.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is

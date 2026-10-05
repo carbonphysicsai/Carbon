@@ -34,6 +34,23 @@ expressions that differ only in that order rebuild bit for bit the same.
 
 Importing this module initializes no numerical runtime. Evaluation takes the
 array namespace (`numpy` or `jax.numpy`) as an argument.
+
+**Every refusal is typed** (B1 of the Level-1 review packet,
+`docs/development/graphite/L1_LOSS_EXPRESSIONS_REVIEW_PACKET.md` on branch
+`claude/l1-loss-expressions-packet`). Whatever a strategy supplies, `compile_expression` and
+`from_bytes` either return a `CompiledLoss` or raise `ExpressionRefused` with
+a code, on Carbon's host. An untyped exception could be classified as an
+infrastructure failure, which is a refund path. So:
+- a numeric constant must convert to a finite float; an integer too large to
+  convert (`10**400`) is `<field>_outside_bounds`, not an `OverflowError`;
+- `-0.0` is stored as `0.0`, so one constant has one digest;
+- `from_bytes` bounds the document's size (`document_too_large`) and its
+  nesting (`document_too_deep`) before parsing, so a deep document never
+  reaches the recursive parser; it refuses bytes that are not UTF-8 JSON
+  (`not_json`), a repeated key (`duplicate_key`) and any document that is not
+  exactly the canonical bytes of what it compiles to (`not_canonical`).
+
+Valid canonical documents compile exactly as before, to the same digests.
 """
 
 from __future__ import annotations
@@ -63,8 +80,81 @@ class ExpressionRefused(ValueError):
         self.path = path
 
 
+#: Bytes allowed in a pinned document: a fixed allowance for the document's
+#: own fields plus a per-node allowance. A canonical node needs at most about
+#: 60 bytes (a 48-character term name, or a 24-character float repr with its
+#: field and operation names), so 128 bytes a node is more than twice that.
+_DOCUMENT_BYTES = 1024
+_NODE_BYTES = 128
+
+
+class _DuplicateKey(ValueError):
+    pass
+
+
 def _number(value):
-    return type(value) in (int, float) and math.isfinite(value)
+    """A finite number: an exact int or float that converts to a finite float.
+    A bool is refused, and so is an int too large to convert."""
+    if type(value) is int:
+        try:
+            value = float(value)
+        except OverflowError:
+            return False
+    return type(value) is float and math.isfinite(value)
+
+
+def _constant(value):
+    """The canonical float of a constant `_number` admitted: `-0.0` is `0.0`,
+    so one constant has one digest. Every other value is unchanged."""
+    return float(value) + 0.0
+
+
+def _byte_limit(opset):
+    """The largest document `from_bytes` reads for `opset`."""
+    return _DOCUMENT_BYTES + _NODE_BYTES * opset.max_nodes
+
+
+def _depth_limit(opset):
+    """The deepest JSON nesting a valid document has: the document object,
+    then an object and an argument array for every tree level."""
+    return 2 * opset.max_depth + 2
+
+
+def _too_deep(text, limit):
+    """Whether `text` nests objects or arrays deeper than `limit`, counted
+    without parsing (brackets inside strings do not count)."""
+    depth = 0
+    in_string = escaped = False
+    for ch in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+        elif ch == '"':
+            in_string = True
+        elif ch in "{[":
+            depth += 1
+            if depth > limit:
+                return True
+        elif ch in "}]":
+            depth -= 1
+    return False
+
+
+def _unique_pairs(pairs):
+    """`json.loads`' object hook: a repeated key is refused, never overwritten."""
+    keys = [k for k, _ in pairs]
+    if len(set(keys)) != len(keys):
+        raise _DuplicateKey
+    return dict(pairs)
+
+
+def _require_canonical(body, compiled):
+    if body != compiled.canonical_bytes():
+        raise ExpressionRefused("not_canonical")
 
 
 def digest_of(value):
@@ -183,7 +273,7 @@ def _canonical(node, opset, path, depth, count):
     if not _number(value) or not bounds[0] <= value <= bounds[1]:
         raise ExpressionRefused(field + "_outside_bounds", path)
     child, count = _canonical(node["arg"], opset, path + "arg/", depth + 1, count)
-    return {"op": op, field: float(value), "arg": child}, count
+    return {"op": op, field: _constant(value), "arg": child}, count
 
 
 @dataclass(frozen=True)
@@ -221,9 +311,31 @@ def compile_expression(expression, opset):
 
 
 def from_bytes(body, opset):
-    """Rebuild from a pinned document's bytes, refusing another operation set."""
+    """Rebuild from a pinned document's bytes, refusing another operation set.
+
+    The bytes must be exactly the canonical bytes of the document they compile
+    to. Size and nesting are bounded before anything is parsed, so every
+    refusal is an `ExpressionRefused`."""
+    if type(opset) is not OperationSet:
+        raise TypeError("exact OperationSet required")
+    if type(body) is str:
+        body = body.encode("utf-8", "surrogatepass")
+    elif type(body) is bytearray:
+        body = bytes(body)
+    elif type(body) is not bytes:
+        raise ExpressionRefused("not_bytes")
+    if len(body) > _byte_limit(opset):
+        raise ExpressionRefused("document_too_large")
     try:
-        document = json.loads(body)
+        text = body.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ExpressionRefused("not_json") from None
+    if _too_deep(text, _depth_limit(opset)):
+        raise ExpressionRefused("document_too_deep")
+    try:
+        document = json.loads(text, object_pairs_hook=_unique_pairs)
+    except _DuplicateKey:
+        raise ExpressionRefused("duplicate_key") from None
     except ValueError:
         raise ExpressionRefused("not_json") from None
     if type(document) is not dict or set(document) != {
@@ -236,7 +348,9 @@ def from_bytes(body, opset):
         raise ExpressionRefused("unknown_schema")
     if document["operation_set"] != opset.digest:
         raise ExpressionRefused("operation_set_mismatch")
-    return compile_expression(document["expression"], opset)
+    compiled = compile_expression(document["expression"], opset)
+    _require_canonical(body, compiled)
+    return compiled
 
 
 def evaluate(compiled, terms, xp):

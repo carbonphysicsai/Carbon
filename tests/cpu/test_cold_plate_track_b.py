@@ -131,3 +131,55 @@ def test_one_time_cost_is_recorded_by_route_and_not_mixed(study, tmp_path):
     assert even["krr-grid"]["status"] == "NOT_COMPUTABLE"
     assert even["analytic-grid"]["status"] == "COMPUTED"
     assert even["analytic-grid"]["model_correct_decision"] is True
+
+
+def test_conversion_proxy_matches_the_motor_paired_timing():
+    timing = json.loads(
+        (
+            REPOSITORY / "docs/development/evidence/motor-timing-2026-10-04/result.json"
+        ).read_text(encoding="utf-8")
+    )
+    ratios = [row["host_wall_s"] / row["cpu5c_wall_s"] for row in timing["cases"]]
+    assert round(max(ratios), 2) == cooling.MOTOR_PAIRED_HOST_PER_POD
+    for label, (conversion,) in cooling.bracket_conversions().items():
+        assert conversion.source == cooling.POOL_POD_ROUTE
+        assert "ASSUMPTION" in conversion.evidence, label
+
+
+def test_bracket_prices_mixed_hardware_and_the_anchor_buys_the_full_set(
+    study, tmp_path
+):
+    _, _, reference, problem, predictors = study
+    planning = cooling.planning_solve_core_seconds(reference)
+    assert planning > cooling.median_solve_core_seconds(reference)
+    ladder = cooling.proposed_budget_ladder(reference)
+    arms = [
+        track_b.Arm("solver-grid", predictors["solver"], "fixed_grid"),
+        track_b.Arm("krr-grid", predictors["learned-krr-v1"], "fixed_grid"),
+    ]
+
+    def run(label, conversions):
+        return track_b.economic(
+            problem,
+            arms,
+            budget=ladder["anchor_full_set"],
+            unit=cooling.UNIT,
+            reference=reference,
+            directory=tmp_path / label,
+            ladder=(1, 1000),
+            conversions=conversions,
+            assumption=label,
+        )
+
+    point = run("point", ())
+    bounds = {
+        label: run(label, conversions)
+        for label, conversions in cooling.bracket_conversions().items()
+    }
+    summary = track_b.bracket(point, bounds)["krr-grid"]
+    assert summary["point_status"] == cost.UNPRICED
+    low, high = summary["one_time_range"]
+    assert 0 < low < high
+    solver = bounds["lower"]["views"]["equal_cost_deciding"]["1"]["solver-grid"]
+    assert solver["queries_used"] == 48
+    assert solver["scopes"][track_b.CONTRACT_SCOPE]["correct_decision"] is True

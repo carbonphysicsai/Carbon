@@ -95,7 +95,11 @@ Constructor's model selection (GRAPHITE-D34): adapter, model, input window,
 admission ceiling, output cap, timeout and per-call reservation. It also runs
 `experiment.failure_path_check` (GRAPHITE-POD-LOGS-RETRY-01), which must be OK:
 a pod exiting non-zero keeps its logs, bounded, and a baseline failing as
-infrastructure is retried once and scores.
+infrastructure is retried once and scores; a pod whose GPU probe fails
+(`environment`) is relaunched once and scores, and a second probe failure
+stops the session `FAILED_INFRA` (GRAPHITE-POD-GPU-PROBE-01). The provider
+ends a session the experiment stopped that way `failed`, code `failed_infra`,
+with no agent charge.
 
 **Model access** (GRAPHITE-D34, 2026-10-04). A new session opens on
 `engy-chat` (`ADAPTER`): Engy's Chat Completions replies report each call's
@@ -163,6 +167,7 @@ from .provider import (
     GraphiteProvider,
     RunCapReached,
     SessionBrief,
+    SessionStopped,
     limit_dimension,
 )
 from .roles import (
@@ -299,11 +304,17 @@ class Phase3Ledger(GraphiteLedger):
     call's own reservation stay within the grant's worst-case run cost. A
     replayed call (already reserved) is never refused."""
 
-    def __init__(self, root, *, clock, cancelled, crash, admits):
+    def __init__(self, root, *, clock, cancelled, crash, admits, stopped=None):
         super().__init__(root, clock=clock, cancelled=cancelled, crash=crash)
         self._admits = admits
+        self._stopped = stopped
 
     def _reserve(self, identity, **kwargs):
+        # A session Carbon stopped as infrastructure (a repeated pod
+        # environment failure) reserves nothing new; a replay still reads.
+        stop = None if self._stopped is None else self._stopped(identity)
+        if stop is not None:
+            raise SessionStopped(stop)
         nano = (kwargs.get("resources") or {}).get("provider_nanodollars") or 0
         if nano and not self._admits(identity, nano):
             raise RunCapReached("run_cap_tokens_plus_pods")
@@ -536,7 +547,16 @@ class Phase3Provider(GraphiteProvider):
             cancelled=lambda: self._state(run_id)["cancel_requested"],
             crash=self._checkpoint_crash,
             admits=lambda identity, nano: self._admits_call(run_id, identity, nano),
+            stopped=lambda identity: self._stopped_for(run_id, identity),
         )
+
+    def _stopped_for(self, run_id, identity):
+        """The reason the run's experiment stopped the session, for a call not
+        yet reserved; None for a replay or a running session."""
+        if any(call["identity"] == identity for call in self._calls(run_id)):
+            return None
+        stop = self.experiment(run_id).stopped()
+        return None if stop is None else stop["reason_code"]
 
     def _admits_call(self, run_id, identity, nano):
         if any(call["identity"] == identity for call in self._calls(run_id)):

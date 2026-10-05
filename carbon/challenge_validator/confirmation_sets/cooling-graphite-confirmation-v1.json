@@ -1,0 +1,46 @@
+{
+  "schema": "carbon.challenge-validator.confirmation-set.v1",
+  "role": "cooling-graphite-confirmation-v1",
+  "challenge_id": "chip-cold-plate",
+  "sealable": true,
+  "cases": 60,
+  "hidden_duplicates": 2,
+  "sampling_law": {
+    "id": "carbon.cold-plate.development-population.v1",
+    "description": "the chip-cold-plate DEVELOPMENT population: uniform over the box, kept if the closed-form screen admits it (carbon.cold_plate.population)"
+  },
+  "strata": [
+    {
+      "id": "boundary-stress-load-inlet",
+      "description": "heat load at least 1200 W and inlet at least 40 C: the decision study's high-load boundary condition as an input region; the hot spot is unconstrained",
+      "lower_bounds": {
+        "heat_load_w": 1200.0,
+        "inlet_c": 40.0
+      },
+      "min_fraction": {
+        "numerator": 1,
+        "denominator": 3
+      }
+    }
+  ],
+  "subgroups": [
+    "the boundary-stress stratum reported separately"
+  ],
+  "custody": {
+    "kind": "confirmation_journal",
+    "made_on": "the operator host only: drawn from an owner-only custody root and committed to its journal before any use; never in the repository, never in a pool",
+    "solved_on": "the operator host only: never in a pod plan, rented compute, the attack knowledge store or a Graphite session"
+  },
+  "required_prior_roles": [],
+  "required_private_priors": [
+    "cold-plate-pools-v1-private"
+  ],
+  "authority": {
+    "decisions": [
+      "CHALLENGE-AI-COOLING-08: role reserved",
+      "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74 (PR #593): 60 cases plus 2 hidden duplicates from the DEVELOPMENT population law; at least one third in the boundary-stress load and inlet range",
+      "The Test Lead's delegated decision under OWNER-GRAPHITE-TEST-WAVE-05 \u00a74 (2026-10-05, to VALIDATOR-03): the stratum is heat_load_w >= 1200 and inlet_c >= 40.0; its quota is drawn from the population restricted to it and the rest from the whole population"
+    ],
+    "human_input": []
+  }
+}
