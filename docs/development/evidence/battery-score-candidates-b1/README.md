@@ -39,7 +39,7 @@ See `result.json` for every candidate, panel, interval and divergence count.
 - **No candidate both demotes the bundled winner and spares the baseline** (`catch` in `result.json`).
   - **G1 (1.0 band)** fails 23 of 27 rebuilds. That includes the bundled winner, the baseline (the best decider) and 19 of the 23 D-T24-S0.12 infeasible pickers.
   - **G2 (decision envelope)** fails 6 of 27: 6 infeasible pickers, but neither the winner nor the baseline.
-  - Ungated, the winner ranks 1st of 8 under CE and under every stability candidate.
+  - Ungated, the winner ranks 1st of 8 under CE, S-P1 and S-SR2 (3rd under S-CE).
 
 ## Reading
 
