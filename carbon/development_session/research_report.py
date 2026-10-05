@@ -96,7 +96,15 @@ def render_status(ledger, *, owner):
         if db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='research_results'"
         ).fetchone():
+            from carbon.challenge_registry.campaigns import (
+                practice_provenances as challenge_practice_provenances,
+            )
+
             from .profile import digest
+
+            provenances = frozenset({"REAL_JAX_PUBLIC_PRACTICE"}) | (
+                challenge_practice_provenances()
+            )
 
             for body, fingerprint in db.execute(
                 "SELECT body,digest FROM research_results WHERE owner=?", (owner,)
@@ -104,7 +112,7 @@ def render_status(ledger, *, owner):
                 if digest(body) != fingerprint:
                     raise ValueError("changed report source")
                 item = json.loads(body)
-                if item.get("provenance") == "REAL_JAX_PUBLIC_PRACTICE":
+                if item.get("provenance") in provenances:
                     value["trials"].append(item)
     value["epoch_results"] = [
         json.loads(path.read_bytes())

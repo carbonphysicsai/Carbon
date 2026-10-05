@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-post-format-green",
+  "recorded_at": "2026-10-04T23:15:48.8145442+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 post-format contract and record regression",
+    "description": "Reran Motor contract, construction expansion and lesson-log checks after scoped formatting."
+  },
+  "expected": "Formatting must not change the executable contract, material pins or expansion-record identity.",
+  "observed": "19 tests passed and the one POSIX-only campaign-controller case was skipped. The live contract still matches expansion sequence 0000 and all lessons validate.",
+  "keep": [
+    "Recheck identity-bound records after formatting files that may contribute to implementation digests."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "construction.expansion-record",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -575,8 +575,8 @@ def _has_practice_results(ledger):
 def practiced_recipes(ledger, owner):
     """The distinct recipes with a completed practice in this campaign,
     oldest first, by the provenances the trusted controller accepts
-    (`research_campaign.PRACTICE_PROVENANCES`)."""
-    from .research_campaign import PRACTICE_PROVENANCES
+    (`research_campaign.practice_provenances`)."""
+    from .research_campaign import practice_provenances
 
     if not _has_practice_results(ledger):
         return []
@@ -592,7 +592,7 @@ def practiced_recipes(ledger, owner):
         result = json.loads(body)
         recipe = result.get("recipe")
         if (
-            result.get("provenance") in PRACTICE_PROVENANCES
+            result.get("provenance") in practice_provenances()
             and type(recipe) is dict
             and recipe not in recipes
         ):

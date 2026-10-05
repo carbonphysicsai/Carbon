@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-formatting-diagnostic",
+  "recorded_at": "2026-10-04T20:21:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Black changed-file formatting diagnostic on Windows",
+    "description": "Ran Black over the explicit changed Python files before lint."
+  },
+  "expected": "Black should format the bounded file list and exit promptly.",
+  "observed": "Black reformatted seven files, then remained idle for more than 90 seconds in this Windows virtual environment and was interrupted. No repository-wide traversal, model worker, solver, pod or paid service ran. Final formatting remains subject to the repository quality check and canonical Linux validation.",
+  "keep": [
+    "Use explicit changed-file formatting scope."
+  ],
+  "change": [
+    "Use Black's single-worker mode or the canonical Linux quality wrapper for the remaining formatting verification."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

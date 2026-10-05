@@ -151,6 +151,8 @@ class Entry:
     profiles: tuple[ExecutionProfile, ...] = ()
     #: () -> the Challenge's own description (IMPLEMENTED only).
     describe: Callable | None = field(default=None, compare=False)
+    #: (strategy) -> (compiled, guarded reconstruction recipe/profile).
+    compile_strategy: Callable | None = field(default=None, compare=False)
 
     def summary(self, host):
         profiles = []
@@ -195,12 +197,52 @@ def _battery():
     return describe()
 
 
+def _cold_plate():
+    from .cold_plate import describe
+
+    return describe()
+
+
+def _motor():
+    from .motor import describe
+
+    return describe()
+
+
+def _compile_burgers(strategy):
+    from carbon.development_session.research_catalog import compile_recipe
+
+    return compile_recipe(strategy)
+
+
+def _compile_battery(strategy):
+    from carbon.battery.compile import compile_recipe
+
+    return compile_recipe(strategy)
+
+
+def _compile_cold_plate(strategy):
+    from carbon.cold_plate.compile import compile_recipe
+
+    return compile_recipe(strategy)
+
+
+def _compile_motor(strategy):
+    from carbon.motor.compile import compile_recipe
+
+    return compile_recipe(strategy)
+
+
 def _entries():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
         BATTERY_CONTRACT,
         BURGERS_CHALLENGE,
         BURGERS_CONTRACT,
+        COLD_PLATE_CHALLENGE,
+        COLD_PLATE_CONTRACT,
+        MOTOR_CHALLENGE,
+        MOTOR_CONTRACT,
     )
 
     carrier = ("docker_cli", "trusted_worker_image", "jax", "optax")
@@ -221,6 +263,7 @@ def _entries():
                 ),
             ),
             _burgers,
+            _compile_burgers,
         ),
         Entry(
             BATTERY_CHALLENGE,
@@ -247,22 +290,45 @@ def _entries():
                 ),
             ),
             _battery,
+            _compile_battery,
         ),
         Entry(
-            "chip-cold-plate",
-            None,
-            "AI-chip liquid cold plate (reserved)",
-            RESERVED,
+            COLD_PLATE_CHALLENGE,
+            COLD_PLATE_CONTRACT.version,
+            "AI-chip liquid cold plate (DEVELOPMENT periodic cell)",
+            IMPLEMENTED,
             "launch",
             "carbonphysicsai/Carbon#342",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "NumPy KRR practice in the isolated CPU research carrier; "
+                    "exact public TRAIN and recipe bytes staged",
+                    "numpy-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _cold_plate,
+            _compile_cold_plate,
         ),
         Entry(
-            "electric-motor-magnetics",
-            None,
-            "Electric-motor magnetic design (reserved)",
-            RESERVED,
+            MOTOR_CHALLENGE,
+            MOTOR_CONTRACT.version,
+            "Electric-motor magnetics (DEVELOPMENT periodic cross-section)",
+            IMPLEMENTED,
             "launch",
             "carbonphysicsai/Carbon#344",
+            (
+                ExecutionProfile(
+                    CPU_RESEARCH,
+                    "NumPy KRR practice in the isolated CPU research carrier; "
+                    "exact public TRAIN and recipe bytes staged",
+                    "numpy-cpu/isolated-carrier",
+                    carrier,
+                ),
+            ),
+            _motor,
+            _compile_motor,
         ),
         Entry(
             "photonic-coupler",
@@ -293,6 +359,14 @@ def _entries():
 
 def entries():
     return _entries()
+
+
+def compiler_for(challenge_id):
+    """The exact Challenge compiler, with no fallback to another Challenge."""
+    matches = [entry for entry in _entries() if entry.challenge_id == challenge_id]
+    if not matches or matches[0].compile_strategy is None:
+        raise LookupError(f"no compiler for Challenge {challenge_id!r}")
+    return matches[0].compile_strategy
 
 
 def _find(challenge_id, version):

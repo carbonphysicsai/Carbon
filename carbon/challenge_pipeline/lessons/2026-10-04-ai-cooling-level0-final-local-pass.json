@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-final-local-pass",
+  "recorded_at": "2026-10-04T20:46:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 final local regression head",
+    "description": "Repeated the broad Windows-safe regression after the final campaign-adapter and ticket updates."
+  },
+  "expected": "The final local working tree should retain the prior passing result with no assertion regression.",
+  "observed": "308 tests passed, two platform-marked tests skipped and seven documented Windows dependency/installed-package cases were deselected. No assertion failed and no model worker, reference solver, pod or paid service ran.",
+  "keep": [
+    "Use PR CI as the canonical Linux acceptance because this host's Docker/WSL service remains unavailable."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "final-local-regression",
+    "battery-regression"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

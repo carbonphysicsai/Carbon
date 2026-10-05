@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-broad-windows",
+  "recorded_at": "2026-10-04T23:12:40.6044805+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 broad Windows subsystem diagnostic",
+    "description": "Ran 225 Motor, cooling, registry, campaign, study, expansion, pipeline and decision-study tests without hiding known host limitations."
+  },
+  "expected": "The broad diagnostic should introduce no new Motor Level-0 failure class beyond Windows/POSIX dependency limitations and the pre-existing Motor fixture-freeze mismatch.",
+  "observed": "206 passed and 3 skipped. Fifteen failures were host limitations already identified in baseline or added by the wider suite: missing POSIX resource or UID/GID APIs, missing MCP/cryptography packages, Windows private-file modes, isolated-process PATH behavior and default cp1252 decoding of a UTF-8 roadmap. The remaining failure was the pre-existing construction_freeze_not_current Motor decision fixture. No new Level-0 contract, campaign, registry, study or expansion failure appeared.",
+  "keep": [
+    "Run the broad suite without concealing host limitations, then use canonical Linux CI for authority.",
+    "Do not rewrite the frozen decision-study fixture as part of Level-0 Launchpad integration."
+  ],
+  "change": [
+    "Run a clean targeted acceptance set that excludes only the enumerated host-limited and pre-existing fixture cases."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.regression",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

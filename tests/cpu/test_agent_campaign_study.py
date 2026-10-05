@@ -169,7 +169,11 @@ def test_shared_study_code_names_no_challenge_outside_its_registration_hook():
         ):
             named.add(node.value)
     # The default Challenge and the one registration hook; nothing else.
-    assert named == {"BATTERY_CHALLENGE", "battery", "carbon.battery.admission_study"}
+    assert named == {
+        "BATTERY_CHALLENGE",
+        "battery",
+        "carbon.battery.admission_study",
+    }
 
 
 def test_a_synthetic_second_challenge_gets_its_own_inventory_and_sheet():

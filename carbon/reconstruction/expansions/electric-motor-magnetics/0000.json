@@ -1,0 +1,157 @@
+{
+ "authority": "OWNER-CHALLENGE-ADMISSION-01 (amended 2026-10-01) section 6.1",
+ "catalog_version": "carbon.electric-motor-magnetics-recipes.v1",
+ "challenge": "electric-motor-magnetics",
+ "contract_digest": "sha256:72a5d668fdbc3bb5a6f39332b7f9a2b38ef3568ddfd4fcc2b72f2507ae91af84",
+ "contract_document": {
+  "capabilities": [
+   {
+    "applies_to": null,
+    "blocker": "none",
+    "id": "model_family.kernel_ridge",
+    "lab_kind": "motor_kernel_ridge",
+    "realizes": [],
+    "selector": "kernel_ridge",
+    "status": "rebuildable_development",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "kernel_ridge"
+    ],
+    "blocker": "none",
+    "id": "architecture.length",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "length_0p25",
+      "length_0p5",
+      "length_1",
+      "length_2",
+      "length_4",
+      "length_8",
+      "length_16"
+     ],
+     null,
+     "length_4"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": [
+     "kernel_ridge"
+    ],
+    "blocker": "none",
+    "id": "architecture.ridge",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "rebuildable_development",
+    "surface": [
+     "model",
+     "choice",
+     [
+      "ridge_1e_8",
+      "ridge_1e_6",
+      "ridge_1e_4",
+      "ridge_1e_2",
+      "ridge_1e_1",
+      "ridge_1"
+     ],
+     null,
+     "ridge_1e_4"
+    ],
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "model_family.neural_operator",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "engineering",
+    "id": "optimizer.learned_optimizer",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "research_only",
+    "surface": null,
+    "trigger": null
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "model_family.pretrained_weights",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "external_data_or_learned_state"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "objective.loss_expressions",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "executable_submission"
+   },
+   {
+    "applies_to": null,
+    "blocker": "excluded",
+    "id": "hybrid.reference_solver_reuse",
+    "lab_kind": null,
+    "realizes": [],
+    "selector": null,
+    "status": "excluded",
+    "surface": null,
+    "trigger": "evidence_design_change"
+   }
+  ],
+  "catalog_version": "carbon.electric-motor-magnetics-recipes.v1",
+  "challenge": {
+   "id": "electric-motor-magnetics",
+   "version": "1.0"
+  },
+  "envelope": {
+   "batching": "closed_form_full_train",
+   "precision": "float64",
+   "train_cases": 150,
+   "worker_cpu": 2,
+   "worker_deadline_seconds": 600,
+   "worker_memory_bytes": 4294967296,
+   "worker_swap_bytes": 0
+  },
+  "identity": "carbon.electric-motor-magnetics-development.v1",
+  "lanes": {
+   "session": [
+    "kernel_ridge"
+   ]
+  },
+  "registry_schema": "carbon.construction-capability-registry.v1",
+  "schema": "carbon.challenge-construction-contract.v1"
+ },
+ "contract_identity": "carbon.electric-motor-magnetics-development.v1",
+ "contract_version": "1.0",
+ "recorded_on": "2026-10-04",
+ "schema": "carbon.construction-expansion-record.v1",
+ "sequence": 0,
+ "what": "Open the existing public Motor Gaussian kernel-ridge reconstruction as a bounded declarative Level-0 surface over the published length and ridge grid, public TRAIN/PRACTICE only, with CPU practice and official evaluation still fail closed."
+}

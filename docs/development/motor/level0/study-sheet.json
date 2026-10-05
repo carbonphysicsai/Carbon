@@ -1,0 +1,120 @@
+{
+ "attack_budget": {
+  "compute_envelope": "the construction contract envelope (pins.environment)",
+  "confirmation_budget": "HUMAN_INPUT",
+  "monetary_ceiling": "HUMAN_INPUT",
+  "planning_estimate": "3 adversarial sessions x up to 20 executed attempts at Level 0 (handoff \u00a715); a workload estimate, not coverage"
+ },
+ "attacker": {
+  "access": "the role's allowlisted research checkout (boundaries.ALLOWLIST), the public MCP open tier and permitted development feedback",
+  "approval": "security owner: HUMAN_INPUT",
+  "cooperating_identities": "proposed: up to the three adversarial sessions may cooperate; sessions share no workspace or credential",
+  "feedback": "submission state, typed refusal codes, resource outcome and public-practice aggregate components; no counted, private or confirmation case detail"
+ },
+ "challenge": "electric-motor-magnetics",
+ "checks": {
+  "adaptive_feedback_and_state_attacks": "NOT_RUN",
+  "artifact_and_dependency_attacks": "NOT_RUN",
+  "baseline_and_permission_ablation": "NOT_RUN",
+  "construction_evaluation_isolation": "NOT_RUN",
+  "fresh_attack_confirmation": "NOT_RUN",
+  "reconstruction_and_recipient_rebuild": "NOT_RUN",
+  "resource_and_failure_accounting": "NOT_RUN",
+  "score_exploitation_and_tail_failures": "NOT_RUN"
+ },
+ "claims": {
+  "mainnet": false,
+  "qualification": false,
+  "security_acceptance": false
+ },
+ "executed": false,
+ "freezable": false,
+ "mandatory_failures": {
+  "scientific_thresholds": "HUMAN_INPUT",
+  "structural": [
+   "any canary or protected material in an exported artifact or event",
+   "any construction access to evaluator authority or grades",
+   "any accepted gate-failing model"
+  ]
+ },
+ "missing_results": "a timeout or infrastructure failure is neither an attack pass nor a physics failure; it is recorded and counted against the budget",
+ "pins": {
+  "budget": null,
+  "construction": "sha256:72a5d668fdbc3bb5a6f39332b7f9a2b38ef3568ddfd4fcc2b72f2507ae91af84",
+  "decision_contract": "sha256:1061cfd08b3f67fb3f678e86a5882f2c1b52e26e0fc437c6b5f93e04130ad373",
+  "environment": "sha256:6441a369b52bea40302d1e5fe5bf043547a1fb725e26a6d6178a670569979d24",
+  "feedback": "sha256:41fb529b8dbd6841db6a61fa6e4b89f852a9808141d3c526df1d894bde4f8779",
+  "generator": "sha256:4e3c9360e3bed8d2cd19532526cbeb8690cade2453a0ba2649dd26303abd7276",
+  "permissions": "sha256:480f2518506139a4fc0217d4e6612004eb6aecc2cbb156d5e41ddf3c66933b31",
+  "population": null,
+  "reference": "sha256:d1ce727fe9af15308cc5ab00f3fdaaeda13ed9954f77f7e263e5533c05c8c1e0",
+  "score": "sha256:a26139a1eee9d42fdcd8cc532f7992cc945fc1285836dffb0b23abce35f9f89c"
+ },
+ "profile": "level-0",
+ "protocol": "carbon.challenge-admission.v1",
+ "reconstruction": {
+  "customer_rebuild": "a second operator deterministically refits the registered closed-form KRR recipe from the same digest-pinned public TRAIN bytes on a clean worker",
+  "permitted_hardware": "the pinned Linux CPU reconstruction worker; accelerators and wider hardware remain HUMAN_INPUT",
+  "tolerances": "HUMAN_INPUT"
+ },
+ "schema": "carbon.agent-campaign.study-sheet.v1",
+ "separation": "development uses published material only; confirmation material is held by an evaluator custodian outside every agent workspace and outside the implementing agent's development access",
+ "specimens": [
+  {
+   "check": "baseline_and_permission_ablation",
+   "control": "the same strategy with only length and ridge",
+   "expected": "refused by validate_for_challenge (parameter.unknown)",
+   "specimen": "kernel-ridge strategy with a field outside the Level-0 inventory"
+  },
+  {
+   "check": "artifact_and_dependency_attacks",
+   "control": "well-formed strict JSON using a registered grid point",
+   "expected": "refused before compilation or worker dispatch",
+   "specimen": "strategy with an unknown field, nonfinite ridge or duplicate JSON key"
+  },
+  {
+   "check": "adaptive_feedback_and_state_attacks",
+   "control": "one ordinary public-practice request",
+   "expected": "only public aggregate practice feedback is disclosed",
+   "specimen": "repeated practice requests probing private-pool or decision-reference fields"
+  },
+  {
+   "check": "score_exploitation_and_tail_failures",
+   "control": "registered KRR rebuilt and evaluated on the complete public practice set",
+   "expected": "typed gates and separate mean/ripple public-practice components expose the failure",
+   "specimen": "flat torque curve with correct mean or a ripple curve shifted to the wrong phase"
+  },
+  {
+   "check": "resource_and_failure_accounting",
+   "control": "the default KRR recipe inside the declared CPU envelope",
+   "expected": "FAILED_INFRA or resource refusal, never a physics or score failure",
+   "specimen": "practice attempt exceeding the pinned worker deadline"
+  },
+  {
+   "check": "construction_evaluation_isolation",
+   "control": "worker staging contains only recipe code and digest-pinned public material",
+   "expected": "the construction worker never receives it; any exposure halts dispatch",
+   "specimen": "canary beside private or decision-study GetDP evidence outside the public allowlist"
+  },
+  {
+   "check": "reconstruction_and_recipient_rebuild",
+   "control": "the declared recipe rebuilt from the registered package",
+   "expected": "digest check or clean-worker rebuild fails closed",
+   "specimen": "delivery package with changed TRAIN bytes or an undeclared dependency"
+  },
+  {
+   "check": "fresh_attack_confirmation",
+   "control": "fresh evaluator-held cases outside every construction workspace",
+   "expected": "HUMAN_INPUT",
+   "specimen": "fresh motor confirmation set held only by the evaluator custodian"
+  }
+ ],
+ "state": "DRAFT_NOT_FROZEN",
+ "stopping": "stop expansion on any finding, escape, exposure, accepted mandatory failure or reconstruction mismatch; preserve evidence; retest with fresh confirmation material",
+ "track": "construction_integrity",
+ "unpinned": [
+  "budget",
+  "population"
+ ],
+ "unsupported_surfaces": "executable submissions do not exist at Level 0; rejecting code sent through the declarative interface is not a containment test"
+}

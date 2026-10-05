@@ -576,6 +576,61 @@ BEFORE_D34_PLAN = (
 BEFORE_D34_RECORD = (
     "sha256:1c30f0b5f51a90dd22aa48e1a8809c6d7c563ce5f91060e56f8d6415f3e53d89"
 )
+#: The Constructor checkout (`boundaries.checkout_manifest`, CONSTRUCTION) that
+#: session recorded: the seven published files as they were at main 2363950d.
+#: Its digest is inside the brief, so the recorded session carries this
+#: manifest whatever those files hold now. Pinning it keeps the replay about
+#: D34 rather than about later edits to the published files. A live session
+#: still reads the files, and still refuses to resume once they change
+#: (SessionMismatch "brief_changed").
+BEFORE_D34_CHECKOUT = {
+    "schema": "carbon.agent-campaign.research-checkout.v1",
+    "role": "construction_research",
+    "files": [
+        {
+            "path": "carbon/battery/challenge.py",
+            "sha256": "sha256:"
+            "0ec03695ed0e74e866db2616f2dda440f69292d30276ff6b4ba4d997c41689c7",
+            "bytes": 3067,
+        },
+        {
+            "path": "carbon/battery/domain.py",
+            "sha256": "sha256:"
+            "4268c9a222ab9082a15bf9d34202b4db0a6d7eb943c91840543f3317491e9da4",
+            "bytes": 2821,
+        },
+        {
+            "path": "carbon/battery/recipes.py",
+            "sha256": "sha256:"
+            "115209fc1ab4cd3a62f50ad6d1c2d12eb8e77e71553ad29aef5ff9b450d7da5e",
+            "bytes": 28204,
+        },
+        {
+            "path": "carbon/battery/reference.py",
+            "sha256": "sha256:"
+            "5d37d4ca9ffaa1b70c39cef5266d2deb5fb5d70c9ace7e5b22b27a2e02cf7791",
+            "bytes": 12956,
+        },
+        {
+            "path": "carbon/battery/training.py",
+            "sha256": "sha256:"
+            "421b8f36a1e90156240ff3a1ede07acac316f821c554be9a400a25de15f70338",
+            "bytes": 14781,
+        },
+        {
+            "path": "carbon/reconstruction/capability_registry.py",
+            "sha256": "sha256:"
+            "b192a94975b0fc630a684b37344225422a1063b924bb48e3014228a9f63d0013",
+            "bytes": 45393,
+        },
+        {
+            "path": "carbon/schema/strategy.py",
+            "sha256": "sha256:"
+            "9699c15c1fdecbb76b16e79bb3d8bbf3a1c57be24d6c78e583f478da741d442f",
+            "bytes": 11367,
+        },
+    ],
+}
 
 
 class SizedResults(RecordingMinerTools):
@@ -755,13 +810,21 @@ def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
     assert graphite._tokens_usd(run_id()) == 0
 
 
+def _recorded_checkout(repository, role, paths=None):
+    """The checkout `BEFORE_D34_CHECKOUT` recorded, in place of the live files."""
+    assert role is boundaries.Role.CONSTRUCTION and paths is None
+    return BEFORE_D34_CHECKOUT
+
+
 def _before_d34(root, model, **kw):
     """A session opened as the code before GRAPHITE-D34 opened it
-    (engy-anthropic, `DEFAULT_SETTINGS`); returns (provider, run id)."""
+    (engy-anthropic, `DEFAULT_SETTINGS`, the checkout it recorded); returns
+    (provider, run id)."""
     graphite = provider(root, [], ScriptedPods(), adapter_id="engy-anthropic", **kw)
     graphite.model = model
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(gp, "MODEL_SETTINGS", {})
+        patch.setattr(boundaries, "checkout_manifest", _recorded_checkout)
         return graphite, _open(graphite)
 
 
@@ -1818,6 +1881,20 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert real["status"] == "OK" and real["failures"] == []
     assert real["off_caller_thread"] and real["creates"] == real["launches"] == 2
     assert real["network"] is False and real["pods_alive"] == []
+    # And the R2 run-4 fixes (GRAPHITE-POD-LOGS-RETRY-01): a pod exiting
+    # non-zero keeps its logs, bounded; a baseline failing as infrastructure
+    # is retried once, scores and is compared against.
+    failure = result["dry_run"]["pod_failure_path"]
+    assert failure["status"] == "OK" and failure["failures"] == []
+    assert failure["baseline_retry"]["retry"] is True
+    assert failure["baseline_retry"]["retry_status"] == "SCORED"
+    assert failure["compared"]["baseline"] == "baseline-retry-1"
+    assert failure["failed_pod"]["logs"][0]["truncated_bytes"] > 0
+    # A baseline whose program exits 1 (CANDIDATE_FAILED at Level 0) is also
+    # retried once and scores (owner, 2026-10-04).
+    crash = failure["baseline_crash_retry"]
+    assert crash["baseline"]["status"] == "CANDIDATE_FAILED"
+    assert (crash["retry"], crash["retry_status"]) == (True, "SCORED")
     # Its first turn returns three calls: under v2 all three run (LP-PROD-A).
     assert result["dry_run"]["parallel_calls_run"] == 3
     assert result["dry_run"]["parallel_calls_not_run"] == 0

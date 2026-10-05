@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-study-drift-green",
+  "recorded_at": "2026-10-04T23:16:31.8012610+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "CHALLENGE-MOTOR-02 admission artifact drift check",
+    "description": "Compared the committed Motor Level-0 study-sheet pins with the current repository and live construction contract."
+  },
+  "expected": "No generated study pin should drift from the implementation being delivered.",
+  "observed": "The drift check returned an empty mapping.",
+  "keep": [
+    "Bind the admission artifacts to the exact executable repository state."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "graphite.admission.track-a",
+    "delivery.identity-check"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

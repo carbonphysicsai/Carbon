@@ -792,6 +792,21 @@ def daemon_view(service, *, now=None):
     return view
 
 
+def _attempt_totals(intake_config):
+    """The attempt ledger's counts by kind (never per hotkey), None before the
+    intake first ran, or the refusal code for a ledger the operator must fix."""
+    from carbon.battery.intake import attempt_ledger_path
+    from carbon.challenge_validator.ledger import AttemptLedger, LedgerUnavailable
+
+    path = attempt_ledger_path(intake_config)
+    if not path.exists():
+        return None
+    try:
+        return AttemptLedger(path).totals()
+    except LedgerUnavailable as refused:
+        return {"refused": refused.code}
+
+
 def status(path, *, repository=REPOSITORY, probe=probe_intake):
     """The service as it runs, however it was started (`supervise` or the
     systemd units). Healthy only when the intake holds its serving lock and
@@ -815,6 +830,7 @@ def status(path, *, repository=REPOSITORY, probe=probe_intake):
     found["daemon"] = daemon_view(service)
     inbox = Path(intake_config["inbox"])
     found["inbox"] = Inbox(inbox).counts() if inbox.exists() else None
+    found["attempts"] = _attempt_totals(intake_config)
     try:
         target = deployment.validator(
             intake_config["deployment"], repository=repository, readonly=True

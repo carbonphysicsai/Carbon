@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-canonical-preflight",
+  "recorded_at": "2026-10-04T20:29:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "canonical Docker/WSL preflight",
+    "description": "Checked the repository canonical wrapper, Docker client/daemon and Ubuntu WSL route before canonical acceptance."
+  },
+  "expected": "The pinned canonical Linux container should be available for dependency-complete validation.",
+  "observed": "The wrapper is present. After isolating an unreadable user Docker config, the Windows Docker client reported that its daemon was not running. The direct Ubuntu WSL probe was denied by the host service. No image build, container, model worker, solver, pod or paid service ran.",
+  "keep": [
+    "Use the repository's pinned canonical wrapper once Docker Desktop is running."
+  ],
+  "change": [
+    "Start the local Docker Desktop daemon before the canonical test command."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "canonical-validation",
+    "host-environment-preflight"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
