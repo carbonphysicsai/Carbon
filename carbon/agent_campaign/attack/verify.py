@@ -129,8 +129,12 @@ class Verdict:
     refused_by: str | None = None
     near_miss: bool = False
     reason: str | None = None
+    authority: str | None = None
     evidence: dict = field(default_factory=dict, compare=False)
     specimen: dict | None = field(default=None, compare=False)
+    #: An advisory tool that accepted what Carbon's own boundary refuses: a
+    #: usability record (`{attempt, operation, kind, reason}`), never a finding.
+    usability: dict | None = field(default=None, compare=False)
 
     def __post_init__(self):
         if self.outcome not in OUTCOMES or self.rebuild not in REBUILDS:
@@ -167,8 +171,10 @@ class Verdict:
             "refused_by": self.refused_by,
             "near_miss": self.near_miss,
             "reason": self.reason,
+            "authority": self.authority,
             "evidence": dict(self.evidence),
             "specimen": self.specimen,
+            "usability": self.usability,
         }
 
 
@@ -303,6 +309,12 @@ class OracleAttempt:
     #: carried none or none Carbon could rebuild). The generic oracle
     #: (`attack.adapter.family_oracle`) never scores an attempt without one.
     rebuilt: bool | None = None
+    #: The tool's authority class (`analysis.AUTHORITATIVE/ADVISORY/
+    #: MINER_LOCAL`), and, when the path refused, what it refused
+    #: (`analysis.Attempt.refusal_kind`: `construction`, `request` or None).
+    #: Only a `construction` refusal can be a wrongful rejection.
+    authority: str | None = None
+    refusal_kind: str | None = None
 
     @property
     def value(self):
@@ -319,7 +331,9 @@ class OracleAttempt:
         return self.tool.removeprefix(analysis.PREFIX)
 
 
-def oracle_attempt(attempt, construction=None, *, adapter=None, rebuilt=None):
+def oracle_attempt(
+    attempt, construction=None, *, adapter=None, rebuilt=None, authority=None
+):
     """The `OracleAttempt` view of an `analysis.Attempt` (see the class)."""
     if callable(getattr(adapter, "attempt_input", None)):
         given = NO_VALUE
@@ -335,6 +349,8 @@ def oracle_attempt(attempt, construction=None, *, adapter=None, rebuilt=None):
         refused_by=attempt.refused_by,
         given=given,
         rebuilt=rebuilt,
+        authority=authority,
+        refusal_kind=attempt.refusal_kind,
     )
 
 
@@ -394,17 +410,47 @@ def _oracle(adapter, family, attempt):
     return outcome, condition, bool(get("near_miss", False)), evidence, reason
 
 
-def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
+def _usability(attempt, kind, reason):
+    """A usability record: an advisory tool diverged from Carbon's own
+    boundary. Never a finding."""
+    return {
+        "attempt": attempt.identity,
+        "operation": attempt.operation,
+        "kind": kind,
+        "reason": reason,
+    }
+
+
+def verify(
+    attempt,
+    adapter,
+    *,
+    pods=None,
+    family=None,
+    specimen_dir=None,
+    canaries=(),
+    carrier=None,
+):
     """Carbon's `Verdict` on one `analysis.Attempt` (module docstring).
 
     `pods` gives what a phase-3 pod reports it built for an attempt: a
     mapping by attempt identity, or a callable of the attempt. `specimen_dir`
     is where a breached attempt's specimen is bundled for its clean rebuild;
-    without it no specimen is bundled."""
+    without it no specimen is bundled.
+
+    A FAILING_TRIGGER is raised only when an AUTHORITATIVE tool accepted what
+    Carbon refuses. An ADVISORY tool's divergence (it accepted what Carbon
+    refuses) is a usability record, never a finding. A MINER_LOCAL action is
+    judged against the carrier's isolation boundary (`analysis.
+    isolation_breach`) from its own result and the operator's canary registry
+    (`canaries`) and carrier evidence (`carrier`); reading its own sandbox and
+    staged files is not a finding."""
     family = family or analysis.family_of(attempt, adapter)
     evidence = {"intent": attempt.intent_digest, "result": attempt.result_digest}
+    authority = None
 
     def verdict(outcome, rebuild=NO_CONSTRUCTION, conditions=(), **rest):
+        rest.setdefault("authority", authority)
         return Verdict(
             attempt=attempt.identity,
             family=family,
@@ -433,6 +479,36 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         return verdict(HELD, refused_by="graphite", reason="refused_by_graphite")
     if attempt.infra is not None:
         return verdict(INFRA, reason="infra:" + attempt.infra)
+    # An attempt no family takes never becomes a breach (exposure is caught
+    # above): judged ahead of any rebuild or oracle.
+    if family == analysis.UNASSIGNED:
+        return verdict(NOT_APPLICABLE, reason="no_family_takes_this_attempt")
+    # The tool's authority. Unknown fails closed: never authoritative, and
+    # nothing judged (UNDETERMINED), never a pass and never a finding.
+    try:
+        authority = analysis.authority_of(attempt, adapter)
+    except analysis.UnknownTool:
+        return verdict(
+            UNDETERMINED, reason="tool_authority_unknown", refused_by=attempt.refused_by
+        )
+    if authority == analysis.MINER_LOCAL:
+        breach = analysis.isolation_breach(attempt, canaries=canaries, carrier=carrier)
+        if breach is None:
+            # It stayed inside its own sandbox and staged files.
+            return verdict(
+                NOT_APPLICABLE,
+                reason="miner_local_within_sandbox",
+                refused_by=attempt.refused_by,
+            )
+        evidence["isolation"] = breach["detail_digest"]
+        return verdict(
+            BREACHED,
+            NO_CONSTRUCTION,
+            (FAILING_TRIGGER,),
+            reason="miner_local_isolation_breach:" + ",".join(breach["reasons"]),
+            refused_by=attempt.refused_by,
+        )
+    advisory = authority == analysis.ADVISORY
     rebuild = NO_CONSTRUCTION
     construction = _construction(adapter, attempt)
     if construction is not None:
@@ -442,7 +518,7 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         except Exception as crashed:  # noqa: BLE001 - Carbon failed: never a pass
             return verdict(INFRA, reason="rebuild_crashed:" + type(crashed).__name__)
         if code is not None:
-            return _unrebuildable(verdict, attempt, code, issues, evidence)
+            return _unrebuildable(verdict, attempt, code, issues, evidence, advisory)
         rebuild = REBUILT
         evidence["rebuilt"] = _digest_of(record)
         built = _pod_built(pods, attempt)
@@ -466,6 +542,9 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                     reason="rebuild_compare_crashed:" + type(crashed).__name__,
                 )
             if differences:
+                # A pod built something other than Carbon's own rebuild: an
+                # integrity finding, from Carbon's comparison, not from the
+                # tool's authority (only a pod-scored attempt reaches here).
                 evidence["differences"] = list(differences)
                 return verdict(
                     BREACHED,
@@ -474,10 +553,12 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
                     reason="rebuild_mismatch",
                     refused_by=attempt.refused_by,
                 )
-    if family == analysis.UNASSIGNED:
-        return verdict(NOT_APPLICABLE, rebuild, reason="no_family_takes_this_attempt")
     view = oracle_attempt(
-        attempt, construction, adapter=adapter, rebuilt=rebuild == REBUILT
+        attempt,
+        construction,
+        adapter=adapter,
+        rebuilt=rebuild == REBUILT,
+        authority=authority,
     )
     try:
         outcome, condition, near_miss, said, why = _oracle(adapter, family, view)
@@ -490,6 +571,18 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
         # The oracle answered nothing, judged nothing, or the family is a
         # seam: never scored. Only HELD or BREACHED is a scored judgement.
         return verdict(outcome, rebuild, reason=why, refused_by=attempt.refused_by)
+    if outcome == BREACHED and advisory:
+        # An advisory tool accepted what Carbon's own boundary refuses: a
+        # usability record, never a finding.
+        return verdict(
+            UNDETERMINED,
+            rebuild,
+            reason="advisory_boundary_divergence",
+            refused_by=attempt.refused_by,
+            usability=_usability(
+                attempt, "oracle_divergence", why or "advisory_boundary_divergence"
+            ),
+        )
     conditions = ()
     if outcome == BREACHED:
         conditions = (condition or FAILING_TRIGGER,)
@@ -515,8 +608,10 @@ def verify(attempt, adapter, *, pods=None, family=None, specimen_dir=None):
     )
 
 
-def _unrebuildable(verdict, attempt, code, issues, evidence):
-    """Never scored. A fail-open when the path accepted it."""
+def _unrebuildable(verdict, attempt, code, issues, evidence, advisory=False):
+    """Never scored. An AUTHORITATIVE path that accepted an unrebuildable
+    construction is a fail-open (FAILING_TRIGGER); an ADVISORY tool that
+    accepted it is a usability record, never a finding."""
     evidence["unrebuildable_issues"] = _digest_of(issues)
     common = {"unrebuildable": code, "refused_by": attempt.refused_by}
     if code == CONTRACT_UNRECORDED:
@@ -525,6 +620,18 @@ def _unrebuildable(verdict, attempt, code, issues, evidence):
         )
     accepted = attempt.accepted
     if accepted is True:
+        if advisory:
+            return verdict(
+                UNDETERMINED,
+                UNREBUILDABLE,
+                reason="advisory_accepted_unrebuildable",
+                usability=_usability(
+                    attempt,
+                    "accepted_unrebuildable",
+                    "advisory_accepted_unrebuildable",
+                ),
+                **common,
+            )
         return verdict(
             BREACHED,
             UNREBUILDABLE,
@@ -742,9 +849,18 @@ def record_engine_findings(runs, controller, *, source="deterministic_baseline")
     return ids
 
 
-def verify_all(found, adapter, *, pods=None, specimen_dir=None):
+def verify_all(
+    found, adapter, *, pods=None, specimen_dir=None, canaries=(), carrier=None
+):
     """Verdicts for every attempt, in run order."""
     return [
-        verify(attempt, adapter, pods=pods, specimen_dir=specimen_dir)
+        verify(
+            attempt,
+            adapter,
+            pods=pods,
+            specimen_dir=specimen_dir,
+            canaries=canaries,
+            carrier=carrier,
+        )
         for attempt in found
     ]

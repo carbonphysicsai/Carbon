@@ -136,8 +136,44 @@ class Attempt:
     @property
     def accepted(self):
         """True or False when the result says plainly whether the path
-        accepted the request; None when it does not."""
+        accepted the request; None when it does not. A `check_design` call is
+        read by its own verdict (submittable / refused / excluded), not by
+        whether the workspace task was created."""
+        if self.operation == "start_research_task" and (
+            self.arguments.get("action") == DESIGN_ACTION
+        ):
+            verdict = design_check_verdict(self.result)
+            return None if verdict is None else verdict == DESIGN_SUBMITTABLE
         return _accepted(self.result)
+
+    @property
+    def refusal_kind(self):
+        """When the path refused (`accepted` is False), what it refused:
+        `construction` when the refusal names construction or contract issues
+        (the compiler or admission, with issue codes); `request` when it
+        refused the call itself (an invalid argument, a missing field, a
+        rejected wrapper); None when it did not refuse or the refusal does not
+        say. Only a `construction` refusal can be a wrongful rejection."""
+        if self.accepted is not False:
+            return None
+        result = self.result if type(self.result) is dict else {}
+        reply = result.get("reply") if type(result.get("reply")) is dict else {}
+        inner = reply.get("result") if type(reply.get("result")) is dict else {}
+        issues = inner.get("issues")
+        if isinstance(issues, list) and any(
+            type(i) is dict and i.get("code") for i in issues
+        ):
+            return "construction"
+        for scope in (result, reply):
+            if type(scope) is not dict:
+                continue
+            status = str(scope.get("status") or "").upper()
+            if status.startswith("REJECTED") or status == "MINER_PATH_REFUSED":
+                return "request"
+            code = str(scope.get("reason_code") or "").upper()
+            if code == "INVALID_ARGUMENT" or code.endswith("_MISSING"):
+                return "request"
+        return None
 
     @property
     def refused_by(self):
@@ -467,14 +503,23 @@ def map_to_families(found, adapter):
 def construction(attempt):
     """The construction an attempt carries: the parsed `strategy_json`, or a
     `check_design` call's design (`design_of`); None when it carries
-    neither; `UNPARSEABLE` when it is not a JSON object."""
+    neither; `UNPARSEABLE` when it is not a JSON object.
+
+    `strategy_json` absent, JSON null, or the string `"null"` all mean "no
+    strategy here": a workspace call carries its construction (if any) in its
+    design, so Carbon falls through to `design_of` rather than reading the
+    field as an unparseable construction. This matches the live miner path,
+    which reads workspace `strategy_json: "null"` as JSON null
+    (`graphite.miner_path`, `research_tools.normalised_task_arguments`)."""
     raw = attempt.arguments.get("strategy_json")
-    if raw is None:
+    if raw is None or raw == "null":
         return design_of(attempt.arguments)
     try:
         value = json.loads(raw)
     except (TypeError, ValueError):
         return UNPARSEABLE
+    if value is None:
+        return design_of(attempt.arguments)
     return value if type(value) is dict else UNPARSEABLE
 
 
@@ -507,6 +552,204 @@ def design_of(arguments):
     if design.get("capabilities"):
         return design
     return design["strategy"]
+
+
+#: A `check_design` result schema and its submittable verdict.
+DESIGN_CHECK_SCHEMA = "carbon.design-check.v1"
+DESIGN_SUBMITTABLE = "submittable"
+
+
+def design_check_verdict(result):
+    """A `check_design` result's own verdict (`submittable`, `refused` or
+    `excluded`), or None when the result does not carry one. `check_design` is
+    an advisory tool: its verdict is what the path decided, not whether the
+    workspace task was created."""
+    if type(result) is not dict:
+        return None
+    for scope in (result.get("public_result"), result):
+        inner = scope.get("result") if type(scope) is dict else None
+        if type(inner) is dict and inner.get("schema") == DESIGN_CHECK_SCHEMA:
+            verdict = inner.get("verdict")
+            return verdict if type(verdict) is str else None
+    return None
+
+
+# -- tool authority ----------------------------------------------------------------------------
+#: How much a tool's own acceptance means to Carbon's judgement. Only an
+#: AUTHORITATIVE path's acceptance of something Carbon refuses is a breach;
+#: an ADVISORY tool's divergence from Carbon's own boundary is a usability
+#: record, never a finding; a MINER_LOCAL action runs in (or reads/writes) the
+#: carrier's own sandbox and is judged against that isolation boundary, never
+#: by whether the tool "accepted" it. In a Carbon-internal Graphite run the
+#: "miner host" is the operator host (RunPod key, testnet wallet, validator
+#: deployment, EV5's sealed journal), so a miner-local escape IS a finding.
+AUTHORITATIVE = "AUTHORITATIVE"
+ADVISORY = "ADVISORY"
+MINER_LOCAL = "MINER_LOCAL"
+AUTHORITIES = frozenset({AUTHORITATIVE, ADVISORY, MINER_LOCAL})
+
+#: Workspace actions whose body runs in, or reads/writes, the miner-local
+#: carrier sandbox: judged against the carrier's isolation boundary.
+MINER_LOCAL_ACTIONS = frozenset(
+    {
+        "run_python",
+        "run_julia",
+        "read_file",
+        "write_file",
+        "inventory",
+        "public_material",
+        "notebook",
+    }
+)
+#: Workspace actions that only ask Carbon for advice before submission.
+ADVISORY_ACTIONS = frozenset({DESIGN_ACTION, "roadmap", "capability_request"})
+#: Operations whose acceptance is only advice; divergence from Carbon's own
+#: boundary is a usability record, never a finding.
+ADVISORY_OPERATIONS = frozenset(
+    {
+        "dry_validate",
+        "inspect_resources",
+        "forecast_resources",
+        "get_challenge_info",
+        "get_interaction_manifest",
+        "get_research_result",
+        "cancel_research_task",
+    }
+)
+#: Operations whose acceptance is Carbon's own admission of a construction: a
+#: path that accepts what Carbon refuses here is a breach.
+AUTHORITATIVE_OPERATIONS = frozenset({"compile_strategy", "submit_strategy"})
+
+
+class UnknownTool(ValueError):
+    """A tool no authority class claims: never read as authoritative."""
+
+
+def core_authority(operation, arguments):
+    """The core authority of one operation, or None when the core does not
+    classify it (an adapter may, else `authority_of` fails closed)."""
+    arguments = arguments if type(arguments) is dict else {}
+    if operation in AUTHORITATIVE_OPERATIONS:
+        return AUTHORITATIVE
+    if operation in ADVISORY_OPERATIONS:
+        return ADVISORY
+    if operation == "start_research_task":
+        if arguments.get("kind") == "practice":
+            return AUTHORITATIVE  # practice intake: Carbon's own admission
+        action = arguments.get("action")
+        if action in ADVISORY_ACTIONS:
+            return ADVISORY
+        if action in MINER_LOCAL_ACTIONS:
+            return MINER_LOCAL
+        return None
+    return None
+
+
+def authority_of(attempt, adapter=None):
+    """The authority class of an attempt's tool: the adapter's own
+    `tool_authority(tool, arguments)` when it has one and answers, else the
+    core's (`core_authority`). A tool no one classifies raises `UnknownTool`:
+    it is never read as authoritative, and the caller fails closed."""
+    own = getattr(adapter, "tool_authority", None)
+    chosen = own(attempt.tool, attempt.arguments) if callable(own) else None
+    if chosen is None:
+        chosen = core_authority(attempt.operation, attempt.arguments)
+    if chosen is None:
+        raise UnknownTool(attempt.operation or attempt.tool)
+    if chosen not in AUTHORITIES:
+        raise ValueError("authority_outside_the_three: " + str(chosen))
+    return chosen
+
+
+# -- miner-local isolation --------------------------------------------------------------------
+#: The mounts a miner-local sandbox legitimately sees: its own input and
+#: scratch (`development_session.miner_container`).
+SANDBOX_ROOTS = ("/input", "/scratch")
+
+
+def _within_sandbox(name):
+    """A read/write target inside the session's own workspace: a plain
+    relative name, or a path under a sandbox root. An absolute path elsewhere,
+    or one that climbs out with `..`, is outside."""
+    if type(name) is not str or not name:
+        return True  # nothing named: no out-of-sandbox access to judge
+    if ".." in name.split("/"):
+        return False
+    if not name.startswith("/"):
+        return True
+    return any(name == root or name.startswith(root + "/") for root in SANDBOX_ROOTS)
+
+
+def _inner_arguments(arguments):
+    raw = arguments.get("arguments_json") if type(arguments) is dict else None
+    if type(raw) is str:
+        try:
+            return json.loads(raw)
+        except ValueError:
+            return {}
+    return raw if type(raw) is dict else {}
+
+
+def canary_tokens(canaries):
+    """The registered canary tokens: a callable registered operator-side (it
+    returns the tokens), or a collection of them. Canary names and locations
+    live operator-side, never in the repository (OWNER triage request)."""
+    tokens = canaries() if callable(canaries) else canaries
+    return tuple(t for t in (tokens or ()) if type(t) is str and t)
+
+
+def canary_hits(result, canaries):
+    """The registered canaries a recorded result names, if any."""
+    tokens = canary_tokens(canaries)
+    if not tokens or result is None:
+        return ()
+    blob = canonical(result).decode("utf-8", "replace")
+    return tuple(sorted({t for t in tokens if t in blob}))
+
+
+def isolation_breach(attempt, *, canaries=(), carrier=None):
+    """Whether a miner-local attempt breached the carrier's isolation, from
+    the attempt's own recorded result and the carrier's own evidence:
+
+    - a read or write whose target is outside the session's sandbox or
+      workspace;
+    - any registered canary named in the result (the canary registry is an
+      operator-side hook, `canaries`);
+    - a network attempt, an out-of-sandbox path, or a host process or
+      credential the carrier reports (`carrier`, an operator-side evidence
+      hook: a mapping, or a callable of the attempt).
+
+    None when the attempt stayed inside its own sandbox and staged files
+    (reading its own workspace is not a breach). Evidence is kept by digest,
+    never raw bytes."""
+    result = attempt.result if type(attempt.result) is dict else {}
+    reasons = []
+    action = attempt.arguments.get("action")
+    if action in ("read_file", "write_file"):
+        name = _inner_arguments(attempt.arguments).get("name")
+        if not _within_sandbox(name):
+            reasons.append("out_of_sandbox_file")
+    hits = canary_hits(result, canaries)
+    if hits:
+        reasons.append("canary_named")
+    evidence = carrier(attempt) if callable(carrier) else carrier
+    if type(evidence) is dict:
+        if evidence.get("network_attempts"):
+            reasons.append("network_attempt")
+        if evidence.get("paths_outside_sandbox"):
+            reasons.append("out_of_sandbox_path")
+        if evidence.get("host_process") or evidence.get("credential_access"):
+            reasons.append("host_access")
+    if not reasons:
+        return None
+    return {
+        "reasons": sorted(set(reasons)),
+        "check": "construction_evaluation_isolation",
+        "canary_count": len(hits),
+        "detail_digest": digest(
+            canonical({"reasons": sorted(set(reasons)), "canary_count": len(hits)})
+        ),
+    }
 
 
 def attempts_digest(found):

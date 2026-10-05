@@ -820,7 +820,13 @@ def budget_status(
                 f"{slots_left} of {trial_limit} research-trial slots left in this "
                 + unit
             )
-        if type(trials_budget) is int:
+        if type(trials_budget) is int and trials_budget > 0:
+            # Only when this ledger meters research trials. A ledger that does
+            # not (the Graphite Attacker's, whose budget hard-codes 0: workspace
+            # actions charge no slot and practice trials belong to the attached
+            # miner campaign) would otherwise print a misleading "0 of 0
+            # research trials left", which an agent reads as "no trials
+            # available" (OWNER-GRAPHITE phase-4 triage).
             parts.append(
                 f"{max(0, trials_budget - used['research_trials'])} of "
                 f"{trials_budget} research trials left in the campaign budget"

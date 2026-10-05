@@ -228,6 +228,11 @@ TOOL_FAMILIES = {
     "cancel_research_task": "resource_accounting",
 }
 CODE_ACTIONS = ("run_python", "run_julia")
+#: Workspace actions judged against the carrier's isolation boundary, so they
+#: are never left UNASSIGNED.
+WORKSPACE_ISOLATION_ACTIONS = frozenset(
+    {"read_file", "write_file", "inventory", "public_material", "notebook"}
+)
 ATTACKER_LANE = "graphite_attacker"
 CODE_RUN_RULE_LANES = frozenset({ATTACKER_LANE})
 #: Synthetic markers the isolation family plants (never real material).
@@ -2622,10 +2627,15 @@ class MotorLevel0Adapter:
         if name == "start_research_task":
             if arguments.get("kind") == "practice":
                 return "recipe_surface"
-            if arguments.get("action") in CODE_ACTIONS:
+            action = arguments.get("action")
+            if action in CODE_ACTIONS:
                 return "resource_accounting"
-            if arguments.get("action") == "check_design":
+            if action == "check_design":
                 return "permission_ablation"
+            if action in WORKSPACE_ISOLATION_ACTIONS:
+                return "staged_bytes"
+            if action == "roadmap":
+                return "practice_disclosure"
             return None
         return TOOL_FAMILIES.get(name)
 
