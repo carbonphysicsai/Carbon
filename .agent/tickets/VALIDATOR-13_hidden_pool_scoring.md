@@ -1,6 +1,7 @@
 # VALIDATOR-13: score Graphite constructions on hidden batches through the real validator
 
-**Status:** design, for the Test Lead's review before any build.
+**Status:** approved by the Test Lead on 2026-10-05, with the §6 amendment.
+Being built.
 
 **Authority:**
 - The owner, 2026-10-05: testing must operate like mainnet, with hidden
@@ -34,15 +35,24 @@ never sees. Graphite's evidence must come from the same place.
   14) and `graphite-confirmation-v1` stay untouched.
 - **Operator actions:** creating the root and the configuration is an operator
   action; the owner supplies the paths. Nothing here creates or reads a root.
-- **Pool rule:** battery's approved `exam.DEVELOPMENT_RULE` (OD-2), unchanged:
-  3 active batches of 100, rotation after every 3 admitted submissions. No new
-  scientific value.
-- **Rule v1 versus v2:** v1 (count rotation) is the default. Rule v2 (one
-  scored submission per hotkey per tempo, block rotation) and
-  `require_commitment` need chain block receipts and commitments, so they wait
-  for the owner's chain decision. Until then the deployment sets
-  `require_commitment: false` and records that difference from mainnet in
-  every outcome's rule facts.
+- **Pool rule: battery's rule v2** (`exam.DEVELOPMENT_RULE_V2`), as
+  OWNER-VALIDATOR-MAINNET-PARITY-01 item 2 decided:
+  - one scored submission per hotkey per 360-block tempo;
+  - rotation by finalized block;
+  - hidden-batch results sealed from miners.
+
+  No new scientific value.
+- **The receipt block** comes from a clock the caller passes in. In operation
+  that is testnet's finalized block (a read-only chain read). Tests use a
+  fixed clock.
+- **The per-hotkey cap:** a run is one development identity, so it gets one
+  hidden score per tempo, as a single mainnet miner does. A submission in a
+  used window is recorded `WINDOW_USED`, with its next block. That is not a
+  refusal, and the practice loop continues.
+- **The commitment check** (`require_commitment`) needs a chain commitment
+  reader, which the deployment does not wire today (`commitments=None`). It
+  arrives with the weights ticket. Until then the hidden deployment sets
+  `require_commitment: false` and records that difference from mainnet.
 
 **2. Hook: a new module, `carbon/agent_campaign/graphite/hidden_score.py`.**
 - `Experiment` takes an optional `hidden` scorer. With None, behaviour and
@@ -73,19 +83,32 @@ never sees. Graphite's evidence must come from the same place.
 - Neither confers qualification, reward, weight or LIVE authority.
 
 **5. Failure typing.**
-- Validator unavailability, `FAILED_INFRA` and `ROTATION_PENDING` are recorded
-  as the hidden result's typed state (`PENDING` or `FAILED_INFRA`). They are
-  never a candidate failure, never charged to the agent, and never block the
-  practice result.
+- Validator unavailability, `FAILED_INFRA` and a used hotkey window are
+  recorded as the hidden result's typed state (`UNAVAILABLE`, `FAILED_INFRA`
+  or `WINDOW_USED`). They are never a candidate failure, never charged to the
+  agent, and never block the practice result.
+- **Stale pools under rule v2.** The owner's v2 rule never stalls: when a
+  rotation is due and no batch is ready, it keeps scoring on the current
+  batches and records `rotation_overdue` once per pool version. That replaces
+  v1's `ROTATION_PENDING`.
+  - Every hidden record scored on an overdue pool version carries
+    `rotation_overdue: true`, so stale-pool evidence is always visible.
+  - The run plan prepares enough batches for this not to happen.
+  - Changing v2's no-stall rule would be an owner decision.
 - `INVALID_CONSTRUCTION` cannot newly appear: Graphite's gate already ran the
   same compile, and a disagreement is a typed `GATE_DISAGREEMENT` finding (the
   VALIDATOR-10/12 property, checked live).
 
-**6. Fresh cases.**
-- Every run's winner is re-scored once on its Challenge's sealed confirmation
-  set (`fresh_cases_rerun`, currently NOT_RUN). That is an operator action the
-  owner orders, run on the operator host. This session never reads or
-  regenerates a sealed set.
+**6. Fresh cases (amended by the Test Lead, 2026-10-05).**
+- A run's winner is re-scored once on a fresh hidden batch from
+  `graphite-hidden-battery-v1` (`fresh_cases_rerun`, currently NOT_RUN). That
+  batch has never been scored before, and it is retired after that single
+  use and recorded as consumed.
+- The Challenge's sealed confirmation set is one-shot (WAVE-05 §4). It is not
+  used per run, because per-run re-scoring would burn it adaptively. It is
+  kept for the single final confirmation, after the panel, the score rule and
+  the analysis are frozen; that is an operator action the owner orders. This
+  session never reads or regenerates a sealed set.
 
 ## Tests (DEVELOPMENT; synthetic root and batches only)
 
@@ -130,10 +153,14 @@ results wait; nothing is scored on a stale pool.
   go to the owner when battery's version is built.
 - Their reference solvers (OpenFOAM, GetDP) set the per-batch cost.
 
-## Not in scope (owner-reserved)
+## Not in this ticket
 
-Weights, chain commitments, rule v2's block windows, settlement, and how
-mainnet validators share a hidden test.
+These were decided by OWNER-VALIDATOR-MAINNET-PARITY-01 and are built as
+separate tickets:
+- testnet weights from hidden outcomes;
+- the commitment reader;
+- identical hidden cases and solver results for every validator;
+- settlement.
 
 ## Maturity ceiling
 

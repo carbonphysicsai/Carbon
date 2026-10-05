@@ -342,6 +342,8 @@ def _feedback_view(record):
         "differences",
         "stall",
         "pods_left",
+        # The hidden-pool view (`hidden_score`): only what a mainnet miner sees.
+        "hidden",
     ):
         if key in record:
             view[key] = record[key]
@@ -372,6 +374,13 @@ class Experiment:
     when it and the waiting proposal's pod can finish within it. The logs of
     a pod run that does not score are kept, bounded, in its proposal's record
     directory (`pod_logs`), as operator evidence only.
+
+    `hidden` is a `hidden_score.HiddenPool` (VALIDATOR-13) or None. With one,
+    every scored proposal is also submitted to the battery validator's hidden
+    pool. Its record and feedback carry only the miner-visible `hidden` view;
+    the operator record is written beside them (`hidden-operator.json`) and
+    nowhere else. With None, nothing changes. Level 0 only: the validator
+    never serves a development variant.
     """
 
     def __init__(
@@ -397,6 +406,7 @@ class Experiment:
         seconds_left=None,
         development_variant=None,
         on_finding=None,
+        hidden=None,
     ):
         from .provider import RunCancelled
 
@@ -421,6 +431,12 @@ class Experiment:
             construction_level != development_variant.level
         ):
             raise ValueError("a development variant runs at its own level")
+        if hidden is not None and (
+            development_variant is not None
+            or hidden.challenge_id != self.scoring.challenge_id
+        ):
+            raise ValueError("hidden scoring serves its own Challenge at Level 0")
+        self.hidden = hidden
         # The registered attribution policy (`pod_outcome`): the registry's
         # current version unless one is named.
         self.attribution = (
@@ -464,6 +480,24 @@ class Experiment:
     def rows(self, pid):
         path = self.root / "proposals" / pid / "rows.json"
         return json.loads(path.read_bytes()) if path.exists() else None
+
+    def hidden_records(self):
+        """The run's hidden-pool operator records, by proposal (operator
+        evidence; `DEVELOPMENT_HIDDEN_POOL`). Scores are comparable only within
+        one pool version; the validator's own leader is `hidden.standing()`."""
+        found = []
+        for record in self.records():
+            path = self.root / "proposals" / record["proposal_id"]
+            path = path / "hidden-operator.json"
+            if path.exists():
+                found.append(
+                    {
+                        "proposal_id": record["proposal_id"],
+                        "kind": record["kind"],
+                        **json.loads(path.read_bytes()),
+                    }
+                )
+        return found
 
     def findings(self):
         path = self.root / "findings.jsonl"
@@ -1227,7 +1261,19 @@ class Experiment:
                     record["baseline"]["proposal_id"] = baseline_id
         if kind == "proposal":
             record["stall"] = self._stall(record)
+        if self.hidden is not None:
+            record["hidden"] = self._hidden_score(pid, kind, strategy)
         return self._close(pid, record)
+
+    def _hidden_score(self, pid, kind, strategy):
+        """Submit a scored proposal to the hidden pool (`hidden_score`). The
+        record keeps only the miner-visible view; the operator record is
+        written once beside it and is never in a record, feedback, event or
+        bundle."""
+        view, operator = self.hidden.submit(kind, strategy)
+        if operator is not None:
+            write_once(self._dir(pid) / "hidden-operator.json", canonical(operator))
+        return view
 
     def _attempt(self, pid, intent_id, reservation, strategy, expected, seed):
         """Reserve and run one pod for a proposal; `(outcome, files, timing)`."""
