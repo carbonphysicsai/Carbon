@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-aa79-single-pass",
+  "recorded_at": "2026-10-05T13:40:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "aa79adba selective-fault policy-binding regression",
+    "description": "Reran the exact PR #602 selective-fault assertion that had exposed the unregistered non-finite persistence failure."
+  },
+  "expected": "Every Interface-v1 selective fault carries the registered predict_exception or non_finite_score policy record.",
+  "observed": "The regression passed in 18.24 seconds.",
+  "keep": [
+    "Classify non-finite predictions, case rows or aggregate fields before score-record persistence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "graphite.attacker.cooling.selective_fault"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

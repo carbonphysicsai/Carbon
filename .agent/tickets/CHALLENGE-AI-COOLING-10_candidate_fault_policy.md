@@ -97,14 +97,14 @@ Out of scope:
 
 ## Local validation evidence
 
-- The exact LF-native implementation tree passed 150 focused policy, Cooling
-  validator and Cooling attacker tests in 68.09 seconds.
-- After removing Cooling fault literals from the shared loader, the exact
-  implementation tree passed the full 150-test focused suite in 47.12 seconds.
-- The affected validator, Battery compatibility, Cooling attacker and existing
-  pod-attribution subsystem matrix passed 317 tests in 146.66 seconds.
+- After current-main reconciliation, the exact LF-native implementation tree
+  passed 167 policy, Cooling validator and merged selective-fault attacker
+  tests in 397.34 seconds.
+- The non-attacker validator, Battery compatibility, confirmation-set and
+  existing pod-attribution subsystem matrix passed 214 tests in 159.19
+  seconds.
 - Focused Ruff passed and Black left all eight changed Python files unchanged.
-- The challenge-pipeline validator accepted 7 records and 257 lessons with no
+- The challenge-pipeline validator accepted 7 records and 276 lessons with no
   pending decision before the final pass records were appended; canonical CI
   validates the delivered complete set.
 
