@@ -21,9 +21,12 @@ for every level, 0 through 5. Each proposal is one file,
 - Graphite never writes the contract or an expansion record.
 
 A proposal made while findings are open carries their tag (`conditional_on`
-and `conditional_policy`, both or neither; `conditional-evidence.v1`). It
-may be filed as PROPOSED but is never ACCEPTED while the tag lists a finding:
-acceptance cites it as established.
+and `conditional_policy`, both or neither, and `repaired_by_attestation` only
+with them; `conditional-evidence.v2`). It may be filed as PROPOSED but is
+never ACCEPTED while the tag lists a finding: acceptance cites it as
+established. A Graphite next-level proposal (`runs/<run>/next-level/`) is
+written with the tag of the findings open when it was made; a level proposal
+transcribed from one carries that tag.
 
 Nothing here is battery-specific.
 """
@@ -51,7 +54,7 @@ KEYS = {
     "status",
 }
 TAG = set(conditional_evidence.TAG_KEYS)
-OPTIONAL = {"decision", *TAG}
+OPTIONAL = {"decision", *TAG, conditional_evidence.ATTESTED}
 CAPABILITY_KEYS = {
     "id",
     "adds",
@@ -159,7 +162,9 @@ def validate(proposal, where, protocol):
             "contract owner (the technical owner)"
         )
     tagged = TAG & set(proposal)
-    if tagged and tagged != TAG:
+    if (tagged and tagged != TAG) or (
+        conditional_evidence.ATTESTED in proposal and not tagged
+    ):
         raise ProposalError(
             f"{where}: a conditional proposal carries conditional_on and "
             "conditional_policy together"
@@ -172,7 +177,7 @@ def validate(proposal, where, protocol):
     except conditional_evidence.ConditionalEvidenceError as error:
         raise ProposalError(
             f"{where}: {error}; accept it once its findings are repaired and it is "
-            "proposed again (conditional-evidence.v1)"
+            "proposed again (conditional-evidence.v2)"
         ) from error
     return proposal
 
