@@ -547,6 +547,71 @@ def refused_result(refused):
     }
 
 
+#: The outcome of a task the campaign's own ceiling refused
+#: (RESEARCH-BUDGET-REFUSAL-TYPING-01), beside REQUEST_REFUSED and
+#: MINER_PROGRAM_FAILED: Carbon examined the request and completed it with
+#: this typed outcome. Results retained before it are read unchanged.
+CEILING_OUTCOME = "MINER_CEILING_REACHED"
+
+
+def ceiling_correction(record):
+    """What the requester can do about a ceiling refusal, from its record.
+
+    Registered text over Carbon-written values only: the dimension name, the
+    campaign's own counts, and the launch field that sets the limit. A
+    product campaign's budget is the miner's own, set at launch and frozen
+    with the campaign; a development campaign's is its operator's.
+    """
+    dimension = record["dimension"]
+    elapsed = dimension == "elapsed_seconds"
+    field = "budget.elapsed_seconds" if elapsed else "budget.ceilings." + dimension
+    counts = ", ".join(
+        f"{name} {record[key]}"
+        for key, name in (
+            ("used", "used"),
+            ("requested", "requested"),
+            ("ceiling", "ceiling"),
+        )
+        if record[key] is not None
+    )
+    counts = f" ({counts})" if counts else ""
+    tail = (
+        " Nothing of the refused work was reserved."
+        if record["refused_at"] == "reservation"
+        else ""
+    )
+    if record["basis"] == "miner_launch_budget":
+        return (
+            f"This campaign reached a ceiling you set yourself: {dimension}"
+            f"{counts}. It is your own budget, set at launch in {field}; Carbon "
+            "sets no ceiling of its own on it. A launched campaign's budget is "
+            f"frozen with it, so to go further launch a new campaign with a "
+            f"larger {field}, or leave it out for no ceiling.{tail}"
+        )
+    return (
+        f"This campaign reached its {dimension} ceiling{counts}, set by its "
+        f"development budget when it was created.{tail}"
+    )
+
+
+def ceiling_result(refusal):
+    """The task result for work the campaign's own ceiling refused.
+
+    Never an infrastructure failure: the ledger refused against a limit the
+    campaign froze (before it recorded the refused reservation, when
+    `refused_at` is `reservation`). It names the
+    dimension, the counts the ledger compared and whose limit it is, and says
+    how to raise it. No hidden or official value, and no other owner's state:
+    only this campaign's own budget and use."""
+    record = refusal.record()
+    return {
+        "outcome": CEILING_OUTCOME,
+        **record,
+        "correction": ceiling_correction(record),
+        "authority_granted": False,
+    }
+
+
 def workspace_fields(action):
     """The (required, optional) argument fields of one workspace action.
 
@@ -880,6 +945,50 @@ class PublicResearchExecutor:
             evidence = ResearchEvidenceClass.PRACTICE_NON_AUTHORITATIVE
         else:
             raise ValueError("task kind unavailable in real D4 provider")
+        return self._complete(identity, result, evidence)
+
+    def refusal_outcome(self, attempt, error):
+        """The typed outcome of a ledger refusal raised while executing
+        `attempt`, or None for anything else (`durable._typed_refusal`).
+
+        The campaign's own ceiling - a cap in the budget it froze, or its
+        elapsed time - completes the task with `ceiling_result`, stored as
+        its result like every other outcome: never an infrastructure failure
+        (RESEARCH-BUDGET-REFUSAL-TYPING-01). Carbon's own service capacity is
+        Carbon's limit, so it stays an infrastructure failure, typed
+        RESOURCE_LIMIT rather than INTERNAL. Every other exception is None:
+        the caller keeps INTERNAL, exactly as before.
+        """
+        from carbon.research.records import InfrastructureExecutionFailure
+
+        from .research_control import CampaignDeadlineReached
+        from .research_ledger import (
+            CARBON_SERVICE_CAPACITY,
+            MINER_CEILING_REACHED,
+            LedgerRefusal,
+        )
+
+        if type(error) is CampaignDeadlineReached:
+            # Campaign control's own check of the same time limit, made before
+            # the ledger's (`CampaignLedger.reserve` runs it first).
+            error = error.refusal
+        if type(error) is not LedgerRefusal:
+            return None
+        if error.code == CARBON_SERVICE_CAPACITY:
+            return InfrastructureExecutionFailure(
+                InfrastructureFailureClass.RESOURCE_LIMIT, False
+            )
+        if error.code != MINER_CEILING_REACHED:
+            return None
+        return self._complete(
+            attempt.task_id.value,
+            ceiling_result(error),
+            ResearchEvidenceClass.STRUCTURAL_ONLY,
+        )
+
+    def _complete(self, identity, result, evidence):
+        """Retain `result` as this task's public result and return its
+        authorized outcome."""
         body = canonical(result)
         if len(body) > 1024**2:
             raise ValueError("bounded public result required")

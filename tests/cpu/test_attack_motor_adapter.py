@@ -16,8 +16,8 @@ The claims tested:
   registered, and name the owner value they still need as a NOT_RUN seam;
 - the oracle emits only the CONDITIONS vocabulary, as battery's does;
 - Carbon rebuilds with its own typed build record and refuses with a typed
-  code; no motor scoring is registered, so the pods do not serve it and the
-  phase-4 runner refuses a motor dry run and pre-live gate with a typed code;
+  code; public motor practice scoring is registered, while phase-4's
+  verification-pod rebuild remains a separate seam;
 - no sealed identity is named, and only public TRAIN and PRACTICE material
   (and the calibration document their loader checks) is read;
 - each pinned value is a copy of its motor source;
@@ -589,21 +589,15 @@ def test_a_stale_contract_record_is_carbons_side_never_the_constructions(monkeyp
     assert A.carbon_code(out) == "construction_contract_unrecorded"
 
 
-def test_no_motor_scoring_is_registered_so_the_pods_do_not_serve_it():
-    """A tripwire: motor has no `ChallengeScoring`. The rebuild says so; when
-    one is registered this test fails, and the adapter should move to
-    `experiment.admit` with it, as cooling's does."""
+def test_motor_public_scoring_is_registered_but_attack_rebuild_launches_no_pod():
     from carbon.challenge_validator import scoring
 
-    with pytest.raises(scoring.ScoringUnavailable) as refused:
-        scoring.scoring_for(m.CHALLENGE_ID)
-    assert refused.value.code == "challenge_scoring_not_registered"
-    assert m.pod_scoring_code() == "challenge_scoring_not_registered"
+    assert scoring.scoring_for(m.CHALLENGE_ID).challenge_id == m.CHALLENGE_ID
+    assert m.pod_scoring_code() is None
     detail = A.rebuild(m._scaffold()).detail
-    assert detail["served"] is False
-    assert detail["pod_scoring"] == "challenge_scoring_not_registered"
-    seam = next(s for s in A.level_families() if s.name == "pod_scoring_not_registered")
-    assert seam.state == core.NOT_RUN and "reserved: owner" in seam.reason
+    assert detail["served"] is True
+    assert detail["pod_scoring"] is None
+    assert not any(s.name == "pod_scoring_not_registered" for s in A.level_families())
 
 
 def _refused(argv, tmp_path):
@@ -615,29 +609,6 @@ def _refused(argv, tmp_path):
     assert stopped.value.code == 2
     lines = [json.loads(x) for x in out.getvalue().splitlines() if x.startswith("{")]
     return lines[-1], tmp_path
-
-
-def test_the_phase4_dry_run_refuses_motor_with_a_typed_code(tmp_path):
-    """With the adapter registered, the runner reaches the scoring registry
-    and refuses there, before anything is written or spent."""
-    root = tmp_path / "root"
-    refused, _ = _refused(
-        ["run", "--root", str(root), "--challenge", m.CHALLENGE_ID, "--dry-run"],
-        tmp_path,
-    )
-    assert refused == {
-        "status": "REFUSED",
-        "reason_code": "challenge_scoring_not_registered",
-    }
-    assert not root.exists() or not any(root.iterdir())
-
-
-def test_the_phase4_prelive_gate_refuses_motor_with_a_typed_code(tmp_path):
-    root = tmp_path / "root"
-    refused, _ = _refused(
-        ["prelive", "--root", str(root), "--challenge", m.CHALLENGE_ID], tmp_path
-    )
-    assert refused["reason_code"] == "challenge_scoring_not_registered"
 
 
 def test_higher_level_families_are_not_run_seams_with_nothing_to_execute():

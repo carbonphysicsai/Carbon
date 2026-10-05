@@ -339,21 +339,22 @@ def test_a_code_run_is_refused_before_dispatch_above_the_wall_allowance():
         assert A.code_run_refusal(arguments), arguments
 
 
-def test_a_partial_prediction_set_is_failed_infra_never_a_pass():
+def test_a_partial_prediction_set_is_a_gate_failure_never_a_pass():
+    """GRAPHITE-COVERAGE-PARITY-01: every case a set leaves out is a schema-
+    gate failure, never FAILED_INFRA and never excluded, so a partial set is
+    never eligible (before it, an omitted case was FAILED_INFRA and excluded)."""
     value = {"kind": "scoring", "predictions": {}, "partial": True}
     result = b.resource_boundary(value)
     assert not result["eligible"]
-    assert result["n_gate_failed"] == 0
-    assert result["n_failed_infra"] == result["n_cases"] == 200
+    assert result["n_failed_infra"] == 0
+    assert result["n_gate_failed"] == result["n_cases"] == 200
     half = b.resource_boundary(
         {"kind": "scoring", "predictions": b._half_predictions(), "partial": True}
     )
-    # Every omitted case is typed FAILED_INFRA, never a gate failure. Whether
-    # such a set may be eligible is the Level 5 seam's open question, so the
-    # detector does not judge it.
-    assert half["n_gate_failed"] == 0
-    assert half["n_failed_infra"] == half["n_cases"] - half["n_scored"] == 100
+    assert not half["eligible"] and half["n_failed_infra"] == 0
+    assert half["n_gate_failed"] == half["n_cases"] - half["n_scored"] == 100
     assert not b.resource_breached(half)
+    assert b.resource_breached(b.resource_specimen(value))
 
 
 def test_a_pod_timeout_is_a_seam_never_judged_by_the_scoring_stand_in():
@@ -367,6 +368,104 @@ def test_a_pod_timeout_is_a_seam_never_judged_by_the_scoring_stand_in():
     names = {n for n, _ in A.family_spec("resource_accounting").attacks()}
     assert not any("timed_out" in n or "timeout" in n for n in names)
     assert "pod_timeout_typing:NOT_RUN" in A.checks()["resource_and_failure_accounting"]
+
+
+# -- selective fault and omission (GRAPHITE-COVERAGE-PARITY-01) ---------------------------------
+_RESULTS = {}
+
+
+def _result(family, name):
+    """One attack's real-boundary result, computed once per test session."""
+    key = (family, name)
+    if key not in _RESULTS:
+        value = dict(A.family_spec(family).attacks())[name]
+        _RESULTS[key] = (value, b.fault_boundary(value))
+    return _RESULTS[key]
+
+
+@pytest.mark.parametrize("name", [n for n, _ in b._selective_attacks()])
+def test_a_selective_fault_dodges_no_case_on_either_path(name):
+    """A raise on the hit cases fails the whole attempt and charges it: the
+    Interface v1 validator (battery's daemon behind `Validator.evaluate`)
+    marks it RECONSTRUCTION_FAILED (`DirectBackend.infer` types the predict
+    fault as the candidate's) and a resubmission reads the same; Graphite's
+    pod path types the program crash CANDIDATE_FAILED, never retried. A
+    non-finite output is a gate failure on both: the set is ineligible and
+    no case is excluded."""
+    value, result = _result("selective_fault", name)
+    assert not b.fault_breached(result)
+    v1, graphite = result["interface_v1"], result["graphite"]
+    assert v1["hit"] and graphite["hit"]
+    assert v1["retry_same"] and graphite["pods_launched"] == 2
+    assert not graphite["retried"]
+    if value["mode"] == "raise":
+        assert v1["outcome"] == (
+            "OUTCOME:RECONSTRUCTION_FAILED:prediction_failed:ConstructionFault"
+        )
+        assert graphite["outcome"] == "CANDIDATE_FAILED:program"
+    else:
+        assert v1["outcome"] == "SCORED" and v1["eligible"] is False
+        assert v1["n_scored"] + len(v1["hit"]) == v1["n_cases"]
+        assert v1["n_failed_infra"] == 0
+        assert graphite["outcome"] == "SCORED" and graphite["eligible"] is False
+        assert graphite["n_gate_failed"] == len(graphite["hit"])
+        # An ineligible record never headlines a score (item 2).
+        assert graphite["score"] is None
+        assert graphite["against_baseline"] == "REGRESSION"
+
+
+@pytest.mark.parametrize("name", [n for n, _ in b._omission_attacks()])
+def test_an_omission_is_charged_on_both_paths(name):
+    """A case left out, or given null, is the candidate's on both paths:
+    battery's validator refuses the incomplete set (`daemon.incomplete`,
+    RECONSTRUCTION_FAILED) and Graphite's frozen rule types each missing case
+    a schema-gate failure (`scoring.cover`), so the set is ineligible."""
+    _value, result = _result("prediction_omission", name)
+    assert not b.fault_breached(result)
+    v1, graphite = result["interface_v1"], result["graphite"]
+    assert v1["outcome"] == "OUTCOME:RECONSTRUCTION_FAILED:prediction_cases_differ"
+    assert v1["retry_same"]
+    assert graphite["outcome"] == "SCORED" and graphite["eligible"] is False
+    assert graphite["n_gate_failed"] == len(graphite["hit"]) > 0
+    assert graphite["n_scored"] + len(graphite["hit"]) == graphite["n_cases"]
+    assert graphite["score"] is None
+
+
+def test_the_specimen_drops_the_hit_cases():
+    for family in ("selective_fault", "prediction_omission"):
+        for name, value in A.family_spec(family).attacks():
+            weak = b.dropping_accounting(value)
+            assert b.fault_breached(weak), (family, name)
+            for path in b.FAULT_PATHS:
+                assert weak[path]["n_scored"] == 200 - len(weak[path]["hit"])
+
+
+def test_the_probe_runs_carbons_own_program_and_validator(monkeypatch):
+    """The pod's program is Carbon's practice program (the GPU program is it
+    plus a runtime record) from its fitted model onward; the validator path
+    is `BatteryAdapter.evaluate` through `DirectBackend.infer`, twice."""
+    from carbon.battery import practice
+    from carbon.battery.worker import DirectBackend
+    from carbon.challenge_validator.battery import BatteryAdapter
+    from carbon.development_session.battery_gpu import GPU_PROGRAM
+
+    assert GPU_PROGRAM.startswith(practice.PROGRAM)
+    assert "predictions" in b._program_tail(practice.PROGRAM).co_names
+    calls = {"evaluate": 0, "infer": 0}
+    evaluate, infer = BatteryAdapter.evaluate, DirectBackend.infer
+
+    def counted_evaluate(self, submission):
+        calls["evaluate"] += 1
+        return evaluate(self, submission)
+
+    def counted_infer(self, *args):
+        calls["infer"] += 1
+        return infer(self, *args)
+
+    monkeypatch.setattr(BatteryAdapter, "evaluate", counted_evaluate)
+    monkeypatch.setattr(DirectBackend, "infer", counted_infer)
+    b.fault_boundary({"mode": "none", "select": "none"})
+    assert calls["evaluate"] == 2 and calls["infer"] >= 1
 
 
 def test_repeated_practice_probes_disclose_the_allow_list_and_nothing_sealed():
@@ -773,10 +872,45 @@ def _averaging_scorer(m):
     m.setattr(exam, "aggregate", _aggregate(lambda out: out["n_scored"] > 0))
 
 
-def _failed_infra_counts_as_pass(m):
+def _missing_prediction_typed_failed_infra(m):
+    """Graphite's frozen rule excludes a missing case again: battery's
+    scoring reads `cover` from its own module."""
+    from carbon.challenge_validator import battery_scoring
+
+    def excluding(predictions, case_ids):
+        source = predictions if isinstance(predictions, dict) else {}
+        return {case: source.get(case) for case in case_ids}, []
+
+    m.setattr(battery_scoring, "cover", excluding)
+
+
+def _daemon_accepts_a_null_prediction(m):
+    """Battery's validator checks the keys only, as before the ruling: a case
+    given null is typed FAILED_INFRA by the exam and excluded. `_infer`
+    reads `incomplete` from the daemon module."""
+    from carbon.battery import daemon
+
+    m.setattr(
+        daemon,
+        "incomplete",
+        lambda predictions, asked: set(predictions) != set(asked),
+    )
+
+
+def _nonfinite_typed_failed_infra(m):
+    """The exam drops a non-finite case: a schema_finite failure typed
+    FAILED_INFRA (`exam.evaluate` reads `evaluate_case` from `exam`)."""
     from carbon.battery import exam
 
-    m.setattr(exam, "aggregate", _aggregate(lambda out: out["n_gate_failed"] == 0))
+    original = exam.evaluate_case
+
+    def lax(pred, reference, *args, **kwargs):
+        row = original(pred, reference, *args, **kwargs)
+        if row["gates"].get("schema_finite") == exam.FAIL:
+            return {"state": exam.FAILED_INFRA, "gates": {}}
+        return row
+
+    m.setattr(exam, "evaluate_case", lax)
 
 
 def _leaky_stager(m):
@@ -918,9 +1052,24 @@ MUTATIONS = {
         _feedback_field_added,
         lambda: _held_and_fired("practice_disclosure"),
     ),
-    "failed_infra_counted_as_a_pass": (
-        _failed_infra_counts_as_pass,
-        test_a_partial_prediction_set_is_failed_infra_never_a_pass,
+    # GRAPHITE-COVERAGE-PARITY-01 retired `failed_infra_counted_as_a_pass`:
+    # a partial set no longer has FAILED_INFRA cases to count. Its successor
+    # restores the old typing itself.
+    "missing_prediction_typed_failed_infra": (
+        _missing_prediction_typed_failed_infra,
+        test_a_partial_prediction_set_is_a_gate_failure_never_a_pass,
+    ),
+    "missing_prediction_excluded_on_graphite": (
+        _missing_prediction_typed_failed_infra,
+        lambda: _held_and_fired("prediction_omission"),
+    ),
+    "daemon_accepts_a_null_prediction": (
+        _daemon_accepts_a_null_prediction,
+        lambda: _held_and_fired("prediction_omission"),
+    ),
+    "nonfinite_case_typed_failed_infra": (
+        _nonfinite_typed_failed_infra,
+        lambda: _held_and_fired("selective_fault"),
     ),
     "non_conditions_finding": (_non_conditions_finding, _guard_breach_condition),
     "gate_crash_read_as_a_refusal": (_gate_swallows_crashes, _guard_gate_crash),
@@ -944,7 +1093,55 @@ def test_every_guard_passes_without_its_mutation():
     (the family guards are the parametrized tests above)."""
     test_protected_material_is_withheld_and_only_an_exposure_when_it_got_through()
     test_each_pinned_value_is_a_copy_of_its_battery_source()
-    test_a_partial_prediction_set_is_failed_infra_never_a_pass()
+    test_a_partial_prediction_set_is_a_gate_failure_never_a_pass()
+    _held_and_fired("selective_fault")
+    _held_and_fired("prediction_omission")
     _guard_trained_split_only()
     _guard_breach_condition()
     _guard_gate_crash()
+
+
+#: Under each accounting that drops hit cases, the attacks that dodge and the
+#: path they dodge on.
+_DODGES = {
+    "missing_prediction_excluded_on_graphite": (
+        "prediction_omission",
+        {name: ("graphite",) for name, _ in b._omission_attacks()},
+    ),
+    "daemon_accepts_a_null_prediction": (
+        "prediction_omission",
+        {
+            "null_the_important_region": ("interface_v1",),
+            "null_the_worse_half": ("interface_v1",),
+        },
+    ),
+    "nonfinite_case_typed_failed_infra": (
+        "selective_fault",
+        {
+            "nonfinite_only_on_the_hard_cases": ("interface_v1", "graphite"),
+            "infinite_capacity_on_the_worst_k_cases": ("interface_v1", "graphite"),
+        },
+    ),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_DODGES))
+def test_an_accounting_that_drops_hit_cases_turns_its_family_red(name, monkeypatch):
+    """Which attacks breach, on which path, with the hit cases gone from the
+    score; each reads BREACH with a FAILING_TRIGGER condition."""
+    mutate, _guard = MUTATIONS[name]
+    family, expected = _DODGES[name]
+    mutate(monkeypatch)
+    found = {}
+    for attack, value in A.family_spec(family).attacks():
+        result = b.fault_boundary(value)
+        paths = tuple(p for p in b.FAULT_PATHS if b._dodged(result[p]))
+        if paths:
+            found[attack] = paths
+            for path in paths:
+                row = result[path]
+                assert row["n_scored"] == row["n_cases"] - len(row["hit"])
+            reading = A.assess(family, (attack, value))
+            assert reading.reading == b.BREACH
+            assert reading.oracle.condition == "FAILING_TRIGGER"
+    assert found == expected
