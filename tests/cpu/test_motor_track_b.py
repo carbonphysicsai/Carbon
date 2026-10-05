@@ -80,6 +80,9 @@ def test_track_b_reproduces_the_counted_decision_result(study, tmp_path):
     assert counted["arms"]["analytic-v1:fixed_grid"]["outcome"] == (
         "CONFIRMED_INFEASIBLE"
     )
+    tie = result["arms"]["analytic-v1"]["scopes"][track_b.CONTRACT_SCOPE]
+    assert tie["tie_determined"] is True and tie["correct_decision"] is None
+    assert track_b.decision_value(tie) == (2, 0.0)
     krr = result["arms"]["learned-krr-v1"]
     assert krr["design_id"] == "d06"
     assert krr["scopes"][track_b.CONTRACT_SCOPE]["regret"]["regret"] == pytest.approx(
