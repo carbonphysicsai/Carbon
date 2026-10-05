@@ -313,7 +313,8 @@ class Experiment:
     candidate. `attribution_policy` names a registered attribution policy
     version; None is the registry's current one.
 
-    A baseline that closes `FAILED_INFRA` is run once more under the
+    The session's baseline (Carbon's own recipe and seed), when it closes
+    `FAILED_INFRA` or with its program crashed, is run once more under the
     registered baseline-retry policy (`baseline_retry`; `retry_policy` names a
     version, None is the current one). `seconds_left` reads the run's
     remaining elapsed time (None: no elapsed limit); the retry starts only
@@ -1374,7 +1375,12 @@ def failure_path_check(
     2. A proposal scores against the retried baseline.
     3. A proposal's pod exits non-zero (the run-4 shape: `failure.json` stage
        `program`, `exit 1`) with a log larger than the per-file cap: the log is
-       kept bounded, and its traceback's exception class is noted.
+       kept bounded, and its traceback's exception class is noted. An agent
+       proposal's crash is never retried.
+    4. In a second run, the session's baseline exits 1 at stage `program`
+       (`CANDIDATE_FAILED` at Level 0): it is retried once (the owner's
+       direction, 2026-10-04), the retry scores, and a proposal is compared
+       with it.
     Nothing of any log reaches a result record, an event or the ledger.
 
     `root` must be new or empty. Returns a report with `status` OK or FAILED;
@@ -1408,22 +1414,26 @@ def failure_path_check(
             ]
         )
         events = []
-        run = Experiment(
-            root=root,
-            run_id="failure-path-check",
-            pods=account,
-            budget=budget,
-            baseline=baseline,
-            token_committed=lambda: Decimal(0),
-            cancelled=lambda: False,
-            ladder=_NoLadder(),
-            emit=lambda event_id, body: events.append((event_id, body)),
-            scorer=scorer,
-            repository=repository,
-            clock=lambda: 0.0,
-            randomness=lambda n: b"\x03" * n,
-            construction_level=level,
-        )
+
+        def experiment(where, pods):
+            return Experiment(
+                root=root / where,
+                run_id="failure-path-check-" + where,
+                pods=pods,
+                budget=budget,
+                baseline=baseline,
+                token_committed=lambda: Decimal(0),
+                cancelled=lambda: False,
+                ladder=_NoLadder(),
+                emit=lambda event_id, body: events.append((event_id, body)),
+                scorer=scorer,
+                repository=repository,
+                clock=lambda: 0.0,
+                randomness=lambda n: b"\x03" * n,
+                construction_level=level,
+            )
+
+        run = experiment("baseline-infra", account)
         why = {"hypothesis": "failure-path check", "expected_effect": "typed"}
         scored = run.run("p-check-scored", "proposal", baseline, why=why)
         failed = run.run("p-check-failed", "proposal", baseline, why=why)
@@ -1463,18 +1473,47 @@ def failure_path_check(
             failures.append("a_failed_pods_log_was_not_kept_bounded")
         if not logs["baseline"]:
             failures.append("the_failed_baselines_logs_were_not_kept")
+        if len(account.launched) != 4 or any(
+            intent.startswith(run.run_id + "-p-check-failed-")
+            for intent, _job in account.launched
+        ):
+            failures.append("an_agent_proposals_crash_was_retried")
+        # 4. The baseline's own program crash, in a second run.
+        crashing = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=podlib.failed_outputs("program")),
+                podlib.Step(outputs=podlib.synthetic_outputs(1.0)),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        crash_run = experiment("baseline-crash", crashing)
+        crash_scored = crash_run.run("p-check-scored", "proposal", baseline, why=why)
+        crash_first = crash_run.record("baseline")
+        crash_decision = crash_run.baseline_retry() or {}
+        crash_retried = crash_run.record(baseline_retry.RETRY_ID) or {}
+        crash_against = crash_scored.get("against_baseline") or {}
+        if not crash_decision.get("retry") or crash_retried.get("status") != "SCORED":
+            failures.append("the_crashed_baseline_was_not_retried_to_a_score")
+        if crash_run.baseline_id() != baseline_retry.RETRY_ID or crash_against.get(
+            "outcome"
+        ) in (None, "NO_BASELINE"):
+            failures.append("a_proposal_was_not_compared_with_the_crash_retry")
+        if crashing.alive or len(crashing.launched) != 3:
+            failures.append("the_crash_retry_used_other_than_one_pod")
         for pid in ("p-check-scored", baseline_retry.RETRY_ID):
             if (run.root / "proposals" / pid / "pod-logs").exists():
                 failures.append("a_scored_pods_logs_were_kept")
         marker = b"SYNTHETIC scripted failure"
         leaked = [
             path.name
-            for path in (run.root / "proposals").glob("*/result.json")
+            for path in root.glob("*/proposals/*/result.json")
             if marker in path.read_bytes()
         ]
         if (
             leaked
-            or marker in (run.root / "pod-ledger.jsonl").read_bytes()
+            or any(
+                marker in path.read_bytes() for path in root.glob("*/pod-ledger.jsonl")
+            )
             or any(marker in canonical(body) for _event, body in events)
         ):
             failures.append("log_text_left_the_pod_logs")
@@ -1499,6 +1538,23 @@ def failure_path_check(
                     "outcome": against.get("outcome"),
                     "promotable": against.get("promotable"),
                     "baseline": (scored.get("baseline") or {}).get("proposal_id"),
+                },
+                "baseline_crash_retry": {
+                    "baseline": {
+                        "status": crash_first["status"],
+                        "reason_code": crash_first.get("reason_code"),
+                    },
+                    "retry": crash_decision.get("retry"),
+                    "reason_code": crash_decision.get("reason_code"),
+                    "retry_status": crash_retried.get("status"),
+                    "compared": {
+                        "outcome": crash_against.get("outcome"),
+                        "promotable": crash_against.get("promotable"),
+                        "baseline": (crash_scored.get("baseline") or {}).get(
+                            "proposal_id"
+                        ),
+                    },
+                    "pods_launched": len(crashing.launched),
                 },
                 "failed_pod": {
                     "status": failed["status"],

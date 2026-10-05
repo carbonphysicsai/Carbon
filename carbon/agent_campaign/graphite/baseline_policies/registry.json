@@ -2,7 +2,7 @@
   "schema": "carbon.graphite.baseline-retry-registry.v1",
   "current": "baseline-retry-v1",
   "versions": {
-    "baseline-retry-v1": "sha256:47f27174d168e41af8dc769a8413b3db9f77c7c495b7a062093530925fe797c8"
+    "baseline-retry-v1": "sha256:c7537ac24cd767ac6af485f1d9e3d1f9912708a2ca48253fd2a740301c7bc94a"
   },
   "rule": "A new baseline-retry policy is a new document in this directory plus a registered entry here (and, to make it current, a change to `current`), never an edit to experiment code. Every retry decision records the version and digest it was made under."
 }

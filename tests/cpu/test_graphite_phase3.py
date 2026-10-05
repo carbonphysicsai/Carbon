@@ -1827,6 +1827,11 @@ def test_the_dry_run_exercises_the_whole_session_without_spend(tmp_path, capsys)
     assert failure["baseline_retry"]["retry_status"] == "SCORED"
     assert failure["compared"]["baseline"] == "baseline-retry-1"
     assert failure["failed_pod"]["logs"][0]["truncated_bytes"] > 0
+    # A baseline whose program exits 1 (CANDIDATE_FAILED at Level 0) is also
+    # retried once and scores (owner, 2026-10-04).
+    crash = failure["baseline_crash_retry"]
+    assert crash["baseline"]["status"] == "CANDIDATE_FAILED"
+    assert (crash["retry"], crash["retry_status"]) == (True, "SCORED")
     # Its first turn returns three calls: under v2 all three run (LP-PROD-A).
     assert result["dry_run"]["parallel_calls_run"] == 3
     assert result["dry_run"]["parallel_calls_not_run"] == 0

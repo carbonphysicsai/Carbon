@@ -3,11 +3,21 @@
 **Authority.** The owner (Ryan) approved two fixes on 2026-10-04 after
 Graphite R2 run 4 (REF `05cfb321`), relayed to the executor by the
 coordinating session: fix 2, keep the failed pods' logs; fix 3, retry a
-failed baseline once. The caps, the retry policy's shape and where each rule
-lives are engineering choices within GRAPHITE-01's delegated authority,
-recorded here. No scientific value is set: nothing here changes a score, a
-gate, a comparison rule or how a pod outcome is attributed
-(`pod-attribution-v1`, #573, is unchanged).
+failed baseline once. Then, after the coordinating session explained that
+`pod-attribution-v1` types a Level 0-3 `program` crash as `CANDIDATE_FAILED`,
+the owner directed, verbatim:
+
+> "Yes, retry baseline crashes"
+
+That direction extends the retry to the session baseline's program crash
+(decision 2), and only to the baseline: the coordinator made it conditional
+on the baseline being Carbon's own recipe, which the premise check below
+verifies. The caps, the retry policy's shape and where each rule lives are
+engineering choices within GRAPHITE-01's delegated authority, recorded here.
+No scientific value is set: nothing here changes a score, a gate, a
+comparison rule or how a pod outcome is attributed (`pod-attribution-v1`,
+#573, is unchanged; the crashed baseline's own record stays
+`CANDIDATE_FAILED`).
 
 Ticket: `.agent/tickets/GRAPHITE-01_in_house_testing_agent.md`.
 
@@ -57,14 +67,21 @@ proposal `NO_BASELINE`, never promotable, with no retry.
   experiment root), in the pod ledger (`baseline_retry_decided`) and as a
   session event (`kind: baseline_retry`, ingested into the controller ledger
   as data like every other event).
-- Retried: `FAILED_INFRA` from a pod that ran and ended in infrastructure:
-  `candidate_failure_unattributed`, `compile`, `pod`, `infra`,
-  `predictions_missing`.
-- Never retried: `CANDIDATE_FAILED`, `CANDIDATE_RESOURCE_EXCEEDED`; a launch
-  the launch gate refused (`launch_refused`, nothing was created) or whose
-  outcome is unknown (`launch_unresolved`); a process death
+- It applies to the session's baseline only (`applies_to:
+  session_baseline`; `baseline_retry.is_session_baseline` checks proposal id
+  `baseline` and kind `baseline`). An agent proposal, an ablation or the
+  retry itself is never retried by it; an agent proposal keeps #573's
+  attribution unchanged.
+- Retried: `FAILED_INFRA` from a pod that ran and ended in infrastructure
+  (`candidate_failure_unattributed`, `compile`, `pod`, `infra`,
+  `predictions_missing`), and, at the owner's direction, the baseline's
+  program crash (`CANDIDATE_FAILED`, reason `program`).
+- Never retried: `CANDIDATE_RESOURCE_EXCEEDED`; any other `CANDIDATE_FAILED`
+  reason; a launch the launch gate refused (`launch_refused`, nothing was
+  created) or whose outcome is unknown (`launch_unresolved`); a process death
   (`interrupted_not_rerun`, never rerun); the attribution policy's own timeout
-  outcomes (already retried once); a second retry.
+  outcomes (already retried once); a second retry, whatever the first retry's
+  outcome.
 - Limits: the retry's pod and the waiting proposal's pod must both fit the
   session's pod limit, the run's money cap (tokens and pods together) and,
   under the v2 session limits, the remaining elapsed time; the retry's pod
@@ -81,26 +98,68 @@ proposal `NO_BASELINE`, never promotable, with no retry.
   decision lists them with the reason. In this code path a retry is decided
   before any proposal is scored, so this arises only for a session whose
   baseline failed before this rule existed.
-- The policy is data, pinned by digest in `baseline_policies/registry.json`;
-  the loader refuses (fails closed) a version that retries a
-  candidate-attributed outcome or a launch-gate refusal, allows more than one
-  retry, names other limits or another seed rule.
+- The policy is data, pinned by digest in `baseline_policies/registry.json`
+  (repinned for the owner's direction; v1 had not merged). The loader
+  refuses (fails closed) a version that:
+  - applies to anything but the session's baseline;
+  - retries a candidate outcome other than the baseline's program crash
+    (`ALLOWED_CANDIDATE_RETRIES` is exactly `(CANDIDATE_FAILED, program)`);
+  - does not list `CANDIDATE_RESOURCE_EXCEEDED` as never retried, or lists a
+    retried status as never retried;
+  - retries a launch-gate refusal, an unknown launch or a process death;
+  - allows more than one retry, or names other limits or another seed rule.
 
-**What this does not change, and what it means for run 4.** Under
-`pod-attribution-v1` a pod's `program` claim is admissible at Levels 0-3, so
-at phase 3's recorded Level 0 the run-4 shape (`stage: program`, `exit 1`) is
-`CANDIDATE_FAILED`, and a baseline failing that way is not retried. It is
-`FAILED_INFRA` / `candidate_failure_unattributed`, and retried, only at
-Levels 4-5 or an unknown level. Whether a crash inside the practice program
-is the candidate's or infrastructure is the attribution policy's call
-(owner-decided, #573), not this rule's. The kept logs, with the exception
-class, are the evidence for that call.
+**Premise check for the owner's direction** (line numbers on this branch,
+based on main `feb40756`). The direction rests on the agent being unable to author,
+choose or seed the baseline, so a crash retry cannot be gamed. It holds:
+- The recipe is Carbon's: `BatteryScoring.baseline_strategy` returns the
+  module constant `SCAFFOLD` (`carbon/challenge_validator/battery_scoring.py:154-157`,
+  `carbon/battery/research.py:83`). `phase3.session_brief` uses it when no
+  baseline is passed (`carbon/agent_campaign/graphite/phase3.py:729`) and puts it in
+  the brief (`:737`). The live runner passes none (`phase3.py:1120-1122`), and
+  neither does the dry run.
+- The brief is Carbon's, written before the agent runs: `run_session`
+  registers it (`phase3.py:860`, `provider.register_brief`,
+  `carbon/agent_campaign/graphite/provider.py:519-524`), and every read is checked against
+  its digest (`provider._brief`, `provider.py:526-533`, `brief_changed`).
+  `Phase3Provider.start` refuses a brief whose baseline Carbon cannot rebuild
+  (`check_observation`, `phase3.py:661`). The experiment takes the baseline
+  from that registered brief (`phase3.py:451`) into `Experiment.baseline`
+  (`experiment.py:353`).
+- Only Carbon runs it: the one call with kind `baseline` and id `baseline`
+  is Carbon's own, before the first admitted proposal
+  (`experiment.py:855`). The agent's tool always runs kind `proposal` under an
+  id `p-` plus a digest of its call identity (`experiment.py:618`), and
+  delivery's ablations are `a-...` (`delivery.py:127`), so neither can be, or
+  overwrite, `baseline`.
+- The seed is Carbon's: `Experiment._seed` draws 4 bytes from Carbon's
+  `randomness` (`os.urandom` by default, `phase3.py:330`) write-once into the
+  proposal's `seed.bin`; the retry copies the baseline's own `seed.bin`
+  (`_run_retry`, `experiment.py:756`).
+- The baseline's pod runs before any agent pod (the first proposal's pod
+  starts only after the baseline and its retry close), on a fresh pod.
+The agent influences only when the baseline runs (by making its first
+proposal), never its recipe, seed or pod.
+
+**What this means for run 4.** Under `pod-attribution-v1` a pod's `program`
+claim is admissible at Levels 0-3, so at phase 3's recorded Level 0 the run-4
+shape (`stage: program`, `exit 1`) is `CANDIDATE_FAILED`. On the session's
+baseline it is now retried once; on an agent proposal it is not. At Levels 4-5
+or an unknown level it is `FAILED_INFRA` / `candidate_failure_unattributed`,
+retried on the baseline as before. Whether a crash inside the practice program
+is the candidate's or infrastructure stays the attribution policy's call
+(owner-decided, #573). The kept logs, with the exception class, are the
+evidence for that call.
 
 **Dry run.** `phase3 run --dry-run` also runs
-`experiment.failure_path_check` and fails unless it is OK: a scripted
-baseline pod ending with no claim is retried once and scores, a proposal is
-compared with the retry, and a scripted pod exiting 1 with a log larger than
-the per-file cap keeps it bounded with its traceback's class.
+`experiment.failure_path_check` and fails unless it is OK:
+- a scripted baseline pod ending with no claim is retried once and scores,
+  and a proposal is compared with the retry;
+- a scripted agent proposal's pod exiting 1 with a log larger than the
+  per-file cap keeps it bounded with its traceback's class, and is not
+  retried;
+- in a second run, a baseline exiting 1 at stage `program` (`CANDIDATE_FAILED`
+  at Level 0) is retried once, scores and is compared against.
 
 **Coordination.** `pod_outcome.py` (#573, the Carbon Validator session's) is
 unchanged. `phase3.py` changes are four small hunks: the module docstring,

@@ -6,11 +6,20 @@ registered policy** in the style of `pod_outcome`: a data document in
 `baseline_policies/`, pinned by digest in `baseline_policies/registry.json`.
 Changing it is a new document and a registry entry, never an edit here.
 
+It applies to the **session's baseline only**: Carbon's own recipe
+(`ChallengeScoring.baseline_strategy`, registered in the session's brief),
+with Carbon's own seed, run by Carbon before any proposal's pod. No agent
+authors, chooses or seeds it, so a retry of it cannot be bought by a
+proposal. An agent proposal's outcome is typed by `pod_outcome` (#573)
+unchanged and is never retried here.
+
 What no policy may change (checked when it loads; it fails closed):
-- only `FAILED_INFRA` is retried, and a candidate-attributed outcome
-  (`CANDIDATE_FAILED`, `CANDIDATE_RESOURCE_EXCEEDED`) never is;
-- a launch the pod launch gate refused, or one whose outcome is unknown, is
-  never retried;
+- it applies to the session's baseline and to nothing else;
+- `FAILED_INFRA` is retried only for listed reasons, and never a launch the
+  pod launch gate refused, one whose outcome is unknown, or a process death;
+- the only candidate-attributed outcome that may be retried is the
+  baseline's program crash (`CANDIDATE_FAILED`, `program`; the owner's
+  direction of 2026-10-04); `CANDIDATE_RESOURCE_EXCEEDED` never is;
 - at most one retry;
 - the retry is held to every existing limit: the session's pod limit, the
   run's money cap (tokens and pods together), the remaining elapsed time and
@@ -34,16 +43,22 @@ POLICY_DIR = Path(__file__).with_name("baseline_policies")
 POLICY_SCHEMA = "carbon.graphite.baseline-retry-policy.v1"
 REGISTRY_SCHEMA = "carbon.graphite.baseline-retry-registry.v1"
 DECISION_SCHEMA = "carbon.graphite.phase3.baseline-retry-decision.v1"
-#: The retried baseline's proposal id; the first is `baseline`.
+#: The session baseline's proposal id and kind (`Experiment.run`).
+BASELINE_ID = "baseline"
+#: The retried baseline's proposal id.
 RETRY_ID = "baseline-retry-1"
+#: What a policy may apply to: the session's baseline, nothing else.
+APPLIES_TO = "session_baseline"
 _KEYS = {
     "schema",
     "version",
     "authority",
     "status",
+    "applies_to",
     "max_retries",
     "retry_on_status",
     "retry_on_reasons",
+    "candidate_retry_on",
     "never_on_status",
     "seed",
     "pods_required",
@@ -64,11 +79,17 @@ LIMITS = frozenset(
 NEVER_REASONS = frozenset(
     {"launch_refused", "launch_unresolved", "interrupted_not_rerun"}
 )
+#: The only candidate-attributed outcomes any version may retry: the
+#: baseline's program crash (owner, 2026-10-04: "Yes, retry baseline crashes").
+ALLOWED_CANDIDATE_RETRIES = frozenset({(CANDIDATE_FAILED, "program")})
+#: Statuses no version may retry.
+NEVER_STATUSES = frozenset({CANDIDATE_RESOURCE_EXCEEDED})
 SEEDS = frozenset({"same_as_failed_baseline"})
 EARLIER = frozenset({"not_recompared"})
 
 RETRIED = "retried"
 #: Reason codes a decision not to retry carries.
+NOT_THE_BASELINE = "not_retried:not_the_session_baseline"
 NOT_RETRYABLE_STATUS = "not_retried:status_not_retryable"
 NOT_RETRYABLE_REASON = "not_retried:reason_not_retryable"
 CANDIDATE_ATTRIBUTED = "not_retried:candidate_attributed"
@@ -80,12 +101,24 @@ class PolicyRefused(ValueError):
     """A baseline-retry policy that is unregistered, altered or unsafe."""
 
 
+def _pairs(value):
+    if type(value) is not list or not all(
+        type(pair) is list
+        and len(pair) == 2
+        and all(type(item) is str and item for item in pair)
+        for pair in value
+    ):
+        raise PolicyRefused("candidate_retry_on is [[status, reason_code], ...]")
+    return frozenset(tuple(pair) for pair in value)
+
+
 @dataclass(frozen=True)
 class RetryPolicy:
     version: str
     digest: str
     max_retries: int
     retry_on_reasons: frozenset
+    candidate_retry_on: frozenset
     never_on_status: frozenset
     pods_required: int
 
@@ -95,24 +128,28 @@ class RetryPolicy:
             raise PolicyRefused("policy fields")
         if document["schema"] != POLICY_SCHEMA:
             raise PolicyRefused("policy schema")
+        if document["applies_to"] != APPLIES_TO:
+            raise PolicyRefused("a policy applies to the session's baseline only")
         retries = document["max_retries"]
         if type(retries) is not int or retries not in (0, 1):
             raise PolicyRefused("max_retries is 0 or 1")
         if document["retry_on_status"] != FAILED_INFRA:
-            raise PolicyRefused("only FAILED_INFRA is retried")
+            raise PolicyRefused("retry_on_status is FAILED_INFRA")
         reasons = document["retry_on_reasons"]
         if type(reasons) is not list or not all(type(r) is str and r for r in reasons):
             raise PolicyRefused("retry_on_reasons are reason codes")
         if NEVER_REASONS & set(reasons):
             raise PolicyRefused("a launch-gate refusal or unknown launch is retried")
+        candidates = _pairs(document["candidate_retry_on"])
+        if not candidates <= ALLOWED_CANDIDATE_RETRIES:
+            raise PolicyRefused(
+                "a candidate outcome other than the baseline's program crash is retried"
+            )
         never = document["never_on_status"]
-        if type(never) is not list or not {
-            CANDIDATE_FAILED,
-            CANDIDATE_RESOURCE_EXCEEDED,
-        } <= set(never):
-            raise PolicyRefused("candidate-attributed outcomes are never retried")
-        if FAILED_INFRA in never:
-            raise PolicyRefused("never_on_status names the retried status")
+        if type(never) is not list or not NEVER_STATUSES <= set(never):
+            raise PolicyRefused("CANDIDATE_RESOURCE_EXCEEDED is never retried")
+        if FAILED_INFRA in never or {status for status, _ in candidates} & set(never):
+            raise PolicyRefused("never_on_status names a retried status")
         pods = document["pods_required"]
         if type(pods) is not int or pods < 1:
             raise PolicyRefused("pods_required counts at least the retry's pod")
@@ -127,6 +164,7 @@ class RetryPolicy:
             digest=digest,
             max_retries=retries,
             retry_on_reasons=frozenset(reasons),
+            candidate_retry_on=candidates,
             never_on_status=frozenset(never),
             pods_required=pods,
         )
@@ -190,6 +228,8 @@ def decide(*, policy, first, retries_used, budget_refusal, time_fits):
     reason_code)`; the checks run in a fixed order, the cheapest first."""
     if type(policy) is not RetryPolicy:
         raise TypeError("a registered RetryPolicy is required")
+    if not is_session_baseline(first):
+        return False, NOT_THE_BASELINE
     if not retryable(first, policy):
         return False, why_not(first, policy)
     if not retry_left(retries_used, policy):
@@ -201,22 +241,37 @@ def decide(*, policy, first, retries_used, budget_refusal, time_fits):
     return True, RETRIED
 
 
+def is_session_baseline(first):
+    """The record is the session's own baseline: Carbon's recipe, never an
+    agent proposal, an ablation or a retry."""
+    return first.get("proposal_id") == BASELINE_ID and first.get("kind") == "baseline"
+
+
 def retryable(first, policy):
     """The failed baseline's outcome is one the policy retries: a pod that
-    ran and ended in infrastructure, never a candidate-attributed outcome, a
-    launch-gate refusal or an unknown launch."""
+    ran and ended in infrastructure, or the baseline's program crash; never a
+    launch-gate refusal, an unknown launch or a resource outcome."""
     status, reason = first.get("status"), first.get("reason_code")
+    if reason in NEVER_REASONS:
+        return False
+    if status == FAILED_INFRA:
+        return reason in policy.retry_on_reasons
+    return candidate_retryable(status, reason, policy)
+
+
+def candidate_retryable(status, reason, policy):
+    """A candidate-attributed outcome the policy retries for the baseline:
+    listed by the policy, allowed by this module and not a never status."""
     return (
-        status == FAILED_INFRA
-        and status not in policy.never_on_status
-        and reason not in NEVER_REASONS
-        and reason in policy.retry_on_reasons
+        status not in policy.never_on_status
+        and (status, reason) in policy.candidate_retry_on
+        and (status, reason) in ALLOWED_CANDIDATE_RETRIES
     )
 
 
 def why_not(first, policy):
     status = first.get("status")
-    if status in policy.never_on_status:
+    if status in (CANDIDATE_FAILED, CANDIDATE_RESOURCE_EXCEEDED):
         return CANDIDATE_ATTRIBUTED
     if status != FAILED_INFRA:
         return NOT_RETRYABLE_STATUS
@@ -228,18 +283,25 @@ def retry_left(retries_used, policy):
 
 
 __all__ = [
+    "ALLOWED_CANDIDATE_RETRIES",
     "ALREADY_RETRIED",
+    "APPLIES_TO",
+    "BASELINE_ID",
     "CANDIDATE_ATTRIBUTED",
     "DECISION_SCHEMA",
+    "NEVER_STATUSES",
     "NOT_RETRYABLE_REASON",
     "NOT_RETRYABLE_STATUS",
+    "NOT_THE_BASELINE",
     "NO_TIME",
     "POLICY_DIR",
     "RETRIED",
     "RETRY_ID",
     "PolicyRefused",
     "RetryPolicy",
+    "candidate_retryable",
     "decide",
+    "is_session_baseline",
     "load_policy",
     "registered_policies",
     "retry_left",

@@ -7,10 +7,13 @@ listed and it names no protected material; it is operator evidence only and
 never reaches a result record, a feedback document, an event, the session
 summary or a delivery bundle.
 
-Fix 3, the baseline retry: a baseline that closes FAILED_INFRA because its pod
-ran and ended in infrastructure is run once more, on a later pod, under the
-registered policy `baseline-retry-v1`, held to every existing limit; a retry
-that scores becomes the session's baseline.
+Fix 3, the baseline retry: the session's baseline (Carbon's own recipe and
+seed) that closes FAILED_INFRA because its pod ran and ended in
+infrastructure, or with its program crashed (CANDIDATE_FAILED `program`; owner,
+2026-10-04: "Yes, retry baseline crashes"), is run once more, on a later pod,
+under the registered policy `baseline-retry-v1`, held to every existing limit;
+a retry that scores becomes the session's baseline. An agent proposal is never
+retried by it.
 
 The pods are scripted: no pod, key, network or spend. Carbon's admission,
 rebuild check and frozen-rule scoring run for real on synthetic predictions.
@@ -441,21 +444,62 @@ def test_a_baseline_failed_as_infrastructure_is_retried_once_and_becomes_the_bas
     assert not (run.root / "proposals" / RETRY / "pod-logs").exists()
 
 
-def test_no_retry_when_the_baseline_failed_as_the_candidate(tmp_path):
-    """Level 0: Carbon's own trainer wrote the claim, so a program failure is
-    CANDIDATE_FAILED (pod-attribution-v1) and is never retried."""
+def test_a_baseline_program_crash_is_retried_once_and_becomes_the_baseline(tmp_path):
+    """Level 0: the run-4 shape on the session's baseline is CANDIDATE_FAILED
+    `program` under pod-attribution-v1, and the baseline is Carbon's own
+    recipe and seed, so it is retried once (owner, 2026-10-04: "Yes, retry
+    baseline crashes"). The crash keeps its attribution in its own record."""
     run, backend = experiment(
-        tmp_path, [program_failure(), scored(0.4), scored(0.4)], level=L0
+        tmp_path, [program_failure(), scored(1.0), scored(0.4)], level=L0
     )
     record = run.run("p-one", "proposal", variant(width=128), why=WHY)
-    assert run.record("baseline")["status"] == "CANDIDATE_FAILED"
-    assert (decided(run)["retry"], decided(run)["reason_code"]) == (
-        False,
-        baseline_retry.CANDIDATE_ATTRIBUTED,
+    first = run.record("baseline")
+    assert (first["status"], first["reason_code"]) == ("CANDIDATE_FAILED", "program")
+    assert (decided(run)["retry"], decided(run)["reason_code"]) == (True, "retried")
+    assert decided(run)["baseline"]["status"] == "CANDIDATE_FAILED"
+    assert run.record(RETRY)["status"] == "SCORED"
+    assert seed_of(run, RETRY) == seed_of(run, "baseline")
+    assert run.baseline_id() == RETRY and len(backend.launched) == 3
+    assert record["against_baseline"]["outcome"] == "IMPROVEMENT"
+    assert record["against_baseline"]["promotable"] is True
+    assert record["baseline"]["proposal_id"] == RETRY
+    # The crashed baseline's logs are kept; the retry scored, so none for it.
+    assert entry(run, "baseline", "program.log")["exception_class"] == ("RuntimeError")
+
+
+def test_an_agent_proposals_program_crash_is_not_retried(tmp_path):
+    """An agent proposal keeps #573's attribution: its program crash at Level
+    0 is CANDIDATE_FAILED, closed, and never retried by any rule."""
+    run, backend = experiment(
+        tmp_path, [scored(1.0), program_failure(), scored(0.4)], level=L0
     )
-    assert run.record(RETRY) is None and len(backend.launched) == 2
-    assert record["against_baseline"]["outcome"] == "NO_BASELINE"
-    assert record["against_baseline"]["promotable"] is False
+    record = run.run("p-one", "proposal", variant(width=128), why=WHY)
+    assert (record["status"], record["reason_code"]) == ("CANDIDATE_FAILED", "program")
+    assert record["scored"] is False
+    assert run.record("baseline")["status"] == "SCORED"
+    assert decided(run) is None and run.record(RETRY) is None
+    assert [intent for intent, _job in backend.launched] == [
+        "run-r2-baseline",
+        "run-r2-p-one",
+    ]
+    assert "baseline_retry_decided" not in [r["event"] for r in run.ledger.rows()]
+
+
+def test_a_second_baseline_crash_is_not_retried_again(tmp_path):
+    run, backend = experiment(
+        tmp_path,
+        [program_failure(), program_failure(), scored(0.4), scored(0.4)],
+        level=L0,
+    )
+    first = run.run("p-one", "proposal", variant(width=128), why=WHY)
+    second = run.run("p-two", "proposal", variant(width=96), why=WHY)
+    assert run.record("baseline")["status"] == "CANDIDATE_FAILED"
+    assert run.record(RETRY)["status"] == "CANDIDATE_FAILED"
+    assert run.baseline_id() == "baseline"
+    for record in (first, second):
+        assert record["against_baseline"]["outcome"] == "NO_BASELINE"
+    assert len(backend.launched) == 4  # baseline, its one retry, two proposals
+    assert [r["event"] for r in run.ledger.rows()].count("baseline_retry_decided") == 1
 
 
 def test_no_retry_when_the_baseline_exceeded_its_resources(tmp_path):
@@ -587,14 +631,41 @@ def test_results_scored_before_the_retry_stay_no_baseline_and_are_listed(
 def test_the_decision_is_a_pure_function_of_the_record_and_the_limits():
     policy = baseline_retry.load_policy()
 
-    def decide(status, reason, used=0, budget=None, time=True):
+    def decide(status, reason, used=0, budget=None, time=True, pid="baseline"):
+        kind = {"baseline": "baseline", RETRY: "baseline"}.get(pid, "proposal")
         return baseline_retry.decide(
             policy=policy,
-            first={"status": status, "reason_code": reason},
+            first={
+                "proposal_id": pid,
+                "kind": kind,
+                "status": status,
+                "reason_code": reason,
+            },
             retries_used=used,
             budget_refusal=budget,
             time_fits=time,
         )
+
+    # The session's baseline only: never an agent proposal, an ablation or
+    # the retry itself, whatever its outcome.
+    for pid in ("p-0123456789ab", "a-0123456789ab-00", RETRY):
+        for status, reason in (
+            ("CANDIDATE_FAILED", "program"),
+            ("FAILED_INFRA", "pod"),
+        ):
+            assert decide(status, reason, pid=pid) == (
+                False,
+                baseline_retry.NOT_THE_BASELINE,
+            )
+    # The baseline's program crash is retried (owner, 2026-10-04); no other
+    # candidate outcome is.
+    assert decide("CANDIDATE_FAILED", "program") == (True, "retried")
+    assert decide("CANDIDATE_FAILED", "program", used=1)[1] == (
+        "not_retried:retry_already_used"
+    )
+    assert (
+        decide("CANDIDATE_FAILED", "compile")[1] == baseline_retry.CANDIDATE_ATTRIBUTED
+    )
 
     for reason in ("candidate_failure_unattributed", "compile", "infra", "pod"):
         assert decide("FAILED_INFRA", reason) == (True, "retried")
@@ -611,9 +682,6 @@ def test_the_decision_is_a_pure_function_of_the_record_and_the_limits():
             False,
             "not_retried:reason_not_retryable",
         )
-    assert (
-        decide("CANDIDATE_FAILED", "program")[1] == "not_retried:candidate_attributed"
-    )
     assert decide("CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated")[1] == (
         "not_retried:candidate_attributed"
     )
@@ -661,7 +729,21 @@ def _policy_dir(tmp_path, change):
         lambda d: d["retry_on_reasons"].append("launch_refused"),
         lambda d: d["retry_on_reasons"].append("launch_unresolved"),
         lambda d: d.update(never_on_status=["CANDIDATE_FAILED"]),
+        lambda d: d.update(never_on_status=[]),
         lambda d: d["never_on_status"].append("FAILED_INFRA"),
+        # The program crash is retried, so CANDIDATE_FAILED cannot be "never".
+        lambda d: d["never_on_status"].append("CANDIDATE_FAILED"),
+        # Only the baseline's program crash may be a retried candidate outcome.
+        lambda d: d["candidate_retry_on"].append(
+            ["CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated"]
+        ),
+        lambda d: d["candidate_retry_on"].append(["CANDIDATE_FAILED", "compile"]),
+        lambda d: d.update(candidate_retry_on=[["CANDIDATE_FAILED"]]),
+        lambda d: d.update(candidate_retry_on="CANDIDATE_FAILED"),
+        # It applies to the session's baseline and to nothing else.
+        lambda d: d.update(applies_to="every_proposal"),
+        lambda d: d.update(applies_to="proposal"),
+        lambda d: d.pop("applies_to"),
         lambda d: d.update(pods_required=0),
         lambda d: d["limits"].remove("remaining_elapsed_time"),
         lambda d: d["limits"].append("session_pod_limit"),
@@ -690,6 +772,13 @@ def test_an_altered_or_unregistered_policy_is_refused(tmp_path):
     assert baseline_retry.registered_policies() == ["baseline-retry-v1"]
     policy = baseline_retry.load_policy()
     assert (policy.max_retries, policy.pods_required) == (1, 2)
+    assert policy.candidate_retry_on == {("CANDIDATE_FAILED", "program")}
+    assert policy.never_on_status == {"CANDIDATE_RESOURCE_EXCEEDED"}
+    document = json.loads(
+        (baseline_retry.POLICY_DIR / "baseline-retry-v1.json").read_text()
+    )
+    assert document["applies_to"] == "session_baseline"
+    assert "Yes, retry baseline crashes" in document["authority"]
 
 
 def test_a_session_compares_with_the_retried_baseline_and_bundles_it(tmp_path):
@@ -731,3 +820,9 @@ def test_the_failure_path_check_is_ok_and_fails_when_a_fix_is_off(tmp_path):
     assert program["status"] == "kept" and program["truncated_bytes"] > 0
     assert program["exception_class"] == "RuntimeError"
     assert phase["status"] == "kept"
+    crash = report["baseline_crash_retry"]
+    assert crash["baseline"] == {"status": "CANDIDATE_FAILED", "reason_code": "program"}
+    assert (crash["retry"], crash["retry_status"]) == (True, "SCORED")
+    assert crash["compared"]["baseline"] == RETRY
+    assert crash["compared"]["promotable"] is True
+    assert crash["pods_launched"] == 3

@@ -71,10 +71,58 @@ MUTATIONS = {
         _with_monkeypatch(t.test_a_log_too_large_to_scan_is_withheld),
         ASSERTION,
     ),
-    # Fix 3: a candidate-attributed baseline is never retried.
-    "no_retry_on_candidate_failure": (
-        lambda m: m.setattr(baseline_retry, "retryable", lambda first, policy: True),
-        t.test_no_retry_when_the_baseline_failed_as_the_candidate,
+    # Fix 3: a baseline that exceeded its resources is never retried (the
+    # only retried candidate outcome is the baseline's program crash).
+    "no_retry_on_resource_exceeded": (
+        lambda m: m.setattr(
+            baseline_retry, "candidate_retryable", lambda status, reason, policy: True
+        ),
+        t.test_no_retry_when_the_baseline_exceeded_its_resources,
+        ASSERTION,
+    ),
+    # Only the session's baseline is ever retried, never an agent proposal.
+    "baseline_only": (
+        lambda m: m.setattr(baseline_retry, "is_session_baseline", lambda first: True),
+        lambda tmp: (
+            t.test_the_decision_is_a_pure_function_of_the_record_and_the_limits()
+        ),
+        ASSERTION,
+    ),
+    # The baseline's program crash is retried (owner, 2026-10-04).
+    "baseline_crash_retried": (
+        lambda m: m.setattr(
+            baseline_retry, "candidate_retryable", lambda status, reason, policy: False
+        ),
+        t.test_a_baseline_program_crash_is_retried_once_and_becomes_the_baseline,
+        ASSERTION,
+    ),
+    # No policy may retry RESOURCE_EXCEEDED: the loader's two invariants
+    # (only the program crash is a retried candidate outcome; RESOURCE_EXCEEDED
+    # is always a never status), switched off together.
+    "policy_refuses_resource_exceeded_retries": (
+        lambda m: (
+            m.setattr(
+                baseline_retry,
+                "ALLOWED_CANDIDATE_RETRIES",
+                frozenset(
+                    {
+                        ("CANDIDATE_FAILED", "program"),
+                        ("CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated"),
+                    }
+                ),
+            ),
+            m.setattr(baseline_retry, "NEVER_STATUSES", frozenset()),
+        ),
+        lambda tmp: t.test_an_unsafe_registered_policy_is_refused(
+            tmp,
+            lambda d: d.update(
+                never_on_status=[],
+                candidate_retry_on=[
+                    ["CANDIDATE_FAILED", "program"],
+                    ["CANDIDATE_RESOURCE_EXCEEDED", "worker_timeout_repeated"],
+                ],
+            ),
+        ),
         ASSERTION,
     ),
     # Nor a launch the gate refused.
