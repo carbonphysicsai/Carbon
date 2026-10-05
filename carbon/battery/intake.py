@@ -120,6 +120,15 @@ PEER_BURST, PEER_RATE, IN_FLIGHT, INBOX_DEPTH = 10, 1.0, 8, 64
 #: gateway's 60 s window can no longer authenticate anything.
 REFRESH_S, SNAPSHOTS_KEPT, SNAPSHOT_MAX_AGE_S = 12.0, 5, 60.0
 SOCKET_TIMEOUT_S = 10.0
+#: Engineering abuse limits, not scientific values (VALIDATOR-01 security
+#: review, finding 2):
+#: - a body must arrive within this many seconds in total, before the request
+#:   takes an in-flight slot, so a trickled body holds none;
+#: - at most this many connections at once, and this many from one address;
+#: - at most this many peer buckets are remembered (least recent evicted).
+BODY_DEADLINE_S = 10.0
+MAX_CONNECTIONS, MAX_CONNECTIONS_PER_PEER = 64, 4
+MAX_PEERS = 4096
 #: On SIGTERM the worker may finish the pass in flight for this long; a run
 #: cut off after it is recovered as infrastructure on the next start.
 STOP_GRACE_S = 30.0
@@ -341,26 +350,32 @@ def refresher(window, context, *, reader=None, period=REFRESH_S, stop=None, out=
 
 
 class PeerLimits:
-    """Token buckets per peer address plus a global in-flight cap."""
+    """Token buckets per peer address plus a global in-flight cap.
+
+    At most `MAX_PEERS` buckets are kept; the least recently seen is evicted.
+    Clearing every bucket at the limit, as before, let anyone with many
+    addresses reset the limits of all (VALIDATOR-01 security review,
+    finding 2).
+    """
 
     def __init__(self, *, burst=PEER_BURST, rate=PEER_RATE, clock=time.monotonic):
+        from collections import OrderedDict
+
         self._lock = threading.Lock()
-        self._buckets = {}
+        self._buckets = OrderedDict()
         self._flight = threading.BoundedSemaphore(IN_FLIGHT)
         self.burst, self.rate, self.clock = burst, rate, clock
 
     def allow(self, peer):
         now = self.clock()
         with self._lock:
-            tokens, then = self._buckets.get(peer, (self.burst, now))
+            tokens, then = self._buckets.pop(peer, (self.burst, now))
             tokens = min(self.burst, tokens + (now - then) * self.rate)
-            if len(self._buckets) > 4096:
-                self._buckets.clear()
-            if tokens < 1:
-                self._buckets[peer] = (tokens, now)
-                return False
-            self._buckets[peer] = (tokens - 1, now)
-            return True
+            allowed = tokens >= 1
+            self._buckets[peer] = (tokens - 1 if allowed else tokens, now)
+            while len(self._buckets) > MAX_PEERS:
+                self._buckets.popitem(last=False)
+            return allowed
 
     @contextlib.contextmanager
     def in_flight(self):
@@ -972,25 +987,33 @@ def _handler(intake):
             self.wfile.write(payload)
 
         def _dispatch(self, method):
-            # The declared length is checked and the limits applied before a
-            # single body byte is read.
-            length = "0"
+            # The declared length is checked and the peer's bucket charged
+            # before a single body byte is read. The body must then arrive
+            # whole within BODY_DEADLINE_S, and only then does the request
+            # take an in-flight slot: a trickled body holds no slot.
+            length = 0
             if method == "POST":
-                length = self.headers.get("Content-Length")
-                if length is None or not length.isdigit() or int(length) > MAX_BODY:
+                declared = self.headers.get("Content-Length")
+                if (
+                    declared is None
+                    or not declared.isdigit()
+                    or int(declared) > MAX_BODY
+                ):
                     return self._answer(_refused(413, "body"))
-            self._answer(
-                intake.limited(
-                    self.client_address[0], lambda: self._route(method, length)
-                )
-            )
-
-        def _route(self, method, length):
-            body = self.rfile.read(int(length)) if method == "POST" else b""
+                length = int(declared)
+            if not intake.limits.allow(self.client_address[0]):
+                return self._answer(_refused(429, "rate"))
+            try:
+                body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
+            except (TimeoutError, ConnectionError, OSError):
+                return self._answer(_refused(408, "body_timeout"))
             headers = {k: v for k, v in self.headers.items()}
             if len(headers) != len(self.headers.items()):
-                return _refused(400, "headers")
-            return intake.route(method, self.path, headers, body)
+                return self._answer(_refused(400, "headers"))
+            with intake.limits.in_flight() as admitted:
+                if not admitted:
+                    return self._answer(_refused(503, "capacity"))
+                self._answer(intake.route(method, self.path, headers, body))
 
         def do_GET(self):
             self._dispatch("GET")
@@ -1005,12 +1028,91 @@ def _handler(intake):
     return Handler
 
 
+def read_body(connection, rfile, length, deadline_s, *, clock=time.monotonic):
+    """`length` body bytes, all within `deadline_s` seconds in total.
+
+    The socket timeout alone bounds each read, not the request, so a peer
+    sending one byte just inside it could hold a request for minutes. Each
+    read here waits only for what is left of the deadline.
+    """
+    deadline = clock() + deadline_s
+    chunks, received = [], 0
+    try:
+        while received < length:
+            left = deadline - clock()
+            if left <= 0:
+                raise TimeoutError("body_deadline")
+            connection.settimeout(left)
+            chunk = rfile.read1(length - received)
+            if not chunk:
+                raise ConnectionError("body_closed")
+            chunks.append(chunk)
+            received += len(chunk)
+    finally:
+        connection.settimeout(SOCKET_TIMEOUT_S)
+    return b"".join(chunks)
+
+
+class ConnectionSlots:
+    """At most `total` open connections, and at most `per_peer` from one
+    address. A connection over either cap is closed before any byte of it is
+    read (VALIDATOR-01 security review, finding 2)."""
+
+    def __init__(self, total=MAX_CONNECTIONS, per_peer=MAX_CONNECTIONS_PER_PEER):
+        self.total, self.per_peer = total, per_peer
+        self._lock = threading.Lock()
+        self._open = {}
+
+    def acquire(self, peer):
+        with self._lock:
+            if sum(self._open.values()) >= self.total:
+                return False
+            if self._open.get(peer, 0) >= self.per_peer:
+                return False
+            self._open[peer] = self._open.get(peer, 0) + 1
+            return True
+
+    def release(self, peer):
+        with self._lock:
+            left = self._open.get(peer, 0) - 1
+            if left > 0:
+                self._open[peer] = left
+            else:
+                self._open.pop(peer, None)
+
+    def open(self):
+        with self._lock:
+            return sum(self._open.values())
+
+
 class _Server(ThreadingHTTPServer):
     """The listener. A connection that fails outside a request (a TLS
     handshake that never completes or is malformed) is logged by exception
-    type only: the base class would print the peer's address and a trace."""
+    type only: the base class would print the peer's address and a trace.
+    Connections beyond `ConnectionSlots` are closed at once, so no address
+    can hold every thread."""
 
     daemon_threads = True
+
+    def __init__(self, *args, **kwargs):
+        self.slots = ConnectionSlots()
+        super().__init__(*args, **kwargs)
+
+    def process_request(self, request, client_address):
+        if not self.slots.acquire(client_address[0]):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self.slots.release(client_address[0])
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.slots.release(client_address[0])
 
     def handle_error(self, request, client_address):
         log("connection_failed", type=getattr(sys.exc_info()[0], "__name__", None))

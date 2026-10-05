@@ -29,6 +29,13 @@ SCHEMA = "carbon.challenge-validator.ledger.v1"
 KINDS = ("OUTCOME", "RECEIVED", "REFUSED", "UNAVAILABLE", "FAILED_INFRA")
 #: Identity strings longer than this are kept by digest only.
 MAX_KEPT = 128
+#: An engineering limit, not a policy value: at most this many REFUSED rows per
+#: hotkey in any rolling hour. Beyond it each refusal is still counted, in the
+#: `overflow` tally, so attempt counts stay exact while the table stays bounded
+#: (VALIDATOR-01 security review, finding 7). How long rows are kept is the
+#: owner's retention decision; nothing here deletes.
+MAX_REFUSED_ROWS_PER_HOUR = 120
+HOUR_NS = 3600 * 10**9
 DDL = """
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS attempts(
@@ -44,6 +51,16 @@ CREATE TABLE IF NOT EXISTS attempts(
     state TEXT
 );
 CREATE INDEX IF NOT EXISTS attempts_hotkey ON attempts(hotkey);
+CREATE INDEX IF NOT EXISTS attempts_recent ON attempts(hotkey, kind, at_ns);
+CREATE TABLE IF NOT EXISTS overflow(
+    hotkey TEXT NOT NULL,
+    hour INTEGER NOT NULL,
+    kind TEXT NOT NULL,
+    code TEXT NOT NULL,
+    contract_digest TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY(hotkey, hour, kind, code, contract_digest)
+);
 CREATE TABLE IF NOT EXISTS operator_refusals(
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     at_ns INTEGER NOT NULL,
@@ -182,17 +199,34 @@ class AttemptLedger:
     def record(self, submission, *, kind, code=None, submission_id=None, state=None):
         if kind not in KINDS:
             raise ValueError("unknown attempt kind")
+        now = int(self.clock())
+        hotkey = _kept(getattr(submission, "hotkey", None))
+        digest_kept = _kept(getattr(submission, "contract_digest", None))
         with self._db() as db:
+            if kind == "REFUSED" and hotkey is not None:
+                recent = db.execute(
+                    "SELECT COUNT(*) FROM attempts WHERE hotkey=? AND kind='REFUSED'"
+                    " AND at_ns>?",
+                    (hotkey, now - HOUR_NS),
+                ).fetchone()[0]
+                if recent >= MAX_REFUSED_ROWS_PER_HOUR:
+                    db.execute(
+                        "INSERT INTO overflow VALUES(?,?,?,?,?,1) ON CONFLICT("
+                        "hotkey, hour, kind, code, contract_digest) DO UPDATE SET"
+                        " count=count+1",
+                        (hotkey, now // HOUR_NS, kind, code or "", digest_kept or ""),
+                    )
+                    return
             db.execute(
                 "INSERT INTO attempts(at_ns, kind, code, hotkey, contract_digest,"
                 " receipt, submission_sha256, submission_id, state)"
                 " VALUES(?,?,?,?,?,?,?,?,?)",
                 (
-                    int(self.clock()),
+                    now,
                     kind,
                     code,
-                    _kept(getattr(submission, "hotkey", None)),
-                    _kept(getattr(submission, "contract_digest", None)),
+                    hotkey,
+                    digest_kept,
                     _receipt(getattr(submission, "receipt", None)),
                     submission_sha256(submission),
                     submission_id,
@@ -243,7 +277,13 @@ class AttemptLedger:
             rows = db.execute(
                 "SELECT kind, COUNT(*) FROM attempts GROUP BY kind"
             ).fetchall()
-        return {**dict.fromkeys(KINDS, 0), **dict(rows)}
+            spilled = db.execute(
+                "SELECT kind, SUM(count) FROM overflow GROUP BY kind"
+            ).fetchall()
+        totals = dict.fromkeys(KINDS, 0)
+        for kind, count in [*rows, *spilled]:
+            totals[kind] += count
+        return totals
 
     def attempt_counts(self, hotkey):
         """Attempts by this hotkey: in total, by kind and by contract digest."""
@@ -253,6 +293,12 @@ class AttemptLedger:
                 " WHERE hotkey=? GROUP BY kind, contract_digest",
                 (_kept(hotkey),),
             ).fetchall()
+            spilled = db.execute(
+                "SELECT kind, NULLIF(contract_digest, ''), SUM(count) FROM overflow"
+                " WHERE hotkey=? GROUP BY kind, contract_digest",
+                (_kept(hotkey),),
+            ).fetchall()
+        rows = [*rows, *spilled]
         by_kind, by_contract = dict.fromkeys(KINDS, 0), {}
         for kind, contract, count in rows:
             by_kind[kind] += count
