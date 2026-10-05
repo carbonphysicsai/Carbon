@@ -1,8 +1,8 @@
 """Benchmark B2: the Attacker against the deterministic harness, per family.
 
 OWNER-GRAPHITE-ATTACKER-01 §4. For each family, the Attacker's runs and the
-deterministic harness's runs (for battery, `carbon.battery.track_a.run()`)
-are compared at an **equal attempt budget**: each side's first `budget`
+deterministic harness's runs (the adapter's own, `adapter_baseline`) are
+compared at an **equal attempt budget**: each side's first `budget`
 attempts, in the order they ran, and nothing after. Each side reports what
 `report.summarize` reports (attempts, budget used, verified findings, near
 misses, timeouts and crashes, NOT_RUN, wrongful rejection on held-out
@@ -49,6 +49,9 @@ def _within(run, budget):
         return None
     taken = run["attempts"][:budget]
     out = {**run, "attempts": taken, "budget_used": len(taken)}
+    if run.get("not_attempted") is not None:
+        # What the cut leaves is unattempted too.
+        out["not_attempted"] = run["not_attempted"] + len(run["attempts"]) - len(taken)
     records = run.get("records")
     if records is not None:
         names = {a["attempt"] for a in taken}
@@ -128,10 +131,15 @@ def _by_family(runs):
     return out
 
 
-def track_a_baseline(root="."):
-    """The battery harness's runs (`carbon.battery.track_a.run`), normalized:
-    B2's deterministic side for battery Level 0."""
-    from carbon.battery import track_a
+def adapter_baseline(adapter, root="."):
+    """B2's deterministic side for one adapter: its own deterministic harness
+    when it has one (`adapter.deterministic_baseline(root)`, already
+    normalized runs), else its engine runs (`attack.adapter.run_adapter`).
+    The neutral core names no Challenge: a Challenge's harness is reached
+    only through its adapter."""
+    own = getattr(adapter, "deterministic_baseline", None)
+    if callable(own):
+        return list(own(root))
+    from carbon.agent_campaign.attack import adapter as core
 
-    records, _report, _divergence = track_a.run(root)
-    return report.runs_from_records(records)
+    return list(core.run_adapter(adapter))

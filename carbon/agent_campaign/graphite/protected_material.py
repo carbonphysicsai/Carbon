@@ -69,3 +69,27 @@ def _protected_text(text):
 def protected(value):
     """True when any string in `value` names protected material."""
     return any(_protected_text(text) for text in _strings(value))
+
+
+#: The checkout deny fragments that name sealed or confirmation material, as
+#: against the attack targets (`.env`, `secret`, `credential` and the deny
+#: prefixes' repository paths).
+MATERIAL_FRAGMENTS = ("ev4", "ev5", "confirmation", "canary")
+#: `result_material`'s answers.
+PROTECTED_MATERIAL, ATTACK_TARGET = "protected_material", "attack_target"
+
+
+def result_material(value):
+    """Why a withheld result was withheld: `protected_material` when a string
+    names one of Graphite's markers or a fragment naming sealed or
+    confirmation material; `attack_target` when only the deny rule's attack
+    targets matched. Recorded on the refusal (the content stays withheld
+    either way), so Carbon's attack analysis never reads a path that answered
+    with an attack target as an exposure."""
+    for text in _strings(value):
+        lowered = text.lower()
+        if any(marker in lowered for marker in PROTECTED_MARKERS) or any(
+            fragment in lowered for fragment in MATERIAL_FRAGMENTS
+        ):
+            return PROTECTED_MATERIAL
+    return ATTACK_TARGET

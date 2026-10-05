@@ -162,7 +162,7 @@ def engine_state(records):
 
 def normalize(run):
     """One run as `{"family", "check", "source", "attempts", "controls",
-    "budget_used", "not_run", "engine_state"}`."""
+    "budget_used", "not_attempted", "not_run", "engine_state"}`."""
     records = _get(run, "records")
     if records is not None:
         records = list(records)
@@ -218,6 +218,10 @@ def normalize(run):
     used = _get(run, "budget_used")
     out["budget_used"] = len(out["attempts"]) if used is None else used
     out["not_run"] = _get(run, "not_run")
+    # The attacks a budget left unattempted (`engine.FamilyRun.not_attempted`):
+    # what the run did not try, reported, never read as held. None when the
+    # run does not say (an Attacker's session has no fixed attack set).
+    out["not_attempted"] = _get(run, "not_attempted")
     return out
 
 
@@ -419,6 +423,7 @@ def summarize(run, held_out=(), not_run=None, check=None, family=None):
         "status": status,
         "attempts": len(attempts),
         "budget_used": (run or {}).get("budget_used", 0),
+        "not_attempted": (run or {}).get("not_attempted"),
         "completed": len(completed),
         "held": held,
         "refused_at_rebuild": len(at_rebuild),

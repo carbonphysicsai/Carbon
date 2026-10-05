@@ -33,7 +33,13 @@ wrongful rejection and are never tuned against. The refusal is by the
 control's registered identity (`control_identity`: its family and the digest
 of its input, never its name, version or split label), so a held-out control
 relabelled `trained` is still refused once its identity is registered
-(`register_held_out`, which an adapter's validation and run do).
+(`register_held_out`, which an adapter's validation and run do). Identities
+are registered per scope, the `(challenge, profile)` a run's context names, so
+one adapter's held-out split never refuses another's controls.
+
+A family's `breached` runs inside the same no-answer rule as its boundary
+(`judged`): a judgement that raises is CRASHED (or TIMEOUT, FAILED_INFRA),
+never a propagated error and never a pass.
 
 Each control record binds its evidence: the control's registered identity, its
 input digest and its outcome. A wrongly refused control's finding therefore
@@ -190,10 +196,24 @@ class Finding:
         }
 
 
-#: The registered identities of every held-out control an adapter declared
-#: (`register_held_out`). A control whose identity is here is refused by
-#: `run_family` whatever its split label says. It only grows.
-_HELD_OUT_IDENTITIES = set()
+#: The registered identities of the held-out controls each adapter declared
+#: (`register_held_out`), by scope: `(challenge, profile)`, the run context an
+#: adapter's records carry (`RunContext`). A control whose identity is
+#: registered in a run's scope is refused by `run_family` whatever its split
+#: label says. A scope's set is the adapter's current held-out split: a new
+#: registration for a scope replaces it, so one adapter's (or session's)
+#: identities never refuse another's controls and the registry does not
+#: only grow process-wide.
+_HELD_OUT_IDENTITIES = {}
+#: The scope a run with no Challenge context belongs to.
+NO_SCOPE = (None, None)
+
+
+def held_out_scope(context=None):
+    """The registry scope of a run context: `(challenge, profile)`."""
+    if context is None:
+        return NO_SCOPE
+    return (context.challenge, context.profile)
 
 
 def control_input_digest(control):
@@ -219,16 +239,30 @@ def control_identity(control, family=None):
     return digest({"family": family, "input_digest": input_digest})
 
 
-def register_held_out(controls, family=None):
-    """Register held-out controls' identities; returns them. From then on
-    `run_family` refuses any control with one of these identities."""
-    identities = {control_identity(control, family) for control in controls}
-    _HELD_OUT_IDENTITIES.update(identities)
-    return frozenset(identities)
+def register_held_out(controls, family=None, *, scope=NO_SCOPE, replace=True):
+    """Register held-out controls' identities in `scope` (`held_out_scope`);
+    returns them. From then on `run_family` refuses, in that scope, any
+    control with one of these identities. By default the scope's set becomes
+    exactly these identities (an adapter registers its whole held-out split);
+    `replace=False` adds to it."""
+    identities = frozenset(control_identity(control, family) for control in controls)
+    if replace:
+        _HELD_OUT_IDENTITIES[scope] = set(identities)
+    else:
+        _HELD_OUT_IDENTITIES.setdefault(scope, set()).update(identities)
+    return identities
 
 
-def is_registered_held_out(control, family=None):
-    return control_identity(control, family) in _HELD_OUT_IDENTITIES
+def clear_held_out(scope=None):
+    """Forget the registered identities of one scope, or of every scope."""
+    if scope is None:
+        _HELD_OUT_IDENTITIES.clear()
+    else:
+        _HELD_OUT_IDENTITIES.pop(scope, None)
+
+
+def is_registered_held_out(control, family=None, *, scope=NO_SCOPE):
+    return control_identity(control, family) in _HELD_OUT_IDENTITIES.get(scope, ())
 
 
 def control_from(boundary, value_fn, breached):
@@ -270,6 +304,24 @@ def answer(call, *args):
         return {"exception": type(failed).__name__}, CRASHED
 
 
+def _with_hit(call, breached, value):
+    result = call(value)
+    return result, bool(breached(result))
+
+
+def judged(call, breached, value):
+    """`(result, hit, no_answer)` for one input: the call's result and whether
+    `breached` says it got through, both run inside `answer`, so a `breached`
+    that raises is recorded the way a boundary that raises is (CRASHED,
+    TIMEOUT or FAILED_INFRA), never propagated and never a pass. When the
+    call or the judgement did not answer, `result` is the exception evidence,
+    `hit` is None and `no_answer` its verdict."""
+    outcome, failed = answer(_with_hit, call, breached, value)
+    if failed is not None:
+        return outcome, None, failed
+    return outcome[0], outcome[1], None
+
+
 def _check_budget(budget):
     if budget is not None and (type(budget) is not int or budget < 0):
         raise ValueError("budget_is_a_non_negative_integer_or_none")
@@ -285,11 +337,12 @@ def run_family(family, *, budget=None, context=None, controls=None):
         raise TypeError("an exact engine Family is required")
     _check_budget(budget)
     context = context or RunContext()
+    scope = held_out_scope(context)
     if controls is not None:
         controls = tuple(controls)
         for control in controls:
             if getattr(control, "split", None) != "trained" or is_registered_held_out(
-                control, family.name
+                control, family.name, scope=scope
             ):
                 raise HeldOutControlRefused(str(getattr(control, "name", control)))
     records = []
@@ -316,14 +369,10 @@ def run_family(family, *, budget=None, context=None, controls=None):
         raise ValueError("attack_names_are_unique")
     chosen = attacks if budget is None else attacks[:budget]
     for name, value in chosen:
-        result, failed = answer(family.boundary, value)
-        if failed is None:
-            failed = BREACHED if family.breached(result) else HELD
-        record("attack", name, failed, result)
-        weak, silent = answer(family.specimen, value)
-        if silent is None:
-            silent = FIRED if family.breached(weak) else SILENT
-        record("specimen", name, silent, weak)
+        result, hit, failed = judged(family.boundary, family.breached, value)
+        record("attack", name, failed or (BREACHED if hit else HELD), result)
+        weak, fired, silent = judged(family.specimen, family.breached, value)
+        record("specimen", name, silent or (FIRED if fired else SILENT), weak)
     if controls is None:
         passed, failed = answer(family.control)
         record(
