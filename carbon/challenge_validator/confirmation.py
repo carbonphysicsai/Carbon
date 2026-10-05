@@ -75,6 +75,9 @@ MANIFEST_SCHEMA = "carbon.challenge-validator.confirmation-manifest.v1"
 ROOT_DOMAIN = b"carbon.challenge-validator.confirmation-root.v1"
 #: The scientific values a document may leave unset (`null`) for the owner.
 HUMAN_INPUT_FIELDS = ("cases", "hidden_duplicates", "sampling_law", "strata")
+#: A set drawn from one law with no strata says so explicitly: an empty list
+#: could not be told apart from a missing value (the readiness gate, D7).
+STRATA_NONE = "NONE_UNIFORM_LAW"
 CUSTODIES = frozenset({"battery_deployment", "confirmation_journal"})
 FINGERPRINT = re.compile(r"sha256:[0-9a-f]{64}")
 _DOCUMENT_KEYS = {
@@ -165,14 +168,22 @@ class ConfirmationSet:
         ):
             bad("sampling_law")
         strata = document["strata"]
-        if strata is not None:
+        if strata == STRATA_NONE:
+            parsed = ()
+        elif strata is None:
+            parsed = None
+        else:
             if type(strata) is not list:
                 bad("strata")
+            if not strata:
+                # "No strata" is stated, never left empty.
+                bad("strata_empty_state_" + STRATA_NONE)
             for stratum in strata:
                 _check_stratum(stratum, bad)
             ids = [stratum["id"] for stratum in strata]
             if len(set(ids)) != len(ids):
                 bad("strata")
+            parsed = tuple(dict(s) for s in strata)
         custody = document["custody"]
         if (
             type(custody) is not dict
@@ -201,7 +212,7 @@ class ConfirmationSet:
         if not unset and not authority["decisions"]:
             bad("values_without_a_decision")
         if not unset and document["cases"] < sum(
-            _quota(document["cases"], stratum) for stratum in strata
+            _quota(document["cases"], stratum) for stratum in parsed
         ):
             bad("strata_exceed_cases")
         return ConfirmationSet(
@@ -211,7 +222,7 @@ class ConfirmationSet:
             cases=document["cases"],
             hidden_duplicates=document["hidden_duplicates"],
             sampling_law=law,
-            strata=None if strata is None else tuple(dict(s) for s in strata),
+            strata=parsed,
             subgroups=tuple(document["subgroups"]),
             custody=dict(custody),
             required_prior_roles=tuple(
@@ -249,7 +260,13 @@ class ConfirmationSet:
             "hidden_duplicates": self.hidden_duplicates,
             "batch_size": None if self.human_input else self.batch_size,
             "sampling_law": self.sampling_law,
-            "strata": None if self.strata is None else [dict(s) for s in self.strata],
+            "strata": (
+                None
+                if self.strata is None
+                else STRATA_NONE
+                if not self.strata
+                else [dict(s) for s in self.strata]
+            ),
             "subgroups": list(self.subgroups),
             "custody": dict(self.custody),
             "required_prior_roles": list(self.required_prior_roles),

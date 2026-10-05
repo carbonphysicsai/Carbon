@@ -9,7 +9,7 @@
     "id": "battery-published-box-uniform-v1",
     "description": "uniform over the published input box (the exam's existing population), drawn by carbon.battery.seeds.make_batch"
   },
-  "strata": [],
+  "strata": "NONE_UNIFORM_LAW",
   "subgroups": [
     "the published important region reported separately"
   ],
@@ -25,7 +25,8 @@
   "authority": {
     "decisions": [
       "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74 (PR #593): 120 cases plus 4 hidden duplicates from the Level 0 study sheet's population, as EV5",
-      "OWNER-GRAPHITE-TEST-WAVE-01 \u00a77 (item 6): role, 120 cases plus 4 hidden duplicates, the L0 study-sheet population as EV5's, sealed in the testnet validator deployment's seed journal, no case equal to an EV5 case"
+      "OWNER-GRAPHITE-TEST-WAVE-01 \u00a77 (item 6): role, 120 cases plus 4 hidden duplicates, the L0 study-sheet population as EV5's, sealed in the testnet validator deployment's seed journal, no case equal to an EV5 case",
+      "OWNER-GRAPHITE-TEST-WAVE-05 \u00a74: drawn as EV5's, one uniform law with no strata (NONE_UNIFORM_LAW)"
     ],
     "human_input": []
   }

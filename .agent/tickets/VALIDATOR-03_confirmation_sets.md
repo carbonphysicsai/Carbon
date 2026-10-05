@@ -106,6 +106,23 @@ the tooling. Scores stay DEVELOPMENT; nothing here is a weight or a reward.
   still compares its role exactly. EV5 is frozen (OWNER-EV5-FREEZE-01), so
   this tool registers its set only as a prior.
 
+## Amendment, 2026-10-05: "no strata" is stated explicitly
+
+At the Test Lead's request, from the Graphite readiness gate's check D7
+(#625): an empty `strata` list could not be told apart from a missing value.
+
+- **VAL3-D10.** A set drawn from one law with no strata now records
+  `strata: "NONE_UNIFORM_LAW"`. The registry refuses an empty list for every
+  role (`strata_empty_state_NONE_UNIFORM_LAW`). `null` still means the
+  owner's value is unset, and a list still means registered strata. The
+  skeleton shows the explicit value.
+- **The two battery documents changed:** `ev5-confirmation` and
+  `graphite-confirmation-v1`. Each now cites its decision for having no
+  strata: OWNER-EV5-FREEZE-01 with the L0 study sheet, and
+  OWNER-GRAPHITE-TEST-WAVE-05 §4. The registry re-pins their digests.
+- **Nothing sealed changes.** No set has been sealed under these documents,
+  and EV5's seal was made by `ev5.seal_confirmation`, not by this registry.
+
 ## Slices
 
 1. **This PR:**
