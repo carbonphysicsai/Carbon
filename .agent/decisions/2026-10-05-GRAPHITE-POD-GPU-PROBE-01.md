@@ -97,6 +97,14 @@ and adds the following.
   provider ends the session `failed` with
   `{"code": "failed_infra", "reason_code": "pod_environment_repeated", "candidate_charged": false}`.
   There is no delivery and no stall escalation.
+- "Second" counts within one proposal: the policy's `earlier` is that
+  proposal's own attempts. Two different proposals may each spend one
+  relaunch on flaky hosts; the run's pod limit and money cap bound that
+  (Carbon Validator review of #604).
+- A follow-up version may probe the backend the job's scoring serves, or skip
+  the GPU probe when the scoring serves no GPU backend (cooling's program is
+  NumPy), so a GPU-less host does not relaunch a job that never needed the GPU
+  (Carbon Validator review, non-blocking).
 - Composition with #580: the session baseline gets at most one extra pod. A
   baseline that used a relaunch is not retried by `baseline-retry-v1`
   (`baseline_retry.ENVIRONMENT_RELAUNCH_USED`), and the baseline retry's own
