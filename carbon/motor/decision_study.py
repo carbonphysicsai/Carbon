@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 from statistics import fmean
@@ -27,6 +28,31 @@ PLAN_SCHEMA = "carbon.motor.decision-reference-plan.v1"
 CAMPAIGN_SCHEMA = "carbon.motor.reference-campaign.v1"
 SNAPSHOT_SCHEMA = "carbon.motor.reference-campaign-snapshot.v1"
 RESULT_SCHEMA = "carbon.motor.decision-study-result.v1"
+ADOPTION_SCHEMA = "carbon.motor.counted-campaign-adoption.v1"
+#: A study version's id; its config is MOTOR_SYNTHETIC_DECISION_V<n>.json.
+#: V1 and its fixture stay the historical record (OWNER-MOTOR-COUNTED-ADOPT-01).
+STUDY_ID = re.compile(r"motor-synthetic-decision-v([1-9][0-9]*)")
+#: Files every OK case retains, non-empty.
+_REQUIRED_CASE_FILES = ("params.json", "machine.pro", "mesh.py", "mesh.json")
+#: Solver logs every OK case retains. They may be empty: the pinned GetDP and
+#: Gmsh write nothing to them on success. All 48 counted cases and every
+#: calibration case had empty logs, so the original non-empty rule refused
+#: every successful run (OWNER-MOTOR-COUNTED-ADOPT-01). Success is shown by the
+#: exit status, the complete non-empty torque files and the convergence check.
+_REQUIRED_SOLVER_LOGS = ("log.mesh", "log.getdp")
+#: The construction fields an adopted campaign's two versions must share
+#: exactly: everything an arm decided, nothing it measured about wall time.
+_ADOPTION_ARM_FIELDS = (
+    "arm_id",
+    "model",
+    "method",
+    "declared_query_budget",
+    "queries_attempted",
+    "queries_successful",
+    "selections",
+    "selection",
+    "predicted_conditions",
+)
 RETRY_ELIGIBLE_STATUSES = (
     "FAILED_INFRA",
     "REFERENCE_SOLVER_FAILED",
@@ -150,6 +176,15 @@ def _write(path, value):
     )
 
 
+def study_config_path(study_id):
+    """The repository-relative config file of one registered study version."""
+
+    match = STUDY_ID.fullmatch(study_id) if type(study_id) is str else None
+    if match is None:
+        raise StudyError("config_identity")
+    return f"docs/development/studies/MOTOR_SYNTHETIC_DECISION_V{match.group(1)}.json"
+
+
 def load_config(path, *, repository):
     path = Path(path)
     config = json.loads(path.read_text(encoding="utf-8"))
@@ -173,6 +208,8 @@ def load_config(path, *, repository):
         config["schema"] != CONFIG_SCHEMA
         or config["material"] != cd.MATERIAL
         or config["scope"] != cd.SCOPE
+        or type(config["study_id"]) is not str
+        or STUDY_ID.fullmatch(config["study_id"]) is None
     ):
         raise StudyError("config_identity")
     if set(config["models"]) != {"analytic-v1", "learned-krr-v1"}:
@@ -294,8 +331,7 @@ def build_freeze(config, *, repository):
         "study_id": config["study_id"],
         "config_digest": experiment.digest(config),
         "config_file_sha256": _sha256(
-            Path(repository)
-            / "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V1.json"
+            Path(repository) / study_config_path(config["study_id"])
         ),
         "decision_contract": contract,
         "search_freeze": search,
@@ -860,8 +896,41 @@ def _artifact_manifest(case_directories, extra_files):
     return rows, total
 
 
-def import_counted_getdp(config, reference_directories):
-    """Validate the registered campaign artifacts and return counted evidence."""
+def _ok_case_artifacts_valid(case_dir, record):
+    """Whether an OK case's retained artifacts support its record."""
+
+    case_dir = Path(case_dir)
+    if (
+        record.get("run") != "exit 0"
+        or (record.get("checks") or {}).get("not_converged") != 0
+    ):
+        return False
+    for name in _REQUIRED_CASE_FILES:
+        path = case_dir / name
+        if not path.is_file() or path.stat().st_size == 0:
+            return False
+    if any(not (case_dir / name).is_file() for name in _REQUIRED_SOLVER_LOGS):
+        return False
+    results = list((case_dir / "res").glob("torque_*.txt"))
+    if len(results) != domain.ANGLE_STEPS + 1 or any(
+        path.stat().st_size == 0 for path in results
+    ):
+        return False
+    try:
+        mesh = json.loads((case_dir / "mesh.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return mesh.get("steps", {}).get("0") == record.get("mesh")
+
+
+def import_counted_getdp(config, reference_directories, *, _adopt_into=None):
+    """Validate the registered campaign artifacts and return counted evidence.
+
+    ``_adopt_into`` is set only by ``adopt_counted_campaign``, after
+    ``adoption_check`` has proved that a later study version's construction
+    decided exactly what this campaign's construction decided. The evidence
+    is then bound to that later construction.
+    """
 
     roots = [Path(path) for path in reference_directories]
     if not roots or len(roots) > 2:
@@ -997,28 +1066,7 @@ def import_counted_getdp(config, reference_directories):
                 artifacts_valid = False
                 break
             if attempt_record.get("status") == "OK":
-                required = [
-                    case_dir / "params.json",
-                    case_dir / "machine.pro",
-                    case_dir / "mesh.py",
-                    case_dir / "mesh.json",
-                    case_dir / "log.mesh",
-                    case_dir / "log.getdp",
-                ]
-                result_files = list((case_dir / "res").glob("torque_*.txt"))
-                if (
-                    attempt_record.get("run") != "exit 0"
-                    or any(
-                        not path.is_file() or path.stat().st_size == 0
-                        for path in required
-                    )
-                    or len(result_files) != domain.ANGLE_STEPS + 1
-                    or attempt_record.get("checks", {}).get("not_converged") != 0
-                ):
-                    artifacts_valid = False
-                    break
-                mesh = json.loads((case_dir / "mesh.json").read_text(encoding="utf-8"))
-                if mesh.get("steps", {}).get("0") != attempt_record.get("mesh"):
+                if not _ok_case_artifacts_valid(case_dir, attempt_record):
                     artifacts_valid = False
                     break
                 if number == final_attempt:
@@ -1073,9 +1121,137 @@ def import_counted_getdp(config, reference_directories):
         normalized,
         condition_budget=config["budgets"]["reference_session_condition_evaluations"],
         session_id=f"{config['study_id']}-counted-getdp",
-        construction_identity_digest=construction_identity,
+        construction_identity_digest=_adopt_into or construction_identity,
         campaign_wall_s=campaign_wall_s,
     )
+
+
+def _historical_construction(directory):
+    """A predecessor version's construction, checked for internal consistency
+    and unaltered commitments only. Its frozen code belongs to an earlier
+    version, so it is never re-checked against the current code."""
+
+    directory = Path(directory)
+    try:
+        freeze = json.loads((directory / "freeze.json").read_text(encoding="utf-8"))
+        construction = json.loads(
+            (directory / "construction.json").read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as error:
+        raise StudyError("predecessor_construction_unreadable") from error
+    freeze_body = {k: v for k, v in freeze.items() if k != "freeze_digest"}
+    body = {k: v for k, v in construction.items() if k != "construction_digest"}
+    arms = construction.get("arms")
+    if (
+        construction.get("schema") != CONSTRUCTION_SCHEMA
+        or construction.get("state") != "ALL_PROPOSALS_COMMITTED_NO_REFERENCE_ACCESSED"
+        or freeze.get("freeze_digest") != experiment.digest(freeze_body)
+        or construction.get("freeze_digest") != freeze.get("freeze_digest")
+        or construction.get("construction_digest") != experiment.digest(body)
+        or type(arms) is not list
+        or construction.get("construction_identity_digest")
+        != _construction_identity(freeze["freeze_digest"], arms)
+    ):
+        raise StudyError("predecessor_construction_inconsistent")
+    for arm in arms:
+        manifest = arm["commitment"]
+        path = directory / manifest["relative_path"]
+        if not path.is_file() or _sha256(path) != manifest["file_sha256"]:
+            raise StudyError("predecessor_commitment_altered", arm["arm_id"])
+    return freeze, construction
+
+
+def adoption_check(config, construction, predecessor_config, predecessor):
+    """Prove that a later version decided exactly what its predecessor decided.
+
+    The two configs may differ only in ``study_id``. Every arm's decision
+    fields (``_ADOPTION_ARM_FIELDS``) must be identical. Construction never
+    reads a reference, and the predecessor's commitments were sealed before
+    its campaign was dispatched. Identical decisions therefore show that the
+    later version's proposals cannot have been influenced by that campaign's
+    reference results.
+    """
+
+    if predecessor_config["study_id"] == config["study_id"]:
+        raise StudyError("adoption_needs_a_predecessor_version")
+    if {k: v for k, v in config.items() if k != "study_id"} != {
+        k: v for k, v in predecessor_config.items() if k != "study_id"
+    }:
+        raise StudyError("adoption_versions_differ_beyond_identity")
+    if predecessor.get("study_id") != predecessor_config["study_id"]:
+        raise StudyError("predecessor_study_identity")
+
+    def decided(arms):
+        return {
+            arm["arm_id"]: {field: arm[field] for field in _ADOPTION_ARM_FIELDS}
+            for arm in arms
+        }
+
+    if decided(construction["arms"]) != decided(predecessor["arms"]):
+        raise StudyError("adopted_decisions_differ")
+    return list(_ADOPTION_ARM_FIELDS)
+
+
+def adopt_counted_campaign(
+    config,
+    *,
+    repository,
+    construction_directory,
+    predecessor_config,
+    predecessor_construction_directory,
+    reference_directories,
+):
+    """Counted evidence from a predecessor version's campaign, bound to this
+    version's construction after ``adoption_check`` passes.
+
+    The campaign is validated against the predecessor's own plan and ledger.
+    Returns the reference and a digest-sealed adoption record.
+    """
+
+    _, construction, _, _ = load_construction(
+        config, repository=repository, directory=construction_directory
+    )
+    _, predecessor = _historical_construction(predecessor_construction_directory)
+    compared = adoption_check(config, construction, predecessor_config, predecessor)
+    first = Path(reference_directories[0])
+    plan = json.loads((first / "plan.json").read_text(encoding="utf-8"))
+    if (
+        plan.get("construction_identity_digest")
+        != predecessor["construction_identity_digest"]
+    ):
+        raise StudyError("campaign_not_bound_to_predecessor_construction")
+    reference = import_counted_getdp(
+        predecessor_config,
+        reference_directories,
+        _adopt_into=construction["construction_identity_digest"],
+    )
+    record = {
+        "schema": ADOPTION_SCHEMA,
+        "study_id": config["study_id"],
+        "construction_identity_digest": construction["construction_identity_digest"],
+        "predecessor_study_id": predecessor_config["study_id"],
+        "predecessor_construction_identity_digest": predecessor[
+            "construction_identity_digest"
+        ],
+        "campaign_id": plan["campaign"]["campaign_id"],
+        "plan_sha256": _sha256(first / "plan.json"),
+        "records_sha256": [
+            _sha256(Path(root) / "records.jsonl") for root in reference_directories
+        ],
+        "identical_decision_fields": compared,
+        "custody": (
+            "The predecessor's campaign plan binds its construction identity, "
+            "which digests every proposal commitment, and the campaign ledger "
+            "reserved that plan before any solver ran. This version's "
+            "construction reads no reference and made identical decisions."
+        ),
+        "reason": (
+            "The predecessor's importer refused every successful case because "
+            "the pinned solver writes empty logs on success "
+            "(OWNER-MOTOR-COUNTED-ADOPT-01)."
+        ),
+    }
+    return reference, {**record, "adoption_digest": experiment.digest(record)}
 
 
 def _reference_row(contract, job, record):
