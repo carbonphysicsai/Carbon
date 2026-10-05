@@ -195,8 +195,15 @@ def attack_modules():
     """The neutral attack engine (`carbon.agent_campaign.attack`). Imported
     here, not at module load, so the driver imports before the engine slices
     merge; a test injects fakes by replacing this function."""
-    from ..attack import adapter, analysis, benchmark, identity, knowledge, report
-    from ..attack import verify
+    from ..attack import (
+        adapter,
+        analysis,
+        benchmark,
+        identity,
+        knowledge,
+        report,
+        verify,
+    )
 
     return {
         "identity": identity,

@@ -178,7 +178,10 @@ names that role, and the scoped cooling condition ids stay at zero.
 ### 7. Battery's Track A output pin
 
 `carbon/battery/track_a.py` and the engine's attempt records are not
-changed; the byte pin holds (see the PR's test results). No pin update.
+changed, and §1 required no change to them (Carbon's declared attacks are
+not participant constructions). The byte pin
+(`tests/cpu/test_attack_engine.py::test_battery_track_a_output_is_byte_identical_after_the_extraction`)
+passes unchanged. No pin update.
 
 **Not done here.** Graphite's own phase-3 session metrics outside the
 modules above were not audited. A Level 1 adapter must supply an artifact
