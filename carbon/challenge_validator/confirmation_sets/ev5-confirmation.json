@@ -9,7 +9,7 @@
     "id": "battery-published-box-uniform-v1",
     "description": "uniform over the published input box (the exam's existing population), drawn by carbon.battery.seeds.make_batch"
   },
-  "strata": [],
+  "strata": "NONE_UNIFORM_LAW",
   "subgroups": [
     "the published important region reported separately"
   ],
@@ -22,7 +22,8 @@
   "required_private_priors": [],
   "authority": {
     "decisions": [
-      "OWNER-EV5-FREEZE-01: sealed by carbon.battery.value.ev5 seal-confirmation, journal sequence 14; registered here only as a prior, never sealed by this tool"
+      "OWNER-EV5-FREEZE-01: sealed by carbon.battery.value.ev5 seal-confirmation, journal sequence 14; registered here only as a prior, never sealed by this tool",
+      "OWNER-EV5-FREEZE-01 and the L0 study sheet's population.confirmation: one uniform law over the published box, no strata (NONE_UNIFORM_LAW)"
     ],
     "human_input": []
   }

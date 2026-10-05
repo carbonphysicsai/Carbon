@@ -1,0 +1,33 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-lanes.v1",
+ "challenge": "chip-cold-plate",
+ "status": "DRAFT",
+ "note": "DRAFT; the carrier lane references carrier-lane-v1 (#630) and runs its read-only probe. Motor's pod lane stays TBD.",
+ "lanes": [
+  {
+   "lane": "cpu-carrier",
+   "state": "DECLARED",
+   "registry_key": "c03-carrier",
+   "probe": "carrier_pods.environment_check (read-only: pinned C-03 image manifest loads; host doctor eligible with the image present and bound); effective controls are verified per run",
+   "policy": "carrier-lane-v1",
+   "registry": "carbon/agent_campaign/graphite/compute_lanes/registry.json",
+   "probe_cli": [
+    "{python}",
+    "-m",
+    "carbon.agent_campaign.graphite.carrier_pods",
+    "check",
+    "--image-manifest",
+    "{input}"
+   ],
+   "probe_input_env": "CARBON_READINESS_CARRIER_IMAGE_MANIFEST",
+   "note": "Registered by the Carbon Validator in #630 (VALIDATOR-11); this record depends on #630 landing first. Attribution is the pod-attribution policy in force with no environment claim, so v2's GPU probe does not apply. The probe needs Docker and the pinned image on the host; where absent R3 fails closed and says why."
+  },
+  {
+   "lane": "pod",
+   "state": "DECLARED",
+   "probe": "pod_phase.probe_environment (Carbon-owned GPU probe, GRAPHITE-POD-GPU-PROBE-01)",
+   "policy": "pod-attribution-v2",
+   "note": "OWNER-GRAPHITE-TEST-WAVE-06 section 2: the GPU lane is planned, its worker declaration is not built yet."
+  }
+ ]
+}
