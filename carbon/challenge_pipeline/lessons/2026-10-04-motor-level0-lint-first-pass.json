@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-lint-first-pass",
+  "recorded_at": "2026-10-04T23:09:44.1543790+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 Ruff first pass",
+    "description": "Ran Ruff over every changed Python implementation and test file."
+  },
+  "expected": "The focused implementation should satisfy repository lint rules.",
+  "observed": "Ruff found four import-order findings in newly added Motor files and no semantic lint findings.",
+  "keep": [
+    "Lint the exact changed Python set before broader acceptance."
+  ],
+  "change": [
+    "Apply the four deterministic import-order corrections and rerun Ruff."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.static-checks"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

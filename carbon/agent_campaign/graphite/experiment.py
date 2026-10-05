@@ -54,7 +54,7 @@ from carbon.challenge_validator.scoring import (
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
 
-from . import pod_outcome
+from . import baseline_retry, pod_logs, pod_outcome
 from . import pods as podlib
 from .roles import (
     CONSTRUCTOR_STALL_ATTEMPTS,
@@ -312,6 +312,15 @@ class Experiment:
     (`pod_outcome`). None means unknown, and then no pod claim blames the
     candidate. `attribution_policy` names a registered attribution policy
     version; None is the registry's current one.
+
+    The session's baseline (Carbon's own recipe and seed), when it closes
+    `FAILED_INFRA` or with its program crashed, is run once more under the
+    registered baseline-retry policy (`baseline_retry`; `retry_policy` names a
+    version, None is the current one). `seconds_left` reads the run's
+    remaining elapsed time (None: no elapsed limit); the retry starts only
+    when it and the waiting proposal's pod can finish within it. The logs of
+    a pod run that does not score are kept, bounded, in its proposal's record
+    directory (`pod_logs`), as operator evidence only.
     """
 
     def __init__(
@@ -333,6 +342,8 @@ class Experiment:
         scoring=None,
         construction_level=None,
         attribution_policy=None,
+        retry_policy=None,
+        seconds_left=None,
     ):
         from .provider import RunCancelled
 
@@ -355,6 +366,15 @@ class Experiment:
             if attribution_policy is None
             else pod_outcome.load_policy(attribution_policy)
         )
+        self.retry_policy = (
+            baseline_retry.load_policy()
+            if retry_policy is None
+            else baseline_retry.load_policy(retry_policy)
+        )
+        self.seconds_left = seconds_left
+        # The log bodies fetched from each proposal's pods, held until the
+        # proposal closes: written only when it does not score.
+        self._logs = {}
 
     # -- records ---------------------------------------------------------------------------
     def _dir(self, pid):
@@ -423,6 +443,12 @@ class Experiment:
         return int.from_bytes(path.read_bytes()[:4], "big")
 
     def _close(self, pid, record):
+        held = self._logs.pop(pid, None)
+        if held and pod_logs.kept_for(record["status"]):
+            # Operator evidence only: never in the record, the feedback, an
+            # event or a bundle (`pod_logs`).
+            kept = pod_logs.keep(self._dir(pid) / "pod-logs", held)
+            self.ledger.append("pod_logs_kept", proposal=pid, attempts=kept)
         write_once(self._dir(pid) / "result.json", canonical(record))
         self.emit(
             "proposal-" + pid,
@@ -608,6 +634,142 @@ class Experiment:
     def baseline_record(self):
         return self.record("baseline")
 
+    # -- the baseline retry (`baseline_retry`) -----------------------------------------------
+    def baseline_id(self):
+        """The proposal id of the session's baseline: its retry when the first
+        did not score and the retry did, else `baseline`."""
+        first = self.record("baseline")
+        if first is not None and first["status"] != "SCORED":
+            retried = self.record(baseline_retry.RETRY_ID)
+            if retried is not None and retried["status"] == "SCORED":
+                return baseline_retry.RETRY_ID
+        return "baseline"
+
+    def baseline_retry(self):
+        """The recorded retry decision, or None when none was needed yet."""
+        path = self.root / "baseline-retry.json"
+        return json.loads(path.read_bytes()) if path.exists() else None
+
+    def pods_before_proposal(self):
+        """Pods Carbon runs before the next proposal's own: the baseline's
+        when it has not run, or a decided retry a process death interrupted.
+        (A retry decided later is held to the time gate when it is decided.)"""
+        if self.record("baseline") is None:
+            return 1
+        decision = self.baseline_retry()
+        pending = (
+            decision is not None
+            and decision["retry"]
+            and self.record(baseline_retry.RETRY_ID) is None
+        )
+        return 1 if pending else 0
+
+    def _retry_budget(self, pods):
+        """None when the session's pod limit and the run's money cap (tokens
+        and pods together) hold `pods` more pods, else the refusal code."""
+        if self.pods_left() < pods:
+            return "session_pod_limit_reached"
+        committed = self.token_committed() + self.pod_committed()
+        if committed + pods * self.budget.pod_reservation_usd > self.budget.run_cap_usd:
+            return "run_cap_reached_tokens_plus_pods"
+        return None
+
+    def _fits_time(self, pods):
+        left = None if self.seconds_left is None else self.seconds_left()
+        return left is None or pods * self.budget.pod_minutes * 60 <= left
+
+    def _retry_baseline(self):
+        """Decide once, under the registered policy, whether the session's
+        failed baseline runs once more, record the decision and run the retry.
+        Called before a proposal's own pod; a decision is never re-made."""
+        path = self.root / "baseline-retry.json"
+        decision = self.baseline_retry()
+        if decision is not None:
+            if decision["retry"] and self.record(baseline_retry.RETRY_ID) is None:
+                self._run_retry(decision)  # a process died after the decision
+            return
+        first = self.record("baseline")
+        if first is None or first["status"] == "SCORED":
+            return
+        policy = self.retry_policy
+        retry, reason = baseline_retry.decide(
+            policy=policy,
+            first=first,
+            retries_used=int(
+                (self.root / "proposals" / baseline_retry.RETRY_ID).exists()
+            ),
+            budget_refusal=self._retry_budget(policy.pods_required),
+            time_fits=self._fits_time(policy.pods_required),
+        )
+        earlier = [
+            r["proposal_id"]
+            for r in self.records()
+            if r["kind"] != "baseline" and r["status"] == "SCORED"
+        ]
+        decision = {
+            "schema": baseline_retry.DECISION_SCHEMA,
+            "policy": policy.record(),
+            "baseline": {
+                "proposal_id": "baseline",
+                "status": first["status"],
+                "reason_code": first.get("reason_code"),
+            },
+            "retry": retry,
+            "reason_code": reason,
+            "retry_proposal_id": baseline_retry.RETRY_ID if retry else None,
+            "seed": "same_as_failed_baseline",
+            "pods_required": policy.pods_required,
+            "pods_left": self.pods_left(),
+            # Result records are write-once: these stay NO_BASELINE.
+            "earlier_scored_not_recompared": earlier,
+            "earlier_scored_note": (
+                "scored before the retry against no baseline; result records "
+                "are write-once and are not re-compared"
+                if earlier
+                else None
+            ),
+        }
+        write_once(path, canonical(decision))
+        self.ledger.append(
+            "baseline_retry_decided",
+            proposal="baseline",
+            retry=retry,
+            reason_code=reason,
+            retry_proposal_id=decision["retry_proposal_id"],
+            policy=policy.record(),
+        )
+        self.emit(
+            "baseline-retry",
+            {
+                "kind": "baseline_retry",
+                "retry": retry,
+                "reason_code": reason,
+                "baseline_status": first["status"],
+                "baseline_reason_code": first.get("reason_code"),
+                "policy": policy.record(),
+                "decision_digest": digest(canonical(decision)),
+            },
+        )
+        if retry:
+            self._run_retry(decision)
+
+    def _run_retry(self, decision):
+        """The retry: the same strategy, with the failed baseline's seed."""
+        seed = self.root / "proposals" / "baseline" / "seed.bin"
+        target = self._dir(baseline_retry.RETRY_ID) / "seed.bin"
+        if seed.is_file() and not target.exists():
+            write_once(target, seed.read_bytes())
+        self.run(
+            baseline_retry.RETRY_ID,
+            "baseline",
+            self.baseline,
+            why={
+                "baseline_retry_of": "baseline",
+                "reason_code": decision["baseline"]["reason_code"],
+                "policy": decision["policy"],
+            },
+        )
+
     def run(self, pid, kind, strategy, *, why, parent=None):
         """Admit, run, rebuild-check and score one strategy. Idempotent: a
         closed proposal returns its record; one interrupted by a process death
@@ -691,6 +853,8 @@ class Experiment:
             # The session's baseline runs once, before the first admitted
             # proposal, on the same path and the same frozen rule.
             self.run("baseline", "baseline", self.baseline, why=None)
+        if kind != "baseline":
+            self._retry_baseline()
         try:
             reservation = self._admit_pod()
         except BudgetRefused as refused:
@@ -828,8 +992,9 @@ class Experiment:
             **_attempts(attempts),
         }
         if kind != "baseline":
-            baseline_rows = self.rows("baseline")
-            baseline = self.record("baseline")
+            baseline_id = self.baseline_id()
+            baseline_rows = self.rows(baseline_id)
+            baseline = self.record(baseline_id)
             if baseline_rows is None or baseline["status"] != "SCORED":
                 record["against_baseline"] = {
                     "outcome": "NO_BASELINE",
@@ -857,6 +1022,9 @@ class Experiment:
                     "eligible": baseline["frozen_rule"]["eligible"],
                     "score": baseline["frozen_rule"]["score"],
                 }
+                if baseline_id != "baseline":
+                    # The session's baseline is its retry (`baseline_retry`).
+                    record["baseline"]["proposal_id"] = baseline_id
         if kind == "proposal":
             record["stall"] = self._stall(record)
         return self._close(pid, record)
@@ -943,6 +1111,25 @@ class Experiment:
         except (podlib.PodFailure, OSError, ValueError):
             return None
 
+    def _listing(self, handle):
+        """The sha256 the pod listed for each file it exported, or None when
+        the backend keeps no listing (then no log matches, `pod_logs`)."""
+        read = getattr(self.pods, "listing", None)
+        if read is None:
+            return None
+        try:
+            listed = read(handle)
+        except (podlib.PodFailure, OSError, ValueError):
+            return None
+        return listed if type(listed) is dict else None
+
+    def _hold_logs(self, pid, intent_id, files, handle):
+        logs = {name: files[name] for name in pod_logs.LOG_NAMES if name in files}
+        if logs:
+            self._logs.setdefault(pid, []).append(
+                (intent_id, logs, self._listing(handle))
+            )
+
     def _pod(self, pid, job):
         """Launch, wait, fetch, terminate and settle one pod. Returns the
         outcome and the fetched files. A process death propagates without
@@ -1002,6 +1189,7 @@ class Experiment:
                     proposal=pid,
                     files={name: digest(body) for name, body in sorted(files.items())},
                 )
+                self._hold_logs(pid, job.intent_id, files, handle)
             else:
                 outcome = "infra"
         except (podlib.PodFailure, OSError, ValueError):
@@ -1074,8 +1262,11 @@ class Experiment:
         return {"pods_settled_usd": str(settled), "pods_pending_usd": str(pending)}
 
     def summary(self):
-        """Deterministic: digests and outcomes, no wall-clock time."""
-        return {
+        """Deterministic: digests and outcomes, no wall-clock time. A run with
+        a baseline-retry decision also carries it; one without has exactly
+        the summary it had before that rule (a recorded session replays
+        byte-identically)."""
+        summary = {
             "budget": self.budget.record(),
             "proposals": [
                 {
@@ -1107,6 +1298,10 @@ class Experiment:
                 )
             ],
         }
+        decision = self.baseline_retry()
+        if decision is not None:
+            summary["baseline_retry"] = decision
+        return summary
 
 
 def retry_intent(intent_id, attempt=1):
@@ -1169,3 +1364,246 @@ def _json(body):
 
 def usd_to_nano(amount):
     return int((Decimal(amount) * NANO).to_integral_value(rounding=ROUND_FLOOR))
+
+
+# -- the failure-path check ----------------------------------------------------------------
+FAILURE_CHECK_SCHEMA = "carbon.graphite.pod-failure-path-check.v1"
+#: A SYNTHETIC program log larger than the per-file cap, so the check sees a
+#: log kept bounded (head and tail) with its traceback at the end.
+_CHECK_LOG = (
+    b"SYNTHETIC training step\n" * 9000
+    + podlib.SYNTHETIC_LOGS["program.log"].split(b"\n", 1)[1]
+)
+
+
+class _NoLadder:
+    def record_failure(self, *args, **kwargs):
+        raise AssertionError("the failure-path check never stalls")
+
+
+def failure_path_check(
+    root, *, baseline, budget, scorer=None, repository=REPOSITORY, level=0
+):
+    """Drive the R2 run-4 fixes with scripted pods: no pod, no network, no
+    spend; Carbon's admission, rebuild check and frozen-rule scoring are real.
+
+    1. The session's baseline pod ends with no claim (`FAILED_INFRA`, `pod`):
+       its logs are kept, and it is retried once on a later pod under the
+       registered baseline-retry policy; the retry scores and becomes the
+       session's baseline.
+    2. A proposal scores against the retried baseline.
+    3. A proposal's pod exits non-zero (the run-4 shape: `failure.json` stage
+       `program`, `exit 1`) with a log larger than the per-file cap: the log is
+       kept bounded, and its traceback's exception class is noted. An agent
+       proposal's crash is never retried.
+    4. In a second run, the session's baseline exits 1 at stage `program`
+       (`CANDIDATE_FAILED` at Level 0): it is retried once (the owner's
+       direction, 2026-10-04), the retry scores, and a proposal is compared
+       with it.
+    Nothing of any log reaches a result record, an event or the ledger.
+
+    `root` must be new or empty. Returns a report with `status` OK or FAILED;
+    it never raises for a failed check. The phase-3 dry run runs it."""
+    report = {
+        "schema": FAILURE_CHECK_SCHEMA,
+        "synthetic": True,
+        "network": False,
+        "spend_usd": "0",
+        "construction_level": level,
+    }
+    try:
+        root = Path(root)
+        if root.exists() and any(root.iterdir()):
+            raise ValueError("the check's root must be new or empty")
+        account = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=podlib.failed_outputs(None)),
+                podlib.Step(outputs=podlib.synthetic_outputs(1.0)),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+                podlib.Step(
+                    outcome="failed",
+                    outputs=podlib.failed_outputs(
+                        "program",
+                        logs={
+                            "program.log": _CHECK_LOG,
+                            "phase.log": podlib.SYNTHETIC_LOGS["phase.log"],
+                        },
+                    ),
+                ),
+            ]
+        )
+        events = []
+
+        def experiment(where, pods):
+            return Experiment(
+                root=root / where,
+                run_id="failure-path-check-" + where,
+                pods=pods,
+                budget=budget,
+                baseline=baseline,
+                token_committed=lambda: Decimal(0),
+                cancelled=lambda: False,
+                ladder=_NoLadder(),
+                emit=lambda event_id, body: events.append((event_id, body)),
+                scorer=scorer,
+                repository=repository,
+                clock=lambda: 0.0,
+                randomness=lambda n: b"\x03" * n,
+                construction_level=level,
+            )
+
+        run = experiment("baseline-infra", account)
+        why = {"hypothesis": "failure-path check", "expected_effect": "typed"}
+        scored = run.run("p-check-scored", "proposal", baseline, why=why)
+        failed = run.run("p-check-failed", "proposal", baseline, why=why)
+        first, decision = run.record("baseline"), run.baseline_retry() or {}
+        retried = run.record(baseline_retry.RETRY_ID) or {}
+        logs = {
+            pid: pod_logs.read_index(run.root / "proposals" / pid / "pod-logs")
+            for pid in ("baseline", "p-check-failed")
+        }
+        program = [
+            entry
+            for index in logs["p-check-failed"]
+            for entry in index["logs"]
+            if entry["name"] == "program.log"
+        ]
+        failures = []
+        if first["status"] != "FAILED_INFRA" or not decision.get("retry"):
+            failures.append("the_failed_baseline_was_not_retried")
+        if retried.get("status") != "SCORED" or run.baseline_id() != retried.get(
+            "proposal_id"
+        ):
+            failures.append("the_retried_baseline_is_not_the_sessions")
+        against = scored.get("against_baseline") or {}
+        if scored["status"] != "SCORED" or against.get("outcome") in (
+            None,
+            "NO_BASELINE",
+        ):
+            failures.append("a_proposal_was_not_compared_with_the_retry")
+        if failed["status"] == "SCORED" or len(program) != 1:
+            failures.append("a_failed_pods_program_log_was_not_indexed")
+        elif not (
+            program[0]["status"] == pod_logs.KEPT
+            and program[0]["truncated_bytes"] > 0
+            and program[0]["kept_bytes"]
+            <= pod_logs.LOG_HEAD_BYTES + pod_logs.LOG_TAIL_BYTES
+        ):
+            failures.append("a_failed_pods_log_was_not_kept_bounded")
+        if not logs["baseline"]:
+            failures.append("the_failed_baselines_logs_were_not_kept")
+        if len(account.launched) != 4 or any(
+            intent.startswith(run.run_id + "-p-check-failed-")
+            for intent, _job in account.launched
+        ):
+            failures.append("an_agent_proposals_crash_was_retried")
+        # 4. The baseline's own program crash, in a second run.
+        crashing = podlib.ScriptedPods(
+            steps=[
+                podlib.Step(outcome="failed", outputs=podlib.failed_outputs("program")),
+                podlib.Step(outputs=podlib.synthetic_outputs(1.0)),
+                podlib.Step(outputs=podlib.synthetic_outputs(0.4)),
+            ]
+        )
+        crash_run = experiment("baseline-crash", crashing)
+        crash_scored = crash_run.run("p-check-scored", "proposal", baseline, why=why)
+        crash_first = crash_run.record("baseline")
+        crash_decision = crash_run.baseline_retry() or {}
+        crash_retried = crash_run.record(baseline_retry.RETRY_ID) or {}
+        crash_against = crash_scored.get("against_baseline") or {}
+        if not crash_decision.get("retry") or crash_retried.get("status") != "SCORED":
+            failures.append("the_crashed_baseline_was_not_retried_to_a_score")
+        if crash_run.baseline_id() != baseline_retry.RETRY_ID or crash_against.get(
+            "outcome"
+        ) in (None, "NO_BASELINE"):
+            failures.append("a_proposal_was_not_compared_with_the_crash_retry")
+        if crashing.alive or len(crashing.launched) != 3:
+            failures.append("the_crash_retry_used_other_than_one_pod")
+        for pid in ("p-check-scored", baseline_retry.RETRY_ID):
+            if (run.root / "proposals" / pid / "pod-logs").exists():
+                failures.append("a_scored_pods_logs_were_kept")
+        marker = b"SYNTHETIC scripted failure"
+        leaked = [
+            path.name
+            for path in root.glob("*/proposals/*/result.json")
+            if marker in path.read_bytes()
+        ]
+        if (
+            leaked
+            or any(
+                marker in path.read_bytes() for path in root.glob("*/pod-ledger.jsonl")
+            )
+            or any(marker in canonical(body) for _event, body in events)
+        ):
+            failures.append("log_text_left_the_pod_logs")
+        if account.alive:
+            failures.append("a_pod_left_alive")
+        report.update(
+            {
+                "status": "FAILED" if failures else "OK",
+                "failures": sorted(set(failures)),
+                "pods_launched": len(account.launched),
+                "baseline": {
+                    "status": first["status"],
+                    "reason_code": first.get("reason_code"),
+                },
+                "baseline_retry": {
+                    "retry": decision.get("retry"),
+                    "reason_code": decision.get("reason_code"),
+                    "policy": decision.get("policy"),
+                    "retry_status": retried.get("status"),
+                },
+                "compared": {
+                    "outcome": against.get("outcome"),
+                    "promotable": against.get("promotable"),
+                    "baseline": (scored.get("baseline") or {}).get("proposal_id"),
+                },
+                "baseline_crash_retry": {
+                    "baseline": {
+                        "status": crash_first["status"],
+                        "reason_code": crash_first.get("reason_code"),
+                    },
+                    "retry": crash_decision.get("retry"),
+                    "reason_code": crash_decision.get("reason_code"),
+                    "retry_status": crash_retried.get("status"),
+                    "compared": {
+                        "outcome": crash_against.get("outcome"),
+                        "promotable": crash_against.get("promotable"),
+                        "baseline": (crash_scored.get("baseline") or {}).get(
+                            "proposal_id"
+                        ),
+                    },
+                    "pods_launched": len(crashing.launched),
+                },
+                "failed_pod": {
+                    "status": failed["status"],
+                    "reason_code": failed.get("reason_code"),
+                    "logs": [
+                        {
+                            k: entry.get(k)
+                            for k in (
+                                "name",
+                                "status",
+                                "bytes",
+                                "kept_bytes",
+                                "truncated_bytes",
+                                "exception_class",
+                            )
+                        }
+                        for index in logs["p-check-failed"]
+                        for entry in index["logs"]
+                    ],
+                },
+                "caps": pod_logs.caps(),
+            }
+        )
+    except Exception as error:  # noqa: BLE001 -- the check reports, typed
+        report.update(
+            {
+                "status": "FAILED",
+                "failures": ["exception"],
+                "error_type": f"{type(error).__module__}.{type(error).__name__}",
+                "error": str(error)[:500],
+            }
+        )
+    return report

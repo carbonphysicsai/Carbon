@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-local-acceptance",
+  "recorded_at": "2026-10-04T23:18:06.4331897+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "CHALLENGE-MOTOR-02 local affected-subsystem acceptance",
+    "description": "Reran the broad affected subsystem while explicitly deselecting only the 15 enumerated Windows-host failures and the one pre-existing frozen decision-fixture mismatch."
+  },
+  "expected": "Every locally runnable Motor, cooling, registry, campaign, study, expansion, pipeline and decision test should pass.",
+  "observed": "206 passed, 3 skipped and 16 explicitly deselected in 38.74 seconds. No runnable affected-subsystem test failed.",
+  "keep": [
+    "Carry the exact deselection list and the unfiltered diagnostic beside the local acceptance result.",
+    "Require canonical Linux CI before delivery authority."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.regression",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

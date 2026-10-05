@@ -18,6 +18,8 @@ from carbon.reconstruction.capability_registry import (
     BATTERY_CONTRACT,
     COLD_PLATE_CHALLENGE,
     COLD_PLATE_CONTRACT,
+    MOTOR_CHALLENGE,
+    MOTOR_CONTRACT,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +46,7 @@ def _imports(path, package):
 def test_the_shared_workflow_names_no_challenge_package(path):
     assert _imports(path, "carbon.battery") == []
     assert _imports(path, "carbon.cold_plate") == []
+    assert _imports(path, "carbon.motor") == []
 
 
 def test_the_import_scan_finds_a_challenge_package_where_one_is_imported():
@@ -77,6 +80,20 @@ def test_cold_plate_resolves_to_its_own_cpu_only_campaign():
     assert campaign.gpu_image(None, None) is None
     assert campaign.backends == ("numpy",)
     assert campaign.practice_provenance == cold_plate.PRACTICE_PROVENANCE
+
+
+def test_motor_resolves_to_its_own_cpu_only_campaign():
+    campaign = campaigns.campaign_for(
+        {"id": MOTOR_CHALLENGE, "version": MOTOR_CONTRACT.version}
+    )
+    from carbon.motor import campaign as motor
+
+    assert campaign.key == motor.CHALLENGE
+    assert campaign.evaluate is motor.evaluate_frozen
+    assert campaign.refusal_retains_candidate is True
+    assert campaign.gpu_image(None, None) is None
+    assert campaign.backends == ("numpy",)
+    assert campaign.practice_provenance == motor.PRACTICE_PROVENANCE
 
 
 @pytest.mark.parametrize(

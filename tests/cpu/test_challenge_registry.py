@@ -22,6 +22,7 @@ from carbon.reconstruction import capability_registry as r
 
 BATTERY = r.BATTERY_CHALLENGE
 COLD_PLATE = r.COLD_PLATE_CHALLENGE
+MOTOR = r.MOTOR_CHALLENGE
 EVERYTHING = challenges.HostFacts(
     frozenset({"docker_cli", "trusted_worker_image", "jax", "optax"})
 )
@@ -47,12 +48,15 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
     assert listed[COLD_PLATE]["status"] == "IMPLEMENTED"
     assert listed[COLD_PLATE]["version"] == "1.0"
     assert {p["profile"] for p in listed[COLD_PLATE]["profiles"]} == {"cpu_research"}
-    for reserved in ("electric-motor-magnetics", "photonic-coupler"):
-        # A reserved Challenge has a name and an issue, and nothing to run.
-        assert listed[reserved]["status"] == "RESERVED"
-        assert listed[reserved]["version"] is None
-        assert listed[reserved]["profiles"] == []
-        assert listed[reserved]["tracking"].startswith("carbonphysicsai/Carbon#")
+    assert listed[MOTOR]["status"] == "IMPLEMENTED"
+    assert listed[MOTOR]["version"] == "1.0"
+    assert {p["profile"] for p in listed[MOTOR]["profiles"]} == {"cpu_research"}
+    reserved = "photonic-coupler"
+    # A reserved Challenge has a name and an issue, and nothing to run.
+    assert listed[reserved]["status"] == "RESERVED"
+    assert listed[reserved]["version"] is None
+    assert listed[reserved]["profiles"] == []
+    assert listed[reserved]["tracking"].startswith("carbonphysicsai/Carbon#")
 
 
 @pytest.mark.parametrize(
@@ -133,6 +137,18 @@ def test_the_cold_plate_description_is_derived_and_public_only():
     assert described["execution"]["gpu_lane"] is False
     text = json.dumps(described).lower()
     for private in ("private_root", "duplicate_of", "counted-v1/completion"):
+        assert private not in text
+
+
+def test_the_motor_description_is_derived_and_public_only():
+    described = challenges.describe(MOTOR, "1.0", host=EVERYTHING)
+    assert described["contract_digest"] == r.contract_digest(MOTOR)
+    assert set(described["models"]["controls"]) == set(r.catalog_surfaces(MOTOR))
+    assert described["models"]["rebuildable"][0]["selector"] == "kernel_ridge"
+    assert described["execution"]["gpu_lane"] is False
+    assert described["interface"]["outputs"]["torque_nm"]["shape"] == [60]
+    text = json.dumps(described).lower()
+    for private in ("private_root", "duplicate_of", "motor-private", "confirmation-"):
         assert private not in text
 
 

@@ -235,6 +235,10 @@ class PodBackend(Protocol):
     # own clock readings of the pod's phase, taken during `wait`. A backend
     # without it gives the experiment no host timing, so a timeout it cannot
     # confirm is never blamed on the candidate.
+    #
+    # Optional: `listing(handle) -> {path: sha256 hex} | None`, the digests
+    # the pod listed for the files of its last `fetch`. A kept log must match
+    # it (`pod_logs`); a backend without it keeps no log.
 
 
 # -- the hash-pinned code ship -------------------------------------------------------------
@@ -580,7 +584,14 @@ class RunPodPods:
         code, body = self._get(handle, "/files")
         if code != 200:
             raise PodFailure("fetch", f"listing failed ({code})", executed=True)
+        # The caps first (VALIDATOR-01 finding 6), then the listed digests
+        # the run keeps (#580).
         listing = fetch_limits(json.loads(body))
+        self.__dict__.setdefault("_listings", {})[handle.intent_id] = {
+            row["path"]: row["sha256"]
+            for row in listing
+            if type(row.get("path")) is str and type(row.get("sha256")) is str
+        }
         files = {}
 
         def get(path):
@@ -597,6 +608,11 @@ class RunPodPods:
             for row in listing:
                 files[row["path"]] = (Path(directory) / row["path"]).read_bytes()
         return files
+
+    def listing(self, handle):
+        """The sha256 the pod listed per file at its last fetch (each file
+        was also checked against it then, `pod_control.fetch_files`)."""
+        return self.__dict__.get("_listings", {}).get(handle.intent_id)
 
     def terminate(self, handle):
         from scripts.dev.exam_design.runpod.operator_compute import ComputeError
@@ -689,7 +705,9 @@ class Step:
     - `hook`: a callable run while the job runs (for example to cancel);
     - `crash`: "wait" or "fetch" to die there, leaving the pod alive;
     - `timing`: the host's readings of the phase (`pod_outcome.HostTiming`
-      fields), or None when the host observed none.
+      fields), or None when the host observed none;
+    - `listed`: sha256 hex digests the pod lists in place of its files' own
+      (to script a listing that does not match what was fetched).
     """
 
     outcome: str = "done"
@@ -701,6 +719,7 @@ class Step:
     hook: object = None
     crash: str | None = None
     timing: dict | None = None
+    listed: dict | None = None
 
 
 @dataclass
@@ -713,6 +732,7 @@ class ScriptedPods:
     alive: dict = field(default_factory=dict)
     terminated: list = field(default_factory=list)
     deletes: int = 0
+    listings: dict = field(default_factory=dict)
 
     def describe(self):
         return {
@@ -770,7 +790,14 @@ class ScriptedPods:
 
             raise SimulatedCrash("pod fetch")
         job = self.alive[handle.pod_id]["job"]
-        return dict(step.outputs(job)) if step.outputs else {}
+        files = dict(step.outputs(job)) if step.outputs else {}
+        self.listings[handle.intent_id] = {
+            name: hashlib.sha256(body).hexdigest() for name, body in files.items()
+        } | dict(step.listed or {})
+        return files
+
+    def listing(self, handle):
+        return self.listings.get(handle.intent_id)
 
     def terminate(self, handle):
         self.deletes += 1
@@ -846,6 +873,42 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
             "runtime.json": json.dumps({"synthetic": True}).encode(),
             "DONE.json": b'{"exit": 0, "synthetic": true}',
         }
+
+    return outputs
+
+
+#: The SYNTHETIC logs a scripted failed pod exports (`failed_outputs`).
+SYNTHETIC_LOGS = {
+    "program.log": (
+        b"SYNTHETIC program log: a scripted pod, nothing ran\n"
+        b"Traceback (most recent call last):\n"
+        b'  File "<string>", line 1, in <module>\n'
+        b"RuntimeError: SYNTHETIC scripted failure\n"
+    ),
+    "phase.log": b"SYNTHETIC phase log: a scripted pod, nothing ran\n",
+}
+
+
+def failed_outputs(stage="program", *, logs=None, root=REPOSITORY):
+    """SYNTHETIC outputs of a pod whose program exited non-zero, for tests
+    and `--dry-run`: the honest build, the pod's `failure.json` claim (none
+    when `stage` is None, as when the bootstrap failed) and its logs
+    (`SYNTHETIC_LOGS` unless `logs` is given). No predictions."""
+    from .pod_phase import built_record
+
+    def outputs(job):
+        key = (json.dumps(job.strategy, sort_keys=True), job.contract_digest, job.seed)
+        record = _SYNTHETIC_BUILDS.get(key)
+        if record is None:
+            record = built_record(job.strategy, job.contract_digest, job.seed, root)[0]
+            _SYNTHETIC_BUILDS[key] = record
+        files = {"built.json": json.dumps(record, sort_keys=True).encode()}
+        if stage is not None:
+            files["failure.json"] = json.dumps(
+                {"stage": stage, "error": "exit 1"}
+            ).encode()
+        files.update(SYNTHETIC_LOGS if logs is None else logs)
+        return files
 
     return outputs
 

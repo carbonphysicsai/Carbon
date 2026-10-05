@@ -191,13 +191,38 @@ def _cold_plate():
     )
 
 
+def _motor():
+    from carbon.motor import campaign as motor
+    from carbon.motor import research_view as motor_view
+
+    return ChallengeCampaign(
+        key=motor.CHALLENGE,
+        prepare=motor.prepare_motor,
+        evaluate=motor.evaluate_frozen,
+        observation=motor.agent_observation,
+        refusal_retains_candidate=True,
+        check_attached=motor.check_attached,
+        compose=motor.compose,
+        feedback_modes=motor.FEEDBACK_MODES,
+        feedback_schema=None,
+        research_view=motor_view.research_view,
+        practice_provenance=motor.PRACTICE_PROVENANCE,
+        backends=motor.BACKENDS,
+    )
+
+
 def _campaigns():
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
         COLD_PLATE_CHALLENGE,
+        MOTOR_CHALLENGE,
     )
 
-    return {BATTERY_CHALLENGE: _battery, COLD_PLATE_CHALLENGE: _cold_plate}
+    return {
+        BATTERY_CHALLENGE: _battery,
+        COLD_PLATE_CHALLENGE: _cold_plate,
+        MOTOR_CHALLENGE: _motor,
+    }
 
 
 def practice_provenances():
