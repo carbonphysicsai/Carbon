@@ -20,6 +20,11 @@ for every level, 0 through 5. Each proposal is one file,
   a person locks it before miners get it.
 - Graphite never writes the contract or an expansion record.
 
+A proposal made while findings are open carries their tag (`conditional_on`
+and `conditional_policy`, both or neither; `conditional-evidence.v1`). It
+may be filed as PROPOSED but is never ACCEPTED while the tag lists a finding:
+acceptance cites it as established.
+
 Nothing here is battery-specific.
 """
 
@@ -31,6 +36,7 @@ import re
 from pathlib import Path
 
 from carbon.challenge_pipeline.ladder import LEVELS
+from carbon.challenge_readiness import conditional_evidence
 
 PROPOSALS = Path(__file__).with_name("proposals")
 SCHEMA = "carbon.challenge-pipeline.level-proposal.v1"
@@ -44,7 +50,8 @@ KEYS = {
     "left_out",
     "status",
 }
-OPTIONAL = {"decision"}
+TAG = set(conditional_evidence.TAG_KEYS)
+OPTIONAL = {"decision", *TAG}
 CAPABILITY_KEYS = {
     "id",
     "adds",
@@ -151,6 +158,22 @@ def validate(proposal, where, protocol):
             f"{where}: {status} needs a decision {{by, on, ref}} by the construction "
             "contract owner (the technical owner)"
         )
+    tagged = TAG & set(proposal)
+    if tagged and tagged != TAG:
+        raise ProposalError(
+            f"{where}: a conditional proposal carries conditional_on and "
+            "conditional_policy together"
+        )
+    try:
+        if status == "ACCEPTED":
+            conditional_evidence.require_unconditional(proposal, site=where)
+        else:
+            conditional_evidence.conditional_on(proposal)
+    except conditional_evidence.ConditionalEvidenceError as error:
+        raise ProposalError(
+            f"{where}: {error}; accept it once its findings are repaired and it is "
+            "proposed again (conditional-evidence.v1)"
+        ) from error
     return proposal
 
 

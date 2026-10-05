@@ -12,6 +12,12 @@ final optimized version. Review moves from every change to every finding:
   locks, which must be a recorded state.
 - **Engineering value (Track B).** A full review happens only at one of the
   owner's three conditions: STUCK, WINNING or OWNER_REQUEST, named in it.
+- **Conditional evidence is never cited as established**
+  (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional_evidence`). For internal
+  testing a finding stops locking, not exploration: development expansions
+  live in the campaign controller's own ledger and never in `expansions`,
+  and a result tagged with open findings is refused as report evidence and at
+  the LOCK (`conditional_evidence_cited_unconditionally`).
 
 This reads maintainer-held files; it neither executes submissions nor
 authenticates reviewers. Structural validity is not scientific or security
@@ -24,6 +30,8 @@ import hashlib
 import json
 import re
 from pathlib import Path
+
+from . import conditional_evidence
 
 PROTOCOL = "carbon.challenge-admission.v1"
 STATES = {"NOT_STARTED", "IN_PROGRESS", "FAILED", "INCONCLUSIVE", "ACCEPTED"}
@@ -189,6 +197,11 @@ def _expansions(entries):
         raise AdmissionError("admission_list_required")
     previous = None
     for index, entry in enumerate(entries, start=1):
+        if type(entry) is dict and (
+            "kind" in entry or set(conditional_evidence.TAG_KEYS) & set(entry)
+        ):
+            # A development expansion never counts toward or enters a LOCK.
+            raise AdmissionError("admission_development_expansion_refused")
         _exact(
             entry,
             {"sequence", "recorded_at", "profile", "version", "widened", "permissions"},
@@ -231,11 +244,25 @@ def _findings(entries, expansions, root):
         _artifact(entry["evidence"], root)
 
 
+def _cited(body, site):
+    """Evidence cited as established is unconditional (conditional-evidence.v1)."""
+    try:
+        conditional_evidence.require_unconditional_bytes(body, site=site)
+    except conditional_evidence.ConditionalEvidenceError as exc:
+        raise AdmissionError(exc.code) from exc
+
+
 def _lock(study, scope, root):
-    """Track A's one review: lock a recorded state, bound to both ledgers."""
+    """Track A's one review: lock a recorded state, bound to both ledgers and
+    to unconditional evidence only."""
     _exact(study["acceptance"], {"reviewer", "decision"})
     _text(study["acceptance"]["reviewer"])
+    report = _document(study["report"], root)
+    for check in report["checks"].values():
+        for ref in check["evidence"]:
+            _cited(_artifact(ref, root), "LOCK")
     decision = _document(study["acceptance"]["decision"], root)
+    _cited(_artifact(study["acceptance"]["decision"], root), "LOCK decision")
     _exact(
         decision,
         {
@@ -387,7 +414,7 @@ def _study(track, study, scope, root):
         if type(check["evidence"]) is not list:
             raise AdmissionError("admission_evidence_list_required")
         for ref in check["evidence"]:
-            _artifact(ref, root)
+            _cited(_artifact(ref, root), f"{track} report evidence")
         if check["result"] in ("PASS", "FAIL") and (
             count == 0 or not check["evidence"]
         ):

@@ -96,6 +96,7 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
+from carbon.challenge_readiness import conditional_evidence
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -145,14 +146,17 @@ ATTACK_BUDGET = 8
 #: The strategy label the knowledge store records for the Attacker's attempts:
 #: `graphite-attacker:<operation>` ("which strategy found what").
 STRATEGY = "graphite-attacker"
-LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v2"
+#: v3 adds `conditional_on` and `conditional_policy` (conditional-evidence.v1).
+LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: v3 adds the per-check view (`check_view`): every Track A check, the run
 #: families and NOT_RUN seams the adapter declares for it, and any report row
 #: that lost its check. v4 adds `findings_by_source` (every finding, from the
 #: Attacker, held-out controls and the deterministic baseline, reaches the
 #: controller), the held-out wrongful-rejection rate per family and the
-#: store's suite pin.
-COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v4"
+#: store's suite pin. v5 adds `conditional_on` and `conditional_policy`: the
+#: findings open once Carbon's side recorded every finding, the session's own
+#: included (conditional-evidence.v1).
+COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v5"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -1001,7 +1005,10 @@ def carbon_side(
     attacker = report.attacker_runs(verdicts, families=families)
     baseline = atk["adapter"].run_adapter(adapter, budget=budget)
     family_report = report.family_report(
-        attacker, controls_held_out=held_out, seams=seams
+        attacker,
+        controls_held_out=held_out,
+        seams=seams,
+        open_findings=control.open_findings(),
     )
     by_source = {
         "attacker": list(findings),
@@ -1043,6 +1050,7 @@ def carbon_side(
         },
         "seams": [dict(POD_REBUILD_SEAM)],
         "claims": {"security_acceptance": False, "graded": False},
+        **conditional_evidence.tag(control.open_findings()),
     }
     return coverage, b2, findings, after
 
@@ -1119,6 +1127,7 @@ def run_session(
         "findings": findings,
         "store_pinned": view.digest,
         "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
+        **conditional_evidence.tag(control.open_findings()),
     }
     if final in _TERMINAL:
         _log(store, entry)

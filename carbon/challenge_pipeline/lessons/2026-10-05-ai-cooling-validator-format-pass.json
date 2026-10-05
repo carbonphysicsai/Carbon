@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-format-pass",
+  "recorded_at": "2026-10-05T04:04:25Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-08 canonical Black repair",
+    "description": "Applied the pinned canonical formatter to the two new Cooling validator Python files."
+  },
+  "expected": "Canonical Black should deterministically format only the new adapter and its focused tests.",
+  "observed": "Black reformatted exactly carbon/challenge_validator/cooling.py and tests/cpu/test_challenge_validator_cooling.py.",
+  "keep": [
+    "Keep canonical formatting as the source of truth for Python layout."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

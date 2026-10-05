@@ -396,6 +396,11 @@ NEXT_ACTIONS = {
         "that the intake address serves this Carbon version; if it does, this "
         "recipe is too large to submit to it."
     ),
+    "body_timeout": (
+        "The submission's body did not reach the intake in time, so nothing "
+        "was evaluated; the frozen candidate is kept. Check your connection, "
+        "then submit again."
+    ),
     "headers": (
         "The intake refused the request's headers (one was repeated), so "
         "nothing was evaluated; the frozen candidate is kept. Check that "

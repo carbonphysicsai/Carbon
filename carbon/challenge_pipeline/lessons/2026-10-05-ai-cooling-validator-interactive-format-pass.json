@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-interactive-format-pass",
+  "recorded_at": "2026-10-05T04:08:04Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-08 guarded canonical interactive format",
+    "description": "Opened the guarded writable canonical environment and applied pinned Black 26.5.1 to the two new Python files."
+  },
+  "expected": "The formatter should persist deterministic canonical layout to the disposable Linux checkout.",
+  "observed": "Black reformatted exactly the adapter and its focused test, and the resulting files were copied byte-for-byte to the review worktree.",
+  "keep": [
+    "Use guarded interactive mode only for deliberate canonical writes such as formatting."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
