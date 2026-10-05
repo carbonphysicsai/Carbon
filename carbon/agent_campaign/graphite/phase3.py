@@ -374,6 +374,12 @@ class Phase3Provider(GraphiteProvider):
             self.scoring = challenge_scoring.resolve(scoring)
         except challenge_scoring.ScoringUnavailable as refused:
             raise ProviderUnavailable(refused.code) from None
+        # The session reads its own Challenge's literature only.
+        check_literature_challenge(
+            kwargs.get("literature_index"),
+            self.scoring.challenge_id,
+            ProviderUnavailable,
+        )
         try:
             # The backend's own rate when it declares one (the CPU carrier
             # lane costs no provider money); otherwise RunPod's.
@@ -776,7 +782,10 @@ FIXTURE_NOTE = (
     "--literature-snapshot."
 )
 #: The most cards a brief lists; the rest stay readable by id (GRAPHITE-D31).
+#: A ranked snapshot lists them best first; an unranked one by card id.
 MAX_BRIEF_CARDS = 100
+#: The Challenge an unranked (phase-2 v1/v2) snapshot is for.
+BATTERY_LITERATURE = "battery-fastcharge-ageing-development-v1"
 
 
 def literature_brief(index):
@@ -1264,15 +1273,30 @@ def _install_cancel(provider, run_id):
         signal.signal(getattr(signal, name), handler)
 
 
-def _literature_from(args):
-    """The session's literature, or None for the dry run's fixture."""
+def _literature_from(args, *, check_challenge=True):
+    """The session's literature, or None for the dry run's fixture. A live run
+    checks its Challenge later (`check_challenge=False`), after the spend and
+    code checks: authority first, then input content."""
     if args.literature_snapshot is None:
         if args.allow_unchecked_cards:
             raise RunnerRefused("allow_unchecked_cards_needs_a_literature_snapshot")
         return None
-    return open_literature(
+    offered = open_literature(
         args.literature_snapshot, allow_unchecked=args.allow_unchecked_cards
     )
+    if check_challenge:
+        check_literature_challenge(offered, args.challenge, RunnerRefused)
+    return offered
+
+
+def check_literature_challenge(offered, challenge_id, refusal):
+    """A session reads its own Challenge's literature only: a ranked snapshot
+    names its Challenge; an unranked (v1/v2) one is battery's phase 2."""
+    if type(offered) is not lit.OfferedLiterature:
+        return
+    for_challenge = offered.challenge_id or BATTERY_LITERATURE
+    if for_challenge != challenge_id:
+        raise refusal("literature_snapshot_is_for_another_challenge")
 
 
 #: The compute lanes a live phase-3 run may use (`--compute`).
@@ -1345,7 +1369,10 @@ def command_run(args):
     if args.literature_snapshot is None:
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")
-    literature = _literature_from(args)
+    # Refusal precedence: the grant and compute lane (spend authority), then
+    # the code ref (code integrity), then the literature's Challenge (input
+    # content). Every one refuses before a model call or a pod.
+    literature = _literature_from(args, check_challenge=False)
     compute = compute_lane(args, grant)
     from . import miner_path
     from .model import LiveModel, ModelAccessRefused
@@ -1367,6 +1394,7 @@ def command_run(args):
             if not runpod_key_status(runpod):
                 raise RunnerRefused("runpod_key_file_must_be_owner_only")
         check_code_ref(args.code_ref)
+        check_literature_challenge(literature, args.challenge, RunnerRefused)
         try:
             model = LiveModel(grant=grant, credential_file=engy, provider="graphite")
         except ModelAccessRefused as refused:

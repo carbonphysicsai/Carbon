@@ -807,3 +807,75 @@ Every launch gate passes: run 3 needs 2 × 1.95 + 1.95 + 0.25 = 6.10.
 
 **Expected spend.** Each call settles from Engy's reported charge, not from
 its reservation. The first live cooling session measures the real figures.
+
+## GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR (literature for cooling and motor)
+
+**State.** Approved by the owner on 2026-10-05
+(OWNER-GRAPHITE-LITERATURE-GRANT-01: "approve").
+
+It pays the method-card extraction for a Challenge with a registered
+literature profile (VALIDATOR-08):
+
+    phase2 triage --challenge chip-cold-plate --grant docs/development/graphite/grants/GRAPHITE-GRANT-LITERATURE-COOLING-MOTOR.json ...
+    phase2 triage --challenge electric-motor-magnetics --grant ...
+
+Any other grant is refused (`grant_is_not_the_literature_grant`). The arXiv
+fetch costs nothing. Battery's phase-2 backfill keeps `GRAPHITE-GRANT-PHASE2`.
+
+| Field | Value | Why |
+|---|---|---|
+| `monetary_ceiling` | `4.00` | Covers the expected backfill (about 1,800 booked calls) with room for the worst case below |
+| `worst_case_run_cost` | `2.49` | 3,000 calls at the booked reservation (below) |
+| `permitted_runs` | `3` | One run per Challenge, plus one resume or retry |
+| `cleanup_allowance` | `0.10` | Headroom kept back at every run's admission |
+| `max_runtime_s` | `360000` | About 100 hours, as phase 2's |
+| `max_concurrency` | `1` | One run at a time |
+
+### Arithmetic
+
+This is engineering arithmetic from listed prices, not a new price.
+
+**One call's reservation.** The same Reader settings and rung as phase 2:
+16,384 input and 1,024 output tokens on `deepseek-v4-flash-0731`, at 45 and 90
+nanodollars a token:
+
+    16,384 × 45 + 1,024 × 90 = 829,440 nanodollars = USD 0.00082944 per call
+
+Engy reports no charge for these calls, so every call is booked at this
+reservation.
+
+**One run's worst case.** At most 3,000 calls (`triage.MAX_CALLS_PER_RUN`):
+
+    3,000 × USD 0.00082944 = USD 2.48832  →  USD 2.49
+
+**The ceiling, not the run count, binds the third run.** A run opens only
+while booked spend, plus the next run's worst case, plus cleanup, stays
+within the ceiling:
+
+    booked + 2.49 + 0.10 ≤ 4.00   ⇔   booked ≤ USD 1.41
+
+So once the runs before it have booked more than USD 1.41 (about 1,700
+calls), no further run opens, whatever the run count allows. With the
+expected volume, one run per Challenge (cooling, then motor) both open: about
+900 calls, or USD 0.75, each. A third run opens only if those two booked at
+most USD 1.41 together.
+
+**Expected volume.**
+- Each Challenge has 6 queries with a quota of 3 pages of 100 records:
+  at most 1,800 records, so 3,600 for both.
+- Each profile's free pre-filter keeps only records naming the Challenge's
+  domain, or a domain and a surrogate cue, before any paid call. About half
+  are expected to pass: about 1,800 calls in total.
+- That is USD 1.49 booked, about USD 0.20 actual (phase 2 measured about
+  USD 0.00007 a card).
+- **The worst case does not fit.** If every record passed, the first
+  Challenge's run alone could book 1,800 calls (USD 1.49). That is past the
+  USD 1.41 a second run's admission allows, so the other Challenge's run
+  would be refused.
+  - **Mitigation:** run each Challenge with `--max-calls 850`, which caps a
+    run at USD 0.71 booked. Both runs then open (0.71 + 2.59 ≤ 4.00), and so
+    does a third (1.41 + 2.59 ≤ 4.00).
+  - A Challenge with more kept records than its run's calls finishes them in
+    the third run. Past that, it needs a ceiling amendment from the owner.
+
+The first live run measures the real figures and replaces these numbers.
