@@ -1,27 +1,33 @@
-"""Track B adapter for the AI accelerator cooling decision (TRACK-B-HARNESS-01).
+"""Track B adapter for the motor torque-ripple decision (TRACK-B-HARNESS-01).
 
-It wraps the registered cooling study (``AI_ACCELERATOR_COOLING_SYNTHETIC_V1``)
-for ``carbon.design_search.track_b`` without changing it:
+It wraps the registered motor study (``MOTOR_SYNTHETIC_DECISION_V2``, which
+adopted the counted V1 campaign under OWNER-MOTOR-COUNTED-ADOPT-01) for
+``carbon.design_search.track_b`` without changing it:
 
-- the ``Problem``: its eight designs, its six scenarios with their groups, and
-  its decision rule (feasible means die peak and hydraulic power within the
-  study's synthetic limits; the objective is hydraulic power, lower is
-  better);
+- the ``Problem``: its eight designs, its six conditions with their groups,
+  and its decision rule. A design is feasible when the mean torque meets the
+  study's synthetic floor and the ripple fraction stays within its limit. The
+  objective is the ripple fraction, lower is better, worst case over
+  conditions;
 - predictors: the registered analytical model, the registered KRR
   reconstruction, a nearest-neighbour interpolation over the public TRAIN
-  pool, and the solver through a replay of the counted CFD records;
+  pool, and the solver through a replay of the counted GetDP records;
 - a replay table built from the counted records (``build_replay``). The
   repository keeps the table, not the raw records.
 
-One-time costs are the TRAIN pool's recorded solve time, by the route it ran
-on, plus the measured fitting CPU. The TRAIN pool ran partly on the operator
-host (two CPUs per case) and partly on RunPod CPU pods, 16 cases on 16 vCPU,
-whose flavor was not recorded. With no approved rate and no paired timing for
-those pods, a host-only unit leaves the learned and interpolation arms'
-one-time cost UNPRICED_MIXED_HARDWARE. That is reported, not hidden.
+The decision rule here is Track B's neutral PB-INV rule: ties go to the lower
+design. The registered study breaks ties by higher mean torque first. The two
+rules differ only on an exact tie, but the analytical model predicts zero
+ripple everywhere, so it ties on every design: Track B picks d01, the study
+d07. Both are reference-infeasible. The registered search methods are pinned,
+so Track B does not adopt the study's tie-break.
 
-DEVELOPMENT only: replay is not new evidence, and nothing here changes a
-study, score, gate or tolerance.
+One-time costs are the TRAIN pool's recorded solve time, by route, plus the
+measured fitting CPU. As for cooling, the TRAIN pool ran partly on the
+operator host and partly on RunPod CPU pods whose flavor was not recorded, so
+a host-only unit reports those arms as UNPRICED_MIXED_HARDWARE.
+
+DEVELOPMENT only.
 """
 
 from __future__ import annotations
@@ -35,16 +41,15 @@ from carbon.design_search import cost, track_b
 
 from . import customer_decision as cd
 from . import decision_study as ds
-from . import domain, exam
+from . import domain
 
-CONFIG = "docs/development/studies/AI_ACCELERATOR_COOLING_SYNTHETIC_V1.json"
-REPLAY = "docs/development/evidence/track-b-replay/ai-cooling-counted-v1.json"
+CONFIG = "docs/development/studies/MOTOR_SYNTHETIC_DECISION_V2.json"
+REPLAY = "docs/development/evidence/track-b-replay/motor-counted-v2.json"
 REPLAY_SCHEMA = "carbon.design-search.track-b-replay.v1"
 HOST_ROUTE = "operator-host-i7-12700H"
 POOL_POD_ROUTE = "runpod-cpu-pod-16vcpu-flavor-unrecorded"
-#: Allocated CPUs per TRAIN case on each route: two per container on the
-#: host, one vCPU each for 16 concurrent cases on a 16-vCPU pod.
 TRAIN_CPUS = {HOST_ROUTE: 2.0, POOL_POD_ROUTE: 1.0}
+UNIT = cost.Unit("core_seconds", HOST_ROUTE)
 
 
 def load_config(repository):
@@ -65,7 +70,7 @@ def problem(config):
     )
     conditions = tuple(
         track_b.Condition(
-            row["scenario_id"],
+            row["condition_id"],
             row["group"],
             tuple(row["values"][name] for name in cd.CONDITION_VARIABLES),
         )
@@ -77,22 +82,16 @@ def problem(config):
             designs=tuple(designs),
             conditions=conditions,
             passes=lambda q: bool(q["feasible"]),
-            objective=lambda q: float(q["hydraulic_w"]),
+            objective=lambda q: float(q["ripple_fraction"]),
             host_route=HOST_ROUTE,
         ),
         contract,
     )
 
 
-def _quantities(contract, point, outputs):
-    """Decision quantities, or None where the output fails a validity gate."""
-
+def _quantities(contract, outputs):
     try:
-        return cd.quantities(
-            contract,
-            cd._point_case(point),
-            {name: outputs[name] for name in exam.SHAPES},
-        )
+        return cd.quantities(contract, {"torque_nm": outputs["torque_nm"]})
     except cd.DecisionError:
         return None
 
@@ -109,16 +108,12 @@ def _train(config, repository):
 
 
 def _route(record):
-    return (
-        POOL_POD_ROUTE
-        if str(record.get("execution", "")).startswith("runpod-cpu-pod")
-        else HOST_ROUTE
-    )
+    if str(record.get("execution", "")).startswith("runpod-cpu-pod"):
+        return POOL_POD_ROUTE
+    return HOST_ROUTE
 
 
 def training_data_cost(train):
-    """The TRAIN pool's recorded solve cost, one charge per route."""
-
     by_route = {}
     for record in train:
         route = _route(record)
@@ -149,8 +144,7 @@ def _nearest_neighbour(train):
     def one(inputs):
         q = learned_baseline.scale([inputs], domain.INPUTS, domain.INPUT_BOUNDS)[0]
         index = int(np.argmin(((x - q) ** 2).sum(axis=1)))
-        outputs = train[index]["outputs"]
-        return {name: outputs[name] for name in exam.SHAPES}
+        return {"torque_nm": list(train[index]["outputs"]["torque_nm"])}
 
     return lambda batch: {key: one(case) for key, case in batch.items()}
 
@@ -158,7 +152,7 @@ def _nearest_neighbour(train):
 def _model(name, contract, batch_model, one_time=()):
     def infer(points):
         outputs = batch_model({i: cd._point_case(p) for i, p in enumerate(points)})
-        return [_quantities(contract, p, outputs[i]) for i, p in enumerate(points)]
+        return [_quantities(contract, outputs[i]) for i in range(len(points))]
 
     return track_b.Predictor(
         name=name,
@@ -171,8 +165,6 @@ def _model(name, contract, batch_model, one_time=()):
 
 
 def predictors(config, *, repository, contract, reference):
-    """The registered models, the interpolation baseline and the solver."""
-
     models, reconstruction = ds.reconstruct_models(config, repository=repository)
     train = _train(config, repository)
     data = training_data_cost(train)
@@ -203,8 +195,8 @@ def predictors(config, *, repository, contract, reference):
     }
 
 
-def build_replay(config, attempt_directory):
-    """A compact replay table from one counted CFD attempt directory."""
+def build_replay(config, attempt_directory, *, cpu_model):
+    """A compact replay table from one counted GetDP attempt directory."""
 
     root = Path(attempt_directory)
     records_bytes = (root / "records.jsonl").read_bytes()
@@ -215,7 +207,7 @@ def build_replay(config, attempt_directory):
             key = json.dumps(
                 {**design["values"], **condition["values"]}, sort_keys=True
             )
-            by_inputs[key] = (design["design_id"], condition["scenario_id"])
+            by_inputs[key] = (design["design_id"], condition["condition_id"])
     cases = []
     for line in records_bytes.decode("utf-8").splitlines():
         if not line.strip():
@@ -231,7 +223,7 @@ def build_replay(config, attempt_directory):
                 "condition_id": condition_id,
                 "status": record["status"],
                 "outputs": (
-                    {name: record["outputs"][name] for name in exam.SHAPES}
+                    {"torque_nm": record["outputs"]["torque_nm"]}
                     if record["status"] == "OK"
                     else None
                 ),
@@ -245,9 +237,9 @@ def build_replay(config, attempt_directory):
         "schema": REPLAY_SCHEMA,
         "challenge": cd.CHALLENGE,
         "study_id": config["study_id"],
-        "evidence_class": "COUNTED_CFD",
+        "evidence_class": "COUNTED_GETDP",
         "route": HOST_ROUTE,
-        "cpu_model": host.get("cpu_model"),
+        "cpu_model": cpu_model,
         "parallel": host.get("parallel"),
         "solver_image": host.get("solver_image"),
         "source_records_sha256": "sha256:" + hashlib.sha256(records_bytes).hexdigest(),
@@ -257,8 +249,6 @@ def build_replay(config, attempt_directory):
 
 
 def replay_reference(config, table):
-    """The replay table as a Track B reference keyed by point."""
-
     tb_problem, contract = problem(config)
     designs = {d.design_id: d for d in tb_problem.designs}
     conditions = {c.condition_id: c for c in tb_problem.conditions}
@@ -268,9 +258,7 @@ def replay_reference(config, table):
             designs[row["design_id"]], conditions[row["condition_id"]]
         )
         quantities = (
-            None
-            if row["outputs"] is None
-            else _quantities(contract, point, row["outputs"])
+            None if row["outputs"] is None else _quantities(contract, row["outputs"])
         )
         cases[point] = track_b.Case(
             quantities, row["wall_s"] * row["cpus"], table["route"]
@@ -290,8 +278,8 @@ def median_solve_core_seconds(reference):
 
 def planning_solve_core_seconds(reference, quantile=0.95):
     """The solver arm's planning charge: the p95 of the measured solve cost on
-    its route, by linear interpolation. The median under-plans and the timeout
-    wastes budget (Test Lead, 2026-10-05). Actual cost always decides."""
+    its route, by linear interpolation (Test Lead, 2026-10-05). Actual cost
+    always decides."""
 
     values = sorted(case.core_seconds for case in reference._cases.values())
     k = (len(values) - 1) * quantile
@@ -301,10 +289,9 @@ def planning_solve_core_seconds(reference, quantile=0.95):
 
 
 def proposed_budget_ladder(reference, ks=(6, 12, 24, 48)):
-    """B = k x the median measured solve, in host core-seconds, as the Test
-    Lead confirmed for cooling. Planning at p95 means k = 48 no longer buys
-    the full set, so ``anchor_full_set`` is added: 48 x the planning charge,
-    where the solver arm can plan the whole 8 x 6 finite set."""
+    """B = k x the median measured solve, in host core-seconds, proposed as
+    for cooling; ``anchor_full_set`` = 48 x the planning charge, where the
+    solver arm can plan the whole 8 x 6 finite set."""
 
     median = median_solve_core_seconds(reference)
     ladder = {f"k{k}": k * median for k in ks}
@@ -318,9 +305,10 @@ MOTOR_PAIRED_HOST_PER_POD = 1.63
 
 
 def bracket_conversions():
-    """The two declared conversions of unrecorded-flavor pod core-seconds into
-    host core-seconds (Test Lead, 2026-10-05). Both are assumptions. For
-    cooling, the upper one is a proxy borrowed from motor's paired timing."""
+    """The two declared conversions of unrecorded-flavor pool-pod core-seconds
+    into host core-seconds (Test Lead, 2026-10-05). The ratio is motor's own
+    measurement, but applying it to the pool pods is an assumption: their
+    flavor was not recorded."""
 
     return {
         "lower": (
@@ -336,12 +324,8 @@ def bracket_conversions():
                 POOL_POD_ROUTE,
                 HOST_ROUTE,
                 MOTOR_PAIRED_HOST_PER_POD,
-                "PROXY ASSUMPTION: motor host/cpu5c paired wall ratio 1.63 "
-                "(motor-timing-2026-10-04) applied to cooling; the pool pods' "
-                "flavor was not recorded",
+                "ASSUMPTION: motor host/cpu5c paired wall ratio 1.63 "
+                "(motor-timing-2026-10-04); the pool pods' flavor was not recorded",
             ),
         ),
     }
-
-
-UNIT = cost.Unit("core_seconds", HOST_ROUTE)
