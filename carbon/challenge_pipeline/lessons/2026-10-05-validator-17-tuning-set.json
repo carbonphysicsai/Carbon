@@ -1,7 +1,7 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-05-validator-17-tuning-set",
-  "recorded_at": "2026-10-06T00:30:00Z",
+  "recorded_at": "2026-10-05T23:55:00Z",
   "challenge": "battery-fastcharge-ageing-development-v1",
   "stage": "test_iterate",
   "execution": {
