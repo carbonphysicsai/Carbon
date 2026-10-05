@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attacker-cooling-vector-api",
+ "recorded_at": "2026-10-05T18:00:00Z",
+ "challenge": "chip-cold-plate",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-05-GRAPHITE-ATTACKER-COOLING-API-01.md; branch claude/cooling-vector-api",
+  "description": "Exposed cooling's Level 0 attack vectors as a pure public API (VECTOR_NAMES, apply_vector, faulted_cases, typed VectorError) so the Validator's gate-audit harness can import them, and refactored the adapter's private transforms to take the reference set as an argument."
+ },
+ "expected": "The adapter's emitted attacks, evidence and controls stay byte-identical, and the vectors run on a caller's references without touching a file.",
+ "observed": "The digest pin recorded before the refactor held afterwards, so ADAPTER_VERSION stayed cooling-l0.v2. On a synthetic reference set each vector moved predictions in its own direction, the audit hook saw no file, directory, network or process event, and the mutations (a transform turned the wrong way, apply_vector opening a file) turned their guards red. The transforms need each case's inlet, so the API takes PRACTICE-shaped records rather than bare predictions.",
+ "keep": [
+  "Pin the existing output's digests in a committed test before refactoring shared code, then refactor against the pin.",
+  "Expose a reusable attack as a pure function of the caller's data, and bind purity with an audit hook plus a mutation that breaks it."
+ ],
+ "change": [
+  "faulted_cases needs the caller's important group for hot_group because case scores carry no reference peak; a caller has to pass it."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "challenge.ai_cooling.level0"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}
