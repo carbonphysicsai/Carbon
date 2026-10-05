@@ -164,3 +164,32 @@ def test_a_different_policy_version_is_not_this_authorization(tmp_path):
     other = dataclasses.replace(POLICY, digest="sha256:" + "1" * 64)
     with pytest.raises(twp.WinnerPublicationRefused):
         composed(tmp_path, policy=other)
+
+
+def test_the_standing_file_binds_the_owner_records_bytes(tmp_path):
+    import hashlib
+    import json
+
+    record = tmp_path / "OWNER-TESTNET-WEIGHTS-01.md"
+    record.write_text("the owner's words")
+    standing = tmp_path / "standing.json"
+    standing.write_text(
+        json.dumps(
+            {
+                "authority_record": record.name,
+                "policy_digest": POLICY.digest,
+                "publisher_hotkey": "owner-hotkey",
+                "expected_runtime_spec": SPEC,
+                "valid_from_block": 900,
+                "valid_through_block": 2000,
+            }
+        )
+    )
+    standing.chmod(0o600)
+    loaded = twp.load_standing(standing, chain())
+    assert loaded.authority_record_digest == (
+        hashlib.sha256(b"the owner's words").hexdigest()
+    )
+    standing.chmod(0o644)
+    with pytest.raises(twp.WinnerPublicationRefused):
+        twp.load_standing(standing, chain())

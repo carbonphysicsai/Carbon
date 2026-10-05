@@ -367,3 +367,106 @@ class TestnetWinnerPublisher(VerifiedWeightPublisher):
                 )
             elif row[0] != ref.digest:
                 _refuse("EPOCH_ALREADY_PUBLISHED")
+
+
+# -- operator entry point ------------------------------------------------------------------
+
+
+def load_standing(path, context):
+    """The operator's standing authorization file: owner-only JSON naming the
+    owner record (whose bytes it digests), the policy digest, the publisher
+    hotkey, the runtime spec and the block window."""
+    import os
+    import stat
+    from pathlib import Path
+
+    path = Path(path)
+    info = os.lstat(path)
+    if stat.S_ISLNK(info.st_mode) or info.st_mode & 0o077:
+        _refuse("STANDING_AUTHORIZATION_NOT_OWNER_ONLY")
+    raw = json.loads(path.read_bytes())
+    record = (path.parent / raw["authority_record"]).resolve()
+    return StandingAuthorization(
+        authority_record_digest=hashlib.sha256(record.read_bytes()).hexdigest(),
+        policy_digest=raw["policy_digest"],
+        context=context,
+        publisher_hotkey=raw["publisher_hotkey"],
+        expected_runtime_spec=raw["expected_runtime_spec"],
+        valid_from_block=raw["valid_from_block"],
+        valid_through_block=raw["valid_through_block"],
+    )
+
+
+async def _run(args):
+    from pathlib import Path
+
+    from carbon.battery import deployment
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+    from carbon.development_testnet.operator import _wallet, load_config
+    from carbon.transport.store import ReceiptJournal
+
+    from .winner_decay import load_policy
+    from .winner_eligibility import battery_promotion
+
+    config = load_config(Path(args.config).absolute())
+    if config.context is None or config.netuid != NETUID:
+        _refuse("TESTNET_567_ONLY")
+    policy = load_policy()
+    auth = load_standing(args.standing, config.context)
+    sources = {}
+    if args.battery_deployment:
+        target = deployment.validator(
+            Path(args.battery_deployment), repository=args.repository, readonly=True
+        )
+        sources[target.identities()["challenge"]["id"]] = lambda: battery_promotion(
+            target
+        )
+    issuer = TestnetWinnerIntentIssuer(
+        ReceiptJournal(Path(args.journal), config.context),
+        auth,
+        policy,
+        WinnerLedger(Path(args.ledger)),
+        sources,
+    )
+    backend = BittensorPublicationBackend(
+        config.context, config.publisher_hotkey, _wallet(config), network="testnet"
+    )
+    try:
+        publisher = TestnetWinnerPublisher(issuer, backend)
+        snapshot, _ = await backend.observe()
+        return await publisher.publish(issuer.issue(snapshot))
+    finally:
+        await backend.close()
+
+
+def main(argv=None):
+    import argparse
+    import asyncio
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="python -m carbon.rewards.testnet_winner_publication"
+    )
+    parser.add_argument("command", choices=("run",))
+    for name in ("config", "standing", "journal", "ledger"):
+        parser.add_argument("--" + name, required=True)
+    parser.add_argument("--battery-deployment")
+    parser.add_argument("--repository", default=".")
+    args = parser.parse_args(argv)
+    try:
+        result = asyncio.run(_run(args))
+    except WinnerPublicationRefused as refused:
+        print(json.dumps({"status": "REFUSED", "reason": str(refused)}))
+        return 2
+    except Exception:  # noqa: BLE001 - no provider, wallet or input text echoed
+        print(json.dumps({"status": "FAILED_CLOSED"}))
+        return 2
+    print(json.dumps(result, sort_keys=True, indent=2, default=str))
+    sys.stdout.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main())

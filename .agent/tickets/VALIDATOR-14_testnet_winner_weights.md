@@ -152,3 +152,52 @@ network)
 IMPLEMENTED and TESTED (DEVELOPMENT) on scripted chains. A live testnet
 publication is an operator step under the owner's record. This is not a
 security audit.
+
+## Build record
+
+1. **The rule.** `rewards/winner_decay.py` plus `weight_policies/` (pinned by
+   digest).
+   - testnet-winner-v1: 3 Challenges, per-Challenge `baselines` null, the
+     factor null.
+2. **The commitment reader.** `chain/commitments.py`, with a deployment
+   `commitment_reader` block.
+   - A chain failure is `commitment_reader_unavailable`.
+3. **Eligibility.** `rewards/winner_eligibility.py`: `battery_promotion`,
+   `decide` and an append-only owner-only `WinnerLedger`.
+   - Promotions are recorded once, at the first finalized time observed.
+   - An overdue-nominated promotion pays nobody.
+   - The same miner (hotkey or coldkey) never resets its clock.
+4. **Publication.** `rewards/testnet_winner_publication.py`, made up of
+   `StandingAuthorization`, `TestnetWinnerIntentIssuer`,
+   `TestnetWinnerPublisher`, and the operator `run` command (one epoch per
+   call).
+   - It inherits the shared checked publisher.
+   - It adds the block window, netuid 567, burn UID 0, the policy digest, one
+     publication per epoch, and a refusal when the targets change.
+5. **The factor study.** `rewards/self_improvement_study.py`: one-step
+   neighbours and the measured distribution.
+   - It produces a proposal (`PROPOSED_NOT_ADOPTED`). Running it on battery is
+     the next step.
+
+**Design changes from the draft**
+- **No service-key signing.** The publisher reads the validator state
+  read-only on the operator host, so `signing.winner_intent` stays refused and
+  unused.
+- **Same-miner promotions never reset the clock** until checking the factor
+  against a measured gain is built.
+
+**Kept on purpose: the shared compiler's owner-associated-winner refusal.**
+- A winner whose hotkey or coldkey is the subnet owner's
+  (`OWNER_ASSOCIATED_WINNER_WOULD_BURN`) still refuses the publication.
+- Carbon's own testnet miners need a coldkey that is not the owner's to win
+  weights.
+
+**Validation (canonical)**
+- The new tests (decay, eligibility, commitments, publication, study) pass.
+- The battery deployment, daemon, service, intake, adapter, OD-4a dispatch,
+  C-W1 testnet and reward core and ledger suites pass unchanged.
+- `scripts/check_quality.py --base origin/main`: passed.
+
+**Maturity.** IMPLEMENTED and TESTED (DEVELOPMENT) on scripted chains. It is
+not security-reviewed (AGENTS.md §13). A live publication is an operator step
+under the standing authorization.
