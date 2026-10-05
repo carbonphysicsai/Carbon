@@ -29,6 +29,13 @@ Rules:
   declared violation was reproduced outside the agent, a boundary that did not
   hold, or a rebuild that does not match. Later steps are NOT_RUN with the
   reason, and the finding is kept.
+- **Except on a development variant, where it continues and tags**
+  (OWNER-GRAPHITE-TEST-WAVE-03 §2, GRAPHITE-DEV-VARIANTS-01). A plan that
+  names a registered development-only variant (`development_variant`) runs
+  every step past a finding. The finding is kept and named
+  (`climb-finding-NNN`); every run recorded after it, and the report, carry
+  `conditional_on` with it. Such a report is never unconditional evidence. A
+  plan with no variant (the LOCK path) stops exactly as before.
 - **Infrastructure failure is not a result.** A run that fails on
   infrastructure is recorded as FAILED_INFRA. It is never a finding and never
   a pass, and it counts against the budget.
@@ -130,10 +137,25 @@ class ClimbPlan:
     #: (run record) -> True when a valid result is worth a clean rebuild. The
     #: rule is the Challenge's, declared before the climb runs.
     promising: Callable
+    #: The registered development-only variant the expanded profile runs
+    #: under, by digest, or None (the LOCK path). A development climb
+    #: continues past a finding and tags what follows it.
+    development_variant: str | None = None
 
     def __post_init__(self):
         if not (type(self.level) is int and 1 <= self.level <= 5):
             raise ClimbError("level_is_1_to_5")
+        if self.development_variant is not None:
+            from carbon.reconstruction import development_variants
+
+            try:
+                found = development_variants.registered(
+                    self.development_variant, self.challenge
+                )
+            except development_variants.VariantRefused as refused:
+                raise ClimbError(refused.code) from None
+            if found.level != self.level:
+                raise ClimbError("development_variant_is_another_level")
         new = frozenset(self.new_permissions)
         if not new or new & self.previous.permissions:
             raise ClimbError("new_permissions_are_new")
@@ -164,12 +186,37 @@ class ClimbPlan:
 
 
 class _Record:
-    def __init__(self):
+    def __init__(self, development=False, open_findings=()):
         self.steps = {}
         self.findings = []
+        self.development = development
+        self.open_findings = list(open_findings)
 
     def stopped(self):
-        return bool(self.findings)
+        """A finding stops the climb, except on a development variant."""
+        return bool(self.findings) and not self.development
+
+    def add_finding(self, finding):
+        if self.development:
+            # Named so what follows it can say it is conditional on it.
+            finding = {"id": f"climb-finding-{len(self.findings) + 1:03d}", **finding}
+        self.findings.append(finding)
+
+    def conditional(self):
+        """The tag: the controller's open findings, and on a development
+        climb every finding the climb itself has recorded so far."""
+        own = (
+            [conditional_evidence.reference(f) for f in self.findings]
+            if self.development
+            else []
+        )
+        return conditional_evidence.tag([*self.open_findings, *own])
+
+    def tag_after_finding(self, entry):
+        """A development run recorded after an in-climb finding carries it."""
+        if self.development and self.findings:
+            entry.update(self.conditional())
+        return entry
 
 
 def _run(record, step, kind, profile, item, runners):
@@ -189,9 +236,9 @@ def _run(record, step, kind, profile, item, runners):
         "expected_refusal": expected_refusal,
         "outcome": outcome,
     }
-    record.steps[step]["runs"].append(run)
+    record.steps[step]["runs"].append(record.tag_after_finding(run))
     if expected_refusal and status == "OK":
-        record.findings.append(
+        record.add_finding(
             {
                 "kind": "permission_not_enforced",
                 "step": step,
@@ -201,7 +248,7 @@ def _run(record, step, kind, profile, item, runners):
             }
         )
     if kind == "attack" and status == "OK" and outcome.get("violation_reproduced"):
-        record.findings.append(
+        record.add_finding(
             {
                 "kind": "attack_violation_reproduced",
                 "step": step,
@@ -223,8 +270,9 @@ def climb(plan, runners, *, open_findings=()):
     findings open when the climb ran (`open_findings`, as `{id, digest}`)."""
     if type(plan) is not ClimbPlan or type(runners) is not Runners:
         raise TypeError("exact ClimbPlan and Runners required")
-    conditional = conditional_evidence.tag(open_findings)
-    record = _Record()
+    conditional_evidence.tag(open_findings)  # well-formed before anything runs
+    development = plan.development_variant is not None
+    record = _Record(development, open_findings)
     coverage = {}
 
     def step(name, body):
@@ -285,9 +333,9 @@ def climb(plan, runners, *, open_findings=()):
                 "status": status,
                 "outcome": rebuilt,
             }
-            record.steps[name]["runs"].append(entry)
+            record.steps[name]["runs"].append(record.tag_after_finding(entry))
             if status == "OK" and not rebuilt.get("matches"):
-                record.findings.append(
+                record.add_finding(
                     {
                         "kind": "reconstruction_mismatch",
                         "step": name,
@@ -302,6 +350,12 @@ def climb(plan, runners, *, open_findings=()):
     ):
         step(name, body)
     runs = [r for s in record.steps.values() for r in s["runs"]]
+    if development:
+        status = "COMPLETED_CONDITIONAL" if record.findings else "COMPLETED"
+        extra = {"development_variant": plan.development_variant}
+    else:
+        status = "STOPPED_ON_FINDING" if record.findings else "COMPLETED"
+        extra = {}
     return {
         "schema": REPORT_SCHEMA,
         "challenge": plan.challenge,
@@ -322,11 +376,12 @@ def climb(plan, runners, *, open_findings=()):
         },
         "infrastructure_failures": sum(r["status"] == "FAILED_INFRA" for r in runs),
         "findings": record.findings,
-        "status": "STOPPED_ON_FINDING" if record.findings else "COMPLETED",
+        "status": status,
         "claims": {
             "level_tested": False,
             "level_open_to_miners": False,
             "qualification": False,
         },
-        **conditional,
+        **extra,
+        **record.conditional(),
     }

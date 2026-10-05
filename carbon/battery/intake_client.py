@@ -157,6 +157,11 @@ REFUSALS = {
     "not_found": "No submission with that id belongs to your hotkey.",
     "tool": "The intake only accepts battery_submit and battery_status.",
     "submission_fields": "A submission needs exactly strategy_json and contract_digest.",
+    "development_variant_not_served": (
+        "The contract digest names a development-only contract variant, which "
+        "is never served to miners. Nothing was sent for evaluation; write the "
+        "recipe against the Challenge's published contract digest."
+    ),
     "status_fields": "A status request needs exactly submission_id.",
     "snapshot_unknown": (
         "Your message names a chain snapshot this validator no longer holds. "

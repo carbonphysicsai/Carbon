@@ -191,6 +191,16 @@ def _scope(scope, challenge_id):
 _TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\Z")
 
 
+def _development_permissions(entry):
+    """Whether a LOCK-ledger entry widens into a development-only contract
+    variant. The campaign controller records a development expansion only
+    under a registered variant's digest (GRAPHITE-DEV-VARIANTS-01), so a
+    development entry stripped of its `kind` and tag still names one."""
+    from carbon.reconstruction.capability_registry import is_development_variant
+
+    return type(entry) is dict and is_development_variant(entry.get("permissions"))
+
+
 def _expansions(entries):
     """Every widening, in order: what widened, when, under which profile."""
     if type(entries) is not list:
@@ -201,6 +211,8 @@ def _expansions(entries):
             "kind" in entry or set(conditional_evidence.TAG_KEYS) & set(entry)
         ):
             # A development expansion never counts toward or enters a LOCK.
+            raise AdmissionError("admission_development_expansion_refused")
+        if _development_permissions(entry):
             raise AdmissionError("admission_development_expansion_refused")
         _exact(
             entry,

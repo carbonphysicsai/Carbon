@@ -10,6 +10,10 @@ not rebuild, and an unknown or inapplicable field are each refused by name.
 
 The compiler resolves only the named Challenge's contract: a Burgers family
 submitted under battery is refused, and the reverse.
+
+A development-only contract variant (OWNER-GRAPHITE-TEST-WAVE-03 §1) is never
+served here: a submission naming one, as its contract digest or its
+Challenge, is refused by name (`development_variant_not_served`).
 """
 
 from __future__ import annotations
@@ -20,9 +24,11 @@ from carbon.reconstruction.capability_registry import (
     BATTERY_CHALLENGE,
     BURGERS_CHALLENGE,
     CONTRACTS,
+    DEVELOPMENT_VARIANT_NOT_SERVED,
     Dimension,
     Status,
     catalog_surfaces,
+    is_development_variant,
     rebuildable_families,
 )
 from carbon.schema.strategy import (
@@ -40,6 +46,10 @@ ISSUE_MESSAGES = {
     "parameter.not_rebuildable": "Carbon does not rebuild this field for this Challenge yet.",
     "parameter.not_applicable": "This field does not apply to the selected family.",
     "contract.digest_mismatch": "The contract digest is not this Challenge's current contract.",
+    DEVELOPMENT_VARIANT_NOT_SERVED: (
+        "This names a development-only contract variant, which is never served "
+        "to miners."
+    ),
 }
 
 
@@ -47,10 +57,15 @@ def _issue(code, path):
     return ValidationIssue(code, path, ISSUE_MESSAGES[code])
 
 
-def validate_for_challenge(strategy) -> ValidationResult:
-    """Structural validation, then the named Challenge's own contract."""
+def validate_for_challenge(strategy, *, contract_digest=None) -> ValidationResult:
+    """Structural validation, then the named Challenge's own contract. When the
+    caller passes the contract digest the submission was written against, a
+    development-only variant's digest is refused by name."""
     base = dry_validate(strategy)
     issues = list(base.errors)
+    if is_development_variant(contract_digest):
+        issues.append(_issue(DEVELOPMENT_VARIANT_NOT_SERVED, "/contract_digest"))
+        base = _result(issues)
     if type(strategy) is not dict:
         return base
     flagged = {i.path for i in issues}
@@ -59,7 +74,16 @@ def validate_for_challenge(strategy) -> ValidationResult:
         return base
     item = CONTRACTS.get(challenge)
     if item is None:
-        issues.append(_issue("challenge.unknown", "/challenge_id"))
+        issues.append(
+            _issue(
+                (
+                    DEVELOPMENT_VARIANT_NOT_SERVED
+                    if is_development_variant(challenge)
+                    else "challenge.unknown"
+                ),
+                "/challenge_id",
+            )
+        )
         return _result(issues)
     families = dict(rebuildable_families(challenge))
     registered = {c.capability_id: c for c in item.capabilities}
@@ -133,7 +157,12 @@ class SubmissionRefused(ValueError):
 
 
 def check_contract_digest(challenge, digest):
-    """Refuse, by name, a submission recorded against a different contract."""
+    """Refuse, by name, a submission recorded against a different contract,
+    and first one recorded against a development-only variant."""
+    if is_development_variant(digest):
+        raise SubmissionRefused(
+            (_issue(DEVELOPMENT_VARIANT_NOT_SERVED, "/contract_digest"),)
+        )
     item = CONTRACTS.get(challenge)
     if item is None:
         raise SubmissionRefused((_issue("challenge.unknown", "/challenge_id"),))
@@ -159,8 +188,10 @@ def compile_submission(strategy, *, contract_digest=None):
     """Validate against the named Challenge's contract, then compile with its
     own catalog through B-02B. Raises `SubmissionRefused` (contract-level
     issues) or `RecipeRejected` (compiler and backend issues), each naming
-    every reason."""
-    result = validate_for_challenge(strategy)
+    every reason. A development-only variant's digest is refused by name;
+    Graphite's development compile path is
+    `development_variants.compile_development`, never this one."""
+    result = validate_for_challenge(strategy, contract_digest=contract_digest)
     if not result.ok:
         raise SubmissionRefused(result.errors)
     challenge = strategy["challenge_id"]

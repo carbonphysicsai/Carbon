@@ -236,11 +236,26 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
     strategy = json.loads((folder / "strategy.json").read_bytes())
     recipe = json.loads((folder / "recipe.json").read_bytes())
     score = json.loads((folder / "score.json").read_bytes())
+    variant = None
+    if "development" in recipe:
+        # Built at a development level: rebuilt through the registered
+        # variant its recipe names (GRAPHITE-DEV-VARIANTS-01), never Level 0.
+        from carbon.reconstruction import development_variants
+
+        try:
+            variant = development_variants.registered(
+                (recipe["development"] or {}).get("variant_digest")
+            )
+        except (development_variants.VariantRefused, AttributeError) as refused:
+            return _rebuild_result(["not_rebuildable:" + str(refused)], manifest)
     try:
-        rebuilt = ex.admit(strategy, recipe.get("seed"), repository)
+        level = {} if variant is None else {"variant": variant}
+        rebuilt = ex.admit(strategy, recipe.get("seed"), repository, **level)
     except (ex.Unrebuildable, ex.NotServed, ValueError, TypeError) as refused:
         return _rebuild_result(["not_rebuildable:" + str(refused)], manifest)
-    differences = ex.rebuild_differences(recipe, rebuilt)
+    differences = ex.rebuild_differences(recipe, rebuilt) + ex.development_differences(
+        recipe, rebuilt
+    )
     for name, value in (
         ("score_recipe_digest", score.get("recipe_digest")),
         ("manifest_recipe_digest", manifest.get("recipe_digest")),

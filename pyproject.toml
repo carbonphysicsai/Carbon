@@ -95,6 +95,7 @@ exclude = ["carbon.miner_mcp.apps_ui.node_modules*"]
 
 [tool.setuptools.package-data]
 "carbon.challenge_readiness" = ["records/*.json"]
+"carbon.reconstruction" = ["development_variant_policies/*.json"]
 "carbon.agent_campaign.graphite.miner" = ["packs/*.json.gz"]
 "carbon.miner_mcp" = ["apps_ui/workbench.html", "apps_ui/manifest.json", "apps_ui/THIRD_PARTY_LICENSES.txt"]
 "carbon.reference_runtime.julia" = ["*.jl", "*.toml", "README.md"]

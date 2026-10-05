@@ -77,6 +77,10 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from carbon.reconstruction.capability_registry import (
+    DEVELOPMENT_VARIANT_NOT_SERVED,
+    is_development_variant,
+)
 from carbon.transport.models import (
     MAX_BODY,
     PATH,
@@ -693,6 +697,10 @@ class BatteryIntake:
                 submission = AuthenticatedSubmission.from_received(received, gateway)
             except (ValueError, TypeError):
                 return _refused(400, "submission_fields")
+            if is_development_variant(submission.contract_digest):
+                # Never served to a miner, so never queued for admission
+                # (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+                return _refused(400, DEVELOPMENT_VARIANT_NOT_SERVED)
             _, submission_id = submission_identity(submission)
             refused = self._window_check(hotkey, submission_id, submission)
             if refused is not None:

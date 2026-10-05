@@ -186,9 +186,12 @@ class PodJob:
     expected: dict
     minutes: int
     seconds: int
+    #: The registered development-only variant the strategy compiles under
+    #: (its digest), or None at Level 0, whose configuration is unchanged.
+    development_variant: str | None = None
 
     def config(self, stop_admitting_epoch):
-        return {
+        config = {
             "strategy": self.strategy,
             "contract_digest": self.contract_digest,
             "seed": self.seed,
@@ -196,6 +199,9 @@ class PodJob:
             "seconds": self.seconds,
             "stop_admitting_epoch": stop_admitting_epoch,
         }
+        if self.development_variant is not None:
+            config["development_variant"] = self.development_variant
+        return config
 
 
 @dataclass(frozen=True)
@@ -780,15 +786,28 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None):
     def outputs(job):
         from carbon.battery.practice import PracticeSet
 
-        from .pod_phase import built_record
+        from .pod_phase import built_record, development_built_record
 
-        key = (json.dumps(job.strategy, sort_keys=True), job.contract_digest, job.seed)
+        variant = getattr(job, "development_variant", None)
+        key = (
+            json.dumps(job.strategy, sort_keys=True),
+            job.contract_digest,
+            job.seed,
+            variant,
+        )
         if built is not None:
             record = built
         elif key in _SYNTHETIC_BUILDS:
             record = _SYNTHETIC_BUILDS[key]
-        else:
+        elif variant is None:
             record = built_record(job.strategy, job.contract_digest, job.seed, root)[0]
+            _SYNTHETIC_BUILDS[key] = record
+        else:
+            # A development level's pod builds through its variant, as
+            # `pod_phase.run` does on a real pod.
+            record = development_built_record(
+                job.strategy, job.contract_digest, variant, job.seed, root
+            )[0]
             _SYNTHETIC_BUILDS[key] = record
         predictions = {}
         records = cache.get("practice")

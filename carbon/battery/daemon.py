@@ -63,6 +63,10 @@ from dataclasses import dataclass
 import numpy as np
 
 from carbon.challenge_registry import ResolutionError, resolve
+from carbon.reconstruction.capability_registry import (
+    DEVELOPMENT_VARIANT_NOT_SERVED,
+    is_development_variant,
+)
 from carbon.reconstruction.challenge_contracts import (
     SubmissionRefused,
     compile_submission,
@@ -279,6 +283,10 @@ class BatteryValidator:
         from .contracts import implementation_digest
 
         registered = contract(CHALLENGE.challenge_id)
+        if is_development_variant(registered.digest):
+            # The daemon binds only a miner-facing contract, never a
+            # development-only variant (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+            raise StateError(DEVELOPMENT_VARIANT_NOT_SERVED, registered.digest)
         return {
             "schema": "carbon.battery.validator-identities.v1",
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
@@ -442,6 +450,10 @@ class BatteryValidator:
         if submission.strategy.get("challenge_id") != CHALLENGE.challenge_id:
             # A strategy naming another Challenge is never reinterpreted here.
             return refuse("cross_challenge_submission")
+        if is_development_variant(submission.contract_digest):
+            # A development-only contract variant is never served to a miner
+            # (OWNER-GRAPHITE-TEST-WAVE-03 §1).
+            return refuse(DEVELOPMENT_VARIANT_NOT_SERVED)
         try:
             admitted = compile_submission(
                 submission.strategy, contract_digest=submission.contract_digest
