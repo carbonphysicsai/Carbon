@@ -250,6 +250,15 @@ class ConfirmationSet:
                 "confirmation_human_input_missing:" + ",".join(self.human_input)
             )
 
+    def _strata_record(self):
+        """The strata as recorded: null (unset), the explicit "no strata"
+        value, or the registered strata."""
+        if self.strata is None:
+            return None
+        if not self.strata:
+            return STRATA_NONE
+        return [dict(s) for s in self.strata]
+
     def skeleton(self):
         """The public skeleton: no case, input, seed or root."""
         return {
@@ -260,13 +269,7 @@ class ConfirmationSet:
             "hidden_duplicates": self.hidden_duplicates,
             "batch_size": None if self.human_input else self.batch_size,
             "sampling_law": self.sampling_law,
-            "strata": (
-                None
-                if self.strata is None
-                else STRATA_NONE
-                if not self.strata
-                else [dict(s) for s in self.strata]
-            ),
+            "strata": self._strata_record(),
             "subgroups": list(self.subgroups),
             "custody": dict(self.custody),
             "required_prior_roles": list(self.required_prior_roles),
