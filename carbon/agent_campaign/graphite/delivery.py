@@ -294,6 +294,8 @@ def _number(value):
 def writeup(record, baseline, ablated, undefined, selection):
     rule = record["frozen_rule"]
     against = record["against_baseline"]
+    # The Challenge's own rule identity: never another Challenge's wording.
+    identity = record.get("rule") or {}
     lines = [
         f"# Graphite phase 3 proposal {record['proposal_id']}",
         "",
@@ -309,20 +311,23 @@ def writeup(record, baseline, ablated, undefined, selection):
         "",
         "## Evidence",
         "",
-        "Scored by the battery exam's frozen gates, calibration and score on the",
-        "200 public PRACTICE cases (adaptively seen development feedback):",
+        (
+            "Scored by the Challenge's frozen practice rule"
+            f" (`{identity.get('rule', 'not stated')}`) on its"
+        ),
+        "public PRACTICE cases (adaptively seen development feedback):",
         "",
         (
             f"- eligible: {rule['eligible']}; score {_number(rule['score'])};"
-            f" important-region score {_number(rule['important_score'])}"
+            f" important-region score {_number(rule.get('important_score'))}"
         ),
         (
             f"- baseline: eligible {baseline['frozen_rule']['eligible']}; score"
             f" {_number(baseline['frozen_rule']['score'])}"
         ),
         (
-            "- paired comparison with the baseline (rule v2):"
-            f" {against['outcome']}, {against['reason']}"
+            "- comparison with the baseline under the rule's registered"
+            f" comparison: {against['outcome']}, {against['reason']}"
         ),
         "",
         "## Ablations",
@@ -366,8 +371,8 @@ def rebuild_text(pid):
         [
             f"# Rebuilding proposal {pid} without the agent",
             "",
-            "From a Carbon checkout at any commit whose battery construction",
-            "contract is the one `manifest.json` names:",
+            "From a Carbon checkout at any commit whose construction contract for",
+            "the bundle's Challenge is the one `manifest.json` names:",
             "",
             "    python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR",
             "",

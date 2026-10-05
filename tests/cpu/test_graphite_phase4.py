@@ -114,6 +114,19 @@ class FakeStore:
         return FakeView(value)
 
 
+@pytest.fixture(autouse=True)
+def _stand_in_material(monkeypatch):
+    """The stand-in Challenges' published material. A session checks out only
+    its own Challenge's registered material (VALIDATOR-05); these synthetic
+    Challenges reuse battery's files, which every Attacker received before."""
+    from carbon.agent_campaign import boundaries
+
+    for challenge in (StandIn.challenge_id, "another-challenge-v1", SYNTHETIC):
+        monkeypatch.setitem(
+            boundaries.PUBLISHED_MATERIAL, challenge, boundaries._PUBLISHED_CHALLENGE
+        )
+
+
 def stand_in_modules(adapter):
     return {
         "adapter": types.SimpleNamespace(ADAPTERS={(CID, 0): adapter}),

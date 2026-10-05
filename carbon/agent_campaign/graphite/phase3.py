@@ -849,7 +849,10 @@ def session_brief(
         level, contract = 0, ex.recorded_contract(scoring)
     else:
         level, contract = variant.level, _variant_contract(variant)
-    manifest = boundaries.checkout_manifest(repository, boundaries.Role.CONSTRUCTION)
+    # The session Challenge's published material, never another's.
+    manifest = boundaries.checkout_manifest(
+        repository, boundaries.Role.CONSTRUCTION, scoring.published_material()
+    )
     observation = {
         "challenge": scoring.challenge(),
         "level": level,
