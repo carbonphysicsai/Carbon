@@ -22,10 +22,16 @@ for the Challenge-neutral Level-1 machinery:
 
 **Nothing here is open.** Battery's construction contract is unchanged:
 `objective.loss_expressions` stays excluded, so a miner path refuses the field
-by name. No expansion record is written. `training.py` does not read
-expressions. Wiring the reconstruction into the trainer, recording the
-expansion and opening the level follow the owner's acceptance of a Level-1
-proposal, by the climb procedure (`challenge_pipeline.ladder`).
+by name. Nothing in this module is wired to the trainer.
+
+**Superseded for development use** by `carbon.battery.level1`
+(GRAPHITE-L1-BUILD-01). That module holds the registered development-only
+variants and Carbon's reconstruction, which the trainer reads. This module
+stays as the GA-D6 draft record: its operation set is a version-1 set whose
+digest the loss-expression tests pin, and the Level-0 attack adapter's draft
+climb still uses it. Opening Level 1 to miners still follows the owner's
+acceptance of a Level-1 proposal, by the climb procedure
+(`challenge_pipeline.ladder`).
 """
 
 from __future__ import annotations

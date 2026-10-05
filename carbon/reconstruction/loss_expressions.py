@@ -7,12 +7,13 @@ per-case terms. Carbon validates it, puts it in canonical form, pins it by
 digest and builds the loss with Carbon's own code. Nothing a participant
 supplies is executed.
 
-**Status: ENGINEERING DRAFT** (GRAPHITE-ADMISSION-01 slice B). No
-construction contract registers this surface and no miner, validator or intake
-path reads it. `objective.loss_expressions` stays excluded in every contract
-until the construction contract owner accepts a Level-1 proposal and the climb
-records the expansion (`expansion_record`). Opening it is not this module's
-act.
+**Status: development only** (GRAPHITE-ADMISSION-01 slice B; built for
+battery in GRAPHITE-L1-BUILD-01). No construction contract registers this
+surface and no miner, validator or intake path reads it.
+`objective.loss_expressions` stays excluded in every contract. Battery's
+registered development-only variants (`carbon.battery.level1`) serve it to
+Carbon's own Graphite campaigns only. Opening it to miners is not this
+module's act.
 
 The form (Challenge-neutral; each Challenge supplies its `OperationSet`):
 
@@ -25,10 +26,28 @@ The form (Challenge-neutral; each Challenge supplies its `OperationSet`):
     {"op": "log1p", "arg": E}
     {"op": "sqrt", "arg": E}                sqrt(E + epsilon)
 
-A Challenge registers only non-negative per-case terms, and every operation
-keeps a non-negative argument non-negative, so a valid expression is a
-non-negative loss that is finite wherever its terms are. Depth and node count
-are bounded. `add` and `mul` are commutative, so their arguments are sorted in
+Version 2 (`SCHEMA_V2`) adds, where a set names them:
+
+    {"op": "max" | "min", "args": [E, E, ...]}   elementwise, 2 to max_arity
+    {"op": "cap", "at": c, "arg": E}             min(E, c)
+    {"op": "excess", "over": c, "arg": E}        max(E - c, 0)
+    {"op": "expm1", "cap": c, "arg": E}          expm1(min(E, c))
+    {"op": "mean_t" | "max_t", "over": T, "arg": E_time}
+                                                 the mean or maximum over time,
+                                                 summed over trajectories T
+    {"op": "sub", "args": [E, E]}, {"op": "neg" | "exp", "arg": E},
+    {"const": c}                                 the signed arm only
+
+and a second sort: a time term is one value per case and time, evaluated
+per trajectory; elementwise operations take one sort, a reduction turns time
+into case, and an expression is case-sorted. A set using none of this is a
+version-1 set: its schemas, documents and digests are version 1's.
+
+A Challenge registers only non-negative per-case terms, and every version-1
+operation and every unsigned version-2 operation keeps a non-negative argument
+non-negative, so a valid expression over an unsigned set is a non-negative
+loss that is finite wherever its terms are. Depth and node count are
+bounded. `add` and `mul` are commutative, so their arguments are sorted in
 the canonical form, and evaluation follows the canonical order. Two
 expressions that differ only in that order rebuild bit for bit the same.
 
@@ -63,12 +82,47 @@ from dataclasses import dataclass
 
 SCHEMA = "carbon.loss-expression.v1"
 OPERATION_SET_SCHEMA = "carbon.loss-expression-operation-set.v1"
+#: Version 2 (the Level-1 build): two sorts, more operations, constant
+#: leaves for the signed arm. A set that uses none of it keeps version 1's
+#: schemas and documents, byte for byte.
+SCHEMA_V2 = "carbon.loss-expression.v2"
+OPERATION_SET_SCHEMA_V2 = "carbon.loss-expression-operation-set.v2"
 OPERATIONS = ("add", "mul", "div", "scale", "pow", "log1p", "sqrt")
-_VARIADIC = ("add",)
-_BINARY = ("mul", "div")
-_UNARY = ("log1p", "sqrt")
-_COMMUTATIVE = ("add", "mul")
+#: Every operation version 2 may name. `const` is a leaf, `{"const": c}`.
+#: `sub`, `neg`, `exp` and `const` can make a loss negative or non-finite on
+#: ordinary inputs; they exist for the signed attack arm only.
+OPERATIONS_V2 = OPERATIONS + (
+    "max",
+    "min",
+    "cap",
+    "excess",
+    "expm1",
+    "mean_t",
+    "max_t",
+    "sub",
+    "neg",
+    "exp",
+    "const",
+)
+SIGNED = ("sub", "neg", "exp", "const")
+_VARIADIC = ("add", "max", "min")
+_BINARY = ("mul", "div", "sub")
+_UNARY = ("log1p", "sqrt", "neg", "exp")
+_REDUCTIONS = ("mean_t", "max_t")
+_COMMUTATIVE = ("add", "mul", "max", "min")
+#: Each parametrized operation's constant field and the set's range for it.
+_PARAMETRIZED = {
+    "scale": ("by", "scale"),
+    "pow": ("exponent", "exponent"),
+    "cap": ("at", "cap_at"),
+    "excess": ("over", "excess_over"),
+    "expm1": ("cap", "expm1_cap"),
+}
+#: What a reduction may reduce over: both trajectories, or one.
+OVER = {"both": ("voltage", "temperature"), "voltage": ("voltage",)}
+OVER["temperature"] = ("temperature",)
 _TERM = re.compile(r"^[a-z][a-z0-9_]{0,47}$")
+_V2_RANGES = ("cap_at", "excess_over", "expm1_cap", "const")
 
 
 class ExpressionRefused(ValueError):
@@ -180,32 +234,60 @@ class OperationSet:
     exponent: tuple
     epsilon: float
     operations: tuple = OPERATIONS
+    #: Version 2: time-sorted terms (one value per case and time, evaluated
+    #: per trajectory) and the ranges of the version-2 constants.
+    time_terms: tuple = ()
+    cap_at: tuple = (0.0, 0.0)
+    excess_over: tuple = (0.0, 0.0)
+    expm1_cap: tuple = (0.0, 0.0)
+    const: tuple = (0.0, 0.0)
 
     def __post_init__(self):
+        names = self.terms + self.time_terms if type(self.time_terms) is tuple else ()
         if not (
             type(self.terms) is tuple
             and self.terms
-            and len(set(self.terms)) == len(self.terms)
-            and all(type(t) is str and _TERM.fullmatch(t) for t in self.terms)
+            and type(self.time_terms) is tuple
+            and len(set(names)) == len(names)
+            and all(type(t) is str and _TERM.fullmatch(t) for t in names)
         ):
             raise ValueError("terms are unique lower-case names")
         if not (
-            type(self.operations) is tuple and set(self.operations) <= set(OPERATIONS)
+            type(self.operations) is tuple
+            and len(set(self.operations)) == len(self.operations)
+            and set(self.operations) <= set(OPERATIONS_V2)
         ):
             raise ValueError("operations are drawn from the closed set")
         for name in ("max_depth", "max_nodes", "max_arity"):
             value = getattr(self, name)
             if type(value) is not int or value < (2 if name == "max_arity" else 1):
                 raise ValueError(name + " is a positive integer")
-        for name in ("scale", "exponent"):
+        for name in ("scale", "exponent", "cap_at", "excess_over", "expm1_cap"):
             low, high = getattr(self, name)
             if not (_number(low) and _number(high) and 0 <= low <= high):
                 raise ValueError(name + " is a non-negative closed range")
+        low, high = self.const
+        if not (_number(low) and _number(high) and low <= high):
+            raise ValueError("const is a closed range")
         if not (_number(self.epsilon) and self.epsilon > 0):
             raise ValueError("epsilon is positive")
 
+    @property
+    def version2(self):
+        """Whether the set uses anything version 1 does not have."""
+        return bool(self.time_terms) or not set(self.operations) <= set(OPERATIONS)
+
+    @property
+    def signed(self):
+        """Whether the set admits operations that can make a loss negative."""
+        return bool(set(self.operations) & set(SIGNED))
+
+    @property
+    def expression_schema(self):
+        return SCHEMA_V2 if self.version2 else SCHEMA
+
     def document(self):
-        return {
+        document = {
             "schema": OPERATION_SET_SCHEMA,
             "name": self.name,
             "terms": list(self.terms),
@@ -217,6 +299,40 @@ class OperationSet:
             "exponent": [float(v) for v in self.exponent],
             "epsilon": float(self.epsilon),
         }
+        if self.version2:
+            document["schema"] = OPERATION_SET_SCHEMA_V2
+            document["time_terms"] = list(self.time_terms)
+            for name in _V2_RANGES:
+                document[name] = [_constant(v) for v in getattr(self, name)]
+        return document
+
+    @classmethod
+    def from_document(cls, document):
+        """The set a document describes; `ValueError` if it is not exactly one."""
+        if type(document) is not dict or document.get("schema") not in (
+            OPERATION_SET_SCHEMA,
+            OPERATION_SET_SCHEMA_V2,
+        ):
+            raise ValueError("not an operation-set document")
+        fields = {
+            k: v for k, v in document.items() if k not in ("schema", "time_terms")
+        }
+        for name in ("terms", "operations", "scale", "exponent", *_V2_RANGES):
+            if name in fields:
+                if type(fields[name]) is not list:
+                    raise ValueError(name + " is a list")
+                fields[name] = tuple(fields[name])
+        if "time_terms" in document:
+            if type(document["time_terms"]) is not list:
+                raise ValueError("time_terms is a list")
+            fields["time_terms"] = tuple(document["time_terms"])
+        try:
+            found = cls(**fields)
+        except TypeError:
+            raise ValueError("unknown operation-set fields") from None
+        if found.document() != document:
+            raise ValueError("the document is not this set's canonical document")
+        return found
 
     @property
     def digest(self):
@@ -228,8 +344,21 @@ def _keys(node, expected, path):
         raise ExpressionRefused("node_fields", path)
 
 
+#: The sorts: one value per case, or one per case and time. A constant leaf
+#: has no sort of its own (`None`): it takes its siblings'.
+CASE, TIME = "case", "time"
+
+
+def _joined(sorts, path):
+    found = {s for s in sorts if s is not None}
+    if len(found) > 1:
+        raise ExpressionRefused("mixed_sorts", path)
+    return found.pop() if found else None
+
+
 def _canonical(node, opset, path, depth, count):
-    """The canonical node and the running node count, or a refusal."""
+    """The canonical node, the running node count and the node's sort, or a
+    refusal. A version-1 set has one sort, so its nodes are all CASE."""
     if depth > opset.max_depth:
         raise ExpressionRefused("too_deep", path)
     count += 1
@@ -239,11 +368,20 @@ def _canonical(node, opset, path, depth, count):
         raise ExpressionRefused("node_is_an_object", path)
     if "term" in node:
         _keys(node, {"term"}, path)
-        if node["term"] not in opset.terms:
-            raise ExpressionRefused("term_not_registered", path)
-        return {"term": node["term"]}, count
+        if node["term"] in opset.terms:
+            return {"term": node["term"]}, count, CASE
+        if node["term"] in opset.time_terms:
+            return {"term": node["term"]}, count, TIME
+        raise ExpressionRefused("term_not_registered", path)
+    if "const" in node and "const" in opset.operations:
+        _keys(node, {"const"}, path)
+        value = node["const"]
+        low, high = opset.const
+        if not _number(value) or not low <= value <= high:
+            raise ExpressionRefused("const_outside_bounds", path)
+        return {"const": _constant(value)}, count, None
     op = node.get("op")
-    if op not in opset.operations:
+    if op not in opset.operations or op == "const":
         raise ExpressionRefused("operation_not_in_the_set", path)
     if op in _VARIADIC or op in _BINARY:
         _keys(node, {"op", "args"}, path)
@@ -252,28 +390,40 @@ def _canonical(node, opset, path, depth, count):
             len(args) == 2 if op in _BINARY else 2 <= len(args) <= opset.max_arity
         ):
             raise ExpressionRefused("arity", path)
-        out = []
+        out, sorts = [], []
         for index, arg in enumerate(args):
-            child, count = _canonical(
+            child, count, sort = _canonical(
                 arg, opset, f"{path}args/{index}/", depth + 1, count
             )
             out.append(child)
+            sorts.append(sort)
         if op in _COMMUTATIVE:
             out.sort(key=lambda child: json.dumps(child, sort_keys=True))
-        return {"op": op, "args": out}, count
+        return {"op": op, "args": out}, count, _joined(sorts, path)
     if op in _UNARY:
         _keys(node, {"op", "arg"}, path)
-        child, count = _canonical(node["arg"], opset, path + "arg/", depth + 1, count)
-        return {"op": op, "arg": child}, count
-    field, bounds = (
-        ("by", opset.scale) if op == "scale" else ("exponent", opset.exponent)
-    )
+        child, count, sort = _canonical(
+            node["arg"], opset, path + "arg/", depth + 1, count
+        )
+        return {"op": op, "arg": child}, count, sort
+    if op in _REDUCTIONS:
+        _keys(node, {"op", "over", "arg"}, path)
+        if type(node["over"]) is not str or node["over"] not in OVER:
+            raise ExpressionRefused("over_not_registered", path)
+        child, count, sort = _canonical(
+            node["arg"], opset, path + "arg/", depth + 1, count
+        )
+        if sort != TIME:
+            raise ExpressionRefused("reduction_needs_time", path)
+        return {"op": op, "over": node["over"], "arg": child}, count, CASE
+    field, bounds = _PARAMETRIZED[op]
+    bounds = getattr(opset, bounds)
     _keys(node, {"op", field, "arg"}, path)
     value = node[field]
     if not _number(value) or not bounds[0] <= value <= bounds[1]:
         raise ExpressionRefused(field + "_outside_bounds", path)
-    child, count = _canonical(node["arg"], opset, path + "arg/", depth + 1, count)
-    return {"op": op, field: _constant(value), "arg": child}, count
+    child, count, sort = _canonical(node["arg"], opset, path + "arg/", depth + 1, count)
+    return {"op": op, field: _constant(value), "arg": child}, count, sort
 
 
 @dataclass(frozen=True)
@@ -286,7 +436,7 @@ class CompiledLoss:
 
     def document(self):
         return {
-            "schema": SCHEMA,
+            "schema": self.operation_set.expression_schema,
             "operation_set": self.operation_set.digest,
             "expression": self.expression,
         }
@@ -301,13 +451,40 @@ def compile_expression(expression, opset):
     """Validate and canonicalize; raises `ExpressionRefused` with a code."""
     if type(opset) is not OperationSet:
         raise TypeError("exact OperationSet required")
-    canonical, _count = _canonical(expression, opset, "/", 1, 0)
+    canonical, _count, sort = _canonical(expression, opset, "/", 1, 0)
+    if sort == TIME:
+        raise ExpressionRefused("loss_is_per_case")
     document = {
-        "schema": SCHEMA,
+        "schema": opset.expression_schema,
         "operation_set": opset.digest,
         "expression": canonical,
     }
     return CompiledLoss(canonical, opset, digest_of(document))
+
+
+def walk(expression):
+    """Every node of a canonical expression, depth first."""
+    stack = [expression]
+    while stack:
+        node = stack.pop()
+        yield node
+        if "args" in node:
+            stack.extend(reversed(node["args"]))
+        elif "arg" in node:
+            stack.append(node["arg"])
+
+
+def uses(expression):
+    """The operations and terms a canonical expression names."""
+    operations, terms = set(), set()
+    for node in walk(expression):
+        if "term" in node:
+            terms.add(node["term"])
+        elif "const" in node:
+            operations.add("const")
+        else:
+            operations.add(node["op"])
+    return operations, terms
 
 
 def from_bytes(body, opset):
@@ -344,7 +521,7 @@ def from_bytes(body, opset):
         "expression",
     }:
         raise ExpressionRefused("document_fields")
-    if document["schema"] != SCHEMA:
+    if document["schema"] != opset.expression_schema:
         raise ExpressionRefused("unknown_schema")
     if document["operation_set"] != opset.digest:
         raise ExpressionRefused("operation_set_mismatch")
@@ -353,35 +530,95 @@ def from_bytes(body, opset):
     return compiled
 
 
-def evaluate(compiled, terms, xp):
+def evaluate(compiled, terms, xp, trajectories=None):
     """The per-case loss: `terms` maps each registered term to its per-case
-    values; `xp` is the array namespace."""
+    values; `xp` is the array namespace.
+
+    A version-2 set's time terms come from `trajectories`, which maps each
+    trajectory (`voltage`, `temperature`) to its time terms (cases x times).
+    A reduction evaluates its argument once per trajectory it names, reduces
+    over time and sums."""
     if type(compiled) is not CompiledLoss:
         raise TypeError("a CompiledLoss from compile_expression is required")
-    missing = set(compiled.operation_set.terms) - set(terms)
+    opset = compiled.operation_set
+    missing = set(opset.terms) - set(terms)
+    if opset.time_terms:
+        if type(trajectories) is not dict or set(trajectories) != set(OVER["both"]):
+            raise ValueError("per-trajectory time terms are required")
+        for name, found in trajectories.items():
+            missing |= {f"{name}:{t}" for t in set(opset.time_terms) - set(found)}
     if missing:
         raise ValueError("terms missing: " + ", ".join(sorted(missing)))
-    epsilon = compiled.operation_set.epsilon
+    epsilon = opset.epsilon
 
-    def value(node):
+    def value(node, trajectory=None):
         if "term" in node:
-            return terms[node["term"]]
+            if trajectory is None:
+                return terms[node["term"]]
+            return trajectories[trajectory][node["term"]]
+        if "const" in node:
+            return node["const"]
         op = node["op"]
-        if op == "add":
-            total = value(node["args"][0])
+        if op in _REDUCTIONS:
+            total = None
+            for name in OVER[node["over"]]:
+                # Every time term of a trajectory has the same (cases x times)
+                # shape; a constant broadcasts to it.
+                shape = trajectories[name][opset.time_terms[0]].shape
+                inner = xp.broadcast_to(value(node["arg"], name), shape)
+                reduced = (
+                    xp.mean(inner, axis=1) if op == "mean_t" else xp.max(inner, axis=1)
+                )
+                total = reduced if total is None else total + reduced
+            return total
+        if op in ("add", "max", "min"):
+            total = value(node["args"][0], trajectory)
             for arg in node["args"][1:]:
-                total = total + value(arg)
+                if op == "add":
+                    total = total + value(arg, trajectory)
+                elif op == "max":
+                    total = xp.maximum(total, value(arg, trajectory))
+                else:
+                    total = xp.minimum(total, value(arg, trajectory))
             return total
         if op == "mul":
-            return value(node["args"][0]) * value(node["args"][1])
+            return value(node["args"][0], trajectory) * value(
+                node["args"][1], trajectory
+            )
         if op == "div":
-            return value(node["args"][0]) / (value(node["args"][1]) + epsilon)
+            return value(node["args"][0], trajectory) / (
+                value(node["args"][1], trajectory) + epsilon
+            )
+        if op == "sub":
+            return value(node["args"][0], trajectory) - value(
+                node["args"][1], trajectory
+            )
+        inner = value(node["arg"], trajectory)
         if op == "scale":
-            return node["by"] * value(node["arg"])
+            return node["by"] * inner
         if op == "pow":
-            return (value(node["arg"]) + epsilon) ** node["exponent"]
+            return (inner + epsilon) ** node["exponent"]
         if op == "log1p":
-            return xp.log1p(value(node["arg"]))
-        return xp.sqrt(value(node["arg"]) + epsilon)  # sqrt
+            return xp.log1p(inner)
+        if op == "sqrt":
+            return xp.sqrt(inner + epsilon)
+        if op == "cap":
+            return xp.minimum(inner, node["at"])
+        if op == "excess":
+            return xp.maximum(inner - node["over"], 0.0)
+        if op == "expm1":
+            return xp.expm1(xp.minimum(inner, node["cap"]))
+        if op == "neg":
+            return -inner
+        return xp.exp(inner)  # exp
 
-    return value(compiled.expression)
+    result = value(compiled.expression)
+    if _constant_only(compiled.expression):
+        # A loss with no term is the same constant for every case.
+        first = terms[opset.terms[0]]
+        result = xp.zeros_like(first) + result
+    return result
+
+
+def _constant_only(expression):
+    return not any("term" in node for node in walk(expression))
