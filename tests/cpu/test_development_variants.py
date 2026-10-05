@@ -96,7 +96,7 @@ def fixture_document(level, *, widened=None, **changes):
 FIXTURE_DIGESTS = {level: dv.digest_of(fixture_document(level)) for level in (1, 2, 3)}
 
 
-def fixture_reconstruction(value, admitted):
+def fixture_reconstruction(value, admitted, granted=None):
     """A synthetic reconstruction: records the value against the base recipe."""
     return {"fixture_value": value, "base_recipe": admitted.construction.recipe_digest}
 

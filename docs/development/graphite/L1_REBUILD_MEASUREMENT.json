@@ -1,0 +1,89 @@
+{
+ "deadline_seconds": 600,
+ "identity_steps": 64,
+ "platform": "cpu",
+ "schema": "carbon.battery.level1-rebuild-measurement.v1",
+ "sizes": {
+  "1024": {
+   "all_identical": true,
+   "identity": [
+    {
+     "final_loss": 3.4624462127685547,
+     "identical": true,
+     "nodes": 1024,
+     "seconds": [
+      19.83,
+      21.41
+     ]
+    },
+    {
+     "final_loss": 4.054498195648193,
+     "identical": true,
+     "nodes": 1024,
+     "seconds": [
+      26.01,
+      23.33
+     ]
+    },
+    {
+     "final_loss": 4.232310771942139,
+     "identical": true,
+     "nodes": 1024,
+     "seconds": [
+      23.32,
+      23.57
+     ]
+    }
+   ],
+   "inside_deadline": true,
+   "timing": {
+    "final_loss": 10.296782493591309,
+    "nodes": 1024,
+    "params_sha256": "63070cdd27c502d6fdd36100aa20e51017f25f0af7639a91699f5500e80d35bc",
+    "seconds": 69.74,
+    "steps": 2000
+   }
+  },
+  "512": {
+   "all_identical": true,
+   "identity": [
+    {
+     "final_loss": 3.7213568687438965,
+     "identical": true,
+     "nodes": 512,
+     "seconds": [
+      6.31,
+      6.16
+     ]
+    },
+    {
+     "final_loss": 4.670269966125488,
+     "identical": true,
+     "nodes": 512,
+     "seconds": [
+      6.33,
+      6.96
+     ]
+    },
+    {
+     "final_loss": 4.670269966125488,
+     "identical": true,
+     "nodes": 512,
+     "seconds": [
+      5.97,
+      5.69
+     ]
+    }
+   ],
+   "inside_deadline": true,
+   "timing": {
+    "final_loss": 1.9387075901031494,
+    "nodes": 512,
+    "params_sha256": "634a83c71c95e82a564aa09c03d5f4f3743c0fe8de0a26a7d5aa43afdf4c2d4e",
+    "seconds": 18.9,
+    "steps": 2000
+   }
+  }
+ },
+ "timing_steps": 2000
+}

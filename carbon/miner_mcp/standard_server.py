@@ -424,11 +424,13 @@ def _create_server(
                 )
                 # A stable slug a client can branch on, and the next usable
                 # step. The next action is fixed per slug: a provider message
-                # here is how unbounded internal detail reaches the wire.
+                # here is how unbounded internal detail reaches the wire. A
+                # refusal carrying a registered correction names its field.
                 raise ToolError(
                     serving.refusal(
                         exc.code.value,
                         dispatch_may_have_occurred=exc.dispatch_may_have_occurred,
+                        field=exc.field,
                     )
                 ) from None
             finally:

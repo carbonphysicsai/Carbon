@@ -42,7 +42,7 @@ from carbon.development_session.research_agent_policy import (
 )
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_tools import (
-    ARGUMENT_NORMALISATION,
+    ARGUMENT_NORMALISATION_V2,
     TOOLS_RULE,
 )
 
@@ -126,8 +126,9 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["parallel_calls"] == PARALLEL_CALLS_V2
     assert plan["miner_guidance"] == miner_guidance.RULE
     assert plan["research_tools"] == TOOLS_RULE
-    # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation.
-    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION
+    # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
+    # RESEARCH-TOOL-USABILITY-01: from now on its v2.
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
     assert plan["compaction"] == editions.COMPACTION_V1
     assert plan["limits"] == {
         "plan": {

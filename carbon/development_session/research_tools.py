@@ -686,7 +686,19 @@ def campaign_tools_rule(ledger):
 #: campaign whose plan names no rule refuses "null" as before
 #: (`workspace_recipe_forbidden`) and replays unchanged.
 ARGUMENT_NORMALISATION = "carbon.autoresearch.argument-normalisation.v1"
-ARGUMENT_NORMALISATIONS = (ARGUMENT_NORMALISATION,)
+#: The rule new plans freeze (RESEARCH-TOOL-USABILITY-01): everything v1
+#: reads, and also kind=practice with action or arguments_json sent as the
+#: string "null", each read as JSON null - the one value those fields take
+#: there. strategy_json "null" on practice is still refused (it needs a
+#: recipe). v1 stays registered, unchanged, so a campaign that froze it
+#: replays and continues as it was frozen.
+ARGUMENT_NORMALISATION_V2 = "carbon.autoresearch.argument-normalisation.v2"
+ARGUMENT_NORMALISATIONS = (ARGUMENT_NORMALISATION, ARGUMENT_NORMALISATION_V2)
+#: The practice fields whose string "null" each rule reads as JSON null.
+PRACTICE_NULL_FIELDS = {
+    ARGUMENT_NORMALISATION: (),
+    ARGUMENT_NORMALISATION_V2: ("action", "arguments_json"),
+}
 
 
 def frozen_argument_normalisation(manifest):
@@ -711,19 +723,28 @@ def campaign_argument_normalisation(ledger):
     return None if row is None else frozen_argument_normalisation(json.loads(row[0]))
 
 
+def practice_null_fields(rule):
+    """The kind=practice fields whose string "null" `rule` reads as JSON
+    null: none under no rule or v1, action and arguments_json under v2."""
+    return PRACTICE_NULL_FIELDS.get(rule, ())
+
+
 def normalised_task_arguments(args, rule):
     """`args` of a start_research_task call as `rule` reads them: under
-    `ARGUMENT_NORMALISATION`, kind=workspace with strategy_json the string
-    "null" is read with strategy_json JSON null; every other call, and every
-    call under no rule, is returned as sent. A new dict; `args` is never
-    changed, so what was sent is what is journalled and bound."""
-    if (
-        rule == ARGUMENT_NORMALISATION
-        and type(args) is dict
-        and args.get("kind") == "workspace"
-        and args.get("strategy_json") == "null"
-    ):
+    either rule, kind=workspace with strategy_json the string "null" is read
+    with strategy_json JSON null; under v2, kind=practice with action or
+    arguments_json the string "null" is read with that field JSON null.
+    Every other call, and every call under no rule, is returned as sent. A
+    new dict; `args` is never changed, so what was sent is what is journalled
+    and bound."""
+    if rule not in ARGUMENT_NORMALISATIONS or type(args) is not dict:
+        return args
+    if args.get("kind") == "workspace" and args.get("strategy_json") == "null":
         return {**args, "strategy_json": None}
+    if args.get("kind") == "practice":
+        nulls = {f: None for f in practice_null_fields(rule) if args.get(f) == "null"}
+        if nulls:
+            return {**args, **nulls}
     return args
 
 
@@ -918,7 +939,9 @@ class ResearchMinerTools:
         if operation != "start_research_task":
             raise ValueError("operation requires unavailable prior")
         # The campaign's frozen argument normalisation (LP-PROD-FIX-01): a
-        # workspace call's strategy_json "null" is JSON null under it.
+        # workspace call's strategy_json "null" is JSON null under it, and
+        # under v2 a practice call's action and arguments_json "null" too
+        # (RESEARCH-TOOL-USABILITY-01).
         args = normalised_task_arguments(
             args, campaign_argument_normalisation(self.ledger)
         )
