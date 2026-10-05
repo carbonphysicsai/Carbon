@@ -2,14 +2,25 @@
  "schema": "carbon.challenge-pipeline.readiness-lanes.v1",
  "challenge": "electric-motor-magnetics",
  "status": "DRAFT",
- "note": "DRAFT; the carrier lane carries its own environment check and no policy until the Carbon Validator registers one (Test Lead ruling 2026-10-05).",
+ "note": "DRAFT; the carrier lane references carrier-lane-v1 (#630) and runs its read-only probe. Motor's pod lane stays TBD.",
  "lanes": [
   {
    "lane": "cpu-carrier",
    "state": "DECLARED",
-   "probe": "carrier_pods.inspect_effective_controls (docker inspect: network none, private pid and ipc, read-only root, caps dropped, two mounts) plus pinned-image presence",
-   "policy": null,
-   "note": "A failed carrier environment check types the run environment -> FAILED_INFRA, with host timing authoritative against the carrier's effective deadline. pod-attribution-v2's GPU probe does NOT apply to a CPU lane. No carrier attribution policy is registered in this tree; the Carbon Validator (VALIDATOR-06) was asked for its id. Until it is registered here, R3 fails for this lane."
+   "registry_key": "c03-carrier",
+   "probe": "carrier_pods.environment_check (read-only: pinned C-03 image manifest loads; host doctor eligible with the image present and bound); effective controls are verified per run",
+   "policy": "carrier-lane-v1",
+   "registry": "carbon/agent_campaign/graphite/compute_lanes/registry.json",
+   "probe_cli": [
+    "{python}",
+    "-m",
+    "carbon.agent_campaign.graphite.carrier_pods",
+    "check",
+    "--image-manifest",
+    "{input}"
+   ],
+   "probe_input_env": "CARBON_READINESS_CARRIER_IMAGE_MANIFEST",
+   "note": "Registered by the Carbon Validator in #630 (VALIDATOR-11); this record depends on #630 landing first. Attribution is the pod-attribution policy in force with no environment claim, so v2's GPU probe does not apply. The probe needs Docker and the pinned image on the host; where absent R3 fails closed and says why."
   },
   {
    "lane": "pod",
