@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-docker-wsl-absent",
+  "recorded_at": "2026-10-05T08:35:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 baseline canonical attempt 2",
+    "description": "Invoked the canonical wrapper explicitly through the docker-desktop WSL distribution after the generic host bash route was denied."
+  },
+  "expected": "The named Docker Desktop distribution would run the repository wrapper against the pinned canonical image.",
+  "observed": "The host reported that the docker-desktop WSL distribution does not exist, so the wrapper and tests did not start.",
+  "keep": [
+    "Retain the exact failed launch route in the ticket evidence so it is not mistaken for a test result."
+  ],
+  "change": [
+    "Do not repeat an unavailable WSL route; use another diagnostic route and rely on repository CI for canonical acceptance."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

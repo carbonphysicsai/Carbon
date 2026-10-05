@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-native-python-absent",
+  "recorded_at": "2026-10-05T08:38:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 native diagnostic baseline attempt",
+    "description": "Attempted the focused existing tests through the host Python interpreter after all canonical launch routes proved unavailable."
+  },
+  "expected": "A host Python environment would provide a noncanonical diagnostic baseline while GitHub CI remained the acceptance authority.",
+  "observed": "The host exposes no python executable on PATH, so pytest was not launched and no tests were collected.",
+  "keep": [
+    "Do not represent a missing interpreter as a failing test suite."
+  ],
+  "change": [
+    "Locate a repository or bundled interpreter before the next diagnostic test execution."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

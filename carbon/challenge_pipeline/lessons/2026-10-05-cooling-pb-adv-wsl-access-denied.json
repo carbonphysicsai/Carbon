@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-wsl-access-denied",
+  "recorded_at": "2026-10-05T08:34:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 baseline canonical attempt 1",
+    "description": "Invoked the canonical wrapper through the host bash command for the existing cold-plate customer-decision and neutral design-search tests."
+  },
+  "expected": "The wrapper would enter the pinned canonical container and establish the pre-change PB-ADV baseline.",
+  "observed": "The host bash command was the Windows WSL shim and failed before the wrapper ran with WSL CreateInstance access denied; no test was collected or executed.",
+  "keep": [
+    "Classify host-launch failure as infrastructure evidence rather than a scientific or test failure."
+  ],
+  "change": [
+    "Use an explicit available shell or leave canonical qualification to the pinned CI environment when local WSL is unavailable."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-pb-adv-git-bash-safe-directory",
+  "recorded_at": "2026-10-05T08:37:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-09 baseline canonical attempt 4",
+    "description": "Repeated the Git Bash wrapper invocation with an explicit process-local Git safe-directory setting for the managed worktree."
+  },
+  "expected": "The safe-directory setting would let the wrapper prove that its path belongs to the Carbon repository root and launch the pinned container.",
+  "observed": "The safe-directory setting removed ownership ambiguity but not the MSYS-versus-Git path-form mismatch, so the wrapper failed its root guard before collecting tests.",
+  "keep": [
+    "Keep the canonical wrapper's exact root-identity check unchanged."
+  ],
+  "change": [
+    "Stop local canonical retries on this host and require GitHub's pinned canonical lanes for delivery acceptance."
+  ],
+  "protocol_elements": [
+    "challenge.ai-cooling.pb-adv",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
