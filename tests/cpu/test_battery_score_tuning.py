@@ -237,3 +237,19 @@ def test_chain_mappings_pay_and_count_weight_on_unsafe():
     assert out["winner_take_all"]["weight_on_unsafe"] == 1.0
     assert out["top_k_equal"]["weighted_loss"] == pytest.approx(3.0)
     assert out["top_k_rank"]["weights"]["m1"] == pytest.approx(2 / 3)
+
+
+def test_the_public_api_is_what_candidate_scores_uses():
+    """VALIDATOR-09 wraps a registry entry verbatim and scores through
+    parse_candidate and score_member: the same floats as the panel path."""
+    legs, _values, recipe_of = _legs()
+    entry = {"id": "A", "weights": {"a": 0.6, "r": 0.4}, "basis": "x"}
+    candidate = st.parse_candidate(entry)
+    panel, _ = st.candidate_scores(candidate, legs, recipe_of)
+    single = {m: st.score_member(candidate, row) for m, row in legs.items()}
+    assert json.dumps(panel, sort_keys=True) == json.dumps(single, sort_keys=True)
+    gated = st.parse_candidate(
+        {"id": "G", "weights": {"a": 1.0}, "gate": {"measure": "near", "cutoff": 2.0}}
+    )
+    assert st.gate_verdict(gated, legs["rec2-s1"]) == "FAIL"
+    assert st.gate_verdict(candidate, legs["rec2-s1"]) is None

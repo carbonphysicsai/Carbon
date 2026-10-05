@@ -80,7 +80,9 @@ class Candidate:
     basis: str = ""
 
 
-def _candidate(entry):
+def parse_candidate(entry):
+    """One registry entry as a `Candidate`, validated (public: the Validator's
+    development score variants wrap the same entry, VALIDATOR-09)."""
     if set(entry) - {"id", "kind", "weights", "gate", "stable", "basis"}:
         raise TuningError("candidate_fields", entry.get("id"))
     kind = entry.get("kind", "geometric")
@@ -122,7 +124,7 @@ def load_registry(path, *, repository=None):
     document = json.loads(body)
     if document.get("schema") != REGISTRY_SCHEMA:
         raise TuningError("registry_schema")
-    candidates = [_candidate(e) for e in document["candidates"]]
+    candidates = [parse_candidate(e) for e in document["candidates"]]
     ids = [c.id for c in candidates]
     if len(ids) != len(set(ids)):
         raise TuningError("registry_duplicate_id")
@@ -184,7 +186,9 @@ def member_legs(contract, predictions, store, case_ids):
 # --- scoring ---------------------------------------------------------------------------
 
 
-def _raw(candidate, row):
+def score_member(candidate, row):
+    """One member's raw score from its `member_legs` row, before the panel-level
+    seed mean and gate (public: shared with the Validator's variants)."""
     if candidate.kind == "deciding":
         return -row["E"] if row["eligible"] and row["E"] is not None else None
     if not row["eligible"]:
@@ -195,10 +199,19 @@ def _raw(candidate, row):
     )
 
 
+def gate_verdict(candidate, row):
+    """The candidate's gate verdict for one member (None without a gate)."""
+    if candidate.gate is None:
+        return None
+    return admissibility.verdict(
+        row["gates"][candidate.gate["measure"]], threshold=candidate.gate["cutoff"]
+    )
+
+
 def candidate_scores(candidate, legs, recipe_of):
     """Each member's score under `candidate`: raw, then the recipe's seed mean
     when `stable`, then the gate (failures strictly below every pass)."""
-    scores = {m: _raw(candidate, row) for m, row in legs.items()}
+    scores = {m: score_member(candidate, row) for m, row in legs.items()}
     if candidate.stable:
         by_recipe = {}
         for m, s in scores.items():
@@ -210,12 +223,7 @@ def candidate_scores(candidate, legs, recipe_of):
         scores = {m: means[recipe_of[m]] for m in scores}
     if candidate.gate is None:
         return scores, {}
-    verdicts = {
-        m: admissibility.verdict(
-            row["gates"][candidate.gate["measure"]], threshold=candidate.gate["cutoff"]
-        )
-        for m, row in legs.items()
-    }
+    verdicts = {m: gate_verdict(candidate, row) for m, row in legs.items()}
     finite = [s for s in scores.values() if s is not None]
     floor = (min(finite) if finite else 0.0) - 1.0
     gated = {
