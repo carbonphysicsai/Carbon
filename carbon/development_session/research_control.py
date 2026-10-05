@@ -8,11 +8,25 @@ worker cleanup. The supervisor must hold the campaign's OS lock.
 from __future__ import annotations
 
 import json
+import math
 import time
 
 
 class DispatchStopped(Exception):
     """A durable control request prevents further dispatch."""
+
+
+class CampaignDeadlineReached(DispatchStopped):
+    """The campaign's own time ended dispatch: its elapsed budget, or a
+    development grant's expiry (RESEARCH-BUDGET-REFUSAL-TYPING-01).
+
+    Still a DispatchStopped with the historical text, so every caller reads
+    it as it did. `refusal` is the ledger's typed record of the same limit
+    (`research_ledger.LedgerRefusal`, dimension `elapsed_seconds`)."""
+
+    def __init__(self, message, refusal):
+        super().__init__(message)
+        self.refusal = refusal
 
 
 class DispatchPaused(Exception):
@@ -97,7 +111,14 @@ class CampaignControl:
                     "SELECT manifest,started FROM campaign WHERE id=1"
                 ).fetchone()
                 if frozen is not None:
-                    from .research_ledger import NO_BUDGET, _elapsed
+                    from .research_ledger import (
+                        ELAPSED_DIMENSION,
+                        MINER_CEILING_REACHED,
+                        NO_BUDGET,
+                        LedgerRefusal,
+                        _elapsed,
+                        manifest_basis,
+                    )
 
                     manifest = json.loads(frozen[0])
                     authority = self.ledger.authority(manifest)
@@ -110,8 +131,22 @@ class CampaignControl:
                     elapsed = _elapsed(manifest)
                     if frozen[1] is not None and elapsed is not NO_BUDGET:
                         bounds.append(frozen[1] + elapsed)
-                    if bounds and self.ledger.clock() >= min(bounds):
-                        raise DispatchStopped("original campaign deadline reached")
+                    now = self.ledger.clock()
+                    if bounds and now >= min(bounds):
+                        message = "original campaign deadline reached"
+                        started = now if frozen[1] is None else frozen[1]
+                        raise CampaignDeadlineReached(
+                            message,
+                            LedgerRefusal(
+                                message,
+                                code=MINER_CEILING_REACHED,
+                                dimension=ELAPSED_DIMENSION,
+                                basis=manifest_basis(manifest),
+                                used=max(0, math.floor(now - started)),
+                                requested=0,
+                                ceiling=None if elapsed is NO_BUDGET else elapsed,
+                            ),
+                        )
                 current, desired, state = db.execute(
                     "SELECT generation,desired,observed FROM launchpad_control WHERE id=1"
                 ).fetchone()

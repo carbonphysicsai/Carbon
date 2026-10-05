@@ -97,7 +97,7 @@ from .research_agent_policy import (
 )
 from .research_catalog import compile_recipe
 from .research_guidance import effective_digest
-from .research_ledger import DIMENSIONS
+from .research_ledger import DIMENSIONS, PLAIN_REFUSALS
 from .research_tools import PREFIX, _json, _schema, tools_for_sdk
 
 SELECT = "carbon_autoresearch_select_recipe"
@@ -321,8 +321,9 @@ def miner_ceiling(error, *, reserving):
     before its reservation, the elapsed-time refusal, as `elapsed_seconds`.
     Carbon's own service capacity, a sequence aggregate, and a refusal raised
     after a reservation (`check_storage`) are not the miner's ceiling and
-    stay as they were."""
-    if type(error) is not ValueError:
+    stay as they were. The ledger's typed refusal (`LedgerRefusal`) carries
+    the same text and reads exactly as its plain ValueError did."""
+    if type(error) not in PLAIN_REFUSALS:
         return None
     text = str(error)
     if reserving:
