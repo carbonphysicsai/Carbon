@@ -92,8 +92,10 @@ PROFILE = "level-0"
 #: `missing_prediction_attribution` seam (GRAPHITE-ATTACKER-COOLING-SF-01).
 #: v3 makes `group_sacrifice`'s attack example a real sacrifice (the hot group
 #: low, the rest compensating so the mean signed peak bias stays near zero),
-#: distinct from `cooling_optimism`'s (GRAPHITE-ATTACKER-COOLING-API-01).
-#: The controls are unchanged, so `CONTROLS_VERSION` stays v2.
+#: distinct from `cooling_optimism`'s (GRAPHITE-ATTACKER-COOLING-API-01). It
+#: also covers #620's `candidate_fault_*` attacks in `resource_accounting`,
+#: added without a version change. The controls are unchanged, so
+#: `CONTROLS_VERSION` stays v2.
 ADAPTER_VERSION = "carbon.attack.adapter.cooling-l0.v3"
 CONTROLS_VERSION = "carbon.attack.controls.cooling-l0.v2"
 TRACK = LEDGER_TRACK

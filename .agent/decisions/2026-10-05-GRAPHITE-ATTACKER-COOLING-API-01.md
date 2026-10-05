@@ -89,11 +89,40 @@ rather than kept. `group_sacrifice` also refuses an empty hot group
 - **Versions:** the attack is emitted output, so `ADAPTER_VERSION` moves to
   `cooling-l0.v3`. The controls are unchanged, so `CONTROLS_VERSION` stays
   `cooling-l0.v2`.
-- **Byte pin:** the v2 pin is kept, and the test asserts that the only digests
-  to move from it are `group_sacrifice`'s attack and its evidence and specimen
-  readings. Every other family, both control splits and every fault selection
-  are unchanged.
+- **Byte pin:** the base pin is kept (see COOL-API-D5 for the base), and the
+  test asserts that the only digests to move from it are `group_sacrifice`'s
+  attack and its evidence and specimen readings. Every other family, both
+  control splits and every fault selection are unchanged.
 - **New tests:** no two vectors give the same predictions, on the real
   references or on a synthetic set. A mutation that maps `group_sacrifice`
   back to optimism's transform turns that guard red, and the direction guard
   as well.
+
+### COOL-API-D5 — The pin's base moved with #620
+
+The pin was first recorded at `b327ac12d`. Main was then merged into #621
+with #620, the cooling candidate-fault policy
+(CHALLENGE-AI-COOLING-CANDIDATE-FAULT-10, `06f499f4d`), and two pin tests
+failed on the merged head. #620 legitimately changed the adapter's output:
+
+- `_resource_attacks` gained one `candidate_fault_<fault>` attack per fault in
+  the registered policy;
+- `resource_boundary`, `resource_specimen` and `resource_breached` read that
+  policy.
+
+So `resource_accounting`'s attack digest moved from `6ad0e897…` to
+`e5ee8bd3…` and its evidence digest from `43a5d79e…` to `fac412e8…`. Nothing
+else in the pin moved. The pin does not cover `selective_fault`'s evidence,
+where #620 also added the policy record to the Interface v1 view.
+
+The base pin is now the adapter's own output at `06f499f4d`, recorded from
+that commit's tree, so it is v2 with #620. Against that base, the merged head
+moves only `group_sacrifice`'s attack and evidence digests. This confirms
+that the transform refactor is still byte-identical on the new base, and that
+v3 is the only deliberate change.
+
+#620 left `ADAPTER_VERSION` and `CONTROLS_VERSION` at `cooling-l0.v2`, so no
+version conflict needed reconciling. `cooling-l0.v3` is the version of the
+merged tree and covers both changes: #620's candidate-fault attacks and this
+record's `group_sacrifice`. #620's controls are unchanged, as the control
+digests show, so `CONTROLS_VERSION` stays `cooling-l0.v2`.

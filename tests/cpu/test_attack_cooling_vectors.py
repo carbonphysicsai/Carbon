@@ -5,10 +5,11 @@ adapter's own output unchanged by it (GRAPHITE-ATTACKER-COOLING-API-01).
 The claims tested:
 - the pin: every prediction family's attacks, its oracle evidence and specimen
   digests, both control splits and each selective-fault selection on the
-  scaffold are byte-identical to `cooling-l0.v2` as merged before the API
-  (recorded before the transforms were refactored), except `group_sacrifice`'s
-  attack and evidence digests, which `cooling-l0.v3` moved deliberately (its
-  attack example became a real sacrifice, after the Validator's review);
+  scaffold are byte-identical to the adapter at main with #620 (`06f499f4d`,
+  still `cooling-l0.v2`, the base the API was merged onto), except
+  `group_sacrifice`'s attack and evidence digests, which `cooling-l0.v3` moved
+  deliberately (its attack example became a real sacrifice, after the
+  Validator's review);
 - `VECTOR_NAMES` holds the six vectors, each its family's attack example: on
   the adapter's own references `apply_vector` returns exactly that attack, and
   no two vectors give the same predictions, on the real references or a
@@ -41,7 +42,7 @@ from carbon.agent_campaign.attack.adapters import cooling as c
 
 A = c.ADAPTER
 
-# -- the byte pin: the adapter's output at cooling-l0.v2, and what v3 moved -------------------------
+# -- the byte pin: the adapter's output at its base, and what v3 moved ------------------------------
 #: The families whose attacks or controls are built from the PRACTICE
 #: references by the transforms the vector API shares.
 PREDICTION_FAMILIES = (
@@ -53,8 +54,14 @@ PREDICTION_FAMILIES = (
     "practice_disclosure",
     "resource_accounting",
 )
-#: Recorded at origin/main b327ac12d (`cooling-l0.v2`) before the refactor.
-PINNED_V2 = {
+#: The base: the adapter at main `06f499f4d` (`cooling-l0.v2` with #620, the
+#: cooling candidate-fault policy), recorded from that commit's own tree. The
+#: pin was first recorded at `b327ac12d` before the transform refactor; #620
+#: then added the `candidate_fault_*` attacks to `resource_accounting`, which
+#: moved only that family's attack and evidence digests (from
+#: `6ad0e897...` and `43a5d79e...`). Everything else here is the `b327ac12d`
+#: pin unchanged.
+PINNED_BASE = {
     "attacks": {
         "cooling_optimism": "sha256:ea1b5804650b121bbd698bae7f121fb886588f13888a9484259dc6e77f7a3691",
         "flow_imbalance_masking": "sha256:dcf797c9ccba52bae9af0b91f7abf2cd94d68fb59f6fcc2f079c4deee9331718",
@@ -62,7 +69,7 @@ PINNED_V2 = {
         "mandatory_failure": "sha256:510b8dbe1e8c4a93abc6c1e346828e4c25ed53b8ac1cc1e9b3f477e2bb49aa86",
         "practice_disclosure": "sha256:82984b9504113be1ca448208cd3bc03d6e81ed9c21953809b97f7a05cd85a65b",
         "pressure_underprediction": "sha256:1722291598ce6896a70cc912303bf7d40ef735dae2df952b6d2f840f591be8ec",
-        "resource_accounting": "sha256:6ad0e897af132346384fcab95eee83546ed9ef65f0f0cb42eb384742845c8f5e",
+        "resource_accounting": "sha256:e5ee8bd31554735e8d5f22a34a919692f44cf23e07203060bd2f3e06fc1df1e1",
         "selective_fault": "sha256:40b8766a8ab26cf5f99a8b2bc656ac1eba598ad52e768fe8a661778b3a576e4d",
     },
     "controls": {
@@ -76,7 +83,7 @@ PINNED_V2 = {
         "mandatory_failure": "sha256:4c6f41339e248984176e9f6dbe25c08aef66d7953b685569326c3dd9feafa508",
         "practice_disclosure": "sha256:7316a0f2fccdebe26559818663ddf8c1befa8ea170fcd2550d7a2c224f6807e6",
         "pressure_underprediction": "sha256:0f577a288461d90da061fff8a1bbc3a28467855f92b5b9658a40cac93e378b15",
-        "resource_accounting": "sha256:43a5d79e47e881e855b3c45152b13a90359a4ba5db85f3236869710e68550bfb",
+        "resource_accounting": "sha256:fac412e86c5df63bfa84701db298edba715215fbbd06c2cc309cc5cabb377dcb",
     },
     "faulted": {
         "above_own_mean": "sha256:1f6656623106e7fefe62012c6d22c1b00437b5a78436c4673e39334694c3c30e",
@@ -89,7 +96,7 @@ PINNED_V2 = {
 }
 #: `cooling-l0.v3`: `group_sacrifice`'s attack example became a real
 #: sacrifice (the Validator's review of #621 found it identical to
-#: `cooling_optimism`'s). These are the only digests that moved from v2.
+#: `cooling_optimism`'s). These are the only digests that moved from the base.
 PINNED_VERSION = "carbon.attack.adapter.cooling-l0.v3"
 CHANGED_IN_V3 = {
     ("attacks", "group_sacrifice"): (
@@ -102,8 +109,8 @@ CHANGED_IN_V3 = {
 
 
 def _pinned():
-    """The v3 pin: the v2 pin with only `CHANGED_IN_V3` moved."""
-    pin = copy.deepcopy(PINNED_V2)
+    """The v3 pin: the base pin with only `CHANGED_IN_V3` moved."""
+    pin = copy.deepcopy(PINNED_BASE)
     for (section, name), digest in CHANGED_IN_V3.items():
         pin[section][name] = digest
     return pin
@@ -139,21 +146,21 @@ def test_the_adapters_output_is_byte_identical_to_the_pin():
 
 
 def test_v3_moved_only_group_sacrifices_attack_and_evidence():
-    """Against the v2 pin, the only digests that differ are
-    `group_sacrifice`'s attack and its oracle evidence and specimen readings;
-    every other family, both control splits and every fault selection are
-    unchanged."""
+    """Against the base pin (main with #620), the only digests that differ
+    are `group_sacrifice`'s attack and its oracle evidence and specimen
+    readings; every other family, both control splits and every fault
+    selection are unchanged."""
     c.clear_caches()
     now = _adapter_output()
     moved = {
         (section, name)
-        for section, digests in PINNED_V2.items()
+        for section, digests in PINNED_BASE.items()
         for name, digest in digests.items()
         if now[section][name] != digest
     }
     assert moved == set(CHANGED_IN_V3)
     assert {section: set(d) for section, d in now.items()} == {
-        section: set(d) for section, d in PINNED_V2.items()
+        section: set(d) for section, d in PINNED_BASE.items()
     }
 
 
