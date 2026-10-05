@@ -185,3 +185,10 @@ These are delegated working decisions under OWNER-GRAPHITE-TEST-WAVE-01 §5. The
 5. **Cooling's B ladder.** Confirmed: k ∈ {6, 12, 24, 48} × the median solve. Motor's ladder is proposed the same way in the motor adapter PR.
 
 Consequence of p95 planning: k = 48 × the median no longer lets the solver arm plan the full set. The adapters therefore add `anchor_full_set`, which is 48 × the planning charge. It keeps the full-set anchor that the Test Lead asked for.
+
+## Motor adapter (after #594)
+
+- `carbon/motor/track_b.py` wraps the motor study V2. Its predictors are the analytical model, KRR, a nearest-neighbour TRAIN baseline, and the solver through the replay. It plans at p95 and has a full-set anchor. Its `bracket_conversions` are labelled assumptions, with the ratio being motor's own measurement.
+- `docs/development/evidence/track-b-replay/motor-counted-v2.json` is the compact replay of the 48 adopted counted records. It carries the source records' SHA-256, which matches `completion.json`.
+- The replay reproduces the counted comparator: complete, 4 feasible and 4 infeasible, best d04, matching worst ripple. KRR selects d06, with regret 0.0192.
+- **Tie-rule difference.** The analytical model predicts zero ripple, so all designs tie. Track B's neutral rule picks d01, and the study's mean-torque tie-break picks d07. Both are reference-infeasible, so the unsafe outcome stands. The registered methods are pinned, so the study's tie-break is not adopted.
