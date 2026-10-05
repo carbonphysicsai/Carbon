@@ -156,6 +156,17 @@ class RunCancelled(Exception):
     """The run's cancellation was observed at a ledger checkpoint."""
 
 
+class SessionStopped(Exception):
+    """Carbon stopped the run as infrastructure before the next reservation
+    (a repeated pod environment failure, `pod-attribution-v2`): the session
+    ends `failed` with code `failed_infra`, no agent charge. Never a
+    ValueError, so no run-limit rule reads it as a limit stop."""
+
+    def __init__(self, reason_code):
+        super().__init__("session stopped: " + reason_code)
+        self.reason_code = reason_code
+
+
 class RunCapReached(ValueError):
     """A run cap refused the next reservation."""
 
@@ -871,6 +882,17 @@ class GraphiteProvider:
             report = asyncio.run(self._epoch(run_id, ledger, role, brief, selection))
         except RunCancelled:
             return self._finish(run_id, "cancelled", None, None)
+        except SessionStopped as stop:
+            return self._finish(
+                run_id,
+                "failed",
+                {
+                    "code": "failed_infra",
+                    "reason_code": stop.reason_code,
+                    "candidate_charged": False,
+                },
+                None,
+            )
         except RunCapReached as error:
             return self._finish(
                 run_id,
