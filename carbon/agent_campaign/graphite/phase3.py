@@ -16,6 +16,11 @@
     python -m carbon.agent_campaign.graphite.phase3 rebuild --bundle DIR
     python -m carbon.agent_campaign.graphite.phase3 proposals --root DIR
 
+`reconcile` prints its report and exits 0 when every pod is settled, or 4
+when one is not; then stderr carries one typed line
+(`reconcile_pods_not_settled`) with each unsettled intent's age and, for an
+uncertain create, the UTC minute at or after which a re-run can settle it.
+
 `--compute carrier` runs proposals in the isolated C-03 carrier on this
 operator host instead of RunPod (`carrier_pods`, VALIDATOR-06): no RunPod
 key, no provider money, Levels 0-3 only, and the lane's declared program
@@ -1463,7 +1468,62 @@ def command_reconcile(args):
     live = any(
         r.get("terminated") is not True for rows in report.values() for r in rows
     )
+    if live:
+        # Exit 4 stays; stdout stays the report. What to do next goes to
+        # stderr as one typed line (OPERATOR-USABILITY-01 D3).
+        print(json.dumps(reconcile_pending(report)), file=sys.stderr)
     return 4 if live else 0
+
+
+def _minute_utc(unix):
+    """`unix` rounded up to the whole minute, as (ISO time, "HH:MM UTC")."""
+    import datetime
+    import math
+
+    moment = datetime.datetime.fromtimestamp(math.ceil(unix / 60) * 60, datetime.UTC)
+    return moment.strftime("%Y-%m-%dT%H:%MZ"), moment.strftime("%H:%M UTC")
+
+
+def reconcile_pending(report):
+    """Why a reconcile exited 4, and when to run it again.
+
+    An uncertain pod create that the provider cannot yet confirm or deny
+    settles only once the compute layer's grace has passed since the intent
+    was made (`ComputeService.recover`, `not_found_grace_s`): each such pod
+    gets its intent's age and the first whole UTC minute at or after which a
+    re-run can settle it. A termination that was not verified can be re-run
+    at once."""
+    unsettled, rerun = [], None
+    for rows in report.values():
+        for row in rows:
+            if row.get("terminated") is True:
+                continue
+            entry = {"intent_id": row.get("intent_id")}
+            if row.get("terminated") is None and "settles_at_unix" in row:
+                at, hhmm = _minute_utc(row["settles_at_unix"])
+                entry.update(
+                    intent_age_s=round(row["intent_age_s"]),
+                    not_found_grace_s=row["not_found_grace_s"],
+                    rerun_at_utc=at,
+                    next_step=(
+                        f"settles after {row['not_found_grace_s']:g} s; "
+                        f"re-run at or after {hhmm}"
+                    ),
+                )
+                rerun = max(rerun or at, at)
+            elif row.get("terminated") is None:
+                entry["next_step"] = (
+                    "the provider cannot say yet whether the pod exists; re-run reconcile"
+                )
+            else:
+                entry["next_step"] = "termination not verified; re-run reconcile now"
+            unsettled.append(entry)
+    return {
+        "status": "REFUSED",
+        "reason_code": "reconcile_pods_not_settled",
+        "unsettled": unsettled,
+        "rerun_at_utc": rerun,
+    }
 
 
 def command_status(args):
