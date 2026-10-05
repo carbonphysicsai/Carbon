@@ -53,7 +53,7 @@ IMAGE = ResearchImageIdentity(
     "sha256:" + "b" * 64, "sha256:" + "c" * 64, "sha256:" + "d" * 64
 )
 HOST = {"proc1_comm": "systemd", "self_cgroup": "0::/user.slice/user-1000.slice\n"}
-HOME = "/home/someone-generic"
+HOME = "/home/<user>"
 ABSENT = {"outcome": "absent"}
 EROFS = {"outcome": "error", "type": "OSError", "errno": 30}
 UNREACHABLE = {"outcome": "error", "type": "OSError", "errno": 101}
