@@ -1,7 +1,7 @@
 {
   "schema": "carbon.challenge-pipeline.lesson.v1",
   "lesson_id": "2026-10-05-cooling-candidate-fault-final-lessons-pass",
-  "recorded_at": "2026-10-05T14:48:00Z",
+  "recorded_at": "2026-10-05T15:03:00Z",
   "challenge": "chip-cold-plate",
   "stage": "test_iterate",
   "execution": {
@@ -10,7 +10,7 @@
     "description": "Validated the protocol, records and complete lesson set after current-main reconciliation and post-merge regression evidence."
   },
   "expected": "Every existing lesson is valid and no human decision is pending.",
-  "observed": "The protocol remained DEFINING; 7 records and 288 lessons were valid, with 0 awaiting a decision.",
+  "observed": "The protocol remained DEFINING; 7 records and 290 lessons were valid, with 0 awaiting a decision.",
   "keep": [
     "Use the installed canonical Linux interpreter for final repository validation."
   ],

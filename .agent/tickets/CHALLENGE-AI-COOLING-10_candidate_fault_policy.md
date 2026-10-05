@@ -103,8 +103,11 @@ Out of scope:
 - The non-attacker validator, Battery compatibility, confirmation-set and
   existing pod-attribution subsystem matrix passed 209 tests in 139.54
   seconds on the reconciled head.
+- After the final current-main merge added the CPU carrier lane, 33 targeted
+  policy, Cooling-validator and selective-fault real-path tests passed in
+  71.87 seconds.
 - Focused Ruff passed and Black left all eight changed Python files unchanged.
-- The challenge-pipeline validator accepted 7 records and 288 lessons with no
+- The challenge-pipeline validator accepted 7 records and 290 lessons with no
   pending decision before the final pass records were appended; canonical CI
   validates the delivered complete set.
 
