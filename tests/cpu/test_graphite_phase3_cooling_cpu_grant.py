@@ -8,10 +8,11 @@ Claims tested:
   blob (`grant_binding.check_phase3_grant`): another Challenge's grant, a
   tampered copy, a branch-only grant, an unpushed HEAD and a dirty grants
   directory are each refused typed, and a grant on main passes;
-- its pod budget is 0: on the real launch path (`experiment.Experiment` over
-  `pods.RunPodPods`, RunPod in memory) every pod is refused
+- it is tokens-only (`phase3.TOKENS_ONLY_GRANTS`, VALIDATOR-06), so its pod
+  money budget is 0: on the real launch path (`experiment.Experiment` over
+  `pods.RunPodPods`, RunPod in memory) every paid pod is refused
   `grant_allows_no_pods` before any reservation, and no create request is
-  ever sent;
+  ever sent, while the CPU carrier lane (rate 0) still runs its proposals;
 - battery's phase-3 grants keep working unchanged;
 - each guard, disabled, lets the wrong thing through (mutations).
 
@@ -43,6 +44,12 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 GRANTS = REPOSITORY / grant_binding.GRANTS_DIR
 CPU_ID = "GRAPHITE-GRANT-PHASE3-COOLING-CPU"
 CPU_FILE = grant_binding.GRANTS_DIR + "/GRAPHITE-GRANT-PHASE3-COOLING-CPU.json"
+#: Battery's phase-3 grants (R3: OWNER-GRAPHITE-PHASE3-R3-01).
+BATTERY_IDS = (
+    "GRAPHITE-GRANT-PHASE3",
+    "GRAPHITE-GRANT-PHASE3-R2",
+    "GRAPHITE-GRANT-PHASE3-R3",
+)
 COOLING = challenge_scoring.scoring_for(COLD_PLATE_CHALLENGE)
 BATTERY = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
 
@@ -82,16 +89,14 @@ def test_the_cooling_cpu_grant_is_the_owners():
 def test_the_registry_binds_it_to_cooling_tokens_only_and_to_main():
     entry = grant_binding.PHASE3_GRANTS[CPU_ID]
     assert entry.challenge == COLD_PLATE_CHALLENGE and entry.grant_file == CPU_FILE
-    assert entry.main_blob is True and entry.tokens_only is True
+    assert entry.main_blob is True
+    assert CPU_ID in phase3.TOKENS_ONLY_GRANTS and grant_binding.tokens_only(_grant())
     assert COLD_PLATE_CHALLENGE in grant_binding.PHASE3_BOUND_CHALLENGES
     # Battery's phase-3 grants: battery's, with pods, no main-blob check.
-    for grant_id in ("GRAPHITE-GRANT-PHASE3", "GRAPHITE-GRANT-PHASE3-R2"):
+    for grant_id in BATTERY_IDS:
         battery = grant_binding.PHASE3_GRANTS[grant_id]
-        assert (battery.challenge, battery.main_blob, battery.tokens_only) == (
-            BATTERY_CHALLENGE,
-            False,
-            False,
-        )
+        assert (battery.challenge, battery.main_blob) == (BATTERY_CHALLENGE, False)
+        assert grant_id not in phase3.TOKENS_ONLY_GRANTS
         assert _grant(Path(battery.grant_file).name).grant_id == grant_id
     assert BATTERY_CHALLENGE not in grant_binding.PHASE3_BOUND_CHALLENGES
 
@@ -114,28 +119,32 @@ def test_the_ceiling_covers_three_runs_and_cleanup():
 
 
 def test_the_token_cap_is_the_whole_run_cost():
-    """No pods: the pod allowance is 0 and the run's model calls are capped
-    at USD 1.95, the same token share as a GRAPHITE-GRANT-PHASE3 run."""
+    """No pod money: the pod allowance is 0 and the run's model calls are
+    capped at USD 1.95, the same token share as a GRAPHITE-GRANT-PHASE3 run,
+    at the RunPod rate (where every pod is refused) and on the carrier."""
     budget = ex.phase3_budget(_grant(expires_at="2099-01-01T00:00:00Z"), COOLING)
     assert budget.challenge_id == COLD_PLATE_CHALLENGE
-    assert budget.max_pods == 0 and budget.tokens_only
+    assert budget.tokens_only and not budget.pays_for_pods
     assert budget.pod_allowance_usd == Decimal("0.00")
+    assert budget.record()["tokens_only"] is True
+    carrier = ex.phase3_budget(
+        _grant(expires_at="2099-01-01T00:00:00Z"), COOLING, Decimal(0)
+    )
+    assert carrier.tokens_only and carrier.pays_for_pods
+    assert carrier.token_allowance_usd == Decimal("1.95")
     assert budget.token_allowance_usd == budget.run_cap_usd == Decimal("1.95")
     battery = ex.phase3_budget(_grant("GRAPHITE-GRANT-PHASE3.json"), BATTERY)
     assert budget.token_allowance_usd == battery.token_allowance_usd
 
 
 def test_validator_06s_tokens_only_list_gives_the_same_budget(monkeypatch):
-    """VALIDATOR-06 is expected to add `phase3.TOKENS_ONLY_GRANTS`. A grant
-    named there, and not in this registry, also gets a pod budget of 0, so
-    the two sources merge without changing the refusal."""
+    """VALIDATOR-06's `phase3.TOKENS_ONLY_GRANTS` is the one list: a grant
+    named there gets a pod money budget of 0, whatever this registry says."""
     listed = _grant(
         grant_id="SOME-TOKENS-ONLY-GRANT", expires_at="2099-01-01T00:00:00Z"
     )
     assert not grant_binding.tokens_only(listed)
-    monkeypatch.setattr(
-        phase3, "TOKENS_ONLY_GRANTS", frozenset({listed.grant_id}), raising=False
-    )
+    monkeypatch.setattr(phase3, "TOKENS_ONLY_GRANTS", frozenset({listed.grant_id}))
     assert grant_binding.tokens_only(listed)
     budget = ex.phase3_budget(listed, COOLING)
     assert budget.tokens_only and budget.token_allowance_usd == Decimal("1.95")
@@ -151,7 +160,7 @@ def test_the_provider_runs_its_session_under_the_token_cap(tmp_path):
         pods=pods.ScriptedPods(),
         scoring=COOLING,
     )
-    assert provider.budget.max_pods == 0
+    assert provider.budget.tokens_only and not provider.budget.pays_for_pods
     assert provider.budget.token_allowance_usd == Decimal("1.95")
     assert provider.budget.record()["pod_allowance_usd"] == "0.00"
 
@@ -160,10 +169,11 @@ def test_battery_s_phase3_grants_are_unaffected(tmp_path):
     """The same budget as before (12 pods, USD 2.96 of pods, USD 1.95 of
     tokens), accepted for battery with no git read, and an unregistered
     grant on battery accepted as before."""
-    for name in ("GRAPHITE-GRANT-PHASE3.json", "GRAPHITE-GRANT-PHASE3-R2.json"):
+    for name in (grant_id + ".json" for grant_id in BATTERY_IDS):
         grant = _grant(name)
         budget = ex.phase3_budget(grant, BATTERY)
-        assert budget.max_pods == 12
+        assert budget.max_pods == 12 and not budget.tokens_only
+        assert "tokens_only" not in budget.record()
         assert budget.pod_allowance_usd == Decimal("2.96")
         assert budget.token_allowance_usd == Decimal("1.95")
         # `tmp_path` is no repository: a git read would refuse.
@@ -188,6 +198,7 @@ def test_a_grant_for_another_challenge_is_refused(tmp_path, capsys):
         ("GRAPHITE-GRANT-PHASE3-COOLING-CPU.json", BATTERY_CHALLENGE),
         ("GRAPHITE-GRANT-PHASE3.json", COLD_PLATE_CHALLENGE),
         ("GRAPHITE-GRANT-PHASE3-R2.json", COLD_PLATE_CHALLENGE),
+        ("GRAPHITE-GRANT-PHASE3-R3.json", COLD_PLATE_CHALLENGE),
     ]
     for name, challenge in pairs:
         code = _refusal(
@@ -441,9 +452,26 @@ def test_every_pod_launch_is_refused_before_any_reservation_or_create(tmp_path):
     assert run._retry_budget(1) == "grant_allows_no_pods"
 
 
-def test_mutation_without_the_guard_the_refusal_loses_its_type(tmp_path, monkeypatch):
-    """With `_admit_pod`'s tokens-only guard removed, the pod limit still
-    stops the launch, but as `session_pod_limit_reached`."""
+def test_the_carrier_lane_still_runs_the_grant_s_proposals(tmp_path):
+    """On a backend that costs no provider money (the CPU carrier, rate 0),
+    the tokens-only grant's baseline and proposal are launched:
+    `grant_allows_no_pods` refuses paid pods only (VALIDATOR-06's lane)."""
+    budget = ex.phase3_budget(
+        _grant(expires_at="2099-01-01T00:00:00Z"), COOLING, Decimal(0)
+    )
+    run = _experiment(tmp_path, budget, pods.ScriptedPods())
+    _propose(run)
+    for record in run.records():
+        assert record.get("reason_code") != "grant_allows_no_pods", record
+    events = [row["event"] for row in run.ledger.rows()]
+    assert "pod_reserved" in events
+    assert run._retry_budget(1) is None
+
+
+def test_mutation_without_the_guard_a_paid_pod_is_reserved(tmp_path, monkeypatch):
+    """With `_admit_pod`'s tokens-only guard removed, a RunPod-rate pod under
+    the tokens-only grant is reserved against money the grant never gave
+    pods."""
 
     def unguarded(self):
         # `_admit_pod` as it was before the tokens-only guard.
@@ -458,18 +486,18 @@ def test_mutation_without_the_guard_the_refusal_loses_its_type(tmp_path, monkeyp
     monkeypatch.setattr(ex.Experiment, "_admit_pod", unguarded)
     run = _experiment(tmp_path, _no_pods_budget(), pods.ScriptedPods())
     _propose(run)
-    assert run.record("baseline")["reason_code"] == "session_pod_limit_reached"
+    assert run.record("baseline").get("reason_code") != "grant_allows_no_pods"
+    events = [row["event"] for row in run.ledger.rows()]
+    assert "pod_reserved" in events
 
 
 def test_mutation_a_pod_budget_for_this_grant_creates_a_pod(tmp_path):
-    """The registry's tokens-only entry is what keeps pods away: the same
-    grant given the phase-3 pod count reserves and creates a pod on the
-    real launch path (RunPod in memory)."""
+    """The budget's tokens-only flag is what keeps paid pods away: the same
+    budget without it reserves and creates a pod on the real launch path
+    (RunPod in memory)."""
     recording = _Recording()
     backend = _live_pods(tmp_path, recording)
-    budget = dataclasses.replace(
-        _no_pods_budget(), max_pods=ex.SESSION_POD_MINUTES // 30
-    )
+    budget = dataclasses.replace(_no_pods_budget(), tokens_only=False)
     run = _experiment(tmp_path, budget, backend)
     _propose(run)
     events = [row["event"] for row in run.ledger.rows()]
@@ -478,17 +506,9 @@ def test_mutation_a_pod_budget_for_this_grant_creates_a_pod(tmp_path):
 
 
 def test_mutation_without_the_tokens_only_entry_the_grant_cannot_run(monkeypatch):
-    """Registered with pods, the grant's 1.95 cannot cover the phase-3 pod
-    share (2.96): the provider's budget refuses it."""
-    entry = grant_binding.PHASE3_GRANTS[CPU_ID]
-    monkeypatch.setattr(
-        grant_binding,
-        "PHASE3_GRANTS",
-        {
-            **grant_binding.PHASE3_GRANTS,
-            CPU_ID: dataclasses.replace(entry, tokens_only=False),
-        },
-    )
+    """Not listed in `phase3.TOKENS_ONLY_GRANTS`, the grant's 1.95 cannot
+    cover the phase-3 pod share (2.96): the provider's budget refuses it."""
+    monkeypatch.setattr(phase3, "TOKENS_ONLY_GRANTS", frozenset())
     with pytest.raises(ex.BudgetRefused) as refused:
         _no_pods_budget()
     assert refused.value.code == "grant_run_cost_cannot_cover_pods_and_tokens"

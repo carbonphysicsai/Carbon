@@ -102,6 +102,12 @@ ceiling copy, a copy naming each other registered Challenge's grant must be
 refused `grant_is_for_another_challenge`, or the step fails. If the grant
 check fails in any way, the gate stops before opening a session.
 
+### GRANT-BINDING-D4b — One prelive schema version for both additions
+
+#605 (GRAPHITE-D35) added an `attacker_model` block to the prelive report
+under `phase4-prelive.v1`. This branch adds `challenge` and `grant`. The merge
+keeps all three, and the single `v2` covers both changes.
+
 ### GRANT-BINDING-D5 — Before and after merge
 
 The cooling grant is on this branch, not on main. At this branch's pushed
@@ -133,11 +139,14 @@ GRAPHITE-GRANT-PHASE3-COOLING-CPU carries those amounts.
 run one implementation. `phase4.check_committed_grant` keeps its codes by
 passing `phase="phase4"`. Phase 3 has its own registry,
 `grant_binding.PHASE3_GRANTS`, keyed by grant id, with each grant's Challenge,
-file, main-blob flag and pod flag:
-- GRAPHITE-GRANT-PHASE3 and GRAPHITE-GRANT-PHASE3-R2 are battery's: no
-  main-blob check and pods allowed, exactly as before;
-- GRAPHITE-GRANT-PHASE3-COOLING-CPU is `chip-cold-plate`'s: main-blob bound,
-  no pods.
+file and main-blob flag:
+- GRAPHITE-GRANT-PHASE3, GRAPHITE-GRANT-PHASE3-R2 and GRAPHITE-GRANT-PHASE3-R3
+  (OWNER-GRAPHITE-PHASE3-R3-01, added on main and registered at the merge)
+  are battery's: no
+  main-blob check, exactly as before;
+- GRAPHITE-GRANT-PHASE3-COOLING-CPU is `chip-cold-plate`'s: main-blob bound.
+  Whether a grant is tokens-only is VALIDATOR-06's `phase3.TOKENS_ONLY_GRANTS`
+  (D7), not a flag here.
 
 `phase3 run` calls `check_phase3_grant` right after the provider check,
 before any credential, key or code ref is read:
@@ -157,46 +166,53 @@ behaviour change for its runner. It is left as a follow-up for the lead.
 `phase3 reconcile` is not bound: it only cleans up a run's pods and must
 never be blocked.
 
-### GRANT-BINDING-D7 — A tokens-only grant refuses every pod
+### GRANT-BINDING-D7 — A tokens-only grant refuses every paid pod
 
-The grant format has no pod field, so the pod budget comes from the registry:
-`grant_binding.tokens_only(grant)` is True for a tokens-only grant.
-- `experiment.phase3_budget` then sets `max_pods` 0, so the pod allowance is
-  0 and the whole USD 1.95 is the token share. The 2-pod minimum applies only
-  to a grant with pods.
-- `Experiment._admit_pod` refuses `grant_allows_no_pods` when the run's
-  budget is tokens-only (`Phase3Budget.tokens_only`, a pod budget of 0).
-  That is the one gate in front of every pod launch: the baseline, a
-  proposal, a timeout retry and an ablation. The refusal comes before the
-  ledger's `pod_reserved` event and before `pods.launch`.
-- `_retry_budget` answers the same code, so a baseline retry is never
-  decided on.
+The grant format has no pod field. Which grants are tokens-only is
+VALIDATOR-06's `phase3.TOKENS_ONLY_GRANTS` (#608, on main), the single list;
+`grant_binding.tokens_only(grant)` reads it. A tokens-only run's pod money
+budget is 0:
+- `experiment.phase3_budget` sets `Phase3Budget.tokens_only`. The pod
+  allowance is then 0, and the whole USD 1.95 is the token share. The field
+  is recorded in the budget record only when set, so every other run's
+  record is unchanged.
+- `Experiment._admit_pod` refuses `grant_allows_no_pods` for any launch that
+  would reserve pod money under that budget (`Phase3Budget.pays_for_pods`):
+  every RunPod pod, whether for the baseline, a proposal, a timeout retry or
+  an ablation. The refusal comes before the ledger's `pod_reserved` event
+  and before `pods.launch`. `_retry_budget` answers the same code.
+- A backend that costs no provider money is admitted. That is the CPU
+  carrier lane (`carrier_pods.CarrierPods`, `hourly_usd` 0, #608), where
+  WAVE-06 §3's "tokens only (no pods on the CPU lane)" runs its proposals.
+  Refusing every launch would make the approved grant unusable on the lane
+  it was approved for; refusing every paid launch keeps "no pod money"
+  exact.
+- This is defence in depth behind #608's CLI refusal
+  (`grant_is_tokens_only_use_the_carrier_lane` for `--compute runpod`): a
+  provider built over RunPod with this grant still cannot reserve or
+  create a pod.
 - The guard is in the experiment, the only caller of `pods.launch` on a
-  phase-3 session's path, not in `pods.py`, which other work is changing.
+  phase-3 session's path, not in `pods.py`.
 
-The test drives the real launch path: `Experiment` over `RunPodPods`, with
+The tests drive the real launch path: `Experiment` over `RunPodPods`, with
 RunPod in memory (`pods.InMemoryRunPod`) and every request recorded. No pod is
-reserved and no create request is ever sent. A mutation gives the same grant
-the phase-3 pod count, and the same path then reserves and creates a pod.
+reserved and no create request is ever sent. On a rate-0 backend the same
+grant's baseline and proposal are launched. Mutations:
+- the same budget without `tokens_only` reserves and creates a RunPod pod;
+- removing the grant from `TOKENS_ONLY_GRANTS` makes its budget refuse
+  (`grant_run_cost_cannot_cover_pods_and_tokens`).
 
-**Merging with VALIDATOR-06.** The Carbon Validator's carrier-lane pull
-request (VALIDATOR-06, not on main or on any origin branch when this was
-pushed) is expected to add this same id to `phase3.TOKENS_ONLY_GRANTS`, which
-refuses a RunPod run under it. The two are meant to coexist:
-- the refusal here is keyed on the run's pod budget
-  (`Phase3Budget.tokens_only`, `max_pods == 0`), not on a hard-coded id
-  list;
-- `grant_binding.tokens_only(grant)` counts both the registry's
-  `tokens_only` entries and `phase3.TOKENS_ONLY_GRANTS` when that exists, so
-  either source gives the grant a pod budget of 0. When VALIDATOR-06 lands,
-  the registry flag can be dropped in favour of its list, with no change to
-  the refusal.
+**Merged with VALIDATOR-06 (#608).** The first version of this decision
+derived a pod count of 0 from a `tokens_only` flag in `PHASE3_GRANTS`, with a
+fallback to `TOKENS_ONLY_GRANTS`. When main was merged in (#604, #605, #608,
+#610, #620), `TOKENS_ONLY_GRANTS` was on main and #608 runs this grant on the
+carrier. So:
+- the registry flag is dropped in favour of #608's list;
+- the refusal moved from "no pods" to "no paid pods" so the carrier lane
+  keeps working.
 
-**Consequence.** Until cooling's CPU-lane evaluation path exists, a cooling
-Constructor proposal under this grant closes `REFUSED_BUDGET`
-`grant_allows_no_pods`. That is the lane work in WAVE-06 §2, not part of this
-change. The live phase-3 runner also still asks for a RunPod key file even
-when the grant funds no pod.
+**Consequence.** The live phase-3 runner still asks for a RunPod key only for
+`--compute runpod`, which refuses this grant.
 
 ### Not decided here
 

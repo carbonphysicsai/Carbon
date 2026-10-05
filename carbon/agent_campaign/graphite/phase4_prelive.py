@@ -50,11 +50,14 @@ It writes only under `DIR/attacker-prelive`, sends nothing, spends nothing,
 and prints one JSON report. Every failed path is listed under
 `blocking_findings` (with whether a phase-4 live run itself uses it) and
 fails the gate: exit 0 only when every path passed with no network use, 4
-otherwise. `phase4_live_path` reports the phase-4 paths alone. The report is
-a live run's release evidence (OWNER-GRAPHITE-TEST-WAVE-05 §3), so it names
-the Challenge the gate ran for and, under `grant`, the grant it accepted: its
-id, file and canonical digest and the Challenge it is bound to (null when the
-grant was refused). Not security acceptance.
+otherwise. `phase4_live_path` reports the phase-4 paths alone. The report's
+`attacker_model` block is the session's model selection as its record froze
+it: input window, admission ceiling, timeout and reservation per call against
+the run's token allowance (GRAPHITE-D35). The report is a live run's release
+evidence (OWNER-GRAPHITE-TEST-WAVE-05 §3), so it also names the Challenge the
+gate ran for and, under `grant`, the grant it accepted: its id, file and
+canonical digest and the Challenge it is bound to (null when the grant was
+refused). Not security acceptance.
 """
 
 from __future__ import annotations
@@ -78,8 +81,9 @@ from pathlib import Path
 from carbon.development_session.research_tools import PREFIX
 
 #: v2 adds `challenge` and `grant` (the accepted grant's id, file, digest and
-#: bound Challenge): the report is release evidence (OWNER-GRAPHITE-TEST-WAVE-05
-#: §3).
+#: bound Challenge), since the report is release evidence
+#: (OWNER-GRAPHITE-TEST-WAVE-05 §3), and `attacker_model` (GRAPHITE-D35, #605),
+#: which v1 reports carried unversioned. One version covers both additions.
 SCHEMA = "carbon.graphite.phase4-prelive.v2"
 #: The pod and compute-store step under phase 3's threading: a blocking gate
 #: failure until the pod store is thread-safe (claude/fix-pod-store-threads).
@@ -696,6 +700,9 @@ def prelive(
         "blocking_findings": blocking,
         "network_attempts": list(network),
         "spent_usd": report.get("spent_usd"),
+        # The Attacker's input window, admission ceiling, timeout and
+        # reservation per call, from the session record (GRAPHITE-D35).
+        "attacker_model": report.get("attacker_model"),
         "claims": {"security_acceptance": False, "live_run": False, "spend": False},
     }
     emit(json.dumps(out, indent=1, sort_keys=True, default=str))
@@ -836,6 +843,8 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
             raise AssertionError("a model request carried no key header")
         if threading.main_thread().name in engy.threads:
             raise AssertionError("a model request ran on the main thread")
+        # The selection the session record froze (GRAPHITE-D35).
+        state["attacker_model"] = phase4.attacker_model(provider, run_id)
         return {
             "provider_state": entry["provider_state"],
             "model_requests": len(engy.requests),
@@ -1009,4 +1018,8 @@ def _run(gate, store, adapter, atk, grant_path, repository, scoring, challenge):
         phase4=False,
     )
     entry = state.get("entry") or {}
-    return {"spent_usd": entry.get("settled_usd"), "grant": state["evidence"]}
+    return {
+        "spent_usd": entry.get("settled_usd"),
+        "attacker_model": state.get("attacker_model"),
+        "grant": state["evidence"],
+    }

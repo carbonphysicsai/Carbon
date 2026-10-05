@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-aa79-lessons-pass",
+  "recorded_at": "2026-10-05T13:56:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "aa79adba exact-tree challenge-pipeline validation",
+    "description": "Validated the protocol, records and complete lesson set after current-main integration and the selective-fault repair."
+  },
+  "expected": "Every committed lesson is valid and no human decision is pending.",
+  "observed": "The protocol remained DEFINING; 7 records and 271 lessons were valid, with 0 awaiting a decision.",
+  "keep": [
+    "Carry integration failures and repairs in the same inspectable lesson stream."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy",
+    "challenge_pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

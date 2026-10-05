@@ -1,0 +1,110 @@
+{
+  "conditions": [
+    {
+      "basis": "q1-report.json one_seed and three_seed",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "all_seed_kendall_tau_b": -0.1065678882449618,
+        "member_conditions": 6,
+        "n_one_seed": 8,
+        "one_seed_kendall_tau_b": -0.47280542884465016,
+        "one_seed_spearman_rho": -0.5389318178609666,
+        "tau_noise_band": {
+          "band": 1.1338934190276817,
+          "panels": 13122,
+          "tau_max": 0.2645751311064591,
+          "tau_min": -0.8693182879212227
+        },
+        "top1_by_score": [
+          "graphite-run5-p-1d4aaff5d292-s3718551111"
+        ],
+        "top1_by_value": [
+          "graphite-run5-baseline-s1801172379"
+        ]
+      },
+      "kind": "PANEL_ANTI_ALIGNMENT",
+      "member": "graphite-run5 panel (rule v2 practice score)",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "results.json decisions; q1-report.json members decision_kinds",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "baseline_rebuilds_selecting": 0,
+        "deeponet_rebuilds": 24,
+        "deeponet_rebuilds_selecting": 23,
+        "reference": "INFEASIBLE; best feasible c1=1.75,c2=1",
+        "scenario": "D-T24-S0.12",
+        "selected": "c1=2,c2=1"
+      },
+      "kind": "SHARED_INFEASIBLE_DECISION",
+      "member": "graphite-run5 DeepONet recipes",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "q1-report.json near_limit_false_acceptance",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "baseline_worst_false_acceptance_rate": 0.014925373134328358,
+        "practice_rank_by_score": 1,
+        "worst_false_acceptance_rate": 0.0945945945945946
+      },
+      "kind": "NEAR_LIMIT_FALSE_ACCEPTANCE",
+      "member": "graphite-run5-p-1d4aaff5d292-s3718551111",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "aliasing.json; q1-report.json seed_luck and recipe_bands",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "aliasing": [
+          {
+            "alias": "graphite-run5-p-fa70c075f903",
+            "alias_pod_score": 0.057552774665334816,
+            "alias_prediction_digest": "sha256:cc7560028fa6abb7eac5e17ebb8c896a20e83738fe36027d4d926347c96a4351",
+            "alias_recipe_digest": "sha256:af5cae8d45b2a3e80331ec7d6e3f82499c4b8e9ef8830c32eca8b6d4d7d130f7",
+            "identical_predictions": true,
+            "observation": "IDENTITY_ALIASING: different recipe digests, byte-identical rebuilt predictions at the same seed; the pod scores differ only by seed, so Graphite's step between them is seed variation",
+            "seed": 1551240143,
+            "target": "graphite-run5-p-69268f1b74ec",
+            "target_pod_score": 0.05937869909044359,
+            "target_prediction_digest": "sha256:cc7560028fa6abb7eac5e17ebb8c896a20e83738fe36027d4d926347c96a4351",
+            "target_recipe_digest": "sha256:34c7cbb6ca9be0158836d110947547e9d0ed0a9e5568f90c98f6381885dc1de2"
+          }
+        ],
+        "baseline_three_seed_practice": [
+          0.07404506774171599,
+          0.07662696150670266,
+          0.07513488068171037
+        ],
+        "bundled_three_seed_practice": [
+          0.05619965871218511,
+          0.0605430874864938,
+          0.06099646801045015
+        ],
+        "largest_recipe_seed_spread": 0.028901636726747656,
+        "rule": "battery rule v2 paired comparison bootstraps over CASES, not seeds"
+      },
+      "kind": "SEED_LUCK_PROMOTION",
+      "member": "battery rule v2 practice comparison (Graphite promotion)",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    }
+  ],
+  "deciding_rule": "battery rule v2 practice score (Graphite feedback)",
+  "effect": "under W2, findings block LOCK, not exploration (GRAPHITE-CONDITIONAL-EXPLORATION-01)",
+  "evidence_sha256": {
+    "aliasing.json": "sha256:dc500d3fd67cf63399ecfd173ab3ebbb3d5ad6e7e8cd4cbbff920cd0ab096a07",
+    "practice-summaries.json": "sha256:503b2cf04bffff3571ecc55f6a17413884e1b3739c8cee205ae36b84642c99ad",
+    "predictions.sha256": "sha256:80a9b7351dc8bb499e481582129867a7398a80663d009004a39bc2266e6b0e11",
+    "q1-report.json": "sha256:dfa707390e2d7ebea98c3c59e407ddf3459e74a760e010ee8544b180ec70eb9b",
+    "results.json": "sha256:f1d1409b3774b27fd1d6452298bcded451bce4cc9d4fa91b2336600d8b018d68"
+  },
+  "recording": "by the campaign controller's operator via CampaignController.consume_conditions",
+  "results": "docs/development/evidence/graphite-run5-q1/results.json",
+  "schema": "carbon.admission-conditions.v1",
+  "scope": "internal DEVELOPMENT evidence on EV4 development conditions (previously used); no confirmation claim; not a qualification gate; not mainnet"
+}

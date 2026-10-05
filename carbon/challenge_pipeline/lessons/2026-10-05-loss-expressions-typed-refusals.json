@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-loss-expressions-typed-refusals",
+ "recorded_at": "2026-10-05T12:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/loss-expressions-hardening from origin/main 56187e74f (B1 of the battery Level-1 loss-expression review packet, approved by the Test Lead)",
+  "description": "Hardened the shipped Level-1 loss-expression module so every refusal is the module's own typed error: oversized integer constants, -0.0, document size and nesting bounded before parsing, repeated keys and non-canonical bytes in from_bytes. Valid documents keep their digests, pinned by a test; a seeded fuzz test and one mutation per guard back each refusal."
+ },
+ "expected": "A strategy-supplied expression either compiles or is refused with a code on Carbon's host, so no input can raise an untyped exception that might be classified as an infrastructure failure and refunded.",
+ "observed": "Measuring the Level-1 surface found two untyped exceptions on main: the integer 10**400 raised OverflowError inside the finiteness check, and a 200000-deep document raised RecursionError inside json.loads before any depth check ran, because the expression's depth bound applies only after parsing. A bound inside the parser's recursion cannot help; the nesting has to be counted on the raw text first, and the size bounded before that so the count is cheap. from_bytes also accepted non-canonical bytes and repeated keys, and -0.0 had its own digest, so one loss could carry several identities. Requiring the exact canonical bytes closes all three at once. The first fuzz generator produced exponentially large values; a generator whose containers average fewer than one child keeps the run under a second.",
+ "keep": [
+  "Every boundary that parses participant data bounds size and nesting on the raw bytes before any recursive parser runs.",
+  "A pinned document is accepted only as its exact canonical bytes; any other spelling is refused by code.",
+  "Test guards call the guarded function and fail on any untyped exception, so a mutation that removes a guard fails the test instead of erroring past the mutation harness."
+ ],
+ "change": [
+  "Before opening any participant-facing parse path, run a seeded fuzz pass that asserts only typed refusals or valid results escape, with a bounded runtime."
+ ],
+ "protocol_elements": [
+  "construction.ladder",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

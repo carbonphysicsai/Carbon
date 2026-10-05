@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-validator-07-tool-text-versions",
+  "recorded_at": "2026-10-05T21:00:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "build",
+    "ref": "VALIDATOR-07, branch claude/graphite-tool-text-v2, from main d62fefb90. Byte-pinned Graphite suites: 256 passed with only the two expected pinned tests failing before they named v1; then 41 passed (new suite, limits, the pre-D34 replay). scripts/check_quality.py --base origin/main passed. Canonical results are recorded in the PR.",
+    "description": "Graphite's agent tool text became a recorded version: new sessions read challenge-neutral v2 descriptions, and every session recorded before keeps v1's exact bytes."
+  },
+  "expected": "A one-line wording fix would make the Constructor's tools challenge-neutral.",
+  "observed": "The wording was data: the full tool schemas are in every recorded plan, and their digest is in the role record and the brief, so a text edit broke a pinned historical plan and would have refused the resume of any session in flight. Recording the version the way session limits are recorded (present only for the new version, absent meaning the old) kept every old record's bytes; resolving the version per role kept the Attacker's, Reader's and Writer's records unchanged, since v2 changes none of their tools. A Challenge named in tool text is a confound for the wave's measurements, not a cosmetic issue.",
+  "keep": [
+    "Version any text an agent reads and a session records; mark only the new version in the record so old records keep their bytes.",
+    "Resolve a version per consumer, so consumers it does not change keep their records.",
+    "Make byte-pinned tests name the version they pin rather than rely on the default."
+  ],
+  "change": [
+    "Run the byte-identity replay suites before changing anything in roles.py."
+  ],
+  "protocol_elements": [
+    "agent-facing text names the session's Challenge only through data, never in fixed wording",
+    "a recorded session always resumes on the text it recorded"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

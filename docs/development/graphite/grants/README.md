@@ -413,6 +413,31 @@ handoff:
 - the owner confirms the REF;
 - the operator host is agreed with Data Collection.
 
+## GRAPHITE-GRANT-PHASE3-R3 (GRAPHITE-01 phase 3, a third battery grant)
+
+**Authority.** OWNER-GRAPHITE-PHASE3-R3-01
+(`.agent/decisions/2026-10-05-OWNER-GRAPHITE-PHASE3-R3-01.md`). The owner said
+"approve new grant" on 2026-10-05, after GRAPHITE-GRANT-PHASE3 (3 of 3 runs)
+and GRAPHITE-GRANT-PHASE3-R2 (2 of 2 runs) were used up.
+
+| Field | Value | Basis |
+|---|---|---|
+| `monetary_ceiling` | `15.00` USD | the proposal the owner approved; at least 3 × 4.91 + 0.25 = 14.98 |
+| `permitted_runs` | `3` | the proposal |
+| `max_submissions` | `3` | one per run |
+| everything else | as GRAPHITE-GRANT-PHASE3-R2 | unchanged |
+
+### Arithmetic
+
+    validator:   cleanup + worst case          = 0.25 + 4.91         = 5.16   ≤ 15.00
+    run 3 gate:  runs 1-2 (≤ 2 × 4.91) + 4.91 + 0.25                 = 14.98  ≤ 15.00
+
+Measured runs cost about USD 3. Run 5 spent USD 0.018 in tokens and booked
+USD 2.96 for 12 pods at USD 0.246 each, because RunPod reports no charge.
+
+**Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
+checklist, with pod-attribution-v2 on main.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
@@ -716,8 +741,8 @@ engineering choices are GRAPHITE-GRANT-BINDING-01
 
 **Binding.** `grant_binding.PHASE3_GRANTS` registers every phase-3 grant with
 its Challenge:
-- GRAPHITE-GRANT-PHASE3 and GRAPHITE-GRANT-PHASE3-R2 are battery's, and are
-  accepted for battery exactly as before;
+- GRAPHITE-GRANT-PHASE3, GRAPHITE-GRANT-PHASE3-R2 and GRAPHITE-GRANT-PHASE3-R3
+  are battery's, and are accepted for battery exactly as before;
 - this grant is cooling's.
 
 `phase3 run` (`grant_binding.check_phase3_grant`) refuses:
@@ -731,12 +756,17 @@ the blob on main, with the grants directory clean. Those are the phase-4
 checks (`grant_binding.check_committed_blob`), with phase-3 codes. Until the
 file is on main, a cooling run refuses `main_grant_unavailable`.
 
-**No pods.** The grant's pod budget is 0 (`grant_binding.tokens_only`;
-`experiment.phase3_budget` gives `max_pods` 0). Every pod launch, the
-baseline's, a proposal's, an ablation's and a retry's, is refused
-`grant_allows_no_pods` by `Experiment._admit_pod`. That happens before any
-pod is reserved in the run's pod ledger and before any create request reaches
-RunPod.
+**No paid pods.** The grant is in `phase3.TOKENS_ONLY_GRANTS` (VALIDATOR-06),
+so its runs have a pod money budget of 0 (`Phase3Budget.tokens_only`):
+- Its proposals run on the CPU carrier lane (`phase3 run --compute
+  carrier`), which costs no provider money (rate 0).
+- `phase3 run --compute runpod` refuses it
+  (`grant_is_tokens_only_use_the_carrier_lane`).
+- Behind that, `Experiment._admit_pod` refuses `grant_allows_no_pods` for
+  every launch that would reserve pod money: the baseline's, a proposal's,
+  an ablation's and a retry's on RunPod. That happens before any pod is
+  reserved in the run's pod ledger and before any create request reaches
+  RunPod.
 
 | Field | Value | Basis |
 |---|---|---|
@@ -756,11 +786,11 @@ RunPod.
 
 This is engineering arithmetic, not a new price.
 
-**The run's split.** With no pods, the pod allowance is 0 and the whole run
-cost is the token share:
+**The run's split.** With no pod money, the pod allowance is 0 and the whole
+run cost is the token share:
 
-    pods:   0 × USD 0.246369864 = USD 0.00
-    tokens: 1.95 − 0.00         = USD 1.95
+    pods:   USD 0.00 (the carrier costs no provider money; RunPod is refused)
+    tokens: 1.95 − 0.00 = USD 1.95
 
 The run's research ledger is frozen with USD 1.95 as its money cap. That is
 the same token share each GRAPHITE-GRANT-PHASE3 run has (4.91 − 2.96), so a

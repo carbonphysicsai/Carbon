@@ -1,8 +1,17 @@
 {
   "schema": "carbon.graphite.pod-attribution-registry.v1",
-  "current": "pod-attribution-v1",
+  "current": "pod-attribution-v2",
   "versions": {
-    "pod-attribution-v1": "sha256:a349dbf8821d01e553e7c4355d7185f1780a6f06987303912da6f89cbce60c97"
+    "pod-attribution-v1": "sha256:a349dbf8821d01e553e7c4355d7185f1780a6f06987303912da6f89cbce60c97",
+    "pod-attribution-v2": "sha256:4eda1aaede3c5f153aabeaba2983c5364c9b25420fcaf33c86bf52273afbbfad"
   },
-  "rule": "A new attribution policy is a new document in this directory plus a registered entry here (and, to make it current, a change to `current`), never an edit to scoring code. Every pod outcome records the version and digest it was typed under."
+  "rule": "A new attribution policy is a new document in this directory plus a registered entry here (and, to make it current, a change to its current pointer), never an edit to scoring code. Every attributed outcome records the version and digest it was typed under.",
+  "candidate_faults": {
+    "current_by_challenge": {
+      "chip-cold-plate": "cooling-candidate-fault-v1"
+    },
+    "versions": {
+      "cooling-candidate-fault-v1": "sha256:95559ffad483a13d7dd1650fa99f6bb178de55d0f8f4b24e5ece3af03e8cac1f"
+    }
+  }
 }

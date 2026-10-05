@@ -7,17 +7,16 @@
  "execution": {
   "kind": "build",
   "ref": ".agent/decisions/2026-10-05-GRAPHITE-GRANT-BINDING-01.md (D6, D7); branch claude/phase4-cooling-grant",
-  "description": "Added GRAPHITE-GRANT-PHASE3-COOLING-CPU (OWNER-GRAPHITE-TEST-WAVE-06 §3): a tokens-only cooling Constructor grant bound by the phase-3 runner to chip-cold-plate and to main's committed blob. The committed-blob check moved into a shared module used by phase 3 and phase 4. The grant's pod budget is 0, so every pod launch is refused grant_allows_no_pods."
+  "description": "Added GRAPHITE-GRANT-PHASE3-COOLING-CPU (OWNER-GRAPHITE-TEST-WAVE-06 §3): a tokens-only cooling Constructor grant bound by the phase-3 runner to chip-cold-plate and to main's committed blob. The committed-blob check moved into a shared module used by phase 3 and phase 4. The grant's pod money budget is 0, so every paid pod launch is refused grant_allows_no_pods. Main was then merged in, bringing VALIDATOR-06's carrier lane (#608)."
  },
- "expected": "With USD 1.95 a run and the phase-3 pod share of USD 2.96, the shared budget would refuse the grant outright unless its pod budget is 0. With 0 pods, the experiment's pod gate would refuse every launch before anything is reserved or created.",
- "observed": "Without the tokens-only registration, phase3_budget refuses the grant (grant_run_cost_cannot_cover_pods_and_tokens). With it, the whole 1.95 is the token share, the same as a GRAPHITE-GRANT-PHASE3 run. On the real launch path (Experiment over RunPodPods, RunPod in memory), the baseline and the proposal both close REFUSED_BUDGET grant_allows_no_pods, with no pod_reserved row and no create request. Given the phase-3 pod count, the same grant reserves and creates a pod. Battery's two phase-3 grants keep their budget and their acceptance, and each is refused on cooling.",
+ "expected": "With USD 1.95 a run and the phase-3 pod share of USD 2.96, the shared budget would refuse the grant outright unless its pod money budget is 0. With no pod money, the experiment's pod gate would refuse every paid launch before anything is reserved or created.",
+ "observed": "Without the tokens-only listing, phase3_budget refuses the grant (grant_run_cost_cannot_cover_pods_and_tokens). With it, the whole 1.95 is the token share, the same as a GRAPHITE-GRANT-PHASE3 run. On the real launch path (Experiment over RunPodPods, RunPod in memory), the baseline and the proposal both close REFUSED_BUDGET grant_allows_no_pods, with no pod_reserved row and no create request. Battery's two phase-3 grants keep their budget and their acceptance, and each is refused on cooling. The first version refused every pod. Merging main showed that #608 runs this same grant on the CPU carrier, a pod backend at rate 0, and that version would have refused the carrier lane the grant was approved for. The refusal is now keyed on pod money: paid pods are refused and the carrier runs.",
  "keep": [
-  "Derive a grant's pod budget from a registry of the owner's approvals, and refuse at the experiment's single pod gate, before the ledger reservation and the launch.",
-  "Run one committed-blob check for every phase and pass the phase's own refusal names, rather than copying the git checks."
+  "Keep one list of tokens-only grants (phase3.TOKENS_ONLY_GRANTS) and refuse at the experiment's single pod gate, before the ledger reservation and the launch.",
+  "Run one committed-blob check for every phase and pass the phase's own refusal names, rather than copying the git checks.",
+  "Phrase a spend guard as money (no pod money), not as a resource count (no pods), so a backend that costs nothing is not refused by accident."
  ],
  "change": [
-  "Build cooling's CPU-lane evaluation path (WAVE-06 §2). Until it exists, a cooling Constructor proposal under this grant is refused grant_allows_no_pods.",
-  "The live phase-3 runner still asks for a RunPod key when the grant funds no pod. Drop that requirement for a tokens-only grant when the CPU lane is wired.",
   "Decide whether battery's phase-3 runs should also accept only a registered grant, as cooling's do."
  ],
  "protocol_elements": [

@@ -31,9 +31,12 @@ A pipeline record's `construction` block is checked against these rules:
   level may be FROZEN, because the frozen run, the lock and the miners' opening
   all happen there.
 - **TESTED and FROZEN rest on unconditional evidence**
-  (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v1`). Exploration
+  (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional-evidence.v2`). Exploration
   continues past an open finding, but a result tagged with open findings is
-  never a level's TESTED or FROZEN evidence.
+  never a level's TESTED or FROZEN evidence, and FROZEN evidence (the level
+  miners get) is never released only by an attested repair
+  (`repair-attestation.v1`). `validate(..., ledgers=...)` also consults the
+  campaign controllers' ledgers.
 
 These checks keep a record coherent. They do not open a level, judge whether a
 widening was wise or replace the admission ledger's own rule that no expansion
@@ -132,7 +135,7 @@ def state_of(construction, level):
     return NOT_RUN
 
 
-def validate(construction, where, root):
+def validate(construction, where, root, ledgers=()):
     if not isinstance(construction, dict) or set(construction) != {
         "challenge",
         "level",
@@ -211,13 +214,18 @@ def validate(construction, where, root):
                     f"{at}: {entry['state']} needs its evidence in the repository"
                 )
             try:
+                # FROZEN opens the level to miners: an attested repair never
+                # unblocks it (repair-attestation.v1).
                 conditional_evidence.require_unconditional_path(
-                    Path(root) / evidence, site=f"{at} {entry['state']} evidence"
+                    Path(root) / evidence,
+                    site=f"{at} {entry['state']} evidence",
+                    lock=entry["state"] == "FROZEN",
+                    ledgers=ledgers,
                 )
             except conditional_evidence.ConditionalEvidenceError as error:
                 raise LadderError(
                     f"{at}: {error}; a level is {entry['state']} only on "
-                    "unconditional evidence (conditional-evidence.v1)"
+                    "unconditional evidence (conditional-evidence.v2)"
                 ) from error
         elif entry["evidence"] is not None:
             raise LadderError(f"{at}: an OPEN level has no evidence yet")

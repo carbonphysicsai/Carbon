@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-cooling-candidate-fault-postmerge-wsl-pytest-missing",
+  "recorded_at": "2026-10-05T14:20:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "current-main focused regression attempt in Ubuntu system Python",
+    "description": "Attempted the focused policy, Cooling validator and Cooling attacker suite after merging current main."
+  },
+  "expected": "The focused suite runs against the reconciled source head.",
+  "observed": "Ubuntu system Python had no pytest module, so collection did not start.",
+  "keep": [],
+  "change": [
+    "Reuse the existing isolated ticket test environment rather than installing new dependencies."
+  ],
+  "protocol_elements": [
+    "graphite.candidate_fault_policy"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
