@@ -467,6 +467,12 @@ NEXT_ACTIONS = {
         "matches the validator's, or submit to a validator that serves yours; "
         "the frozen candidate is kept."
     ),
+    "development_variant_not_served": (
+        "The candidate names a development-only contract variant, which is "
+        "never served to miners, and nothing was sent for evaluation. Compile "
+        "it against the Challenge's published contract and submit again; the "
+        "frozen candidate is kept."
+    ),
     "contract_digest_malformed": (
         "The validator could not read the contract digest Carbon sent. Check "
         "that the intake address serves this Carbon version, then submit "
