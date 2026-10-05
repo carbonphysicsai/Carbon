@@ -569,7 +569,13 @@ class Experiment:
                     report.append({"intent_id": pod["intent_id"], "terminated": True})
                     continue
                 if handle == "unknown":
-                    report.append({"intent_id": pod["intent_id"], "terminated": None})
+                    report.append(
+                        {
+                            "intent_id": pod["intent_id"],
+                            "terminated": None,
+                            **self._settles(pod["intent_id"]),
+                        }
+                    )
                     continue
                 self.ledger.append(
                     "pod_created",
@@ -582,6 +588,20 @@ class Experiment:
             verified = self._terminate(pod["proposal"], handle)
             report.append({"intent_id": pod["intent_id"], "terminated": verified})
         return report
+
+    def _settles(self, intent_id):
+        """For an uncertain create the provider cannot settle yet: the
+        intent's age and when a reconcile can settle it (OPERATOR-USABILITY-01
+        D3), from the backend's `recover_settles`. Empty when the backend
+        cannot say; a reconcile row is never refused for want of it."""
+        settles = getattr(self.pods, "recover_settles", None)
+        if settles is None:
+            return {}
+        try:
+            value = settles(intent_id)
+        except Exception:  # noqa: BLE001 - a hint, never a reconcile failure
+            return {}
+        return dict(value) if type(value) is dict else {}
 
     def _recover(self, pid, intent_id):
         """A pod an uncertain create may have made. None when none exists (its

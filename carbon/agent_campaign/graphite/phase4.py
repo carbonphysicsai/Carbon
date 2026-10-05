@@ -1752,13 +1752,52 @@ def main(argv=None):
         help="the grant file a live run would pass (default: the committed one)",
     )
     args = parser.parse_args(argv)
-    return {
+    command = {
         "run": command_run,
         "cancel": command_cancel,
         "status": command_status,
         "log": command_log,
         "prelive": command_prelive,
-    }[args.command](args)
+    }[args.command]
+    try:
+        return command(args)
+    except Exception as error:  # re-raised unless it is a typed refusal
+        code = cli_refusal_code(error)
+        if code is None:
+            raise
+        raise RunnerRefused(code) from None
+
+
+def cli_refusal_code(error):
+    """The typed refusal a command ended in, as phase 3 prints its own, or
+    None for anything else (OPERATOR-USABILITY-01 D4). Only the error's
+    closed code is printed, never its text: a controller or knowledge-store
+    refusal (`ControllerError`, `KnowledgeError`), a pod budget
+    (`BudgetRefused`), an unavailable Challenge scoring
+    (`ScoringUnavailable`), or a grant that cannot authorize dispatch
+    (`GrantError`, as phase 3's `grant_refused`). Anything else - a pod or
+    provider failure, a bug - keeps its traceback: it is not a refusal."""
+    from carbon.challenge_validator.scoring import ScoringUnavailable
+
+    from ..attack.knowledge import KnowledgeError
+    from ..controller import ControllerError
+    from ..grant import GrantError
+
+    # The engine's store as this run used it: a test injects its own
+    # (`attack_modules`), whose refusals are typed the same way.
+    stores = {KnowledgeError}
+    with contextlib.suppress(Exception):
+        injected = attack_modules()["knowledge"].KnowledgeError
+        if isinstance(injected, type):
+            stores.add(injected)
+    if isinstance(error, tuple(stores)):
+        # As `replay_guard` names the same store's refusals.
+        return "attack_knowledge_" + str(error.code)
+    if isinstance(error, ControllerError | ex.BudgetRefused | ScoringUnavailable):
+        return str(error.code)
+    if isinstance(error, GrantError):
+        return "grant_refused"
+    return None
 
 
 def command_prelive(args):
