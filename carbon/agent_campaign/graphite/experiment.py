@@ -355,6 +355,7 @@ class Experiment:
         construction_level=None,
         attribution_policy=None,
         development_variant=None,
+        on_finding=None,
     ):
         from .provider import RunCancelled
 
@@ -371,6 +372,10 @@ class Experiment:
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
         self.development_variant = development_variant
+        #: Called with each new finding once it is durable, so the caller can
+        #: record it on the campaign controller before any later result
+        #: (conditional-evidence.v2 "ordering"); None records nothing more.
+        self.on_finding = on_finding
         if development_variant is not None and (
             construction_level != development_variant.level
         ):
@@ -430,9 +435,8 @@ class Experiment:
         )
         if any(f["id"] == finding_id for f in self.findings()):
             return finding_id
-        line = canonical(
-            {"id": finding_id, "condition": "OTHER_SIGNAL", "evidence": evidence}
-        )
+        finding = {"id": finding_id, "condition": "OTHER_SIGNAL", "evidence": evidence}
+        line = canonical(finding)
         with (self.root / "findings.jsonl").open("ab") as stream:
             stream.write(line + b"\n")
             stream.flush()
@@ -441,6 +445,8 @@ class Experiment:
             "finding-" + finding_id,
             {"kind": "finding", "finding_id": finding_id, "finding": kind},
         )
+        if self.on_finding is not None:
+            self.on_finding(finding)
         return finding_id
 
     def _seed(self, pid):

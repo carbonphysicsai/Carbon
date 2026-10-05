@@ -16,8 +16,13 @@ final optimized version. Review moves from every change to every finding:
   (OWNER-GRAPHITE-TEST-WAVE-03 §2, `conditional_evidence`). For internal
   testing a finding stops locking, not exploration: development expansions
   live in the campaign controller's own ledger and never in `expansions`,
-  and a result tagged with open findings is refused as report evidence and at
-  the LOCK (`conditional_evidence_cited_unconditionally`).
+  and a result tagged with open findings is refused as the evidence of a PASS
+  check and at the LOCK (`conditional_evidence_cited_unconditionally`). A
+  FAIL, INCONCLUSIVE or NOT_RUN check may cite it: the report that found a
+  finding is conditional on that finding and still backs the FAIL
+  (conditional-evidence.v2). `validate(..., ledgers=...)` also consults the
+  campaign controllers' ledgers, and the LOCK refuses evidence released only
+  by an attested repair (`repair-attestation.v1`).
 
 This reads maintainer-held files; it neither executes submissions nor
 authenticates reviewers. Structural validity is not scientific or security
@@ -208,7 +213,9 @@ def _expansions(entries):
     previous = None
     for index, entry in enumerate(entries, start=1):
         if type(entry) is dict and (
-            "kind" in entry or set(conditional_evidence.TAG_KEYS) & set(entry)
+            "kind" in entry
+            or {*conditional_evidence.TAG_KEYS, conditional_evidence.ATTESTED}
+            & set(entry)
         ):
             # A development expansion never counts toward or enters a LOCK.
             raise AdmissionError("admission_development_expansion_refused")
@@ -256,15 +263,20 @@ def _findings(entries, expansions, root):
         _artifact(entry["evidence"], root)
 
 
-def _cited(body, site):
-    """Evidence cited as established is unconditional (conditional-evidence.v1)."""
+def _cited(body, site, *, lock=False, ledgers=()):
+    """Evidence a claim relies on is unconditional (conditional-evidence.v2):
+    its bytes carry no open finding, no ledger in `ledgers` recorded them on a
+    conditional result, and at a LOCK nothing in them was released only by an
+    attested repair."""
     try:
-        conditional_evidence.require_unconditional_bytes(body, site=site)
+        conditional_evidence.require_unconditional_bytes(
+            body, site=site, lock=lock, ledgers=ledgers
+        )
     except conditional_evidence.ConditionalEvidenceError as exc:
         raise AdmissionError(exc.code) from exc
 
 
-def _lock(study, scope, root):
+def _lock(study, scope, root, ledgers=()):
     """Track A's one review: lock a recorded state, bound to both ledgers and
     to unconditional evidence only."""
     _exact(study["acceptance"], {"reviewer", "decision"})
@@ -272,9 +284,14 @@ def _lock(study, scope, root):
     report = _document(study["report"], root)
     for check in report["checks"].values():
         for ref in check["evidence"]:
-            _cited(_artifact(ref, root), "LOCK")
+            _cited(_artifact(ref, root), "LOCK", lock=True, ledgers=ledgers)
     decision = _document(study["acceptance"]["decision"], root)
-    _cited(_artifact(study["acceptance"]["decision"], root), "LOCK decision")
+    _cited(
+        _artifact(study["acceptance"]["decision"], root),
+        "LOCK decision",
+        lock=True,
+        ledgers=ledgers,
+    )
     _exact(
         decision,
         {
@@ -340,7 +357,7 @@ def _review(track, study, scope, root):
         raise AdmissionError("admission_review_without_trigger")
 
 
-def _study(track, study, scope, root):
+def _study(track, study, scope, root, ledgers=()):
     _exact(study, _fields(track))
     if track == LEDGER_TRACK:
         _expansions(study["expansions"])
@@ -426,7 +443,12 @@ def _study(track, study, scope, root):
         if type(check["evidence"]) is not list:
             raise AdmissionError("admission_evidence_list_required")
         for ref in check["evidence"]:
-            _cited(_artifact(ref, root), f"{track} report evidence")
+            body = _artifact(ref, root)
+            # Only a claim that relies on its evidence is checked: the report
+            # that found a finding is conditional on it and still backs the
+            # FAIL (conditional-evidence.v2, `RELIANCE`).
+            if conditional_evidence.relies(check["result"]):
+                _cited(body, f"{track} report evidence", ledgers=ledgers)
         if check["result"] in ("PASS", "FAIL") and (
             count == 0 or not check["evidence"]
         ):
@@ -438,14 +460,14 @@ def _study(track, study, scope, root):
         if not all_pass or report["blockers"]:
             raise AdmissionError("admission_accepted_with_gaps")
         if track == LEDGER_TRACK:
-            _lock(study, scope, root)
+            _lock(study, scope, root, ledgers)
         else:
             _review(track, study, scope, root)
     elif study["acceptance"] is not None:
         raise AdmissionError("admission_acceptance_before_pass")
 
 
-def validate(block, challenge_id, *, repository=ROOT):
+def validate(block, challenge_id, *, repository=ROOT, ledgers=()):
     _exact(block, {"protocol", "scope", "tracks"})
     if block["protocol"] != PROTOCOL:
         raise AdmissionError("admission_unsupported_protocol")
@@ -453,7 +475,7 @@ def validate(block, challenge_id, *, repository=ROOT):
         _scope(block["scope"], challenge_id)
     _exact(block["tracks"], CHECKS)
     for track, study in block["tracks"].items():
-        _study(track, study, block["scope"], repository)
+        _study(track, study, block["scope"], repository, ledgers)
     return block
 
 

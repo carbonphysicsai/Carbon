@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-graphite-conditional-evidence-followup",
+ "recorded_at": "2026-10-05T06:00:00Z",
+ "challenge": "protocol",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/conditional-evidence-followup from claude/dev-contract-variants 60889f40f (GRAPHITE-CONDITIONAL-EXPLORATION-01 amendment 2026-10-05; the Test Lead's review of #577)",
+  "description": "Built conditional-evidence.v2 and repair-attestation.v1 from the Test Lead's review of #577: the citation check applies only to claims that rely on a result; it also consults the campaign controller's ledger and reads YAML-style keys and compressed copies; findings are recorded before the results they could affect (phase 3 when found and before ingest, controller canary findings first, phase 4 re-tag, tagged next-level proposals); a repair needs its re-run identities, later results carry repaired_by_attestation, and that never unblocks a LOCK, a FROZEN level or a frozen run; control rows of the attempt ledger keep schema v1."
+ },
+ "expected": "A tag follows a result wherever it is cited, and a check refuses only what relies on the result, so the report that found a finding can still back the FAIL it found.",
+ "observed": "W2 applied the citation check to every admission check, so the report that found a finding was refused as the evidence of its own FAIL: a refusal rule needs the direction of the claim, not only the tag. A tag that lives only in a result's bytes is lost by any copy that drops it, and Carbon cannot tag the agent's bytes without changing their digest, so the controller's ledger row is the tag of record and the check must consult it. Three sites wrote results before the finding they carried was recorded; each looked tagged in its own test because the test recorded the finding first. A repair attestation that releases tagging is useful for exploration, but nothing in the code can verify it, so it is kept off every path a miner or a LOCK depends on.",
+ "keep": [
+  "A citation guard names the claims that rely on a result (PASS, ACCEPTED, TESTED, FROZEN, LOCK) and leaves FAIL, INCONCLUSIVE, NOT_RUN and a finding's own evidence alone.",
+  "The controller's attempt ledger is the tag of record for bytes Carbon cannot tag, and every reliance check can be given it.",
+  "Record a finding where it is found, before any later result is written, and re-tag a result that is built before the findings it raises.",
+  "An operator attestation releases tagging only; LOCK, FROZEN and frozen runs refuse a result released only by one."
+ ],
+ "change": [
+  "Test ordering with the finding produced by the run under test, not recorded by the test beforehand.",
+  "repair-attestation.v2 verifies the re-run from the ledger: an attempt of each affected family after the repair time, at a code ref that contains the fix."
+ ],
+ "protocol_elements": [
+  "admission.lock",
+  "construction.ladder",
+  "graphite.controller",
+  "graphite.attacker"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

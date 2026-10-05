@@ -123,7 +123,6 @@ import time
 from decimal import Decimal
 from pathlib import Path
 
-from carbon.challenge_readiness import conditional_evidence
 from carbon.challenge_validator import scoring as challenge_scoring
 from carbon.development_session.data import write_once
 from carbon.development_session.model_provider import selection_from_record
@@ -363,6 +362,27 @@ class Phase3Provider(GraphiteProvider):
         )
         self.pods, self.miner_attach = pods, miner_attach
         self.scorer, self.repository, self.randomness = scorer, repository, randomness
+        #: The campaign controller this provider's runs record findings on as
+        #: they are found, and tag next-level proposals from (`bind_findings`).
+        self.findings_controller = None
+
+    # -- findings, recorded before the results they affect -----------------------------------
+    def bind_findings(self, control):
+        """Record each finding a run's experiment finds on `control` when it is
+        found, and tag every next-level proposal with `control`'s tag as of
+        when it is written (conditional-evidence.v2 "ordering")."""
+        self.findings_controller = control
+
+    def conditional_tag(self):
+        control = self.findings_controller
+        return None if control is None else control.conditional_tag()
+
+    def _record_finding(self, finding):
+        control = self.findings_controller
+        if control is not None:
+            control.record_finding(
+                finding["id"], finding["condition"], canonical(finding["evidence"])
+            )
 
     # -- configuration ---------------------------------------------------------------------
     def caps(self, rule=None):
@@ -468,6 +488,7 @@ class Phase3Provider(GraphiteProvider):
             scoring=self.scoring,
             construction_level=recorded_level(opened),
             development_variant=recorded_variant(opened),
+            on_finding=self._record_finding,
         )
 
     def _frozen_rule(self):
@@ -965,15 +986,21 @@ def run_session(control, provider, brief, number, variant=None):
         max_runtime_s=control.grant.max_runtime_s,
     )
     key = session_key(number)
+    # Each finding is recorded on the controller when the experiment finds it,
+    # so a next-level proposal written after it carries it.
+    provider.bind_findings(control)
     control.recover()
     phase = control.launch(spec, key)
     run_id = provider.run_id_for(key)
     final = provider.run(run_id) if provider.find(key) is not None else None
-    phase = control.poll(key)
+    # The session's findings are recorded before its events and artifacts are
+    # ingested, so those entries carry them (conditional-evidence.v2
+    # "ordering"); `sync_findings` also covers a run another process ran.
     findings = sync_findings(control, provider, run_id) if final else []
+    phase = control.poll(key)
     # Tagged with every finding open after this session's are recorded, its
-    # own included (conditional-evidence.v1).
-    conditional = conditional_evidence.tag(control.open_findings())
+    # own included, and any attested repair (conditional-evidence.v2).
+    conditional = control.conditional_tag()
     return {
         "session": number,
         "run_id": run_id,
