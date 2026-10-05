@@ -309,8 +309,10 @@ def _lane_probe(lane):
     value = os.environ.get(variable) if variable else None
     if not value:
         return (
-            f"{lane['lane']}: probe input not supplied (set {variable} to the "
-            "host's pinned image manifest); cannot verify the environment",
+            (
+                f"{lane['lane']}: probe input not supplied (set {variable} to the "
+                "host's pinned image manifest); cannot verify the environment"
+            ),
             [],
         )
     command = [
@@ -338,10 +340,12 @@ def _lane_probe(lane):
         )
     if done.returncode != 0 or report.get("eligible") is not True:
         return (
-            f"{lane['lane']}: environment not eligible here "
-            f"(doctor {report.get('doctor_code')}, image_present "
-            f"{report.get('image_present')}, exit {done.returncode}); run on the host "
-            "with Docker and the pinned image",
+            (
+                f"{lane['lane']}: environment not eligible here "
+                f"(doctor {report.get('doctor_code')}, image_present "
+                f"{report.get('image_present')}, exit {done.returncode}); run on the "
+                "host with Docker and the pinned image"
+            ),
             [],
         )
     return (
