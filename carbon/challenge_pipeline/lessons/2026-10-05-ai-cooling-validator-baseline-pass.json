@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-baseline-pass",
+  "recorded_at": "2026-10-05T03:52:31Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 exact-main canonical baseline",
+    "description": "Ran Interface v1 contract, Battery adapter, Cooling construction-contract and Cooling exam tests at exact live main before implementation."
+  },
+  "expected": "The inherited neutral validator, Battery adapter and Cooling construction/exam baselines should be green before adding the Cooling adapter.",
+  "observed": "All 214 selected canonical baseline tests passed in 49.09 seconds.",
+  "keep": [
+    "Keep Interface v1 and Battery behavior unchanged while adding the Cooling adapter.",
+    "Reuse the existing Cooling compiler and exam rather than restating their science."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

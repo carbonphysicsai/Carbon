@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-outcome-static-pass",
+  "recorded_at": "2026-10-05T01:49:46Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 outcome repair Black and Ruff checks",
+    "description": "Checked formatting and lint on the four modules changed by the comparison-outcome repair."
+  },
+  "expected": "The bounded repair should remain formatted and lint clean.",
+  "observed": "Black check completed without reporting a file; Ruff exited 0 with all checks passed.",
+  "keep": [
+    "Keep the explicit descriptive interpretation beside Graphite's standard outcome token."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

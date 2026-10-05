@@ -237,6 +237,171 @@ ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
             "offered.",
         ),
     },
+    # CHALLENGE-AI-COOLING-06: Level-0 DEVELOPMENT construction only. Official
+    # evaluation stays fail closed (`cooling_validator_not_served`).
+    "chip-cold-plate": {
+        "research": Provided(
+            (
+                "carbon.cold_plate.research:challenge_parts",
+                "carbon.cold_plate.research:ColdPlatePublicMaterial",
+            ),
+            "Public material: the objective (task, inputs, outputs, sampling "
+            "law, gates, score), the capability registry, the 400 public TRAIN "
+            "and 100 public PRACTICE OpenFOAM records, and the reference-method "
+            "description. Counted CFD and private material are absent by "
+            "structure.",
+        ),
+        "hypothesize": Provided((REGISTRY_EVIDENCE,)),
+        "train": Provided(
+            (
+                "carbon.cold_plate.research:implementation_files",
+                "carbon.cold_plate.practice:staged_files",
+            ),
+            "The Gaussian kernel-ridge reconstruction (learned_baseline.py, "
+            "domain.py, recipes.py) is published and staged byte-identical in "
+            "practice, with the pinned public TRAIN bytes, in the pinned NumPy "
+            "CPU isolated carrier. It is a closed-form fit; there is no JAX or "
+            "PyTorch trainer for this Challenge.",
+        ),
+        "generate": Gap(
+            reason=(
+                "No miner-runnable cold-plate kit draws and labels new cases. "
+                "The population screen and draw (carbon.cold_plate.population) "
+                "and the OpenFOAM case writer are repository code, but the "
+                "pinned OpenFOAM reference runs only on an operator host. "
+                "Research uses the fixed public TRAIN and PRACTICE records."
+            ),
+            next_step=(
+                "A separately reviewed cold-plate challenge-kit ticket, as the "
+                "battery kit did (OWNER-CHALLENGE-KIT-01), to run the public "
+                "draw and the pinned OpenFOAM labelling on the miner's own "
+                "machine."
+            ),
+        ),
+        "evaluate": Provided(
+            ("carbon.cold_plate.practice:score_practice",),
+            "Exam gates and components (carbon.cold_plate.exam) on the 100 "
+            "public PRACTICE cases; labels stay host-side. Scoring "
+            "miner-generated cases is not wired.",
+        ),
+        "compute": Gap(
+            reason=(
+                "Level-0 practice is CPU only in the pinned isolated carrier "
+                "(COOL-L0-D4): the cold-plate campaign refuses a GPU image or "
+                "a remote setup, and the miner's code cell is CPU only."
+            ),
+            next_step=(
+                "A cold-plate GPU or remote practice lane needs its own ticket "
+                "with a pinned worker declaration, and the hardware to accept "
+                "it."
+            ),
+        ),
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.challenge_registry.agent_plan:provider_plan",
+                "carbon.cold_plate.campaign:prepare_cold_plate",
+            ),
+            "The same Challenge-neutral setup (Set up your environment, "
+            "Inference) as battery: a cold-plate campaign freezes the miner's "
+            "model selection and ceilings in its Challenge-neutral run plan "
+            "and calls with the miner's own key. A live cold-plate campaign "
+            "with miner-held keys is the acceptance and needs the miner's keys.",
+        ),
+        "agent": Provided(
+            (
+                "carbon.challenge_registry.agent_plan:graphite_plan",
+                "carbon.agent_campaign.graphite.miner.edition:offered",
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
+            ),
+            "Graphite is offered on every Challenge with a registered research "
+            "campaign, so it runs a cold-plate campaign under its registered "
+            "policy; Carbon's MCP server attaches to a prepared cold-plate "
+            "campaign through that campaign, so an external MCP agent such as "
+            "Hermes Agent drives the same research tools. An agent-driven "
+            "cold-plate campaign is the acceptance and needs the miner's keys.",
+        ),
+    },
+    # CHALLENGE-MOTOR-02: Level-0 DEVELOPMENT construction only. Official
+    # evaluation stays fail closed (`motor_validator_not_served`).
+    "electric-motor-magnetics": {
+        "research": Provided(
+            (
+                "carbon.motor.research:challenge_parts",
+                "carbon.motor.research:MotorPublicMaterial",
+            ),
+            "Public material: the objective (task, inputs, outputs, sampling "
+            "law, gates, score), the capability registry, the 150 public TRAIN "
+            "and 30 public PRACTICE GetDP records, and the reference-method "
+            "description. The private pool, decision-study evidence and future "
+            "confirmation material are absent by structure.",
+        ),
+        "hypothesize": Provided((REGISTRY_EVIDENCE,)),
+        "train": Provided(
+            (
+                "carbon.motor.research:implementation_files",
+                "carbon.motor.practice:staged_files",
+            ),
+            "The Gaussian kernel-ridge reconstruction (learned_baseline.py, "
+            "domain.py, recipes.py) is published and staged byte-identical in "
+            "practice, with the pinned public TRAIN bytes, in the pinned NumPy "
+            "CPU isolated carrier. It is a closed-form fit; there is no JAX or "
+            "PyTorch trainer for this Challenge.",
+        ),
+        "generate": Gap(
+            reason=(
+                "No miner-runnable Motor kit draws and labels new cases. The "
+                "population draw and buildability screen are repository code, "
+                "but the pinned Gmsh/GetDP reference runs only on an operator "
+                "host. Research uses the fixed public TRAIN and PRACTICE records."
+            ),
+            next_step=(
+                "A separately reviewed Motor challenge-kit ticket to run the "
+                "public draw and pinned Gmsh/GetDP labelling on the miner's own "
+                "machine."
+            ),
+        ),
+        "evaluate": Provided(
+            ("carbon.motor.practice:score_practice",),
+            "Exam gates and components (carbon.motor.exam) on the 30 public "
+            "PRACTICE cases; labels stay host-side. Scoring miner-generated "
+            "cases is not wired.",
+        ),
+        "compute": Gap(
+            reason=(
+                "Level-0 practice is CPU only in the pinned isolated carrier "
+                "(MOTOR-L0-D4): the Motor campaign refuses a GPU image or "
+                "remote setup, and the miner's code cell is CPU only."
+            ),
+            next_step=(
+                "A Motor GPU or remote practice lane needs its own ticket with "
+                "a pinned worker declaration and the hardware to accept it."
+            ),
+        ),
+        "model": Provided(
+            (
+                "carbon.development_session.model_provider:select",
+                "carbon.challenge_registry.agent_plan:provider_plan",
+                "carbon.motor.campaign:prepare_motor",
+            ),
+            "The Challenge-neutral setup freezes the miner's model selection "
+            "and ceilings in its run plan and calls with the miner's own key. "
+            "A live Motor campaign with miner-held keys remains the acceptance.",
+        ),
+        "agent": Provided(
+            (
+                "carbon.challenge_registry.agent_plan:graphite_plan",
+                "carbon.agent_campaign.graphite.miner.edition:offered",
+                "scripts.dev.miner_launchpad.hermes_setup:config_document",
+                "carbon.miner_mcp.standard_cli:main",
+            ),
+            "Graphite is offered on every Challenge with a registered research "
+            "campaign, so it runs Motor under the registered policy. Carbon's "
+            "MCP server attaches through that campaign; execution still needs "
+            "the miner's keys and downstream admission authority.",
+        ),
+    },
 }
 
 

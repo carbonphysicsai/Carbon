@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-registry-green",
+  "recorded_at": "2026-10-04T23:08:42.8133863+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 focused registry and evidence regression",
+    "description": "Ran Motor contract, campaign, expansion-record, lesson-log, discovery and research-environment boundary tests."
+  },
+  "expected": "The Motor adapter should be reachable through Challenge-neutral registries, its expansion trail should match the live contract and existing Challenge paths should remain intact.",
+  "observed": "40 tests passed and the one POSIX-only campaign-controller case was skipped. The registered campaign, public discovery, expansion record, research declaration and lesson entries all passed.",
+  "keep": [
+    "Register Challenge-specific behavior only in registry hooks and adapters.",
+    "Keep generated admission artifacts and expansion records bound to executable contract state."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "challenge.registry",
+    "construction.expansion-record",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

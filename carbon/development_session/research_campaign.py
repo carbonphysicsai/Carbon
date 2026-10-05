@@ -210,11 +210,15 @@ def frozen_seeds(root):
     return value
 
 
-#: Service-produced practice results that can support a selection. The recipe
-#: names its Challenge, so a practice supports only its own Challenge.
-PRACTICE_PROVENANCES = frozenset(
-    {"REAL_JAX_PUBLIC_PRACTICE", "BATTERY_PUBLIC_PRACTICE"}
-)
+def practice_provenances():
+    """Service-produced practice provenances that can support selection.
+
+    The historical Burgers value is retained explicitly.  Current Challenge
+    values come from their campaign adapters rather than this shared workflow.
+    """
+    from carbon.challenge_registry.campaigns import practice_provenances as current
+
+    return frozenset({"REAL_JAX_PUBLIC_PRACTICE"}) | current()
 
 
 def trial_supports_selection(ledger, owner, strategy):
@@ -227,7 +231,7 @@ def trial_supports_selection(ledger, owner, strategy):
             raise ValueError("retained practice result changed")
         result = json.loads(body)
         if (
-            result.get("provenance") in PRACTICE_PROVENANCES
+            result.get("provenance") in practice_provenances()
             and result.get("recipe") == strategy
         ):
             return True

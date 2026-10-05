@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-fixture-check",
+  "recorded_at": "2026-10-05T02:40:45Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 changed-Python Black check",
+    "description": "Checked every changed Python file with the repository's installed Black version after the four-cluster compatibility repair."
+  },
+  "expected": "All changed Python files should already match the formatter.",
+  "observed": "Black requested a mechanical reformat of tests/cpu/graphite_fixtures.py after the new observation parameter was added.",
+  "keep": [],
+  "change": [
+    "Apply Black to the one named fixture file."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

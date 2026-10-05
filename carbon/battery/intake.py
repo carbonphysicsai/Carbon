@@ -24,6 +24,24 @@ testnet one validator runs it on the owner's host.
   (202, with the submission id) or `battery_status` (the miner's own
   allow-listed outcome; another hotkey's submission is `not_found`).
 
+**The neutral door** (VALIDATOR-01 VAL-D3). An authenticated `battery_submit`
+passes Carbon's challenge-neutral checks before anything is queued
+(`carbon.challenge_validator.Validator.screen`). The strategy must be strict
+JSON naming battery, under a contract digest this validator serves. A refusal
+is answered at once by its closed code (`dispatch.SCREEN_REFUSALS`, 400) and is
+never queued, evaluated or counted against the hotkey's window. Every attempt
+is recorded in the operator's attempt ledger: refused, received, or refused for
+the window or a full inbox. The ledger keeps the submission's hash, never its
+strategy, and sits beside the inbox unless `attempt_ledger` names another path
+in an owner-only directory.
+
+This changes one earlier behaviour on purpose. A submission under a stale or
+unknown contract digest, a non-object strategy or a cross-Challenge strategy
+was recorded `INVALID_CONSTRUCTION`. It is now refused at the door
+(`contract_not_served`, `strategy_not_object`, `challenge_mismatch`). Every
+submission that passes the door is admitted, rebuilt and scored exactly as
+before, under the same submission id.
+
 **Limits before authentication.** A per-peer token bucket, a global in-flight
 cap and a body limit apply before any signature is checked, and the envelope's
 snapshot must be one this intake already observed: **no request causes a chain
@@ -77,10 +95,6 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from carbon.reconstruction.capability_registry import (
-    DEVELOPMENT_VARIANT_NOT_SERVED,
-    is_development_variant,
-)
 from carbon.transport.models import (
     MAX_BODY,
     PATH,
@@ -94,7 +108,9 @@ PUBLIC_SCHEMA = "carbon.battery.intake-public.v1"
 INFO_PATH = "/carbon/v1/battery/intake"
 STATUS_TOOL = "battery_status"
 REQUIRED = {"schema", "deployment", "transport_journal", "inbox", "receiver"}
-OPTIONAL = {"host", "port", "exposure_record", "tls_cert", "tls_key"}
+OPTIONAL = {"host", "port", "exposure_record", "tls_cert", "tls_key", "attempt_ledger"}
+#: The attempt ledger beside the inbox when the configuration names none.
+ATTEMPT_LEDGER_SUFFIX = ".attempts.sqlite3"
 
 #: Engineering abuse limits, not scientific values. Per peer: a burst of 10,
 #: refilled at 1 request per second. At most 8 requests in flight, and at most
@@ -104,6 +120,15 @@ PEER_BURST, PEER_RATE, IN_FLIGHT, INBOX_DEPTH = 10, 1.0, 8, 64
 #: gateway's 60 s window can no longer authenticate anything.
 REFRESH_S, SNAPSHOTS_KEPT, SNAPSHOT_MAX_AGE_S = 12.0, 5, 60.0
 SOCKET_TIMEOUT_S = 10.0
+#: Engineering abuse limits, not scientific values (VALIDATOR-01 security
+#: review, finding 2):
+#: - a body must arrive within this many seconds in total, before the request
+#:   takes an in-flight slot, so a trickled body holds none;
+#: - at most this many connections at once, and this many from one address;
+#: - at most this many peer buckets are remembered (least recent evicted).
+BODY_DEADLINE_S = 10.0
+MAX_CONNECTIONS, MAX_CONNECTIONS_PER_PEER = 64, 4
+MAX_PEERS = 4096
 #: On SIGTERM the worker may finish the pass in flight for this long; a run
 #: cut off after it is recovered as infrastructure on the next start.
 STOP_GRACE_S = 30.0
@@ -325,26 +350,32 @@ def refresher(window, context, *, reader=None, period=REFRESH_S, stop=None, out=
 
 
 class PeerLimits:
-    """Token buckets per peer address plus a global in-flight cap."""
+    """Token buckets per peer address plus a global in-flight cap.
+
+    At most `MAX_PEERS` buckets are kept; the least recently seen is evicted.
+    Clearing every bucket at the limit, as before, let anyone with many
+    addresses reset the limits of all (VALIDATOR-01 security review,
+    finding 2).
+    """
 
     def __init__(self, *, burst=PEER_BURST, rate=PEER_RATE, clock=time.monotonic):
+        from collections import OrderedDict
+
         self._lock = threading.Lock()
-        self._buckets = {}
+        self._buckets = OrderedDict()
         self._flight = threading.BoundedSemaphore(IN_FLIGHT)
         self.burst, self.rate, self.clock = burst, rate, clock
 
     def allow(self, peer):
         now = self.clock()
         with self._lock:
-            tokens, then = self._buckets.get(peer, (self.burst, now))
+            tokens, then = self._buckets.pop(peer, (self.burst, now))
             tokens = min(self.burst, tokens + (now - then) * self.rate)
-            if len(self._buckets) > 4096:
-                self._buckets.clear()
-            if tokens < 1:
-                self._buckets[peer] = (tokens, now)
-                return False
-            self._buckets[peer] = (tokens - 1, now)
-            return True
+            allowed = tokens >= 1
+            self._buckets[peer] = (tokens - 1 if allowed else tokens, now)
+            while len(self._buckets) > MAX_PEERS:
+                self._buckets.popitem(last=False)
+            return allowed
 
     @contextlib.contextmanager
     def in_flight(self):
@@ -355,6 +386,38 @@ class PeerLimits:
             yield True
         finally:
             self._flight.release()
+
+
+# --- the neutral door ------------------------------------------------------------
+
+
+def attempt_ledger_path(config):
+    """Where the attempt ledger lives: `attempt_ledger` in the configuration,
+    else beside the inbox."""
+    named = config.get("attempt_ledger")
+    return Path(named) if named else Path(str(config["inbox"]) + ATTEMPT_LEDGER_SUFFIX)
+
+
+def attempt_ledger(config):
+    """The operator's attempt ledger (`carbon.challenge_validator.ledger`). It
+    must sit in an owner-only directory; otherwise the intake refuses to
+    start."""
+    from carbon.challenge_validator.ledger import AttemptLedger, LedgerUnavailable
+
+    try:
+        return AttemptLedger(attempt_ledger_path(config))
+    except LedgerUnavailable as refused:
+        raise IntakeUnavailable("intake_" + refused.code) from None
+
+
+def neutral_door(target, ledger):
+    """The challenge-neutral validator battery's intake screens through
+    (VALIDATOR-01 VAL-D3): battery's adapter over the deployment's daemon,
+    behind the neutral checks and the attempt ledger."""
+    from carbon.challenge_validator import Adapters, Validator
+    from carbon.challenge_validator.battery import BatteryAdapter
+
+    return Validator(Adapters([BatteryAdapter(target)]), ledger)
 
 
 # --- the durable inbox ----------------------------------------------------------
@@ -565,12 +628,20 @@ class BatteryIntake:
         inbox,
         window,
         status_reader,
+        door,
         rule=None,
         limits=None,
         clock_ns=time.time_ns,
     ):
+        from carbon.challenge_validator import Validator
+
         from .challenge import CHALLENGE
 
+        if type(door) is not Validator:
+            raise TypeError("the intake screens through the neutral Validator")
+        #: Every submission passes the neutral checks here, and every attempt
+        #: is recorded in the operator's ledger, before the inbox sees it.
+        self.door = door
         self.context = context
         self.challenge = CHALLENGE
         self.receiver = receiver
@@ -664,7 +735,7 @@ class BatteryIntake:
         from carbon.chain.auth import AuthFailure
         from carbon.transport.gateway import AuthenticatedGateway
 
-        from .daemon import SUBMIT_TOOL, AuthenticatedSubmission, submission_identity
+        from .daemon import SUBMIT_TOOL, submission_identity
 
         try:
             envelope = parse_message(body)
@@ -693,20 +764,34 @@ class BatteryIntake:
             return _refused(401, failure.code.value)
         hotkey = received.receipt.hotkey
         if received.call.tool == SUBMIT_TOOL:
-            try:
-                submission = AuthenticatedSubmission.from_received(received, gateway)
-            except (ValueError, TypeError):
-                return _refused(400, "submission_fields")
-            if is_development_variant(submission.contract_digest):
-                # Never served to a miner, so never queued for admission
-                # (OWNER-GRAPHITE-TEST-WAVE-03 §1).
-                return _refused(400, DEVELOPMENT_VARIANT_NOT_SERVED)
+            # The neutral screen refuses a development-only variant's digest
+            # (`development_variant_not_served`, OWNER-GRAPHITE-TEST-WAVE-03
+            # §1), so it is never queued for admission.
+            screened = self._screen(received, gateway)
+            if type(screened) is Answer:
+                return screened
+            neutral, submission = screened
             _, submission_id = submission_identity(submission)
             refused = self._window_check(hotkey, submission_id, submission)
             if refused is not None:
+                self.door.note(
+                    neutral,
+                    kind="REFUSED",
+                    code=refused.body["refused"],
+                    submission_id=submission_id,
+                )
                 return refused
             if not self.inbox.receive(submission_id, submission, self.clock_ns()):
+                self.door.note(
+                    neutral,
+                    kind="UNAVAILABLE",
+                    code="inbox_full",
+                    submission_id=submission_id,
+                )
                 return _refused(503, "inbox_full")
+            self.door.note(
+                neutral, kind="RECEIVED", submission_id=submission_id, state="RECEIVED"
+            )
             self.wake.set()
             return Answer(202, {"submission_id": submission_id, "state": "RECEIVED"})
         if received.call.tool == STATUS_TOOL:
@@ -718,6 +803,52 @@ class BatteryIntake:
                 return _refused(400, "status_fields")
             return self.status(hotkey, fields["submission_id"])
         return _refused(400, "tool")
+
+    def _screen(self, received, gateway):
+        """The neutral checks for one authenticated `battery_submit`
+        (`Validator.screen`): `(neutral, submission)` to queue, or the refusal.
+
+        The strategy is screened as the miner signed it, raw: strict UTF-8 and
+        JSON, no NaN/Infinity, duplicate keys, deep nesting or 64-bit-overflow
+        integers, an object naming battery, under a contract digest this
+        validator serves. A refusal is recorded in the operator's ledger and
+        answered by its closed code; it never reaches the inbox or the daemon.
+        """
+        from carbon.challenge_validator import Submission
+        from carbon.challenge_validator.dispatch import Screened
+
+        from .daemon import AuthenticatedSubmission
+
+        fields = {f.name: f.value for f in received.call.fields}
+        if set(fields) != {"strategy_json", "contract_digest"}:
+            return _refused(400, "submission_fields")
+        receipt = received.receipt
+        neutral = Submission(
+            hotkey=receipt.hotkey,
+            receipt={
+                "sequence": receipt.ref.sequence,
+                "digest": receipt.ref.digest,
+                # The finalized block of the validator-observed snapshot the
+                # request was authenticated against: rule v2's clock.
+                "block": receipt.finalized_block,
+            },
+            challenge_id=gateway.challenge.challenge_id,
+            challenge_version=gateway.challenge.version,
+            strategy_json=fields["strategy_json"],
+            contract_digest=fields["contract_digest"],
+        )
+        screened = self.door.screen(neutral)
+        if type(screened) is not Screened:
+            return _refused(400, screened["code"])
+        admitted = screened.admitted
+        return neutral, AuthenticatedSubmission(
+            hotkey=admitted.hotkey,
+            receipt=admitted.receipt,
+            challenge_id=admitted.challenge_id,
+            challenge_version=admitted.challenge_version,
+            strategy=admitted.strategy,
+            contract_digest=admitted.contract_digest,
+        )
 
     def _window_check(self, hotkey, submission_id, submission):
         """Answer at once when this hotkey's window is already used (v2).
@@ -859,25 +990,33 @@ def _handler(intake):
             self.wfile.write(payload)
 
         def _dispatch(self, method):
-            # The declared length is checked and the limits applied before a
-            # single body byte is read.
-            length = "0"
+            # The declared length is checked and the peer's bucket charged
+            # before a single body byte is read. The body must then arrive
+            # whole within BODY_DEADLINE_S, and only then does the request
+            # take an in-flight slot: a trickled body holds no slot.
+            length = 0
             if method == "POST":
-                length = self.headers.get("Content-Length")
-                if length is None or not length.isdigit() or int(length) > MAX_BODY:
+                declared = self.headers.get("Content-Length")
+                if (
+                    declared is None
+                    or not declared.isdigit()
+                    or int(declared) > MAX_BODY
+                ):
                     return self._answer(_refused(413, "body"))
-            self._answer(
-                intake.limited(
-                    self.client_address[0], lambda: self._route(method, length)
-                )
-            )
-
-        def _route(self, method, length):
-            body = self.rfile.read(int(length)) if method == "POST" else b""
+                length = int(declared)
+            if not intake.limits.allow(self.client_address[0]):
+                return self._answer(_refused(429, "rate"))
+            try:
+                body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
+            except (TimeoutError, ConnectionError, OSError):
+                return self._answer(_refused(408, "body_timeout"))
             headers = {k: v for k, v in self.headers.items()}
             if len(headers) != len(self.headers.items()):
-                return _refused(400, "headers")
-            return intake.route(method, self.path, headers, body)
+                return self._answer(_refused(400, "headers"))
+            with intake.limits.in_flight() as admitted:
+                if not admitted:
+                    return self._answer(_refused(503, "capacity"))
+                self._answer(intake.route(method, self.path, headers, body))
 
         def do_GET(self):
             self._dispatch("GET")
@@ -892,12 +1031,91 @@ def _handler(intake):
     return Handler
 
 
+def read_body(connection, rfile, length, deadline_s, *, clock=time.monotonic):
+    """`length` body bytes, all within `deadline_s` seconds in total.
+
+    The socket timeout alone bounds each read, not the request, so a peer
+    sending one byte just inside it could hold a request for minutes. Each
+    read here waits only for what is left of the deadline.
+    """
+    deadline = clock() + deadline_s
+    chunks, received = [], 0
+    try:
+        while received < length:
+            left = deadline - clock()
+            if left <= 0:
+                raise TimeoutError("body_deadline")
+            connection.settimeout(left)
+            chunk = rfile.read1(length - received)
+            if not chunk:
+                raise ConnectionError("body_closed")
+            chunks.append(chunk)
+            received += len(chunk)
+    finally:
+        connection.settimeout(SOCKET_TIMEOUT_S)
+    return b"".join(chunks)
+
+
+class ConnectionSlots:
+    """At most `total` open connections, and at most `per_peer` from one
+    address. A connection over either cap is closed before any byte of it is
+    read (VALIDATOR-01 security review, finding 2)."""
+
+    def __init__(self, total=MAX_CONNECTIONS, per_peer=MAX_CONNECTIONS_PER_PEER):
+        self.total, self.per_peer = total, per_peer
+        self._lock = threading.Lock()
+        self._open = {}
+
+    def acquire(self, peer):
+        with self._lock:
+            if sum(self._open.values()) >= self.total:
+                return False
+            if self._open.get(peer, 0) >= self.per_peer:
+                return False
+            self._open[peer] = self._open.get(peer, 0) + 1
+            return True
+
+    def release(self, peer):
+        with self._lock:
+            left = self._open.get(peer, 0) - 1
+            if left > 0:
+                self._open[peer] = left
+            else:
+                self._open.pop(peer, None)
+
+    def open(self):
+        with self._lock:
+            return sum(self._open.values())
+
+
 class _Server(ThreadingHTTPServer):
     """The listener. A connection that fails outside a request (a TLS
     handshake that never completes or is malformed) is logged by exception
-    type only: the base class would print the peer's address and a trace."""
+    type only: the base class would print the peer's address and a trace.
+    Connections beyond `ConnectionSlots` are closed at once, so no address
+    can hold every thread."""
 
     daemon_threads = True
+
+    def __init__(self, *args, **kwargs):
+        self.slots = ConnectionSlots()
+        super().__init__(*args, **kwargs)
+
+    def process_request(self, request, client_address):
+        if not self.slots.acquire(client_address[0]):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self.slots.release(client_address[0])
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.slots.release(client_address[0])
 
     def handle_error(self, request, client_address):
         log("connection_failed", type=getattr(sys.exc_info()[0], "__name__", None))
@@ -1032,6 +1250,7 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         inbox=inbox,
         window=window,
         status_reader=status.outcome,
+        door=neutral_door(target, attempt_ledger(config)),
         rule=target.rule,
     )
     httpd = listener(config, intake)

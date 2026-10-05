@@ -88,17 +88,17 @@ def _text(value, name, limit):
     return value.strip()
 
 
-def _contract():
-    """The recorded battery contract (Level 0's), or a typed refusal."""
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE, contract
+def _contract(scoring):
+    """The session Challenge's recorded Level-0 contract, or a refusal."""
+    from carbon.reconstruction.capability_registry import contract
 
     from . import experiment as ex
 
     try:
-        recorded = ex.recorded_contract()
+        recorded = ex.recorded_contract(scoring)
     except ex.Unrebuildable:
         raise ProposalRefused("construction_contract_unrecorded") from None
-    return recorded, contract(BATTERY_CHALLENGE)
+    return recorded, contract(scoring.challenge_id)
 
 
 def _cited(capability_id, dimension, live):
@@ -129,7 +129,7 @@ def _tag(conditional):
     return {key: conditional[key] for key in TAG_KEYS if key in conditional}
 
 
-def build(arguments, *, literature, run_id, identity, role, conditional=None):
+def build(arguments, *, literature, run_id, identity, role, scoring, conditional=None):
     """A validated proposal record; `ProposalRefused` otherwise. With
     `conditional` (the controller's tag when the proposal is made) the record
     is v2 and carries it."""
@@ -158,7 +158,7 @@ def build(arguments, *, literature, run_id, identity, role, conditional=None):
     dimension = arguments["contract_dimension"]
     if dimension not in CONTRACT_DIMENSIONS:
         raise ProposalRefused("contract_dimension_not_a_contract_dimension")
-    recorded, live = _contract()
+    recorded, live = _contract(scoring)
     cited = _cited(arguments["contract_capability_id"], dimension, live)
     body = {
         "capability": capability,
@@ -239,7 +239,15 @@ class ProposalStore:
 
 
 def propose_tool(
-    arguments, *, literature, run_dir, run_id, identity, role, conditional=None
+    arguments,
+    *,
+    literature,
+    run_dir,
+    run_id,
+    identity,
+    role,
+    scoring,
+    conditional=None,
 ):
     """The tool's answer: the stored record as data, or a typed refusal.
     `conditional` is the controller's tag when the proposal is made, or None
@@ -251,6 +259,7 @@ def propose_tool(
             run_id=run_id,
             identity=identity,
             role=role,
+            scoring=scoring,
             conditional=conditional,
         )
         ProposalStore(run_dir).write(record)

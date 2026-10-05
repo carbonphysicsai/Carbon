@@ -179,6 +179,41 @@ def test_a_boundary_that_does_not_answer_is_never_a_pass_nor_a_finding(error, ve
     assert engine.findings([silent_control]) == []
 
 
+@pytest.mark.parametrize(
+    "error, verdict",
+    [
+        (RuntimeError("judge broke"), engine.CRASHED),
+        (KeyError("accepted"), engine.CRASHED),
+        (TimeoutError("judge"), engine.TIMEOUT),
+        (engine.InfrastructureFailure("judge"), engine.FAILED_INFRA),
+    ],
+)
+def test_a_breached_judgement_that_raises_is_recorded_never_propagated(error, verdict):
+    """`breached` runs inside `answer`: a judgement that raises on the
+    boundary's or the specimen's result is recorded CRASHED (or TIMEOUT,
+    FAILED_INFRA), the family INCONCLUSIVE, never a pass, never a finding,
+    and the run goes on. Mutation: call `breached` outside `answer`."""
+
+    def judge(result):
+        raise error
+
+    run = engine.run_family(toy(breached=judge))
+    assert _verdicts(run, "attack") == [verdict] * 3
+    assert _verdicts(run, "specimen") == [verdict] * 3
+    assert engine.family_state(run) == "INCONCLUSIVE"
+    assert engine.findings([run]) == []
+    assert all(
+        r["result_digest"] == engine.digest({"exception": type(error).__name__})
+        for r in run.records
+        if r["role"] != "control"
+    )
+    # The generic oracle reads the same way.
+    from carbon.agent_campaign.attack import adapter
+
+    said = adapter.family_oracle(toy(breached=judge), adapter.AttackInput("a", "x"))
+    assert said.verdict == verdict and said.specimen == verdict
+
+
 def test_the_budget_counts_attacks_attempted():
     run = engine.run_family(toy(), budget=2)
     assert [r["attempt"] for r in run.records if r["role"] == "attack"] == [

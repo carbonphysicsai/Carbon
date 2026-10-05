@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-historical-replay-pass",
+  "recorded_at": "2026-10-05T01:58:06Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical historical-replay regression",
+    "description": "Reran the pinned D34 historical Graphite replay test in the repository's canonical Linux environment after restoring the historical serialized surfaces."
+  },
+  "expected": "Prospective Challenge routing should leave the recorded D34 session bytes unchanged.",
+  "observed": "The focused historical-replay regression passed (1 passed), confirming that the in-memory Challenge binding does not alter the pinned historical budget record or permission-profile digest.",
+  "keep": [
+    "Keep challenge_id internal to Phase3Budget and omit it from the historical record representation.",
+    "Keep historical permission-profile wording byte-identical while routing the active Challenge through explicit scorer objects."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

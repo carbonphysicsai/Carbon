@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-black-format",
+  "recorded_at": "2026-10-05T01:14:22Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 focused Black format",
+    "description": "Applied Black's mechanical rewrite to the six changed files identified by the preceding check."
+  },
+  "expected": "Only formatting should change in the identified files.",
+  "observed": "Black reformatted all six files without an execution error.",
+  "keep": [
+    "Keep the Challenge-parametric behavior unchanged."
+  ],
+  "change": [
+    "Verify the full focused set with Black check and rerun Ruff."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

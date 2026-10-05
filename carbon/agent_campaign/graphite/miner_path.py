@@ -24,7 +24,7 @@ A failure after which the request may have been dispatched sets
 `requires_reconciliation`, so the research loop stops rather than resend.
 
 Phase 3 attaches only to a DEVELOPMENT campaign for the session's Challenge
-(its `ChallengeScoring`'s id and version; battery today): no other Challenge,
+(its `ChallengeScoring`'s id and version): no other Challenge,
 and nothing official.
 """
 

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-baseline",
+  "recorded_at": "2026-10-04T22:49:45.422378+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 pre-change Windows diagnostic",
+    "description": "Ran the registry, campaign, construction-contract, admission-study and Motor focused suites before changing the Level-0 Launchpad integration."
+  },
+  "expected": "The focused baseline should identify pre-existing failures separately from the new Motor integration, with canonical Linux acceptance deferred to the repository wrapper and CI.",
+  "observed": "The usable Windows environment ran 175 tests: 160 passed, 1 skipped and 14 failed. Thirteen failures were host/environment limitations involving POSIX resource, UID/GID and private-file behavior or missing optional MCP/cryptography packages. One failure was a pre-existing Motor decision construction-freeze mismatch on the current combined tree.",
+  "keep": [
+    "Run the exact changed subsystem under canonical Linux before delivery.",
+    "Separate host diagnostic limitations and pre-existing failures from ticket regressions."
+  ],
+  "change": [
+    "Use the dependency-complete carbon-ccm interpreter for local Windows diagnostics and treat repository CI as canonical when Docker is unavailable."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

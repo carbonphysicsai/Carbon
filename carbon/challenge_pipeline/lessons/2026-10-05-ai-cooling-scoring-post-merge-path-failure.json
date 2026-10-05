@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-path-failure",
+  "recorded_at": "2026-10-05T03:15:28Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 post-merge canonical matrix attempt 1",
+    "description": "Invoked the merged Cooling scoring, Graphite, pod-retry, Battery-compatibility and lessons regression matrix through the canonical Linux wrapper."
+  },
+  "expected": "The selected post-merge matrix should collect and run all named tests.",
+  "observed": "Collection stopped before running tests because the lessons test was named tests/cpu/test_challenge_pipeline_lessons.py instead of its registered path tests/cpu/test_challenge_pipeline.py.",
+  "keep": [
+    "Keep the combined post-merge matrix and canonical Linux environment."
+  ],
+  "change": [
+    "Use tests/cpu/test_challenge_pipeline.py for the committed lessons validation."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

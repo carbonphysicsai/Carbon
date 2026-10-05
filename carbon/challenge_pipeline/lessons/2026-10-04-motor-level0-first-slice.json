@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-first-slice",
+  "recorded_at": "2026-10-04T23:01:47.879808+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 first focused implementation slice",
+    "description": "Ran the new Motor construction tests with challenge registry, campaign and research-environment checks."
+  },
+  "expected": "Motor's new contract, campaign and research modules should collect and pass except for the known Windows dependency and POSIX limitations.",
+  "observed": "67 passed and 1 skipped. Nine failures were the already identified Windows dependency or POSIX limitations. Two new Motor failures showed that repository material digests must use the canonical LF bytes rather than the Windows checkout's raw CRLF file hashes.",
+  "keep": [
+    "The Challenge-neutral registry and campaign wiring collected and passed.",
+    "Continue to keep host limitations distinct from ticket regressions."
+  ],
+  "change": [
+    "Pin Motor public material to the canonical LF digests used by the loader and expansion contract."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "challenge.public-material.digest-pinning",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

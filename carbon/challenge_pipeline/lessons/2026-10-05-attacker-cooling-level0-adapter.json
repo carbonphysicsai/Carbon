@@ -1,0 +1,29 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-05-attacker-cooling-level0-adapter",
+ "recorded_at": "2026-10-05T04:50:00Z",
+ "challenge": "chip-cold-plate",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": ".agent/decisions/2026-10-04-GRAPHITE-ATTACKER-COOLING-L0.md; branch claude/attack-adapter-cooling-l0, built on #584 (codex/cooling-scoring-adapter at 4332ad6fe, which carries #569)",
+  "description": "Built cooling's Level 0 attack adapter in battery's shape: fifteen families over the eight Track A checks, the Test Lead's five cooling vectors, trained and genuinely distinct held-out controls, an oracle that runs every attempt against the real boundary and a vulnerable specimen, typed rebuild through experiment.admit with cooling's ChallengeScoring, NOT_RUN seams for every missing owner value and Levels 1 to 5, and twenty-one mutations; then ran the phase-4 dry run at cooling."
+ },
+ "expected": "The vectors would each map to one registered boundary that a single mutation can turn red, including the laminar-regime rule of the population screen.",
+ "observed": "Every family held with its specimen firing, every control passed in both splits, all twenty-one mutations turned their guard red, and the phase-4 dry run at chip-cold-plate completed with no finding and no spend. Two facts were not as expected: inside the registered input box no case above the laminar bound keeps its hottest wall inside the coolant model (grid and random searches of the public closed-form screen found none), so the Reynolds rule never refuses a case alone and only a whole-screen mutation is caught; and three vectors (optimism, pressure under-prediction, group sacrifice) have a registered score effect but no registered tolerance, so their refusal side is a NOT_RUN seam naming the owner value.",
+ "keep": [
+  "Map each Challenge vector to the boundary Carbon already registers, and declare the part that needs an unregistered tolerance as a NOT_RUN seam that names the owner value.",
+  "Breach tests read a pinned copy of a registered bound, never the live value, so a lifted bound is caught.",
+  "Patch the module the boundary reads at call time in every mutation, and print which attack breached, so a guard that goes red for the wrong reason is visible."
+ ],
+ "change": [
+  "Extract the per-attempt reading (assess) into the neutral core after #584 lands; cooling now carries a copy of battery's.",
+  "A cooling Attacker grant is proposed, not committed; phase 4 accepts only GRAPHITE-GRANT-PHASE4, so a per-Challenge grant also needs the runner to accept it."
+ ],
+ "protocol_elements": [
+  "graphite.attacker",
+  "challenge.ai_cooling.level0"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-canonical-blocked",
+  "recorded_at": "2026-10-04T23:20:09.4073367+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "stage_gate",
+    "ref": "CHALLENGE-MOTOR-02 canonical focused-test attempt",
+    "description": "Attempted the repository's pinned canonical Linux/Docker wrapper from Ubuntu WSL, then inspected the worktree identity after the first sandbox denial was retried with approval."
+  },
+  "expected": "The canonical wrapper should run the focused Motor contract, campaign and expansion tests.",
+  "observed": "The approved WSL attempt stopped before Docker or test dispatch. The managed worktree's .git file contains an absolute Windows Git-directory path, which WSL resolves as an invalid relative path; the wrapper therefore cannot establish that it belongs to the repository root. No canonical test ran and no repository file changed.",
+  "keep": [
+    "Treat local Windows results as diagnostic and PR CI as canonical authority.",
+    "Fail before claiming canonical validation when repository identity cannot be established."
+  ],
+  "change": [
+    "Let PR CI run the pinned canonical environment for this managed-worktree delivery."
+  ],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.canonical-validation",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

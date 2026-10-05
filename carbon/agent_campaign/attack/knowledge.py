@@ -16,7 +16,11 @@ host:
 
 The store is content-addressed and append-only. Every record is a canonical
 JSON object stored write-once under its sha256; a journal lists the records
-in the order they were added, once each. `snapshot()` freezes the journal as
+in the order they were added, once each. The journal is hash-chained: each
+entry carries its sequence number and the sha256 of the entry line before it
+(`prev`), and every read checks the sequence and the chain, so a dropped,
+reordered, inserted or edited entry is refused (`attack_record_corrupt`),
+never read past. `snapshot()` freezes the journal as
 a document whose sha256 is the store's digest, and `pin(digest)` returns a
 `ReadOnlyView` of exactly the records that snapshot holds. A frozen
 admission run pins that digest in its suite version (`ReadOnlyView.suite_pin`);
@@ -32,7 +36,9 @@ What the store learns from, and what it refuses:
   Graphite's protected markers and the deny fragments that name sealed or
   confirmation material), its registered sealed identities
   (`SEALED_IDENTITIES`: public fingerprints, commitments, role names and
-  condition ids, matched after Unicode, case and separator normalisation)
+  condition ids, matched after Unicode, homoglyph, case and separator
+  normalisation; short condition ids only study-qualified or in a record of
+  their study)
   and its own sealed-material markers
   when it is written **and again when it is read**; a record that fails on
   read is withheld by the live store, never served, and a pinned view that
@@ -80,7 +86,9 @@ from carbon.development_session.profile import canonical, digest
 
 SCHEMA_PREFIX = "carbon.graphite.attack-knowledge"
 RECORD_SCHEMA = SCHEMA_PREFIX + ".record.v1"
-JOURNAL_SCHEMA = SCHEMA_PREFIX + ".journal.v1"
+#: v2: each entry carries `prev`, the sha256 of the entry line before it
+#: (None for the first), checked with `seq` on every read.
+JOURNAL_SCHEMA = SCHEMA_PREFIX + ".journal.v2"
 SNAPSHOT_SCHEMA = SCHEMA_PREFIX + ".snapshot.v1"
 PRIORS_SCHEMA = SCHEMA_PREFIX + ".priors.v1"
 SUITE_PIN_SCHEMA = SCHEMA_PREFIX + ".suite-pin.v1"
@@ -101,22 +109,25 @@ ORACLE = "carbon_attack_oracle"
 PUBLIC = "public_material"
 SOURCES = (ORACLE, PUBLIC)
 
-#: An attempt's outcome as the oracle reported it.
+#: An attempt's outcome as the oracle reported it. FAILED_INFRA is an
+#: infrastructure failure, kept apart from a crash (invariant 7).
 OUTCOMES = (
     "HELD",
     "REFUSED",
     "BREACHED",
     "TIMEOUT",
     "CRASH",
+    "FAILED_INFRA",
     "UNREBUILDABLE",
     "NOT_RUN",
 )
 #: Outcomes that show the boundary held. A REFUSED attack (a removed
 #: permission coming back refused) is a hold.
 HOLDS = ("HELD", "REFUSED")
-#: Outcomes that are never a hold and never a breach: a timeout is never a
-#: pass, and neither is anything Carbon could not rebuild or did not run.
-INCONCLUSIVE_OUTCOMES = ("TIMEOUT", "CRASH", "UNREBUILDABLE", "NOT_RUN")
+#: Outcomes that are never a hold and never a breach: a timeout or an
+#: infrastructure failure is never a pass, and neither is anything Carbon
+#: could not rebuild or did not run.
+INCONCLUSIVE_OUTCOMES = ("TIMEOUT", "CRASH", "FAILED_INFRA", "UNREBUILDABLE", "NOT_RUN")
 #: What an oracle may raise when its run fails (a timeout is an `OSError`).
 #: Each is recorded INCONCLUSIVE on a re-run; anything else propagates.
 ORACLE_FAILURES = (
@@ -145,9 +156,11 @@ TRAINING_SPLIT = TRAINED
 #: already committed in the repository (commitments, fingerprints, role names
 #: and condition ids), never sealed contents, which nothing here reads. Each
 #: entry names the public record it is copied from. Matched after Unicode
-#: (NFKC), case (casefold) and separator normalisation: a digest by its hex
-#: (whole, or a prefix of at least `DIGEST_PREFIX_MIN` hex characters as its
-#: own token), a phrase as a whole-token sequence.
+#: (NFKC), homoglyph (`HOMOGLYPHS`), case (casefold) and separator
+#: normalisation: a digest by its hex (whole, or a prefix of at least
+#: `DIGEST_PREFIX_MIN` hex characters as its own token), a phrase as a
+#: whole-token sequence, and a scoped phrase as a whole-token sequence after
+#: one of its scope phrases, or alone in a value that names a scope phrase.
 SEALED_IDENTITIES = (
     {
         "id": "ev5-confirmation-fingerprint",
@@ -180,8 +193,12 @@ SEALED_IDENTITIES = (
         "source": ".agent/decisions/2026-10-04-OWNER-GRAPHITE-TEST-WAVE-01.md item 7",
     },
     {
+        # Short ids that ordinary text can carry ("boundary 01"), so they are
+        # scoped: the study-qualified id ("<study>/rep-01", or the Challenge
+        # token before it) matches anywhere; the bare id only in a record
+        # that names the study or the Challenge (a cooling-context record).
         "id": "cooling-final-condition-ids",
-        "kind": "phrase",
+        "kind": "scoped_phrase",
         "value": (
             "rep-01",
             "rep-02",
@@ -190,6 +207,8 @@ SEALED_IDENTITIES = (
             "boundary-01",
             "boundary-02",
         ),
+        # freeze.json `study_id` and `decision_contract.challenge`.
+        "scope": ("ai-accelerator-cooling-synthetic-v1", "chip-cold-plate"),
         "source": "docs/development/evidence/cold-plate-decision-fixture-v2/"
         "construction/freeze.json case_roles.final_decision_evaluation",
     },
@@ -295,14 +314,48 @@ def _strings(value):
 
 _TOKEN = re.compile(r"[^\W_]+")
 
+#: Common Cyrillic and Greek look-alikes of Latin letters, folded to the
+#: Latin letter before matching, so `ev5` or `held out` spelled with a
+#: Cyrillic or Greek letter still names what it spells. The store may
+#: over-refuse, never under-refuse.
+HOMOGLYPHS = str.maketrans(
+    {
+        chr(code): latin
+        for code, latin in (
+            # Cyrillic, upper and lower case
+            *((0x0410, "a"), (0x0430, "a"), (0x0412, "b"), (0x0432, "b")),
+            *((0x0415, "e"), (0x0435, "e"), (0x0401, "e"), (0x0451, "e")),
+            *((0x041A, "k"), (0x043A, "k"), (0x041C, "m"), (0x043C, "m")),
+            *((0x041D, "h"), (0x043D, "h"), (0x041E, "o"), (0x043E, "o")),
+            *((0x0420, "p"), (0x0440, "p"), (0x0421, "c"), (0x0441, "c")),
+            *((0x0422, "t"), (0x0442, "t"), (0x0423, "y"), (0x0443, "y")),
+            *((0x0425, "x"), (0x0445, "x"), (0x0406, "i"), (0x0456, "i")),
+            *((0x0407, "i"), (0x0457, "i"), (0x0408, "j"), (0x0458, "j")),
+            *((0x0405, "s"), (0x0455, "s"), (0x0500, "d"), (0x0501, "d")),
+            *((0x04AE, "y"), (0x04AF, "y"), (0x04BA, "h"), (0x04BB, "h")),
+            *((0x04C0, "l"), (0x04CF, "l"), (0x051A, "q"), (0x051B, "q")),
+            *((0x051C, "w"), (0x051D, "w")),
+            # Greek, upper and lower case
+            *((0x0391, "a"), (0x03B1, "a"), (0x0392, "b"), (0x03B2, "b")),
+            *((0x0395, "e"), (0x03B5, "e"), (0x0396, "z"), (0x0397, "h")),
+            *((0x0399, "i"), (0x03B9, "i"), (0x039A, "k"), (0x03BA, "k")),
+            *((0x039C, "m"), (0x039D, "n"), (0x03BD, "v"), (0x039F, "o")),
+            *((0x03BF, "o"), (0x03A1, "p"), (0x03C1, "p"), (0x03A4, "t")),
+            *((0x03C4, "t"), (0x03A5, "y"), (0x03C5, "u"), (0x03A7, "x")),
+            *((0x03C7, "x"), (0x03F9, "c"), (0x03F2, "c"), (0x03F3, "j")),
+        )
+    }
+)
+
 
 def normalise(text):
     """`text` for matching: NFKC, invisible format characters dropped,
+    Cyrillic and Greek look-alikes folded to Latin (`HOMOGLYPHS`),
     casefolded, every run of separators one space. Returns `(spaced,
     compact)`: the tokens joined by single spaces, and joined by nothing."""
     text = unicodedata.normalize("NFKC", text)
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
-    tokens = _TOKEN.findall(text.casefold())
+    tokens = _TOKEN.findall(text.translate(HOMOGLYPHS).casefold())
     return " ".join(tokens), "".join(tokens)
 
 
@@ -328,8 +381,30 @@ def _named(value, markers):
 _HEX = re.compile(r"[0-9a-f]+\Z")
 
 
-def _identity_hit(spaced, compact):
-    """The registered sealed identity the text names, or None."""
+def _phrase_in(phrase, padded):
+    """A phrase names the text as a whole-token sequence (`padded` is the
+    text's spaced form with a space at each end)."""
+    return " " + normalise(phrase)[0] + " " in padded
+
+
+def _scope_named(entry, texts):
+    """Whether any of the normalised `texts` names one of a scoped entry's
+    scope phrases: as whole tokens, or, for a phrase of several tokens, run
+    together (`chipcoldplate`)."""
+    for scope in entry["scope"]:
+        s_spaced, s_compact = normalise(scope)
+        for spaced, compact in texts:
+            if " " + s_spaced + " " in " " + spaced + " ":
+                return True
+            if " " in s_spaced and s_compact in compact:
+                return True
+    return False
+
+
+def _identity_hit(spaced, compact, scoped=frozenset()):
+    """The registered sealed identity the text names, or None. `scoped` holds
+    the ids of scoped entries whose scope the value names, so their bare
+    phrases match too."""
     padded = " " + spaced + " "
     tokens = spaced.split()
     for entry in SEALED_IDENTITIES:
@@ -342,18 +417,33 @@ def _identity_hit(spaced, compact):
                 for token in tokens
             ):
                 return entry["id"]
+        elif entry["kind"] == "scoped_phrase":
+            for phrase in entry["value"]:
+                if entry["id"] in scoped and _phrase_in(phrase, padded):
+                    return entry["id"]
+                if any(
+                    _phrase_in(scope + " " + phrase, padded) for scope in entry["scope"]
+                ):
+                    return entry["id"]
         else:
             for phrase in entry["value"]:
-                if " " + normalise(phrase)[0] + " " in padded:
+                if _phrase_in(phrase, padded):
                     return entry["id"]
     return None
 
 
 def sealed_identity(value):
     """The id of the registered sealed identity any string in `value` names
-    (`SEALED_IDENTITIES`), or None."""
-    for text in _strings(value):
-        found = _identity_hit(*normalise(text))
+    (`SEALED_IDENTITIES`), or None. A scoped entry's bare phrase counts only
+    when some string of the same value names its scope."""
+    texts = [normalise(text) for text in _strings(value)]
+    scoped = frozenset(
+        entry["id"]
+        for entry in SEALED_IDENTITIES
+        if entry["kind"] == "scoped_phrase" and _scope_named(entry, texts)
+    )
+    for spaced, compact in texts:
+        found = _identity_hit(spaced, compact, scoped)
         if found is not None:
             return found
     return None
@@ -588,12 +678,41 @@ def _append(path, payload):
         os.close(descriptor)
 
 
-def _lines(path):
+def _journal(path):
+    """The journal's entries in order, each with the digest of its line,
+    after checking the chain: schema, `seq` 1, 2, ... with no gap, `prev` the
+    digest of the line before (None for the first), every line canonical and
+    every record digest listed once. A torn final line (a crash mid-append)
+    was never an entry and is ignored. Anything else is refused
+    `attack_record_corrupt`."""
     if not path.exists():
         return []
     body = path.read_bytes()
     complete = body[: body.rfind(b"\n") + 1]
-    return [json.loads(line) for line in complete.splitlines() if line]
+    out, seen, prev = [], set(), None
+    for number, line in enumerate(complete.split(b"\n")[:-1], start=1):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            entry = None
+        if (
+            type(entry) is not dict
+            or canonical(entry) != line
+            or set(entry) != {"schema", "seq", "kind", "digest", "prev"}
+            or entry["schema"] != JOURNAL_SCHEMA
+            or type(entry["seq"]) is not int
+            or entry["seq"] != number
+            or entry["prev"] != prev
+            or entry["kind"] not in KINDS
+            or type(entry["digest"]) is not str
+            or not _DIGEST.fullmatch(entry["digest"])
+            or entry["digest"] in seen
+        ):
+            raise KnowledgeError(RECORD_CORRUPT, f"journal chain broken at {number}")
+        seen.add(entry["digest"])
+        prev = digest(line)
+        out.append((entry, prev))
+    return out
 
 
 def _hex(value):
@@ -953,7 +1072,9 @@ class AttackStore(_Reader):
         self.journal = root / "journal.jsonl"
 
     def _entries(self):
-        return [(entry["kind"], entry["digest"]) for entry in _lines(self.journal)]
+        return [
+            (entry["kind"], entry["digest"]) for entry, _line in _journal(self.journal)
+        ]
 
     def _lock(self):
         return _locked(self.root / "store.lock")
@@ -964,8 +1085,8 @@ class AttackStore(_Reader):
         with self._lock():
             path = self.root / "objects" / (_hex(value) + ".json")
             write_once(path, body)
-            entries = _lines(self.journal)
-            if not any(entry["digest"] == value for entry in entries):
+            entries = _journal(self.journal)
+            if not any(entry["digest"] == value for entry, _line in entries):
                 _append(
                     self.journal,
                     canonical(
@@ -974,6 +1095,7 @@ class AttackStore(_Reader):
                             "seq": len(entries) + 1,
                             "kind": record["kind"],
                             "digest": value,
+                            "prev": entries[-1][1] if entries else None,
                         }
                     ),
                 )

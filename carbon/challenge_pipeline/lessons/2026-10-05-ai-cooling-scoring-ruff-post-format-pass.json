@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-ruff-post-format-pass",
+  "recorded_at": "2026-10-05T01:15:55Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "CHALLENGE-AI-COOLING-07 Ruff post-format verification",
+    "description": "Reran Ruff over every changed Python implementation and test module after Black formatting."
+  },
+  "expected": "Mechanical formatting should introduce no lint regression.",
+  "observed": "Ruff exited 0: all checks passed.",
+  "keep": [
+    "Keep the focused static-check set for final delivery."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

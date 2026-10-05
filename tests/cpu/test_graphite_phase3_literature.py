@@ -31,6 +31,7 @@ import pytest
 from graphite_fixtures import started
 from graphite_phase2_fixtures import INJECTION
 from graphite_phase3_fixtures import (
+    SCORING,
     ScriptedPods,
     card,
     propose,
@@ -312,7 +313,7 @@ def test_a_brief_whose_literature_is_not_the_sessions_is_refused(tmp_path):
                 role=ROLES[RoleName.CONSTRUCTOR].boundary.value,
                 workspace_id=phase3.WORKSPACE,
                 credential_ref=phase3.CREDENTIAL_REF,
-                profile_digest=phase3.permission_profile()[1],
+                profile_digest=phase3.permission_profile(SCORING)[1],
                 instructions_digest=graphite.register_brief(stale),
                 max_runtime_s=graphite.grant.max_runtime_s,
             ),
@@ -388,6 +389,8 @@ def test_a_live_run_needs_a_snapshot_and_the_opt_in_needs_one_too(tmp_path, caps
         "run",
         "--root",
         str(tmp_path / "root"),
+        "--challenge",
+        SCORING.challenge_id,
         "--grant",
         good,
         "--credential-env",
@@ -413,6 +416,8 @@ def test_a_live_run_needs_a_snapshot_and_the_opt_in_needs_one_too(tmp_path, caps
                 "run",
                 "--root",
                 str(tmp_path / "d"),
+                "--challenge",
+                SCORING.challenge_id,
                 "--dry-run",
                 "--allow-unchecked-cards",
             ]
@@ -425,7 +430,16 @@ def test_the_dry_run_takes_a_snapshot_and_records_it(tmp_path, capsys):
     root = str(tmp_path / "root")
     assert (
         phase3.main(
-            ["run", "--root", root, "--dry-run", "--literature-snapshot", str(path)]
+            [
+                "run",
+                "--root",
+                root,
+                "--challenge",
+                SCORING.challenge_id,
+                "--dry-run",
+                "--literature-snapshot",
+                str(path),
+            ]
         )
         == 0
     )
@@ -436,7 +450,19 @@ def test_the_dry_run_takes_a_snapshot_and_records_it(tmp_path, capsys):
     )
     assert result["literature"]["offered_cards"] == 1
     assert result["delivery"]["clean_rebuild"]["status"] == "REBUILT"
-    assert phase3.main(["run", "--root", root, "--dry-run"]) == 0
+    assert (
+        phase3.main(
+            [
+                "run",
+                "--root",
+                root,
+                "--challenge",
+                SCORING.challenge_id,
+                "--dry-run",
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     result = json.loads(output[output.index("{\n") :])
     assert result["literature"]["source"] == {"kind": phase3.FIXTURE_SOURCE}
@@ -472,6 +498,13 @@ def planner_session(root, offer, calls):
         model,
         role=RoleName.PLANNER,
         literature_index=offer,
+        observation={
+            "objective": "synthetic next-level proposal fixture",
+            "challenge": {
+                "id": SCORING.challenge_id,
+                "version": SCORING.challenge_version,
+            },
+        },
     )
     assert graphite.run(rid) == "succeeded"
     return graphite, rid, model
@@ -519,7 +552,7 @@ def test_a_planner_proposal_is_validated_written_and_listed(tmp_path, capsys):
     ]
     assert first["outside_contract"]["dimension"] == "objective"
     assert first["outside_contract"]["cited_status"] == "research_only"
-    assert first["outside_contract"]["contract"] == ex.recorded_contract()
+    assert first["outside_contract"]["contract"] == ex.recorded_contract(SCORING)
     assert first["reconstruction_needs"].startswith("a registered residual")
     assert first["literature_snapshot_digest"] == offer.snapshot_digest
     assert first["role"] == "planner" and first["run_id"] == rid
@@ -556,9 +589,9 @@ def _unchanged_surface():
     from carbon.agent_campaign.graphite.roles import TOOL_REGISTRY
 
     return {
-        "contract": ex.recorded_contract(),
+        "contract": ex.recorded_contract(SCORING),
         "records": len(expansion_record.records(BATTERY_CHALLENGE)),
-        "profile": phase3.permission_profile(),
+        "profile": phase3.permission_profile(SCORING),
         "roles": {n.value: r.record() for n, r in ROLES.items()},
         "registry": sorted(TOOL_REGISTRY),
     }
@@ -598,6 +631,7 @@ def test_a_proposal_never_changes_the_contract_permissions_or_score(
         run_id=run_id(),
         identity="planner-call-1",
         role="planner",
+        scoring=SCORING,
     )
     next_level.ProposalStore(seeded._dir(run_id())).write(record)
     result, graphite3, _ = session(

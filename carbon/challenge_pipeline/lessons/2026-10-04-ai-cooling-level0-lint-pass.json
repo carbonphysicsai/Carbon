@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-lint-pass",
+  "recorded_at": "2026-10-04T20:36:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "Ruff exact changed-file pass",
+    "description": "Re-ran Ruff over every changed Python source and test file after the mechanical repairs."
+  },
+  "expected": "The exact changed-file set should have no unresolved lint findings.",
+  "observed": "Ruff reported all checks passed.",
+  "keep": [
+    "Use the exact changed-file set as the local lint evidence and retain canonical CI as the final authority."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "quality-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

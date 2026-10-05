@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-lesson-date-validation",
+  "recorded_at": "2026-10-05T02:46:30Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical committed-lessons validation",
+    "description": "Validated the complete committed lesson log in canonical Linux after normalizing execution kinds."
+  },
+  "expected": "Every new execution lesson should satisfy the repository schema, including exact agreement between its filename date, lesson id and actual UTC timestamp.",
+  "observed": "Validation stopped at the first overnight record whose id retained the 2026-10-04 local work-date while its actual recorded_at timestamp was on 2026-10-05 UTC. The audit found 32 such records.",
+  "keep": [
+    "Keep every actual UTC timestamp unchanged."
+  ],
+  "change": [
+    "Rename every mismatched lesson file and lesson_id to the actual 2026-10-05 UTC date."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

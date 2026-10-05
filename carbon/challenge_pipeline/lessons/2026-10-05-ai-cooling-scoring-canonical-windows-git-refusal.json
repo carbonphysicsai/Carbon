@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-canonical-windows-git-refusal",
+  "recorded_at": "2026-10-05T01:24:41Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 second canonical focused regression",
+    "description": "Retried the affected Cooling and Graphite suites through the canonical wrapper after removing the ignored Windows pytest cache."
+  },
+  "expected": "The clean copy should bootstrap and run pytest in the pinned Linux container.",
+  "observed": "The source copy completed, but bootstrap refused because this Windows-created linked worktree's .git file names a Windows absolute Git directory that is not a valid path inside the Linux container. Pytest did not start.",
+  "keep": [
+    "Keep the source worktree unchanged; the refusal is environmental, not a product-code result."
+  ],
+  "change": [
+    "Stage the same tree in a disposable native-Linux Git clone and run the canonical wrapper there."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-battery-cache-test",
+  "recorded_at": "2026-10-05T02:13:21Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical pod-and-attack compatibility rerun",
+    "description": "Reran the repaired pod regression and Battery attack-adapter suites after removing the scorer-helper name collision."
+  },
+  "expected": "Battery's cache-invalidation regression should keep observing construction-record sequence changes through the Challenge-explicit seam.",
+  "observed": "Thirty-five checks passed before a test-local monkeypatch failed because its replacement retained the old zero-argument recorded_contract signature.",
+  "keep": [
+    "Keep the production adapter Challenge-explicit and keep the cache-invalidation assertion."
+  ],
+  "change": [
+    "Update the test-local replacement to accept and forward the optional scorer."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

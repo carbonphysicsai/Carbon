@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-lesson-validation-pass",
+  "recorded_at": "2026-10-05T02:48:48Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical committed-lessons validation rerun",
+    "description": "Revalidated the complete committed lesson log after normalizing execution kinds and correcting overnight UTC dates."
+  },
+  "expected": "Every existing and new lesson record should satisfy the repository schema and naming rules.",
+  "observed": "The canonical committed-lessons regression passed.",
+  "keep": [
+    "Keep registered execution kinds and actual UTC timestamps as naming authority."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

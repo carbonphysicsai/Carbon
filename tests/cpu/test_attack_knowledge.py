@@ -193,6 +193,81 @@ def test_the_journal_is_append_only_in_order(store):
     assert [r["record_digest"] for r in store.records()] == [one, two, three]
 
 
+def test_the_journal_is_hash_chained(store):
+    """Each entry names the sha256 of the line before it (None for the
+    first), so the order and contents of the journal are bound together."""
+    store.add_attempt(**attempt())
+    store.add_near_miss(**near_miss())
+    store.add_finding(**finding())
+    lines = store.journal.read_bytes().splitlines()
+    entries = [json.loads(line) for line in lines]
+    assert entries[0]["prev"] is None
+    assert [e["prev"] for e in entries[1:]] == [digest(line) for line in lines[:-1]]
+    assert {e["schema"] for e in entries} == {knowledge.JOURNAL_SCHEMA}
+
+
+def _rewrite(store, lines):
+    store.journal.chmod(0o600)
+    store.journal.write_bytes(b"".join(line + b"\n" for line in lines))
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    ["drop_first", "drop_middle", "swap", "duplicate", "edit_kind", "renumber"],
+)
+def test_a_broken_journal_chain_or_sequence_is_refused_on_read(store, tamper):
+    """A dropped, reordered, duplicated or edited journal entry is refused on
+    read (`attack_record_corrupt`), never read past; so is any write after
+    it."""
+    store.add_attempt(**attempt())
+    store.add_near_miss(**near_miss())
+    store.add_finding(**finding())
+    lines = store.journal.read_bytes().splitlines()
+    if tamper == "drop_first":
+        lines = lines[1:]
+    elif tamper == "drop_middle":
+        lines = [lines[0], lines[2]]
+    elif tamper == "swap":
+        lines = [lines[1], lines[0], lines[2]]
+    elif tamper == "duplicate":
+        lines = [*lines, lines[2]]
+    elif tamper == "edit_kind":
+        entry = json.loads(lines[1])
+        lines[1] = canonical({**entry, "kind": "attempt"})
+    else:
+        entry = json.loads(lines[2])
+        lines[2] = canonical({**entry, "seq": 7})
+    _rewrite(store, lines)
+    refused(knowledge.RECORD_CORRUPT, store.records)
+    refused(knowledge.RECORD_CORRUPT, store.snapshot)
+    refused(
+        knowledge.RECORD_CORRUPT,
+        store.add_attempt,
+        **attempt(attempt_id="epoch-1-attack-tool-010"),
+    )
+
+
+def test_failed_infra_is_stored_as_itself_and_never_a_hold(store):
+    """An infrastructure failure keeps its own outcome (never folded into
+    CRASH) and counts inconclusive, never held."""
+    store.add_attempt(**attempt(outcome="FAILED_INFRA"))
+    store.add_attempt(**attempt(outcome="CRASH", attempt_id="epoch-1-attack-tool-003"))
+    assert [a["outcome"] for a in store.attempts()] == ["FAILED_INFRA", "CRASH"]
+    family = store.priors(BATTERY_CHALLENGE)["by_family"]["recipe_forgery"]
+    assert (family["inconclusive"], family["held"]) == (2, 0)
+    assert "FAILED_INFRA" in knowledge.INCONCLUSIVE_OUTCOMES
+
+
+def test_a_journal_without_its_chain_is_refused(store):
+    """An entry of the unchained v1 shape (no `prev`) is not read as v2."""
+    store.add_attempt(**attempt())
+    (line,) = store.journal.read_bytes().splitlines()
+    entry = json.loads(line)
+    del entry["prev"]
+    _rewrite(store, [canonical(entry)])
+    refused(knowledge.RECORD_CORRUPT, store.records)
+
+
 def test_a_torn_journal_line_is_cut_and_never_read(store):
     one = store.add_attempt(**attempt())
     with store.journal.open("ab") as stream:
@@ -804,10 +879,18 @@ MOTOR_COMMITMENT = "5ec0222502eb608c52d1162f4be6c7347deed7b6d4f03777ec4ea31b6d61
         ("sha256:" + MOTOR_COMMITMENT, "motor-private-pool-commitment"),
         ("GRAPHITE_CONFIRMATION_V1", "graphite-confirmation-role"),
         ("graphite\u200b-confirmation-v1", "graphite-confirmation-role"),
-        # Full-width letters fold under NFKC.
-        ("\uff52\uff45\uff50-01", "cooling-final-condition-ids"),
-        ("Boundary_02 case", "cooling-final-condition-ids"),
+        # Full-width letters fold under NFKC; a cooling condition id counts
+        # study-qualified.
+        (
+            "ai-accelerator-cooling-synthetic-v1/\uff52\uff45\uff50-01",
+            "cooling-final-condition-ids",
+        ),
+        ("CHIP_COLD_PLATE Boundary_02 case", "cooling-final-condition-ids"),
         ("ev5 confirmation role", "ev5-confirmation-role"),
+        # Cyrillic and Greek look-alikes fold to Latin.
+        ("graphite-\u0441onfirmation-v1", "graphite-confirmation-role"),
+        ("j\u03bfurnal sequence 14", "ev5-confirmation-journal-sequence"),
+        ("pool commitment 5\u0435c0222", "motor-private-pool-commitment"),
     ],
 )
 def test_registered_sealed_identities_match_after_normalisation(text, identity):
@@ -827,11 +910,48 @@ def test_near_misses_of_a_sealed_identity_do_not_match(text):
     assert knowledge.sealed_identity({"probe": text}) is None
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"probe": "boundary 01"},
+        {"probe": "the recipe hit boundary-01 of the width sweep"},
+        {"note": "rep 03 of 5 repeats", "family": "recipe_surface"},
+        {"attempt": ["Boundary_02", "REP-04"]},
+        # The study's name alone, apart from an id, names nothing.
+        {"probe": "ai-accelerator-cooling-synthetic-v1 decision study"},
+    ],
+)
+def test_a_bare_cooling_condition_id_in_ordinary_text_does_not_match(value):
+    """Short cooling ids are scoped: ordinary text such as "boundary 01"
+    raises no false exposure (it would block expansion)."""
+    assert knowledge.sealed_identity(value) is None
+    assert not knowledge.sealed(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"probe": "ai-accelerator-cooling-synthetic-v1/boundary-01"},
+        {"probe": "AI_ACCELERATOR_COOLING_SYNTHETIC_V1 rep 02"},
+        {"probe": "chip-cold-plate:rep-04"},
+        # A cooling-context record: the study or Challenge named elsewhere.
+        {"challenge": "chip-cold-plate", "case": "Rep_03"},
+        {"study": "ai-accelerator-cooling-synthetic-v1", "cases": ["boundary 02"]},
+        {"probe": "chipcoldplate run", "case": "rep-01"},
+    ],
+)
+def test_the_study_qualified_or_cooling_context_id_matches(value):
+    assert knowledge.sealed_identity(value) == "cooling-final-condition-ids"
+    assert knowledge.sealed(value)
+
+
 def test_every_registered_identity_is_copied_from_a_committed_public_record():
     for entry in knowledge.SEALED_IDENTITIES:
         path = entry["source"].split(" ")[0]
         body = (REPOSITORY / path).read_text(encoding="utf-8").lower()
         values = [entry["value"]] if entry["kind"] == "digest" else entry["value"]
+        # A scoped entry's scope (its study and Challenge) is copied too.
+        values = [*values, *entry.get("scope", ())]
         for value in values:
             needle = value.removeprefix("sha256:")
             if entry["kind"] == "phrase":
@@ -851,7 +971,7 @@ def test_a_record_naming_a_registered_identity_is_refused(store):
     for named in (
         {"commitment": "sha256:" + MOTOR_COMMITMENT},
         {"fingerprint": EV5_FINGERPRINT.upper()},
-        {"case": "Rep_03"},
+        {"study": "ai-accelerator-cooling-synthetic-v1", "case": "Rep_03"},
     ):
         refused(knowledge.SEALED_REFUSED, store.add_attempt, **attempt(attempt=named))
     assert store.records() == []

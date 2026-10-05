@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-motor-level0-lint-green",
+  "recorded_at": "2026-10-04T23:10:46.9694754+00:00",
+  "challenge": "electric-motor-magnetics",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-MOTOR-02 Ruff repair pass",
+    "description": "Reran Ruff over every changed Python implementation and test file after import-order repairs."
+  },
+  "expected": "The exact changed Python set should pass repository lint.",
+  "observed": "Ruff reported all checks passed.",
+  "keep": [
+    "Keep the exact changed-file lint command in delivery evidence."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.motor.level0",
+    "delivery.static-checks"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

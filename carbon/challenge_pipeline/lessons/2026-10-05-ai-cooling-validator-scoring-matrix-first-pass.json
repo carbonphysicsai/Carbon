@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-validator-scoring-matrix-first-pass",
+  "recorded_at": "2026-10-05T04:17:32Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-08 first scoring compatibility matrix",
+    "description": "Ran shared ChallengeScoring compatibility and final lessons validation in the canonical environment."
+  },
+  "expected": "Both suites should collect and pass with the dependencies required by Graphite scoring.",
+  "observed": "Collection stopped before tests because the command omitted the science-jax dependency group and numpy was unavailable; this was an environment invocation error, not a test failure.",
+  "keep": [
+    "Keep shared ChallengeScoring compatibility in the bounded validator acceptance evidence."
+  ],
+  "change": [
+    "Run the matrix with the registered science-jax and archive dependency groups."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.validator_adapter",
+    "challenge.validator.interface_v1",
+    "challenge.scoring.interface",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

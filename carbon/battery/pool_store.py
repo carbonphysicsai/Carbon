@@ -297,7 +297,16 @@ class PoolStore:
     # --- batches and references ---------------------------------------------
 
     def add_batch(self, committed, *, kind):
-        """Record a journal-committed batch as PREPARED (idempotent)."""
+        """Record a journal-committed batch as PREPARED (idempotent).
+
+        A batch under a reserved seed role, in any spelling, never enters the
+        pool: it would score candidates on a sealed study's cases
+        (`challenge_validator.interface.RESERVED_SEED_ROLES`; VALIDATOR-01
+        security review, finding 1)."""
+        from carbon.challenge_validator.interface import role_reserved
+
+        if role_reserved(committed.batch.role):
+            raise StateError("seed_role_reserved")
         document = committed.batch.document()
         with self.transaction() as db:
             row = db.execute(

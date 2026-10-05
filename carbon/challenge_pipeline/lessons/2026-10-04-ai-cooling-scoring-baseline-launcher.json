@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-baseline-launcher",
+  "recorded_at": "2026-10-04T00:00:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 pre-change Windows diagnostic",
+    "description": "Attempted the focused challenge-neutral scoring and cold-plate contract baseline with the unqualified `python` launcher before changing the Cooling scoring adapter."
+  },
+  "expected": "The focused baseline should run without changing repository state and separate pre-existing behavior from this ticket's changes.",
+  "observed": "No tests executed because this Windows host does not expose an unqualified `python` command. The failure occurred before test collection and changed no scientific, construction, or evaluation state.",
+  "keep": [
+    "Record launcher failures separately from code failures.",
+    "Use the repository's available dependency-complete interpreter for the next diagnostic run."
+  ],
+  "change": [
+    "Resolve the existing Carbon virtual-environment interpreter before rerunning the focused baseline."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.pipeline.lessons",
+    "host-versus-canonical-validation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

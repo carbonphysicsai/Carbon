@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-05-ai-cooling-scoring-post-merge-integration-failure",
+  "recorded_at": "2026-10-05T03:18:27Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 post-merge canonical matrix attempt 3",
+    "description": "Collected the merged matrix with the registered science-jax dependency group after integrating main's Graphite pod-log and baseline-retry slice."
+  },
+  "expected": "Main's new retry tests should use the exact Challenge scorer, and the selected service test should have all registered dependencies.",
+  "observed": "Collection found that the new retry fixture called shared pod budgeting and Experiment without an explicit ChallengeScoring, which now correctly fails closed when multiple Challenges are registered. The service miner-path test also requires the archive dependency group for cryptography.",
+  "keep": [
+    "Keep unnamed shared scoring fail closed now that Battery and Cooling are both registered.",
+    "Keep main's pod-log retention and baseline-retry behavior."
+  ],
+  "change": [
+    "Thread the Battery fixture's explicit scorer through the new retry fixture and failure-path check.",
+    "Run the combined service matrix with both science-jax and archive groups."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.graphite.pod_logs_retry",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

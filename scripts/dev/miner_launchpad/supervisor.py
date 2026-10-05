@@ -396,6 +396,11 @@ NEXT_ACTIONS = {
         "that the intake address serves this Carbon version; if it does, this "
         "recipe is too large to submit to it."
     ),
+    "body_timeout": (
+        "The submission's body did not reach the intake in time, so nothing "
+        "was evaluated; the frozen candidate is kept. Check your connection, "
+        "then submit again."
+    ),
     "headers": (
         "The intake refused the request's headers (one was repeated), so "
         "nothing was evaluated; the frozen candidate is kept. Check that "
@@ -453,6 +458,76 @@ NEXT_ACTIONS = {
         "is not a verdict on the recipe, and nothing was recorded. Submit to "
         "a validator that serves the backend, or again once this one does; "
         "the frozen candidate is kept."
+    ),
+    # The validator's neutral door (VALIDATOR-01 VAL-D3): refused at once,
+    # nothing queued, evaluated or counted against your window.
+    "contract_not_served": (
+        "This validator serves another construction contract than the one "
+        "your candidate was compiled under. Update Carbon so its contract "
+        "matches the validator's, or submit to a validator that serves yours; "
+        "the frozen candidate is kept."
+    ),
+    "development_variant_not_served": (
+        "The candidate names a development-only contract variant, which is "
+        "never served to miners, and nothing was sent for evaluation. Compile "
+        "it against the Challenge's published contract and submit again; the "
+        "frozen candidate is kept."
+    ),
+    "contract_digest_malformed": (
+        "The validator could not read the contract digest Carbon sent. Check "
+        "that the intake address serves this Carbon version, then submit "
+        "again; the frozen candidate is kept."
+    ),
+    "challenge_mismatch": (
+        "The validator says the candidate names another Challenge than the "
+        "contract it was sent under. Check the campaign's Challenge and the "
+        "intake address, then submit again; the frozen candidate is kept."
+    ),
+    "malformed_submission": (
+        "The validator could not read the submission's identity fields. Check "
+        "that the intake address serves this Carbon version, then submit "
+        "again; the frozen candidate is kept."
+    ),
+    "oversized_submission": (
+        "The candidate's recipe is larger than this validator accepts. "
+        "Nothing was evaluated; the frozen candidate is kept."
+    ),
+    "strategy_not_utf8": (
+        "The validator could not read the recipe as UTF-8 text. Nothing was "
+        "evaluated; the frozen candidate is kept. Report it: Carbon writes "
+        "its recipes as UTF-8."
+    ),
+    "strategy_bom": (
+        "The validator refused a recipe that starts with a byte-order mark. "
+        "Nothing was evaluated; the frozen candidate is kept. Report it: "
+        "Carbon never writes one."
+    ),
+    "strategy_nesting_too_deep": (
+        "The candidate's recipe nests more deeply than this validator "
+        "accepts. Nothing was evaluated; the frozen candidate is kept."
+    ),
+    "strategy_not_json": (
+        "The validator could not read the recipe as JSON. Nothing was "
+        "evaluated; the frozen candidate is kept. Report it: Carbon writes "
+        "its recipes as JSON."
+    ),
+    "strategy_not_object": (
+        "The validator refused a recipe that is not a JSON object. Nothing "
+        "was evaluated; the frozen candidate is kept."
+    ),
+    "non_finite_value": (
+        "The candidate's recipe holds NaN, Infinity or a number too large to "
+        "be finite, which validators refuse. Nothing was evaluated; the "
+        "frozen candidate is kept."
+    ),
+    "duplicate_key": (
+        "The candidate's recipe repeats a key in one object, which validators "
+        "refuse. Nothing was evaluated; the frozen candidate is kept."
+    ),
+    "integer_out_of_range": (
+        "The candidate's recipe holds an integer outside the signed 64-bit "
+        "range, which validators refuse. Nothing was evaluated; the frozen "
+        "candidate is kept."
     ),
     "TRANSPORT_IDENTITY": (
         "The validator does not find your hotkey (or its own) registered on "

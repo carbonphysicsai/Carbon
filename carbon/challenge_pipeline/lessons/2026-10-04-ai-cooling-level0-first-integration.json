@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-first-integration",
+  "recorded_at": "2026-10-04T19:20:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 first focused integration diagnostic",
+    "description": "Ran the registry, campaign, capability-contract and admission-study CPU tests after the first cooling registration slice."
+  },
+  "expected": "The first focused run should expose stale reservation assertions and any construction vocabulary or authoring-schema mismatch without dispatching a worker or reference solver.",
+  "observed": "Fifty-three tests passed and one skipped. Three ticket-relevant failures were stale assertions that cooling remained RESERVED, and one showed that kernel_ridge had not yet been admitted by the shared structural strategy vocabulary. The other six failures were the already-recorded Windows dependency/POSIX limitations. No worker, CFD solver, pod or paid service was launched.",
+  "keep": [
+    "Use exact Challenge resolution and preserve typed unsupported-version behavior after lifting the reservation.",
+    "Exercise existing battery behavior beside the new adapter on every focused run."
+  ],
+  "change": [
+    "Update reservation-era tests for the implemented cooling entry.",
+    "Admit the declarative kernel_ridge selector to the structural vocabulary while retaining Challenge-specific contract enforcement."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "challenge-neutral-registry",
+    "construction-vocabulary"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -165,5 +165,33 @@ class BatteryScoring(ChallengeScoring):
 
         return SCAFFOLD
 
+    def fixture_variant_strategy(self):
+        import copy
+
+        strategy = copy.deepcopy(self.baseline_strategy())
+        strategy["parameters"]["width"] = 128
+        return strategy
+
+    def fixture_refused_strategy(self):
+        return {**self.baseline_strategy(), "backbone": "transolver"}
+
+    def synthetic_predictions(self, quality, root):
+        import math
+
+        from carbon.battery.practice import PracticeSet
+
+        predictions = {}
+        for index, ref in enumerate(PracticeSet.load(root).records):
+            wave = 1.0 + 0.5 * math.sin(index * 0.7)
+            out = ref["outputs"]
+            predictions[ref["case_id"]] = {
+                "voltage_v": out["voltage_v"],
+                "temperature_c": [out["temperature_c"][0]]
+                + [t + quality * 0.5 * wave for t in out["temperature_c"][1:]],
+                "plating_margin_v": out["plating_margin_v"] + quality * 0.002 * wave,
+                "capacity_ah": out["capacity_ah"],
+            }
+        return predictions
+
 
 __all__ = ["BUILT_SCHEMA", "BatteryPracticeRule", "BatteryScoring"]

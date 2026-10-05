@@ -165,12 +165,7 @@ class BatteryAdapter(ChallengeAdapter):
         }
 
     def sealed_roles(self):
-        pooled = {batch["fingerprint"] for batch in self.target.store.batches()}
-        return {
-            entry["role"]
-            for entry in self.target.journal.public()
-            if entry["kind"] == "batch" and entry["fingerprint"] not in pooled
-        }
+        return self.target.sealed_roles()
 
     def _prepare_batch(self, role, *, kind, **options):
         with self._writer():

@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-reference-boundary-lint-pass",
+  "recorded_at": "2026-10-04T21:13:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-06 reference-boundary repair Ruff pass",
+    "description": "Ran Ruff on the three Python files changed by the CI boundary repair."
+  },
+  "expected": "The challenge-neutral authoring export and cooling consumer repair should introduce no lint debt.",
+  "observed": "All Ruff checks passed. No worker, solver, pod or paid scientific execution ran.",
+  "keep": [
+    "Keep the repair limited to the public authoring export, its cooling consumer and focused regression."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "reference-boundary",
+    "quality-ratchet"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -22,6 +22,8 @@ import pytest
 from operator_fake_runpod import Clock, FakeRunPod, key_file
 
 from carbon.agent_campaign.graphite import pods
+from carbon.challenge_validator import scoring as challenge_scoring
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 from scripts.dev.exam_design.runpod.operator_compute import (
     ComputeStore,
     FileCredentialProvider,
@@ -30,6 +32,8 @@ from scripts.dev.exam_design.runpod.operator_compute import (
     reconcile,
 )
 from scripts.dev.exam_design.runpod.operator_compute import store as store_module
+
+SCORING = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
 
 
 def _head():
@@ -67,6 +71,7 @@ def backend(tmp_path, fake, clock):
         http=lambda *_args: (0, b""),
         sleep=lambda _seconds: None,
         balance_floor=lambda: Decimal(0),  # synthetic; the operator's is private
+        scoring=SCORING,
     )
 
 
@@ -208,7 +213,7 @@ def test_a_replayed_launch_makes_the_same_create_request():
 
 
 def test_the_real_path_check_passes(tmp_path):
-    report = pods.real_path_check(tmp_path / "check")
+    report = pods.real_path_check(tmp_path / "check", scoring=SCORING)
     assert report["status"] == "OK", json.dumps(report)
     assert report["failures"] == [] and report["creates"] == 2
     assert report["off_caller_thread"] and report["pods_alive"] == []
@@ -227,7 +232,7 @@ def test_the_real_path_check_catches_a_thread_bound_store(tmp_path, monkeypatch)
         yield self._legacy
 
     monkeypatch.setattr(store_module.ComputeStore, "_connect", thread_bound)
-    report = pods.real_path_check(tmp_path / "check")
+    report = pods.real_path_check(tmp_path / "check", scoring=SCORING)
     assert report["status"] == "FAILED"
     assert report["error_type"] == "sqlite3.ProgrammingError"
     assert "same thread" in report["error"]
@@ -236,5 +241,5 @@ def test_the_real_path_check_catches_a_thread_bound_store(tmp_path, monkeypatch)
 def test_the_real_path_check_refuses_a_used_root(tmp_path):
     (tmp_path / "check").mkdir()
     (tmp_path / "check" / "left").write_text("x")
-    report = pods.real_path_check(tmp_path / "check")
+    report = pods.real_path_check(tmp_path / "check", scoring=SCORING)
     assert report["status"] == "FAILED" and "new or empty" in report["error"]

@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-canonical-linked-worktree",
+  "recorded_at": "2026-10-04T00:08:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 canonical focused retry",
+    "description": "Retried the canonical wrapper with a command-scoped WSL Git safe-directory binding for the exact short worktree."
+  },
+  "expected": "The safe-directory binding should let the wrapper resolve the linked worktree root.",
+  "observed": "The wrapper again refused before Docker launch. Inspection showed the linked worktree's `.git` file contains a Windows absolute path, which WSL Git resolves as an invalid relative path. The safe-directory setting cannot repair that representation mismatch.",
+  "keep": [
+    "Do not modify shared worktree Git metadata merely to satisfy WSL path parsing.",
+    "Keep canonical acceptance on an isolated copy or a shell that understands Windows Git paths."
+  ],
+  "change": [
+    "Use Git for Windows Bash with Docker, or defer canonical authority to PR CI after local focused diagnostics."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "canonical-validation",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

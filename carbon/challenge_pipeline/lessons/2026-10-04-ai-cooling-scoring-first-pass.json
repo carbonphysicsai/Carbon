@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-scoring-first-pass",
+  "recorded_at": "2026-10-04T00:06:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-AI-COOLING-07 first implementation diagnostic",
+    "description": "Ran the new Cooling scoring adapter suite together with the existing Cooling Level-0 construction-contract suite in the retained CCM Windows environment."
+  },
+  "expected": "The adapter should reuse the exact public practice rule and deterministic rebuild while preserving every existing Level-0 boundary.",
+  "observed": "14 tests passed and the POSIX-only campaign-controller test skipped. The named Cooling scorer, host/pod rebuild parity, exact-reference score, non-promoting descriptive comparison, public-data boundary and existing Level-0 contract all held.",
+  "keep": [
+    "Keep the comparison descriptive and non-promoting until a scientific owner registers a sampling and promotion rule.",
+    "Keep Launchpad private evaluation fail closed; this slice serves Graphite public-practice pods only."
+  ],
+  "change": [
+    "Exercise the multi-scoring Graphite call sites under canonical Linux and remove every remaining unnamed Challenge selection."
+  ],
+  "protocol_elements": [
+    "challenge.ai_cooling.scoring_adapter",
+    "challenge.graphite.scoring",
+    "challenge.pipeline.lessons"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-04-ai-cooling-level0-study-prepared",
+  "recorded_at": "2026-10-04T19:56:00Z",
+  "challenge": "chip-cold-plate",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "build",
+    "ref": "docs/development/cold_plate/level0",
+    "description": "Generated the cooling Level-0 study sheet and permission inventory from the registered Challenge adapter."
+  },
+  "expected": "Every construction dimension and Track-A check should be placed while owner-held attack budget and fresh confirmation population remain unset, leaving the study unfreezable.",
+  "observed": "The generated draft contains the exact construction and permission pins, one attack/control specimen for each registered check, and explicit HUMAN_INPUT gaps for budget and population. It is DRAFT_NOT_FROZEN, executed=false and freezable=false. No attack, model worker, solver, pod or paid service ran.",
+  "keep": [
+    "Regenerate the sheet from executable registrations rather than editing its pins by hand.",
+    "Keep Graphite execution blocked until both missing owner-held pins are supplied and frozen."
+  ],
+  "change": [],
+  "protocol_elements": [
+    "challenge.ai_cooling.level0",
+    "challenge-admission-study",
+    "fail-closed-owner-input"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -1,5 +1,7 @@
 """Public B-05 measurement-authoring surface."""
 
+from carbon.evaluation.refs import ReferencePolicyRef
+
 from .canonical import (
     MAX_MEASUREMENT_DOCUMENT_BYTES,
     canonical_bytes,
@@ -120,6 +122,7 @@ __all__ = (  # noqa: RUF022 -- public contract requires bytewise lexical order
     "ReconstructionEvidenceStatus",
     "ReconstructionResourceFacts",
     "ReconstructionStopKind",
+    "ReferencePolicyRef",
     "ScientificValueBinding",
     "ScientificValueState",
     "ScoreAggregationRole",
