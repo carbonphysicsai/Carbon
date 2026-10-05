@@ -61,8 +61,14 @@ OUTCOME_REQUIRED = (
 #: - `ev5-confirmation`: EV5's confirmation set, journal sequence 14
 #:   (OWNER-EV5-FREEZE-01);
 #: - `graphite-confirmation-v1`: battery's Graphite confirmation set
-#:   (OWNER-GRAPHITE-TEST-WAVE-01 item 6).
-RESERVED_SEED_ROLES = frozenset({"ev5-confirmation", "graphite-confirmation-v1"})
+#:   (OWNER-GRAPHITE-TEST-WAVE-01 item 6);
+#: - `cooling-graphite-confirmation-v1`: Cooling's future operator-held
+#:   confirmation set. The role is reserved before a set exists; reserving it
+#:   creates no cases, seed or batch (CHALLENGE-AI-COOLING-08).
+COOLING_CONFIRMATION_ROLE = "cooling-graphite-confirmation-v1"
+RESERVED_SEED_ROLES = frozenset(
+    {"ev5-confirmation", "graphite-confirmation-v1", COOLING_CONFIRMATION_ROLE}
+)
 
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
@@ -289,6 +295,7 @@ def check_outcome(outcome, adapter):
 
 __all__ = [
     "OUTCOME_REQUIRED",
+    "COOLING_CONFIRMATION_ROLE",
     "RESERVED_SEED_ROLES",
     "STATES",
     "TERMINAL_STATES",
