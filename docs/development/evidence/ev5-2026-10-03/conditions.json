@@ -1,0 +1,246 @@
+{
+  "conditions": [
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 6
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_backbone_a-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T26-S0.10",
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 47
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_backbone_b-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 6
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_optimizer_a-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 6
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_steps_a-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 8
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_steps_b-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 6
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_train_fraction_a-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 6
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_width_a-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score (deciding rule plus the gate, failures last; 2 x rank <= n)",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "infeasible_scenarios": [
+          "D-T6-S0.30",
+          "V-T39-S0.24"
+        ],
+        "of": 100,
+        "rank": 13
+      },
+      "kind": "ADVERSARIAL_TOP_HALF",
+      "member": "attack_rebuild_identity_width_b-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score; optimizer/findings.json",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "in_band": 6,
+        "of": 99,
+        "out_of_band": 1,
+        "rank": 1,
+        "violated": [
+          "no_plating_onset",
+          "peak_temperature",
+          "reach_cv_in_window"
+        ]
+      },
+      "kind": "MODE_X_VERIFIED_VIOLATION",
+      "member": "mlp_t6000_w256_d3_ens2-s0",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json adversarial_score; optimizer/findings.json",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "gate": "PASS",
+        "in_band": 2,
+        "of": 99,
+        "out_of_band": 7,
+        "rank": 23,
+        "violated": [
+          "no_plating_onset",
+          "peak_temperature",
+          "reach_cv_in_window"
+        ]
+      },
+      "kind": "MODE_X_VERIFIED_VIOLATION",
+      "member": "mlp_t6000_w512_d3-s1",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json value.H2",
+      "condition": "GATE_ANOMALY",
+      "detail": {
+        "controls_hold": true,
+        "difference": 0.8036753192890789,
+        "interval": [
+          -0.7912073277759678,
+          2.3342796501674035
+        ],
+        "outcome": "DOES_NOT_HOLD",
+        "real_members": 99,
+        "real_members_failed": 20
+      },
+      "kind": "GATE_DOES_NOT_SEPARATE_DECISION_VALUE",
+      "member": "near-limit optimism gate (2.0 bands)",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    },
+    {
+      "basis": "analysis.json value.H3",
+      "condition": "SCORE_VALUE_DIVERGENCE",
+      "detail": {
+        "near_limit_false_acceptance": 0.9459459459459459,
+        "ranks": {
+          "control-exam-v1/gated_failures_last": {
+            "below_every_eligible_real_member": false,
+            "of": 100,
+            "rank": 1
+          },
+          "control-exam-v1/ungated": {
+            "below_every_eligible_real_member": false,
+            "of": 100,
+            "rank": 1
+          },
+          "sr2-a0-r0.3-g0.6-m0.1/gated_failures_last": {
+            "below_every_eligible_real_member": false,
+            "of": 100,
+            "rank": 1
+          },
+          "sr2-a0-r0.3-g0.6-m0.1/ungated": {
+            "below_every_eligible_real_member": false,
+            "of": 100,
+            "rank": 1
+          }
+        },
+        "separation_by_measurement": "HOLDS"
+      },
+      "kind": "KNOWN_BLIND_SPOT_UNCAUGHT",
+      "member": "control-localized_sign_error",
+      "review_state": "the newest battery expansion record (carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/)",
+      "schema": "carbon.admission-condition.v1"
+    }
+  ],
+  "deciding_rule": "control-exam-v1 (testnet rule), plus the near-limit gate",
+  "effect": "findings block LOCK, not exploration",
+  "evidence_sha256": {
+    "analysis.json": "sha256:9ba43df3b00f02853fa7cdab0c5b475a4fc4e6810907b3f39ebf1c95c7d7c1d3",
+    "optimizer/findings.json": "sha256:67c7166cc49bc3d8a4c0bb2eea840febb702dab2874357d6865b93716b49e812",
+    "results.json": "sha256:60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+    "run-record.json": "sha256:0c0391fb19d837c797498752a781367009f19574d923011032d8bc7c1799b312"
+  },
+  "recording": "by the campaign controller's operator via CampaignController.consume_conditions",
+  "results": "docs/development/evidence/ev5-2026-10-03/analysis.json",
+  "schema": "carbon.admission-conditions.v1",
+  "scope": "public synthetic DEVELOPMENT evidence (EV5, run at c9c27a63); no qualification claim; not mainnet; the sealed confirmation report is not an input"
+}
